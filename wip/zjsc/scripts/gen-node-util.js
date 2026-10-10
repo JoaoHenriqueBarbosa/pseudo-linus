@@ -29,7 +29,7 @@ const common = [
   [/require\("internal\/util\/deprecate"\)/g, "deprecateModule"],
   [/require\("internal\/util\/inspect"\)/g, "inspectModule"],
   [/require\("internal\/util\/colors"\)/g, "colorsModule"],
-  [/require\("internal\/util\/comparisons"\)/g, "{ isDeepStrictEqual: host.isDeepStrictEqual }"],
+  [/require\("internal\/util\/comparisons"\)/g, "{ isDeepStrictEqual: host.jsFunctionIsDeepStrictEqual }"],
   [/require\("internal\/util\/mime"\)/g, "{ MIMEType: host.MIMEType, MIMEParams: host.MIMEParams }"],
   [/require\("internal\/streams\/utils"\)/g, 'host.requireInternal("internal/streams/utils")'],
   [/require\("internal\/tty"\)/g, "ttyModule"],
@@ -47,6 +47,10 @@ const common = [
 
 // As trocas de cada arquivo: as funções nativas que ele recebe do C++ ou do Rust do bun.
 const perFile = {
+  "internal/promisify": [
+    // `util.promisify.name` é `promisify2` no bun 1.4.2 (o mesmo renome do empacotador).
+    [/^var promisify = function promisify\(/m, "var promisify = function promisify2("],
+  ],
   "internal/primordials.js": [
     [/\$getByIdDirect\(Function\.prototype, "call"\)/g, "Function.prototype.call"],
     [/\$Promise\.prototype\.\$then/g, "Promise.prototype.then"],
@@ -71,7 +75,11 @@ const perFile = {
     [/\$newRustFunction\("node_util_binding\.rs", "internalErrorEntries", 0\)/g, "host.internalErrorEntries"],
     [/\$newRustFunction\("node_util_binding\.rs", "parseEnv", 1\)/g, "host.parseEnv"],
     [/\$newRustFunction\("parse_args\.rs", "parseArgs", 1\)/g, "host.parseArgs"],
-    [/\$newCppFunction\("NodeUtilTypesModule\.cpp", "jsFunctionIsError", 1\)/g, "host.isError"],
+    [/\$newCppFunction\("NodeUtilTypesModule\.cpp", "jsFunctionIsError", 1\)/g, "host.jsFunctionIsError"],
+    // O empacotador do bun renomeia o nome interno da expressão de função que colide com o `var` (`util.log.name` é
+    // `log2`, medido no bun 1.4.2): o nome é visível ao programa.
+    [/^var log = function log\(/m, "var log = function log2("],
+    [/^var inherits = function inherits\(/m, "var inherits = function inherits2("],
     [/\$newPromise\(\)/g, "host.newPromise()"],
     [/Promise\.\$resolve\(\)/g, "Promise.resolve()"],
     [/\$resolvePromiseWithFirstResolvingFunctionCallCheck\(/g, "host.resolvePromise("],

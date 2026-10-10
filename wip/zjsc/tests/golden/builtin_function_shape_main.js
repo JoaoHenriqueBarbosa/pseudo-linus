@@ -2,7 +2,7 @@
 // próprias e o texto do `Function.prototype.toString` (comprimento, hash e o começo). Anda as exportações de cada
 // módulo (valores e acessores, sem chamar acessor), as propriedades das funções e o `prototype` delas, até a
 // profundidade 3. Roda como `/app/main.js`; a saída é a do bun do oráculo.
-const modules = ["url", "events", "stream", "querystring", "timers", "timers/promises", "string_decoder", "async_hooks"];
+const modules = ["url", "events", "stream", "querystring", "timers", "timers/promises", "string_decoder", "async_hooks", "util"];
 // "skip": tudo menos o `URLPattern`; "only": só o `URLPattern`, que o zjsc ainda não tem (o teste dele fica `ignore`).
 const URL_PATTERN = "skip";
 const allowed = path => (URL_PATTERN === "only") === path.startsWith("url.URLPattern");

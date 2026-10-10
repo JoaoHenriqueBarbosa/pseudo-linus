@@ -11,7 +11,7 @@
 // (`[native code]`): o runtime só põe o texto numa função que no nosso lado é de JavaScript (o `StringDecoder`, nativo
 // no bun e escrito em JavaScript aqui), e deixa em paz a nativa de verdade, para a divergência dela aparecer no golden.
 // Uma função alcançada por dois caminhos só entra no primeiro.
-const modules = ["url", "events", "stream", "querystring", "timers", "timers/promises", "string_decoder", "async_hooks"];
+const modules = ["url", "events", "stream", "querystring", "timers", "timers/promises", "string_decoder", "async_hooks", "util"];
 
 const escape = text => text.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
 const out = ["# GERADO por `scripts/gen-builtin-source-texts.js` no bun 1.4.2 do oráculo. Não editar à mão."];

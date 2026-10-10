@@ -2692,7 +2692,7 @@ function defineCustomPromisifyArgs(target, args) {
   });
   return args;
 }
-var promisify = function promisify(original) {
+var promisify = function promisify2(original) {
   validateFunction(original, "original");
   const custom = original[kCustomPromisifiedSymbol];
   if (custom) {
@@ -2880,7 +2880,7 @@ function isObject(arg) {
   return typeof arg === "object" && arg !== null;
 }
 var isDate = types.isDate;
-var isError = host.isError;
+var isError = host.jsFunctionIsError;
 function isPrimitive(arg) {
   return arg === null || typeof arg === "boolean" || typeof arg === "number" || typeof arg === "string" || typeof arg === "symbol" || typeof arg === "undefined";
 }
@@ -2893,10 +2893,10 @@ function timestamp() {
   var time = [pad(d.getHours()), pad(d.getMinutes()), pad(d.getSeconds())].join(":");
   return [d.getDate(), months[d.getMonth()], time].join(" ");
 }
-var log = function log() {
+var log = function log2() {
   console.log("%s - %s", timestamp(), lazyInspectModule().format.apply(cjs_exports, arguments));
 };
-var inherits = function inherits(ctor, superCtor) {
+var inherits = function inherits2(ctor, superCtor) {
   if (ctor === undefined || ctor === null) {
     throw codes.INVALID_ARG_TYPE("ctor", "function", ctor);
   }

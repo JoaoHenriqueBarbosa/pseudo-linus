@@ -279,7 +279,7 @@ pub(crate) fn install_util_module(global_object: &JSGlobalObject) -> HostResult 
             ("getInternalField", 2, get_internal_field),
             ("jsFunctionIsDeepStrictEqual", 3, is_deep_strict_equal),
             ("isJSArray", 1, is_js_array),
-            ("isError", 1, is_error),
+            ("jsFunctionIsError", 1, is_error),
             ("parseEnv", 1, parse_env),
             ("parseArgs", 1, crate::api::node_parse_args::parse_args),
             ("requireInternal", 1, crate::api::node_stream::require_internal),

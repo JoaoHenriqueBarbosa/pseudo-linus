@@ -116,7 +116,7 @@ mod tests {
     /// O `string_decoder` do bun é nativo (`[native code]`), mas a seção dele existe: a nossa é de JavaScript.
     #[test]
     fn every_module_section_has_entries_with_a_tab() {
-        for module in ["url", "events", "stream", "querystring", "timers", "timers/promises", "string_decoder", "async_hooks"] {
+        for module in ["url", "events", "stream", "querystring", "timers", "timers/promises", "string_decoder", "async_hooks", "util"] {
             assert!(section(module).next().is_some(), "a seção de {module} está vazia");
         }
         assert!(section("nao_existe").next().is_none());

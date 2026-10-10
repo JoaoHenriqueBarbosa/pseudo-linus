@@ -4,7 +4,7 @@
 //! - o construtor é nativo (`[native code]`), `length` 0, `name` "TextEncoder", com `length`, `name` e
 //!   `prototype` como únicas chaves próprias; o protótipo do construtor é `Function.prototype`;
 //! - `TextEncoder.prototype` herda de `Object.prototype` e tem, nesta ordem: `constructor` (não enumerável),
-//!   o acessor `encoding` (enumerável, configurável, sem setter, getter nativo `get encoding`), `encode`
+//!   o acessor `encoding` (enumerável, configurável, sem setter, getter nativo `get encoding`, atributo do WebCore: `String(get)` sai `function encoding()`), `encode`
 //!   (`length` 1) e `encodeInto` (`length` 2), ambos graváveis, enumeráveis e configuráveis, e
 //!   `@@toStringTag` "TextEncoder" (não gravável, não enumerável);
 //! - `new TextEncoder(...)` ignora os argumentos e devolve um objeto sem propriedade própria; subclasse e
@@ -36,7 +36,6 @@ use std::cell::RefCell;
 use std::collections::HashSet;
 
 use crate::host_function;
-use crate::runtime::array_buffer_prototype::put_native_getter;
 use crate::runtime::class_info::ClassInfo;
 use crate::runtime::collection_support::{derived_structure, put_to_string_tag};
 use crate::runtime::host_call::{pending_or, HostCall, HostResult, Thrown};
@@ -51,7 +50,7 @@ use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_object::{JSFinalObject, JS_NON_FINAL_OBJECT_S_INFO};
 use crate::runtime::js_string::js_string;
 use crate::runtime::js_value::{EncodedJSValue, JSValue};
-use crate::runtime::native_class_support::{create_native_class, install_global, instance_structure, throw_coded_type_error, throw_native_type_error};
+use crate::runtime::native_class_support::{create_native_class, install_global, instance_structure, put_native_accessor, throw_coded_type_error, throw_native_type_error};
 use crate::runtime::property_attribute::DONT_ENUM;
 use crate::runtime::property_name::PropertyName;
 use crate::runtime::uint8_array_base64::{create_uint8_array, read_written_object};
@@ -188,7 +187,7 @@ pub fn install_text_encoder(global_object: &JSGlobalObject) {
         create_native_class(global_object, &TEXT_ENCODER_PROTOTYPE_S_INFO, &TEXT_ENCODER_CONSTRUCTOR_S_INFO, "TextEncoder", call_text_encoder, construct_text_encoder);
 
     prototype.put_direct(vm, &PropertyName::from_identifier(&vm.property_names.constructor), constructor.as_value(), DONT_ENUM);
-    put_native_getter(vm, global_object, &prototype, "encoding", text_encoder_encoding, Intrinsic::NoIntrinsic, 0);
+    put_native_accessor(vm, global_object, &prototype, "encoding", text_encoder_encoding, None, 0);
     for (name, length, function) in [("encode", 1, text_encoder_encode as crate::runtime::native_function::NativeFunction), ("encodeInto", 2, text_encoder_encode_into)] {
         put_direct_native_function_without_transition(
             vm,

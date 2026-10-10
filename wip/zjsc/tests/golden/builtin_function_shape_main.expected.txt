@@ -362,3 +362,72 @@ async_hooks.AsyncResource.prototype.triggerAsyncId	-	triggerAsyncId	0	[length,na
 async_hooks.AsyncResource.prototype.emitDestroy	-	emitDestroy	0	[length,name]	16:cd7ed455:emitDestroy() {}
 async_hooks.AsyncResource.prototype.runInAsyncScope	-	runInAsyncScope	2	[length,name]	178:b54a6c71:runInAsyncScope(fn, thisArg, ...args) { var 
 async_hooks.AsyncResource.prototype.bind	-	bind	2	[length,name]	510:4eeb83e0:bind(fn, thisArg) { validateFunction(fn, "fn
+util._errnoException	-	_errnoException	3	[length,name]	105:ee706685:function _errnoException(err, syscall, original)
+util._extend	-	_extend	2	[length,name]	189:96ac574f:function(origin, add) { if (!add || !isObject(
+util.callbackify	-	callbackify	1	[length,name]	1006:2fdf803e:function callbackify(original) { let { validat
+util.convertProcessSignalToExitCode	-	convertProcessSignalToExitCode	1	[length,name]	183:c838bc49:function convertProcessSignalToExitCode(signalCo
+util.debug	-	debuglog	1	[length,name]	399:6f053670:function debuglog(set) { if (set = set.toUpper
+util.deprecate	-	deprecate	3	[length,name]	761:4edcf024:function deprecate(fn, msg, code) { if (code !
+util.<get format>	-	get format	0	[length,name]	57:5f13e4ea:get format() { return lazyInspectModule().fo
+util.<set format>	-	set format	1	[length,name]	132:c766aa8b:set format(value) { Object.defineProperty(cj
+util.styleText	-	styleText	3	[length,name]	2939:9262fdc5:function styleText(format, text, options) { le
+util.<get formatWithOptions>	-	get formatWithOptions	0	[length,name]	79:a0baf73e:get formatWithOptions() { return lazyInspect
+util.<set formatWithOptions>	-	set formatWithOptions	1	[length,name]	182:65115417:set formatWithOptions(value) { Object.define
+util.getCallSites	-	getCallSites	0	[length,name]	881:23ae4a08:function getCallSites(frameCount = 10, options) 
+util.getSystemErrorMap	-	getSystemErrorMap	0	[length,name]	170:ef3d8d24:function getSystemErrorMap() { let copy = /* @
+util.getSystemErrorName	-	getSystemErrorName	1	[length,name]	271:714af0a8:function getSystemErrorName(err) { if (typeof 
+util.getSystemErrorMessage	-	getSystemErrorMessage	1	[length,name]	353:9621d57f:function getSystemErrorMessage(err) { if (type
+util.inherits	-	inherits2	2	[length,name]	636:45d87d0f:function inherits2(ctor, superCtor) { if (ctor
+util.<get inspect>	-	get inspect	0	[length,name]	59:231ac680:get inspect() { return lazyInspectModule().i
+util.<set inspect>	-	set inspect	1	[length,name]	134:1bd24baf:set inspect(value) { Object.defineProperty(c
+util.isDeepStrictEqual	-	jsFunctionIsDeepStrictEqual	3	[length,name]	56:d1c93d9a:function jsFunctionIsDeepStrictEqual() { [native
+util.promisify	-	promisify2	1	[length,name,custom]	1252:9bd92cf1:function promisify2(original) { validateFuncti
+util.setTraceSigInt	-	setTraceSigInt	1	[length,name]	189:db81e7d0:function setTraceSigInt(enable) { if (validate
+util.<get stripVTControlCharacters>	-	get stripVTControlCharacters	0	[length,name]	93:6c7c25c6:get stripVTControlCharacters() { return lazy
+util.<set stripVTControlCharacters>	-	set stripVTControlCharacters	1	[length,name]	196:d3376dbd:set stripVTControlCharacters(value) { Object
+util.toUSVString	-	toUSVString	1	[length,name]	52:087f9c81:(input) => { return (input + "").toWellFormed(
+util.aborted	-	aborted	2	[length,name]	852:6244a01a:function aborted(signal, resource) { if (!@isO
+util.parseEnv	-	parseEnv	1	[length,name]	37:42a86d1e:function parseEnv() { [native code] }
+util.parseArgs	-	parseArgs	1	[length,name]	38:0063a8bc:function parseArgs() { [native code] }
+util.TextDecoder	P	TextDecoder	0	[length,name,prototype]	40:0d7154fb:function TextDecoder() { [native code] }
+util.TextDecoder.prototype.decode	-	decode	1	[length,name]	35:9074b2c2:function decode() { [native code] }
+util.TextDecoder.prototype.<get encoding>	-	get encoding	0	[length,name]	37:80db0799:function encoding() { [native code] }
+util.TextDecoder.prototype.<get fatal>	-	get fatal	0	[length,name]	34:97b93a14:function fatal() { [native code] }
+util.TextDecoder.prototype.<get ignoreBOM>	-	get ignoreBOM	0	[length,name]	38:f94a91b2:function ignoreBOM() { [native code] }
+util.TextEncoder	P	TextEncoder	0	[length,name,prototype]	40:7d4af643:function TextEncoder() { [native code] }
+util.TextEncoder.prototype.<get encoding>	-	get encoding	0	[length,name]	37:80db0799:function encoding() { [native code] }
+util.TextEncoder.prototype.encode	-	encode	1	[length,name]	35:58457276:function encode() { [native code] }
+util.TextEncoder.prototype.encodeInto	-	encodeInto	2	[length,name]	39:13dd9c94:function encodeInto() { [native code] }
+util.MIMEType	P	MIMEType	1	[length,name,prototype]	37:6b966358:function MIMEType() { [native code] }
+util.MIMEType.prototype.<get type>	-	get type	0	[length,name]	33:0a9fe330:function type() { [native code] }
+util.MIMEType.prototype.<set type>	-	set type	1	[length,name]	33:0a9fe330:function type() { [native code] }
+util.MIMEType.prototype.<get subtype>	-	get subtype	0	[length,name]	36:69defbfc:function subtype() { [native code] }
+util.MIMEType.prototype.<set subtype>	-	set subtype	1	[length,name]	36:69defbfc:function subtype() { [native code] }
+util.MIMEType.prototype.<get essence>	-	get essence	0	[length,name]	36:a4c26e1c:function essence() { [native code] }
+util.MIMEType.prototype.<get params>	-	get params	0	[length,name]	35:96c188fe:function params() { [native code] }
+util.MIMEType.prototype.toString	-	toString	0	[length,name]	37:02dac02c:function toString() { [native code] }
+util.MIMEParams	P	MIMEParams	0	[length,name,prototype]	39:06016546:function MIMEParams() { [native code] }
+util.MIMEParams.prototype.get	-	get	1	[length,name]	32:98289f4a:function get() { [native code] }
+util.MIMEParams.prototype.has	-	has	1	[length,name]	32:103be5de:function has() { [native code] }
+util.MIMEParams.prototype.set	-	set	2	[length,name]	32:6c1c8846:function set() { [native code] }
+util.MIMEParams.prototype.delete	-	delete	1	[length,name]	35:d913620f:function delete() { [native code] }
+util.MIMEParams.prototype.toString	-	toString	0	[length,name]	37:02dac02c:function toString() { [native code] }
+util.MIMEParams.prototype.entries	-	entries	0	[length,name]	36:4a84bbb6:function entries() { [native code] }
+util.MIMEParams.prototype.keys	-	keys	0	[length,name]	33:9c75a850:function keys() { [native code] }
+util.MIMEParams.prototype.values	-	values	0	[length,name]	35:e11e06be:function values() { [native code] }
+util.isArray	-	isArray	1	[length,name]	36:8a592abb:function isArray() { [native code] }
+util.isBoolean	-	isBoolean	1	[length,name]	62:54c8e29f:function isBoolean(arg) { return typeof arg ==
+util.isBuffer	-	isBuffer	1	[length,name]	62:1c7125c4:function isBuffer(value) { return @Buffer.isBu
+util.isNull	-	isNull	1	[length,name]	47:123e9086:function isNull(arg) { return arg === null; }
+util.isNullOrUndefined	-	isNullOrUndefined	1	[length,name]	57:10490e30:function isNullOrUndefined(arg) { return arg =
+util.isNumber	-	isNumber	1	[length,name]	60:0bbe08c1:function isNumber(arg) { return typeof arg ===
+util.isString	-	isString	1	[length,name]	60:366fe599:function isString(arg) { return typeof arg ===
+util.isSymbol	-	isSymbol	1	[length,name]	60:6900dfdb:function isSymbol(arg) { return typeof arg ===
+util.isUndefined	-	isUndefined	1	[length,name]	54:73e053b0:function isUndefined(arg) { return arg === voi
+util.isRegExp	-	isRegExp	1	[length,name]	37:34344919:function isRegExp() { [native code] }
+util.isObject	-	isObject	1	[length,name]	76:3baa2577:function isObject(arg) { return typeof arg ===
+util.isDate	-	isDate	1	[length,name]	35:7c2b9518:function isDate() { [native code] }
+util.isError	-	jsFunctionIsError	1	[length,name]	46:e7675dfd:function jsFunctionIsError() { [native code] }
+util.isFunction	-	isFunction	1	[length,name]	68:b7fd0e29:function isFunction(value) { return typeof val
+util.isPrimitive	-	isPrimitive	1	[length,name]	181:3c12814c:function isPrimitive(arg) { return arg === nul
+util.log	-	log2	0	[length,name]	117:fc91ed74:function log2() { console.log("%s - %s", times
