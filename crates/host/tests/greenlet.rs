@@ -90,6 +90,16 @@ fn gl_callbacks_scene_matches_the_oracle() {
     );
 }
 
+/// O `__hash__` de usuário: a exceção sai de `hash()`, de `dict`, `set` e tupla; o resultado não-`int` é `TypeError`.
+#[test]
+fn hash_index_scene_matches_the_oracle() {
+    scene_matches(
+        "hash_index",
+        include_str!("../../../testbench/oracle/automation/cases/hash_index.py"),
+        include_str!("../../../testbench/oracle/automation/golden/hash_index.out"),
+    );
+}
+
 /// O estado interno não aparece em nada que o programa enxergue (`__dict__`, `vars`, `dir`, `__del__`, `__slots__`),
 /// o tipo é estático como no C e as funções de módulo são `builtin_function_or_method` de `greenlet._greenlet`.
 #[test]

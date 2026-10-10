@@ -1,0 +1,16 @@
+hash KeyError 'boom'
+dict_set KeyError 'boom'
+dict_get KeyError 'boom'
+dict_in KeyError 'boom'
+set_add KeyError 'boom'
+set_in KeyError 'boom'
+tuple KeyError 'boom'
+frozenset KeyError 'boom'
+str_ret TypeError __hash__ method should return an integer
+float_ret TypeError __hash__ method should return an integer
+none_ret TypeError __hash__ method should return an integer
+big_ret 13
+bool_ret 1
+minus_one -2
+myint 7
+nohash TypeError unhashable type: 'NoHash'

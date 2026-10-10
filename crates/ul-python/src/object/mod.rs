@@ -2072,7 +2072,7 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::Bound(b) => Ok(PyStr::new(b.name).hash()),
         Value::Class(c) => Ok((py_type_addr(Rc::as_ptr(c) as usize) >> 4) as i64),
         Value::Instance(i) => match crate::vm::instance_hash(v) {
-            Some(h) => Ok(h),
+            Some(h) => Ok(h?),
             // `__hash__ = None` na classe: instâncias não são hasheáveis.
             None if matches!(i.class().lookup("__hash__"), Some(Value::None)) => {
                 Err(ObjError::TypeError(format!("unhashable type: '{}'", i.class().name)))

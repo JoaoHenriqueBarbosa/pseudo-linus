@@ -3568,16 +3568,22 @@ pub(crate) fn payload_eq(a: &Value, b: &Value) -> Option<PyResult<bool>> {
 }
 
 /// `hash(v)` com `__hash__` de usuário.
-pub fn instance_hash(v: &Value) -> Option<i64> {
+pub fn instance_hash(v: &Value) -> Option<PyResult<i64>> {
     let Value::Instance(i) = v else { return None };
     let mut vm = current()?;
     if let Some(Value::Function(f)) = i.class().lookup("__hash__") {
-        if let Ok(Value::Int(h)) = vm.call_function(&f, vec![v.clone()], Vec::new()) {
-            return Some(h);
-        }
+        // `slot_tp_hash`: a exceção do método sai; o resultado tem de ser `int` (reduzido como o `int`, e o -1, que
+        // no C é o erro, vira -2).
+        return Some(vm.call_function(&f, vec![v.clone()], Vec::new()).and_then(|r| {
+            let int = crate::vm::unwrap_payload(&r);
+            if !matches!(int, Value::Int(_) | Value::Bool(_) | Value::Big(_)) {
+                return Err(type_error("__hash__ method should return an integer"));
+            }
+            Ok(crate::object::hash(&int)?)
+        }));
     }
     let payload = i.payload.borrow().clone()?;
-    crate::object::hash(&payload).ok()
+    Some(crate::object::hash(&payload).map_err(Into::into))
 }
 
 /// `bool(v)` de uma instância: `__bool__`, depois `__len__`, senão verdadeiro.
