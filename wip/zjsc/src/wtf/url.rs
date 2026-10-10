@@ -39,27 +39,10 @@ fn decode_escape_sequences_from_parsed_url(input: &WtfString) -> WtfString {
     WtfString::from_utf8(&percent_decoded)
 }
 
-/// `isEscapeCharacter` de `escapeFilePathWithoutCopying`, sobre `filePathEscapeTable` (POSIX): `\0`, `\t`, `\n`, `\r`,
-/// espaço, `"`, `#`, `%`, `?` e `[ \ ] ^ | ~`.
-fn is_file_path_escape_character(character: u16) -> bool {
-    const TABLE: [u64; 2] = [
-        1 | (1 << 9) | (1 << 10) | (1 << 13) | (1 << 32) | (1 << 34) | (1 << 35) | (1 << 37) | (1 << 63),
-        (1 << (b'[' - 64)) | (1 << (b'\\' - 64)) | (1 << (b']' - 64)) | (1 << (b'^' - 64)) | (1 << (b'|' - 64)) | (1 << (b'~' - 64)),
-    ];
-    character >= 128 || (TABLE[(character >> 6) as usize] >> (character & 63)) & 1 != 0
-}
-
-/// `escapeFilePathWithoutCopying` (URL.cpp) por `percentEncodeCharacters`: escapa os bytes UTF-8 do caminho.
+/// `escapeFilePathWithoutCopying` (URL.cpp): escapa os bytes UTF-8 do caminho. A tabela de escape mora em
+/// `ul_common::file_url`, que o transpilador do bun também usa.
 fn escape_file_path(path: &WtfString) -> WtfString {
-    let mut escaped = String::new();
-    for byte in path.utf8(ConversionMode::LenientConversion) {
-        if is_file_path_escape_character(byte as u16) {
-            escaped.push_str(&format!("%{byte:02X}"));
-        } else {
-            escaped.push(byte as char);
-        }
-    }
-    WtfString::from_latin1(escaped.as_bytes())
+    WtfString::from_latin1(ul_common::file_url::escape_path(&path.utf8(ConversionMode::LenientConversion)).as_bytes())
 }
 
 impl URL {
@@ -155,5 +138,26 @@ mod tests {
         assert_eq!(from("lib/a.js"), WtfString::from_latin1(b"file:///lib/a.js"));
         assert_eq!(from("/a#b?c%d"), WtfString::from_latin1(b"file:///a%23b%3Fc%25d"));
         assert_eq!(from("/\u{e9}"), WtfString::from_latin1(b"file:///%C3%A9"));
+    }
+
+    /// `ul_common::file_url::file_url_from_path` (o que o transpilador do bun usa) reproduz o parser completo daqui
+    /// num corpus de caminhos com segmentos de ponto, controles, delimitadores e não ASCII.
+    #[test]
+    fn file_url_from_path_matches_the_full_parser() {
+        let pieces: [&[u8]; 18] = [
+            b"/", b"a", b"b c", b".", b"..", b"%2e", b"%", b"#", b"?", b"<>", b"`{}", b"\x01", b"\x7f", b"\0", b"C:", "\u{e9}".as_bytes(), b"\\", b"|~",
+        ];
+        let mut corpus: Vec<Vec<u8>> = vec![Vec::new()];
+        for _ in 0..4 {
+            let next: Vec<Vec<u8>> = corpus.iter().flat_map(|prefix| pieces.iter().map(move |piece| [prefix.as_slice(), *piece].concat())).collect();
+            corpus.extend(next);
+            corpus.truncate(40_000);
+        }
+        for path in &corpus {
+            // O `#` sai escapado, então não há fragmento a tirar: o `stringWithoutFragmentIdentifier` é a string.
+            let url = URL::file_url_with_file_system_path(&WtfString::from_utf8(path));
+            let parsed = String::from_utf8_lossy(&url.string().utf8(ConversionMode::LenientConversion)).into_owned();
+            assert_eq!(ul_common::file_url::file_url_from_path(path), parsed, "caminho {path:?}");
+        }
     }
 }

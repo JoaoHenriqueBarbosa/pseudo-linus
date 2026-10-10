@@ -5,6 +5,7 @@
 
 pub mod codec;
 pub mod ctype;
+pub mod file_url;
 pub mod fnmatch;
 pub mod fsutil;
 pub mod getopt;

@@ -30,6 +30,16 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
   `AstAlloc::vec_from_slice(x)` e `AstVec::<Stmt>::from_slice(x)`/`from_arena_slice(x)` viram `<[_]>::to_vec(x)`,
   `ast_box` vira `Box::new`, e o `StringHashMap<_, AstAlloc>` perde o parâmetro. O `RawSlice` do `ExprOrLetStmt`
   vira `G::DeclList` (faixa `Copy` do `Store`), à mão.
+- Dependências que o upstream resolve por FFI ou por outra crate e que aqui moram no `ul-common`, para o zjsc e o
+  zbun não terem cada um a sua cópia:
+  - `bun_ast::math::pow` (no upstream, a FFI `Bun__JSC__operationMathPow`) é `ul_common::libm::operation_math_pow`,
+    com o `pow` do glibc, que subiu do zjsc;
+  - o `bun_url::file_url_from_string` (a FFI `URL__getFileURLString`, que é o
+    `WTF::URL::fileURLWithFileSystemPath` do WebKit) é `ul_common::file_url::file_url_from_path`. O parser de URL
+    completo mora no zjsc; um teste do zjsc (`wtf::url::tests::file_url_from_path_matches_the_full_parser`) confere
+    as duas num corpus de caminhos com `.`, `..`, controles, delimitadores e não ASCII;
+  - o `bun_ptr::BackRef` do `visit_decls` (um ponteiro para a entrada de `replace_exports`, que não muda durante a
+    visita) vira um clone da entrada: `ReplaceableExport` é `Clone` e o `Expr` dentro dele é um índice do `Store`.
 
 ## Próximos passos (parser e printer)
 

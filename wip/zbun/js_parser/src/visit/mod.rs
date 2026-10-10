@@ -297,13 +297,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let prev_require_to_convert_count = self.imports_to_convert_from_require.len();
                 let prev_macro_call_count = self.macro_call_count;
                 let orig_dead = self.is_control_flow_dead;
-                // `replacement` is a `BackRef` so the
-                // borrow of `self.options` does not survive across `visit_expr_in_out(&mut self)`.
-                // `BackRef` invariant: `self.options.features.replace_exports` is never mutated
-                // during the visit pass, so the entry strictly outlives this loop body.
-                let mut replacement: Option<
-                    bun_ptr::BackRef<crate::parser::Runtime::ReplaceableExport>,
-                > = None;
+                // `replacement` is a clone of the entry (the upstream keeps a `BackRef`) so the borrow of
+                // `self.options` does not survive across `visit_expr_in_out(&mut self)`. The entry is never
+                // mutated during the visit pass, and `Expr` is a `Copy` store handle, so the clone is
+                // the same value the upstream reads through the pointer.
+                let mut replacement: Option<crate::parser::Runtime::ReplaceableExport> = None;
                 if IS_POSSIBLY_DECL_TO_REMOVE {
                     if let BData::BIdentifier(id) = decl.binding.data {
                         let id_ref = id.r#ref;
@@ -313,9 +311,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .features
                             .replace_exports
                             .get_ptr(name)
-                            .map(|r| (bun_ptr::BackRef::new(r), r.is_replace()));
-                        if let Some((ptr, is_replace)) = found {
-                            replacement = Some(ptr);
+                            .map(|r| (r.clone(), r.is_replace()));
+                        if let Some((entry, is_replace)) = found {
+                            replacement = Some(entry);
                             if self.options.features.dead_code_elimination && !is_replace {
                                 self.is_control_flow_dead = true;
                             }
@@ -572,11 +570,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if IS_POSSIBLY_DECL_TO_REMOVE {
                     self.is_control_flow_dead = orig_dead;
                     if let BData::BIdentifier(_) = decl.binding.data {
-                        if let Some(_ptr) = replacement {
-                            // `BackRef::get`: entry lives in `self.options.features.replace_exports`,
-                            // which is not mutated during the visit pass.
-                            let replacer = _ptr.get();
-                            if !self.replace_decl_and_possibly_remove(decl, replacer) {
+                        if let Some(replacer) = replacement {
+                            if !self.replace_decl_and_possibly_remove(decl, &replacer) {
                                 continue 'outer;
                             }
                         }
@@ -600,17 +595,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if let BData::BIdentifier(id) = decl.binding.data {
                     let id_ref = id.r#ref;
                     let name = self.load_name_from_ref(id_ref);
-                    if let Some(_ptr) = self
+                    if let Some(replacer) = self
                         .options
                         .features
                         .replace_exports
                         .get_ptr(name)
-                        .map(bun_ptr::BackRef::new)
+                        .cloned()
                     {
-                        // `BackRef::get`: entry lives in `self.options.features.replace_exports`,
-                        // which is not mutated during the visit pass.
-                        let replacer = _ptr.get();
-                        if !self.replace_decl_and_possibly_remove(decl, replacer) {
+                        // The entry is cloned out of `self.options.features.replace_exports`, which is not
+                        // mutated during the visit pass.
+                        if !self.replace_decl_and_possibly_remove(decl, &replacer) {
                             let is_after = self.vis_scope().is_after_const_local_prefix;
                             self.visit_decl(
                                 decl,
