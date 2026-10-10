@@ -2,6 +2,11 @@
 //! mesmas respostas que o oráculo recebeu no replay) e o DOM despejado é comparado com o golden do chromium do Debian
 //! (`testbench/oracle/gen-internet.sh`). O placar sai por grupo (páginas estáticas e SPAs) e o teste falha abaixo da
 //! meta. Páginas que o próprio oráculo não repete (`unstable.txt`) ficam fora.
+//!
+//! O despejo passa quando é igual a uma das variantes do oráculo (`<id>.dom`, `<id>.<n>.dom`), ou quando cai num
+//! grupo de intervalos (`<id>.ranges*.json`): o mesmo texto fora os números, cada número que o oráculo repetiu em
+//! todas as rodadas do grupo igual, e cada número que variou dentro do mínimo e do máximo que ele mostrou. O intervalo
+//! é só o observado no oráculo, nunca alargado nem estimado.
 
 use std::collections::HashMap;
 use std::io::Write as _;
@@ -144,6 +149,79 @@ fn tape_page_main(ctx: &mut sysabi::Ctx, _argv: &[std::ffi::OsString]) -> i32 {
 
 static DUMP: Mutex<Option<String>> = Mutex::new(None);
 
+/// Divide o despejo em (pedaços de texto, números), a regra de `testbench/oracle/golden-ranges.py`: número começa num
+/// dígito, ou num `-` ou `.` seguidos de dígito, que não vem depois de letra, dígito, `_` ou `.`; segue com dígitos,
+/// uma fração e um expoente.
+fn tokens(text: &str) -> (Vec<&str>, Vec<&str>) {
+    let bytes = text.as_bytes();
+    let digit = |i: usize| bytes.get(i).is_some_and(u8::is_ascii_digit);
+    let word = |i: usize| bytes[i].is_ascii_alphanumeric() || bytes[i] == b'_' || bytes[i] == b'.';
+    let (mut pieces, mut numbers) = (Vec::new(), Vec::new());
+    let (mut start, mut i) = (0, 0);
+    while i < bytes.len() {
+        let prev_ok = i == 0 || !word(i - 1);
+        let mut j = i;
+        if prev_ok && bytes[i] == b'-' && digit(i + 1) {
+            j = i + 1;
+        }
+        if prev_ok && (digit(j) || (bytes.get(j) == Some(&b'.') && digit(j + 1))) {
+            let mut k = j;
+            while digit(k) {
+                k += 1;
+            }
+            if bytes.get(k) == Some(&b'.') && digit(k + 1) {
+                k += 1;
+                while digit(k) {
+                    k += 1;
+                }
+            }
+            if matches!(bytes.get(k), Some(b'e' | b'E')) {
+                let mut e = k + 1;
+                if matches!(bytes.get(e), Some(b'+' | b'-')) {
+                    e += 1;
+                }
+                if digit(e) {
+                    while digit(e) {
+                        e += 1;
+                    }
+                    k = e;
+                }
+            }
+            pieces.push(&text[start..i]);
+            numbers.push(&text[i..k]);
+            start = k;
+            i = k;
+            continue;
+        }
+        i += 1;
+    }
+    pieces.push(&text[start..]);
+    (pieces, numbers)
+}
+
+/// O despejo cai num grupo de intervalos do golden (`<id>.ranges*.json`): o mesmo texto fora os números, cada número
+/// exato igual e cada número que variou no oráculo dentro do intervalo que ele mostrou.
+fn within_ranges(actual: &str, ranges: &serde_json::Value) -> bool {
+    let (pieces, numbers) = tokens(actual);
+    let expected_pieces = ranges["pieces"].as_array().unwrap();
+    let slots = ranges["numbers"].as_array().unwrap();
+    if pieces.len() != expected_pieces.len() || numbers.len() != slots.len() {
+        return false;
+    }
+    pieces.iter().zip(expected_pieces).all(|(piece, expected)| expected.as_str() == Some(piece))
+        && numbers.iter().zip(slots).all(|(number, slot)| match slot.get("exact") {
+            Some(exact) => exact.as_str() == Some(number),
+            None => number.parse::<f64>().is_ok_and(|value| slot["min"].as_f64().unwrap() <= value && value <= slot["max"].as_f64().unwrap()),
+        })
+}
+
+#[test]
+fn tokens_split_numbers_from_text_like_the_generator() {
+    let (pieces, numbers) = tokens("scale(0.944158) border-radius: 2px; css-1a2b translate3d(-1.5e-3px, .5)");
+    assert_eq!(numbers, ["0.944158", "2", "1", "-1.5e-3", ".5"]);
+    assert_eq!(pieces, ["scale(", ") border-radius: ", "px; css-", "a2b translate3d(", "px, ", ")"]);
+}
+
 #[test]
 fn internet_scoreboard() {
     let corpus = bench().join("corpus/internet");
@@ -162,6 +240,12 @@ fn internet_scoreboard() {
         let Ok(expected) = std::fs::read_to_string(golden.join(format!("{id}.dom"))) else { continue };
         // As outras saídas legítimas do oráculo (ordem de rede diferente entre execuções): `<id>.<n>.dom`.
         let variants: Vec<String> = (1..).map_while(|n| std::fs::read_to_string(golden.join(format!("{id}.{n}.dom"))).ok()).collect();
+        // O que o oráculo não repete nem entre rodadas iguais no texto: os intervalos que ele mostrou.
+        let ranges: Vec<serde_json::Value> = std::iter::once(format!("{id}.ranges.json"))
+            .chain((1..).map(|n| format!("{id}.ranges.{n}.json")))
+            .map_while(|name| std::fs::read_to_string(golden.join(name)).ok())
+            .map(|text| serde_json::from_str(&text).unwrap())
+            .collect();
         eprintln!("página: {id}");
         let tape_dir = tape_override.clone().unwrap_or_else(|| corpus.join(id));
         let tape: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(tape_dir.join("tape.json")).unwrap()).unwrap();
@@ -178,7 +262,7 @@ fn internet_scoreboard() {
         };
         let slot = groups.entry(group.to_owned()).or_default();
         slot.1 += 1;
-        if actual == expected || variants.contains(&actual) {
+        if actual == expected || variants.contains(&actual) || ranges.iter().any(|group| within_ranges(&actual, group)) {
             slot.0 += 1;
         } else {
             slot.2.push(id.to_owned());

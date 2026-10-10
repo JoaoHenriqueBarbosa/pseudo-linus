@@ -1,11 +1,18 @@
 #!/bin/sh
-# Gera o golden do conjunto da internet: para cada fita, roda o chromium real RUNS vezes, sem rede, sobre o replay.
-# Cada saída distinta é um comportamento legítimo do Chromium (a ordem em que respostas paralelas chegam varia), e
-# todas viram golden: testbench/golden/chromium-internet/<id>.dom e, havendo mais, <id>.<n>.dom. O placar aceita
-# qualquer uma. Só sai do placar (unstable.txt) a página cujo despejo vem vazio.
+# Gera o golden do conjunto da internet: para cada fita, roda o chromium real RUNS vezes (8 por padrão), sem rede,
+# sobre o replay.
+# - Cada saída distinta é um comportamento legítimo do Chromium (a ordem em que respostas paralelas chegam varia), e
+#   todas viram golden: testbench/golden/chromium-internet/<id>.dom e, havendo mais, <id>.<n>.dom.
+# - O que o oráculo não repete nem com o relógio virtual (o retrato de uma animação no meio, porque o trabalho de CPU
+#   do carregamento anda o relógio de verdade e cada rodada para num instante diferente) vira intervalo: o número que
+#   muda entre as rodadas, sempre com o mesmo texto logo antes e logo depois, guarda o mínimo e o máximo observados.
+#   Cada texto distinto com algum número assim ganha <id>.ranges.json (e <id>.ranges.<n>.json); o resto continua
+#   exato. Ver golden-ranges.py.
+# O placar aceita qualquer variante exata, ou o despejo que bate com o texto de um grupo e cai nos intervalos dele.
+# Só sai do placar (unstable.txt) a página cujo despejo vem vazio.
 # Uso: gen-internet.sh [id ...]   (sem argumento, todas)
 set -eu
-RUNS=${RUNS:-4}
+RUNS=${RUNS:-8}
 root=$(cd "$(dirname "$0")/../.." && pwd)
 list=$root/testbench/corpus/internet/pages.txt
 golden=$root/testbench/golden/chromium-internet
@@ -22,7 +29,7 @@ grep -v '^#' "$list" | while IFS='|' read -r id group url; do
       pl-oracle-chromium sh /oracle/replay-dump.sh "$url" > "$tmp/$id.$run" || true
     run=$((run + 1))
   done
-  rm -f "$golden/$id.dom" "$golden/$id".*.dom
+  rm -f "$golden/$id.dom" "$golden/$id".*.dom "$golden/$id".ranges*.json
   variants=0
   for out in "$tmp/$id".*; do
     [ -s "$out" ] || continue
@@ -34,12 +41,14 @@ grep -v '^#' "$list" | while IFS='|' read -r id group url; do
     if [ "$variants" -eq 0 ]; then cp "$out" "$golden/$id.dom"; else cp "$out" "$golden/$id.$variants.dom"; fi
     variants=$((variants + 1))
   done
+  ranges=$(python3 -I "$root/testbench/oracle/golden-ranges.py" "$golden/$id.ranges.json" "$tmp/$id".*)
   sed -i "/^$id\$/d" "$unstable"
   if [ "$variants" -eq 0 ]; then
     echo "$id" >> "$unstable"
     echo "vazio: $id"
   else
-    echo "golden: $id ($variants variante(s))"
+    echo "golden: $id ($variants variante(s), $ranges grupo(s) com intervalo)"
   fi
+  rm -f "$tmp/$id".*
 done
 rm -rf "$tmp"

@@ -35,10 +35,16 @@ vite.dev, htmx.org, solidjs.com).
   que a página recebeu (documento, scripts, folhas, XHR e fetch). Só cabeçalhos que mudam o comportamento entram;
   nada da máquina de quem grava. Corpos deduplicados por sha256 em `<id>/bodies/`.
 - Golden: `testbench/oracle/gen-internet.sh` roda o Chromium do oráculo **sem rede**, sobre o replay da fita
-  (`tape-replay.py`, HTTP e HTTPS, `--host-resolver-rules`), com `--virtual-time-budget=15000`, duas vezes. Saídas
-  iguais viram `testbench/golden/chromium-internet/<id>.dom`; diferentes vão para `unstable.txt` e saem do placar
-  (o próprio oráculo não se repete: aleatório, relógio ou ordem de rede).
-- Placar: `PAGE=<id> DIFF_DIR=<dir> cargo test --release --test internet -- --nocapture` no `ul-chromium`.
+  (`tape-replay.py`, HTTP e HTTPS, `--host-resolver-rules`), com `--virtual-time-budget=15000`, oito vezes
+  (`RUNS`). Cada saída distinta vira variante (`<id>.dom`, `<id>.<n>.dom`). O que o oráculo não repete nem assim
+  (o retrato de uma animação no meio: o trabalho de CPU do carregamento anda o relógio de verdade, e cada rodada
+  para num instante diferente) vira intervalo: `golden-ranges.py` marca o número que muda entre as rodadas, sempre
+  com o mesmo texto logo antes e logo depois, e grava o mínimo e o máximo observados em `<id>.ranges.json` (um por
+  texto distinto do oráculo); o que não variou fica exato. Só
+  vai para `unstable.txt` a página de despejo vazio.
+- Placar: `PAGE=<id> DIFF_DIR=<dir> cargo test --release --test internet -- --nocapture` no `ul-chromium`. Passa o
+  despejo igual a uma variante, ou com o texto de um grupo de intervalos, os números exatos iguais e os variáveis
+  dentro do intervalo observado. Nunca se calibra custo de CPU para cair numa amostra, nem se alarga intervalo.
 
 ## Placar
 
