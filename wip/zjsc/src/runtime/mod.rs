@@ -69,6 +69,7 @@ pub mod web_iterable;
 pub mod url;
 pub mod url_search_params;
 pub mod form_data;
+pub mod mime;
 pub mod form_data_parse;
 pub mod mime_table;
 pub mod headers;

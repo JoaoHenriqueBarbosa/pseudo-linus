@@ -594,6 +594,17 @@ impl Formatter {
             }
             keys.push(key);
         }
+        // O caminho rápido do bun percorre a `Structure` em ordem de inserção, com os símbolos entre as chaves de texto
+        // (`{a: 1, [sym]: 2, b: 3}` sai nessa ordem, medido no bun 1.4.2); o `[[OwnPropertyKeys]]` daria texto e depois símbolos.
+        if keys.iter().any(|key| key.symbol) {
+            let structure = object.structure();
+            if !object.has_non_reified_static_properties(&structure) && structure.can_perform_fast_property_enumeration() {
+                let order: Vec<_> = structure.properties_with_privacy().into_iter().filter(|entry| !entry.3).map(|entry| entry.0).collect();
+                let position = |key: &Key| key.name.uid().and_then(|uid| order.iter().position(|candidate| candidate == uid));
+                // As chaves fora da estrutura (índices) ficam na frente, na ordem em que vieram.
+                keys.sort_by_key(|key| position(key).map_or(0, |index| index + 1));
+            }
+        }
         Some(keys)
     }
 
@@ -740,6 +751,16 @@ impl Formatter {
         }
     }
 
+    /// `name` é um atributo nativo (`CustomGetterSetter`) do objeto ou de um protótipo dele.
+    fn has_custom_accessor(global_object: &JSGlobalObject, object: &crate::runtime::js_object::JSObject, name: &PropertyName) -> bool {
+        let mut descriptor = crate::runtime::property_descriptor::PropertyDescriptor::default();
+        if !object.get_own_property_descriptor(global_object.vm(), name, &mut descriptor) {
+            let prototype = object.get_prototype_direct();
+            return prototype.is_object() && Formatter::has_custom_accessor(global_object, &prototype.as_object(), name);
+        }
+        descriptor.is_accessor_descriptor() && descriptor.getter_present() && is_custom_accessor_function(descriptor.getter())
+    }
+
     fn format_object(&mut self, global_object: &JSGlobalObject, out: &mut Vec<u16>, value: JSValue) -> bool {
         let Some(mut keys) = Formatter::keys(global_object, value, false) else { return false };
         if prints_prototype_members(value.as_cell()) && Formatter::prototype_keys(global_object, value, &mut keys).is_none() {
@@ -788,7 +809,13 @@ impl Formatter {
                 self.est += label.len();
                 continue;
             }
-            let property = object.get(global_object, &key.name);
+            let mut property = object.get(global_object, &key.name);
+            // O atributo nativo do WebCore que lança (o getter lido com o protótipo como `this`, `console.log(MIMEType.prototype)`)
+            // sai `undefined` no bun, sem propagar a exceção (medido no bun 1.4.2).
+            if has_exception(global_object) && Formatter::has_custom_accessor(global_object, &object, &key.name) {
+                global_object.vm().clear_exception();
+                property = JSValue::undefined();
+            }
             if has_exception(global_object) {
                 self.push_key(out, key, false);
                 return false;

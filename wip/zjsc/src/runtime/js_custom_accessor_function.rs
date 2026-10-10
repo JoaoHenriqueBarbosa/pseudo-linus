@@ -48,9 +48,22 @@ pub enum CustomFunctionPointer {
 pub struct CustomAccessorFunction {
     property_name: Identifier,
     pointer: CustomFunctionPointer,
+    /// O atributo nativo escrito à mão no bun (`HashTableValue` `CustomAccessor` sem `ReadOnly` e sem setter, como
+    /// `MIMEType.prototype.essence`): a escrita é ignorada, mesmo em modo estrito, em vez de lançar.
+    ignores_put: std::cell::Cell<bool>,
 }
 
 impl CustomAccessorFunction {
+    /// Escrever neste acessor sem setter não lança.
+    pub fn ignores_put(&self) -> bool {
+        self.ignores_put.get()
+    }
+
+    /// Marca o acessor como de escrita ignorada.
+    pub fn set_ignores_put(&self) {
+        self.ignores_put.set(true);
+    }
+
     /// `propertyName()`.
     pub fn property_name(&self) -> &Identifier {
         &self.property_name
@@ -147,6 +160,7 @@ pub fn create_host_custom_accessor_getter_function(
     let _ = created.custom_accessor.set(CustomAccessorFunction {
         property_name: Identifier::from_string(vm, &public_name),
         pointer: CustomFunctionPointer::Host,
+        ignores_put: std::cell::Cell::new(false),
     });
     created
 }
@@ -220,7 +234,7 @@ fn create(
     );
     let initialized = created
         .custom_accessor
-        .set(CustomAccessorFunction { property_name: Identifier::from_uid(vm, property_name.uid()), pointer });
+        .set(CustomAccessorFunction { property_name: Identifier::from_uid(vm, property_name.uid()), pointer, ignores_put: std::cell::Cell::new(false) });
     debug_assert!(initialized.is_ok());
     put_prefixed_name(vm, &created, prefix, &public_name);
     created

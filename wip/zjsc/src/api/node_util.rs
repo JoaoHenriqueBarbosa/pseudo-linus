@@ -17,6 +17,7 @@ use crate::runtime::js_promise::{JSPromise, Status};
 use crate::runtime::js_string::js_string;
 use crate::runtime::js_type::JSType;
 use crate::runtime::js_value::{js_boolean, js_number, JSValue};
+use crate::runtime::native_class_support::property_key;
 use crate::runtime::node_error::throw_coded_type_error;
 use crate::runtime::object_constructor::{construct_array_of, construct_empty_object, identifier_to_js_value, put_own_data_property_may_be_index};
 use crate::wtf::text::conversion_mode::ConversionMode;
@@ -285,5 +286,9 @@ pub(crate) fn install_util_module(global_object: &JSGlobalObject) -> HostResult 
             ("stringWidth", 1, crate::runtime::bun_global::bun_string_width),
         ],
     )?;
+    let vm = global_object.vm();
+    let (mime_type, mime_params) = crate::runtime::mime::install_mime_classes(global_object);
+    host.put_direct(vm, &property_key(vm, "MIMEType"), mime_type, 0);
+    host.put_direct(vm, &property_key(vm, "MIMEParams"), mime_params, 0);
     Ok(run_factory(global_object, SOURCE, "util", &host))
 }

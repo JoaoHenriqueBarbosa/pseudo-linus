@@ -135,6 +135,7 @@ fn visit_side_tables(marker: &mut Marker, phase: SidePhase) -> bool {
     for visit in [
         rt::url::visit_side_table,
         rt::request::visit_side_table,
+        rt::mime::visit_side_table,
         rt::response::visit_side_table,
         rt::abort_signal::visit_side_table,
         rt::crypto::visit_side_table,
@@ -245,6 +246,7 @@ fn visit_host_roots(marker: &mut Marker) {
     rt::abort_signal::visit_gc_roots(marker);
     rt::response::visit_gc_roots(marker);
     rt::request::visit_gc_roots(marker);
+    rt::mime::visit_gc_roots(marker);
     rt::queuing_strategy::visit_gc_roots(marker);
     rt::message_channel::visit_gc_roots(marker);
     rt::js_arguments_objects::visit_gc_roots(marker);

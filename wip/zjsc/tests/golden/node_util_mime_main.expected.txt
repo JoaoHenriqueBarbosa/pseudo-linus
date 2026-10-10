@@ -1,0 +1,241 @@
+MIMEType keys ["length","name","prototype"]
+MIMEType length ["data",false,false,true,"number",null]
+MIMEType name ["data",false,false,true,"string",null]
+MIMEType prototype ["data",false,false,false,"object",null]
+MIMEType.prototype keys ["type","subtype","essence","params","toString","toJSON","constructor","Symbol(Symbol.toStringTag)"]
+MIMEType.prototype type ["accessor",true,true,"function","function",["get type",0],["set type",1]]
+MIMEType.prototype subtype ["accessor",true,true,"function","function",["get subtype",0],["set subtype",1]]
+MIMEType.prototype essence ["accessor",true,true,"function","undefined",["get essence",0],null]
+MIMEType.prototype params ["accessor",true,true,"function","undefined",["get params",0],null]
+MIMEType.prototype toString ["data",true,true,true,"function",["toString",0]]
+MIMEType.prototype toJSON ["data",true,true,true,"function",["toString",0]]
+MIMEType.prototype constructor ["data",true,false,true,"function",["MIMEType",1]]
+MIMEType.prototype Symbol(Symbol.toStringTag) ["data",false,false,true,"string",null]
+MIMEParams keys ["length","name","prototype"]
+MIMEParams length ["data",false,false,true,"number",null]
+MIMEParams name ["data",false,false,true,"string",null]
+MIMEParams prototype ["data",false,false,false,"object",null]
+MIMEParams.prototype keys ["get","has","set","delete","toString","entries","keys","values","toJSON","constructor","Symbol(Symbol.iterator)","Symbol(Symbol.toStringTag)"]
+MIMEParams.prototype get ["data",true,true,true,"function",["get",1]]
+MIMEParams.prototype has ["data",true,true,true,"function",["has",1]]
+MIMEParams.prototype set ["data",true,true,true,"function",["set",2]]
+MIMEParams.prototype delete ["data",true,true,true,"function",["delete",1]]
+MIMEParams.prototype toString ["data",true,true,true,"function",["toString",0]]
+MIMEParams.prototype entries ["data",true,true,true,"function",["entries",0]]
+MIMEParams.prototype keys ["data",true,true,true,"function",["keys",0]]
+MIMEParams.prototype values ["data",true,true,true,"function",["values",0]]
+MIMEParams.prototype toJSON ["data",true,true,true,"function",["toString",0]]
+MIMEParams.prototype constructor ["data",true,false,true,"function",["MIMEParams",0]]
+MIMEParams.prototype Symbol(Symbol.iterator) ["data",true,false,true,"function",["entries",0]]
+MIMEParams.prototype Symbol(Symbol.toStringTag) ["data",false,false,true,"string",null]
+names MIMEType 1 MIMEParams 0 function function
+tags [object MIMEType] [object MIMEParams] [object MIMEType] [object MIMEParams]
+proto-chain true true true
+exports ["value","writable","enumerable","configurable"] true
+tostring-fn function MIMEType() { [native code] } function MIMEParams() { [native code] } function toString() { [native code] } function type() { [native code] }
+same-fn true true true
+call ["throw","TypeError",null,"function is not a constructor (evaluating 'MIMEType(\"a/b\")')"] ["throw","TypeError",null,"function is not a constructor (evaluating 'MIMEParams()')"]
+new-params ["ok",""] ["ok",""] ["ok",[]]
+no-args ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"undefined\" is invalid"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"undefined\" is invalid"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"null\" is invalid"]
+non-string ["ok","text/plain"] ["throw","TypeError",null,"Cannot convert a symbol to a string"] ["throw","RangeError",null,"boom"]
+parse "text/plain" ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "TEXT/PLAIN" ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "  text/plain" ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "text/plain  " ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "text/plain; charset=utf-8" ["ok",["text","plain","text/plain","text/plain;charset=utf-8","\"text/plain;charset=utf-8\"",[["charset","utf-8"]],"charset=utf-8"]]
+parse "text/plain;charset=utf-8" ["ok",["text","plain","text/plain","text/plain;charset=utf-8","\"text/plain;charset=utf-8\"",[["charset","utf-8"]],"charset=utf-8"]]
+parse "text/plain ; charset=utf-8" ["ok",["text","plain","text/plain","text/plain;charset=utf-8","\"text/plain;charset=utf-8\"",[["charset","utf-8"]],"charset=utf-8"]]
+parse "text/plain;CHARSET=UTF-8" ["ok",["text","plain","text/plain","text/plain;charset=UTF-8","\"text/plain;charset=UTF-8\"",[["charset","UTF-8"]],"charset=UTF-8"]]
+parse "text/plain;a=1;b=2;a=3" ["ok",["text","plain","text/plain","text/plain;a=1;b=2","\"text/plain;a=1;b=2\"",[["a","1"],["b","2"]],"a=1;b=2"]]
+parse "text/plain;a=\"x y\"" ["ok",["text","plain","text/plain","text/plain;a=\"x y\"","\"text/plain;a=\\\"x y\\\"\"",[["a","x y"]],"a=\"x y\""]]
+parse "text/plain;a=\"x\\\"y\"" ["ok",["text","plain","text/plain","text/plain;a=\"x\\\"y\"","\"text/plain;a=\\\"x\\\\\\\"y\\\"\"",[["a","x\"y"]],"a=\"x\\\"y\""]]
+parse "text/plain;a=\"x\\\\y\"" ["ok",["text","plain","text/plain","text/plain;a=\"x\\\\y\"","\"text/plain;a=\\\"x\\\\\\\\y\\\"\"",[["a","x\\y"]],"a=\"x\\\\y\""]]
+parse "text/plain;a=\"unterminated" ["ok",["text","plain","text/plain","text/plain;a=unterminated","\"text/plain;a=unterminated\"",[["a","unterminated"]],"a=unterminated"]]
+parse "text/plain;a=\"unterminated;b=2" ["ok",["text","plain","text/plain","text/plain;a=\"unterminated;b=2\"","\"text/plain;a=\\\"unterminated;b=2\\\"\"",[["a","unterminated;b=2"]],"a=\"unterminated;b=2\""]]
+parse "text/plain;a=" ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "text/plain;a=;b=2" ["ok",["text","plain","text/plain","text/plain;b=2","\"text/plain;b=2\"",[["b","2"]],"b=2"]]
+parse "text/plain;a" ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "text/plain;a;b=2" ["ok",["text","plain","text/plain","text/plain;b=2","\"text/plain;b=2\"",[["b","2"]],"b=2"]]
+parse "text/plain;=b" ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "text/plain;a b=c" ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "text/plain;a=b c" ["ok",["text","plain","text/plain","text/plain;a=\"b c\"","\"text/plain;a=\\\"b c\\\"\"",[["a","b c"]],"a=\"b c\""]]
+parse "text/plain;a=b\tc" ["ok",["text","plain","text/plain","text/plain;a=\"b\tc\"","\"text/plain;a=\\\"b\\tc\\\"\"",[["a","b\tc"]],"a=\"b\tc\""]]
+parse "text/plain;a=\"\"" ["ok",["text","plain","text/plain","text/plain;a=\"\"","\"text/plain;a=\\\"\\\"\"",[["a",""]],"a=\"\""]]
+parse "text/plain;a=\"\";b=\"\"" ["ok",["text","plain","text/plain","text/plain;a=\"\";b=\"\"","\"text/plain;a=\\\"\\\";b=\\\"\\\"\"",[["a",""],["b",""]],"a=\"\";b=\"\""]]
+parse "text/plain;;;a=1;;" ["ok",["text","plain","text/plain","text/plain;a=1","\"text/plain;a=1\"",[["a","1"]],"a=1"]]
+parse "text/plain; \t\r\n a=1" ["ok",["text","plain","text/plain","text/plain;a=1","\"text/plain;a=1\"",[["a","1"]],"a=1"]]
+parse "text/plain;a=1 \t " ["ok",["text","plain","text/plain","text/plain;a=1","\"text/plain;a=1\"",[["a","1"]],"a=1"]]
+parse "text/plain;a=é" ["ok",["text","plain","text/plain","text/plain;a=\"é\"","\"text/plain;a=\\\"é\\\"\"",[["a","é"]],"a=\"é\""]]
+parse "text/plain;a=Ā" ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "text/plain;a=" ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "text/plain;a=\"é\"" ["ok",["text","plain","text/plain","text/plain;a=\"é\"","\"text/plain;a=\\\"é\\\"\"",[["a","é"]],"a=\"é\""]]
+parse "text/plain;a=\"line\nbreak\"" ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "text/plain;a=\"\\" ["ok",["text","plain","text/plain","text/plain;a=\"\\\\\"","\"text/plain;a=\\\"\\\\\\\\\\\"\"",[["a","\\"]],"a=\"\\\\\""]]
+parse "text/plain;a=\\x" ["ok",["text","plain","text/plain","text/plain;a=\"\\\\x\"","\"text/plain;a=\\\"\\\\\\\\x\\\"\"",[["a","\\x"]],"a=\"\\\\x\""]]
+parse "text/plain;a=\"a\"b" ["ok",["text","plain","text/plain","text/plain;a=a","\"text/plain;a=a\"",[["a","a"]],"a=a"]]
+parse "text/plain;a=\"a\"\"b\"" ["ok",["text","plain","text/plain","text/plain;a=a","\"text/plain;a=a\"",[["a","a"]],"a=a"]]
+parse "application/vnd.api+json;version=1" ["ok",["application","vnd.api+json","application/vnd.api+json","application/vnd.api+json;version=1","\"application/vnd.api+json;version=1\"",[["version","1"]],"version=1"]]
+parse "a/b;c=d;e=f" ["ok",["a","b","a/b","a/b;c=d;e=f","\"a/b;c=d;e=f\"",[["c","d"],["e","f"]],"c=d;e=f"]]
+parse "!#$%&'*+-.^_`|~/!#$%&'*+-.^_`|~" ["ok",["!#$%&'*+-.^_`|~","!#$%&'*+-.^_`|~","!#$%&'*+-.^_`|~/!#$%&'*+-.^_`|~","!#$%&'*+-.^_`|~/!#$%&'*+-.^_`|~","\"!#$%&'*+-.^_`|~/!#$%&'*+-.^_`|~\"",[],""]]
+parse "text" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"text\" is invalid"]
+parse "/plain" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"/plain\" is invalid"]
+parse "text/" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a subtype in \"text/\" is invalid"]
+parse "text/ plain" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a subtype in \"text/ plain\" is invalid at 0"]
+parse "te xt/plain" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"te xt/plain\" is invalid at 2"]
+parse "text/plain/extra" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a subtype in \"text/plain/extra\" is invalid at 5"]
+parse "text/pla in" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a subtype in \"text/pla in\" is invalid at 3"]
+parse "" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"\" is invalid"]
+parse " " ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \" \" is invalid"]
+parse "text/plain;" ["ok",["text","plain","text/plain","text/plain","\"text/plain\"",[],""]]
+parse "text/plain;a=1;" ["ok",["text","plain","text/plain","text/plain;a=1","\"text/plain;a=1\"",[["a","1"]],"a=1"]]
+parse "texté/plain" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"texté/plain\" is invalid at 4"]
+parse "text/pléin" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a subtype in \"text/pléin\" is invalid at 2"]
+parse ";a=1" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \";a=1\" is invalid at 0"]
+parse "text/;a=1" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a subtype in \"text/;a=1\" is invalid"]
+parse "/;a=1" ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"/;a=1\" is invalid"]
+getters text plain text/plain true true
+set-type ["ok","image"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"\" is invalid"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"a b\" is invalid at 1"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a type in \"a/b\" is invalid at 1"] ["ok","5"] ["throw","RangeError",null,"x"]
+set-subtype ["ok","jpeg"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a subtype in \"\" is invalid"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a subtype in \"a;b\" is invalid at 1"] ["ok","undefined"]
+after-set 5/undefined;charset=utf-8 5/undefined
+set-readonly ["ok","5/undefined"] ["ok",1]
+strict-set ["ok",null] ["ok",null]
+wrong-this ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEType, but received an instance of Object"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEType, but received an instance of Object"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEType, but received an instance of Object"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEType, but received null"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEType, but received type number (1)"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEType, but received type string ('s')"]
+proto-access ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEType, but received an instance of MIMEType"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEType, but received an instance of MIMEType"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEType, but received an instance of MIMEType"]
+params a=1;b="x y" [["a","1"],["b","x y"]] ["a","b"] ["1","x y"] [["a","1"],["b","x y"]]
+get-has 1 null null true false false null null false null 1
+get-throws ["throw","TypeError",null,"Cannot convert a symbol to a string"] ["throw","RangeError",null,"b"]
+after-set a=changed;b="x y";d=4;E=5 ["a","b","d","E"]
+set-invalid ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a parameter name in \"\" is invalid"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a parameter name in \"a b\" is invalid at 1"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a parameter name in \"a=b\" is invalid at 1"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a parameter name in \"é\" is invalid at 0"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a parameter value in \"Ā\" is invalid at 0"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a parameter value in \"x\ny\" is invalid at 1"] ["throw","TypeError","ERR_INVALID_MIME_SYNTAX","The MIME syntax for a parameter value in \"xy\" is invalid at 1"] ["ok",null] ["ok",null] ["ok",null] ["ok",null] ["ok",null] ["ok",null]
+after-invalid a=undefined;b="x y";d=4;E=5;undefined=undefined;x=undefined;y=null;z=obj
+encode a="";b=tok;c="has space";d="q\"uote";e="back\\slash";f="semi;colon";g="café";h="tab	here";i=!#$%&'*+-.^_`|~
+delete    b="x y";d=4;E=5;x=undefined;y=null;z=obj  true
+delete-throws ["throw","TypeError",null,"Cannot convert a symbol to a string"]
+iteration ["b=x y","d=4","E=5","x=undefined","y=null","z=obj"] [object Map Iterator] [object Map Iterator] [object Map Iterator] true
+live-iterator {"value":["a","1"],"done":false} {"done":true}
+keys-iterator {"value":"a","done":false} {"value":"b","done":false} {"done":true}
+values-iterator ["1","2"] [["a","1"],["b","2"]] [["a","1"],["b","2"]] {"a":"1","b":"2"}
+spread-order [["z","3"],["a","2"]]
+params-wrong-this ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEParams, but received an instance of Object"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEParams, but received null"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEParams, but received an instance of Map"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEParams"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEParams, but received an instance of Object"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEParams, but received an instance of Object"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEParams, but received type number (1)"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEParams, but received type string ('s')"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEParams, but received an instance of Object"]
+params-type-this ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEParams, but received an instance of MIMEType"] ["throw","TypeError","ERR_INVALID_THIS","Expected this to be instanceof MIMEType, but received an instance of MIMEParams"]
+params-json "c=d" {"p":"a/b;c=\"d e\""} "" a/b;c=d c=d a/b;c=d
+subclass true text/html text/html;charset=x true true [object MIMEType]
+subclass-params true a=b true
+reflect [true,["ok",null]]
+reflect-params [true,["ok",""]]
+own-props [] [] [] []
+extensible true ["ok",[1,"\"a/b\"",["custom"]]]
+frozen ["ok","c"]
+inspect MIMEType {} MIMEParams {} MIMEParams {} [Function: MIMEType] Object [MIMEType] {
+  type: [Getter/Setter],
+  subtype: [Getter/Setter],
+  essence: [Getter],
+  params: [Getter],
+  toString: [Function: toString],
+  toJSON: [Function: toString]
+} Object [MIMEParams] {
+  get: [Function: get],
+  has: [Function: has],
+  set: [Function: set],
+  delete: [Function: delete],
+  toString: [Function: toString],
+  entries: [Function: entries],
+  keys: [Function: keys],
+  values: [Function: values],
+  toJSON: [Function: toString]
+}
+MIMEType {
+  type: "text",
+  subtype: "plain",
+  essence: "text/plain",
+  params: MIMEParams {
+    get: [Function: get],
+    has: [Function: has],
+    set: [Function: set],
+    delete: [Function: delete],
+    toString: [Function: toString],
+    entries: [Function: entries],
+    keys: [Function: keys],
+    values: [Function: values],
+    [Symbol(Symbol.iterator)]: [Function: entries],
+    toJSON: [Function: toString],
+  },
+  toString: [Function: toString],
+  toJSON: [Function: toString],
+}
+MIMEParams {
+  get: [Function: get],
+  has: [Function: has],
+  set: [Function: set],
+  delete: [Function: delete],
+  toString: [Function: toString],
+  entries: [Function: entries],
+  keys: [Function: keys],
+  values: [Function: values],
+  [Symbol(Symbol.iterator)]: [Function: entries],
+  toJSON: [Function: toString],
+}
+[
+  MIMEType {
+    type: "a",
+    subtype: "b",
+    essence: "a/b",
+    params: MIMEParams {
+      get: [Function: get],
+      has: [Function: has],
+      set: [Function: set],
+      delete: [Function: delete],
+      toString: [Function: toString],
+      entries: [Function: entries],
+      keys: [Function: keys],
+      values: [Function: values],
+      [Symbol(Symbol.iterator)]: [Function: entries],
+      toJSON: [Function: toString],
+    },
+    toString: [Function: toString],
+    toJSON: [Function: toString],
+  }
+] {
+  m: MIMEParams {
+    get: [Function: get],
+    has: [Function: has],
+    set: [Function: set],
+    delete: [Function: delete],
+    toString: [Function: toString],
+    entries: [Function: entries],
+    keys: [Function: keys],
+    values: [Function: values],
+    [Symbol(Symbol.iterator)]: [Function: entries],
+    toJSON: [Function: toString],
+  },
+}
+[class MIMEType] [class MIMEParams]
+MIMEType {
+  type: undefined,
+  subtype: undefined,
+  essence: undefined,
+  params: undefined,
+  toString: [Function: toString],
+  toJSON: [Function: toString],
+} MIMEParams {
+  get: [Function: get],
+  has: [Function: has],
+  set: [Function: set],
+  delete: [Function: delete],
+  toString: [Function: toString],
+  entries: [Function: entries],
+  keys: [Function: keys],
+  values: [Function: values],
+  [Symbol(Symbol.iterator)]: [Function: entries],
+  toJSON: [Function: toString],
+}
+MapIterator { 
+  [ "c", "d" ],
+}
+MIMEType {
+  type: [Getter/Setter],
+  subtype: [Getter/Setter],
+  essence: [Getter],
+  params: [Getter],
+  [Symbol(Symbol.toStringTag)]: 'MIMEType'
+} MIMEType {} MIMEType {}
+isdeep true true true

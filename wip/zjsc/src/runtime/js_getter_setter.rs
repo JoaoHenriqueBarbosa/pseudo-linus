@@ -163,7 +163,13 @@ impl GetterSetter {
     /// slow paths) não conferem, então a exceção do setter sai como `PutError::Pending`.
     pub fn call_setter(&self, this_value: JSValue, value: JSValue, should_throw: bool) -> Result<bool, PutError> {
         let Some(setter_value) = self.setter else {
-            if should_throw {
+            // Um atributo nativo (`CustomAccessor` do bun, sem `ReadOnly`) sem setter ignora a escrita, mesmo em modo estrito
+            // (`MIMEType.prototype.essence`, medido no bun 1.4.2), marcado em `CustomAccessorFunction::ignores_put`.
+            let custom = self.getter.is_some_and(|getter| {
+                getter.is_cell()
+                    && matches!(cell_registry::get(getter.as_cell()), Some(CellEntry::Function(function)) if function.custom_accessor.get().is_some_and(|custom| custom.ignores_put()))
+            });
+            if should_throw && !custom {
                 return Err(PutError::TypeError(READONLY_PROPERTY_WRITE_ERROR));
             }
             return Ok(false);

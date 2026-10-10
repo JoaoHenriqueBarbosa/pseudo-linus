@@ -759,6 +759,7 @@ fn reset_program_state() {
     crate::runtime::blob::reset_for_program();
     crate::runtime::response::reset_for_program();
     crate::runtime::request::reset_for_program();
+    crate::runtime::mime::reset_for_program();
     crate::runtime::event_target::reset_for_program();
     crate::runtime::abort_signal::reset_for_program();
     crate::runtime::broadcast_channel::reset_for_program();
