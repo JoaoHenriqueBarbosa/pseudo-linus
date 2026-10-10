@@ -1332,8 +1332,9 @@ impl JSObject {
         let mut current: Option<JSObjectHandle> = None;
         loop {
             let object = chain_object(self, &current);
-            // O `Proxy` (`OverridesGetOwnPropertySlot`) responde pelos traps, a partir dele.
-            if object.type_() == JSType::ProxyObjectType {
+            // O `Proxy` (`OverridesGetOwnPropertySlot`) responde pelos traps, a partir dele. O nome privado não passa
+            // pelos traps: mora no armazenamento do próprio `Proxy`, como os campos `#privados` do JSC.
+            if object.type_() == JSType::ProxyObjectType && !property_name.is_private_name() {
                 return get_property_slot_from_proxy(object, property_name, slot);
             }
             // Fora o `JSGlobalProxy` (e os tipos com a flag, despachados abaixo), nenhum tipo sobrescreve
@@ -1534,6 +1535,14 @@ impl JSObject {
         slot: &mut PutPropertySlot,
     ) -> Result<bool, PutError> {
         debug_assert!(!value.is_empty());
+
+        // Nome privado (o `@nome` dos builtins, o símbolo do `createPrivateSymbol`): a escrita direta no próprio
+        // objeto, sem cadeia, sem armadilha de `Proxy` e sem olhar a extensibilidade, como o `putDirect` que o JSC
+        // usa para nomes privados.
+        if property_name.is_private_name() {
+            self.put_direct(vm, property_name, value, 0);
+            return Ok(true);
+        }
 
         // `ProxyObject::put` (virtual no C++): o próprio `Proxy` como receptor responde pelo trap `set`.
         // O `perform_put` sem trap escreve no alvo (`object_set`), nunca de volta no `Proxy`.
@@ -1997,8 +2006,8 @@ impl JSObject {
         property_name: &PropertyName,
         slot: &mut DeletePropertySlot,
     ) -> Result<bool, PutError> {
-        // `ProxyObject::deleteProperty`.
-        if self.type_() == JSType::ProxyObjectType {
+        // `ProxyObject::deleteProperty`; o nome privado sai do armazenamento do próprio `Proxy`.
+        if self.type_() == JSType::ProxyObjectType && !property_name.is_private_name() {
             return crate::runtime::proxy_object::delete_from_proxy(self, property_name);
         }
         if let Some(result) = crate::runtime::js_web_assembly_gc_object::delete_property(self) {
@@ -2280,8 +2289,8 @@ impl JSObject {
         descriptor: &PropertyDescriptor,
         throw_exception: bool,
     ) -> Result<bool, PutError> {
-        // `ProxyObject::defineOwnProperty`.
-        if self.type_() == JSType::ProxyObjectType {
+        // `ProxyObject::defineOwnProperty`; o nome privado é do armazenamento do próprio `Proxy`.
+        if self.type_() == JSType::ProxyObjectType && !property_name.is_private_name() {
             return crate::runtime::proxy_object::define_own_property_from_proxy(self, property_name, descriptor, throw_exception);
         }
         if let Some(result) = crate::runtime::js_web_assembly_gc_object::define_own_property(self, throw_exception) {
