@@ -132,6 +132,40 @@ fn gl_context_scene_matches_the_oracle() {
     );
 }
 
+/// `gc.get_referents` como o `tp_traverse` do CPython nos tipos básicos: ordem e conteúdo (valor antes da chave no
+/// dict de chaves não `str`, os campos de `__slots__` antes do `__dict__` e do tipo, o quadro de uma função...).
+#[test]
+#[ignore = "WIP: faltam len (NativeFn) e os iteradores (list_iterator, enumerate, zip, map) e o gerador"]
+fn gc_referents_scene_matches_the_oracle() {
+    scene_matches(
+        "gc_referents",
+        include_str!("../../../testbench/oracle/automation/cases/gc_referents.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gc_referents.out"),
+    );
+}
+
+/// `gc.get_referents` do greenlet: o ativo não é do coletor, o novo visita pai, `run` e contexto, o morto visita pai,
+/// a principal da thread e contexto, e a subclasse põe o tipo na frente.
+#[test]
+fn gc_referents_greenlet_scene_matches_the_oracle() {
+    scene_matches(
+        "gc_referents_greenlet",
+        include_str!("../../../testbench/oracle/automation/cases/gc_referents_greenlet.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gc_referents_greenlet.out"),
+    );
+}
+
+/// A superfície do greenlet (`dir`, `__dict__`, `gc.get_referents`, pickle, `__module__`), o switch em callback de
+/// nativa, a subclasse coletada pelo gc de ciclos e o `gr_context` trocando o contexto corrente a cada switch.
+#[test]
+fn gl_surface_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_surface",
+        include_str!("../../../testbench/oracle/automation/cases/gl_surface.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_surface.out"),
+    );
+}
+
 /// O estado interno não aparece em nada que o programa enxergue (`__dict__`, `vars`, `dir`, `__del__`, `__slots__`),
 /// o tipo é estático como no C e as funções de módulo são `builtin_function_or_method` de `greenlet._greenlet`.
 #[test]

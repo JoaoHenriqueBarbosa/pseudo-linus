@@ -43,6 +43,7 @@ pub mod native_util;
 pub mod object;
 pub mod parser;
 pub mod pep695;
+mod referents;
 pub mod stdbuf;
 pub mod stdin;
 pub mod suggest;

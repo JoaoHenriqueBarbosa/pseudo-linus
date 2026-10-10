@@ -221,6 +221,12 @@ fn setrecursionlimit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value>
 
 /// `_builtin(f)`: marca uma função escrita em Python que no CPython é embutida (C). Ela não vira método
 /// ligado quando é guardada num atributo de classe (`converter = time.localtime` do `logging`).
+/// `_referents(obj)`: o que o `tp_traverse` do tipo de `obj` visita, para o `gc.get_referents`.
+fn referents(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let obj = args.first().cloned().unwrap_or(Value::None);
+    Ok(Value::list(crate::referents::referents(vm, &obj)))
+}
+
 fn mark_builtin(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     if let Some(Value::Function(f)) = args.first() {
         f.no_bind.set(true);
@@ -310,6 +316,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_modules", modules_snapshot)
         .func("_exc_hint", exc_hint)
         .func("_builtin", mark_builtin)
+        .func("_referents", referents)
         .func("_source_line", source_line)
         .func("_frame_body", frame_body)
         .func("getrefcount", getrefcount)
