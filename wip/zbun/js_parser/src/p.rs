@@ -1676,11 +1676,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     && !handles_import_errors;
 
                 if should_unwrap_require {
-                    let import_record_index = self.add_import_record_by_range_and_path(
-                        ImportKind::Stmt,
-                        self.source.range_of_string(arg.loc),
-                        &path,
-                    );
+                    let import_record_index = { let range = self.source.range_of_string(arg.loc); self.add_import_record_by_range(ImportKind::Stmt, range, pathname) };
                     self.import_records.items_mut()[import_record_index as usize]
                         .flags
                         .set(
@@ -1741,11 +1737,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     );
                 }
 
-                let import_record_index = self.add_import_record_by_range_and_path(
-                    ImportKind::Require,
-                    self.source.range_of_string(arg.loc),
-                    &path,
-                );
+                let import_record_index = { let range = self.source.range_of_string(arg.loc); self.add_import_record_by_range(ImportKind::Require, range, pathname) };
                 self.import_records.items_mut()[import_record_index as usize]
                     .flags
                     .set(
@@ -5304,45 +5296,31 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         &mut self,
         kind: ImportKind,
         loc: bun_ast::Loc,
-        name: &'a [u8],
+        name: &[u8],
     ) -> u32 {
         self.add_import_record_by_range(kind, self.source.range_of_string(loc), name)
     }
 
+    /// O registro de import de um caminho de arquivo: `pretty` e `text` são o mesmo especificador, gravado no `Store`
+    /// (o `fs::Path::init` do upstream, namespace `"file"`).
     pub(crate) fn add_import_record_by_range(
         &mut self,
         kind: ImportKind,
         range: bun_ast::Range,
-        name: &'a [u8],
+        name: &[u8],
     ) -> u32 {
-        self.add_import_record_by_range_and_path(kind, range, &fs::Path::init(name))
-    }
-
-    pub(crate) fn add_import_record_by_range_and_path(
-        &mut self,
-        kind: ImportKind,
-        range: bun_ast::Range,
-        path: &fs::Path<'a>,
-    ) -> u32 {
-        let path = *path;
         let index = self.import_records.len();
-        // `ImportRecord.path` is `fs::Path<'static>` (PORTING.md: no struct
-        // lifetime params yet). The parser-supplied path borrows arena-owned 'a bytes
-        // which outlive the import_records list (both dropped with the parser arena),
-        // so the lifetime extension is sound here. Removing the erasure requires
-        // threading `'a` through `bun_ast::ImportRecord`.
-        // SAFETY: see above: arena 'a outlives every ImportRecord stored in self.import_records.
-        let path: fs::Path<'static> = unsafe { path.into_static() };
+        let text = self.store.alloc_str(name);
         // No `impl Default for ImportRecord` (range/path/kind have no defaults) -
         // spell out the optional fields explicitly.
         self.import_records.push(ImportRecord {
             kind,
             range,
-            path,
+            path: bun_ast::import_record::Path::init(text),
             tag: bun_ast::ImportRecordTag::None,
             loader: None,
             source_index: bun_ast::Index::INVALID,
-            original_path: self.store.alloc_str(b""),
+            original_path: js_ast::StoreStr::EMPTY,
             flags: bun_ast::ImportRecordFlags::empty(),
         });
         u32::try_from(index).expect("int cast")
