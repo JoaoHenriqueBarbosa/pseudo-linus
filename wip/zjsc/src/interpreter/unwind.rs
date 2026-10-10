@@ -47,6 +47,7 @@ use crate::runtime::script_executable::ScriptExecutableRef;
 use crate::runtime::stack_frame::{Location, StackFrame};
 use crate::runtime::vm::VM;
 use crate::wtf::text::conversion_mode::ConversionMode;
+use crate::wtf::text::wtf_string::String as WtfString;
 use std::rc::Rc;
 
 impl Interpreter {
@@ -156,7 +157,10 @@ impl Interpreter {
                 if frame.index() == 0 && frame.is_native_frame() && !include_top_native {
                     return IterationStatus::Continue;
                 }
-                found_caller = frame.callee().is_cell()
+                // O frame que fez tail call já foi trocado pelo do callee no JSC: ele não está na pilha e não casa
+                // (medido no bun 1.4.2: `var f = () => Error.captureStackTrace(o, f)` deixa `Error` sem frames).
+                found_caller = !(frame.index() > 0 && Self::is_in_tail_call(frame))
+                    && frame.callee().is_cell()
                     && (Some(frame.callee().as_cell()) == caller || caller.is_some_and(|wrapper| is_body_of_wrapper(frame.callee().as_cell(), wrapper)));
                 // A função nativa `eval` não tem frame próprio no percurso: ela vem logo depois do frame do código
                 // de `eval` (ver `pending_native_eval`), então `caller == eval` casa ali e o frame some com ela.
@@ -313,11 +317,17 @@ impl Interpreter {
 }
 
 /// `sourceURLStripped` do `SourceProvider` do executável (vazio sem provider).
+/// A URL do frame: a do comentário `//# sourceURL=` do próprio código, quando houver (o `eval` e o `Function` que
+/// se nomeiam, medido no bun 1.4.2), senão a do provider sem a query.
 pub(crate) fn source_url_stripped_of(owner: &ScriptExecutableRef) -> String {
+    let utf8 = |text: WtfString| String::from_utf8_lossy(&text.utf8(ConversionMode::LenientConversion)).into_owned();
     owner
         .source()
         .provider()
-        .map(|provider| String::from_utf8_lossy(&provider.source_url_stripped().utf8(ConversionMode::LenientConversion)).into_owned())
+        .map(|provider| {
+            let directive = provider.source_url_directive();
+            utf8(if directive.is_null() { provider.source_url_stripped() } else { directive })
+        })
         .unwrap_or_default()
 }
 

@@ -110,8 +110,17 @@ impl SourceProviderBase {
     }
 }
 
-/// `std::atomic<SourceID> nextProviderID = nullID` de `SourceProvider::getID`.
-static NEXT_PROVIDER_ID: AtomicIsize = AtomicIsize::new(NULL_ID);
+thread_local! {
+    /// `std::atomic<SourceID> nextProviderID = nullID` de `SourceProvider::getID`. Um contador por thread (o motor é
+    /// de uma thread), que recomeça a cada programa: o primeiro script é o 2, como no processo novo do bun 1.4.2
+    /// (`CallSite.getScriptId`).
+    static NEXT_PROVIDER_ID: Cell<SourceID> = const { Cell::new(NULL_ID) };
+}
+
+/// Fim do programa (`cell_registry::reset_program_state`): o próximo programa numera os scripts de novo.
+pub(crate) fn reset_for_program() {
+    let _ = NEXT_PROVIDER_ID.try_with(|next| next.set(NULL_ID));
+}
 
 /// `class SourceProvider`.
 pub trait SourceProvider: std::fmt::Debug {
@@ -241,7 +250,10 @@ pub trait SourceProvider: std::fmt::Debug {
         let base = self.base();
         if base.id.get() == 0 {
             // getID()
-            let id = NEXT_PROVIDER_ID.fetch_add(1, Ordering::SeqCst) + 1;
+            let id = NEXT_PROVIDER_ID.with(|next| {
+                next.set(next.get() + 1);
+                next.get()
+            });
             base.id.set(id);
             assert!(id != 0);
         }
