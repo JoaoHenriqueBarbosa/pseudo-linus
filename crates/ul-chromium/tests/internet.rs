@@ -20,7 +20,7 @@ mod common;
 
 use ul_chromium::fetch::Fetcher;
 use ul_chromium::page::Page;
-use ul_net::net::client::{FetchError, Response};
+use ul_net::net::client::{FetchError, Response, Transfer};
 use ul_net::net::url;
 
 /// Fração mínima de páginas idênticas ao oráculo, em cada grupo.
@@ -79,7 +79,7 @@ fn tape_fetcher(dir: &Path) -> Fetcher {
         }
         let mut current = url::parse(target, false).map_err(FetchError::InvalidUrl)?;
         let mut method = spec.method.to_owned();
-        for _ in 0..=spec.max_redirects {
+        for redirects in 0..=spec.max_redirects {
             let address = current.to_string_with(false);
             let found = key(&method, &address).and_then(|k| table.get(&k).cloned()).or_else(|| if method == "HEAD" { key("GET", &address).and_then(|k| table.get(&k).cloned()) } else { None });
             let entry = match found {
@@ -94,7 +94,9 @@ fn tape_fetcher(dir: &Path) -> Fetcher {
                 }
                 continue;
             }
-            return Ok(Response { status: entry.status, reason: String::new(), headers: entry.headers.clone(), body: entry.body.clone(), url: current });
+            // A fita guarda o corpo já decodificado e não guarda a versão do protocolo.
+            let transfer = Transfer { redirects, ..Transfer::identity(entry.body.len()) };
+            return Ok(Response { status: entry.status, reason: String::new(), headers: entry.headers.clone(), body: entry.body.clone(), url: current, transfer });
         }
         Err(FetchError::TooManyRedirects)
     })

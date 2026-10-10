@@ -7,7 +7,7 @@ use std::rc::Rc;
 use blitz_dom::node::NodeData;
 use blitz_dom::{BaseDocument, NodeId};
 use sysabi::sys;
-use ul_net::net::client::RequestSpec;
+use ul_net::net::client::{RequestSpec, Transfer};
 use ul_net::net::url;
 use zjsc::api::embed::{run_page, HostArg, HostHandle, PageRunner};
 use zjsc::runtime::console_host::ConsoleHost;
@@ -114,11 +114,33 @@ pub struct Page {
     document_bytes: usize,
     /// As políticas CSP dos cabeçalhos, em JSON (`[[texto, soRelatorio], ...]`), para o prelúdio.
     csp_json: String,
+    /// A troca de rede do documento, em JSON, para a entrada `navigation` do prelúdio.
+    transfer_json: String,
 }
 
 /// A ida e volta de rede de uma busca em tempo virtual: o que já estava na fila de tarefas roda antes da resposta.
 /// Maior que o 1ms a que o `setTimeout(0)` é arredondado, para a resposta nunca empatar com uma tarefa já agendada.
 const NETWORK_LATENCY_MS: f64 = 2.0;
+/// O instante, desde a origem de tempo (o início da navegação), em que o primeiro script do documento roda: o oráculo
+/// mostrou de 41 a 79 ms. Fica logo depois de um tick da grade de quadros (o terceiro, 49,998 ms), para o próximo
+/// quadro guardar do primeiro script a mesma distância que a ordem medida dos quadros pede.
+const DOCUMENT_START_MS: f64 = 50.0;
+/// Os marcos da busca do documento antes dele (Navigation Timing), no perfil medido no oráculo em tempo real: a busca
+/// começa logo, a resolução de um IP literal não leva tempo, e a resposta chega uns 20 ms antes do primeiro script.
+/// `domLoading` (só no legado `performance.timing`) é o começo do parse.
+const NAVIGATION_MARKS: [(&str, f64); 9] = [
+    ("fetchStart", 2.6),
+    ("domainLookupStart", 19.2),
+    ("domainLookupEnd", 19.2),
+    ("connectStart", 19.2),
+    ("connectEnd", 19.5),
+    ("requestStart", 19.9),
+    ("responseStart", 20.3),
+    ("responseEnd", 20.8),
+    ("domLoading", 49.2),
+];
+/// O começo do aperto de mão TLS, dentro da conexão, só em `https`.
+const SECURE_CONNECTION_START_MS: f64 = 19.3;
 /// O custo virtual do trabalho da página (o `--virtual-time-budget` do Chromium anda com o renderer ocupado),
 /// calibrado contra o oráculo: instrução de bytecode executada e byte de fonte (documento e scripts) compilado.
 const NS_PER_INSTRUCTION: f64 = 0.0;
@@ -136,11 +158,12 @@ impl Page {
     /// `None` para código sem texto medido.
     pub fn error_page(url: &str, error: &str, fetcher: Fetcher) -> Option<Page> {
         let html = neterror_html(url, error)?;
-        let response = DocumentResponse { bytes: html.into_bytes(), final_url: "chrome-error://chromewebdata/".to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, csp: Vec::new(), cross_origin_isolated: false };
+        let response = DocumentResponse { bytes: html.into_bytes(), final_url: "chrome-error://chromewebdata/".to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, csp: Vec::new(), cross_origin_isolated: false, transfer: None };
         Some(Page::build(response, fetcher))
     }
 
     fn build(response: DocumentResponse, fetcher: Fetcher) -> Page {
+        let transfer_json = response.transfer_json();
         let source = encoding::decode(&response.bytes, response.content_type.as_deref());
         let net = std::sync::Arc::new(document::QueuedNet::default());
         let mut doc = document::parse_page(&source, &response.final_url, net.clone());
@@ -161,7 +184,7 @@ impl Page {
         };
         use crate::devtools::json::Json;
         let csp_json = Json::Array(response.csp.iter().map(|(text, report_only)| Json::Array(vec![Json::str(text), Json::Bool(*report_only)])).collect()).to_compact();
-        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), csp_json }
+        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), csp_json, transfer_json }
     }
 
     /// A navegação que a página pediu (`location.href = ...`) e ainda não aconteceu.
@@ -211,16 +234,20 @@ impl Page {
             // `Error.prototype.stack` e as mensagens de erro no formato do V8.
             zjsc::runtime::stack_frame::set_v8_stack_format(true);
             // Sob `--virtual-time-budget`, `Date` e `performance.now` andam com o tempo virtual dos timers, a partir
-            // do relógio do sistema no início da página.
-            zjsc::wtf::date_math::set_virtual_clock(zjsc::wtf::date_math::current_time_in_nanoseconds() as f64 / 1_000_000.0);
+            // do relógio do sistema no início da página. A navegação começou antes: a origem de tempo é o início dela
+            // e o primeiro script já vê o relógio em `DOCUMENT_START_MS` (o `Date` segue na hora de parede).
+            let wall_ms = zjsc::wtf::date_math::current_time_in_nanoseconds() as f64 / 1_000_000.0;
+            zjsc::wtf::date_math::set_virtual_clock(wall_ms - DOCUMENT_START_MS);
+            zjsc::runtime::waiter_list_manager::advance_virtual_clock_to(DOCUMENT_START_MS);
             // O relógio da página arredonda como o `TimeClamper` do Blink: 100 µs, ou 5 µs com `crossOriginIsolated`, um
             // segredo aleatório por processo e a origem no relógio monotônico do sandbox.
-            let origin_ticks_us = (ul_common::time::monotonic_nanos() / 1000) as i64;
-            let unix_at_zero_us = (zjsc::wtf::date_math::current_time_in_nanoseconds() / 1000) as i64 - origin_ticks_us;
+            let now_ticks_us = (ul_common::time::monotonic_nanos() / 1000) as i64;
+            let unix_at_zero_us = (zjsc::wtf::date_math::current_time_in_nanoseconds() / 1000) as i64 - now_ticks_us;
+            let origin_ticks_us = now_ticks_us - (DOCUMENT_START_MS * 1000.0) as i64;
             let resolution = if self.bridge.cross_origin_isolated { zjsc::runtime::time_clamper::FINE_RESOLUTION_US } else { zjsc::runtime::time_clamper::COARSE_RESOLUTION_US };
             zjsc::runtime::time_clamper::set_time_clamper(clock_secret(), resolution, origin_ticks_us, unix_at_zero_us);
             // O valor do programa é a função gancho: o hospedeiro a guarda, sem binding global que a página veja.
-            let prelude = format!("(function () {{ 'use strict';\nconst DOCUMENT_CSP = {};\n{}{}\nreturn hook;\n}})();", self.csp_json, PRELUDE_PARTS.concat(), PRELUDE_TAIL);
+            let prelude = format!("(function () {{ 'use strict';\nconst DOCUMENT_CSP = {};\nconst DOCUMENT_TRANSFER = {};\n{}{}\nreturn hook;\n}})();", self.csp_json, self.transfer_json, PRELUDE_PARTS.concat(), PRELUDE_TAIL);
             let hook = match runner.eval_hidden_value(&prelude) {
                 Ok(hook) => hook,
                 Err(error) => {
@@ -435,6 +462,36 @@ struct DocumentResponse {
     /// `crossOriginIsolated`: `Cross-Origin-Opener-Policy: same-origin` com `Cross-Origin-Embedder-Policy`
     /// `require-corp` ou `credentialless`, num contexto seguro (medido no oráculo, em `http://127.0.0.1`).
     cross_origin_isolated: bool,
+    /// A troca de rede do documento, ou `None` para o que não veio pela rede (`file:`, `data:`, `about:blank`).
+    transfer: Option<(u16, Transfer, Option<String>)>,
+}
+
+impl DocumentResponse {
+    /// O que a entrada `navigation` do Performance Timeline mostra do carregamento, em JSON para o prelúdio. Sem rede
+    /// (medido no oráculo com `file:` e `data:`), o protocolo é vazio, o status 200 e os tamanhos são os do documento.
+    fn transfer_json(&self) -> String {
+        use crate::devtools::json::Json;
+        let (status, transfer, encoding) = match &self.transfer {
+            Some((status, transfer, encoding)) => (*status, *transfer, encoding.clone()),
+            None => (200, Transfer::identity(self.bytes.len()), None),
+        };
+        let essence = self.content_type.as_deref().map(|value| value.split(';').next().unwrap_or("").trim().to_ascii_lowercase()).unwrap_or_else(|| "text/html".to_owned());
+        let mut marks: Vec<(String, Json)> = NAVIGATION_MARKS.iter().map(|(name, at)| ((*name).to_owned(), Json::Number(*at))).collect();
+        let secure = if self.final_url.starts_with("https:") { SECURE_CONNECTION_START_MS } else { 0.0 };
+        marks.push(("secureConnectionStart".to_owned(), Json::Number(secure)));
+        Json::Object(vec![
+            ("marks".to_owned(), Json::Object(marks)),
+            ("network".to_owned(), Json::Bool(self.transfer.is_some())),
+            ("protocol".to_owned(), Json::str(if self.transfer.is_some() { transfer.protocol() } else { String::new() })),
+            ("status".to_owned(), Json::Number(f64::from(status))),
+            ("encodedBodySize".to_owned(), Json::Number(transfer.encoded_size as f64)),
+            ("decodedBodySize".to_owned(), Json::Number(self.bytes.len() as f64)),
+            ("contentType".to_owned(), Json::str(&essence)),
+            ("contentEncoding".to_owned(), Json::str(encoding.unwrap_or_default().trim().to_ascii_lowercase())),
+            ("redirectCount".to_owned(), Json::Number(f64::from(transfer.redirects))),
+        ])
+        .to_compact()
+    }
 }
 
 /// O valor de um cabeçalho de política, sem os parâmetros (`same-origin; report-to="x"`).
@@ -511,7 +568,7 @@ fn csp_policies(response: &ul_net::net::client::Response) -> Vec<(String, bool)>
 }
 
 fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, String> {
-    let local = |bytes: Vec<u8>, content_type: Option<String>| DocumentResponse { bytes, final_url: address.to_owned(), content_type, header_csp: false, csp: Vec::new(), cross_origin_isolated: false };
+    let local = |bytes: Vec<u8>, content_type: Option<String>| DocumentResponse { bytes, final_url: address.to_owned(), content_type, header_csp: false, csp: Vec::new(), cross_origin_isolated: false, transfer: None };
     // A aba nova (`about:blank`) é um documento vazio sem rede; `data:` sai pelo processador de data: URL do Fetch.
     if address == "about:blank" {
         return Ok(local(Vec::new(), None));
@@ -542,6 +599,7 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
         content_type: response.header("Content-Type"),
         header_csp: response.header("Content-Security-Policy").is_some(),
         csp: csp_policies(&response),
+        transfer: Some((response.status, response.transfer, response.header("Content-Encoding"))),
         bytes: response.body,
         final_url,
         cross_origin_isolated,

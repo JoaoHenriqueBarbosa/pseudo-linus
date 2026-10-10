@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use ul_chromium::fetch::Fetcher;
 use ul_chromium::page::Page;
-use ul_net::net::client::{FetchError, Response};
+use ul_net::net::client::{FetchError, Response, Transfer};
 use ul_net::net::url;
 
 /// O console da página, guardado para o teste ler.
@@ -28,7 +28,8 @@ impl zjsc::runtime::console_host::ConsoleHost for Capture {
     }
 }
 
-/// Serve `files` (caminho, corpo) em qualquer host; o resto é 404. `headers` entram em toda resposta.
+/// Serve `files` (caminho, corpo) em qualquer host; o resto é 404. `headers` entram em toda resposta. Responde em
+/// HTTP/1.0, como o `http.server` do Python que serve as medições do oráculo.
 fn serve(files: &[(&str, &str)], headers: &[(&str, &str)]) -> Fetcher {
     let files: Vec<(String, String)> = files.iter().map(|(p, b)| ((*p).to_owned(), (*b).to_owned())).collect();
     let extra: Vec<(Vec<u8>, Vec<u8>)> = headers.iter().map(|(n, v)| (n.as_bytes().to_vec(), v.as_bytes().to_vec())).collect();
@@ -42,7 +43,9 @@ fn serve(files: &[(&str, &str)], headers: &[(&str, &str)]) -> Fetcher {
         let kind = if body.0.ends_with(".js") { "text/javascript" } else { "text/html; charset=utf-8" };
         let mut response_headers = vec![(b"content-type".to_vec(), kind.as_bytes().to_vec())];
         response_headers.extend(extra.iter().cloned());
-        Ok(Response { status, reason: String::new(), headers: response_headers, body: body.1.into_bytes(), url: parsed })
+        let body = body.1.into_bytes();
+        let transfer = Transfer { version: (1, 0), ..Transfer::identity(body.len()) };
+        Ok(Response { status, reason: String::new(), headers: response_headers, body, url: parsed, transfer })
     })
 }
 

@@ -23,6 +23,32 @@ pub struct Response {
     pub body: Vec<u8>,
     /// A URL depois dos redirecionamentos.
     pub url: Url,
+    /// O que o Resource Timing do navegador mostra da troca.
+    pub transfer: Transfer,
+}
+
+/// A troca vista de fora do corpo: a versão do protocolo da resposta final, o corpo como veio no fio (antes do
+/// `Content-Encoding`) e quantos redirecionamentos levaram até ela.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Transfer {
+    pub version: (u8, u8),
+    pub encoded_size: usize,
+    pub redirects: u32,
+}
+
+impl Transfer {
+    /// Uma resposta HTTP/1.1 de corpo sem codificação, a primeira da cadeia.
+    pub fn identity(body_len: usize) -> Transfer {
+        Transfer { version: (1, 1), encoded_size: body_len, redirects: 0 }
+    }
+
+    /// O `nextHopProtocol` do Chromium (`http/1.1`, `http/1.0`, `h2`).
+    pub fn protocol(&self) -> String {
+        match self.version {
+            (2, _) => "h2".to_owned(),
+            (major, minor) => format!("http/{major}.{minor}"),
+        }
+    }
 }
 
 impl Response {
@@ -94,11 +120,11 @@ pub fn request(target: &str, spec: &RequestSpec<'_>) -> Result<Response, FetchEr
     let mut current = url::parse(target, false).map_err(FetchError::InvalidUrl)?;
     let mut method = spec.method.to_owned();
     let mut body = spec.body.to_vec();
-    for _ in 0..=spec.max_redirects {
+    for redirects in 0..=spec.max_redirects {
         if current.scheme != "http" && current.scheme != "https" {
             return Err(FetchError::UnknownScheme(current.scheme));
         }
-        let (response, location) = exchange(&current, &method, spec, &body)?;
+        let (mut response, location) = exchange(&current, &method, spec, &body)?;
         if let Some(location) = location {
             current = url::resolve(&current, &location).map_err(FetchError::InvalidUrl)?;
             // 301, 302 e 303 viram GET sem corpo, como o navegador faz.
@@ -108,6 +134,7 @@ pub fn request(target: &str, spec: &RequestSpec<'_>) -> Result<Response, FetchEr
             }
             continue;
         }
+        response.transfer.redirects = redirects;
         return Ok(response);
     }
     Err(FetchError::TooManyRedirects)
@@ -171,11 +198,15 @@ fn exchange(u: &Url, method: &str, spec: &RequestSpec<'_>, body: &[u8]) -> Resul
         None => Decoder::Identity,
     };
     let mut collected = Vec::new();
+    let mut encoded_size = 0;
     if mode != BodyMode::None {
         let mut reader = conn.body_reader(mode);
         loop {
             match reader.next_piece() {
-                Ok(Some(piece)) => collected.extend(decoder.feed(&piece).map_err(|_| FetchError::InvalidResponse)?),
+                Ok(Some(piece)) => {
+                    encoded_size += piece.len();
+                    collected.extend(decoder.feed(&piece).map_err(|_| FetchError::InvalidResponse)?);
+                }
                 Ok(None) => break,
                 // Corpo cortado: o navegador entrega o que veio.
                 Err(_) => break,
@@ -189,6 +220,7 @@ fn exchange(u: &Url, method: &str, spec: &RequestSpec<'_>, body: &[u8]) -> Resul
         headers: head.headers.clone(),
         body: collected,
         url: u.clone(),
+        transfer: Transfer { version: head.version, encoded_size, redirects: 0 },
     };
     Ok((response, location))
 }

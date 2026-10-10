@@ -218,6 +218,20 @@ fn navigation_api_as_the_oracle() {
     assert_eq!(log, "[2,\"push\",1,null]\n");
 }
 
+/// A entrada `navigation` do Performance Timeline como o oráculo em tempo real, servida por HTTP/1.0 como o
+/// `http.server` da medição: a cadeia de protótipos, o `toJSON`, os instantes que são zero e a ordem dos demais, os
+/// tamanhos conferidos contra o corpo, e o legado `performance.timing` e `performance.navigation`.
+#[test]
+fn navigation_timing_as_the_oracle() {
+    let (_, log) = common::run_at_for(
+        "http://127.0.0.1:8000/p",
+        &[],
+        &[("/p", r#"<pre id=o></pre><script src="/probe.js"></script>"#), ("/probe.js", include_str!("fixtures/navigation-timing.js"))],
+        Some(30000.0),
+    );
+    assert_eq!(log, include_str!("fixtures/navigation-timing.expected"));
+}
+
 /// O IndexedDB como o oráculo em tempo real: a forma das interfaces e um roteiro de chaves, faixas, abertura com
 /// upgrade, stores, índices, transações (erros, abort, commit, ativação), cursores, `versionchange`, `blocked` e
 /// exclusão, com as mensagens do Blink.
