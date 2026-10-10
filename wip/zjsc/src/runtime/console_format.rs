@@ -716,6 +716,9 @@ impl Formatter {
         if prints_prototype_members(value.as_cell()) && Formatter::prototype_keys(global_object, value, &mut keys).is_none() {
             return false;
         }
+        // O `forEachPropertyImpl` pula a chave `constructor` também quando ela é própria (medido no bun 1.4.2: `{constructor: 5}`
+        // sai `{}`, com getter, com protótipo nulo e dentro de array).
+        keys.retain(|key| key.symbol || !same_text(&key.text, "constructor"));
         // O caminho rápido do bun descarta `@@toStringTag`; ele só aparece se for a única chave do objeto.
         if keys.iter().any(|key| !key.is_tag) {
             keys.retain(|key| !key.is_tag);
