@@ -69,6 +69,12 @@ pub(crate) fn read_global_result(global_object: &JSGlobalObjectRef, result_name:
     }
     let vm = global_object.vm();
     let global_this = global_object.global_this().expect("JSGlobalObject sem globalThis (o JSGlobalProxy nasce no finishCreation)");
+    // Os geradores leem `globalThis.R` pelo nome: o programa que trocou o `globalThis` (`globalThis = 1`) faz a leitura
+    // passar pelo valor novo, como no bun.
+    let binding = global_this.get(vm, &PropertyName::from_identifier(&Identifier::from_span(vm, b"globalThis")));
+    if !(binding.is_cell() && binding.as_cell() == global_this.as_value().as_cell()) {
+        return evaluate(global_object, &program_source(&format!("globalThis.{result_name}")));
+    }
     let value = global_this.get(vm, &PropertyName::from_identifier(&Identifier::from_span(vm, result_name.as_bytes())));
     completion(vm, value)
 }

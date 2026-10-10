@@ -60,6 +60,17 @@ fn bound_caller_matches_its_target_frame_once() {
 }
 
 #[test]
+fn result_is_read_through_the_global_this_binding() {
+    let read = |source: &str| {
+        let value = zjsc::api::eval::evaluate_named_script_result(source, "eval_case.js", "R").expect("leitura de R");
+        if value.is_undefined() { "<undefined>".to_owned() } else { String::from_utf8_lossy(&value.to_wtf_string().utf8(zjsc::wtf::text::conversion_mode::ConversionMode::LenientConversion)).into_owned() }
+    };
+    assert_eq!(read("globalThis.R = 'a';"), "a");
+    // O gerador do bun lê `globalThis.R`: depois de `globalThis = 1` a leitura é `(1).R`.
+    assert_eq!(read("globalThis.R = 'a'; globalThis = 1;"), "<undefined>");
+}
+
+#[test]
 fn script_ids_start_at_two_in_each_program() {
     for _ in 0..2 {
         let ids = run("Error.prepareStackTrace = (e, cs) => cs.map(c => c.getScriptId()).join(); eval('new Error(\"x\").stack')");
