@@ -618,6 +618,7 @@ impl Drop for VMScope {
 fn reset_program_state() {
     crate::runtime::current_realm::reset_for_program();
     crate::runtime::number_prototype::reset_for_program();
+    crate::wtf::date_math::reset_for_program();
     crate::runtime::js_string::reset_for_program();
     crate::runtime::symbol::reset_for_program();
     crate::runtime::reg_exp::reset_for_program();

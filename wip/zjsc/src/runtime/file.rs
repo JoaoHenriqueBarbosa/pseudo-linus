@@ -45,7 +45,7 @@ fn option_property(global_object: &JSGlobalObject, options: JSValue, name: &str)
 }
 
 fn now_milliseconds() -> f64 {
-    (ul_common::time::realtime_nanos() / 1_000_000) as f64
+    (crate::wtf::date_math::current_time_in_nanoseconds() / 1_000_000) as f64
 }
 
 /// `lastModified` das opções: ausente é o relógio, `NaN` é 0, o resto o número como veio.
