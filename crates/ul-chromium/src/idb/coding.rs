@@ -254,10 +254,10 @@ pub fn index_data_key(database_id: u64, object_store_id: u64, index_id: u64, ind
     key
 }
 
-/// O valor de uma entrada de índice: a versão do índice (2) e a chave primária.
-pub fn index_data_value(primary_key: &IdbKey) -> Vec<u8> {
+/// O valor de uma entrada de índice: a versão do registro (a mesma do valor dele) e a chave primária.
+pub fn index_data_value(record_version: u64, primary_key: &IdbKey) -> Vec<u8> {
     let mut value = Vec::new();
-    varint(&mut value, 2);
+    varint(&mut value, record_version);
     primary_key.encode(&mut value);
     value
 }
@@ -337,7 +337,9 @@ mod tests {
             index_data_key(1, 1, 31, &IdbKey::String(units("a")), 0, &one),
             hex("00 01 01 1f 01 01 00 61 00 03 00 00 00 00 00 00 f0 3f")
         );
-        assert_eq!(index_data_value(&one), hex("02 03 00 00 00 00 00 00 f0 3f"));
+        assert_eq!(index_data_value(2, &one), hex("02 03 00 00 00 00 00 00 f0 3f"));
+        // Lote seq=212 de idb-later: o registro de versão 4 (chave 3.0) leva a versão no valor do índice.
+        assert_eq!(index_data_value(4, &IdbKey::Number(3.0)), hex("04 03 00 00 00 00 00 00 08 40"));
         assert_eq!(object_store_data_value(2, &hex("ff 15")), hex("02 ff 15"));
     }
 }
