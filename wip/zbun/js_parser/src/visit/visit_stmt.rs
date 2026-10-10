@@ -1069,8 +1069,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             data.is_export = false;
         }
 
-        // Lower class field syntax for browsers that don't support it
-        let lowered = p.lower_class(js_ast::StmtOrExpr::Stmt(*stmt));
+        // Lower class field syntax for browsers that don't support it. O `lower_class` relê (e muda) o `S::Class`
+        // pelo `StoreRef` do `stmt`; no upstream era o mesmo ponteiro de `data`, aqui `data` é a cópia do
+        // `with_node!`, então ela é gravada antes e relida depois (README, "Regras do porte").
+        let StmtData::SClass(class_ref) = stmt.data else { unreachable!("s_class só recebe S::Class") };
+        let lowered = sync_node!(p, class_ref, data => p.lower_class(js_ast::StmtOrExpr::Stmt(*stmt)));
 
         if !mark_as_dead || was_export_inside_namespace {
             // Lower class field syntax for browsers that don't support it

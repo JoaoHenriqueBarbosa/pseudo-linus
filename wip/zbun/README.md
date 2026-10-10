@@ -45,6 +45,16 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
   copiar o `Option` (valor `Copy`), rodar o corpo e gravar depois do bloco (17 blocos). Vale onde o nó só é alcançável
   pelo `data` durante a chamada (visita em árvore, uma vez por nó); onde a visita reentra no mesmo nó, o lugar tipado
   (`bun_ast::place`) é o certo.
+  - Revisão de fidelidade (a copia-e-grava só é fiel se ninguém lê ou escreve o mesmo nó por outro caminho durante a
+    chamada). Os 28 pontos do despachante: só o `s_class` entregava o `StoreRef` do próprio nó a quem o relê pelo
+    `Store` (`lower_class(StmtOrExpr::Stmt(*stmt))`, que no upstream via o mesmo ponteiro de `data`): lá a cópia estava
+    velha para o `lower_class`, e a escrita dele seria sobrescrita pela gravação final. Corrigido com `sync_node!`
+    (grava a cópia antes, relê depois). Os outros 27 só passam `stmt` ao `stmts.push`, que guarda o índice. O
+    `s_switch` põe `*stmt` numa lista para o `finalize` do `using`, que só olha o tipo do statement. Os 17 blocos
+    `--opt` de `lower_decorators.rs` recursam só pelos descendentes do nó (a árvore não tem ciclo), então o pai não é
+    alcançável de dentro do corpo. Regra para o resto do passe: antes de usar `with_node!`, procure no corpo qualquer
+    função que receba o `Stmt`/`StoreRef` do nó visitado e o releia; achando, `sync_node!`. O teste
+    `with_node_tests.rs` fixa as duas vistas (a função que relê vê a cópia velha sem o `sync_node!`, e vê tudo com ele).
 - Mudança sistemática no parser copiado (`js_parser/src`), por `sed`: o `VecExt::append(&mut X.generated, y);` e o
   `VecExt::append(&mut X.children, y);` de uma linha viram `X.generated.push(y);` e `X.children.push(y);` (os dois
   campos de `Scope` são `Vec`; o `VecExt::append` saiu do `bun_collections` por ser sinônimo do `push`). Os outros

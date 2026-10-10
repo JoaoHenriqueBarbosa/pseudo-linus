@@ -5,11 +5,13 @@
 /// coexistem. O nó é copiado para fora, a função roda sobre a cópia e o resultado é gravado de volta.
 ///
 /// Vale onde o nó só é alcançável por `data` durante a chamada: a visita é em árvore (cada nó é visitado uma vez, pelo
-/// pai) e quem guarda o nó guarda o `StoreRef`, não uma referência. Onde a visita reentra no mesmo nó por outro
-/// caminho, o lugar tipado (`bun_ast::place`) é o certo, ver "Regras do porte" no README.
+/// pai) e quem guarda o nó guarda o `StoreRef`, não uma referência. Onde o corpo entrega o `StoreRef` do mesmo nó a
+/// uma função que o relê pelo `Store` (no upstream, o mesmo ponteiro), a cópia está velha para ela: use
+/// [`sync_node!`] em volta dessa chamada. Onde a visita reentra no mesmo nó por outro caminho que não dá para
+/// sincronizar, o lugar tipado (`bun_ast::place`) é o certo. Ver "Regras do porte" no README.
 ///
 /// `with_node!(p, r, data => corpo)`: `corpo` usa `p` e `data` (um `&mut` para a cópia) e devolve o resultado.
-#[cfg(feature = "parser")]
+#[allow(unused_macros)]
 macro_rules! with_node {
     ($p:expr, $r:expr, $data:ident => $body:expr) => {{
         let node_ref = $r;
@@ -20,6 +22,25 @@ macro_rules! with_node {
         result
     }};
 }
+
+/// Dentro de um [`with_node!`]: o corpo entrega o `StoreRef` do nó a quem o relê (e talvez o muda) pelo `Store`, como
+/// o upstream fazia pelo ponteiro compartilhado. A cópia é gravada antes e relida depois, então as duas vistas do nó
+/// coincidem nos dois sentidos. Fora da chamada, a cópia segue sendo a dona.
+///
+/// `sync_node!(p, r, data => corpo)`: `data` é o `&mut` do `with_node!` em volta e `r` o mesmo `StoreRef`.
+#[allow(unused_macros)]
+macro_rules! sync_node {
+    ($p:expr, $r:expr, $data:ident => $body:expr) => {{
+        let node_ref = $r;
+        $p.store[node_ref] = $data.clone();
+        let result = $body;
+        *$data = $p.store[node_ref].clone();
+        result
+    }};
+}
+
+#[cfg(test)]
+mod with_node_tests;
 
 pub mod lexer;
 
