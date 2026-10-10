@@ -5,12 +5,103 @@
 
 use core::fmt;
 
+pub mod new_store;
 pub mod nodes;
 pub mod op;
 pub mod target;
 
-pub use nodes::AssignTarget;
+pub use new_store::{NodeStore, Stored};
+pub use nodes::{AssignTarget, StoreRef, StoreSlice, StoreStr};
 pub use target::Target;
+
+// ───────────────────────────────────────────────────────────────────────────
+// Loc
+// ───────────────────────────────────────────────────────────────────────────
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[repr(transparent)]
+pub struct Loc {
+    pub start: i32,
+}
+
+impl Default for Loc {
+    fn default() -> Self {
+        Loc { start: -1 }
+    }
+}
+
+impl Loc {
+    pub const EMPTY: Loc = Loc { start: -1 };
+
+    #[inline]
+    pub fn to_nullable(self) -> Option<Loc> {
+        if self.start == -1 { None } else { Some(self) }
+    }
+
+    #[inline]
+    pub fn to_usize(self) -> usize {
+        self.i()
+    }
+
+    #[inline]
+    pub fn i(self) -> usize {
+        usize::try_from(self.start.max(0)).expect("int cast")
+    }
+
+    #[inline]
+    pub fn eql(self, other: Loc) -> bool {
+        self.start == other.start
+    }
+
+    #[inline]
+    pub fn is_empty(self) -> bool {
+        self.eql(Self::EMPTY)
+    }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Range
+// ───────────────────────────────────────────────────────────────────────────
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct Range {
+    pub loc: Loc,
+    pub len: i32,
+}
+
+impl Default for Range {
+    fn default() -> Self {
+        Range {
+            loc: Loc::EMPTY,
+            len: 0,
+        }
+    }
+}
+
+impl Range {
+    /// Deprecated: use `NONE`
+    #[allow(non_upper_case_globals)]
+    pub const None: Range = Self::NONE;
+    pub const NONE: Range = Range {
+        loc: Loc::EMPTY,
+        len: 0,
+    };
+
+    pub fn is_empty(self) -> bool {
+        self.len == 0 && self.loc.start == Loc::EMPTY.start
+    }
+
+    pub fn end(self) -> Loc {
+        Loc {
+            start: self.loc.start + self.len,
+        }
+    }
+
+    pub fn end_i(self) -> usize {
+        // Saturates negatives to 0.
+        (self.loc.start + self.len).max(0) as usize
+    }
+}
 
 // ───────────────────────────────────────────────────────────────────────────
 // Ref / Symbol
