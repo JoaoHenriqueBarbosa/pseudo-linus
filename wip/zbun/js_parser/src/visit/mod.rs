@@ -1013,18 +1013,19 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // are not allowed to assign to this symbol (it throws a TypeError).
         let mut shadow_ref = if let Some(name) = class.class_name {
             let name_ref = name.ref_;
-            let original_name: &'a [u8] = self.store.str(self.symbols[name_ref.inner_index() as usize]
-                .original_name);
-            // SAFETY: `original_name` is an AST-arena slice.
-            unsafe {
-                self.vis_scope().members.put(&self.store, 
-                    original_name,
-                    ScopeMember {
-                        ref_: name.ref_,
-                        loc: name.loc,
-                    },
-                )
-            };
+            let original_name = self.symbols[name_ref.inner_index() as usize].original_name;
+            let name_hash = js_ast::scope::Members::hash(self.store.str(original_name));
+            let current_scope = self.current_scope;
+            js_ast::Scope::put_member_with_hash(
+                &mut self.store,
+                current_scope,
+                original_name,
+                name_hash,
+                ScopeMember {
+                    ref_: name.ref_,
+                    loc: name.loc,
+                },
+            );
             name_ref
         } else {
             let name_str: &'a [u8] = if default_name_ref.is_empty() {
