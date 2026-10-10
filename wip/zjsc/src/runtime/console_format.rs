@@ -677,10 +677,20 @@ impl Formatter {
         let vm = global_object.vm();
         let object = level.as_object();
         let names = own_property_keys(global_object, &object, PropertyNameMode::StringsAndSymbols, DontEnumPropertiesMode::Include).ok()?;
-        let mut hits = false;
+        let mut level_keys = Vec::with_capacity(names.length() as usize);
         for index in 0..names.length() {
             let name = names.get_by_index(vm, index);
-            let key = if name.is_symbol() { symbol_key(global_object, name)? } else { name_key(global_object, &name.to_wtf_string()) };
+            level_keys.push(if name.is_symbol() { symbol_key(global_object, name)? } else { name_key(global_object, &name.to_wtf_string()) });
+        }
+        // O caminho rápido percorre a estrutura (`structure->forEachProperty`) na ordem de inserção, com os símbolos
+        // intercalados; o `ownPropertyKeys` põe os símbolos no fim (medido no bun 1.4.2: o protótipo `{[Symbol('s')]: 1, a: 2}`
+        // sai com o símbolo primeiro).
+        if fast {
+            let order: Vec<_> = object.structure().properties_with_privacy().into_iter().filter(|entry| !entry.3).map(|entry| entry.0).collect();
+            level_keys.sort_by_key(|key| key.name.uid().and_then(|uid| order.iter().position(|known| known == uid)).unwrap_or(usize::MAX));
+        }
+        let mut hits = false;
+        for key in level_keys {
             let filtered = same_text(&key.text, "constructor") || same_text(&key.text, "__proto__") || (!is_own && same_text(&key.text, "__esModule"));
             if filtered || (fast && key.is_tag) || (!is_own && keys.iter().any(|known| known.text == key.text)) {
                 continue;
