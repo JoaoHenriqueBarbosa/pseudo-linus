@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>storage probe</title>
+<script>
+localStorage.setItem('k1', 'v1');
+localStorage.setItem('key2', 'valor dois');
+const request = indexedDB.open('db1', 1);
+request.onupgradeneeded = (event) => {
+  const db = event.target.result;
+  const store = db.createObjectStore('items', { keyPath: 'id' });
+  store.createIndex('by_name', 'name');
+  store.add({ id: 1, name: 'a', tags: ['x', 'y'], when: new Date(0) });
+  store.add({ id: 2, name: 'b', blob: new Uint8Array([1, 2, 3]) });
+};
+request.onsuccess = () => { document.title = 'done'; };
+</script>
+<body>storage probe</body>
