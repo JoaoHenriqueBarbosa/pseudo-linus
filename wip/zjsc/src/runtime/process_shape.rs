@@ -428,6 +428,11 @@ pub(crate) fn process_argv(global_object: &JSGlobalObject) -> JSValue {
     slot_value(global_object, "argv", default_argv)
 }
 
+/// O array de `process.execArgv`.
+pub(crate) fn process_exec_argv(global_object: &JSGlobalObject) -> JSValue {
+    slot_value(global_object, "execArgv", default_empty_array)
+}
+
 /// O valor gravado no acessor `name`, se houve (o `overridden_main` do `Bun.main` mora aqui, sob `"Bun.main"`).
 pub(crate) fn read_slot(name: &'static str) -> Option<JSValue> {
     SLOTS.with(|slots| slots.borrow().get(name).copied())

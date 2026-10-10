@@ -270,6 +270,7 @@ pub(crate) fn install_util_module(global_object: &JSGlobalObject) -> HostResult 
             ("isJSArray", 1, is_js_array),
             ("isError", 1, is_error),
             ("parseEnv", 1, parse_env),
+            ("parseArgs", 1, crate::api::node_parse_args::parse_args),
             ("stringWidth", 1, crate::runtime::bun_global::bun_string_width),
         ],
     )?;

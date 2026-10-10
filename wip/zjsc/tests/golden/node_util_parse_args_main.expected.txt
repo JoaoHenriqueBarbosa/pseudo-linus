@@ -1,0 +1,88 @@
+empty => {"values":{},"positionals":[]}
+undefined config uses argv !! TypeError ERR_PARSE_ARGS_UNKNOWN_OPTION "Unknown option '-q'" 
+bool => {"values":{"foo":true},"positionals":[]}
+short bool => {"values":{"foo":true},"positionals":[]}
+string next => {"values":{"bar":"v"},"positionals":[]}
+string inline => {"values":{"bar":"v=w"},"positionals":[]}
+short string next => {"values":{"bar":"v"},"positionals":[]}
+short string attached => {"values":{"bar":"value"},"positionals":[]}
+group => {"values":{"foo":true,"flag":[true]},"positionals":[]}
+group string last => {"values":{"foo":true,"bar":"v"},"positionals":[]}
+group string middle => {"values":{"foo":true,"bar":"value"},"positionals":[]}
+multiple strings => {"values":{"baz":["a","b","c"]},"positionals":[]}
+multiple bools => {"values":{"flag":[true,true,true]},"positionals":[]}
+terminator => {"values":{"foo":true},"positionals":["--bar","-f","p"]}
+positionals => {"values":{"foo":true},"positionals":["a","b"]}
+non strict unknown => {"values":{"nope":true,"z":true,"a":true,"b":true,"c":true,"q":"1"},"positionals":["p"]}
+non strict allows positionals => {"values":{},"positionals":["p","q"]}
+non-string args => {"values":{},"positionals":[1,2]}
+proto key => {"values":{},"positionals":[]}
+proto default => {"values":{"__proto__x":"d"},"positionals":[]}
+index key => {"values":{"0":"a","2023":true},"positionals":[]}
+values proto null => true
+result keys => ["values","positionals","tokens"]
+defaults => {"values":{"foo":true,"bar":"d","baz":["x","y"],"flag":[true]},"positionals":[]}
+negative => {"values":{"foo":false,"bar":false,"unknown":false},"positionals":[]}
+negative off => {"values":{"no-foo":true},"positionals":[]}
+negative string !! TypeError ERR_PARSE_ARGS_UNKNOWN_OPTION "Unknown option '--no-bar'" 
+negative bool strict => {"values":{"foo":false},"positionals":[]}
+negative unknown strict !! TypeError ERR_PARSE_ARGS_UNKNOWN_OPTION "Unknown option '--no-unknown'" 
+tokens => {"values":{"foo":true,"bar":"v","baz":["1"],"x":true},"positionals":["pos","-f"],"tokens":[{"kind":"option","name":"foo","rawName":"-f","index":0},{"kind":"option","name":"bar","rawName":"-b","index":0,"value":"v","inlineValue":false},{"kind":"option","name":"baz","rawName":"--baz","index":2,"value":"1","inlineValue":true},{"kind":"option","name":"x","rawName":"--x","index":3},{"kind":"positional","index":4,"value":"pos"},{"kind":"option-terminator","index":5},{"kind":"positional","index":6,"value":"-f"}]}
+tokens group => {"values":{"foo":true,"flag":[true],"bar":"val"},"positionals":[],"tokens":[{"kind":"option","name":"foo","rawName":"-f","index":0},{"kind":"option","name":"flag","rawName":"-g","index":0},{"kind":"option","name":"bar","rawName":"-b","index":0,"value":"val","inlineValue":true}]}
+tokens non strict => {"values":{"z":true,"q":"1","r":true},"positionals":[],"tokens":[{"kind":"option","name":"z","rawName":"-z","index":0},{"kind":"option","name":"q","rawName":"--q","index":1,"value":"1","inlineValue":true},{"kind":"option","name":"r","rawName":"--r","index":2}]}
+tokens negative => {"values":{"foo":false},"positionals":[],"tokens":[{"kind":"option","name":"foo","rawName":"--no-foo","index":0}]}
+unknown long !! TypeError ERR_PARSE_ARGS_UNKNOWN_OPTION "Unknown option '--nope'" 
+unknown short !! TypeError ERR_PARSE_ARGS_UNKNOWN_OPTION "Unknown option '-z'" 
+unknown short in group !! TypeError ERR_PARSE_ARGS_UNKNOWN_OPTION "Unknown option 'z'" 
+unknown with positionals !! TypeError ERR_PARSE_ARGS_UNKNOWN_OPTION "Unknown option '--nope'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--nope\"" 
+unknown inline !! TypeError ERR_PARSE_ARGS_UNKNOWN_OPTION "Unknown option '--nope'" 
+string missing !! TypeError ERR_PARSE_ARGS_INVALID_OPTION_VALUE "Option '-b, --bar <value>' argument missing" 
+short string missing !! TypeError ERR_PARSE_ARGS_INVALID_OPTION_VALUE "Option '-b, --bar <value>' argument missing" 
+bool with value !! TypeError ERR_PARSE_ARGS_INVALID_OPTION_VALUE "Option '-f, --foo' does not take an argument" 
+short bool with value !! TypeError ERR_PARSE_ARGS_UNKNOWN_OPTION "Unknown option '='" 
+ambiguous long !! TypeError ERR_PARSE_ARGS_INVALID_OPTION_VALUE "Option '--bar' argument is ambiguous.\nDid you forget to specify the option argument for '--bar'?\nTo specify an option argument starting with a dash use '--bar=-XYZ'." 
+ambiguous short !! TypeError ERR_PARSE_ARGS_INVALID_OPTION_VALUE "Option '-b' argument is ambiguous.\nDid you forget to specify the option argument for '-b'?\nTo specify an option argument starting with a dash use '--bar=-XYZ' or '-b-XYZ'." 
+ambiguous short group !! TypeError ERR_PARSE_ARGS_INVALID_OPTION_VALUE "Option 'b' argument is ambiguous.\nDid you forget to specify the option argument for 'b'?\nTo specify an option argument starting with a dash use '--bar=-XYZ' or 'b-XYZ'." 
+unexpected positional !! TypeError ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL "Unexpected argument 'a'. This command does not take positional arguments" 
+unexpected after terminator !! TypeError ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL "Unexpected argument 'a'. This command does not take positional arguments" 
+unexpected number !! TypeError ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL "Unexpected argument '7'. This command does not take positional arguments" 
+config string => {"values":{},"positionals":[]}
+config number => {"values":{},"positionals":[]}
+config null !! TypeError undefined "null is not an object (evaluating 'parseArgs(null)')" 
+args not array !! TypeError ERR_INVALID_ARG_TYPE "The \"args\" property must be an instance of Array, got string" 
+args null => {"values":{},"positionals":[]}
+args object !! TypeError ERR_INVALID_ARG_TYPE "The \"args\" property must be an instance of Array, got object" 
+strict not bool !! TypeError ERR_INVALID_ARG_TYPE "The \"strict\" property must be of type boolean, got number" 
+strict null => {"values":{},"positionals":[]}
+allowPositionals not bool !! TypeError ERR_INVALID_ARG_TYPE "The \"allowPositionals\" property must be of type boolean, got string" 
+tokens not bool !! TypeError ERR_INVALID_ARG_TYPE "The \"tokens\" property must be of type boolean, got number" 
+allowNegative not bool !! TypeError ERR_INVALID_ARG_TYPE "The \"allowNegative\" property must be of type boolean, got array" 
+options null => {"values":{},"positionals":[]}
+options string !! TypeError ERR_INVALID_ARG_TYPE "The \"options\" property must be of type object, got string" 
+options array !! TypeError ERR_INVALID_ARG_TYPE "The \"options\" property must be of type object, got array" 
+option not object !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a\" property must be of type object, got number" 
+option null !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a\" property must be of type object, got object" 
+option array !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a\" property must be of type object, got array" 
+option function !! TypeError ERR_INVALID_ARG_TYPE "options.a.type must be one of: boolean|string" 
+type missing !! TypeError ERR_INVALID_ARG_TYPE "options.a.type must be one of: boolean|string" 
+type bad !! TypeError ERR_INVALID_ARG_TYPE "options.a.type must be one of: boolean|string" 
+type number !! TypeError ERR_INVALID_ARG_TYPE "options.a.type must be one of: boolean|string" 
+type symbol !! TypeError undefined "Cannot convert a symbol to a string" 
+short not string !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a.short\" property must be of type string, got number" 
+short undefined !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a.short\" property must be of type string, got undefined" 
+short long !! TypeError ERR_INVALID_ARG_VALUE "options.a.short must be a single character" 
+short empty !! TypeError ERR_INVALID_ARG_VALUE "options.a.short must be a single character" 
+multiple not bool !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a.multiple\" property must be of type boolean, got number" 
+default string bad !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a.default\" property must be of type string, got number" 
+default bool bad !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a.default\" property must be of type boolean, got string" 
+default multiple string bad !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a.default\" property must be an instance of Array, got string" 
+default multiple string item !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a.default[1]\" property must be of type string, got array" 
+default multiple bool bad !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a.default[1]\" property must be of type boolean, got array" 
+default null !! TypeError ERR_INVALID_ARG_TYPE "The \"options.a.default\" property must be of type string, got object" 
+long option name !! TypeError ERR_INVALID_ARG_VALUE "options.a.b.short must be a single character" 
+getter order => ["args","strict","allowPositionals","tokens","allowNegative","options"]
+inherited config ignored => {"values":{},"positionals":[]}
+own option def only !! TypeError ERR_INVALID_ARG_TYPE "options.a.type must be one of: boolean|string" 
+sparse args => {"values":{"foo":true},"positionals":[null]}
+function name => ["parseArgs",1]
+error stack top => ["TypeError: Unknown option '--nope'","    at parseArgs ()"]

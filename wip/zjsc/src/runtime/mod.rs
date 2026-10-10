@@ -54,6 +54,7 @@ pub mod node_buffer;
 pub mod node_error;
 pub mod node_os;
 pub mod node_path;
+pub mod node_validators;
 pub mod text_decoder;
 pub mod text_decoder_big5_data;
 pub mod text_decoder_euc_kr_data;
