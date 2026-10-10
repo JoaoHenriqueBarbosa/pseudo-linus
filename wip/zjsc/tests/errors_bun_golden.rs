@@ -9,7 +9,7 @@
 //! roda num `evaluate_script` próprio, porque vários congelam ou alteram protótipos e o global.
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
-use zjsc::api::eval::evaluate_script;
+use zjsc::api::eval::evaluate_indirect_eval;
 use zjsc::wtf::text::conversion_mode::ConversionMode;
 
 const GOLDEN: &str = include_str!("golden/errors_bun.tsv");
@@ -37,9 +37,14 @@ fn json_quote(source: &str) -> String {
 }
 
 /// Roda um programa pelo harness e devolve a linha de resultado, ou o motivo de não ter devolvido.
+///
+/// O filho do gerador imprime a linha logo que o harness volta (`console.log`) e só depois o laço esvazia as
+/// microtarefas, que ele nunca espera: um programa como `function f() { Promise.resolve().then(f); f() } f()` enche a
+/// fila sem fim e o filho morre no limite de tempo com a linha já impressa. Por isso o harness roda como valor de
+/// conclusão de um eval indireto, que não esvazia as microtarefas (o `evaluate_script` esvaziaria e nunca voltaria).
 fn run(source: &str) -> Result<String, String> {
     let program = format!("{}({})", HARNESS.trim_end(), json_quote(source));
-    match catch_unwind(AssertUnwindSafe(|| evaluate_script(&program))) {
+    match catch_unwind(AssertUnwindSafe(|| evaluate_indirect_eval(&program))) {
         Ok(Ok(value)) if value.is_string() => {
             let bytes = value.as_js_string().value().utf8(ConversionMode::LenientConversion);
             Ok(String::from_utf8_lossy(&bytes).into_owned())
