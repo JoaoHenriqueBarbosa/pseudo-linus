@@ -6,6 +6,12 @@
 use core::marker::PhantomData;
 use core::num::NonZeroU32;
 
+use crate::binding::Binding;
+use crate::expr::Expr;
+use crate::stmt::Stmt;
+use crate::store::Store;
+use crate::{E, Ref};
+
 // ───────────────────────────────────────────────────────────────────────────
 // StoreRef: índice de um nó no vetor do seu tipo dentro do `Store`.
 // ───────────────────────────────────────────────────────────────────────────
@@ -197,4 +203,150 @@ pub enum AssignTarget {
     Replace = 1,
     /// "a += b"
     Update = 2,
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Nomes de índice e listas. No upstream `ExprNodeList` é `Vec<Expr, AstAlloc>`; no porte toda lista é faixa do
+// vetor do tipo (ver "Listas" na seção "Arena tipada" do README).
+// ───────────────────────────────────────────────────────────────────────────
+
+pub type ExprNodeIndex = Expr;
+pub type StmtNodeIndex = Stmt;
+pub type BindingNodeIndex = Binding;
+
+pub type ExprNodeList = StoreSlice<Expr>;
+pub type StmtNodeList = StoreSlice<Stmt>;
+
+pub(crate) type ArenaStr = StoreStr;
+
+#[derive(Copy, Clone)]
+pub struct LocRef {
+    pub loc: crate::Loc,
+    pub ref_: Ref,
+}
+
+const _: () = assert!(core::mem::size_of::<LocRef>() == 12);
+
+impl Default for LocRef {
+    fn default() -> Self {
+        Self {
+            loc: crate::Loc::EMPTY,
+            ref_: Ref::NONE,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct ClauseItem {
+    /// The local alias used for the imported/exported symbol in the current module.
+    /// For imports: `import { foo as bar }` - "bar" is the alias
+    /// For exports: `export { foo as bar }` - "bar" is the alias
+    /// For re-exports: `export { foo as bar } from 'path'` - "bar" is the alias
+    pub alias: ArenaStr,
+    pub alias_loc: crate::Loc,
+    /// Reference to the actual symbol being imported/exported.
+    /// For imports: `import { foo as bar }` - ref to the symbol representing "foo" from the source module
+    /// For exports: `export { foo as bar }` - ref to the local symbol "foo"
+    /// For re-exports: `export { foo as bar } from 'path'` - ref to an intermediate symbol
+    pub name: LocRef,
+
+    /// This is the original name of the symbol stored in "Name". It's needed for
+    /// "SExportClause" statements such as this:
+    ///
+    ///   export {foo as bar} from 'path'
+    ///
+    /// In this case both "foo" and "bar" are aliases because it's a re-export.
+    /// We need to preserve both aliases in case the symbol is renamed. In this
+    /// example, "foo" is "OriginalName" and "bar" is "Alias".
+    pub original_name: ArenaStr,
+}
+
+impl ClauseItem {
+    pub const DEFAULT_ALIAS: &'static [u8] = b"default";
+}
+
+impl Default for ClauseItem {
+    fn default() -> Self {
+        Self {
+            alias: StoreStr::EMPTY,
+            alias_loc: crate::Loc::EMPTY,
+            name: LocRef::default(),
+            original_name: StoreStr::EMPTY,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct EnumValue {
+    pub loc: crate::Loc,
+    pub ref_: Ref,
+    pub name: ArenaStr,
+    pub value: Option<ExprNodeIndex>,
+}
+
+impl EnumValue {
+    pub fn name_as_e_string(&self, store: &mut Store) -> E::String {
+        E::String::init_re_encode_utf8(store, self.name)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Catch {
+    pub loc: crate::Loc,
+    pub binding: Option<BindingNodeIndex>,
+    pub body: StmtNodeList,
+    pub body_loc: crate::Loc,
+}
+
+#[derive(Clone, Copy)]
+pub struct Finally {
+    pub loc: crate::Loc,
+    pub stmts: StmtNodeList,
+}
+
+#[derive(Clone, Copy)]
+pub struct Case {
+    pub loc: crate::Loc,
+    pub value: Option<ExprNodeIndex>,
+    pub body: StmtNodeList,
+}
+
+#[derive(Clone, Copy)]
+pub struct ArrayBinding {
+    pub binding: BindingNodeIndex,
+    pub default_value: Option<ExprNodeIndex>,
+}
+
+#[derive(Clone, Copy)]
+pub enum StmtOrExpr {
+    Stmt(Stmt),
+    Expr(Expr),
+}
+
+impl Default for StmtOrExpr {
+    fn default() -> Self {
+        StmtOrExpr::Expr(Expr::default())
+    }
+}
+
+impl StmtOrExpr {
+    pub fn to_expr(self, store: &mut Store) -> Expr {
+        match self {
+            StmtOrExpr::Expr(expr) => expr,
+            StmtOrExpr::Stmt(stmt) => match stmt.data {
+                crate::stmt::Data::SFunction(s) => {
+                    let func = core::mem::take(&mut store[s].func);
+                    Expr::init(store, E::Function { func }, stmt.loc)
+                }
+                crate::stmt::Data::SClass(s) => {
+                    let class = core::mem::take(&mut store[s].class);
+                    Expr::init::<E::Class>(store, class, stmt.loc)
+                }
+                other => panic!(
+                    "Unexpected statement type in default export: .{}",
+                    <&'static str>::from(other.tag())
+                ),
+            },
+        }
+    }
 }

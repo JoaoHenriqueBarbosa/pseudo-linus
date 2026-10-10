@@ -5,20 +5,135 @@
 
 use core::fmt;
 
+/// O `#[derive(bun_core::EnumTag)]` com `#[enum_tag(existing = Tag)]` do upstream: declara o enum de dados e o
+/// `tag()` que devolve a variante de mesmo nome no enum de tags já existente. O padrão `Variante { .. }` casa tanto
+/// as variantes com carga quanto as sem.
+macro_rules! enum_tag {
+    (
+        $(#[$meta:meta])*
+        pub enum $name:ident: $tag:ident {
+            $($(#[$vmeta:meta])* $variant:ident $(($payload:ty))?),* $(,)?
+        }
+    ) => {
+        $(#[$meta])*
+        pub enum $name {
+            $($(#[$vmeta])* $variant $(($payload))?,)*
+        }
+
+        impl $name {
+            #[inline]
+            pub fn tag(&self) -> $tag {
+                match self {
+                    $($name::$variant { .. } => $tag::$variant,)*
+                }
+            }
+        }
+    };
+}
+
+/// Os acessores de campo do upstream (`data.e_string()`, `data.s_function()`): devolvem o índice (`Copy`). As
+/// versões `_mut` recebem o `Store`, que é quem tem o nó.
+macro_rules! data_accessors {
+    ($data:ident; $($get:ident $(/ $get_mut:ident)? => $variant:ident: $ty:ty),* $(,)?) => {
+        impl $data {
+            $(
+                #[inline]
+                pub fn $get(&self) -> Option<$crate::StoreRef<$ty>> {
+                    if let $data::$variant(v) = *self { Some(v) } else { None }
+                }
+                $(
+                    #[inline]
+                    pub fn $get_mut<'s>(&self, store: &'s mut $crate::store::Store) -> Option<&'s mut $ty> {
+                        self.$get().map(|v| &mut store[v])
+                    }
+                )?
+            )*
+        }
+    };
+}
+
+pub mod b;
 pub mod base;
+pub mod binding;
+pub mod e;
+pub mod expr;
 pub mod g;
 pub mod new_store;
 pub mod nodes;
 pub mod op;
+pub mod s;
+pub mod stmt;
+pub mod store;
 pub mod symbol;
 pub mod target;
+pub mod ts;
 
+pub use b as B;
 pub use base::{Index, IndexInt};
+pub use binding::Binding;
+pub use e as E;
+pub use e::CallUnwrap as CanBeUnwrapped;
+pub use expr::{Data as ExprData, Expr, PrimitiveType as KnownPrimitive, Tag as ExprTag};
 pub use g as G;
+pub use g::NamespaceAlias;
 pub use new_store::{NodeStore, Stored};
-pub use nodes::{AssignTarget, ImportItemStatus, OptionalChain, StoreRef, StoreSlice, StoreStr};
+pub use nodes::{
+    ArrayBinding, AssignTarget, BindingNodeIndex, Case, Catch, ClauseItem, EnumValue, ExprNodeIndex, ExprNodeList,
+    Finally, ImportItemStatus, LocRef, OptionalChain, StmtNodeIndex, StmtNodeList, StmtOrExpr, StoreRef, StoreSlice,
+    StoreStr,
+};
+pub use op as Op;
+pub use op::Code as OpCode;
+pub use s as S;
+pub use s::Kind as LocalKind;
+pub use stmt::{Data as StmtData, Stmt, Tag as StmtTag};
+pub use store::Store;
 pub use symbol::Symbol;
 pub use target::Target;
+
+/// `flags`: bitset enums on AST nodes (`G.rs`/`B.rs` import `crate::flags`).
+pub mod flags {
+    use enumset::{EnumSet, EnumSetType};
+
+    #[derive(EnumSetType, Debug)]
+    pub enum JSXElement {
+        IsKeyAfterSpread,
+    }
+    pub type JSXElementBitset = EnumSet<JSXElement>;
+
+    #[derive(EnumSetType, Debug)]
+    pub enum Property {
+        IsComputed,
+        IsMethod,
+        IsStatic,
+        WasShorthand,
+        IsSpread,
+    }
+    pub type PropertySet = EnumSet<Property>;
+    pub const PROPERTY_NONE: PropertySet = EnumSet::empty();
+
+    #[derive(EnumSetType, Debug)]
+    pub enum Function {
+        IsAsync,
+        IsGenerator,
+        HasRestArg,
+        HasIfScope,
+
+        IsForwardDeclaration,
+
+        /// This is true if the function is a method
+        IsUniqueFormalParameters,
+
+        /// Only applicable to function statements.
+        IsExport,
+
+        /// A `// eslint-disable… react-hooks/…` comment was scanned at or before
+        /// this function's body close. The React Compiler skips such functions.
+        HasReactHooksSuppression,
+    }
+    pub type FunctionSet = EnumSet<Function>;
+    pub const FUNCTION_NONE: FunctionSet = EnumSet::empty();
+}
 
 // ───────────────────────────────────────────────────────────────────────────
 // Loc

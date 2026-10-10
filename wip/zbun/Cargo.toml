@@ -9,6 +9,7 @@ license = "MIT"
 [workspace.dependencies]
 bitflags = "2"
 enum-map = "2"
+enumset = "1"
 strum = { version = "0.26", features = ["derive"] }
 
 [workspace.lints.rust]

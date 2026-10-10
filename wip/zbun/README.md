@@ -68,15 +68,41 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 |---|---|---|---|
 | `bun_ast` | `op.rs` | portado | nada (cópia) |
 | `bun_ast` | `target.rs` | portado | nada (cópia) |
-| `bun_ast` | `nodes.rs` | parcial: `AssignTarget`, `OptionalChain`, `StoreRef`, `StoreSlice`, `StoreStr` | os três `Store*` viram índices (seção "Arena tipada"); o arquivo cresce item a item |
-| `bun_ast` | `new_store.rs` | substituído | a arena de blocos do mimalloc vira `Store` com um `Vec` por tipo (`define_store!`), sem `unsafe` |
-| `bun_ast` | `lib.rs` | parcial: `RefTag`, `Ref`, `Loc`, `Range` | trecho igual ao upstream, menos `range_of_identifier`, que pede o iterador de codepoints e as tabelas de identificador do `bun_core`; o logger e `Source` entram em seguida |
+| `bun_ast` | `nodes.rs` | parcial: `AssignTarget`, `OptionalChain`, `StoreRef`, `StoreSlice`, `StoreStr`, os nomes de índice e lista, `LocRef`, `ClauseItem`, `EnumValue`, `Catch`, `Finally`, `Case`, `ArrayBinding`, `StmtOrExpr` | os três `Store*` viram índices (seção "Arena tipada"); `ExprNodeList` é `StoreSlice<Expr>` |
+| `bun_ast` | `new_store.rs` | substituído | a arena de blocos do mimalloc vira `Store` com um `Vec` por tipo (`define_store!`), sem `unsafe`; ganha um `Vec<u16>` para as strings UTF-16 e `append` (o `VecExt::append` das listas) |
+| `bun_ast` | `store.rs` (novo) | o `Store` concreto | uma linha por tipo de nó, de payload (`S::*`, `B::*`, o `expr::Data` do `SLazyExport`) e de lista |
+| `bun_ast` | `lib.rs` | parcial: `RefTag`, `Ref`, `Loc`, `Range`, `flags`, os reexports | trecho igual ao upstream, menos `range_of_identifier`, que pede as tabelas de identificador; o `#[derive(EnumTag)]` do `bun_core` vira a macro local `enum_tag!`, e os acessores `e_*`/`s_*` saem de `data_accessors!`; o `DebugOnlyDisabler` (guarda do `Store` de thread) não tem papel sem `Store` global |
 | `bun_ast` | `base.rs` | portado | nada (cópia), menos o travessão de um comentário |
 | `bun_ast` | `symbol.rs` | parcial: `Symbol`, `SymbolFlags`, `SlotNamespace`, `Kind`, `Use` | `namespace_alias` é `Option<Box<_>>` no lugar do `AstBox`; o `Map` de duas camadas do bundler (com `unsafe`) fica fora, o transpilador usa a tabela plana |
-| `bun_ast` | `g.rs` | parcial: `NamespaceAlias` | o arquivo cresce item a item |
+| `bun_ast` | `g.rs` | portado | listas viram faixas do `Store`; `can_be_moved` e `init_return_expr` recebem o `Store`; os `deep_clone` entram com o de `expr.rs` |
+| `bun_ast` | `ts.rs` | parcial: `Metadata` | `TSNamespaceScope` e `TSNamespaceMember` entram com o `StringArrayHashMap` |
+| `bun_ast` | `e.rs` | portado, menos os nós de JSON | ver "e.rs" abaixo |
+| `bun_ast` | `expr.rs` | parcial: `Expr`, `Query`, `IntoExprData`, `init`, `Tag`, `PrimitiveType`, `Data`, os acessores, `can_be_const_value`, `can_be_moved`, `is_safe_to_string` | `init` recebe o `Store`; `allocate` (via bump) some, há um dono só; `Data` mantém 12 bytes e `Expr` 16. Pendentes: `deep_clone`, `write_to_hasher`, `known_primitive`, as dobras e o acesso por caminho |
+| `bun_ast` | `s.rs` | portado (cópia) | todos os tipos derivam `Clone` para o `clone_in` (inserido por ferramenta), `ExportDefault::can_be_moved` recebe o `Store` |
+| `bun_ast` | `stmt.rs` | portado | `alloc` recebe o `Store`; `allocate`/`allocate_expr` (bump) somem; `Data` tem 8 bytes e `Stmt` 12 (16 no upstream) |
+| `bun_ast` | `b.rs` | portado, menos `write_to_hasher` | `B` tem 8 bytes e `Binding` 12; os acessores de lista recebem o `Store` |
+| `bun_ast` | `binding.rs` | portado | `ToExprWrapper<C>` guarda um `fn(&mut C, Loc, Ref) -> Expr` no lugar do trampolim com `*mut c_void` e do `BackRef` do bump; o `Store` vem do contexto (`C: AsMut<Store>`) |
 | `bun_ast` | `nodes.rs` (`ImportItemStatus`) | portado | nada |
 | `bun_ast` | `loader.rs` | pendente | pede `bun_core::assert_ffi_discr!` e `bun_collections::StringArrayHashMap` |
 | `bun_core` | `comptime_string_map.rs` | portado, com os 8 testes do upstream | sem o `impl HasLength for &crate::String`, que volta com o porte de `bun_core::String` |
 | `bun_core` | `strings` (`string/immutable.rs`, `string/immutable/unicode.rs`, `strings_impl` de `lib.rs`) | parcial: ASCII, igualdade e ordem, surrogates, WTF-8, `CodepointIterator`, UTF-8 para UTF-16 e volta | onde o upstream chama o simdutf, roda o laço escalar que o próprio upstream usa quando o simdutf recusa a entrada; para entrada válida os dois dão as mesmas unidades, então o porte usa sempre o laço. `eql_long` compara fatias no lugar da leitura por palavras com ponteiro |
 | `bun_core_macros` | `comptime_string_map.rs` | portado | nada (cópia) |
+| `bun_core` | `fmt.rs` | parcial: `FormatDouble` | o `WTF__dtoa` do WebKit vira os dígitos mais curtos do formatador do Rust montados pela regra do Number::toString do ECMAScript, com testes contra o `String(n)` do JavaScript |
+| `bun_core` | `util.rs` e `lib.rs` | parcial: `GenericIndex`, `GenericIndexOptional`, `trim` | nada (cópia) |
+
+### `e.rs`
+
+- Os nós de JSON (`JsonValue`, `JsonTape`, `TapeAlloc`, `ObjectJSON`, `ArrayJSON`, com o `unsafe` deles) ficam fora até o
+  loader de JSON; `expr::Tag` mantém `EObjectJSON` e `EArrayJSON` para os discriminantes não mudarem, e só o `Data`
+  não tem as variantes.
+- `Rope.next` é `Option<StoreRef<Rope>>`, no lugar do `*mut Rope`; `next_ref` (o único `unsafe` do `Rope`) some.
+- `EString` deriva `Copy` (todos os campos são índices e escalares) e `shallow_clone` fica; `Flattened` vira a cópia
+  por valor. Com `is_utf16`, `data` é faixa do vetor UTF-16 do `Store`, e `slice16` lê dele sem `unsafe`.
+- `init`, `init_utf16` e `init_re_encode_utf8` recebem faixas já gravadas no `Store`; `Number::to_string` grava o
+  texto no `Store` (as tabelas de -100 a 100 do upstream só evitavam alocação).
+- Os métodos que mudam nó guardado (`Object::put`, `get_or_put_object`, `Array::push`, `Template::fold`) recebem
+  `(store, this: StoreRef<_>)`; a corda de `fold` é montada numa cópia da `EString` e gravada de volta.
+- `alphabetize_*` e `package_json_sort` usam o `sort_by` estável, que dá a mesma ordem do `index_sort` estável.
+- Pendentes: `EString::hash` (wyhash), `is_identifier` (`lexer_tables`), o `Display` de `EString` e
+  `Import::import_record_loader` (o `Loader`).
 | `bun_core_macros` | `lib.rs` | parcial: só os dois proc-macros do mapa | `pretty_fmt!` e os derives de contagem de referência entram quando pedidos |
