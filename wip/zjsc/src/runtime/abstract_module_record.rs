@@ -688,6 +688,10 @@ impl AbstractModuleRecord {
 
 /// O acesso por índice de `JSInternalFieldObjectImpl<2>` (`op_get_internal_field`/`op_put_internal_field`).
 impl crate::runtime::js_internal_field_object_impl::InternalFields for AbstractModuleRecord {
+    fn field_count(&self) -> u32 {
+        self.m_internal_fields.borrow().len() as u32
+    }
+
     fn field(&self, index: u32) -> JSValue {
         self.m_internal_fields.borrow()[index as usize]
     }

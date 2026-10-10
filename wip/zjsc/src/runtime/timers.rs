@@ -154,6 +154,25 @@ pub(crate) fn reset_for_program() {
     drop(taken);
 }
 
+/// As raízes do laço para o coletor: o objeto, o callback, os argumentos e o `_repeat` de cada timer ou immediate
+/// ainda armado (o `Timeout` pendente do node segura tudo isso), e os protótipos.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    let _ = STATE.try_with(|state| {
+        let Ok(state) = state.try_borrow() else {
+            marker.abort();
+            return;
+        };
+        for (&cell_id, entry) in state.entries.iter().filter(|(_, entry)| !entry.destroyed) {
+            marker.cell(cell_id);
+            marker.value(entry.callback.js_value());
+            marker.values(&entry.args);
+            marker.value(entry.repeat);
+        }
+        marker.value(state.timeout_prototype);
+        marker.value(state.immediate_prototype);
+    });
+}
+
 impl State {
     fn take_seq(&mut self) -> u64 {
         self.next_seq += 1;
@@ -564,15 +583,23 @@ fn register(global_object: &JSGlobalObject, kind: Kind, callback: Callback, args
 /// ordem dos `setTimeout` do mesmo prazo (por instante e sequência). Prazo 0 não é "agora": medido no bun, o
 /// timer de 0 ms roda depois dos immediates já enfileirados e antes de qualquer `setTimeout` (mínimo de 1 ms),
 /// então vale uma volta do laço (`LOOP_PASS_MS`).
-pub(crate) fn schedule_native(global_object: &JSGlobalObject, milliseconds: f64, action: Rc<dyn Fn(&JSGlobalObject)>) {
-    schedule_native_with_ref(global_object, milliseconds, action, false);
+pub(crate) fn schedule_native(global_object: &JSGlobalObject, milliseconds: f64, held: Vec<JSValue>, action: Rc<dyn Fn(&JSGlobalObject)>) {
+    schedule_native_with_ref(global_object, milliseconds, held, action, false);
 }
 
 /// Como [`schedule_native`], com o timer segurando o laço vivo quando `refed` (a resposta da rede do navegador, o
-/// fim de uma fatia de [`run_event_loop_for`]): sem isso o laço só com ele sai sem chegar ao prazo.
-pub(crate) fn schedule_native_with_ref(global_object: &JSGlobalObject, milliseconds: f64, action: Rc<dyn Fn(&JSGlobalObject)>, refed: bool) {
+/// fim de uma fatia de [`run_event_loop_for`]): sem isso o laço só com ele sai sem chegar ao prazo. `held` são os
+/// valores que `action` captura: a entrada os segura para o coletor até disparar, como os argumentos de um
+/// `setTimeout`.
+pub(crate) fn schedule_native_with_ref(
+    global_object: &JSGlobalObject,
+    milliseconds: f64,
+    held: Vec<JSValue>,
+    action: Rc<dyn Fn(&JSGlobalObject)>,
+    refed: bool,
+) {
     let fire_delay = if milliseconds == 0.0 { LOOP_PASS_MS } else { milliseconds };
-    let object = register(global_object, Kind::Timeout, Callback::Native(action), Vec::new(), milliseconds, fire_delay);
+    let object = register(global_object, Kind::Timeout, Callback::Native(action), held, milliseconds, fire_delay);
     if refed {
         STATE.with(|state| {
             if let Some(entry) = state.borrow_mut().entries.get_mut(&object.cell_id()) {
@@ -685,6 +712,9 @@ fn invoke(global_object: &JSGlobalObject, callback: &Callback, this_value: JSVal
     if STATE.with(|state| state.borrow().halted) {
         return;
     }
+    // A entrada pode cair durante a chamada (`clearTimeout` de dentro, timeout de disparo único): o que o laço
+    // segura aqui fica enraizado até o callback voltar.
+    let _roots = crate::runtime::gc::RootScope::new(&[&[callback.js_value(), this_value][..], args].concat());
     match callback {
         Callback::Js(function) => match call_microtask(global_object, *function, this_value, args, "callback is not a function") {
             Err(CallThrown::Value(error)) => global_object.vm().report_unhandled_error(global_object, error),
@@ -839,7 +869,7 @@ pub fn run_event_loop(global_object: &JSGlobalObject) {
 /// lá dispara, o resto fica na fila para a chamada seguinte, que retoma o relógio de onde esta parou. `false` quando
 /// o laço parou de vez (exceção fatal).
 pub fn run_event_loop_for(global_object: &JSGlobalObject, budget_ms: f64) -> bool {
-    schedule_native_with_ref(global_object, budget_ms, Rc::new(|_| STATE.with(|state| state.borrow_mut().paused = true)), true);
+    schedule_native_with_ref(global_object, budget_ms, Vec::new(), Rc::new(|_| STATE.with(|state| state.borrow_mut().paused = true)), true);
     run_event_loop_until_held(global_object)
 }
 

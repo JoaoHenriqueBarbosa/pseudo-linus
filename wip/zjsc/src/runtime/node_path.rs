@@ -32,7 +32,10 @@ use crate::runtime::js_value::{js_boolean, JSValue};
 use crate::runtime::native_class_support::{property_key, throw_coded_type_error};
 use crate::runtime::object_constructor::construct_empty_object;
 use crate::runtime::process_shape::text_value;
+use crate::runtime::property_attribute::{DONT_ENUM, READ_ONLY};
+use crate::runtime::property_name::PropertyName;
 use crate::runtime::process_system::current_directory;
+use crate::runtime::property_descriptor::PropertyDescriptor;
 use crate::runtime::string_regexp_support::get_object_property;
 use crate::wtf::text::wtf_string::String as WtfString;
 
@@ -1066,9 +1069,13 @@ fn to_namespaced_path_body<const WIN: bool>(global_object: &JSGlobalObject, call
     if path.is_empty() {
         return Ok(argument);
     }
-    match win32_namespaced_units(&resolve_for::<WIN>(&[path])) {
+    // Medido no bun 1.4.2: o que não é caminho de unidade nem UNC volta resolvido (`win32.toNamespacedPath("a/b")` é
+    // `\tmp\a\b` com o diretório corrente `/tmp`), e não como veio, que é o que o Node devolve.
+    let resolved = resolve_for::<WIN>(&[path]);
+    match win32_namespaced_units(&resolved) {
         Some(namespaced) => Ok(units_value(global_object, &namespaced)),
-        None => Ok(argument),
+        None if resolved.len() <= 2 => Ok(argument),
+        None => Ok(units_value(global_object, &resolved)),
     }
 }
 
@@ -1114,7 +1121,8 @@ fn format_field(global_object: &JSGlobalObject, object: JSValue, name: &str) -> 
 
 fn format_body<const WIN: bool>(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let object = call.argument(0);
-    if !object.is_object() || object.is_callable() {
+    // Medido no bun 1.4.2: array é recusado (`got array`) e função passa (`format(() => 1)` devolve `""`).
+    if !object.is_object() || is_js_array(&object) {
         return Err(invalid_property_type(global_object, "pathObject", "object", object));
     }
     let dir = format_field(global_object, object, "dir")?;
@@ -1151,24 +1159,29 @@ host_function!(win32_parse, parse_body::<true>);
 type PathFunction = crate::runtime::native_function::NativeFunction;
 
 /// Um dos dois objetos (`posix` ou `win32`): as onze funções, `sep` e `delimiter`, na ordem do bun. As chaves cruzadas
-/// (`win32`, `posix`, `_makeLong`) entram depois, em [`create_path_module`], quando os dois já existem.
+/// (`win32`, `posix`, `_makeLong`) entram depois, em [`install_path_module`], quando os dois já existem.
 fn create_flavor(global_object: &JSGlobalObject, win: bool, functions: [PathFunction; 11]) -> crate::runtime::js_object::JSObjectRef {
     let vm = global_object.vm();
     let module = construct_empty_object(global_object);
     let names = ["resolve", "normalize", "isAbsolute", "join", "relative", "toNamespacedPath", "dirname", "basename", "extname", "format", "parse"];
     for (name, function) in names.into_iter().zip(functions) {
-        put_direct_native_function_with_display_name(
+        let installed = put_direct_native_function_with_display_name(
             vm,
             global_object,
             &module,
             &Identifier::from_span(vm, name.as_bytes()),
-            &WtfString::from_latin1(format!("bound {name}").as_bytes()),
+            &WtfString::from_latin1(name.as_bytes()),
             1,
             function,
             ImplementationVisibility::Public,
             Intrinsic::NoIntrinsic,
             0,
         );
+        // Medido no bun 1.4.2: `path.join.name` é `bound join`, mas `String(path.join)` é `function join() { [native code] }`
+        // (o nome do executável). O `name` próprio troca de valor sem mudar de lugar nas chaves (`length,name`); o
+        // `define_own_property` da função é o caminho que enxerga a propriedade `name` da função nativa.
+        let bound_name = PropertyDescriptor::new(text_value(vm, &format!("bound {name}")), DONT_ENUM | READ_ONLY);
+        let _ = installed.define_own_property(global_object, &PropertyName::from_identifier(&vm.property_names.name), &bound_name, false);
     }
     module.put_direct(vm, &property_key(vm, "sep"), text_value(vm, if win { "\\" } else { "/" }), 0);
     module.put_direct(vm, &property_key(vm, "delimiter"), text_value(vm, if win { ";" } else { ":" }), 0);
@@ -1176,9 +1189,9 @@ fn create_flavor(global_object: &JSGlobalObject, win: bool, functions: [PathFunc
 }
 
 /// O objeto do módulo `node:path` (o posix, que é o `path` em si) com as chaves na ordem do bun. `matchesGlob` ainda
-/// não existe (ver a documentação do módulo). Os dois objetos apontam um para o outro: `posix.win32 === win32`,
+/// não existe (ver a documentação do módulo). É o instalador de `require("path")`. Os dois objetos apontam um para o outro: `posix.win32 === win32`,
 /// `win32.posix === posix`, e cada um aponta para si mesmo pela própria chave.
-pub fn create_path_module(global_object: &JSGlobalObject) -> JSValue {
+pub(crate) fn install_path_module(global_object: &JSGlobalObject) -> HostResult {
     let vm = global_object.vm();
     let posix = create_flavor(
         global_object,
@@ -1197,7 +1210,7 @@ pub fn create_path_module(global_object: &JSGlobalObject) -> JSValue {
         let namespaced = module.get(vm, &property_key(vm, "toNamespacedPath"));
         module.put_direct(vm, &property_key(vm, "_makeLong"), namespaced, 0);
     }
-    posix.as_value()
+    Ok(posix.as_value())
 }
 
 #[cfg(test)]

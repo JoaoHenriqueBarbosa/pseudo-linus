@@ -1038,6 +1038,42 @@ impl CodeBlock {
         f(&mut table.get_mut::<M>()[metadata_id as usize])
     }
 
+    /// `CodeBlock::finalizeUnconditionally`, que o coletor chama depois da marcação e antes da varredura:
+    /// `updateAllArrayAllocationProfilePredictions` (o perfil dobra o array que viu por último e solta a
+    /// referência fraca a ele) e `finalizeLLIntInlineCaches` (o id de célula que vai ser varrida sai do cache:
+    /// o callee ligado de um `CallLinkInfo`, que volta a `Init` com `clearedByGC`, e o escopo ou a tabela de
+    /// símbolos do `op_resolve_scope`). `doomed` diz se o id é de célula que a varredura vai soltar. Devolve
+    /// `false` se a tabela estiver emprestada.
+    pub(crate) fn finalize_unconditionally(&self, doomed: &dyn Fn(usize) -> bool) -> bool {
+        use crate::bytecode::array_allocation_profile::HeapArrays;
+        let Some(table) = self.metadata.as_ref() else {
+            return true;
+        };
+        let Ok(mut table) = table.try_borrow_mut() else {
+            return false;
+        };
+        table.for_each::<OpNewArrayMetadata>(|m| m.array_allocation_profile.update_profile(&HeapArrays));
+        table.for_each::<OpNewArrayWithSizeMetadata>(|m| m.array_allocation_profile.update_profile(&HeapArrays));
+        table.for_each::<OpNewArrayBufferMetadata>(|m| m.array_allocation_profile.update_profile(&HeapArrays));
+        table.for_each::<OpNewArrayWithSpeciesMetadata>(|m| m.array_allocation_profile.update_profile(&HeapArrays));
+        let unlink_dead_callee = |info: &mut DataOnlyCallLinkInfo| {
+            if info.callee != 0 && doomed(info.callee as usize) {
+                info.callee = 0;
+                info.cleared_by_gc = true;
+                info.mode = CallLinkInfoMode::Init as u8;
+            }
+        };
+        table.for_each::<OpTailCallMetadata>(|m| unlink_dead_callee(&mut m.call_link_info));
+        table.for_each::<OpTailCallVarargsMetadata>(|m| unlink_dead_callee(&mut m.call_link_info));
+        table.for_each::<OpResolveScopeMetadata>(|m| {
+            let scope = &mut m.lexical_environment_or_symbol_table_or_constant_scope_or_global_object;
+            if *scope != 0 && doomed(*scope as usize) {
+                *scope = 0;
+            }
+        });
+        true
+    }
+
     /// `offsetInMetadataTable(Metadata*)`, dado o opcode e o `metadataID`.
     pub fn offset_in_metadata_table(&self, opcode_id: OpcodeID, metadata_id: u32) -> usize {
         self.metadata.as_ref().expect("ASSERT(m_metadata)").borrow().offset_in_metadata_table(opcode_id, metadata_id)

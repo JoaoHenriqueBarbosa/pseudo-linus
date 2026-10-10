@@ -97,6 +97,10 @@ impl std::ops::Deref for RegExpObject {
 }
 
 impl RegExpObject {
+    /// `visitChildren`: o `lastIndex` (a `RegExp` é `Rc`, já raiz).
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.last_index.get());
+    }
     /// `StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot |
     /// OverridesGetOwnSpecialPropertyNames | OverridesPut`.
     pub const STRUCTURE_FLAGS: u32 = JSNonFinalObject::STRUCTURE_FLAGS

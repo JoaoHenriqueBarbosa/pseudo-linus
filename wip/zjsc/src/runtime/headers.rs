@@ -186,6 +186,11 @@ fn construct_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult
     Ok(instance)
 }
 
+/// As raízes do coletor: o protótipo.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.value(HEADERS_PROTOTYPE.with(|prototype| *prototype.borrow()));
+}
+
 thread_local! {
     /// O protótipo de `Headers`, guardado na instalação para os `Headers` que `Response` cria.
     static HEADERS_PROTOTYPE: RefCell<Option<JSValue>> = const { RefCell::new(None) };

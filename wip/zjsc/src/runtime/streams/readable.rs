@@ -316,6 +316,13 @@ thread_local! {
     static PROTOTYPES: RefCell<HashMap<&'static str, EncodedJSValue>> = RefCell::new(HashMap::new());
 }
 
+/// As raízes do coletor: os protótipos; os objetos e as reações (closures) são opacos e adiam a coleta.
+pub(super) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    PROTOTYPES.with(|prototypes| prototypes.borrow().values().for_each(|prototype| marker.encoded(*prototype)));
+    marker.defer_while(OBJECTS.with(|objects| !objects.borrow().is_empty()));
+    marker.defer_while(HANDLERS.with(|handlers| !handlers.borrow().is_empty()));
+}
+
 pub(super) fn reset_for_program() {
     let _ = OBJECTS.try_with(|objects| objects.borrow_mut().clear());
     let _ = HANDLERS.try_with(|handlers| handlers.borrow_mut().clear());

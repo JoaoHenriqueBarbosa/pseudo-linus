@@ -49,6 +49,14 @@ impl std::ops::Deref for JSLexicalEnvironment {
 }
 
 impl JSLexicalEnvironment {
+    /// `visitChildren`: as variáveis.
+    pub(crate) fn visit_variables(&self, marker: &mut crate::runtime::gc::Marker) {
+        match self.variables.try_borrow() {
+            Ok(variables) => marker.values(&variables),
+            Err(_) => marker.abort(),
+        }
+    }
+
     /// `StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot | OverridesGetOwnSpecialPropertyNames | OverridesPut`.
     pub const STRUCTURE_FLAGS: u32 =
         JSSymbolTableObject::STRUCTURE_FLAGS | OVERRIDES_GET_OWN_PROPERTY_SLOT | OVERRIDES_PUT;

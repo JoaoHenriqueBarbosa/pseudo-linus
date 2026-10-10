@@ -99,6 +99,18 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o estado guardado é do programa.
+/// As raízes do coletor: os controladores e os sinais deles; o estado dos sinais guarda valores e adia a coleta
+/// enquanto existir.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    CONTROLLERS.with(|controllers| {
+        for (controller, signal) in controllers.borrow().iter() {
+            marker.encoded(*controller);
+            marker.value(*signal);
+        }
+    });
+    marker.defer_while(SIGNALS.with(|signals| !signals.borrow().is_empty()));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = SIGNALS.try_with(|signals| signals.borrow_mut().clear());
     let _ = CONTROLLERS.try_with(|controllers| controllers.borrow_mut().clear());
@@ -314,6 +326,7 @@ fn signal_static_timeout_body(global_object: &JSGlobalObject, call: &HostCall) -
         global_object,
         // `-0` (de `-0.5`) vira `0`.
         milliseconds + 0.0,
+        vec![signal],
         Rc::new(move |global: &JSGlobalObject| {
             if let Ok(reason) = new_detached_dom_exception(global, "TimeoutError", "The operation timed out.") {
                 let _ = signal_abort(global, signal, reason);

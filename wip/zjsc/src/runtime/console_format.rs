@@ -29,6 +29,11 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
+/// As raízes do coletor: os objetos que os formatadores de fora estão imprimindo.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    ENCLOSING_SEEN.with(|seen| seen.borrow().iter().for_each(|cell_id| marker.cell(*cell_id)));
+}
+
 thread_local! {
     /// Os objetos que os formatadores de fora estão imprimindo quando um `Error` aninhado é relatado (ver
     /// `Formatter::inside_error_report`).

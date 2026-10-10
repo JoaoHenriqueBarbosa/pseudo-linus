@@ -83,6 +83,16 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): a chave é o `cell_id` da coleção.
+/// As raízes do coletor: cada armazenamento e a chave e o valor que ele guarda.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    STORAGES.with(|storages| {
+        for (cell_id, state) in storages.borrow().iter() {
+            marker.cell(*cell_id);
+            marker.values(&[state.key, state.value]);
+        }
+    });
+}
+
 pub(crate) fn reset_for_program() {
     // Tira o mapa e solta depois do `borrow`: o `Drop` dos valores pode voltar aqui.
     let taken = STORAGES.try_with(|storages| std::mem::take(&mut *storages.borrow_mut()));

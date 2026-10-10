@@ -315,6 +315,11 @@ fn undefined_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostResu
 host_function!(pub undefined_function, undefined_body);
 
 /// Fim do programa (`cell_registry::reset_program_state`): os valores gravados são células do programa.
+/// As raízes do coletor: os valores guardados do `process`.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    SLOTS.with(|slots| slots.borrow().values().for_each(|value| marker.value(*value)));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = SLOTS.try_with(|slots| slots.borrow_mut().clear());
     crate::runtime::process_env::reset_for_program();

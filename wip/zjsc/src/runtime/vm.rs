@@ -114,6 +114,8 @@ pub struct VM {
     control_flow_profiler_enabled_count: Cell<u32>,
     /// `bool m_failNextNewCodeBlock { false }`.
     fail_next_new_code_block: Cell<bool>,
+    /// `m_currentWeakRefVersion`: o `WeakRef` criado ou lido nesta versão segura o alvo até ela avançar.
+    current_weak_ref_version: Cell<u64>,
     /// `bool m_globalConstRedeclarationShouldThrow { true }`.
     global_const_redeclaration_should_throw: Cell<bool>,
     /// `bool m_allowRedeclaringSymbols { false }`.
@@ -378,6 +380,7 @@ impl VM {
             control_flow_profiler: RefCell::new(None),
             control_flow_profiler_enabled_count: Cell::new(0),
             fail_next_new_code_block: Cell::new(false),
+            current_weak_ref_version: Cell::new(0),
             global_const_redeclaration_should_throw: Cell::new(true),
             allow_redeclaring_symbols: Cell::new(false),
             last_exception: RefCell::new(None),
@@ -505,11 +508,38 @@ impl VM {
         count == 1
     }
 
-    /// `Heap::collectNow`/`collectSync` (a API Rust que o `Bun.gc` do oráculo usaria). Ainda não há coletor:
-    /// toda célula vive até o fim da thread (ver `wip-notes/gc-audit.md`), então não libera nada e devolve 0
-    /// células coletadas. O tamanho do heap se lê direto de `cell_registry::live_cell_count()`.
+    /// `Heap::collectNow`/`collectSync` (a API Rust que o `Bun.gc` do oráculo usaria): coleta completa e
+    /// devolve quantas células foram varridas. Fora do interpretador a pilha de registradores não é raiz.
     pub fn collect_garbage(&self) -> usize {
-        0
+        crate::runtime::gc::collect(None, self)
+    }
+
+    /// As raízes que o `VM` guarda por `cell_id` (`VM::visitAggregate`): as sentinelas de iteração rápida e
+    /// a fila de microtarefas.
+    pub(crate) fn visit_gc_roots(&self, marker: &mut crate::runtime::gc::Marker) {
+        for sentinel in [&self.fast_async_generator_sentinel, &self.fast_array_values_sentinel] {
+            if let Some(value) = sentinel.get() {
+                marker.value(*value);
+            }
+        }
+        if let Some(s) = self.fast_iteration_sentinels.get() {
+            marker.values(&[
+                s.array_keys, s.array_entries, s.map_keys, s.map_values,
+                s.map_entries, s.set_values, s.set_entries, s.string_values,
+            ]);
+        }
+        self.default_microtask_queue.visit_children(marker);
+    }
+
+    /// `currentWeakRefVersion()`.
+    pub fn current_weak_ref_version(&self) -> u64 {
+        self.current_weak_ref_version.get()
+    }
+
+    /// `finalizeSynchronousJSExecution()`: fim do trabalho síncrono e das microtarefas de uma tarefa; os
+    /// `WeakRef`s lidos até aqui deixam de segurar o alvo (o `ClearKeptObjects` da especificação).
+    pub fn finalize_synchronous_js_execution(&self) {
+        self.current_weak_ref_version.set(self.current_weak_ref_version.get() + 1);
     }
 
     /// `setFailNextNewCodeBlock()`.

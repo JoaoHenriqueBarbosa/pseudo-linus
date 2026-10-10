@@ -49,6 +49,13 @@ use crate::wtf::text::wtf_string::{String as WtfString};
 pub static ERROR_INSTANCE_S_INFO: ClassInfo =
     ClassInfo { class_name: "Error", parent_class: Some(&JS_NON_FINAL_OBJECT_S_INFO), static_prop_hash_table: None, inherits_js_type_range: None };
 
+/// O que o caminho de texto grava no erro: `line`, `column`, `sourceURL` (vazio quando o frame de cima não tem) e `stack`.
+#[derive(Clone, Debug)]
+pub struct TextPath {
+    stack: WtfString,
+    position: Option<(u32, u32, String)>,
+}
+
 /// O dado observável de um `ErrorInstance`.
 #[derive(Clone, Debug, Default)]
 pub struct ErrorData {
@@ -62,6 +69,9 @@ pub struct ErrorData {
     pub stack: Option<WtfString>,
     /// `m_stackTrace`: os frames capturados que ainda não viraram `stack`.
     pub pending_frames: Option<Vec<StackFrame>>,
+    /// A pilha que o coletor formatou quando um frame de `pending_frames` morreu antes da primeira leitura de `stack`
+    /// (o caminho de texto do `reconcileWeakReferencesAtGCEnd`): as propriedades entram na primeira leitura.
+    pub text_path: Option<TextPath>,
     /// O fonte do frame de cima, gravado quando a pilha é materializada: o relato de erro do `console.log` mostra o
     /// trecho dele.
     pub source_text: Option<std::rc::Rc<str>>,
@@ -109,6 +119,61 @@ impl std::ops::Deref for ErrorInstance {
 }
 
 impl ErrorInstance {
+    /// `visitChildren`: os frames ainda não materializados são fracos, como no C++: o `finalizeFrames` (o
+    /// `reconcileWeakReferencesAtGCEnd`) decide depois da marcação. No modo V8 o estado da pilha segura callee e `this`.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        let Ok(data) = self.data.try_borrow() else {
+            marker.abort();
+            return;
+        };
+        if crate::runtime::stack_frame::v8_stack_format() {
+            data.pending_frames.iter().flatten().for_each(|frame| frame.visit_aggregate(marker));
+        }
+    }
+
+    /// `ErrorInstance::finalizeUnconditionally`: com um frame cujo callee ou `this` a varredura vai soltar, o erro é
+    /// materializado agora pelo caminho de texto (sem `Error.prepareStackTrace`, sem `originalLine` e
+    /// `originalColumn`, cabeçalho `Error: mensagem`), enquanto as células ainda são legíveis.
+    pub(crate) fn finalize_frames(&self, marker: &crate::runtime::gc::Marker) {
+        if crate::runtime::stack_frame::v8_stack_format() {
+            return;
+        }
+        let Ok(mut data) = self.data.try_borrow_mut() else { return };
+        let dead = data.pending_frames.iter().flatten().any(|frame| {
+            marker.is_doomed(frame.callee) || matches!(frame.this_value, JSValue::Cell(cell_id) if marker.is_doomed(cell_id))
+        });
+        if !dead {
+            return;
+        }
+        let frames = data.pending_frames.take().unwrap_or_default();
+        let message = data.message.utf8(ConversionMode::LenientConversion);
+        let header = if message.is_empty() { "Error".to_string() } else { format!("Error: {}", String::from_utf8_lossy(&message)) };
+        let top = frames.iter().find(|top| top.has_line_and_column_info());
+        let position = top.map(|top| (top.line(), top.column(), top.source_url().to_string()));
+        let stack = stack_text(&WtfString::from_utf8(header.as_bytes()), &frames, None);
+        data.stack = Some(stack.clone());
+        data.text_path = Some(TextPath { stack, position });
+    }
+
+    /// A primeira leitura depois do caminho de texto: grava `line`, `column`, `sourceURL` e `stack` nessa ordem.
+    fn apply_text_path(&self, vm: &VM) -> bool {
+        let Some(text_path) = self.data.borrow_mut().text_path.take() else { return false };
+        let names = &vm.property_names;
+        if let Some((line, column, source_url)) = &text_path.position {
+            for (name, value) in [(&names.line, line), (&names.column, column)] {
+                self.put_direct(vm, &PropertyName::from_identifier(name), js_number(f64::from(*value)), DONT_ENUM);
+            }
+            if !matches!(source_url.as_str(), "unknown" | "native") {
+                let url = js_string(vm, &WtfString::from_latin1(source_url.as_bytes()));
+                self.put_direct(vm, &PropertyName::from_identifier(&names.source_url), JSValue::from_js_string(url), DONT_ENUM);
+            }
+            self.set_line(*line as i32);
+            self.set_column(*column as i32);
+        }
+        self.set_stack_value(vm, JSValue::from_js_string(js_string(vm, &text_path.stack)));
+        true
+    }
+
     /// `StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot |
     /// OverridesGetOwnSpecialPropertyNames | OverridesPut | GetOwnPropertySlotIsImpureForPropertyAbsence`.
     pub const STRUCTURE_FLAGS: u32 = JSNonFinalObject::STRUCTURE_FLAGS
@@ -389,6 +454,12 @@ pub fn materialize_error_info(object: &JSObject) -> bool {
     let Some(error) = ErrorInstance::from_cell_id(object.cell_id()) else {
         return false;
     };
+    if error.data.borrow().text_path.is_some() {
+        let Some(global_object) = object.structure().realm() else {
+            return false;
+        };
+        return error.apply_text_path(global_object.vm());
+    }
     if error.data.borrow().pending_frames.is_none() {
         return false;
     }

@@ -1,0 +1,40 @@
+_isArrayBufferView,_isUint8Array,_uint8ArrayToBuffer,isDestroyed,isDisturbed,isErrored,isReadable,isWritable,Readable,Writable,Duplex,Transform,PassThrough,duplexPair,pipeline,addAbortSignal,finished,destroy,compose,setDefaultHighWaterMark,getDefaultHighWaterMark,promises,Stream,eos
+constructor,destroy,_undestroy,_destroy,push,unshift,isPaused,setEncoding,read,_read,pipe,unpipe,on,addListener,removeListener,off,removeAllListeners,resume,pause,wrap,iterator,compose,readable,readableDidRead,readableAborted,readableHighWaterMark,readableBuffer,readableFlowing,readableLength,readableObjectMode,readableEncoding,errored,closed,destroyed,readableEnded,drop,filter,flatMap,map,take,every,forEach,reduce,toArray,some,find
+constructor,pipe,write,cork,uncork,setDefaultEncoding,_write,_writev,end,closed,destroyed,writable,writableFinished,writableObjectMode,writableBuffer,writableEnded,writableNeedDrain,writableHighWaterMark,writableCorked,writableLength,errored,writableAborted,destroy,_undestroy,_destroy
+constructor,destroy,write,cork,uncork,setDefaultEncoding,_write,_writev,end,writable,writableHighWaterMark,writableObjectMode,writableBuffer,writableLength,writableFinished,writableCorked,writableEnded,writableNeedDrain,destroyed
+constructor,_final,_transform,_write,_read
+true Readable 1 Writable Duplex Transform PassThrough
+true true true true
+true true
+no throw
+TypeError|TypeError|ERR_STREAM_NULL_VALUES|May not write null values to stream
+TypeError|TypeError|ERR_INVALID_ARG_TYPE|The "chunk" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type number (5)
+no throw
+TypeError|TypeError|ERR_INVALID_ARG_VALUE|The property 'options.highWaterMark' is invalid. Received -1
+no throw
+TypeError|TypeError|ERR_INVALID_ARG_TYPE|The "streams[stream.length - 1]" property must be of type function. Received undefined
+TypeError|TypeError|ERR_UNKNOWN_ENCODING|Unknown encoding: nope
+write a buffer
+true 0 65536 false true
+write b buffer
+final
+true false false
+"" 1 3 "€" ""
+0 lastChar,lastNeed,lastTotal,encoding,write,end,text,constructor StringDecoder 0
+"" "a" "👍" ""
+"" YWI= base64
+TypeError|TypeError|ERR_UNKNOWN_ENCODING|Unknown encoding: nope
+TypeError|TypeError|ERR_INVALID_ARG_TYPE|The "buf" argument must be of type Buffer, TypedArray, or DataView. Received type number (5)
+error event ERR_INVALID_ARG_TYPE
+end cb
+finish
+pt hello
+duplex q
+decoded "€"
+close
+r end x,y,z
+error boom
+bad close true boom
+finished undefined
+pipeline undefined A,B
+async iter m,n

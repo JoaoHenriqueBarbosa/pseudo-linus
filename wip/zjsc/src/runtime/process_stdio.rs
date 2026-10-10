@@ -127,6 +127,21 @@ struct Slot {
 /// `Writable()`, `Readable()`, `WriteStream(path)` e `ReadStream(path)`.
 const STDIO_SLOTS: usize = 3;
 
+/// As raízes do coletor: os protótipos, o objeto do stdin, os objetos dos fluxos, os ouvintes e os callbacks de `end`
+/// de cada `Slot` (o resto do estado dos fluxos não guarda valores).
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    for prototype in [&READABLE_PROTOTYPE, &WRITABLE_PROTOTYPE, &STREAM_PROTOTYPE, &EMITTER_PROTOTYPE, &WRITE_PROTOTYPE, &READ_PROTOTYPE, &STDIN_OBJECT] {
+        marker.value(prototype.with(Cell::get));
+    }
+    OBJECT_SLOTS.with(|slots| slots.borrow().iter().for_each(|(_, cell_id)| marker.cell(*cell_id)));
+    SLOTS.with(|slots| {
+        for slot in slots.borrow().iter() {
+            slot.listeners.visit_gc_roots(marker);
+            marker.values(&slot.pending_end);
+        }
+    });
+}
+
 thread_local! {
     static SLOTS: RefCell<Vec<Slot>> = const { RefCell::new(Vec::new()) };
     /// A identidade de cada objeto que não é stdio (o `encode` do valor) e o seu `Slot`.
@@ -898,6 +913,10 @@ fn build_stream_prototype(global_object: &JSGlobalObject) -> JSValue {
         ],
     );
     let stream = object_with_prototype(global_object, Some(emitter.as_value()));
+    // O padrão do protótipo do `EventEmitter` do bun (`EventEmitterPrototype._eventsCount = 0`): um stream que ainda
+    // não registrou ouvinte lê 0 e não `undefined` (`process.stdout._eventsCount`).
+    let vm = global_object.vm();
+    emitter.put_direct(vm, &prop(vm, "_eventsCount"), js_number(0), 0);
     put_constructor(global_object, &stream, "Stream", 1, stream_constructor);
     STREAM_PROTOTYPE.with(|cell| cell.set(Some(stream.as_value())));
     put_methods(global_object, &stream, &[("pipe", 2, cannot_pipe as NativeFunction), ("eventNames", 0, emitter_event_names as NativeFunction)]);

@@ -52,6 +52,10 @@ impl std::ops::Deref for JSWrapperObject {
 }
 
 impl JSWrapperObject {
+    /// `visitChildren`: o valor embrulhado.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.internal_value.get());
+    }
     /// `StructureFlags = Base::StructureFlags` (nenhuma flag): é a de `NumberObject` e `BooleanObject`.
     pub const STRUCTURE_FLAGS: u32 = JSNonFinalObject::STRUCTURE_FLAGS;
 

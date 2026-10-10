@@ -44,6 +44,10 @@ pub struct JSPromiseCombinatorsGlobalContext {
 pub type JSPromiseCombinatorsGlobalContextRef = Rc<JSPromiseCombinatorsGlobalContext>;
 
 impl JSPromiseCombinatorsGlobalContext {
+    /// `visitChildren`: a promessa e o array de valores.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.values(&[self.promise.get(), self.values.get()]);
+    }
     /// `create(vm, promise, values, remainingElementsCount)`.
     pub fn create(promise: JSValue, values: JSValue, remaining_elements_count: u64) -> JSPromiseCombinatorsGlobalContextRef {
         let cell_id = cell_registry::reserve();

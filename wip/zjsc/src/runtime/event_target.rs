@@ -167,6 +167,33 @@ struct EventState {
     in_passive: bool,
 }
 
+/// Os ouvintes dos alvos, os sinais que os registraram e o estado dos eventos seguram valores do programa.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    SIGNAL_LISTENERS.with(|table| {
+        for (signal, links) in table.borrow().iter() {
+            marker.encoded(*signal);
+            for (target, listener) in links {
+                marker.value(*target);
+                marker.value(listener.callback);
+            }
+        }
+    });
+    TARGETS.with(|table| {
+        for (target, listeners) in table.borrow().iter() {
+            marker.encoded(*target);
+            listeners.iter().for_each(|listener| marker.value(listener.callback));
+        }
+    });
+    EVENTS.with(|table| {
+        for (event, state) in table.borrow().iter() {
+            marker.encoded(*event);
+            marker.values(&[state.target, state.current_target]);
+            marker.value(state.detail);
+            marker.values(&state.fields);
+        }
+    });
+}
+
 thread_local! {
     static NEXT_LISTENER_ID: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
     /// A `Structure` das instâncias de `Event` de cada realm (chave: `cell_id`), para os eventos que o código nativo cria.
@@ -283,8 +310,17 @@ pub(crate) fn set_event_handler(target: JSValue, kind: &str, value: JSValue) {
     });
 }
 
-fn is_target(this: JSValue) -> bool {
+pub(crate) fn is_target(this: JSValue) -> bool {
     TARGETS.with(|targets| targets.borrow().contains_key(&this.encode()))
+}
+
+/// As funções registradas por `addEventListener` em `target` para o tipo `kind`, na ordem (sem os atributos de
+/// evento, `onabort`): o que `events.getEventListeners` e `events.listenerCount` leem de um `EventTarget`. `None`
+/// quando `target` não é um `EventTarget`.
+pub(crate) fn listener_callbacks(target: JSValue, kind: &[u16]) -> Option<Vec<JSValue>> {
+    TARGETS.with(|targets| {
+        targets.borrow().get(&target.encode()).map(|list| list.iter().filter(|l| !l.attr && l.kind == kind).map(|l| l.callback).collect())
+    })
 }
 
 fn event_state(this: JSValue) -> Option<EventState> {
@@ -327,7 +363,7 @@ fn wtf_from_units(units: &[u16]) -> WtfString {
 }
 
 /// `ToString(argumento)` como unidades UTF-16 (a identidade do tipo; U+FFFD e surrogate solto são tipos distintos).
-fn kind_argument(global_object: &JSGlobalObject, value: JSValue) -> Result<Vec<u16>, Thrown> {
+pub(crate) fn kind_argument(global_object: &JSGlobalObject, value: JSValue) -> Result<Vec<u16>, Thrown> {
     Ok(code_units(&pending_or(global_object, value.to_wtf_string())?).into_owned())
 }
 

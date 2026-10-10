@@ -71,6 +71,11 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): as instâncias guardadas são do programa.
+/// As raízes do coletor: as instâncias (a chave do brand check não pode ser reaproveitada).
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    INSTANCES.with(|instances| instances.borrow().iter().for_each(|instance| marker.encoded(*instance)));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = INSTANCES.try_with(|instances| instances.borrow_mut().clear());
 }

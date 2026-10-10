@@ -18,6 +18,7 @@ use crate::runtime::identifier::Identifier;
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_value::JSValue;
 use crate::runtime::object_constructor::{construct_array_of, construct_empty_object, enumerable_own_entries};
+use crate::runtime::string_regexp_support::get_object_property;
 
 /// Monta o objeto do módulo. Roda uma vez por programa; o resultado é guardado no cache do registro.
 pub(crate) type Installer = fn(&JSGlobalObject) -> HostResult;
@@ -52,8 +53,14 @@ pub(crate) enum Resolved<'a> {
 /// Os módulos instalados. Acrescentar aqui, na ordem alfabética.
 pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "buffer", scheme: Scheme::Both, install: crate::runtime::node_buffer::install_buffer_module },
+    BuiltinEntry { name: "events", scheme: Scheme::Both, install: crate::api::node_events::install_events_module },
     BuiltinEntry { name: "module", scheme: Scheme::Both, install: install_module_module },
     BuiltinEntry { name: "os", scheme: Scheme::Both, install: crate::runtime::node_os::install_os_module },
+    BuiltinEntry { name: "path", scheme: Scheme::Both, install: crate::runtime::node_path::install_path_module },
+    BuiltinEntry { name: "path/posix", scheme: Scheme::Both, install: install_path_posix },
+    BuiltinEntry { name: "path/win32", scheme: Scheme::Both, install: install_path_win32 },
+    BuiltinEntry { name: "stream", scheme: Scheme::Both, install: crate::api::node_stream::install_stream_module },
+    BuiltinEntry { name: "string_decoder", scheme: Scheme::Both, install: crate::api::node_stream::install_string_decoder_module },
     BuiltinEntry { name: "vm", scheme: Scheme::Both, install: crate::api::eval::install_vm_module },
 ];
 
@@ -84,6 +91,22 @@ pub(crate) fn known_builtin_specifier(specifier: &str) -> Option<String> {
         return None;
     }
     Some(if specifier == "bun" || specifier.starts_with("bun:") { specifier.to_owned() } else { format!("node:{specifier}") })
+}
+
+/// `require("path/posix")` e `require("path/win32")` devolvem o mesmo objeto de `require("path").posix` e `.win32`
+/// (medido no bun 1.4.2: `require("path/posix") === require("path")`), então saem do módulo `path` já carregado.
+fn path_flavor(global_object: &JSGlobalObject, flavor: &str) -> HostResult {
+    let path = BUILTINS.iter().find(|entry| entry.name == "path").expect("o módulo path consta em BUILTINS");
+    let module = load(global_object, path)?;
+    get_object_property(global_object, module, &Identifier::from_span(global_object.vm(), flavor.as_bytes()))
+}
+
+fn install_path_posix(global_object: &JSGlobalObject) -> HostResult {
+    path_flavor(global_object, "posix")
+}
+
+fn install_path_win32(global_object: &JSGlobalObject) -> HostResult {
+    path_flavor(global_object, "win32")
 }
 
 /// Instalador de `node:module`: por ora só `builtinModules`, o array da tabela `BUILTIN_MODULE_NAMES`.
@@ -150,16 +173,27 @@ pub(crate) fn resolve(request: &str) -> Resolved<'static> {
 
 /// O objeto do módulo: do cache, ou recém-instalado (e guardado).
 pub(crate) fn load(global_object: &JSGlobalObject, entry: &'static BuiltinEntry) -> HostResult {
-    if let Some(cached) = CACHE.with(|cache| cache.borrow().iter().find(|(name, _)| *name == entry.name).map(|(_, value)| value.clone())) {
+    cached(entry.name, || (entry.install)(global_object))
+}
+
+/// O objeto de `name` guardado para o programa: `build` roda na primeira chamada (serve também aos auxiliares que não
+/// são módulos do `require`, como o `node_internal.js`).
+pub(crate) fn cached(name: &'static str, build: impl FnOnce() -> HostResult) -> HostResult {
+    if let Some(cached) = CACHE.with(|cache| cache.borrow().iter().find(|(known, _)| *known == name).map(|(_, value)| value.clone())) {
         return Ok(cached);
     }
-    // Sem empréstimo durante o instalador: ele pode reentrar no `require`.
-    let installed = (entry.install)(global_object)?;
-    CACHE.with(|cache| cache.borrow_mut().push((entry.name, installed.clone())));
+    // Sem empréstimo durante a montagem: ela pode reentrar no `require`.
+    let installed = build()?;
+    CACHE.with(|cache| cache.borrow_mut().push((name, installed.clone())));
     Ok(installed)
 }
 
 /// Fim do programa (`eval::reset_for_program`): o cache é do programa.
+/// As raízes do coletor: os módulos embutidos já criados.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    CACHE.with(|cache| cache.borrow().iter().for_each(|(_, value)| marker.value(*value)));
+}
+
 pub(crate) fn reset_for_program() {
     let taken = CACHE.try_with(|cache| std::mem::take(&mut *cache.borrow_mut()));
     drop(taken);

@@ -68,6 +68,16 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): as portas e as estruturas são do programa.
+/// As raízes do coletor: cada canal e as duas portas dele.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    CHANNEL_PORTS.with(|channels| {
+        for (channel, (first, second)) in channels.borrow().iter() {
+            marker.encoded(*channel);
+            marker.values(&[*first, *second]);
+        }
+    });
+}
+
 pub(crate) fn reset_for_program() {
     let _ = PORT_STRUCTURES.try_with(|structures| structures.borrow_mut().clear());
     let channels = CHANNEL_PORTS.try_with(|channels| std::mem::take(&mut *channels.borrow_mut()));

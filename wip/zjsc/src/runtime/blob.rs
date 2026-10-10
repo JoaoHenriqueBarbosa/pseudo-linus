@@ -89,6 +89,12 @@ pub(crate) fn blob_prototype() -> JSValue {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o que foi guardado é do programa.
+/// As raízes do coletor: o protótipo e as instâncias (o estado é só de bytes).
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.value(BLOB_PROTOTYPE.with(|prototype| *prototype.borrow()));
+    INSTANCES.with(|instances| instances.borrow().keys().for_each(|instance| marker.encoded(*instance)));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = INSTANCES.try_with(|instances| instances.borrow_mut().clear());
 }

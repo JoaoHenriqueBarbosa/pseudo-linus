@@ -68,6 +68,11 @@ thread_local! {
     static OBJECTS: RefCell<HashMap<EncodedJSValue, Obj>> = RefCell::new(HashMap::new());
 }
 
+/// Há estado de stream de transformação (opaco ao coletor).
+pub(super) fn holds_state() -> bool {
+    OBJECTS.with(|objects| !objects.borrow().is_empty())
+}
+
 pub(super) fn reset_for_program() {
     let _ = OBJECTS.try_with(|objects| objects.borrow_mut().clear());
 }

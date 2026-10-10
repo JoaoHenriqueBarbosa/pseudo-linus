@@ -41,6 +41,14 @@ impl std::ops::Deref for JSSegmentedVariableObject {
 }
 
 impl JSSegmentedVariableObject {
+    /// `visitChildren`: as variáveis.
+    pub(crate) fn visit_variables(&self, marker: &mut crate::runtime::gc::Marker) {
+        match self.variables.try_borrow() {
+            Ok(variables) => marker.values(&variables),
+            Err(_) => marker.abort(),
+        }
+    }
+
     /// `StructureFlags` (herdado sem acréscimo).
     pub const STRUCTURE_FLAGS: u32 = JSSymbolTableObject::STRUCTURE_FLAGS;
 

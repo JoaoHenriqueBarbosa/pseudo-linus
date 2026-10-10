@@ -94,6 +94,14 @@ thread_local! {
     static TRANSFORM_STREAM: Cell<Option<EncodedJSValue>> = const { Cell::new(None) };
 }
 
+/// As raízes do coletor: o construtor de `TransformStream`; o estado dos transformadores é opaco e adia a coleta.
+pub(super) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    if let Some(constructor) = TRANSFORM_STREAM.with(Cell::get) {
+        marker.encoded(constructor);
+    }
+    marker.defer_while(OBJECTS.with(|objects| !objects.borrow().is_empty()));
+}
+
 pub(super) fn reset_for_program() {
     let _ = OBJECTS.try_with(|objects| objects.borrow_mut().clear());
     let _ = TRANSFORM_STREAM.try_with(|constructor| constructor.set(None));
