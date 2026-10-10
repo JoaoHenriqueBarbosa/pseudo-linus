@@ -157,6 +157,23 @@ impl<T: ProgramSource + ?Sized> ProgramSource for &T {
     }
 }
 
+/// `JSON.stringify(source)` de um texto: o literal de string que um gerador entrega a `(0, eval)(...)`.
+pub fn json_quote(source: &str) -> String {
+    let mut quoted = String::with_capacity(source.len() + 2);
+    quoted.push('"');
+    for character in source.chars() {
+        match character {
+            '"' => quoted.push_str("\\\""),
+            '\\' => quoted.push_str("\\\\"),
+            '\n' => quoted.push_str("\\n"),
+            control if (control as u32) < 0x20 => quoted.push_str(&format!("\\u{:04x}", control as u32)),
+            other => quoted.push(other),
+        }
+    }
+    quoted.push('"');
+    quoted
+}
+
 /// `json_units` como `String`, para os testes que comparam texto sem surrogate solitário: ele vira U+FFFD (com perda).
 pub fn json_string(literal: &str) -> String {
     String::from_utf16_lossy(&json_units(literal))
