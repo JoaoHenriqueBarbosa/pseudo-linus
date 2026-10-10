@@ -283,8 +283,17 @@ pub(crate) fn set_event_handler(target: JSValue, kind: &str, value: JSValue) {
     });
 }
 
-fn is_target(this: JSValue) -> bool {
+pub(crate) fn is_target(this: JSValue) -> bool {
     TARGETS.with(|targets| targets.borrow().contains_key(&this.encode()))
+}
+
+/// As funções registradas por `addEventListener` em `target` para o tipo `kind`, na ordem (sem os atributos de
+/// evento, `onabort`): o que `events.getEventListeners` e `events.listenerCount` leem de um `EventTarget`. `None`
+/// quando `target` não é um `EventTarget`.
+pub(crate) fn listener_callbacks(target: JSValue, kind: &[u16]) -> Option<Vec<JSValue>> {
+    TARGETS.with(|targets| {
+        targets.borrow().get(&target.encode()).map(|list| list.iter().filter(|l| !l.attr && l.kind == kind).map(|l| l.callback).collect())
+    })
 }
 
 fn event_state(this: JSValue) -> Option<EventState> {
@@ -327,7 +336,7 @@ fn wtf_from_units(units: &[u16]) -> WtfString {
 }
 
 /// `ToString(argumento)` como unidades UTF-16 (a identidade do tipo; U+FFFD e surrogate solto são tipos distintos).
-fn kind_argument(global_object: &JSGlobalObject, value: JSValue) -> Result<Vec<u16>, Thrown> {
+pub(crate) fn kind_argument(global_object: &JSGlobalObject, value: JSValue) -> Result<Vec<u16>, Thrown> {
     Ok(code_units(&pending_or(global_object, value.to_wtf_string())?).into_owned())
 }
 

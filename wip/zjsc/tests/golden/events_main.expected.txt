@@ -1,0 +1,30 @@
+TypeError|TypeError|ERR_INVALID_ARG_TYPE|The "listener" argument must be of type function. Received type number (1)|["message","originalLine","originalColumn","line","column","sourceURL","stack"]|TypeError: The "listener" argument must be of type function. Received type number (1)
+TypeError|TypeError|ERR_INVALID_ARG_TYPE|The "listener" argument must be of type function. Received undefined|["message","originalLine","originalColumn","line","column","sourceURL","stack"]|TypeError: The "listener" argument must be of type function. Received undefined
+RangeError|RangeError|ERR_OUT_OF_RANGE|The value of "setMaxListeners" is out of range. It must be >= 0. Received -1|["message","originalLine","originalColumn","line","column","sourceURL","stack"]|RangeError: The value of "setMaxListeners" is out of range. It must be >= 0. Received -1
+TypeError|TypeError|ERR_INVALID_ARG_TYPE|The "setMaxListeners" argument must be of type number. Received type string ('a')|["message","originalLine","originalColumn","line","column","sourceURL","stack"]|TypeError: The "setMaxListeners" argument must be of type number. Received type string ('a')
+Error|Error|ERR_UNHANDLED_ERROR|Unhandled error. (1)|["message","context","originalLine","originalColumn","line","column","sourceURL","stack"]|Error: Unhandled error. (1)
+Error|Error|ERR_UNHANDLED_ERROR|Unhandled error. ({ a: 1 })|["message","context","originalLine","originalColumn","line","column","sourceURL","stack"]|Error: Unhandled error. ({ a: 1 })
+Error|Error|ERR_UNHANDLED_ERROR|Unhandled error. (undefined)|["message","context","originalLine","originalColumn","line","column","sourceURL","stack"]|Error: Unhandled error. (undefined)
+Error|Error|undefined|x|["message","originalLine","originalColumn","line","column","sourceURL","stack"]|Error: x
+TypeError|TypeError|ERR_INVALID_ARG_TYPE|The "eventTargets" argument must be an instance of EventEmitter or EventTarget. Received an instance of Object|["message","originalLine","originalColumn","line","column","sourceURL","stack"]|TypeError: The "eventTargets" argument must be an instance of EventEmitter or EventTarget. Received an instance of Object
+TypeError|TypeError|ERR_INVALID_ARG_TYPE|The "emitter" argument must be an instance of EventEmitter or EventTarget. Received an instance of Object|["message","originalLine","originalColumn","line","column","sourceURL","stack"]|TypeError: The "emitter" argument must be an instance of EventEmitter or EventTarget. Received an instance of Object
+TypeError|TypeError|ERR_INVALID_ARG_TYPE|The "emitter" argument must be an instance of EventEmitter or EventTarget. Received an instance of Object|["message","originalLine","originalColumn","line","column","sourceURL","stack"]|TypeError: The "emitter" argument must be an instance of EventEmitter or EventTarget. Received an instance of Object
+RangeError|RangeError|ERR_OUT_OF_RANGE|The value of "defaultMaxListeners" is out of range. It must be >= 0. Received -1|["message","originalLine","originalColumn","line","column","sourceURL","stack"]|RangeError: The value of "defaultMaxListeners" is out of range. It must be >= 0. Received -1
+TypeError|TypeError|ERR_INVALID_ARG_TYPE|The "EventEmitter.captureRejections" property must be of type boolean. Received type number (1)|["message","originalLine","originalColumn","line","column","sourceURL","stack"]|TypeError: The "EventEmitter.captureRejections" property must be of type boolean. Received type number (1)
+TypeError|TypeError|ERR_INVALID_ARG_TYPE|The "options.captureRejections" property must be of type boolean. Received type number (1)|["message","originalLine","originalColumn","line","column","sourceURL","stack"]|TypeError: The "options.captureRejections" property must be of type boolean. Received type number (1)
+prototype,captureRejections,defaultMaxListeners,once,on,getEventListeners,getMaxListeners,setMaxListeners,EventEmitter,usingDomains,captureRejectionSymbol,EventEmitterAsyncResource,errorMonitor,addAbortListener,init,listenerCount
+length,name,prototype,captureRejections,defaultMaxListeners,kMaxEventTargetListeners,kMaxEventTargetListenersWarned,once,on,getEventListeners,getMaxListeners,setMaxListeners,EventEmitter,usingDomains,captureRejectionSymbol,EventEmitterAsyncResource,errorMonitor,addAbortListener,init,listenerCount
+setMaxListeners,constructor,getMaxListeners,emit,addListener,on,prependListener,once,prependOnceListener,removeListener,off,removeAllListeners,listeners,rawListeners,listenerCount,eventNames,_eventsCount
+constructor,asyncId,triggerAsyncId,asyncResource,emit,emitDestroy
+AsyncFunction 2 2 EventEmitter 1 true true
+true true
+f,onceWrapper f,g _events,_eventsCount,_maxListeners
+_events,_eventsCount,_maxListeners true 10 0
+nl:removeListener,nl:q,rl:q
+1 1 10 3
+captured boom
+once ERR_INVALID_ARG_TYPE The "options" argument must be of type object. Received type number (5)
+abort message,cause,originalLine,originalColumn,line,column,sourceURL,stack|false|Error|AbortError|ABORT_ERR|AbortError: The operation was aborted
+onced [1,2]
+on [1]
+on [2]

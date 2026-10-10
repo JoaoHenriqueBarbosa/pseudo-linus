@@ -7,5 +7,6 @@ pub mod fs_module_host;
 pub mod main_module_kind;
 pub mod module;
 pub mod module_probe;
+pub mod node_events;
 pub mod package_exports;
 pub mod package_json;

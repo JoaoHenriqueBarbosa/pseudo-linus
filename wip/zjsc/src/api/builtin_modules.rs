@@ -52,6 +52,7 @@ pub(crate) enum Resolved<'a> {
 /// Os módulos instalados. Acrescentar aqui, na ordem alfabética.
 pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "buffer", scheme: Scheme::Both, install: crate::runtime::node_buffer::install_buffer_module },
+    BuiltinEntry { name: "events", scheme: Scheme::Both, install: crate::api::node_events::install_events_module },
     BuiltinEntry { name: "module", scheme: Scheme::Both, install: install_module_module },
     BuiltinEntry { name: "os", scheme: Scheme::Both, install: crate::runtime::node_os::install_os_module },
     BuiltinEntry { name: "vm", scheme: Scheme::Both, install: crate::api::eval::install_vm_module },
