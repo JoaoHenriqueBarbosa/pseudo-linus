@@ -1404,7 +1404,7 @@ impl<'a> Parser<'a> {
                     let (import_part_stmts, rest) = remaining_stmts.split_at_mut(1);
                     remaining_stmts = rest;
 
-                    VecExt::append(&mut p.module_scope_mut().generated, ns_ref);
+                    p.module_scope_mut().generated.push(ns_ref);
 
                     import_part_stmts[0] = Stmt::alloc(
                         S::Import {
@@ -1685,7 +1685,7 @@ impl<'a> Parser<'a> {
                 // Like `s_export_star`: the export star declares its own namespace symbol.
                 let name = p.load_name_from_ref(found.namespace_ref);
                 let export_star_ref = p.new_symbol(js_ast::symbol::Kind::Other, name);
-                VecExt::append(&mut p.module_scope_mut().generated, export_star_ref);
+                p.module_scope_mut().generated.push(export_star_ref);
                 part.declared_symbols.append(DeclaredSymbol {
                     ref_: export_star_ref,
                     is_top_level: true,
@@ -1714,7 +1714,7 @@ impl<'a> Parser<'a> {
                         found.assign_loc,
                     ));
                     new_stmts.extend_from_slice(&old_stmts[found.stmt_idx + 1..]);
-                    bun_ast::StoreSlice::from_bump(new_stmts)
+                    p.store.alloc_slice(new_stmts)
                 };
 
                 // The assignment was the only use of `module` and one use of `ns`.
@@ -2034,7 +2034,7 @@ impl<'a> Parser<'a> {
                         });
                     }
                 }
-                let properties = bun_ast::StoreSlice::from_bump(properties);
+                let properties = p.store.alloc_slice(properties);
 
                 // Create: const { test, expect, ... } = require("bun:test")
                 let binding = p.b(
@@ -2104,7 +2104,7 @@ impl<'a> Parser<'a> {
                         });
                     }
                 }
-                let clauses = bun_ast::StoreSlice::from_bump(clauses);
+                let clauses = p.store.alloc_slice(clauses);
 
                 let namespace_ref = p
                     .declare_symbol(

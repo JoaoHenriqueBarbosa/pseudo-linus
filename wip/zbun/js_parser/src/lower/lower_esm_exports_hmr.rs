@@ -171,10 +171,10 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                     },
                 };
                 if can_be_moved_to_inner_scope {
-                    // Note: `StmtOrExpr` is not `Copy`; read by ptr to avoid moving
-                    // out of the StoreRef deref.
-                    // SAFETY: StoreRef points into a live arena; value is POD-shaped.
-                    let value = unsafe { core::ptr::read(&raw const p.store[st].value) }.to_expr(&mut p.store);
+                    // `StmtOrExpr` é `Copy` no porte (o `Stmt` e o `Expr` são índices do `Store`): lê-se o valor
+                    // do nó e converte-se com o `Store` livre.
+                    let default_value = p.store[st].value;
+                    let value = default_value.to_expr(&mut p.store);
                     self.export_props.push(G::Property {
                         key: Some(Expr::init(&mut p.store, E::EString::init(p.store.alloc_str(b"default")), stmt.loc)),
                         value: Some(value),
@@ -198,7 +198,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                             .symbol_uses
                             .put_no_clobber(temp_id, js_ast::symbol::Use::unscoped(1))?;
                         // SAFETY: `current_scope` is a live arena ptr for the parser lifetime.
-                        VecExt::append(&mut p.current_scope_mut().generated, temp_id);
+                        p.current_scope_mut().generated.push(temp_id);
 
                         self.export_props.push(G::Property {
                             key: Some(Expr::init(&mut p.store, E::EString::init(p.store.alloc_str(b"default")), stmt.loc)),
@@ -206,24 +206,17 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                             ..Default::default()
                         });
 
-                        // SAFETY: as above: POD-shaped read out of arena.
-                        let value = unsafe { core::ptr::read(&raw const p.store[st].value) }.to_expr(&mut p.store);
-                        let mut decls = Vec::new();
-                        VecExt::append(
-                            &mut decls,
-                            G::Decl {
-                                binding: Binding::alloc(
-                                    p.arena,
-                                    B::Identifier { r#ref: temp_id },
-                                    stmt.loc,
-                                ),
-                                value: Some(value),
-                            },
-                        );
-                        break 'stmt Stmt::alloc(&mut p.store, 
+                        let default_value = p.store[st].value;
+                        let value = default_value.to_expr(&mut p.store);
+                        let binding = p.b(B::Identifier { r#ref: temp_id }, stmt.loc);
+                        let decls = p.store.alloc_slice([G::Decl {
+                            binding,
+                            value: Some(value),
+                        }]);
+                        break 'stmt Stmt::alloc(&mut p.store,
                             S::Local {
                                 kind: js_ast::LocalKind::KConst,
-                                self.store.alloc_slice(decls),
+                                decls,
                                 ..Default::default()
                             },
                             stmt.loc,
@@ -595,7 +588,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                 .symbol_uses
                 .put_no_clobber(arg1, js_ast::symbol::Use::unscoped(1))?;
             // SAFETY: `current_scope` is a live arena ptr for the parser lifetime.
-            VecExt::append(&mut p.current_scope_mut().generated, arg1);
+            p.current_scope_mut().generated.push(arg1);
 
             // 'get abc() { return abc }'
             let body_stmts = p

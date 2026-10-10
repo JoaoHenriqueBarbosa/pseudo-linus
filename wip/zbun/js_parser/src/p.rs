@@ -1448,7 +1448,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return None;
         }
         let ns = self.new_symbol(js_ast::symbol::Kind::Other, b"require_ns");
-        VecExt::append(&mut self.module_scope_mut().generated, ns);
+        self.module_scope_mut().generated.push(ns);
         self.import_items_for_namespace
             .insert(ns, ImportItemForNamespaceMap::default());
         self.dynamic_import_namespace_locals
@@ -1514,7 +1514,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .into_bump_str()
                 .as_bytes();
                 let ns = self.new_symbol(js_ast::symbol::Kind::Other, name);
-                VecExt::append(&mut self.module_scope_mut().generated, ns);
+                self.module_scope_mut().generated.push(ns);
                 self.import_items_for_namespace
                     .insert(ns, ImportItemForNamespaceMap::default());
                 self.imports_to_convert_from_dynamic_import
@@ -2387,7 +2387,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         });
         // SAFETY: arena-owned Scope pointer valid for parser 'a lifetime; no aliasing &mut outstanding
         let bun_app_ns_ref = self.bun_app_namespace_ref;
-        VecExt::append(&mut self.module_scope_mut().generated, bun_app_ns_ref);
+        self.module_scope_mut().generated.push(bun_app_ns_ref);
 
         let response_ref = self.response_ref;
         let clause_items =
@@ -2518,7 +2518,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             is_top_level: true,
         });
         // SAFETY: arena-owned Scope pointer valid for parser 'a lifetime; no aliasing &mut outstanding
-        VecExt::append(&mut self.module_scope_mut().generated, namespace_ref);
+        self.module_scope_mut().generated.push(namespace_ref);
         for (alias, clause_item) in imports.iter().zip(clause_items.iter_mut()) {
             let ref_ = symbols.get(alias).expect("unreachable");
             let alias_name: &'static [u8] = symbols.alias_name(alias);
@@ -2662,7 +2662,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             is_top_level: true,
         });
         // SAFETY: arena-owned Scope pointer valid for parser 'a lifetime; no aliasing &mut outstanding
-        VecExt::append(&mut self.module_scope_mut().generated, namespace_ref);
+        self.module_scope_mut().generated.push(namespace_ref);
 
         for entry in clauses {
             if entry.enabled {
@@ -3617,7 +3617,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 self.new_symbol(js_ast::symbol::Kind::Hoisted, original_name);
                             // No live `&` borrow of `scope` exists here (the members
                             // snapshot was taken by value); `StoreRef` `DerefMut`.
-                            VecExt::append(&mut self.store[scope].generated, hoisted_ref);
+                            self.store[scope].generated.push(hoisted_ref);
                             self.hoisted_ref_for_sloppy_mode_block_fn
                                 .insert(value.ref_, hoisted_ref);
                             value.ref_ = hoisted_ref;
@@ -3870,7 +3870,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut scope = js_ast::StoreRef::from(scope_nn);
 
         // `parent != scope` (fresh alloc) so the two `&mut` do not alias.
-        VecExt::append(&mut self.store[parent].children, scope);
+        self.store[parent].children.push(scope);
         self.store[scope].strict_mode = self.store[parent].strict_mode;
 
         self.current_scope = scope;
@@ -4362,7 +4362,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             .into_bump_str()
             .as_bytes();
             stmt.namespace_ref = self.new_symbol(js_ast::symbol::Kind::Other, name);
-            VecExt::append(&mut self.current_scope_mut().generated, stmt.namespace_ref);
+            self.current_scope_mut().generated.push(stmt.namespace_ref);
         }
 
         let mut item_refs = ImportItemForNamespaceMap::new();
@@ -4623,7 +4623,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             ref_: self.new_symbol(js_ast::symbol::Kind::Other, identifier),
         };
 
-        VecExt::append(&mut self.current_scope_mut().generated, name.ref_);
+        self.current_scope_mut().generated.push(name.ref_);
 
         name
     }
@@ -5072,7 +5072,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // this module will be unable to reference this symbol. However, we must
         // still add the symbol to the scope so it gets minified (automatically-
         // generated code may still reference the symbol).
-        VecExt::append(&mut self.module_scope_mut().generated, ref_);
+        self.module_scope_mut().generated.push(ref_);
         Ok(ref_)
     }
 
@@ -5119,7 +5119,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let hashed = self.hash_generated_name(name);
             self.new_symbol(kind, hashed)
         };
-        VecExt::append(&mut self.module_scope_mut().generated, ref_);
+        self.module_scope_mut().generated.push(ref_);
         ref_
     }
 
@@ -5596,17 +5596,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 };
                 let declaration_entry = already_declared.get_or_put(ref_)?;
                 if !declaration_entry.found_existing {
-                    let mut decls = Vec::new();
-                    VecExt::append(
-                        &mut decls,
-                        Decl {
-                            binding: self.b(js_ast::b::Identifier { r#ref: ref_ }, local.loc),
-                            value: None,
-                        },
-                    );
+                    let binding = self.b(js_ast::b::Identifier { r#ref: ref_ }, local.loc);
+                    let decls = self.store.alloc_slice([Decl { binding, value: None }]);
                     part_stmts.push(self.s(
                         S::Local {
-                            self.store.alloc_slice(decls),
+                            decls,
                             ..Default::default()
                         },
                         local.loc,
@@ -7554,7 +7548,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             let target = self.new_expr(E::Super {}, stmt.loc);
                             let arguments_ref =
                                 self.new_symbol(js_ast::symbol::Kind::Unbound, arguments_str);
-                            VecExt::append(&mut self.current_scope_mut().generated, arguments_ref);
+                            self.current_scope_mut().generated.push(arguments_ref);
 
                             let spread_inner =
                                 self.new_expr(E::Identifier::init(arguments_ref), stmt.loc);
@@ -8225,7 +8219,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         for item in self.store[to_flatten].children.slice() {
             let mut item = *item;
             item.parent = Some(parent);
-            VecExt::append(&mut self.store[parent].children, item);
+            self.store[parent].children.push(item);
         }
     }
 
@@ -8355,7 +8349,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             ..Default::default()
         });
 
-        VecExt::append(&mut self.store[scope].generated, r#ref);
+        self.store[scope].generated.push(r#ref);
 
         r#ref
     }
@@ -10083,7 +10077,7 @@ impl LowerUsingDeclarationsContext {
 
         let finally_stmts: &'a mut [Stmt] = if self.has_await_using {
             let promise_ref = p.generate_temp_ref(Some(b"_promise"));
-            VecExt::append(&mut p.store[scope].generated, promise_ref);
+            p.store[scope].generated.push(promise_ref);
             p.declared_symbols.append_assume_capacity(DeclaredSymbol {
                 is_top_level,
                 ref_: promise_ref,
@@ -10186,23 +10180,18 @@ impl LowerUsingDeclarationsContext {
             let has_err_binding = p.b(B::Identifier { r#ref: has_err_ref }, loc);
             let has_err_value = p.new_expr(E::Number::new(1.0), loc);
             let mut decls = Vec::new();
-            VecExt::append(
-                &mut decls,
-                Decl {
-                    binding: err_binding,
-                    value: Some(err_value),
-                },
-            );
-            VecExt::append(
-                &mut decls,
-                Decl {
-                    binding: has_err_binding,
-                    value: Some(has_err_value),
-                },
-            );
+            decls.push(Decl {
+                binding: err_binding,
+                value: Some(err_value),
+            });
+            decls.push(Decl {
+                binding: has_err_binding,
+                value: Some(has_err_value),
+            });
+            let decls = p.store.alloc_slice(decls);
             let stmt0 = p.s(
                 S::Local {
-                    self.store.alloc_slice(decls),
+                    decls,
                     ..Default::default()
                 },
                 loc,

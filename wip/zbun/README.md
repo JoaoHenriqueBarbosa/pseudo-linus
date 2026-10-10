@@ -35,6 +35,11 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
   do `cargo check --message-format=json` (E0609, E0277 de índice por referência e E0599 de `slice`, `slice_mut`,
   `iter`, `get` e `get_mut` em `StoreStr`, `StoreSlice` e `StoreRef`). Cada rodada é conferida pelo compilador e o
   resto é à mão. O `store` é `self.store` ou `p.store`, conforme a assinatura da função que envolve o trecho.
+- Mudança sistemática no parser copiado (`js_parser/src`), por `sed`: o `VecExt::append(&mut X.generated, y);` e o
+  `VecExt::append(&mut X.children, y);` de uma linha viram `X.generated.push(y);` e `X.children.push(y);` (os dois
+  campos de `Scope` são `Vec`; o `VecExt::append` saiu do `bun_collections` por ser sinônimo do `push`). Os outros
+  `VecExt::append` (listas de `Decl` e de argumentos de `E::Call`) foram à mão: a lista de trabalho é um `Vec` local
+  e vira faixa do `Store` com `alloc_slice` quando o nó que a guarda é criado.
 - `Log` e `Source` (`bun_ast::logger`) ganham as famílias `add_*` e `range_of_*` do `lib.rs` do upstream que o parser
   chama. O upstream tem dois laços de `range_of_identifier`: o do logger (pula o escape `\u{...}` também no começo,
   zera a largura depois dele e inclui o último ponto de código no fim do arquivo) e o do lexer, que o parser chama e

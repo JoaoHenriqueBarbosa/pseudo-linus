@@ -1062,13 +1062,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // Make it an error to use "arguments" in a static class block
                     self.vis_scope().forbid_arguments = true;
 
-                    // Stmt is Copy: copy the slice into a bump-backed Vec.
-                    let csb_stmts = csb.stmts.slice();
+                    // Stmt é Copy: a faixa do bloco é copiada para uma lista de trabalho e volta ao `Store`.
+                    let csb_stmts = self.store[csb.stmts].to_vec();
                     let mut list = BumpVec::with_capacity_in(csb_stmts.len(), self.arena);
-                    list.extend_from_slice(csb_stmts);
+                    list.extend_from_slice(&csb_stmts);
                     self.visit_stmts(&mut list, StmtsKind::FnBody)
                         .expect("unreachable");
-                    csb.stmts = Vec::from_bump_vec(list);
+                    csb.stmts = self.store.alloc_slice(list);
                     self.pop_scope();
 
                     self.fn_or_arrow_data_visit = old_fn_or_arrow_data;
@@ -1385,7 +1385,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             let target = self.new_expr(E::Super {}, loc);
                             let arguments_ref =
                                 self.new_symbol(SymbolKind::Unbound, crate::parser::ARGUMENTS_STR);
-                            VecExt::append(&mut self.current_scope_mut().generated, arguments_ref);
+                            self.current_scope_mut().generated.push(arguments_ref);
                             let spread_inner =
                                 self.new_expr(E::Identifier::init(arguments_ref), loc);
                             let spread = self.new_expr(

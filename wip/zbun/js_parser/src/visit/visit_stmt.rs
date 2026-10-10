@@ -1,5 +1,6 @@
 #![warn(unused_must_use)]
 use bun_ast::NodeStore as _;
+use bun_ast::store::Store;
 use crate::Error;
 use crate::lexer as js_lexer;
 use crate::p::{P, ReactRefreshExportKind};
@@ -24,16 +25,15 @@ use bun_ast::StmtNodeList;
 // are arena-owned and outlive the visit pass.
 
 // ─── arena slice ↔ BumpVec helpers ──────────────────────────────────────────
-// `StmtNodeList = StoreSlice<Stmt>` (arena-owned). bumpalo Vec cannot adopt the
-// existing backing storage, so we copy. The arena
-// reclaims both at end-of-parse.
+// `StmtNodeList = StoreSlice<Stmt>` (faixa do `Store`). A lista de trabalho do parser é um `ArenaVec`, então a faixa
+// é copiada para ele na ida e gravada de volta no `Store` na volta.
 #[inline]
-fn stmts_to_list<'a>(arena: &'a bun_alloc::Arena, ptr: StmtNodeList) -> StmtList<'a> {
-    bun_alloc::vec_from_iter_in(ptr.iter().copied(), arena)
+fn stmts_to_list<'a>(store: &Store, arena: &'a bun_alloc::Arena, ptr: StmtNodeList) -> StmtList<'a> {
+    bun_alloc::vec_from_iter_in(store[ptr].iter().copied(), arena)
 }
 #[inline]
-fn list_to_stmts<'a>(list: StmtList<'a>) -> StmtNodeList {
-    StmtNodeList::from_bump(list)
+fn list_to_stmts(store: &mut Store, list: StmtList<'_>) -> StmtNodeList {
+    store.alloc_slice(list.into_vec())
 }
 
 // a direct `impl P` block. The 30+ per-variant `s_*` helpers are private; only
@@ -276,7 +276,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let name = p.load_name_from_ref(data.namespace_ref);
 
         data.namespace_ref = p.new_symbol(js_ast::symbol::Kind::Other, name);
-        VecExt::append(&mut p.cur_scope().generated, data.namespace_ref);
+        p.cur_scope().generated.push(data.namespace_ref);
         p.record_declared_symbol(data.namespace_ref);
 
         let items = (&mut p.store[data.items]);
@@ -297,7 +297,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 let _name = p.load_name_from_ref(old_ref);
                 let ref_ = p.new_symbol(js_ast::symbol::Kind::Import, _name);
-                VecExt::append(&mut p.cur_scope().generated, ref_);
+                p.cur_scope().generated.push(ref_);
                 p.record_declared_symbol(ref_);
                 // Compaction: items[..j] is the kept prefix; items[i] is dead
                 // after this iteration and the slice is truncated to `j` below.
@@ -313,7 +313,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             for item in items.iter_mut() {
                 let _name = p.load_name_from_ref(item.name.ref_);
                 let ref_ = p.new_symbol(js_ast::symbol::Kind::Import, _name);
-                VecExt::append(&mut p.cur_scope().generated, ref_);
+                p.cur_scope().generated.push(ref_);
                 p.record_declared_symbol(ref_);
                 item.name.ref_ = ref_;
             }
@@ -332,7 +332,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // "export * from 'path'"
         let name = p.load_name_from_ref(data.namespace_ref);
         data.namespace_ref = p.new_symbol(js_ast::symbol::Kind::Other, name);
-        VecExt::append(&mut p.cur_scope().generated, data.namespace_ref);
+        p.cur_scope().generated.push(data.namespace_ref);
         p.record_declared_symbol(data.namespace_ref);
 
         // "export * as ns from 'path'"
@@ -478,7 +478,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if should_emit_temp_var {
                     // declare a temporary ref for this
                     let temp_id = p.generate_temp_ref(Some(b"default_export"));
-                    VecExt::append(&mut p.cur_scope().generated, temp_id);
+                    p.cur_scope().generated.push(temp_id);
 
                     let value_expr = *expr;
                     stmts.push(Stmt::alloc(&mut p.store, 
@@ -515,19 +515,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if p.current_scope().parent.is_none() && p.will_wrap_module_in_try_catch_for_using {
                     stmts.reserve(2);
 
-                    let mut decls = G::DeclList::init_capacity(1);
-                    VecExt::append(
-                        &mut decls,
-                        G::Decl {
-                            binding: p.b(
-                                B::Identifier {
-                                    r#ref: data.default_name.ref_,
-                                },
-                                data.default_name.loc,
-                            ),
-                            value: Some(*expr),
+                    let binding = p.b(
+                        B::Identifier {
+                            r#ref: data.default_name.ref_,
                         },
+                        data.default_name.loc,
                     );
+                    let decls = p.store.alloc_slice([G::Decl {
+                        binding,
+                        value: Some(*expr),
+                    }]);
                     stmts.push(p.s(
                         S::Local {
                             decls,
@@ -700,7 +697,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         }
 
                                         let temp_id = p.generate_temp_ref(Some(b"default_export"));
-                                        VecExt::append(&mut p.cur_scope().generated, temp_id);
+                                        p.cur_scope().generated.push(temp_id);
                                         break 'brk temp_id;
                                     };
 
@@ -1485,18 +1482,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 last.decl_value = decl_value;
                                 let last_loc = last.loc_ref.loc;
 
-                                let mut decls = G::DeclList::init_capacity(1);
                                 let ref_ = match bin.left.data {
                                     js_ast::ExprData::ECommonjsExportIdentifier(id) => id.ref_,
                                     _ => unreachable!(),
                                 };
-                                VecExt::append(
-                                    &mut decls,
-                                    G::Decl {
-                                        binding: p.b(B::Identifier { r#ref: ref_ }, bin.left.loc),
-                                        value: Some(bin.right),
-                                    },
-                                );
+                                let binding = p.b(B::Identifier { r#ref: ref_ }, bin.left.loc);
+                                let decls = p.store.alloc_slice([G::Decl {
+                                    binding,
+                                    value: Some(bin.right),
+                                }]);
                                 // we have to ensure these are known to be top-level
                                 p.declared_symbols
                                     .append(js_ast::DeclaredSymbol {
@@ -1640,9 +1634,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             } else {
                 StmtsKind::None
             };
-            let mut _stmts = stmts_to_list(p.arena, data.stmts);
+            let mut _stmts = stmts_to_list(&p.store, p.arena, data.stmts);
             p.visit_stmts(&mut _stmts, kind).expect("unreachable");
-            data.stmts = list_to_stmts(_stmts);
+            data.stmts = list_to_stmts(&mut p.store, _stmts);
             p.pop_scope();
         }
 
@@ -2014,14 +2008,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         .original_name);
                     let temp_ref = p.generate_temp_ref(Some(id_original_name));
 
-                    let mut first_decls = G::DeclList::init_capacity(1);
-                    VecExt::append(
-                        &mut first_decls,
-                        G::Decl {
-                            binding: p.b(B::Identifier { r#ref: p.store[id].r#ref }, loc),
-                            value: Some(Expr::init_identifier(temp_ref, loc)),
-                        },
-                    );
+                    let first_binding = p.b(B::Identifier { r#ref: p.store[id].r#ref }, loc);
+                    let first_decls = p.store.alloc_slice([G::Decl {
+                        binding: first_binding,
+                        value: Some(Expr::init_identifier(temp_ref, loc)),
+                    }]);
                     let first = p.s(
                         S::Local {
                             kind: init2.kind,
@@ -2055,11 +2046,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             && p.current_scope().parent.is_none(),
                     );
                     if let StmtData::SBlock(mut b) = data.body.data {
-                        p.store[b].stmts = list_to_stmts(visited_stmts);
+                        p.store[b].stmts = list_to_stmts(&mut p.store, visited_stmts);
                     } else {
+                        let block_stmts = list_to_stmts(&mut p.store, visited_stmts);
                         data.body = p.s(
                             S::Block {
-                                stmts: list_to_stmts(visited_stmts),
+                                stmts: block_stmts,
                                 ..Default::default()
                             },
                             loc,
@@ -2085,12 +2077,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.push_scope_for_visit_pass(js_ast::scope::Kind::Block, stmt.loc)
             .expect("unreachable");
         {
-            let mut _stmts = stmts_to_list(p.arena, data.body);
+            let mut _stmts = stmts_to_list(&p.store, p.arena, data.body);
             p.fn_or_arrow_data_visit.try_body_count += 1;
             p.visit_stmts(&mut _stmts, StmtsKind::None)
                 .expect("unreachable");
             p.fn_or_arrow_data_visit.try_body_count -= 1;
-            data.body = list_to_stmts(_stmts);
+            data.body = list_to_stmts(&mut p.store, _stmts);
         }
         p.pop_scope();
 
@@ -2101,7 +2093,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if let Some(catch_binding) = catch.binding {
                     p.visit_binding(catch_binding, None);
                 }
-                let mut _stmts = stmts_to_list(p.arena, catch.body);
+                let mut _stmts = stmts_to_list(&p.store, p.arena, catch.body);
                 p.push_scope_for_visit_pass(js_ast::scope::Kind::Block, catch.body_loc)
                     .expect("unreachable");
                 p.fn_or_arrow_data_visit.try_body_count += 1;
@@ -2109,7 +2101,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     .expect("unreachable");
                 p.fn_or_arrow_data_visit.try_body_count -= 1;
                 p.pop_scope();
-                catch.body = list_to_stmts(_stmts);
+                catch.body = list_to_stmts(&mut p.store, _stmts);
             }
             p.pop_scope();
         }
@@ -2118,10 +2110,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.push_scope_for_visit_pass(js_ast::scope::Kind::Block, finally.loc)
                 .expect("unreachable");
             {
-                let mut _stmts = stmts_to_list(p.arena, finally.stmts);
+                let mut _stmts = stmts_to_list(&p.store, p.arena, finally.stmts);
                 p.visit_stmts(&mut _stmts, StmtsKind::None)
                     .expect("unreachable");
-                finally.stmts = list_to_stmts(_stmts);
+                finally.stmts = list_to_stmts(&mut p.store, _stmts);
             }
             p.pop_scope();
         }
@@ -2151,10 +2143,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // Check("case", *c.Value, c.Value.Loc)
                     //                 p.warnAboutTypeofAndString(s.Test, *c.Value)
                 }
-                let mut _stmts = stmts_to_list(p.arena, cases[i].body);
+                let mut _stmts = stmts_to_list(&p.store, p.arena, cases[i].body);
                 p.visit_stmts(&mut _stmts, StmtsKind::SwitchStmt)
                     .expect("unreachable");
-                cases[i].body = list_to_stmts(_stmts);
+                cases[i].body = list_to_stmts(&mut p.store, _stmts);
             }
             p.fn_or_arrow_data_visit.is_inside_switch = old_is_inside_switch;
 
@@ -2419,7 +2411,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             kind: StmtsKind::FnBody,
             ..Default::default()
         };
-        let mut prepend_list = stmts_to_list(p.arena, data.stmts);
+        let mut prepend_list = stmts_to_list(&p.store, p.arena, data.stmts);
 
         let old_enclosing_namespace_arg_ref = p.enclosing_namespace_arg_ref;
         p.enclosing_namespace_arg_ref = Some(data.arg);

@@ -411,34 +411,33 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // TODO: maybe we should split these into two different AST Nodes
                 // That would reduce the amount of allocations a little
                 if runtime == options::JSX::Runtime::Classic || is_key_after_spread {
-                    // Arguments to createElement()
-                    let mut args = ExprNodeList::init_capacity(2 + children_count as usize);
-                    VecExt::append(&mut args, tag);
+                    // Arguments to createElement(): o upstream monta a lista na arena e a vaza; aqui ela é
+                    // montada num `Vec` e gravada no `Store` de uma vez, ao criar o `E::Call`.
+                    let mut args: Vec<Expr> = Vec::with_capacity(2 + children_count as usize);
+                    args.push(tag);
 
                     let num_props = p.store[e_].properties.len_u32();
                     if num_props > 0 {
-                        // PropertyList = Vec<Property> is already arena-backed and the
-                        // JSX node is consumed; reuse in place.
-                        VecExt::append(
-                            &mut args,
-                            p.new_expr(
-                                E::Object {
-                                    properties: core::mem::take(&mut p.store[e_].properties),
-                                    ..Default::default()
-                                },
-                                expr.loc,
-                            ),
+                        // The JSX node is consumed; reuse the property list in place.
+                        let object = p.new_expr(
+                            E::Object {
+                                properties: core::mem::take(&mut p.store[e_].properties),
+                                ..Default::default()
+                            },
+                            expr.loc,
                         );
+                        args.push(object);
                     } else {
-                        VecExt::append(&mut args, p.new_expr(E::Null {}, expr.loc));
+                        args.push(p.new_expr(E::Null {}, expr.loc));
                     }
 
-                    let children_elements = &(&p.store[p.store[e_].children])[0..children_count as usize];
+                    // Cópia dos filhos: a visita precisa de `&mut p` e a lista mora no `Store` do `p`.
+                    let children_elements = (&p.store[p.store[e_].children])[0..children_count as usize].to_vec();
                     for child in children_elements {
-                        let mut arg = *child;
+                        let mut arg = child;
                         p.visit_expr(&mut arg);
                         if !matches!(arg.data, Data::EMissing(..)) {
-                            VecExt::append(&mut args, arg);
+                            args.push(arg);
                         }
                     }
 
@@ -471,6 +470,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     };
 
                     // Call createElement()
+                    let args = p.store.alloc_slice(args);
                     *e = p.new_expr(
                         E::Call {
                             target,
@@ -606,59 +606,50 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     } else {
                         2usize + usize::from(maybe_key_value.is_some())
                     };
-                    let mut args = ExprNodeList::init_capacity(args_len);
-                    VecExt::append(&mut args, tag);
+                    let mut args: Vec<Expr> = Vec::with_capacity(args_len);
+                    args.push(tag);
 
                     let object_properties = props.take(&mut p.store);
-                    VecExt::append(
-                        &mut args,
-                        p.new_expr(
-                            E::Object {
-                                properties: object_properties,
-                                ..Default::default()
-                            },
-                            expr.loc,
-                        ),
+                    let object = p.new_expr(
+                        E::Object {
+                            properties: object_properties,
+                            ..Default::default()
+                        },
+                        expr.loc,
                     );
+                    args.push(object);
 
                     if let Some(key) = maybe_key_value {
-                        VecExt::append(&mut args, key);
+                        args.push(key);
                     } else if p.options.jsx.development {
                         // if (maybeKey !== undefined)
-                        VecExt::append(
-                            &mut args,
-                            Expr {
-                                loc: expr.loc,
-                                data: Data::EUndefined(E::Undefined {}),
-                            },
-                        );
+                        args.push(Expr {
+                            loc: expr.loc,
+                            data: Data::EUndefined(E::Undefined {}),
+                        });
                     }
 
                     if p.options.jsx.development {
                         // is the return type of the first child an array?
                         // It's dynamic
                         // Else, it's static
-                        VecExt::append(
-                            &mut args,
-                            Expr {
-                                loc: expr.loc,
-                                data: Data::EBoolean(E::Boolean {
-                                    value: is_static_jsx,
-                                }),
-                            },
-                        );
+                        args.push(Expr {
+                            loc: expr.loc,
+                            data: Data::EBoolean(E::Boolean {
+                                value: is_static_jsx,
+                            }),
+                        });
 
-                        VecExt::append(&mut args, p.new_expr(E::Undefined {}, expr.loc));
-                        VecExt::append(
-                            &mut args,
-                            Expr {
-                                data: prefill::data::THIS,
-                                loc: expr.loc,
-                            },
-                        );
+                        let undefined = p.new_expr(E::Undefined {}, expr.loc);
+                        args.push(undefined);
+                        args.push(Expr {
+                            data: prefill::data::THIS,
+                            loc: expr.loc,
+                        });
                     }
 
                     let jsx_target = p.jsx_import_automatic(expr.loc, is_static_jsx);
+                    let args = p.store.alloc_slice(args);
                     *e = p.new_expr(
                         E::Call {
                             target: jsx_target,

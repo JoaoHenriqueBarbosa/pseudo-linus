@@ -20,13 +20,6 @@ pub(crate) struct ImportScanner<'a> {
     pub removed_import_equals: bool,
 }
 
-// `StoreStr` literal helper: keeps `Some(raw_str(b"…"))` ergonomic at the
-// `NamedImport.alias` construction sites below.
-#[inline(always)]
-fn raw_str(s: &'static [u8]) -> js_ast::StoreStr {
-    js_ast::StoreStr::new(s)
-}
-
 impl<'a> ImportScanner<'a> {
     // Only the parser P is handled here: the bundler scans imports via its own
     // path and does not go through this function.
@@ -450,7 +443,7 @@ impl<'a> ImportScanner<'a> {
                                 namespace_ref,
                                 js_ast::NamedImport {
                                     alias_is_star: true,
-                                    alias: Some(raw_str(b"")),
+                                    alias: Some(p.store.alloc_str(b"")),
                                     alias_loc: loc,
                                     namespace_ref: Ref::NONE,
                                     import_record_index: st.import_record_index,
@@ -467,7 +460,7 @@ impl<'a> ImportScanner<'a> {
                             p.named_imports.put_assume_capacity(
                                 default.ref_,
                                 js_ast::NamedImport {
-                                    alias: Some(raw_str(b"default")),
+                                    alias: Some(p.store.alloc_str(b"default")),
                                     alias_loc: default.loc,
                                     namespace_ref,
                                     import_record_index: st.import_record_index,

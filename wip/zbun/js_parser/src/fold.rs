@@ -226,7 +226,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         ref_: new_ref,
                                     };
                                     // SAFETY: module_scope is arena-owned and valid for the parser lifetime.
-                                    VecExt::append(&mut p.module_scope_mut().generated, new_ref);
+                                    p.module_scope_mut().generated.push(new_ref);
 
                                     p.import_items_for_namespace
                                         .get_mut(&id.ref_)
@@ -481,7 +481,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     let new_ref =
                                         p.new_symbol(js_ast::symbol::Kind::Other, sym_name);
                                     // SAFETY: module_scope is arena-owned and valid for 'a.
-                                    VecExt::append(&mut p.module_scope_mut().generated, new_ref);
+                                    p.module_scope_mut().generated.push(new_ref);
                                     p.commonjs_named_exports
                                         .put(
                                             name,
@@ -688,11 +688,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         );
                                         let new_ref =
                                             p.new_symbol(js_ast::symbol::Kind::Other, sym_name);
-                                        // SAFETY: module_scope is arena-owned and valid for 'a.
-                                        VecExt::append(
-                                            &mut p.module_scope_mut().generated,
-                                            new_ref,
-                                        );
+                                        p.module_scope_mut().generated.push(new_ref);
                                         p.commonjs_named_exports
                                             .put(
                                                 name,
