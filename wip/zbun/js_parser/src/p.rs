@@ -245,6 +245,9 @@ pub struct P<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> {
     /// via `P::log()`. The pointee outlives `'a` (enforced by `Parser::init`).
     pub(crate) log: core::ptr::NonNull<bun_ast::Log>,
     pub(crate) define: &'a Define,
+    /// O dono dos nós deste arquivo (README, "Arena tipada"). Nasce como cópia do `store` do `Define`, para os índices
+    /// dos valores dos defines valerem aqui sem conversão.
+    pub(crate) store: bun_ast::Store,
     pub(crate) source: &'a bun_ast::Source,
     pub lexer: js_lexer::Lexer<'a>,
     pub(crate) allow_in: bool,
@@ -9684,6 +9687,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             delete_target: null_expr_data(),
             stmt_expr_value: null_expr_data(),
             loop_body: null_stmt_data(),
+            store: define.store.clone(),
             define,
             import_records: ImportRecordList::Owned(BumpVec::new_in(arena)), // overwritten below for !SCAN_ONLY
             named_imports: NamedImportsType::Owned(Default::default()), // overwritten below for !SCAN_ONLY
