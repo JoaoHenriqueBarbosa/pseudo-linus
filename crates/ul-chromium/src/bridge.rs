@@ -40,6 +40,9 @@ pub struct Bridge {
     /// As imagens que a página decodificou, pelo índice que o prelúdio guarda (o `drawImage` e o `texImage2D` leem os
     /// pixels daqui).
     pub images: RefCell<Vec<crate::imaging::Decoded>>,
+    /// O documento veio com COOP e COEP num contexto seguro: `crossOriginIsolated`, `SharedArrayBuffer` e o relógio
+    /// de 5 µs.
+    pub cross_origin_isolated: bool,
 }
 
 /// As operações que leem o atributo `style` (e por isso o sincronizam): a lista inteira de atributos, a serialização,
@@ -333,6 +336,7 @@ impl DomHost for Bridge {
             // O texto do estilo em linha, sem sincronizar.
             "getStyle" => Ok(self.style_attribute(id_arg(args, 0)?).map_or(DomArg::Null, DomArg::Str)),
             "pageUrl" => Ok(DomArg::Str(self.url.borrow().clone())),
+            "crossOriginIsolated" => Ok(DomArg::Bool(self.cross_origin_isolated)),
             // O carimbo do quadro: o instante (ms desde a origem) clampado pelo `TimeClamper`.
             "frameTime" => match args.first() {
                 Some(DomArg::Num(elapsed)) => Ok(DomArg::Num(zjsc::runtime::time_clamper::clamp_delta_ms(*elapsed))),

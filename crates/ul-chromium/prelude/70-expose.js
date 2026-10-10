@@ -2,8 +2,9 @@
 
 const window = globalThis;
 // O que o motor traz do runtime de servidor (bun) não existe numa janela; `SharedArrayBuffer` o Chromium só expõe com
-// isolamento cross-origin, que nenhuma página daqui pede.
-for (const name of ['process', 'Bun', 'Buffer', 'global', 'BuildMessage', 'ResolveMessage', 'ShadowRealm', 'SharedArrayBuffer', 'require', 'module', 'exports', '__dirname', '__filename']) {
+// isolamento cross-origin (COOP e COEP, medido no oráculo).
+const crossOriginIsolated = op('crossOriginIsolated');
+for (const name of ['process', 'Bun', 'Buffer', 'global', 'BuildMessage', 'ResolveMessage', 'ShadowRealm', 'require', 'module', 'exports', '__dirname', '__filename'].concat(crossOriginIsolated ? [] : ['SharedArrayBuffer'])) {
   if (Object.prototype.hasOwnProperty.call(globalThis, name) && !delete globalThis[name]) throw new Error('global não removível: ' + name);
 }
 const document = wrap(op('root'));
@@ -54,7 +55,7 @@ const namedValue = (name) => {
   return found.length === 1 ? found[0] : liveList(HTMLCollection.prototype, () => namedTargets(name));
 };
 
-const windowMetrics = { innerWidth: VIEWPORT.width, innerHeight: VIEWPORT.height, outerWidth: VIEWPORT.outerWidth, outerHeight: VIEWPORT.outerHeight, devicePixelRatio: 1, scrollX: 0, scrollY: 0, pageXOffset: 0, pageYOffset: 0, screenX: 0, screenY: 0, screenLeft: 0, screenTop: 0, length: 0, closed: false, opener: null, name: '', status: '', isSecureContext: pageState.url.startsWith('https:') || pageState.url.startsWith('http://localhost'), origin: location.origin === 'null' ? 'null' : location.origin, crossOriginIsolated: false, originAgentCluster: true };
+const windowMetrics = { innerWidth: VIEWPORT.width, innerHeight: VIEWPORT.height, outerWidth: VIEWPORT.outerWidth, outerHeight: VIEWPORT.outerHeight, devicePixelRatio: 1, scrollX: 0, scrollY: 0, pageXOffset: 0, pageYOffset: 0, screenX: 0, screenY: 0, screenLeft: 0, screenTop: 0, length: 0, closed: false, opener: null, name: '', status: '', isSecureContext: pageState.url.startsWith('https:') || pageState.url.startsWith('http://localhost'), origin: location.origin === 'null' ? 'null' : location.origin, crossOriginIsolated, originAgentCluster: true };
 for (const [key, value] of Object.entries(windowMetrics)) Object.defineProperty(globalThis, key, { value, writable: true, configurable: true, enumerable: true });
 
 // Métodos de EventTarget na própria janela.

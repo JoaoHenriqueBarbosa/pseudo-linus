@@ -435,6 +435,61 @@ fn module_scripts_with_dynamic_import_and_top_level_await() {
 }
 
 #[test]
+fn cross_origin_isolation_needs_coop_coep_in_a_secure_context() {
+    // Medido no oráculo (testbench/oracle/measured/frames.html, cenário sab): sem COOP e COEP não há
+    // SharedArrayBuffer e o relógio tem 100 µs; com os dois, em http://127.0.0.1, crossOriginIsolated, o
+    // SharedArrayBuffer volta e o relógio passa a 5 µs.
+    let script = "<script>var nows = []; for (var i = 0; i < 40; i++) { for (var j = 0, s = 0; j < 4000 * i; j++) s += j; nows.push(performance.now()); }\
+console.log(crossOriginIsolated, 'SharedArrayBuffer' in self, typeof SharedArrayBuffer, nows.every(function (v) { return Math.abs(v * 10 - Math.round(v * 10)) < 1e-6; }), nows.every(function (v) { return Math.abs(v * 200 - Math.round(v * 200)) < 1e-6; }))</script>";
+    let page = |address: &str, isolate: bool| {
+        common::install_image_fonts();
+        let body = script.to_owned();
+        let fetcher: Fetcher = Rc::new(move |target: &str, _spec: &ul_net::net::client::RequestSpec<'_>| {
+            let parsed = url::parse(target, false).map_err(FetchError::InvalidUrl)?;
+            let mut headers = vec![(b"content-type".to_vec(), b"text/html".to_vec())];
+            if isolate {
+                headers.push((b"cross-origin-opener-policy".to_vec(), b"same-origin".to_vec()));
+                headers.push((b"cross-origin-embedder-policy".to_vec(), b"require-corp".to_vec()));
+            }
+            Ok(Response { status: 200, reason: String::new(), headers, body: body.clone().into_bytes(), url: parsed })
+        });
+        let mut page = Page::load(address, fetcher).unwrap();
+        let console = Rc::new(Capture::default());
+        page.console = console.clone();
+        page.run();
+        let log = console.0.borrow().clone();
+        log
+    };
+    assert_eq!(page("http://127.0.0.1/", false), "false false undefined true true\n");
+    let isolated = page("http://127.0.0.1/", true);
+    assert!(isolated.starts_with("true true function ") && isolated.ends_with(" true\n"), "{isolated}");
+    assert_eq!(page("http://t.test/", true), "false false undefined true true\n");
+}
+
+#[test]
+fn frames_after_load_follow_the_oracle_rule() {
+    // Medido no oráculo (testbench/oracle/measured/frames.html, sob --virtual-time-budget, duas rodadas): a cadeia de
+    // rAF pedida durante o parse ou no load sai 1 quadro depois do load, e uma segunda volta só quando o compositor
+    // de tempo real a alcança (1 ou 2 quadros, varia entre rodadas e com o isolamento); nenhum quadro pedido por
+    // timer depois do load sai, nem com timers vivos em paralelo. Aqui o laço é determinístico: o primeiro quadro
+    // depois do load, que está dentro do que o oráculo mostra.
+    let probe = |scenario: &str| {
+        let html = include_str!("../../../testbench/oracle/measured/frames.html").replace("location.search", &format!("'?s={scenario}'"));
+        run(&[("/", html.as_str())]).0
+    };
+    let count = |dom: &str, key: &str| dom.lines().filter(|line| line.starts_with(&format!("{key} ["))).count();
+    let parse = probe("parse");
+    assert_eq!(count(&parse, "p"), 1, "{parse}");
+    let load = probe("load");
+    assert!((1..=2).contains(&count(&load, "l")), "{load}");
+    let late = probe("late");
+    assert_eq!(count(&late, "t"), 0, "{late}");
+    let busy = probe("busy");
+    assert!((1..=2).contains(&count(&busy, "b")), "{busy}");
+    assert!(busy.contains("ticks [50,"), "{busy}");
+}
+
+#[test]
 fn hidden_is_on_html_element_prototype() {
     let (_, log) = run(&[("/", "<script>console.log(Object.getOwnPropertyNames(HTMLElement.prototype).includes('hidden'), 'hidden' in Element.prototype)</script>")]);
     assert_eq!(log, "true false\n");
@@ -443,17 +498,22 @@ fn hidden_is_on_html_element_prototype() {
 #[test]
 fn clock_has_the_blink_grain_and_frames_the_vsync_grid() {
     // Medido no oráculo (testbench/oracle/measured/clock.html): sem crossOriginIsolated, performance.now, timeOrigin e
-    // Event.timeStamp caem em múltiplos de 100 µs, com o ruído da subtração de dois instantes grandes; o carimbo do
-    // rAF sai redondo e os quadros andam 16,6 ou 16,7 ms (a grade de 16666 µs clampada).
+    // Event.timeStamp caem em múltiplos de 100 µs (o ruído da subtração de dois instantes grandes está no teste de
+    // time_clamper, porque aqui o relógio monotônico do processo de teste começa perto de zero); o carimbo do rAF sai
+    // redondo e na grade de 16666 µs. Depois do load, a cadeia de rAF anda 1 ou 2 quadros no oráculo (corrida com o
+    // compositor de tempo real, frames.html) e nenhum quadro pedido por timer depois do load sai.
     let script = r#"<script>
 var grain = function (v) { return Math.abs(v * 10 - Math.round(v * 10)) < 1e-6; };
 var nows = []; for (var i = 0; i < 50; i++) { for (var j = 0, s = 0; j < 3000 * i; j++) s += j; nows.push(performance.now()); }
-console.log('now', nows.every(grain), nows.some(function (v) { return !/^\d+(\.\d)?$/.test(String(v)); }));
+console.log('now', nows.every(grain));
 console.log('origin', grain(performance.timeOrigin), 'event', grain(new Event('x').timeStamp), crossOriginIsolated);
 var frames = [];
 var step = function (t) { frames.push(t); if (frames.length < 3) requestAnimationFrame(step); };
 requestAnimationFrame(step);
+var late = 'nenhum';
+addEventListener('load', function () { setTimeout(function () { requestAnimationFrame(function () { late = 'saiu'; }); }, 50); });
 setTimeout(function () {
+  console.log('late', late);
   var onGrid = function (t) { return Math.abs(t / 16.666 - Math.round(t / 16.666)) * 16.666 <= 0.1 + 1e-9; };
   console.log('frames', frames.length >= 1, frames.every(function (t) { return /^\d+(\.\d)?$/.test(String(t)) && onGrid(t); }));
   console.log('deltas', frames.slice(1).map(function (t, i) { return (t - frames[i]).toFixed(1); }).join(','));
@@ -461,9 +521,10 @@ setTimeout(function () {
 </script>"#;
     let (_, log) = run(&[("/", script)]);
     let lines: Vec<&str> = log.lines().collect();
-    assert_eq!(lines[0], "now true true", "{log}");
+    assert_eq!(lines[0], "now true", "{log}");
     assert_eq!(lines[1], "origin true event true false", "{log}");
-    assert_eq!(lines[2], "frames true true", "{log}");
-    let deltas = lines[3].strip_prefix("deltas").unwrap().trim();
+    assert_eq!(lines[2], "late nenhum", "{log}");
+    assert_eq!(lines[3], "frames true true", "{log}");
+    let deltas = lines[4].strip_prefix("deltas").unwrap().trim();
     assert!(deltas.is_empty() || deltas.split(',').all(|d| d == "16.6" || d == "16.7"), "{log}");
 }

@@ -109,24 +109,25 @@ const NS_PER_SOURCE_BYTE: f64 = 200.0;
 impl Page {
     /// Busca `url` (`file:`, `http:` ou `https:`) e monta o documento.
     pub fn load(url: &str, fetcher: Fetcher) -> Result<Page, String> {
-        let (bytes, final_url, content_type, header_csp) = fetch_document(url, &fetcher)?;
-        let source = encoding::decode(&bytes, content_type.as_deref());
+        let response = fetch_document(url, &fetcher)?;
+        let source = encoding::decode(&response.bytes, response.content_type.as_deref());
         let net = std::sync::Arc::new(document::QueuedNet::default());
-        let mut doc = document::parse_page(&source, &final_url, net.clone());
-        if header_csp {
+        let mut doc = document::parse_page(&source, &response.final_url, net.clone());
+        if response.header_csp {
             document::hide_nonces(&mut doc);
         }
         let bridge = Bridge {
             doc: RefCell::new(doc),
             doctype: document::sniff_doctype(&source),
             fetcher,
-            url: RefCell::new(final_url),
+            url: RefCell::new(response.final_url),
             navigation: RefCell::new(None),
             net,
             unsynced_styles: RefCell::new(Vec::new()),
             images: RefCell::new(Vec::new()),
+            cross_origin_isolated: response.cross_origin_isolated,
         };
-        Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: bytes.len() })
+        Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len() })
     }
 
     /// A navegação que a página pediu (`location.href = ...`) e ainda não aconteceu.
@@ -169,11 +170,12 @@ impl Page {
             // Sob `--virtual-time-budget`, `Date` e `performance.now` andam com o tempo virtual dos timers, a partir
             // do relógio do sistema no início da página.
             zjsc::wtf::date_math::set_virtual_clock(zjsc::wtf::date_math::current_time_in_nanoseconds() as f64 / 1_000_000.0);
-            // O relógio da página arredonda como o `TimeClamper` do Blink: 100 µs (a página nunca tem
-            // `crossOriginIsolated`), um segredo aleatório por processo e a origem no relógio monotônico do sandbox.
+            // O relógio da página arredonda como o `TimeClamper` do Blink: 100 µs, ou 5 µs com `crossOriginIsolated`, um
+            // segredo aleatório por processo e a origem no relógio monotônico do sandbox.
             let origin_ticks_us = (ul_common::time::monotonic_nanos() / 1000) as i64;
             let unix_at_zero_us = (zjsc::wtf::date_math::current_time_in_nanoseconds() / 1000) as i64 - origin_ticks_us;
-            zjsc::runtime::time_clamper::set_time_clamper(clock_secret(), zjsc::runtime::time_clamper::COARSE_RESOLUTION_US, origin_ticks_us, unix_at_zero_us);
+            let resolution = if self.bridge.cross_origin_isolated { zjsc::runtime::time_clamper::FINE_RESOLUTION_US } else { zjsc::runtime::time_clamper::COARSE_RESOLUTION_US };
+            zjsc::runtime::time_clamper::set_time_clamper(clock_secret(), resolution, origin_ticks_us, unix_at_zero_us);
             // O valor do programa é a função gancho: o hospedeiro a guarda, sem binding global que a página veja.
             let prelude = format!("(function () {{ 'use strict';\n{}{}\nreturn hook;\n}})();", PRELUDE_PARTS.concat(), PRELUDE_TAIL);
             let hook = match runner.eval_hidden_value(&prelude) {
@@ -373,17 +375,50 @@ fn collect(doc: &BaseDocument, id: NodeId, base: &str, out: &mut Vec<ScriptInfo>
     }
 }
 
-/// O documento: bytes, URL final, `Content-Type` e se veio CSP por cabeçalho (o que liga o nonce hiding).
-fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<(Vec<u8>, String, Option<String>, bool), String> {
+/// A resposta do documento.
+struct DocumentResponse {
+    bytes: Vec<u8>,
+    final_url: String,
+    content_type: Option<String>,
+    /// Veio CSP por cabeçalho (o que liga o nonce hiding).
+    header_csp: bool,
+    /// `crossOriginIsolated`: `Cross-Origin-Opener-Policy: same-origin` com `Cross-Origin-Embedder-Policy`
+    /// `require-corp` ou `credentialless`, num contexto seguro (medido no oráculo, em `http://127.0.0.1`).
+    cross_origin_isolated: bool,
+}
+
+/// O valor de um cabeçalho de política, sem os parâmetros (`same-origin; report-to="x"`).
+fn policy_value(response: &ul_net::net::client::Response, name: &str) -> Option<String> {
+    response.header(name).map(|value| value.split(';').next().unwrap_or("").trim().to_ascii_lowercase())
+}
+
+/// Contexto seguro de uma URL de documento: `https`, ou `http` num host que é sempre local.
+fn potentially_trustworthy(address: &str) -> bool {
+    let Ok(parsed) = url::parse(address, false) else { return false };
+    if parsed.scheme == "https" {
+        return true;
+    }
+    let host = parsed.host_for_url().to_ascii_lowercase();
+    parsed.scheme == "http" && (host == "localhost" || host.ends_with(".localhost") || host.starts_with("127.") || host == "[::1]")
+}
+
+fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, String> {
     if let Some(path) = address.strip_prefix("file://") {
         let bytes = sys::read_file(path.as_bytes()).map_err(|_| "net::ERR_FILE_NOT_FOUND".to_owned())?;
-        return Ok((bytes, address.to_owned(), None, false));
+        return Ok(DocumentResponse { bytes, final_url: address.to_owned(), content_type: None, header_csp: false, cross_origin_isolated: false });
     }
     let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8".to_owned()), ("Accept-Language".to_owned(), "en-US,en;q=0.9".to_owned())];
     let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };
     let response = fetcher(address, &spec).map_err(|e| e.net_error().to_owned())?;
     let final_url = response.url.to_string_with(true);
-    let content_type = response.header("Content-Type");
-    let header_csp = response.header("Content-Security-Policy").is_some();
-    Ok((response.body, final_url, content_type, header_csp))
+    let cross_origin_isolated = policy_value(&response, "Cross-Origin-Opener-Policy").as_deref() == Some("same-origin")
+        && matches!(policy_value(&response, "Cross-Origin-Embedder-Policy").as_deref(), Some("require-corp" | "credentialless"))
+        && potentially_trustworthy(&final_url);
+    Ok(DocumentResponse {
+        content_type: response.header("Content-Type"),
+        header_csp: response.header("Content-Security-Policy").is_some(),
+        bytes: response.body,
+        final_url,
+        cross_origin_isolated,
+    })
 }
