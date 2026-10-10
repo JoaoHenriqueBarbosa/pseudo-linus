@@ -1,0 +1,174 @@
+<!doctype html><body><script>
+// Estêncil e polygon offset do WebGL no oráculo (ANGLE sobre SwiftShader): cada cena desenha num canvas de 24x24 com
+// profundidade e estêncil, sem antisserrilhado, e guarda o readPixels (RGBA, de baixo para cima) em base64. Rodar com
+// `chromium --headless --disable-gpu --dump-dom`; o resultado sai no atributo data-out do body.
+const W = 24, H = 24;
+const b64 = (u8) => { let s = ''; for (const b of u8) s += String.fromCharCode(b); return btoa(s); };
+const VS = 'attribute vec3 p; attribute vec4 c; varying vec4 v; void main() { v = c; gl_Position = vec4(p, 1.0); }';
+const FS = 'precision mediump float; varying vec4 v; void main() { gl_FragColor = v; }';
+const tri = [-0.8, -0.8, 0, 0.8, -0.8, 0, 0, 0.8, 0];
+const triBack = [-0.8, 0.8, 0, 0.8, 0.8, 0, 0, -0.8, 0];
+const full = (z) => [-1, -1, z, 1, -1, z, -1, 1, z, -1, 1, z, 1, -1, z, 1, 1, z];
+// Faixas verticais: a i-ésima de n, com z0 + i * dz em todos os vértices (ou z inclinado em x com `slope`).
+const strip = (i, n, z, slope) => {
+  const x0 = -1 + (2 * i) / n, x1 = -1 + (2 * (i + 1)) / n, zx = (x) => z + (slope || 0) * x;
+  return [x0, -1, zx(x0), x1, -1, zx(x1), x0, 1, zx(x0), x0, 1, zx(x0), x1, -1, zx(x1), x1, 1, zx(x1)];
+};
+// Mostra os valores do estêncil: um quadro cheio por valor com EQUAL e uma cor por valor.
+const reveal = (gl, d, values) => {
+  gl.disable(gl.DEPTH_TEST);
+  gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+  gl.stencilMask(0xff);
+  values.forEach((v, i) => { gl.stencilFunc(gl.EQUAL, v, 0xff); d.draw(full(0), [(i + 1) / values.length, (i % 2) ? 1 : 0, 1 - i / values.length, 1]); });
+};
+const scenes = {
+  'stencil-replace-equal': (gl, d) => {
+    gl.enable(gl.STENCIL_TEST); gl.stencilFunc(gl.ALWAYS, 1, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+    d.draw(tri, [1, 0, 0, 1]);
+    gl.stencilFunc(gl.EQUAL, 1, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+    d.draw(full(0), [0, 1, 0, 1]);
+  },
+  'stencil-incr': (gl, d) => {
+    gl.enable(gl.STENCIL_TEST); gl.stencilFunc(gl.ALWAYS, 0, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR);
+    d.draw(tri, [0.2, 0.2, 0.2, 1]);
+    d.draw([-0.9, -0.3, 0, 0.5, -0.3, 0, -0.2, 0.9, 0], [0.3, 0.3, 0.3, 1]);
+    d.draw([-0.1, -0.9, 0, 0.9, -0.9, 0, 0.4, 0.4, 0], [0.4, 0.4, 0.4, 1]);
+    reveal(gl, d, [1, 2, 3]);
+  },
+  'stencil-decr-wrap-invert': (gl, d) => {
+    gl.enable(gl.STENCIL_TEST); gl.clearStencil(5); gl.clear(gl.STENCIL_BUFFER_BIT);
+    gl.stencilFunc(gl.ALWAYS, 0, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.DECR);
+    d.draw(strip(0, 4, 0), [0, 0, 0, 1]);
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.INVERT);
+    d.draw(strip(1, 4, 0), [0, 0, 0, 1]);
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.ZERO);
+    d.draw(strip(2, 4, 0), [0, 0, 0, 1]);
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.ZERO); d.draw(strip(3, 4, 0), [0, 0, 0, 1]);
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.DECR_WRAP); d.draw(strip(3, 4, 0), [0, 0, 0, 1]);
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.DECR); d.draw(strip(2, 4, 0), [0, 0, 0, 1]);
+    reveal(gl, d, [4, 250, 0, 255, 5]);
+  },
+  'stencil-incr-wrap-saturate': (gl, d) => {
+    gl.enable(gl.STENCIL_TEST); gl.clearStencil(255); gl.clear(gl.STENCIL_BUFFER_BIT);
+    gl.stencilFunc(gl.ALWAYS, 0, 0xff);
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR); d.draw(strip(0, 2, 0), [0, 0, 0, 1]);
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR_WRAP); d.draw(strip(1, 2, 0), [0, 0, 0, 1]);
+    reveal(gl, d, [255, 0]);
+  },
+  'stencil-masks': (gl, d) => {
+    gl.enable(gl.STENCIL_TEST); gl.clearStencil(0x30); gl.clear(gl.STENCIL_BUFFER_BIT);
+    gl.stencilMask(0x0f); gl.stencilFunc(gl.ALWAYS, 0xff, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+    d.draw(tri, [0, 0, 0, 1]);
+    gl.stencilMask(0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+    gl.stencilFunc(gl.EQUAL, 0x3f, 0xff); d.draw(strip(0, 2, 0), [1, 0, 0, 1]);
+    gl.stencilFunc(gl.EQUAL, 0x0f, 0x0f); d.draw(strip(1, 2, 0), [0, 1, 0, 1]);
+  },
+  'stencil-funcs': (gl, d) => {
+    gl.enable(gl.STENCIL_TEST); gl.clearStencil(0); gl.clear(gl.STENCIL_BUFFER_BIT);
+    gl.stencilFunc(gl.ALWAYS, 3, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE); d.draw(tri, [0, 0, 0, 1]);
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+    [gl.LESS, gl.LEQUAL, gl.GREATER, gl.GEQUAL, gl.NOTEQUAL, gl.NEVER].forEach((f, i) => { gl.stencilFunc(f, 2 + (i % 2) * 2, 0xff); d.draw(strip(i, 6, 0), [i / 5, 1 - i / 5, 0.5, 1]); });
+  },
+  // Referências diferentes nas duas faces: o WebGL recusa o desenho (INVALID_OPERATION) e nada muda.
+  'stencil-separate-mismatch': (gl, d) => {
+    gl.enable(gl.STENCIL_TEST);
+    gl.stencilFuncSeparate(gl.FRONT, gl.ALWAYS, 1, 0xff); gl.stencilFuncSeparate(gl.BACK, gl.ALWAYS, 2, 0xff);
+    gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.KEEP, gl.REPLACE); gl.stencilOpSeparate(gl.BACK, gl.KEEP, gl.KEEP, gl.INVERT);
+    d.draw(tri, [0, 0, 0, 1]); d.draw(triBack, [0, 0, 0, 1]);
+    gl.stencilFuncSeparate(gl.BACK, gl.ALWAYS, 0, 0xff);
+    reveal(gl, d, [1, 255, 254]);
+  },
+  'stencil-separate': (gl, d) => {
+    gl.enable(gl.STENCIL_TEST); gl.clearStencil(4); gl.clear(gl.STENCIL_BUFFER_BIT);
+    gl.stencilFuncSeparate(gl.FRONT, gl.ALWAYS, 1, 0xff); gl.stencilFuncSeparate(gl.BACK, gl.GEQUAL, 1, 0xff);
+    gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.KEEP, gl.REPLACE); gl.stencilOpSeparate(gl.BACK, gl.INCR, gl.KEEP, gl.INVERT);
+    d.draw(tri, [0, 0, 0, 1]); d.draw(triBack, [0, 0, 0, 1]);
+    reveal(gl, d, [1, 254, 5, 4]);
+  },
+  'stencil-fail-zfail': (gl, d) => {
+    gl.enable(gl.STENCIL_TEST); gl.enable(gl.DEPTH_TEST); gl.clear(gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+    gl.stencilFunc(gl.ALWAYS, 0, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+    d.draw(strip(0, 2, -0.5), [0.5, 0.5, 0.5, 1]);
+    gl.stencilOp(gl.KEEP, gl.INCR, gl.REPLACE); gl.stencilFunc(gl.ALWAYS, 7, 0xff);
+    d.draw(tri, [1, 1, 0, 1]);
+    gl.stencilFunc(gl.EQUAL, 7, 0xff); gl.stencilOp(gl.ZERO, gl.KEEP, gl.KEEP);
+    d.draw(full(0.9), [0, 0, 0, 1]);
+    reveal(gl, d, [0, 1, 7]);
+  },
+  'stencil-ref-clamp': (gl, d) => {
+    gl.enable(gl.STENCIL_TEST);
+    gl.stencilFunc(gl.ALWAYS, 300, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE); d.draw(strip(0, 2, 0), [0, 0, 0, 1]);
+    gl.stencilFunc(gl.ALWAYS, -4, 0xff); d.draw(strip(1, 2, 0), [0, 0, 0, 1]);
+    reveal(gl, d, [255, 0]);
+  },
+  'stencil-clear-mask': (gl, d) => {
+    gl.enable(gl.STENCIL_TEST); gl.clearStencil(0xff); gl.clear(gl.STENCIL_BUFFER_BIT);
+    gl.stencilMask(0x0f); gl.clearStencil(0); gl.enable(gl.SCISSOR_TEST); gl.scissor(4, 4, 12, 12); gl.clear(gl.STENCIL_BUFFER_BIT); gl.disable(gl.SCISSOR_TEST);
+    reveal(gl, d, [0xff, 0xf0]);
+  },
+  'stencil-no-test': (gl, d) => {
+    gl.stencilFunc(gl.NEVER, 0, 0xff); gl.stencilOp(gl.REPLACE, gl.REPLACE, gl.REPLACE);
+    d.draw(tri, [1, 0, 0, 1]);
+    gl.enable(gl.STENCIL_TEST); reveal(gl, d, [0]);
+  },
+};
+// Polygon offset: um plano de referência em z e, por cima, faixas com o mesmo plano deslocado de i * eps e o offset
+// pedido, com LESS: a faixa aparece onde o offset vence o deslocamento.
+const offsetSweep = (z, eps, factor, units, slope) => (gl, d) => {
+  gl.enable(gl.DEPTH_TEST); gl.clear(gl.DEPTH_BUFFER_BIT); gl.depthFunc(gl.ALWAYS);
+  d.draw(full(0).map((v, i) => (i % 3 === 2 ? z + (slope || 0) * full(0)[i - 2] : v)), [0.2, 0.2, 0.2, 1]);
+  gl.depthFunc(gl.LESS); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(factor, units);
+  for (let i = 0; i < 12; i++) d.draw(strip(i, 12, z + i * eps, slope), [i / 11, 1 - i / 11, 0.5, 1]);
+};
+for (const [z, tag] of [[0, 'mid'], [-0.8, 'near'], [0.9, 'far']]) {
+  scenes[`offset-units-neg-${tag}`] = offsetSweep(z, 2 ** -25, 0, -1);
+  scenes[`offset-units-neg2-${tag}`] = offsetSweep(z, 2 ** -24, 0, -2);
+  scenes[`offset-units-pos-${tag}`] = offsetSweep(z, -(2 ** -25), 0, 1);
+}
+// O declive em janela de z = 0,5 + s * x / 2 é s / 2 por 12 pixels; o eps de cada varredura põe o limiar perto da
+// faixa 6.
+scenes['offset-factor-slope'] = offsetSweep(0, 0.007, -1, 0, 0.5);
+scenes['offset-factor-slope-fine'] = offsetSweep(0, 4.2e-4, -1, 0, 0.03);
+scenes['offset-factor-units'] = offsetSweep(0.2, 0.0014, -0.5, -3, 0.2);
+scenes['offset-factor-pos'] = offsetSweep(0, -0.007, 1, 0, 0.5);
+// Declive em y: a referência e as faixas inclinadas em y.
+scenes['offset-factor-slope-y'] = (gl, d) => {
+  const tilt = (pos, dz) => pos.map((v, i) => (i % 3 === 2 ? v + 0.4 * pos[i - 1] + dz : v));
+  gl.enable(gl.DEPTH_TEST); gl.clear(gl.DEPTH_BUFFER_BIT); gl.depthFunc(gl.ALWAYS);
+  d.draw(tilt(full(0), 0), [0.2, 0.2, 0.2, 1]);
+  gl.depthFunc(gl.LESS); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-1, 0);
+  for (let i = 0; i < 12; i++) d.draw(tilt(strip(i, 12, 0), i * 0.0056), [i / 11, 1 - i / 11, 0.5, 1]);
+};
+scenes['offset-disabled'] = (gl, d) => {
+  gl.enable(gl.DEPTH_TEST); gl.clear(gl.DEPTH_BUFFER_BIT);
+  d.draw(full(0), [0.2, 0.2, 0.2, 1]);
+  gl.polygonOffset(-1, -100); d.draw(full(0), [1, 0, 0, 1]);
+};
+const out = {};
+for (const [name, fn] of Object.entries(scenes)) {
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const gl = canvas.getContext('webgl', { antialias: false, depth: true, stencil: true, preserveDrawingBuffer: true });
+  const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
+  const prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+  gl.bindAttribLocation(prog, 0, 'p'); gl.bindAttribLocation(prog, 1, 'c'); gl.linkProgram(prog); gl.useProgram(prog);
+  const vb = gl.createBuffer(), cb = gl.createBuffer();
+  const d = {
+    draw(pos, color) {
+      const n = pos.length / 3;
+      gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pos), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, cb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Array.from({ length: n }, () => color).flat()), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, n);
+    },
+  };
+  gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  fn(gl, d);
+  const px = new Uint8Array(W * H * 4);
+  gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  out[name] = b64(px);
+}
+document.body.setAttribute('data-out', JSON.stringify(out));
+</script></body>

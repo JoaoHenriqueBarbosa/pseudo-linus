@@ -175,8 +175,21 @@ fn webgl_raster_matches_oracle() {
 /// repetição, mipmaps, cubo, 3D, arrays, comparação), pixel a pixel.
 #[test]
 fn webgl_textures_match_oracle() {
-    let ours = probe_output(include_str!("../../../testbench/oracle/measured/webgl-texture.html"));
-    let oracle: serde_json::Value = serde_json::from_str(include_str!("webgl-texture.json")).unwrap();
+    assert_scenes_exact(include_str!("../../../testbench/oracle/measured/webgl-texture.html"), include_str!("webgl-texture.json"));
+}
+
+/// O estêncil (operações, funções, máscaras, faces separadas, zfail, referência fora da faixa, clear com máscara) e o
+/// polygon offset (unidades em três profundidades, fator com declive em x e em y) contra
+/// `testbench/oracle/measured/webgl-stencil.html`, pixel a pixel.
+#[test]
+fn webgl_stencil_and_offset_match_oracle() {
+    assert_scenes_exact(include_str!("../../../testbench/oracle/measured/webgl-stencil.html"), include_str!("webgl-stencil.json"));
+}
+
+/// Roda a sonda e exige cada cena (readPixels em base64) igual à do oráculo em todos os pixels.
+fn assert_scenes_exact(probe: &str, oracle: &str) {
+    let ours = probe_output(probe);
+    let oracle: serde_json::Value = serde_json::from_str(oracle).unwrap();
     let decode = |v: &serde_json::Value| ul_common::codec::base64_decode(v.as_str().unwrap_or("").as_bytes(), true).unwrap_or_default();
     let wrong: Vec<String> = oracle
         .as_object()

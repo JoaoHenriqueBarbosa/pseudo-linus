@@ -49,7 +49,7 @@ const glClearsAll = (s, entry) => {
   if (p.get('SCISSOR_TEST')) return false;
   if (!(entry.mask & GL.COLOR_BUFFER_BIT) || !p.get('COLOR_WRITEMASK').every(Boolean)) return false;
   if (s.attrs.depth && (!(entry.mask & GL.DEPTH_BUFFER_BIT) || !p.get('DEPTH_WRITEMASK'))) return false;
-  if (s.attrs.stencil && !(entry.mask & GL.STENCIL_BUFFER_BIT)) return false;
+  if (s.attrs.stencil && (!(entry.mask & GL.STENCIL_BUFFER_BIT) || (p.get('STENCIL_WRITEMASK') & 255) !== 255)) return false;
   return true;
 };
 
@@ -102,8 +102,8 @@ const glRunClear = (s, t, entry) => {
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) for (let k = 0; k < n; k++) t.depth[(y * t.width + x) * n + k] = d;
   }
   if (t.stencil && entry.mask & GL.STENCIL_BUFFER_BIT) {
-    const v = p.get('STENCIL_CLEAR_VALUE') & p.get('STENCIL_WRITEMASK') & 255;
-    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) for (let k = 0; k < n; k++) t.stencil[(y * t.width + x) * n + k] = v;
+    const wm = p.get('STENCIL_WRITEMASK') & 255, v = p.get('STENCIL_CLEAR_VALUE') & wm;
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) for (let k = 0; k < n; k++) { const i = (y * t.width + x) * n + k; t.stencil[i] = (t.stencil[i] & ~wm) | v; }
   }
 };
 
@@ -304,6 +304,21 @@ const BLEND_FACTORS = {
 };
 const BLEND_EQUATIONS = { [GL.FUNC_ADD]: (a, b) => a + b, [GL.FUNC_SUBTRACT]: (a, b) => a - b, [GL.FUNC_REVERSE_SUBTRACT]: (a, b) => b - a, 32775: (a, b, x, y) => Math.min(x, y), 32776: (a, b, x, y) => Math.max(x, y) };
 const DEPTH_FUNCS = { [GL.NEVER]: () => false, [GL.LESS]: (a, b) => a < b, [GL.EQUAL]: (a, b) => a === b, [GL.LEQUAL]: (a, b) => a <= b, [GL.GREATER]: (a, b) => a > b, [GL.NOTEQUAL]: (a, b) => a !== b, [GL.GEQUAL]: (a, b) => a >= b, [GL.ALWAYS]: () => true };
+// As operações do estêncil de 8 bits (o valor guardado, a referência já limitada a 0..255).
+const STENCIL_OPS = {
+  [GL.KEEP]: (v) => v, [GL.ZERO]: () => 0, [GL.REPLACE]: (v, ref) => ref, [GL.INVERT]: (v) => ~v & 255,
+  [GL.INCR]: (v) => Math.min(v + 1, 255), [GL.DECR]: (v) => Math.max(v - 1, 0), [GL.INCR_WRAP]: (v) => (v + 1) & 255, [GL.DECR_WRAP]: (v) => (v - 1) & 255,
+};
+// O estado do estêncil de uma face, ou `null` sem teste: a função compara (ref & máscara) com (guardado & máscara).
+const glStencilState = (t, p, front) => {
+  if (!t.stencil || !p.get('STENCIL_TEST')) return null;
+  const side = front ? '_' : '_BACK_';
+  return {
+    test: DEPTH_FUNCS[p.get(`STENCIL${side}FUNC`)], ref: Math.min(Math.max(p.get(`STENCIL${side}REF`), 0), 255), mask: p.get(`STENCIL${side}VALUE_MASK`) & 255, write: p.get(`STENCIL${side}WRITEMASK`) & 255,
+    fail: STENCIL_OPS[p.get(`STENCIL${side}FAIL`)], zfail: STENCIL_OPS[p.get(`STENCIL${side}PASS_DEPTH_FAIL`)], zpass: STENCIL_OPS[p.get(`STENCIL${side}PASS_DEPTH_PASS`)],
+  };
+};
+const glStencilApply = (t, st, si, op) => { const v = t.stencil[si]; t.stencil[si] = (v & ~st.write) | (op(v, st.ref) & st.write); };
 
 const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], provoking, rt) => {
   const p = entry.params;
@@ -361,13 +376,19 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
     const z1 = fr(pb.z - pa.z), z2 = fr(pc.z - pa.z);
     const u1 = fr((pb.X - pa.X) / SUBPIXEL), v1 = fr((pb.YV - pa.YV) / SUBPIXEL), u2 = fr((pc.X - pa.X) / SUBPIXEL), v2 = fr((pc.YV - pa.YV) / SUBPIXEL);
     const Dz = fr(1 / fr(fr(u1 * v2) - fr(u2 * v1)));
-    return [fr(fr(fr(v2 * z1) - fr(v1 * z2)) * Dz), fr(fr(fr(u1 * z2) - fr(u2 * z1)) * Dz), pa.z];
+    const A = fr(fr(fr(v2 * z1) - fr(v1 * z2)) * Dz), B = fr(fr(fr(u1 * z2) - fr(u2 * z1)) * Dz);
+    // O polygon offset soma ao termo constante o declive vezes o fator e as unidades vezes 2^-24: o ANGLE emula o D24
+    // do GL e a resolução mínima fica a do D24 em qualquer profundidade (medido em 0,1, 0,5 e 0,95).
+    if (!p.get('POLYGON_OFFSET_FILL')) return [A, B, pa.z];
+    const slope = fr(Math.max(Math.abs(A), Math.abs(B)) * p.get('POLYGON_OFFSET_FACTOR'));
+    return [A, B, fr(fr(pa.z + slope) + fr(p.get('POLYGON_OFFSET_UNITS') * 2 ** -24))];
   })();
   const evalPlane = (P, dx, dy) => fr(fr(dx * P[0]) + fr(P[2] + fr(dy * P[1])));
   const varyings = stages.varyings;
   const fragSlot = stages.fragOut.slot;
   const coordSlot = stages.fs.globals.get('gl_FragCoord').slot, facingSlot = stages.fs.globals.get('gl_FrontFacing').slot;
   const depthTest = t.depth && p.get('DEPTH_TEST'), depthWrite = depthTest && p.get('DEPTH_WRITEMASK'), depthFn = DEPTH_FUNCS[p.get('DEPTH_FUNC')];
+  const stencil = glStencilState(t, p, front);
   const mask = p.get('COLOR_WRITEMASK');
   const blend = p.get('BLEND');
   const constant = p.get('BLEND_COLOR');
@@ -400,12 +421,15 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
     for (let k = 0; k < n; k++) {
       if (!(covered & (1 << k))) continue;
       const si = (y * t.width + x) * n + k;
+      // A ordem do Vulkan: estêncil, depois profundidade; cada desfecho escolhe a sua operação.
+      if (stencil && !stencil.test(stencil.ref & stencil.mask, t.stencil[si] & stencil.mask)) { glStencilApply(t, stencil, si, stencil.fail); continue; }
       if (depthTest) {
         const [sx, sy] = t.samples[k];
         const zs = Math.min(1, Math.max(0, evalPlane(zPlane, fr(fr(x + sx - 0.5) - ax), fr(sampleRowV(y, sy) - ay))));
-        if (!depthFn(zs, t.depth[si])) continue;
+        if (!depthFn(zs, t.depth[si])) { if (stencil) glStencilApply(t, stencil, si, stencil.zfail); continue; }
         if (depthWrite) t.depth[si] = zs;
       }
+      if (stencil) glStencilApply(t, stencil, si, stencil.zpass);
       const ci = si * 4;
       let rgba = src;
       if (blend) {

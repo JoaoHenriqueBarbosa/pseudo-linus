@@ -451,6 +451,9 @@ const TYPE_BYTES = { [GL.BYTE]: 1, [GL.UNSIGNED_BYTE]: 1, [GL.SHORT]: 2, [GL.UNS
 // vértices lidos (`vertices` é o maior índice mais um; os instanciados contam pelas instâncias).
 const checkDraw = (ctx, vertices, instances = 1) => {
   const s = glState(ctx);
+  // O WebGL exige a mesma referência (limitada aos bits do estêncil) e as mesmas máscaras nas duas faces.
+  const max = (1 << (s.params.get('STENCIL_BITS') || 0)) - 1, ref = (v) => Math.min(Math.max(v, 0), max);
+  if (ref(s.params.get('STENCIL_REF')) !== ref(s.params.get('STENCIL_BACK_REF')) || ((s.params.get('STENCIL_VALUE_MASK') ^ s.params.get('STENCIL_BACK_VALUE_MASK')) & max) || ((s.params.get('STENCIL_WRITEMASK') ^ s.params.get('STENCIL_BACK_WRITEMASK')) & max)) { glError(ctx, GL.INVALID_OPERATION); return false; }
   const program = s.params.get('CURRENT_PROGRAM');
   if (!program || !objOf(program).linked) { glError(ctx, GL.INVALID_OPERATION); return false; }
   for (const active of objOf(program).attribs) {
