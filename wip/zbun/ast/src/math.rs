@@ -5,3 +5,7 @@
 /// `Math.pow` do JavaScriptCore (`operationMathPow`): os casos de NaN, ±∞ e ±0 que o `powf` do Rust trata de outro
 /// jeito, e o `pow` do glibc no resto.
 pub use ul_common::libm::operation_math_pow as pow;
+
+/// `Number.MAX_SAFE_INTEGER` e `Number.MIN_SAFE_INTEGER` (2^53 - 1).
+pub const MAX_SAFE_INTEGER: f64 = 9007199254740991.0;
+pub const MIN_SAFE_INTEGER: f64 = -9007199254740991.0;

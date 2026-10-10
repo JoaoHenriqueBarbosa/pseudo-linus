@@ -1017,3 +1017,160 @@ impl Expr {
         Some(Expr::init(store, E::EString::init(text), expr.loc))
     }
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// join_*, extract_*, to_finite_number: o `Store` vem como argumento, no lugar do `Data::Store` de thread
+// ───────────────────────────────────────────────────────────────────────────
+
+impl Expr {
+    /// Joins two expressions with a left-associative operator, flattening comma and same-operator chains. "a op (b op
+    /// c)" becomes "(a op b) op c". Only for associative operators ("-" is not associative for floating-point).
+    pub fn join_with_left_associative_op(store: &mut Store, op: crate::Op::Code, a: Expr, b: Expr) -> Expr {
+        Self::join_with_left_associative_op_with_check(store, op, a, b, bun_core::StackCheck::init())
+    }
+
+    fn join_with_left_associative_op_with_check(
+        store: &mut Store,
+        op: crate::Op::Code,
+        a: Expr,
+        b: Expr,
+        stack_check: bun_core::StackCheck,
+    ) -> Expr {
+        if stack_check.is_safe_to_recurse() {
+            // "(a, b) op c" => "a, b op c"
+            if let Data::EBinary(comma) = a.data {
+                if store[comma].op == crate::OpCode::BinComma {
+                    let right = store[comma].right;
+                    let joined = Self::join_with_left_associative_op_with_check(store, op, right, b, stack_check);
+                    store[comma].right = joined;
+                    return a;
+                }
+            }
+
+            // "a op (b op c)" => "(a op b) op c"
+            // "a op (b op (c op d))" => "((a op b) op c) op d"
+            if let Data::EBinary(binary) = b.data {
+                if store[binary].op == op {
+                    let (left, right) = (store[binary].left, store[binary].right);
+                    let inner = Self::join_with_left_associative_op_with_check(store, op, a, left, stack_check);
+                    return Self::join_with_left_associative_op_with_check(store, op, inner, right, stack_check);
+                }
+            }
+        }
+
+        // "a op b" => "a op b"
+        // "(a op b) op c" => "(a op b) op c"
+        Expr::init(store, E::Binary { op, left: a, right: b }, a.loc)
+    }
+
+    pub fn join_with_comma(store: &mut Store, a: Expr, b: Expr) -> Expr {
+        if a.is_missing() {
+            return b;
+        }
+        if b.is_missing() {
+            return a;
+        }
+        Expr::init(store, E::Binary { op: crate::OpCode::BinComma, left: a, right: b }, a.loc)
+    }
+
+    pub fn join_all_with_comma(store: &mut Store, all: &[Expr]) -> Expr {
+        debug_assert!(!all.is_empty());
+        match all.len() {
+            1 => all[0],
+            2 => Expr::join_with_comma(store, all[0], all[1]),
+            _ => {
+                let mut expr = all[0];
+                for it in &all[1..] {
+                    expr = Expr::join_with_comma(store, expr, *it);
+                }
+                expr
+            }
+        }
+    }
+
+    pub fn extract_numeric_values_in_safe_range(store: &Store, left: &Data, right: &Data) -> Option<[f64; 2]> {
+        let l_value = left.extract_numeric_value(store)?;
+        let r_value = right.extract_numeric_value(store)?;
+
+        // Check for NaN and return null if either value is NaN
+        if l_value.is_nan() || r_value.is_nan() {
+            return None;
+        }
+
+        if l_value.is_infinite() || r_value.is_infinite() {
+            return Some([l_value, r_value]);
+        }
+
+        if l_value > crate::math::MAX_SAFE_INTEGER || r_value > crate::math::MAX_SAFE_INTEGER {
+            return None;
+        }
+        if l_value < crate::math::MIN_SAFE_INTEGER || r_value < crate::math::MIN_SAFE_INTEGER {
+            return None;
+        }
+
+        Some([l_value, r_value])
+    }
+
+    pub fn extract_numeric_values(store: &Store, left: &Data, right: &Data) -> Option<[f64; 2]> {
+        Some([left.extract_numeric_value(store)?, right.extract_numeric_value(store)?])
+    }
+
+    pub fn extract_string_values(store: &mut Store, left: &Data, right: &Data) -> Option<[StoreRef<E::EString>; 2]> {
+        let l_string = Data::extract_string_value(store, *left)?;
+        let r_string = Data::extract_string_value(store, *right)?;
+        // `extract_string_value` devolve o índice do nó; resolver o rope grava no `Store`.
+        let mut l = store[l_string].clone();
+        let mut r = store[r_string].clone();
+        l.resolve_rope_if_needed(store);
+        r.resolve_rope_if_needed(store);
+        store[l_string] = l;
+        store[r_string] = r;
+
+        if store[l_string].is_utf8() != store[r_string].is_utf8() {
+            return None;
+        }
+
+        Some([l_string, r_string])
+    }
+}
+
+impl Data {
+    #[inline]
+    pub fn as_e_string(&self) -> Option<StoreRef<E::EString>> {
+        self.e_string()
+    }
+
+    pub fn to_finite_number(&self, store: &Store) -> Option<f64> {
+        match self {
+            Data::EBoolean(b) | Data::EBranchBoolean(b) => Some(if b.value { 1.0 } else { 0.0 }),
+            Data::ENumber(n) => n.value().is_finite().then(|| n.value()),
+            Data::EInlinedEnum(inlined) => match &store[*inlined].value.data {
+                Data::ENumber(num) => num.value().is_finite().then(|| num.value()),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    pub(crate) fn extract_numeric_value(&self, store: &Store) -> Option<f64> {
+        match self {
+            Data::ENumber(n) => Some(n.value()),
+            Data::EInlinedEnum(inlined) => match &store[*inlined].value.data {
+                Data::ENumber(num) => Some(num.value()),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    pub(crate) fn extract_string_value(store: &Store, data: Data) -> Option<StoreRef<E::EString>> {
+        match data {
+            Data::EString(s) => Some(s),
+            Data::EInlinedEnum(inlined) => match store[inlined].value.data {
+                Data::EString(str) => Some(str),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+}
