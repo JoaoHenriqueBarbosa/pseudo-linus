@@ -42,6 +42,24 @@ mil, `lower/` com 3,4 mil) e o `js_printer` 9,8 mil (`lib.rs` com 8,3 mil, `rena
 4. O teste de cada caso compara a AST do parser com a de `ast/tests/ast_cases.rs`.
 5. `js_printer` e o golden de `bun build --no-bundle` gerado na imagem do oráculo.
 
+Estado do passo 1: feito (`import_record`, `ImportKind`, `part`, `runtime`, `ast_result`, `char_freq`,
+`SlotCounts`). Medida do passo 2 (cópia de todo o `js_parser` restante, 2026-10-10): a primeira compilação para em
+169 erros de resolução antes de chegar aos tipos. O que falta, por grupo:
+
+- crates e módulos do upstream que o parser importa e o porte ainda não tem: `bun_options_types` (o `jsx`, os
+  `bundle_enums`), `bun_paths::fs`, `bun_crash_handler`, `bun_react_compiler`, `bun_core::{Output, feature_flags,
+  todo_panic}`, `bun_alloc::{ArenaVec, ArenaVecExt, arena_format, AllocError}`, `bun_collections::{VecExt, HashMap,
+  StringHashMap, StringSet, object_pool}`, `bun_ast::{Flags, fold_string_addition, RuntimeTranspilerCache,
+  expr::{EFlags, Equality, LooseEql, StrictEql}}`;
+- 48 trechos `unsafe` (25 em `p.rs`, 8 em `lower/`, 5 em `visit/mod.rs`, 4 em `parse_entry.rs`, 3 em `parser.rs`,
+  e os `unsafe impl Send/Sync` de `defines_table.rs`);
+- as assinaturas com tempo de vida (`Ast<'a>`, `import_record::List<'a>`) e o `ToExprWrapper` genérico do porte;
+- o `Macro` (FFI com o `bun_js_parser_jsc`), que fica fora.
+
+Depois da resolução vem a troca sistemática do `Deref` do `StoreRef` por `p.store[r]` em todo `p.rs`, `parse/` e
+`visit/`, que é o grosso do trabalho. Os `Define` guardam `ExprData` com índices: como cada arquivo tem o seu
+`Store`, o valor de um define precisa ser gravado no `Store` do arquivo quando o parser o usa.
+
 Ordem de mapa: a tabela de membros do escopo usa o `hashbrown` 0.15.5 do upstream com o mesmo hash, então a
 iteração (que o renamer e o `p.rs` percorrem) tem a ordem do upstream. O `wyhash` sem o `write_length_prefix` só
 muda o hash dos `HashMap` do porte, cuja ordem não sai na saída; isso se confere de novo quando o renamer entrar.
