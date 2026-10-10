@@ -196,6 +196,13 @@ fn normalize(value: &Value, key: &str) -> Value {
     let uuid = |s: &str| s.len() == 36 && s.bytes().all(|b| b == b'-' || b.is_ascii_digit() || (b'a'..=b'f').contains(&b));
     match value {
         Value::Object(map) => Value::Object(map.iter().map(|(k, v)| (k.clone(), normalize(v, k))).collect()),
+        // O `getTargets` do oráculo sai na ordem de um mapa de hash, que muda de uma execução para outra: qualquer
+        // ordem vale, então a comparação é como conjunto.
+        Value::Array(items) if key == "targetInfos" => {
+            let mut items: Vec<Value> = items.iter().map(|v| normalize(v, key)).collect();
+            items.sort_by_key(|v| v.to_string());
+            Value::Array(items)
+        }
         Value::Array(items) => Value::Array(items.iter().map(|v| normalize(v, key)).collect()),
         Value::Number(_) if key == "timestamp" => Value::String("<timestamp>".into()),
         Value::Number(_) if key == "windowId" => Value::String("<windowId>".into()),

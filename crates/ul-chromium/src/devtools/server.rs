@@ -75,6 +75,9 @@ pub struct Browser {
     quit: bool,
     /// Abas a fechar depois da resposta corrente.
     closing: Vec<String>,
+    /// Janelas abertas até aqui: a da aba inicial e a do primeiro alvo criado, cada uma com os seus popups do omnibox
+    /// (as abas seguintes entram na segunda janela, como no oráculo).
+    windows: usize,
     schema: super::protocol::Schema,
 }
 
@@ -149,6 +152,7 @@ impl Browser {
             allowed_origins: options.allowed_origins.clone(),
             quit: false,
             closing: Vec::new(),
+            windows: 0,
             schema: super::protocol::Schema::load(),
         }
     }
@@ -195,13 +199,22 @@ impl Browser {
     }
 
     fn open_target(&mut self, url: &str, startup: bool, wait: bool) -> String {
-        let id = token();
+        if self.windows < 2 {
+            self.windows += 1;
+            for (ui, _) in crate::page::WEBUI_DOCUMENTS {
+                self.spawn_target("browser_ui", ui, "Omnibox Popup", true, wait);
+            }
+        }
         let shown = if url.is_empty() { "about:blank" } else { url };
-        let Ok(link) = target::spawn(id.clone(), shown.to_owned(), startup, wait) else { return id };
-        let window_id = (super::random_i64() & 0x7FFF_FFFF).max(1);
         // A primeira aba já nasce com o documento comprometido (título é a URL); a criada pelo protocolo, sem título.
-        let title = if startup { shown.to_owned() } else { String::new() };
-        self.targets.push(Target { id: id.clone(), kind: "page", title, url: shown.to_owned(), link, window_id, pending: Vec::new(), inbox: Vec::new() });
+        self.spawn_target("page", shown, if startup { shown } else { "" }, startup, wait)
+    }
+
+    fn spawn_target(&mut self, kind: &'static str, url: &str, title: &str, startup: bool, wait: bool) -> String {
+        let id = token();
+        let Ok(link) = target::spawn(id.clone(), url.to_owned(), startup, wait) else { return id };
+        let window_id = (super::random_i64() & 0x7FFF_FFFF).max(1);
+        self.targets.push(Target { id: id.clone(), kind, title: title.to_owned(), url: url.to_owned(), link, window_id, pending: Vec::new(), inbox: Vec::new() });
         let info = self.info(&id).expect("alvo recém-criado");
         self.broadcast_discovery("Target.targetCreated", Json::object([("targetInfo", info)]));
         // A conexão com `setAutoAttach` anexa cada alvo novo.

@@ -195,6 +195,8 @@ impl Page {
         run_page(self.console.clone(), bridge.clone(), &document_url, module_fetch, |runner| {
             // `Number.prototype.toString(radix)` arredonda a cauda como o V8.
             zjsc::runtime::number_prototype::set_v8_radix_strings(true);
+            // `Error.prototype.stack` e as mensagens de erro no formato do V8.
+            zjsc::runtime::stack_frame::set_v8_stack_format(true);
             // Sob `--virtual-time-budget`, `Date` e `performance.now` andam com o tempo virtual dos timers, a partir
             // do relógio do sistema no início da página.
             zjsc::wtf::date_math::set_virtual_clock(zjsc::wtf::date_math::current_time_in_nanoseconds() as f64 / 1_000_000.0);
@@ -464,6 +466,13 @@ fn neterror_html(url: &str, error: &str) -> Option<String> {
     Some(NETERROR_TEMPLATE.replacen("{{TITLE}}", &escaped, 1).replacen("{{DATA}}", &data, 1))
 }
 
+/// Os documentos WebUI que o navegador abre sozinho: os dois popups do omnibox de cada janela, com o HTML que o
+/// oráculo serve (lido pelo DevTools depois de carregado).
+pub const WEBUI_DOCUMENTS: [(&str, &str); 2] = [
+    ("chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html", include_str!("../data/omnibox/omnibox_popup_aim.html")),
+    ("chrome://omnibox-popup.top-chrome/", include_str!("../data/omnibox/omnibox_popup.html")),
+];
+
 fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, String> {
     let local = |bytes: Vec<u8>, content_type: Option<String>| DocumentResponse { bytes, final_url: address.to_owned(), content_type, header_csp: false, cross_origin_isolated: false };
     // A aba nova (`about:blank`) é um documento vazio sem rede; `data:` sai pelo processador de data: URL do Fetch.
@@ -474,6 +483,9 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
         let parsed = data_url::DataUrl::process(address).map_err(|_| "net::ERR_INVALID_URL".to_owned())?;
         let (bytes, _) = parsed.decode_to_vec().map_err(|_| "net::ERR_INVALID_URL".to_owned())?;
         return Ok(local(bytes, Some(parsed.mime_type().to_string())));
+    }
+    if let Some(&(_, html)) = WEBUI_DOCUMENTS.iter().find(|(url, _)| *url == address) {
+        return Ok(local(html.as_bytes().to_vec(), Some("text/html".to_owned())));
     }
     if let Some(path) = address.strip_prefix("file://") {
         let bytes = sys::read_file(path.as_bytes()).map_err(|_| "net::ERR_FILE_NOT_FOUND".to_owned())?;

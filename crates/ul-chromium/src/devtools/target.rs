@@ -459,7 +459,7 @@ impl Tab {
 fn security_origin(url: &str) -> String {
     let Ok(parsed) = url::Url::parse(url) else { return "://".to_owned() };
     match parsed.scheme() {
-        "http" | "https" | "ws" | "wss" | "ftp" => {
+        "http" | "https" | "ws" | "wss" | "ftp" | "chrome" => {
             let host = parsed.host_str().unwrap_or_default();
             match parsed.port() {
                 Some(port) => format!("{}://{host}:{port}", parsed.scheme()),
@@ -476,7 +476,7 @@ fn is_localhost(url: &str) -> bool {
 
 fn secure_context_type(url: &str) -> &'static str {
     match url::Url::parse(url).map(|u| u.scheme().to_owned()).unwrap_or_default().as_str() {
-        "https" | "wss" | "file" => "Secure",
+        "https" | "wss" | "file" | "chrome" => "Secure",
         "http" if is_localhost(url) => "SecureLocalhost",
         _ => "InsecureScheme",
     }
