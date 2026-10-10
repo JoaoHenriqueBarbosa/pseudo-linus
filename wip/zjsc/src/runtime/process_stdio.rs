@@ -898,6 +898,10 @@ fn build_stream_prototype(global_object: &JSGlobalObject) -> JSValue {
         ],
     );
     let stream = object_with_prototype(global_object, Some(emitter.as_value()));
+    // O padrão do protótipo do `EventEmitter` do bun (`EventEmitterPrototype._eventsCount = 0`): um stream que ainda
+    // não registrou ouvinte lê 0 e não `undefined` (`process.stdout._eventsCount`).
+    let vm = global_object.vm();
+    emitter.put_direct(vm, &prop(vm, "_eventsCount"), js_number(0), 0);
     put_constructor(global_object, &stream, "Stream", 1, stream_constructor);
     STREAM_PROTOTYPE.with(|cell| cell.set(Some(stream.as_value())));
     put_methods(global_object, &stream, &[("pipe", 2, cannot_pipe as NativeFunction), ("eventNames", 0, emitter_event_names as NativeFunction)]);

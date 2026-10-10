@@ -55,6 +55,8 @@ pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "events", scheme: Scheme::Both, install: crate::api::node_events::install_events_module },
     BuiltinEntry { name: "module", scheme: Scheme::Both, install: install_module_module },
     BuiltinEntry { name: "os", scheme: Scheme::Both, install: crate::runtime::node_os::install_os_module },
+    BuiltinEntry { name: "stream", scheme: Scheme::Both, install: crate::api::node_stream::install_stream_module },
+    BuiltinEntry { name: "string_decoder", scheme: Scheme::Both, install: crate::api::node_stream::install_string_decoder_module },
     BuiltinEntry { name: "vm", scheme: Scheme::Both, install: crate::api::eval::install_vm_module },
 ];
 
@@ -151,12 +153,18 @@ pub(crate) fn resolve(request: &str) -> Resolved<'static> {
 
 /// O objeto do módulo: do cache, ou recém-instalado (e guardado).
 pub(crate) fn load(global_object: &JSGlobalObject, entry: &'static BuiltinEntry) -> HostResult {
-    if let Some(cached) = CACHE.with(|cache| cache.borrow().iter().find(|(name, _)| *name == entry.name).map(|(_, value)| value.clone())) {
+    cached(entry.name, || (entry.install)(global_object))
+}
+
+/// O objeto de `name` guardado para o programa: `build` roda na primeira chamada (serve também aos auxiliares que não
+/// são módulos do `require`, como o `node_internal.js`).
+pub(crate) fn cached(name: &'static str, build: impl FnOnce() -> HostResult) -> HostResult {
+    if let Some(cached) = CACHE.with(|cache| cache.borrow().iter().find(|(known, _)| *known == name).map(|(_, value)| value.clone())) {
         return Ok(cached);
     }
-    // Sem empréstimo durante o instalador: ele pode reentrar no `require`.
-    let installed = (entry.install)(global_object)?;
-    CACHE.with(|cache| cache.borrow_mut().push((entry.name, installed.clone())));
+    // Sem empréstimo durante a montagem: ela pode reentrar no `require`.
+    let installed = build()?;
+    CACHE.with(|cache| cache.borrow_mut().push((name, installed.clone())));
     Ok(installed)
 }
 

@@ -8,5 +8,7 @@ pub mod main_module_kind;
 pub mod module;
 pub mod module_probe;
 pub mod node_events;
+pub mod node_js_host;
+pub mod node_stream;
 pub mod package_exports;
 pub mod package_json;

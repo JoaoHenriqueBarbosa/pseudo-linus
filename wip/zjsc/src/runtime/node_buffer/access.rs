@@ -324,7 +324,7 @@ fn copy_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let Some(target) = JSGenericTypedArrayView::from_value(&target_value).filter(|target| target.typed_array_type() == TypedArrayType::Uint8) else {
         return Err(invalid_argument_type(global_object, "target", "an instance of Buffer or Uint8Array", target_value));
     };
-    let source = view.with_vector(|bytes| bytes.to_vec());
+    let source = view.with_view_bytes(|bytes| bytes.to_vec());
     let source_length = source.len() as f64;
     // No `copy` do bun os infinitos valem 0, como o `NaN`.
     let finite = |value: JSValue, default: f64| Some(lenient_integer(value, default)).filter(|number| number.is_finite()).unwrap_or(0.0);
@@ -376,7 +376,7 @@ fn slice_body<const CODE: u8>(global_object: &JSGlobalObject, call: &HostCall) -
     let text = if start >= end {
         WtfString::from_latin1(b"")
     } else {
-        view.with_vector(|bytes| decode_bytes(&bytes[start as usize..end as usize], encoding_by_code(CODE)))
+        view.with_view_bytes(|bytes| decode_bytes(&bytes[start as usize..end as usize], encoding_by_code(CODE)))
     };
     Ok(JSValue::from_js_string(js_string(global_object.vm(), &text)))
 }
@@ -420,7 +420,7 @@ fn string_write<const CODE: u8>(global_object: &JSGlobalObject, call: &HostCall)
 fn inspect_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let view = receiver(global_object, call, Receiver::InvalidThis("inspect"))?;
     let max = super::inspect_max_bytes();
-    let (shown, length) = view.with_vector(|bytes| {
+    let (shown, length) = view.with_view_bytes(|bytes| {
         let count = (bytes.len() as f64).min(max.trunc()) as usize;
         (bytes[..count].iter().map(|byte| format!("{byte:02x}")).collect::<Vec<_>>().join(" "), bytes.len())
     });

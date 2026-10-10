@@ -485,6 +485,13 @@ impl JSArrayBufferView {
         }
     }
 
+    /// `with_vector` limitado ao `byteLength` da visão: só o que a visão enxerga, sem o resto do buffer que vem depois
+    /// dela (num `subarray` o trecho de `with_vector` continua até o fim do `ArrayBuffer`).
+    pub fn with_view_bytes<R>(&self, f: impl FnOnce(&[u8]) -> R) -> R {
+        let length = self.byte_length();
+        self.with_vector(|bytes| f(&bytes[..length.min(bytes.len())]))
+    }
+
     /// `vector()` como um empréstimo de escrita; o mesmo trecho de `with_vector`.
     pub fn with_vector_mut<R>(&self, f: impl FnOnce(&mut [u8]) -> R) -> R {
         match self.existing_buffer() {
