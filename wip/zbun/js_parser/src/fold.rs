@@ -742,7 +742,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     loc,
                                 }
                             } else {
-                                Expr::init(E::Object::default(), loc)
+                                Expr::init(&mut self.store, E::Object::default(), loc)
                             });
                         }
                         if name == b"accept" {
@@ -771,7 +771,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         );
                         if in_lookup_table {
                             if enabled {
-                                return Some(Expr::init(
+                                return Some(Expr::init(&mut self.store, 
                                     E::Dot {
                                         target: Expr::init_identifier(p.hmr_api_ref, target.loc),
                                         name: name_static,

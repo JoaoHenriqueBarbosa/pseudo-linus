@@ -167,8 +167,8 @@ def collect(diagnostics):
             for child in message.get("children", []):
                 for help_span in child.get("spans", []):
                     placeholder = help_span.get("suggested_replacement") or ""
-                    if child.get("message") == "provide the argument" and (
-                        placeholder.count("/* ") == 1 and re.search(r"/\* &(mut )?Store \*/", placeholder)
+                    if child.get("message") == "provide the argument" and re.search(r"/\* &(mut )?Store \*/", placeholder) and (
+                        placeholder.count("/* ") == 1 or re.match(r"^\(/\* &(mut )?Store \*/, ", placeholder)
                     ):
                         wanted[help_span["file_name"]][help_span["byte_start"]] = (
                             ("store_arg", placeholder, "", ""),

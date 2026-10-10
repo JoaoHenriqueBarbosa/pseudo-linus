@@ -2457,7 +2457,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if let Some(target_str) = p.store[dot].target.data.e_string() {
                     if !p.store[target_str].is_utf16 && p.store[dot].name == b"charCodeAt" {
                         let str_ = p.store[target_str].data;
-                        let arg1 = p.store[p.store[e_].args][0].unwrap_inlined();
+                        let arg1 = p.store[p.store[e_].args][0].unwrap_inlined(&p.store);
                         if let Data::ENumber(n) = &arg1.data {
                             let float = n.value();
                             if float % 1.0 == 0.0 && float < (str_.len() as f64) && float >= 0.0 {

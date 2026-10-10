@@ -855,7 +855,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     {
         // The import-record side-effect is order-independent of `Expr.init`'s
         // Store allocation.
-        let expr = Expr::init(t, loc);
+        let expr = Expr::init(&mut self.store, t, loc);
         if SCAN_ONLY {
             if let js_ast::ExprData::ECall(call) = expr.data {
                 if let js_ast::ExprData::EIdentifier(ident) = self.store[call].target.data {
@@ -881,7 +881,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     where
         T: js_ast::stmt::StatementData,
     {
-        Stmt::alloc(t, loc)
+        Stmt::alloc(&mut self.store, t, loc)
     }
 
     pub(crate) fn load_name_from_ref(&self, r#ref: Ref) -> &'a [u8] {
@@ -1012,7 +1012,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     // visitor (PORTING.md §Forbidden).
     pub(crate) fn maybe_transpose_if_import(&mut self, arg: Expr, state: &TransposeState) -> Expr {
         match arg.data {
-            js_ast::ExprData::EIf(ex) => Expr::init(
+            js_ast::ExprData::EIf(ex) => Expr::init(&mut self.store, 
                 E::If {
                     yes: self.maybe_transpose_if_import(self.store[ex].yes, state),
                     no: self.maybe_transpose_if_import(self.store[ex].no, state),
@@ -1026,7 +1026,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     pub(crate) fn maybe_transpose_if_require(&mut self, arg: Expr, state: &TransposeState) -> Expr {
         match arg.data {
-            js_ast::ExprData::EIf(ex) => Expr::init(
+            js_ast::ExprData::EIf(ex) => Expr::init(&mut self.store, 
                 E::If {
                     yes: self.maybe_transpose_if_require(self.store[ex].yes, state),
                     no: self.maybe_transpose_if_require(self.store[ex].no, state),
@@ -1047,7 +1047,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let js_ast::ExprData::EIf(ex) = arg.data else {
             unreachable!()
         };
-        Expr::init(
+        Expr::init(&mut self.store, 
             E::If {
                 yes: self.maybe_transpose_if_require(self.store[ex].yes, state),
                 no: self.maybe_transpose_if_require(self.store[ex].no, state),
@@ -1059,7 +1059,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     pub(crate) fn maybe_transpose_if_require_resolve(&mut self, arg: Expr, state: Expr) -> Expr {
         match arg.data {
-            js_ast::ExprData::EIf(ex) => Expr::init(
+            js_ast::ExprData::EIf(ex) => Expr::init(&mut self.store, 
                 E::If {
                     yes: self.maybe_transpose_if_require_resolve(self.store[ex].yes, state),
                     no: self.maybe_transpose_if_require_resolve(self.store[ex].no, state),
@@ -1080,7 +1080,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let js_ast::ExprData::EIf(ex) = arg.data else {
             unreachable!()
         };
-        Expr::init(
+        Expr::init(&mut self.store, 
             E::If {
                 yes: self.maybe_transpose_if_require_resolve(self.store[ex].yes, state),
                 no: self.maybe_transpose_if_require_resolve(self.store[ex].no, state),
@@ -5063,7 +5063,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if member.is_none() {
             // SAFETY: `name` is `'static`.
             unsafe {
-                self.module_scope_mut().members.put(
+                self.module_scope_mut().members.put(&self.store, 
                     name,
                     js_ast::scope::Member {
                         ref_,
@@ -5175,7 +5175,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let entry = unsafe {
             self.store[scope]
                 .members
-                .get_or_put_hashed(js_ast::scope::Members::hash(name), name)
+                .get_or_put_hashed(&self.store, js_ast::scope::Members::hash(name), name)
         };
         if entry.found_existing {
             let existing: js_ast::scope::Member = *entry.value_ptr;
@@ -8558,7 +8558,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let module_path = self.new_expr(
             E::String::init(if self.options.jsx.development {
-                self.source.path.pretty
+                self.store.alloc_str(self.source.path.pretty)
             } else {
                 bun_core::todo_panic!("unique_key here")
             }),

@@ -481,7 +481,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     VecExt::append(&mut p.cur_scope().generated, temp_id);
 
                     let value_expr = *expr;
-                    stmts.push(Stmt::alloc(
+                    stmts.push(Stmt::alloc(&mut p.store, 
                         S::Local {
                             kind: S::Kind::KConst,
                             decls: p.store.alloc_slice((&[G::Decl {
@@ -704,7 +704,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         break 'brk temp_id;
                                     };
 
-                                    stmts.push(Stmt::alloc(
+                                    stmts.push(Stmt::alloc(&mut p.store, 
                                         S::Local {
                                             kind: S::Kind::KConst,
                                             decls: p.store.alloc_slice((&[G::Decl {

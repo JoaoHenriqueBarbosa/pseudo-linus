@@ -1015,7 +1015,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .original_name);
             // SAFETY: `original_name` is an AST-arena slice.
             unsafe {
-                self.vis_scope().members.put(
+                self.vis_scope().members.put(&self.store, 
                     original_name,
                     ScopeMember {
                         ref_: name.ref_,
