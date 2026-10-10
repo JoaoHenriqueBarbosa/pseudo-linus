@@ -376,7 +376,7 @@ fn string_width_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRes
     Ok(js_number(measure(&units, !ambiguous_is_narrow, count_ansi) as f64))
 }
 
-host_function!(bun_string_width, string_width_body);
+host_function!(pub bun_string_width, string_width_body);
 
 /// `bunObjectTable` de `BunObject.cpp`, na ordem do `@begin`, só com as entradas portadas.
 static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 17] = [
