@@ -17,6 +17,8 @@ pub trait Stored<S>: Sized {
 pub trait NodeStore: Sized {
     fn bytes(&self) -> &Vec<u8>;
     fn bytes_mut(&mut self) -> &mut Vec<u8>;
+    fn utf16(&self) -> &Vec<u16>;
+    fn utf16_mut(&mut self) -> &mut Vec<u16>;
 
     /// Grava `node` e devolve o índice dele.
     fn alloc<T: Stored<Self>>(&mut self, node: T) -> StoreRef<T> {
@@ -32,6 +34,23 @@ pub trait NodeStore: Sized {
         let start = nodes.len();
         nodes.extend(items);
         StoreSlice::from_range(to_u32(start), to_u32(nodes.len() - start))
+    }
+
+    /// O `VecExt::append` do upstream sobre uma lista da arena: a faixa com `item` no fim. Se a faixa termina no fim
+    /// do vetor, cresce no lugar; senão os elementos são copiados para o fim antes, e quem guardava a faixa antiga
+    /// continua vendo os mesmos elementos.
+    fn append<T: Stored<Self> + Clone>(&mut self, items: StoreSlice<T>, item: T) -> StoreSlice<T> {
+        let nodes = T::nodes_mut(self);
+        let range = items.range();
+        let start = if range.end == nodes.len() {
+            range.start
+        } else {
+            let start = nodes.len();
+            nodes.extend_from_within(range);
+            start
+        };
+        nodes.push(item);
+        StoreSlice::from_range(to_u32(start), to_u32(items.len() + 1))
     }
 
     /// O `clone_in` do upstream: um nó novo, com outro índice, igual ao original. As faixas internas são copiadas
@@ -53,6 +72,20 @@ pub trait NodeStore: Sized {
     fn str(&self, text: StoreStr) -> &[u8] {
         &self.bytes()[text.range()]
     }
+
+    /// Grava unidades UTF-16 no vetor de strings UTF-16 e devolve a faixa. Como no upstream, o tamanho da faixa é a
+    /// contagem de unidades, não de bytes; quem lê sabe pela flag `is_utf16` do `EString` qual vetor a faixa indexa.
+    fn alloc_str16(&mut self, text: &[u16]) -> StoreStr {
+        let units = self.utf16_mut();
+        let start = units.len();
+        units.extend_from_slice(text);
+        StoreStr::from_range(to_u32(start), to_u32(text.len()))
+    }
+
+    /// As unidades de uma `StoreStr` gravada por `alloc_str16`.
+    fn str16(&self, text: StoreStr) -> &[u16] {
+        &self.utf16()[text.range()]
+    }
 }
 
 /// O store indexa com `u32`, como o upstream limita `StoreSlice` a 4 G elementos.
@@ -69,6 +102,7 @@ macro_rules! define_store {
         #[derive(Default)]
         $vis struct $store {
             bytes: Vec<u8>,
+            utf16: Vec<u16>,
             $($field: Vec<$node>,)*
         }
 
@@ -93,6 +127,14 @@ macro_rules! define_store {
             #[inline]
             fn bytes_mut(&mut self) -> &mut Vec<u8> {
                 &mut self.bytes
+            }
+            #[inline]
+            fn utf16(&self) -> &Vec<u16> {
+                &self.utf16
+            }
+            #[inline]
+            fn utf16_mut(&mut self) -> &mut Vec<u16> {
+                &mut self.utf16
             }
         }
 

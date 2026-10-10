@@ -222,11 +222,28 @@ pub(crate) fn headers_is_empty(headers: JSValue) -> bool {
 /// O valor de `name` (já em minúsculas) em `headers`, como `get`: os valores combinados com `, `.
 pub(crate) fn header_value(headers: JSValue, name: &str) -> Option<Vec<u8>> {
     let name = units_of_str(name);
-    with_instance::<Headers, Option<Vec<u8>>>(headers, |entries| {
-        let values: Vec<Units> = entries.iter().filter(|entry| entry.0 == name).map(|entry| entry.1.clone()).collect();
-        (!values.is_empty()).then(|| join_comma(values.into_iter()).into_iter().map(|unit| unit as u8).collect())
+    let (_, value) = combined_headers(headers)?.into_iter().find(|entry| entry.0 == name)?;
+    Some(value.into_iter().map(|unit| unit as u8).collect())
+}
+
+/// As entradas como o `HTTPHeaderMap` do `FetchHeaders` as guarda: um par por nome, na ordem em que o nome apareceu,
+/// com os valores combinados por `, ` (o `size()` e o `get()` que o `Bun.deepEquals` compara).
+pub(crate) fn combined_headers(headers: JSValue) -> Option<Vec<(Units, Units)>> {
+    with_instance::<Headers, Vec<(Units, Units)>>(headers, |entries| {
+        let mut names: Vec<Units> = Vec::new();
+        for entry in entries.iter() {
+            if !names.contains(&entry.0) {
+                names.push(entry.0.clone());
+            }
+        }
+        names
+            .into_iter()
+            .map(|name| {
+                let value = join_comma(entries.iter().filter(|entry| entry.0 == name).map(|entry| entry.1.clone()));
+                (name, value)
+            })
+            .collect()
     })
-    .flatten()
 }
 
 /// Acrescenta `name: value` a `headers` se o nome ainda não existe (o `Content-Type` implícito do corpo).

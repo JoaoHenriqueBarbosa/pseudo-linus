@@ -1,0 +1,28 @@
+true setTimeout,clearTimeout,setInterval,setImmediate,clearInterval,clearImmediate,promises,active,unenroll,enroll
+true true true
+setTimeout,setImmediate,setInterval,scheduler wait,yield true
+setTimeout 0 0 1 2
+function function true true
+active Error | NotImplementedError | ERR_NOT_IMPLEMENTED | 'timers.active' is not yet implemented in Bun. true code,name
+enroll Error | NotImplementedError | ERR_NOT_IMPLEMENTED | 'timers.enroll' is not yet implemented in Bun. true code,name
+unenroll Error | NotImplementedError | ERR_NOT_IMPLEMENTED | 'timers.unenroll' is not yet implemented in Bun. true code,name
+enrolled fired
+imm,yield undefined,t1,wait undefined,t5
+undefined 7 undefined
+setTimeout TypeError | TypeError | ERR_INVALID_ARG_TYPE | The "delay" argument must be of type number. Received type string ('x')
+setTimeout TypeError | TypeError | ERR_INVALID_ARG_TYPE | The "options" argument must be of type object. Received null
+setTimeout TypeError | TypeError | ERR_INVALID_ARG_TYPE | The "options.ref" property must be of type boolean. Received type number (1)
+setTimeout TypeError | TypeError | ERR_INVALID_ARG_TYPE | The "options.signal" property must be of type AbortSignal. Received an instance of Object
+setTimeout TypeError | TypeError | ERR_INVALID_ARG_TYPE | The "options" argument must be of type object. Received type number (5)
+setImmediate TypeError | TypeError | ERR_INVALID_ARG_TYPE | The "options.ref" property must be of type boolean. Received type string ('no')
+aborted Error | AbortError | ABORT_ERR | The operation was aborted why 
+abort later Error | AbortError | ABORT_ERR | The operation was aborted AbortError
+function function function true
+iter tick 1
+iter tick 2
+iter tick 3
+next
+interval TypeError | TypeError | ERR_INVALID_ARG_TYPE | The "delay" argument must be of type number. Received type string ('x')
+{"done":false,"value":"a"}
+interval abort Error | AbortError | ABORT_ERR | The operation was aborted
+5

@@ -189,7 +189,7 @@ fn get_method(global_object: &JSGlobalObject, handler: &JSObject, name: &str) ->
 }
 
 /// `slot.getValue(globalObject, propertyName)`: o valor, ou o resultado do getter se o slot é de accessor.
-fn slot_value(global_object: &JSGlobalObject, slot: &PropertySlot, property_name: &PropertyName) -> Result<JSValue, Thrown> {
+pub(crate) fn slot_value(global_object: &JSGlobalObject, slot: &PropertySlot, property_name: &PropertyName) -> Result<JSValue, Thrown> {
     if slot.is_accessor() {
         let value = slot.getter_setter().call_getter(slot.this_value())?;
         if global_object.vm().exception().is_some() {

@@ -14,7 +14,8 @@ use crate::runtime::js_module_loader::rust_string;
 use crate::runtime::js_object::JSObjectRef;
 use crate::runtime::js_value::JSValue;
 use crate::runtime::native_function::NativeFunction;
-use crate::runtime::node_error::{throw_coded_error, throw_coded_range_error, throw_coded_type_error};
+use crate::runtime::error_type::ErrorType;
+use crate::runtime::node_error::{throw_coded, throw_coded_error};
 use crate::runtime::object_constructor::construct_empty_object;
 use crate::runtime::timers::native_function;
 use crate::runtime::util_inspect::inspect_with_options;
@@ -27,11 +28,13 @@ fn throw_node_error_body(global_object: &JSGlobalObject, call: &HostCall) -> Hos
     let kind = rust_string(&call.argument(0).to_wtf_string());
     let code = rust_string(&call.argument(1).to_wtf_string());
     let message = rust_string(&call.argument(2).to_wtf_string());
-    Err(match kind.as_str() {
-        "TypeError" => throw_coded_type_error(global_object, &message, &code),
-        "RangeError" => throw_coded_range_error(global_object, &message, &code),
-        _ => throw_coded_error(global_object, &message, &code),
-    })
+    let kind = match kind.as_str() {
+        "TypeError" => ErrorType::TypeError,
+        "RangeError" => ErrorType::RangeError,
+        "URIError" => ErrorType::URIError,
+        _ => ErrorType::Error,
+    };
+    Err(throw_coded(global_object, kind, &message, Some(&code)))
 }
 host_function!(throw_node_error, throw_node_error_body);
 
@@ -89,4 +92,10 @@ pub(crate) fn module_host(global_object: &JSGlobalObject, extra: &[(&str, u32, N
     host.put_direct(vm, &key_of(vm, "internal"), internal(global_object)?, 0);
     put_functions(global_object, &host, extra);
     Ok(host)
+}
+
+/// Instala o módulo `node:<name>` escrito em JavaScript que só precisa do `host` básico com o `internal`.
+pub(crate) fn install_js_module(global_object: &JSGlobalObject, source: &str, name: &str) -> HostResult {
+    let host = module_host(global_object, &[])?;
+    Ok(run_factory(global_object, source, name, &host))
 }

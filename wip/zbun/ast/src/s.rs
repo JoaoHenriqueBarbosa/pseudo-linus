@@ -1,0 +1,347 @@
+//! Statement node payloads (`S.*`).
+//!
+//! All slice fields in this module are arena-owned by the parser's
+//! `Store`; they are represented as
+//! `StoreSlice<T>` / `StoreStr` (faixas do `Store`: see
+//! `crate::StoreSlice` doc). Todos os tipos derivam `Clone`, para o `clone_in`.
+
+use crate::g as G;
+use crate::store::Store;
+use crate::{
+    Case, Catch, ClauseItem, EnumValue, ExprNodeIndex, Finally, LocRef, Ref, StmtData,
+    StmtNodeIndex, StmtNodeList, StmtOrExpr,
+};
+use crate::{StoreSlice, StoreStr};
+
+#[derive(Clone, Copy)]
+pub struct Block {
+    pub stmts: StmtNodeList,
+    pub close_brace_loc: crate::Loc, // = crate::Loc::EMPTY
+}
+
+impl Default for Block {
+    fn default() -> Self {
+        Self {
+            stmts: StmtNodeList::EMPTY,
+            close_brace_loc: crate::Loc::EMPTY,
+        }
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct SExpr {
+    pub value: ExprNodeIndex,
+
+    /// This is set to true for automatically-generated expressions that should
+    /// not affect tree shaking. For example, calling a function from the runtime
+    /// that doesn't have externally-visible side effects.
+    pub does_not_affect_tree_shaking: bool, // = false
+}
+
+#[derive(Clone)]
+pub struct Comment {
+    pub text: StoreStr, // arena-owned
+}
+
+#[derive(Clone)]
+pub struct Directive {
+    pub value: StoreStr, // arena-owned
+}
+
+#[derive(Clone, Default)]
+pub struct ExportClause {
+    pub items: StoreSlice<ClauseItem>, // arena-owned
+    pub is_single_line: bool,
+}
+
+#[derive(Clone, Copy, Default)]
+pub struct Empty {}
+
+#[derive(Clone)]
+pub struct ExportStar {
+    pub namespace_ref: Ref,
+    pub alias: Option<G::ExportStarAlias>, // = None
+    pub import_record_index: u32,
+}
+
+/// This is an "export = value;" statement in TypeScript
+#[derive(Clone)]
+pub struct ExportEquals {
+    pub value: ExprNodeIndex,
+}
+
+#[derive(Clone)]
+pub struct Label {
+    pub name: LocRef,
+    pub stmt: StmtNodeIndex,
+}
+
+/// This is a stand-in for a TypeScript type declaration
+#[derive(Clone, Copy, Default)]
+pub struct TypeScript {}
+
+#[derive(Clone, Copy, Default)]
+pub struct Debugger {}
+
+#[derive(Clone)]
+pub struct ExportFrom {
+    pub items: StoreSlice<ClauseItem>, // arena-owned
+    pub namespace_ref: Ref,
+    pub import_record_index: u32,
+    pub is_single_line: bool,
+}
+
+#[derive(Clone)]
+pub struct ExportDefault {
+    pub default_name: LocRef, // value may be a SFunction or SClass
+    pub value: StmtOrExpr,
+}
+
+impl ExportDefault {
+    pub fn can_be_moved(&self, store: &Store) -> bool {
+        match &self.value {
+            StmtOrExpr::Expr(e) => e.can_be_moved(store),
+            StmtOrExpr::Stmt(s) => match s.data {
+                StmtData::SClass(class) => store[class].class.can_be_moved(store),
+                StmtData::SFunction(_) => true,
+                _ => false,
+            },
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Enum {
+    pub name: LocRef,
+    pub arg: Ref,
+    pub values: StoreSlice<EnumValue>, // arena-owned
+    pub is_export: bool,
+}
+
+#[derive(Clone)]
+pub struct Namespace {
+    pub name: LocRef,
+    pub arg: Ref,
+    pub stmts: StmtNodeList,
+    pub is_export: bool,
+}
+
+#[derive(Clone)]
+pub struct Function {
+    pub func: G::Fn,
+}
+
+#[derive(Clone, Default)]
+pub struct Class {
+    pub class: G::Class,
+    pub is_export: bool, // = false
+}
+
+#[derive(Clone)]
+pub struct If {
+    pub test: ExprNodeIndex,
+    pub yes: StmtNodeIndex,
+    pub no: Option<StmtNodeIndex>,
+}
+
+#[derive(Clone)]
+pub struct For {
+    /// May be a SConst, SLet, SVar, or SExpr
+    pub init: Option<StmtNodeIndex>, // = None
+    pub test: Option<ExprNodeIndex>,   // = None
+    pub update: Option<ExprNodeIndex>, // = None
+    pub body: StmtNodeIndex,
+}
+
+#[derive(Clone)]
+pub struct ForIn {
+    /// May be a SConst, SLet, SVar, or SExpr
+    pub init: StmtNodeIndex,
+    pub value: ExprNodeIndex,
+    pub body: StmtNodeIndex,
+}
+
+#[derive(Clone)]
+pub struct ForOf {
+    pub is_await: bool, // = false
+    /// May be a SConst, SLet, SVar, or SExpr
+    pub init: StmtNodeIndex,
+    pub value: ExprNodeIndex,
+    pub body: StmtNodeIndex,
+}
+
+#[derive(Clone)]
+pub struct DoWhile {
+    pub body: StmtNodeIndex,
+    pub test: ExprNodeIndex,
+}
+
+#[derive(Clone)]
+pub struct While {
+    pub test: ExprNodeIndex,
+    pub body: StmtNodeIndex,
+}
+
+#[derive(Clone)]
+pub struct With {
+    pub value: ExprNodeIndex,
+    pub body: StmtNodeIndex,
+    pub body_loc: crate::Loc, // = crate::Loc::EMPTY
+}
+
+#[derive(Clone)]
+pub struct Try {
+    pub body_loc: crate::Loc,
+    pub body: StmtNodeList,
+
+    pub catch: Option<Catch>,     // = None
+    pub finally: Option<Finally>, // = None
+}
+
+#[derive(Clone)]
+pub struct Switch {
+    pub test: ExprNodeIndex,
+    pub body_loc: crate::Loc,
+    pub cases: StoreSlice<Case>, // arena-owned
+}
+
+/// This object represents all of these types of import statements:
+///
+///    import 'path'
+///    import {item1, item2} from 'path'
+///    import * as ns from 'path'
+///    import defaultItem, {item1, item2} from 'path'
+///    import defaultItem, * as ns from 'path'
+///    import defer * as ns from 'path'
+///
+/// Many parts are optional and can be combined in different ways. The only
+/// restriction is that you cannot have both a clause and a star namespace.
+#[derive(Clone)]
+pub struct Import {
+    /// If this is a star import: This is a Ref for the namespace symbol. The Loc
+    /// for the symbol is StarLoc.
+    ///
+    /// Otherwise: This is an auto-generated Ref for the namespace representing
+    /// the imported file. In this case StarLoc is nil. The NamespaceRef is used
+    /// when converting this module to a CommonJS module.
+    pub namespace_ref: Ref,
+    pub default_name: Option<LocRef>,  // = None
+    pub items: StoreSlice<ClauseItem>, // arena-owned; = &[]
+    pub star_name_loc: crate::Loc,     // = Loc::EMPTY
+    pub import_record_index: u32,
+    pub is_single_line: bool, // = false
+    /// "import defer * as ns from 'path'": the TC39 Deferred Module Evaluation
+    /// proposal. Only valid with a namespace import (`star_name_loc` is set,
+    /// `default_name`/`items` are empty).
+    pub phase_defer: bool, // = false
+}
+
+impl Default for Import {
+    fn default() -> Self {
+        Self {
+            namespace_ref: Ref::NONE,
+            default_name: None,
+            items: StoreSlice::EMPTY,
+            star_name_loc: crate::Loc::EMPTY,
+            import_record_index: u32::MAX,
+            is_single_line: false,
+            phase_defer: false,
+        }
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct Return {
+    pub value: Option<ExprNodeIndex>, // = None
+}
+
+#[derive(Clone)]
+pub struct Throw {
+    pub value: ExprNodeIndex,
+}
+
+#[derive(Clone)]
+pub struct Local {
+    pub kind: Kind,         // = Kind::KVar
+    pub decls: G::DeclList, // = .{}
+    pub is_export: bool,    // = false
+    pub origin: LocalOrigin,
+}
+
+impl Default for Local {
+    fn default() -> Self {
+        Self {
+            kind: Kind::default(),
+            decls: G::DeclList::EMPTY,
+            is_export: false,
+            origin: LocalOrigin::Normal,
+        }
+    }
+}
+
+impl Local {
+    pub fn can_merge_with(&self, other: &Local) -> bool {
+        // Don't merge "using" / "await using" declarations. Merging them is
+        // spec-compliant but matches esbuild's behavior of keeping them
+        // separate, and avoids any downstream pass assuming one decl per
+        // `using` statement.
+        if self.kind.is_using() {
+            return false;
+        }
+        self.kind == other.kind
+            && self.is_export == other.is_export
+            && self.origin.is_commonjs_export() == other.origin.is_commonjs_export()
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
+pub enum LocalOrigin {
+    #[default]
+    Normal,
+    /// From TS `import x = ...`; dropped if unused (matches tsc).
+    TsImportEquals,
+    /// From rewritten `exports.x = ...`.
+    CommonJsExport,
+}
+
+impl LocalOrigin {
+    #[inline]
+    pub fn is_ts_import_equals(self) -> bool {
+        matches!(self, Self::TsImportEquals)
+    }
+    #[inline]
+    pub fn is_commonjs_export(self) -> bool {
+        matches!(self, Self::CommonJsExport)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Default, strum::IntoStaticStr)]
+pub enum Kind {
+    #[default]
+    #[strum(serialize = "k_var")]
+    KVar,
+    #[strum(serialize = "k_let")]
+    KLet,
+    #[strum(serialize = "k_const")]
+    KConst,
+    #[strum(serialize = "k_using")]
+    KUsing,
+    #[strum(serialize = "k_await_using")]
+    KAwaitUsing,
+}
+
+impl Kind {
+    pub fn is_using(self) -> bool {
+        matches!(self, Kind::KUsing | Kind::KAwaitUsing)
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct Break {
+    pub label: Option<LocRef>, // = None
+}
+
+#[derive(Clone, Default)]
+pub struct Continue {
+    pub label: Option<LocRef>, // = None
+}

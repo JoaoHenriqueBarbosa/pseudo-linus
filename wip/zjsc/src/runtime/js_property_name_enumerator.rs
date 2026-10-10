@@ -255,7 +255,7 @@ fn get_enumerable_property_names(
     base: &ObjectRef,
     property_names: &mut PropertyNameArrayBuilder<'_>,
 ) -> Result<(), Thrown> {
-    let own_property_names = |object: &JSObject, names: &mut PropertyNameArrayBuilder<'_>| {
+    get_property_names_with(global_object, base, property_names, |object, names| {
         // This ensures Proxy's [[GetOwnProperty]] trap is invoked only once per property, by OpHasEnumerableProperty.
         let mode = if object.type_() == JSType::ProxyObjectType {
             DontEnumPropertiesMode::Include
@@ -263,8 +263,18 @@ fn get_enumerable_property_names(
             DontEnumPropertiesMode::Exclude
         };
         object_get_own_property_names(global_object, object, names, mode)
-    };
+    })
+}
 
+/// A travessia de `JSObject::getPropertyNames`: os nomes próprios de `base` e de cada protótipo, cada objeto pelo
+/// `own_property_names` dado (o `getEnumerablePropertyNames` muda o modo para o `Proxy`; o `getPropertyNames` comum
+/// usa o mesmo modo em todos).
+pub(crate) fn get_property_names_with(
+    global_object: &JSGlobalObject,
+    base: &ObjectRef,
+    property_names: &mut PropertyNameArrayBuilder<'_>,
+    own_property_names: impl Fn(&JSObject, &mut PropertyNameArrayBuilder<'_>) -> Result<(), Thrown>,
+) -> Result<(), Thrown> {
     own_property_names(base, property_names)?;
 
     let mut object = base.clone();

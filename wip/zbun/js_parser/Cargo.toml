@@ -1,0 +1,20 @@
+[package]
+name = "bun_js_parser"
+version = "1.4.2"
+edition.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+bstr.workspace = true
+bun_alloc = { path = "../bun_alloc" }
+bun_ast = { path = "../ast" }
+bun_collections = { path = "../bun_collections" }
+bun_core = { path = "../bun_core" }
+bytemuck.workspace = true
+strum.workspace = true
+
+[lints]
+workspace = true

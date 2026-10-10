@@ -5,20 +5,181 @@
 
 use core::fmt;
 
+/// O `#[derive(bun_core::EnumTag)]` com `#[enum_tag(existing = Tag)]` do upstream: declara o enum de dados e o
+/// `tag()` que devolve a variante de mesmo nome no enum de tags já existente. O padrão `Variante { .. }` casa tanto
+/// as variantes com carga quanto as sem.
+macro_rules! enum_tag {
+    (
+        $(#[$meta:meta])*
+        pub enum $name:ident: $tag:ident {
+            $($(#[$vmeta:meta])* $variant:ident $(($payload:ty))?),* $(,)?
+        }
+    ) => {
+        $(#[$meta])*
+        pub enum $name {
+            $($(#[$vmeta])* $variant $(($payload))?,)*
+        }
+
+        impl $name {
+            #[inline]
+            pub fn tag(&self) -> $tag {
+                match self {
+                    $($name::$variant { .. } => $tag::$variant,)*
+                }
+            }
+        }
+    };
+}
+
+/// Os acessores de campo do upstream (`data.e_string()`, `data.s_function()`): devolvem o índice (`Copy`). As
+/// versões `_mut` recebem o `Store`, que é quem tem o nó.
+macro_rules! data_accessors {
+    ($data:ident; $($get:ident $(/ $get_mut:ident)? => $variant:ident: $ty:ty),* $(,)?) => {
+        impl $data {
+            $(
+                #[inline]
+                pub fn $get(&self) -> Option<$crate::StoreRef<$ty>> {
+                    if let $data::$variant(v) = *self { Some(v) } else { None }
+                }
+                $(
+                    #[inline]
+                    pub fn $get_mut<'s>(&self, store: &'s mut $crate::store::Store) -> Option<&'s mut $ty> {
+                        self.$get().map(|v| &mut store[v])
+                    }
+                )?
+            )*
+        }
+    };
+}
+
+pub mod b;
 pub mod base;
+pub mod binding;
+pub mod e;
+pub mod expr;
+pub mod fold_string_addition;
 pub mod g;
+pub mod ast_result;
+pub mod char_freq;
+pub mod runtime;
+pub use ast_result::{
+    Ast, CommonJSExportValue, CommonJSNamedExport, CommonJSNamedExports, ConstValuesMap, NamedExports, NamedImports,
+    TopLevelSymbolToParts, TsEnumsMap,
+};
+pub use char_freq::CharFreq;
+pub use nodes::{NameMinifier, SlotCounts};
+pub mod import_record;
+pub mod lexer_log;
+pub mod lexer_tables;
+pub mod loader;
+pub mod logger;
 pub mod new_store;
 pub mod nodes;
 pub mod op;
+pub mod s;
+pub mod scope;
+pub mod stmt;
+pub mod store;
 pub mod symbol;
 pub mod target;
+pub mod transpiler_cache;
+pub mod ts;
+pub mod use_directive;
 
+pub use b as B;
 pub use base::{Index, IndexInt};
+pub use binding::Binding;
+pub use e as E;
+pub use e::CallUnwrap as CanBeUnwrapped;
+pub use expr::{Data as ExprData, Expr, PrimitiveType as KnownPrimitive, Tag as ExprTag};
 pub use g as G;
+pub use g::NamespaceAlias;
+pub use import_record::{Flags as ImportRecordFlags, ImportRecord, Tag as ImportRecordTag};
+pub use lexer_log::LexerLog;
+pub use loader::{Loader, LoaderHashTable, SideEffects};
+pub use logger::{
+    AddErrorOptions, Data, IntoText, Kind, Level, Location, Log, Msg, Path, Source, alloc_print, range_data,
+};
 pub use new_store::{NodeStore, Stored};
-pub use nodes::{AssignTarget, ImportItemStatus, StoreRef, StoreSlice, StoreStr};
+pub use nodes::{
+    ArrayBinding, AssignTarget, BindingNodeIndex, Case, Catch, ClauseItem, EnumValue, ExprNodeIndex, ExprNodeList,
+    Finally, ImportItemStatus, LocRef, OptionalChain, Span, StmtNodeIndex, StmtNodeList, StmtOrExpr, StoreRef,
+    StoreSlice, StoreStr, StrictModeKind,
+};
+pub use scope::Scope;
+
+/// `Part.{SymbolUseMap, SymbolPropertyUseMap, List}`: módulo para `crate::part::{SymbolUseMap, List}` resolver.
+pub mod part {
+    pub use crate::nodes::{
+        Part, PartList as List, PartSymbolPropertyUseMap as SymbolPropertyUseMap, PartSymbolUseMap as SymbolUseMap,
+    };
+}
+pub use nodes::{
+    DeclaredSymbol, DeclaredSymbolList, Dependency, ExportsKind, InlinedEnumValue, InlinedEnumValueDecoded,
+    NamedExport, NamedImport, Part, PartTag, PropertyUse, TlaCheck,
+};
+pub use ts::{TSNamespaceMember, TSNamespaceMemberMap, TSNamespaceScope};
+pub use transpiler_cache::RuntimeTranspilerCache;
+pub use flags as Flags;
+pub use use_directive::UseDirective;
+
+/// In range for every position in a source that passed [`Source::check_parseable_len`].
+#[inline]
+pub fn usize2loc(loc: usize) -> Loc {
+    Loc { start: i32::try_from(loc).expect("int cast") }
+}
+pub use op as Op;
+pub use op::Code as OpCode;
+pub use s as S;
+pub use s::Kind as LocalKind;
+pub use stmt::{Data as StmtData, Stmt, Tag as StmtTag};
+pub use store::Store;
 pub use symbol::Symbol;
 pub use target::Target;
+
+/// `flags`: bitset enums on AST nodes (`G.rs`/`B.rs` import `crate::flags`).
+pub mod flags {
+    use enumset::{EnumSet, EnumSetType};
+
+    #[derive(EnumSetType, Debug)]
+    pub enum JSXElement {
+        IsKeyAfterSpread,
+    }
+    pub type JSXElementBitset = EnumSet<JSXElement>;
+
+    #[derive(EnumSetType, Debug)]
+    pub enum Property {
+        IsComputed,
+        IsMethod,
+        IsStatic,
+        WasShorthand,
+        IsSpread,
+    }
+    pub type PropertySet = EnumSet<Property>;
+    pub const PROPERTY_NONE: PropertySet = EnumSet::empty();
+
+    #[derive(EnumSetType, Debug)]
+    pub enum Function {
+        IsAsync,
+        IsGenerator,
+        HasRestArg,
+        HasIfScope,
+
+        IsForwardDeclaration,
+
+        /// This is true if the function is a method
+        IsUniqueFormalParameters,
+
+        /// Only applicable to function statements.
+        IsExport,
+
+        /// A `// eslint-disable… react-hooks/…` comment was scanned at or before
+        /// this function's body close. The React Compiler skips such functions.
+        HasReactHooksSuppression,
+    }
+    pub type FunctionSet = EnumSet<Function>;
+    pub const FUNCTION_NONE: FunctionSet = EnumSet::empty();
+}
 
 // ───────────────────────────────────────────────────────────────────────────
 // Loc
@@ -106,6 +267,109 @@ impl Range {
     pub fn end_i(self) -> usize {
         // Saturates negatives to 0.
         (self.loc.start + self.len).max(0) as usize
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, enum_map::Enum, strum::IntoStaticStr)]
+pub enum ImportKind {
+    /// An entry point provided to `bun run` or `bun`
+    #[strum(serialize = "entry_point_run")]
+    EntryPointRun = 0,
+    /// An entry point provided to `bun build` or `Bun.build`
+    #[strum(serialize = "entry_point_build")]
+    EntryPointBuild = 1,
+    /// An ES6 import or re-export statement
+    #[default]
+    #[strum(serialize = "stmt")]
+    Stmt = 2,
+    /// A call to "require()"
+    #[strum(serialize = "require")]
+    Require = 3,
+    /// An "import()" expression with a string argument
+    #[strum(serialize = "dynamic")]
+    Dynamic = 4,
+    /// A call to "require.resolve()"
+    #[strum(serialize = "require_resolve")]
+    RequireResolve = 5,
+    /// A CSS "@import" rule
+    #[strum(serialize = "at")]
+    At = 6,
+    /// A CSS "@import" rule with import conditions
+    #[strum(serialize = "at_conditional")]
+    AtConditional = 7,
+    /// A CSS "url(...)" token
+    #[strum(serialize = "url")]
+    Url = 8,
+    /// A CSS "composes" property
+    #[strum(serialize = "composes")]
+    Composes = 9,
+    #[strum(serialize = "html_manifest")]
+    HtmlManifest = 10,
+    #[strum(serialize = "internal")]
+    Internal = 11,
+}
+
+impl ImportKind {
+    /// With code splitting, whether an edge of this kind puts its target in a
+    /// chunk of its own that is loaded when the expression runs.
+    #[inline]
+    pub fn can_be_lazy_chunk(self, target_is_bun: bool) -> bool {
+        match self {
+            ImportKind::Dynamic => true,
+            ImportKind::Require => target_is_bun,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    pub fn label(self) -> &'static [u8] {
+        match self {
+            ImportKind::EntryPointRun => b"entry-point-run",
+            ImportKind::EntryPointBuild => b"entry-point-build",
+            ImportKind::Stmt => b"import-statement",
+            ImportKind::Require => b"require-call",
+            ImportKind::Dynamic => b"dynamic-import",
+            ImportKind::RequireResolve => b"require-resolve",
+            ImportKind::At => b"import-rule",
+            ImportKind::AtConditional => b"",
+            ImportKind::Url => b"url-token",
+            ImportKind::Composes => b"composes",
+            ImportKind::Internal => b"internal",
+            ImportKind::HtmlManifest => b"html_manifest",
+        }
+    }
+
+    #[inline]
+    pub fn error_label(self) -> &'static [u8] {
+        match self {
+            ImportKind::EntryPointRun => b"entry point (run)",
+            ImportKind::EntryPointBuild => b"entry point (build)",
+            ImportKind::Stmt => b"import",
+            ImportKind::Require => b"require()",
+            ImportKind::Dynamic => b"import()",
+            ImportKind::RequireResolve => b"require.resolve()",
+            ImportKind::At => b"@import",
+            ImportKind::AtConditional => b"",
+            ImportKind::Url => b"url()",
+            ImportKind::Internal => b"<bun internal>",
+            ImportKind::Composes => b"composes",
+            ImportKind::HtmlManifest => b"HTML import",
+        }
+    }
+
+    #[inline]
+    pub fn is_common_js(self) -> bool {
+        matches!(self, Self::Require | Self::RequireResolve)
+    }
+
+    #[inline]
+    pub fn is_entry_point(self) -> bool {
+        matches!(self, Self::EntryPointRun | Self::EntryPointBuild)
+    }
+
+    pub fn is_from_css(self) -> bool {
+        self == Self::AtConditional || self == Self::At || self == Self::Url || self == Self::Composes
     }
 }
 
@@ -344,6 +608,12 @@ impl PartialEq for Ref {
     }
 }
 impl Eq for Ref {}
+/// O `Ref` é a própria chave guardada nos `ArrayHashMap` por símbolo.
+impl bun_collections::OwnKey<Ref> for Ref {
+    fn own(key: &Ref) -> Self {
+        *key
+    }
+}
 impl core::hash::Hash for Ref {
     #[inline]
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {

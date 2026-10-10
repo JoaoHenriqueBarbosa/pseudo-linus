@@ -20,7 +20,46 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
 - Chamada a biblioteca C (mimalloc, simdutf, highway) vira Rust puro com o mesmo resultado, num trecho comentado.
 - A fidelidade é medida contra o `bun build --no-bundle` do bun 1.4.2 do oráculo, byte a byte.
 - Mudança sistemática nos arquivos copiados: os travessões dos comentários do upstream viram dois-pontos ou hífen
-  (regra do repositório), por ferramenta, na hora da cópia. Nenhum outro texto muda.
+  (regra do repositório), por ferramenta, na hora da cópia.
+- Mudança sistemática nos arquivos de payload copiados (`s.rs`): toda struct ganha `#[derive(Clone)]` (ou `Clone` entra
+  no `derive` que já existe), por ferramenta (`awk`), porque o `clone_in` do `Store` pede `T: Clone`. Nenhum outro
+  texto muda.
+
+## Próximos passos (parser e printer)
+
+Medido no upstream: o `js_parser` tem 48,3 mil linhas (`p.rs` com 10,3 mil, `parse/` com 11 mil, `visit/` com 8,3
+mil, `lower/` com 3,4 mil) e o `js_printer` 9,8 mil (`lib.rs` com 8,3 mil, `renamer.rs` com 1,5 mil). O `P` de
+`p.rs` tem 25 trechos `unsafe`; `parse/` e `visit/` quase nenhum. A primeira AST de `const x: number = 1` passa por
+`Parser::init` (`parse/parse_entry.rs`), `parse_stmts_up_to`, a visita (`visit_stmts_and_prepend_temp_refs`) e
+`to_ast`, o que pede quase todo o `P`. Ordem:
+
+1. No `bun_ast`, o que o `P` usa e ainda falta: `import_record.rs` (o `Path` do `bun_paths` vira o subconjunto
+   que o transpilador lê), `known_global.rs`, `char_freq.rs`, `runtime.rs`, `ast_result.rs`, `part`, `flags`,
+   `DeclaredSymbol`, `ImportKind`, `fold_string_addition.rs`.
+2. `parser.rs`, `p.rs` e `parse/` por cópia, com o `P` dono do `Store` e os acessos `p.store[r]` no lugar do
+   `Deref` do `StoreRef`; o `log` vem de `p.lexer.log()`.
+3. `visit/` e `fold.rs`; `lower/` só o que os oito casos pedem (decorators e namespaces).
+4. O teste de cada caso compara a AST do parser com a de `ast/tests/ast_cases.rs`.
+5. `js_printer` e o golden de `bun build --no-bundle` gerado na imagem do oráculo.
+
+Estado do passo 1: feito (`import_record`, `ImportKind`, `part`, `runtime`, `ast_result`, `char_freq`,
+`SlotCounts`). Medida do passo 2 (cópia de todo o `js_parser` restante, 2026-10-10): a primeira compilação para em
+169 erros de resolução antes de chegar aos tipos. O que falta, por grupo:
+
+- crates e módulos do upstream que o parser importa e o porte ainda não tem: `bun_crash_handler` e
+  `bun_react_compiler` (ficam fora por decisão da coordenação);
+- 48 trechos `unsafe` (25 em `p.rs`, 8 em `lower/`, 5 em `visit/mod.rs`, 4 em `parse_entry.rs`, 3 em `parser.rs`,
+  e os `unsafe impl Send/Sync` de `defines_table.rs`);
+- as assinaturas com tempo de vida (`Ast<'a>`, `import_record::List<'a>`) e o `ToExprWrapper` genérico do porte;
+- o `Macro` (FFI com o `bun_js_parser_jsc`), que fica fora.
+
+Depois da resolução vem a troca sistemática do `Deref` do `StoreRef` por `p.store[r]` em todo `p.rs`, `parse/` e
+`visit/`, que é o grosso do trabalho. Os `Define` guardam `ExprData` com índices: como cada arquivo tem o seu
+`Store`, o valor de um define precisa ser gravado no `Store` do arquivo quando o parser o usa.
+
+Ordem de mapa: a tabela de membros do escopo usa o `hashbrown` 0.15.5 do upstream com o mesmo hash, então a
+iteração (que o renamer e o `p.rs` percorrem) tem a ordem do upstream. O `wyhash` sem o `write_length_prefix` só
+muda o hash dos `HashMap` do porte, cuja ordem não sai na saída; isso se confere de novo quando o renamer entrar.
 
 ## Arena tipada: o lugar do `StoreRef` e do `StoreSlice`
 
@@ -62,20 +101,127 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
   que recebem só o nó passam a receber também `&Store` ou `&mut Store`; essa é a mudança sistemática do porte nos
   arquivos de `ast`, `js_parser` e `js_printer`.
 
+## `Define` com um `Store` por arquivo (passo 2, proposta)
+
+No upstream, `DefineData.value` é um `ExprData` cujos `StoreRef` apontam para nós de vida de processo (tabelas
+`'static`, o `bump` do bundler ou o `Store` de thread onde o `parse_env_json` monta objetos). O `Define` é montado
+uma vez, fica só leitura e é lido por todos os arquivos, inclusive em threads diferentes (os `unsafe impl
+Send/Sync` de `DefineData` e de `defines_table.rs` existem para isso). O `value_for_define` devolve o próprio
+`ExprData`: todos os usos de um define com objeto ou lista apontam para o mesmo nó; o caso `EString` já copia o nó
+(`new_expr(&*str_)`).
+
+No porte não há nó fora de um `Store`, e um índice só vale no `Store` em que nasceu. Duas formas fiéis:
+
+- **(A) Cópia no uso.** O `Define` é dono de um `Store` próprio (o `define_store`), e `DefineData.value` é um
+  `ExprData` com índices nele. O `value_for_define` copia o valor em profundidade do `define_store` para o `Store`
+  do arquivo a cada uso. Custo só onde o define aparece; cada uso ganha um nó próprio, então dois usos do mesmo
+  define com objeto deixam de compartilhar o nó (só observável se o visitante alterar um deles e o outro refletir a
+  alteração, o que no upstream seria um efeito colateral de compartilhamento).
+- **(B) Prefixo pré-carregado.** O `define_store` é montado a partir de `Store::new()` (com o `Prefill` nas
+  posições fixas), e o `Store` de cada arquivo nasce como cópia dele (`define.store.clone()`). Os índices de
+  `DefineData.value` valem em qualquer `Store` de arquivo sem conversão, o `value_for_define` fica igual ao do
+  upstream, e dentro de um arquivo os usos compartilham o nó como lá. É a mesma técnica das constantes
+  pré-carregadas acima. Custo: todo arquivo paga a cópia do `define_store` inteiro, usado ou não; com os defines
+  padrão (literais curtos e a tabela de globais puros, quase toda sem valor) são poucas centenas de bytes, mas um
+  `--define` com objeto JSON grande pesa em cada arquivo.
+
+Nas duas, o `Define` deixa de precisar de `unsafe impl Send/Sync`: um `Store` é `Send + Sync` por construção, e
+`OnceLock` guarda a tabela de globais puros sem o embrulho `SyncDefineData`. Os nomes e a estrutura do upstream
+(`DefineData`, `DotDefine`, `Define`, `Flags`) ficam; muda só a origem dos índices.
+
+Recomendação: (B), por manter o comportamento de compartilhamento e o `value_for_define` do upstream sem código
+novo; (A) só se defines grandes forem um caso de uso real.
+
 ## Estado por arquivo
 
 | Crate | Arquivo do upstream | Estado | O que mudou |
 |---|---|---|---|
 | `bun_ast` | `op.rs` | portado | nada (cópia) |
 | `bun_ast` | `target.rs` | portado | nada (cópia) |
-| `bun_ast` | `nodes.rs` | parcial: `AssignTarget`, `StoreRef`, `StoreSlice`, `StoreStr` | os três `Store*` viram índices (seção "Arena tipada"); o arquivo cresce item a item |
-| `bun_ast` | `new_store.rs` | substituído | a arena de blocos do mimalloc vira `Store` com um `Vec` por tipo (`define_store!`), sem `unsafe` |
-| `bun_ast` | `lib.rs` | parcial: `RefTag`, `Ref`, `Loc`, `Range` | trecho igual ao upstream, menos `range_of_identifier`, que pede o iterador de codepoints e as tabelas de identificador do `bun_core`; o logger e `Source` entram em seguida |
+| `bun_ast` | `nodes.rs` | parcial: `AssignTarget`, `OptionalChain`, `StoreRef`, `StoreSlice`, `StoreStr`, os nomes de índice e lista, `LocRef`, `ClauseItem`, `EnumValue`, `Catch`, `Finally`, `Case`, `ArrayBinding`, `StmtOrExpr` | os três `Store*` viram índices (seção "Arena tipada"); `ExprNodeList` é `StoreSlice<Expr>` |
+| `bun_ast` | `new_store.rs` | substituído | a arena de blocos do mimalloc vira `Store` com um `Vec` por tipo (`define_store!`), sem `unsafe`; ganha um `Vec<u16>` para as strings UTF-16 e `append` (o `VecExt::append` das listas) |
+| `bun_ast` | `store.rs` (novo) | o `Store` concreto | uma linha por tipo de nó, de payload (`S::*`, `B::*`, o `expr::Data` do `SLazyExport`) e de lista |
+| `bun_ast` | `lib.rs` | parcial: `RefTag`, `Ref`, `Loc`, `Range`, `flags`, os reexports | trecho igual ao upstream, menos `range_of_identifier`, que pede as tabelas de identificador; o `#[derive(EnumTag)]` do `bun_core` vira a macro local `enum_tag!`, e os acessores `e_*`/`s_*` saem de `data_accessors!`; o `DebugOnlyDisabler` (guarda do `Store` de thread) não tem papel sem `Store` global |
 | `bun_ast` | `base.rs` | portado | nada (cópia), menos o travessão de um comentário |
 | `bun_ast` | `symbol.rs` | parcial: `Symbol`, `SymbolFlags`, `SlotNamespace`, `Kind`, `Use` | `namespace_alias` é `Option<Box<_>>` no lugar do `AstBox`; o `Map` de duas camadas do bundler (com `unsafe`) fica fora, o transpilador usa a tabela plana |
-| `bun_ast` | `g.rs` | parcial: `NamespaceAlias` | o arquivo cresce item a item |
+| `bun_ast` | `g.rs` | portado | listas viram faixas do `Store`; `can_be_moved` e `init_return_expr` recebem o `Store`; os `deep_clone` entram com o de `expr.rs` |
+| `bun_ast` | `ts.rs` | portado | `TSNamespaceScope.property_accesses` e `TSNamespaceMemberMap` são o `StringArrayHashMap` do porte, sem contexto nem alocador genéricos; o mapa compartilhado entre namespaces irmãos é o mesmo índice no `Store` |
+| `bun_ast` | `scope.rs` | portado, com teste dos membros | os nomes dos membros são `StoreStr`, então as buscas recebem `&Store` e `get_or_put_hashed`/`put` deixam de ser `unsafe` (o nome já é uma faixa do `Store`); `AstBox`/`AstVec` viram `Box`/`Vec`; a tabela é o `hashbrown` 0.15.5 do upstream com o mesmo hash, para a ordem de iteração ser a dele; `recursive_set_strict_mode` recebe o `Store` e o índice; saem os sinônimos de repasse `Members::count` e `Scope::get_member_hash` e o `get_or_put_member_with_hash` (repasse para `members`) |
+| `bun_ast` | `use_directive.rs` | portado (cópia) | nada |
+| `bun_ast` | `import_record.rs` | portado (cópia) | o `bun_paths::fs::Path` vira um `Path` local com `pretty` e `text` como faixas do `Store` e namespace `&'static`; `original_path` é `StoreStr`; `List` é `Vec` |
+| `bun_ast` | `lib.rs` (`ImportKind`, `part`) | portado | nada |
+| `bun_ast` | `runtime.rs` | portado (cópia), com o teste do upstream | sem `Runtime::source_code` (o `runtime.out.js` embutido, só do bundler); saem os repasses `count`, `get_ptr` e `contains` do `ReplaceableExportMap`, que já tem `Deref` para o mapa |
+| `bun_ast` | `ast_result.rs` | portado | sem tempo de vida: listas em `Vec`, mapas no `ArrayHashMap`/`HashMap` do porte; `module_scope` é `Option<StoreRef<Scope>>` (o escopo vive no `Store` que o parser entrega com a `Ast`); `empty_in(arena)` vira `Default`, e `from_parts` recebe o `Vec` |
+| `bun_ast` | `char_freq.rs` | portado (cópia) | nada |
+| `bun_ast` | `nodes.rs` (`SlotCounts`, `NameMinifier`) | portado | as duas funções de nome curto do upstream (o mesmo laço com cabeça e cauda diferentes) viram uma só com a tabela como parâmetro, e perdem o `Result` de alocação |
+| `bun_ast` | `nodes.rs` (`Part`, `DeclaredSymbolList`, `ExportsKind`, `TlaCheck`, `InlinedEnumValue`, `NamedImport`, `NamedExport`, `Dependency`, `PropertyUse`) | portado | `DeclaredSymbolList` troca o `MultiArrayList` por dois `Vec` (as mesmas colunas); `Part.scopes` é `Vec<StoreRef<Scope>>`; o `InlinedEnumValue` codifica o índice da `E::String` no lugar do endereço, com o mesmo NaN-boxing para números; os métodos de capacidade perdem o `Result` de alocação que nunca falha aqui |
+| `bun_ast` | `nodes.rs` (`StrictModeKind`) | portado | nada |
+| `bun_ast` | `e.rs` | portado, menos os nós de JSON | ver "e.rs" abaixo |
+| `bun_ast` | `expr.rs` | parcial: `Expr`, `Query`, `IntoExprData`, `init`, `Tag`, `PrimitiveType`, `Data`, os acessores, `can_be_const_value`, `can_be_moved`, `is_safe_to_string`, `EFlags`, `Equality`, `LooseEql`/`StrictEql` e `Data::eql` (com teste) | `init` recebe o `Store`; `allocate` (via bump) some, há um dono só; `Data` mantém 12 bytes e `Expr` 16; o `EqlParser` dá o `Store` no lugar da arena, e achatar a corda de um `EString` é copiar o nó, achatar e gravar de volta no mesmo índice; `known_primitive` e `to_string_expr_without_side_effects` recebem o `Store` (o texto fixo, como `"null"`, é gravado nele). Pendentes: `deep_clone`, `write_to_hasher`, as outras dobras e o acesso por caminho |
+| `bun_ast` | `fold_string_addition.rs` | portado, com teste | as cordas são índices no `Store` e cada nó é alterado no próprio índice; `concat_parts` copia as partes para o `Store` (`alloc_slice`) no lugar do `ArenaVec` vazado |
+| `bun_core` | `util.rs` (`StackCheck`) | portado, com teste | sem `asm!` nem `pthread_getattr_np`: a posição é o endereço de uma variável local e o fim da pilha é a posição na configuração da thread menos o tamanho dela (`RLIMIT_STACK` de `/proc/self/limits` na principal, ou o tamanho dado em `configure_thread_with_size`); o limiar de 128 KiB é o do upstream |
+| `bun_ast` | `transpiler_cache.rs` | parcial, com teste | sem o `bun_jsc` o despacho é o caso `r#impl == None` do upstream (cache desligado: `get` nunca acerta, `put` guarda a saída quando há `input_hash`); saem `entry` e `r#impl`, e o `get` perde as `parser_options` sem tipo que só o despacho lia |
+| `bun_ast` | `nodes.rs` (`Flags`) | portado | o `pub use crate::flags as Flags` do upstream |
+| `bun_ast` | `s.rs` | portado (cópia) | todos os tipos derivam `Clone` para o `clone_in` (inserido por ferramenta), `ExportDefault::can_be_moved` recebe o `Store` |
+| `bun_ast` | `stmt.rs` | portado | `alloc` recebe o `Store`; `allocate`/`allocate_expr` (bump) somem; `Data` tem 8 bytes e `Stmt` 12 (16 no upstream) |
+| `bun_ast` | `b.rs` | portado, menos `write_to_hasher` | `B` tem 8 bytes e `Binding` 12; os acessores de lista recebem o `Store` |
+| `bun_ast` | `binding.rs` | portado | `ToExprWrapper<C>` guarda um `fn(&mut C, Loc, Ref) -> Expr` no lugar do trampolim com `*mut c_void` e do `BackRef` do bump; o `Store` vem do contexto (`C: AsMut<Store>`) |
 | `bun_ast` | `nodes.rs` (`ImportItemStatus`) | portado | nada |
-| `bun_ast` | `loader.rs` | pendente | pede `bun_core::assert_ffi_discr!` e `bun_collections::StringArrayHashMap` |
+| `bun_ast` | `loader.rs` | portado (cópia) | sem os sinônimos de grafia `is_type_script` e `is_java_script_like` (repasse de uma linha, proibido no repositório); um travessão de comentário trocado |
+| `bun_core` | `assert_ffi_discr!` (de `src/opaque/lib.rs`) | portado | nada (cópia) |
+| `bun_ast` | `lexer_tables.rs` | portado (cópia), com os testes do upstream | `is_identifier_continue` vira reexportação de `is_identifier_part` (era repasse de uma linha); travessões trocados por ferramenta |
+| `bun_core` | `identifier.rs` (`string/identifier.rs`) | portado (cópia) | as tabelas de duas etapas do Unicode e `is_identifier`/`is_identifier_utf16` sobre o `CodepointIterator` do porte; travessões trocados por ferramenta |
+| `bun_core` | `lexer_tables` (de `string/mod.rs`) | portado | as 9 palavras reservadas do modo estrito; o módulo `lexer` vizinho fica fora (só repasses) |
+| `bun_wyhash` | `lib.rs` | portado, com os 8 testes do upstream (vetores do wyhash e códigos do SMHasher) | as 5 leituras desalinhadas com `unsafe` viram `from_le_bytes` sobre a fatia (`read4`/`read8` deixam de existir, o `read_bytes` do módulo cobre os dois); sai o `#![feature(hasher_prefixfree_extras)]` e o `write_length_prefix` vazio do `OneShotHasher`, o que muda só o hash interno dos mapas; travessões trocados por ferramenta |
+| `bun_collections` | `array_hash_map.rs` | parcial: `ArrayHashMap` e `StringArrayHashMap` (alias de `ArrayHashMap<Box<[u8]>, V>`) | entradas em dois `Vec` na ordem de inserção, com a remoção por troca do Zig, e índice no `HashMap` da biblioteca padrão no lugar do `ArrayHashMap` com 25 trechos `unsafe`; a ordem observável é a mesma. Sem contexto nem alocador genéricos, sem o mapa sem caixa do Windows e sem os sinônimos `contains_key` e `put_assume_capacity` |
 | `bun_core` | `comptime_string_map.rs` | portado, com os 8 testes do upstream | sem o `impl HasLength for &crate::String`, que volta com o porte de `bun_core::String` |
+| `bun_core` | `strings` (`string/immutable.rs`, `string/immutable/unicode.rs`, `strings_impl` de `lib.rs`) | parcial: ASCII, igualdade e ordem, surrogates, WTF-8, `CodepointIterator`, UTF-8 para UTF-16 e volta, as buscas do lexer (`index_of*`, `contains`, `has_prefix_with_word_boundary`, `is_all_whitespace`, `is_unicode_space_separator`, `peek_n_codepoints_wtf8`, `lexer_step`), `copy_utf16_into_utf8` | onde o upstream chama o simdutf, roda o laço escalar que o próprio upstream usa quando o simdutf recusa a entrada; para entrada válida os dois dão as mesmas unidades, então o porte usa sempre o laço. As buscas SIMD do highway viram laços escalares com o mesmo resultado; o `copy_nonoverlapping` de `next_codepoint_multibyte` vira `copy_from_slice`. `eql_long` compara fatias no lugar da leitura por palavras com ponteiro. `to_utf8_alloc_with_type` (repasse de uma linha) vira reexportação de `to_utf8_alloc` |
 | `bun_core_macros` | `comptime_string_map.rs` | portado | nada (cópia) |
+| `bun_core` | `fmt.rs` | parcial: `FormatDouble`, `hex_digit_value(_u32)`, `ParseIntError`, `parse_int`, `parse_double` | o `WTF__dtoa` do WebKit vira os dígitos mais curtos do formatador do Rust montados pela regra do Number::toString do ECMAScript, com testes contra o `String(n)` do JavaScript. O `WTF__parseDouble` (fast_float do WebKit, por FFI) vira o reconhecimento do mesmo prefixo (`-` opcional, dígitos com ponto, expoente só com dígito) seguido da conversão do Rust, que arredonda corretamente como o fast_float |
+| `bun_core` | `util.rs`, `result.rs` e `lib.rs` | parcial: `GenericIndex`, `GenericIndexOptional`, `trim`, `impl_tag_error!`, os reexports `parse_int`, `ParseIntError` e `wtf::parse_double` | nada (cópia); `Environment` só com `IS_NATIVE = true` (o porte roda nativo) |
 | `bun_core_macros` | `lib.rs` | parcial: só os dois proc-macros do mapa | `pretty_fmt!` e os derives de contagem de referência entram quando pedidos |
+| `bun_collections` | `bit_set.rs` | parcial: `IntegerBitSet` | nada (cópia do subconjunto que o lexer usa) |
+| `bun_collections` | `array_hash_map.rs` (`StringHashMap`, `StringSet`) | parcial, com teste | `StringHashMap` com chave `Box<[u8]>` (o `Hash` é o de `[u8]`, igual ao do `StringHashMapKey`, e o `hashbrown` é o 0.15.5, então a ordem de iteração é a do upstream) e `entry_ref` no lugar do `raw_entry_mut`; sem alocador genérico nem `put_static_key`. O `AllocError` passa a ser o do `bun_alloc` |
+| `bun_collections` | `zig_hash_map.rs`, `identity_context.rs` | portado (cópia por Bash, travessões trocados por ferramenta), com teste | sai o `get_or_put_context` (repasse) e, do `identity_context`, os `ArrayIdentityContext*` (o `ArrayHashMap` do porte não tem contexto); o corte foi feito com um script Python, não com Edit |
+| `bun_collections` | `vec_ext.rs` | parcial, com teste | só os métodos que fazem algo além de renomear um método do `Vec`; os sinônimos de uma linha (`append`, `slice`, `init_capacity` e afins) saem pela regra de repasse, e os chamadores passam ao nome do `Vec` no passo 3; os de ponteiro cru ficam fora |
+| `bun_collections` | `pool.rs` (`object_pool!`, `ObjectPoolType`, `PoolGuard`) | parcial, com teste | a lista ligada de nós em ponteiro cru vira um `Vec<T>` por thread usado como pilha, com o mesmo `MAX_COUNT`; `INIT` é obrigatório e devolve `Self` (o upstream devolve `Result<Self, bun_core::Error>`; o único `INIT` do parser não falha) |
+| `bun_alloc` | `lib.rs` | parcial: `Arena`, `ArenaVec`, `ArenaVecExt`, `ArenaString`, `arena_format!`, `vec_from_iter_in`, `AllocError`, com teste | o bump do mimalloc vira um `typed_arena` para bytes e outro para `u16`, sem `unsafe`; `ArenaVec` guarda um `Vec` comum e a arena (só tempo de vida e `bump()`); `into_bump_slice` só para `u8`/`u16`, as listas de nós vão ao `Store` por `into_vec` + `store.alloc_slice` |
+| `bun_ast` | `lexer_log.rs` | portado (cópia) | nada |
+| `bun_ast` | `lib.rs` (o `logger`) | parcial: `Kind`, `Level`, `Location`, `Data`, `Msg`, `Log`, `Path`, `Source`, `range_data`, `alloc_print` e as posições de erro | `Msg` sem `metadata`; o `Log` não tem o `LineColumnTracker` (só acelera a conta de linha, o resultado é o mesmo) nem o `tracked_range_data`, que virou a chamada direta de `range_data` (era repasse); `Span` entra em `nodes.rs` |
+| `bun_js_parser` | `lexer.rs` | portado (cópia por Bash, travessões e en dashes trocados por ferramenta), com testes dos oito casos do plano | ver "lexer.rs" abaixo |
+| `bun_options_types` | `jsx.rs`, `bundle_enums.rs` | portado (cópia por Bash, travessões trocados por ferramenta), com testes | nada; o `lib.rs` só declara estes dois e o `schema` |
+| `bun_options_types` | `schema.rs` | parcial: `api::{Target, Loader, JsxRuntime, Jsx}` | só os tipos que `jsx.rs` e `bundle_enums.rs` leem; o resto do esquema é da CLI e do instalador |
+| `bun_core` | `strings` (`split`, `tokenize`) | portado, com teste | o `next` inerente do `SplitIterator` e o do `Iterator` (repasse) viram um só, no `Iterator` |
+| `bun_core` | `fmt` (`fmt_identifier`, `FormatValidIdentifier`) | portado, com teste | o `write_bytes` sem checagem vira `from_utf8` checado (só recebe codepoints de identificador); o `has_needed_gap`, que ninguém lia, sai |
+| `bun_paths` | `lib.rs` (`NODE_MODULES_NEEDLE`, `fs::{PathName, Path}`) | parcial, com testes | só POSIX; `Path` só com `init` e `name`; `dir_with_trailing_slash` (ponteiro cru, o parser não usa) e `into_static` ficam fora |
+| `bun_core` | `feature_flags.rs` | parcial: as quatro flags que o parser e o printer leem | nada |
+| `bun_core` | `output.rs` (`panic`, `error_writer`, `todo_panic!`) | parcial, com teste | `error_writer` é o `stderr` do processo (o upstream lê o fluxo do thread-local da CLI); o `todo_panic!` não marca o contador do relatório de falha |
+
+### `lexer.rs`
+
+- O `log` é `&'a mut Log` com dono único, no lugar do `NonNull<Log>` compartilhado com o parser; o parser chega a ele
+  por `p.lexer.log()`. Os dois acessos `unsafe` ao ponteiro e o `get_unchecked` de `next_codepoint_with` somem.
+- As fatias que viram `StoreStr` (comentários preservados, argumentos de pragma, `sourceMappingURL`, literal ASCII) são
+  faixas do fonte, que ocupa o começo do vetor de bytes do `Store` (`source_str`). Por isso `PragmaArg::scan` e
+  `scan_source_mapping_url_value` recebem `chunk_start`, o deslocamento do pedaço no fonte. O `range` deles segue a
+  conta do upstream, que só serve às mensagens de erro.
+- `to_e_string` e `to_utf8_e_string` recebem o `Store` e gravam nele o texto decodificado.
+- Os três kernels do highway (`index_of_newline_or_non_ascii_or_hash_or_at` e os dois "interesting character")
+  viram laços escalares com a mesma semântica do C++.
+- Sai `oom_from_alloc!(Error)`: sem alocador falível no porte, não há `AllocError` para converter.
+
+### `e.rs`
+
+- Os nós de JSON (`JsonValue`, `JsonTape`, `TapeAlloc`, `ObjectJSON`, `ArrayJSON`, com o `unsafe` deles) ficam fora até o
+  loader de JSON; `expr::Tag` mantém `EObjectJSON` e `EArrayJSON` para os discriminantes não mudarem, e só o `Data`
+  não tem as variantes.
+- `Rope.next` é `Option<StoreRef<Rope>>`, no lugar do `*mut Rope`; `next_ref` (o único `unsafe` do `Rope`) some.
+- `EString` deriva `Copy` (todos os campos são índices e escalares) e `shallow_clone` fica; `Flattened` vira a cópia
+  por valor. Com `is_utf16`, `data` é faixa do vetor UTF-16 do `Store`, e `slice16` lê dele sem `unsafe`.
+- `init`, `init_utf16` e `init_re_encode_utf8` recebem faixas já gravadas no `Store`; `Number::to_string` grava o
+  texto no `Store` (as tabelas de -100 a 100 do upstream só evitavam alocação).
+- Os métodos que mudam nó guardado (`Object::put`, `get_or_put_object`, `Array::push`, `Template::fold`) recebem
+  `(store, this: StoreRef<_>)`; a corda de `fold` é montada numa cópia da `EString` e gravada de volta.
+- `alphabetize_*` e `package_json_sort` usam o `sort_by` estável, que dá a mesma ordem do `index_sort` estável.
+- Pendente: o `Display` de `EString`. `EString::hash` entrou com o `bun_wyhash`, `is_identifier` com as tabelas
+  do lexer e `Import::import_record_loader` com o `loader.rs`; os três recebem o `Store`.

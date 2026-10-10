@@ -60,8 +60,11 @@ pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "path", scheme: Scheme::Both, install: crate::runtime::node_path::install_path_module },
     BuiltinEntry { name: "path/posix", scheme: Scheme::Both, install: install_path_posix },
     BuiltinEntry { name: "path/win32", scheme: Scheme::Both, install: install_path_win32 },
+    BuiltinEntry { name: "querystring", scheme: Scheme::Both, install: crate::api::node_stream::install_querystring_module },
     BuiltinEntry { name: "stream", scheme: Scheme::Both, install: crate::api::node_stream::install_stream_module },
     BuiltinEntry { name: "string_decoder", scheme: Scheme::Both, install: crate::api::node_stream::install_string_decoder_module },
+    BuiltinEntry { name: "timers", scheme: Scheme::Both, install: crate::api::node_stream::install_timers_module },
+    BuiltinEntry { name: "timers/promises", scheme: Scheme::Both, install: crate::api::node_stream::install_timers_promises_module },
     BuiltinEntry { name: "vm", scheme: Scheme::Both, install: crate::api::eval::install_vm_module },
 ];
 
