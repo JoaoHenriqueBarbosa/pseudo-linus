@@ -756,22 +756,22 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         ))
     }
 
-    pub(crate) fn parse_clause_alias(&mut self, _kind: &[u8]) -> Result<&'a [u8], Error> {
+    /// No porte o alias é uma faixa do `Store` (o fonte ocupa o começo do vetor de bytes), e o
+    /// `detach_lifetime` do upstream sai.
+    pub(crate) fn parse_clause_alias(&mut self, _kind: &[u8]) -> Result<js_ast::StoreStr, Error> {
         let p = self;
         let loc = p.lexer.loc();
 
         // The alias may now be a utf-16 (not wtf-16) string (see https://github.com/tc39/ecma262/pull/2154)
         if p.lexer.token == T::TStringLiteral {
-            let estr = p.lexer.to_e_string()?;
+            let estr = p.lexer.to_e_string(&mut p.store)?;
             if estr.is_utf8() {
-                // SAFETY: E::String slices are arena-owned for 'a.
-                return Ok(unsafe { bun_collections::detach_lifetime(estr.slice8()) });
+                return Ok(estr.data);
             } else {
                 // Lone surrogates are replaced with U+FFFD; the surrogate-error
                 // diagnostic path is dropped until the strict variant lands.
-                let alias_utf8 = strings::to_utf8_alloc_with_type(estr.slice16());
-                let leaked: &'a [u8] = p.arena.alloc_slice_copy(&alias_utf8);
-                return Ok(leaked);
+                let alias_utf8 = strings::to_utf8_alloc_with_type(estr.slice16(&p.store));
+                return Ok(p.store.alloc_str(&alias_utf8));
             }
         }
 
@@ -782,7 +782,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let alias = p.lexer.identifier;
         p.check_for_non_bmp_code_point(loc, alias);
-        Ok(alias)
+        Ok(p.lexer.source_str(alias))
     }
 
     pub(crate) fn parse_expr_or_let_stmt(
@@ -1326,11 +1326,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     pub(crate) fn parse_path(&mut self) -> Result<ParsedPath<'a>, Error> {
         let p = self;
-        let path_text = p.lexer.to_utf8_e_string()?;
+        let path_text = p.lexer.to_utf8_e_string(&mut p.store)?;
         let mut path = ParsedPath {
             loc: p.lexer.loc(),
-            // SAFETY: E::String slice8() is arena-owned for 'a.
-            text: unsafe { bun_collections::detach_lifetime(path_text.slice8()) },
+            text: path_text.data,
             is_macro: false,
             import_tag: bun_ast::ImportRecordTag::None,
             loader: None,

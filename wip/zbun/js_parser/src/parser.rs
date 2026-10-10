@@ -1070,7 +1070,8 @@ pub struct ThenCatchChain {
 #[derive(Clone, Copy)]
 pub struct ParsedPath<'a> {
     pub(crate) loc: bun_ast::Loc,
-    pub(crate) text: &'a [u8],
+    /// Faixa do `Store` (no upstream, `&'a [u8]` com o tempo de vida apagado por `detach_lifetime`).
+    pub(crate) text: bun_ast::StoreStr,
     pub(crate) is_macro: bool,
     pub(crate) import_tag: bun_ast::ImportRecordTag,
     pub(crate) loader: Option<bun_ast::Loader>,
