@@ -53,6 +53,13 @@ fn tail_calling_frame_is_not_the_capture_stack_trace_caller() {
 }
 
 #[test]
+fn bound_caller_matches_its_target_frame_once() {
+    let source = "function a() { var o = {}; Error.captureStackTrace(o, a.bind(null)); return o.stack.split('\\n').length; } \
+                  function d() { var o = {}; Error.captureStackTrace(o, d.bind(null).bind(1)); return o.stack; } [a(), d()].join('|')";
+    assert_eq!(run(source), "2|Error");
+}
+
+#[test]
 fn script_ids_start_at_two_in_each_program() {
     for _ in 0..2 {
         let ids = run("Error.prepareStackTrace = (e, cs) => cs.map(c => c.getScriptId()).join(); eval('new Error(\"x\").stack')");
