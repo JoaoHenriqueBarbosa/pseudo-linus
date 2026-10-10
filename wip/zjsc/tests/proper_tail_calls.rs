@@ -113,3 +113,18 @@ fn try_finally_and_construct_are_not_tail_calls_and_throw_range_error() {
          var t; try { new F(1000000); } catch (e) { t = e instanceof RangeError && e.name === 'RangeError'; } t === true"
     ));
 }
+
+// Medido no bun 1.4.2: a bound function em cauda só vira o alvo direto no sítio que viu uma bound function só (o
+// `CallLinkInfo` monomórfico, mesmo alternando duas fixas); o sítio que recebe uma bound function nova a cada chamada
+// cresce a pilha e estoura (antes o porte desembrulhava sempre e a recursão `return f.bind(this)()` comia a memória).
+#[test]
+fn bound_tail_call_unwraps_only_at_a_monomorphic_site() {
+    assert!(is_true(
+        "'use strict'; var a = function (n) { return n ? b(n - 1) : 0; }.bind(null); \
+         var b = function (n) { return n ? a(n - 1) : 0; }.bind(null); a(1000000) === 0"
+    ));
+    assert!(is_true(
+        "'use strict'; var d = 0; function f(n) { d++; if (d > 300000) return 'fundo'; return n ? f.bind(null)(n - 1) : 0; } \
+         var t; try { t = f(1000000); } catch (e) { t = e instanceof RangeError; } t === true"
+    ));
+}
