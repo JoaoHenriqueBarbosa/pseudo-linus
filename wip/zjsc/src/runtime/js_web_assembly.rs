@@ -1019,9 +1019,7 @@ fn read_imports(
     let vm = global_object.vm();
     if import_object.is_undefined() {
         if !info.imports.is_empty() {
-            return Err(Thrown::type_error(
-                "can't make WebAssembly.Instance because there is no imports Object and the WebAssembly.Module requires imports",
-            ));
+            return Err(Thrown::type_error(NO_IMPORTS_OBJECT_MESSAGE));
         }
         return Ok(Vec::new());
     }
@@ -1131,12 +1129,17 @@ fn link_instance(global_object: &JSGlobalObject, info: &Rc<ModuleInformation>, i
 /// `link_instance` dentro da chamada nativa (`new WebAssembly.Instance`, `WebAssembly.instantiate(Module)`): os
 /// erros do link ganham o ` (evaluating '...')` da chamada, como no C++, que os cria com `defaultSourceAppender`
 /// ainda no quadro dela. Só o `instantiate(bytes)` liga depois da compilação assíncrona, sem quadro (medido no bun).
+/// O módulo pede importações e não veio objeto de importações. No JSC é o único erro do link criado sem o appender
+/// de fonte: nunca leva o `(evaluating '...')` (medido no bun 1.4.2).
+const NO_IMPORTS_OBJECT_MESSAGE: &str =
+    "can't make WebAssembly.Instance because there is no imports Object and the WebAssembly.Module requires imports";
+
 fn link_instance_in_call(global_object: &JSGlobalObject, info: &Rc<ModuleInformation>, import_object: JSValue) -> Result<InstanceState, Thrown> {
     link_instance(global_object, info, import_object).map_err(|thrown| {
         let with_source = |message: &str| wtf_to_rust(&append_default_source_to_native_message(global_object, message));
         match thrown {
             Thrown::WebAssembly(kind, message) => Thrown::WebAssembly(kind, with_source(&message)),
-            Thrown::TypeError(message) => Thrown::TypeError(with_source(&message)),
+            Thrown::TypeError(message) if message != NO_IMPORTS_OBJECT_MESSAGE => Thrown::TypeError(with_source(&message)),
             other => other,
         }
     })
@@ -1468,9 +1471,11 @@ fn construct_table_body(global_object: &JSGlobalObject, call: &HostCall) -> Host
         maximum = Some(size);
     }
     let argument = call.argument(1);
+    // Medido no bun 1.4.2: só o argumento ausente vale o padrão; `undefined` explícito numa tabela de funções é recusado
+    // como qualquer valor que não é função wasm (na `externref` ele é o próprio valor de preenchimento).
     let fill = if argument.is_null() {
         null_ref()
-    } else if argument.is_undefined() {
+    } else if call.argument_count() < 2 {
         default_reference(wasm_type)
     } else if element_type == TableElementType::Funcref && exported_target(argument).is_none() {
         return Err(Thrown::type_error("WebAssembly.Table.prototype.constructor expects the second argument to be null or an instance of WebAssembly.Function"));
@@ -1999,5 +2004,28 @@ mod streaming_tests {
              log.push(l.r === i.r, l.r === j, l.rf() === i.rf(), i.rf() === i.r, k.rf() === k.r, l.r.name);",
         );
         assert_eq!(log, r#"[false,false,false,true,true,""]"#);
+    }
+
+    /// Medido no bun 1.4.2: o "sem objeto de importações" não leva `(evaluating ...)`, os outros erros do link na
+    /// chamada levam; o `undefined` explícito numa tabela de funções é recusado, o ausente é o padrão.
+    #[test]
+    fn link_message_suffix_and_explicit_undefined_table_fill() {
+        let log = run(
+            "const imp = new WebAssembly.Module(new Uint8Array([0,97,115,109,1,0,0,0, 1,5,1,0x60,0,1,0x7f, 2,9,1,3,101,110,118,1,102,0,0])); \
+             const T = (f) => { try { f(); return 'ok'; } catch (e) { return e.message; } }; \
+             log.push(T(() => new WebAssembly.Instance(imp)), T(() => new WebAssembly.Instance(imp, {}))); \
+             log.push(T(() => new WebAssembly.Table({ element: 'anyfunc', initial: 2 }, undefined)), \
+               T(() => new WebAssembly.Table({ element: 'anyfunc', initial: 2 })), \
+               String(new WebAssembly.Table({ element: 'externref', initial: 1 }, undefined).get(0)));",
+        );
+        assert_eq!(
+            log,
+            concat!(
+                r#"["can't make WebAssembly.Instance because there is no imports Object and the WebAssembly.Module requires imports","#,
+                r#""import env:f must be an object (evaluating 'new WebAssembly.Instance(imp, {})')","#,
+                r#""WebAssembly.Table.prototype.constructor expects the second argument to be null or an instance of WebAssembly.Function","#,
+                r#""ok","undefined"]"#
+            )
+        );
     }
 }

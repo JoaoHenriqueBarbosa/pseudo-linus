@@ -75,6 +75,7 @@ const PRELUDE =
   'var T=f=>{try{var v=f();return typeof v==="string"?v:D(v)}catch(e){return e.name+": "+e.message}};\n' +
   'var inst=(m,o)=>new WebAssembly.Instance(new WebAssembly.Module(m),o).exports;\n' +
   'var Q=t=>T(()=>{var o=[];for(var k=0;k<t.length;k++)o.push(D(t.get(k)));return t.length+"["+o.join()+"]"});\n' +
+  'var QB=t=>T(()=>{var n=t.length,f=D(t.get(0)),d=0;for(var k=1;k<n;k++)if(D(t.get(k))!==f)d++;return n+"["+f+".."+D(t.get(n-1))+" diff "+d+"]"});\n' +
   'var Z=(r,v)=>D(r)+(Object.is(r,v)?"=":"!");\n' +
   'var W=()=>{var a=inst(PA),b=inst(PB),c=inst(CL,{env:{t:a.t}}),g=inst(GL),e=inst(EX),j=function(){return 7},fi=inst(FI0,{env:{f:a.f}});return{a,b,c,g,e,j,fi}};\n';
 
@@ -166,8 +167,11 @@ for (const n of ["0", "1", "2", "3", "4", "100", "-1", "2**32", "1.5", "'1'", "u
 }
 for (const el of ["'anyfunc'", "'funcref'", "'externref'", "'i32'", "''", "undefined", "'AnyFunc'", "'anyref'", "'eqref'", "1", "null", "'externref '"]) {
   for (const ini of ["0", "1", "2", "'2'", "-1", "65536", "10000000", "10000001", "undefined", "null", "2**32", "1.5"]) {
+    // Tabela grande: o resumo (tamanho, extremos e quantos elementos diferem do primeiro) mede o mesmo que a lista
+    // inteira, que passaria de 50 MB por linha.
+    const show = ini === "65536" || ini === "10000000" ? "QB" : "Q";
     for (const mx of ["undefined", "0", "1", "2", "3", "1e10", "-1", "2**32"]) {
-      add(`T(()=>Q(new WebAssembly.Table({element:${el},initial:${ini},maximum:${mx}})))`);
+      add(`T(()=>${show}(new WebAssembly.Table({element:${el},initial:${ini},maximum:${mx}})))`);
     }
   }
 }
