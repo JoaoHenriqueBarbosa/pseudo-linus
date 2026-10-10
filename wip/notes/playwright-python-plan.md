@@ -67,10 +67,19 @@ Fatos verificados no repositório (HEAD `ee1b4234`):
 - Hipótese ainda não medida: se o `playwright/driver/node` (ELF do Node) puder ser trocado, no pseudo-linux, pelo
   `bun` do plinus rodando o `cli.js`. O `playwright-core` declara `node >= 20` e não declara suporte a Bun; só a
   medição dirá (depende da frente do Bun).
-- Espelho (`testbench/mirror/packages.txt` e `wheels.lock`, conferido): nenhum destes está lá: `playwright`, `greenlet`,
-  `pyee`, `pyppeteer`, `websockets`, `tqdm`, `appdirs`, `importlib_metadata`. `urllib3` está, mas na 2.8.0, e o
-  pyppeteer 2.0.0 exige `urllib3<2` (no oráculo entrou a 1.26.20): a wheel antiga também precisa entrar, num espelho
-  que hoje guarda uma versão por pacote. A wheel do playwright tem cerca de 46 MB por causa do Node embutido.
+- Espelho (`testbench/mirror`): acrescentado em 2026-10-10, sem binário no git (o `wheels.lock` guarda só nome e
+  sha256, o diretório `wheels/` está no `.gitignore` e `fetch.sh` baixa e confere; conferido: 117 arquivos, sha256 ok).
+  Entradas novas, com tamanhos medidos no PyPI real: `playwright-1.63.0-py3-none-manylinux1_x86_64.whl` **48,22 MB**
+  (traz o Node de 126 MB e o `playwright-core`; é o único grande), `greenlet-3.5.6-cp313-cp313-manylinux_2_24_x86_64`
+  0,62 MB, `pyppeteer-2.0.0` 83 KB, `urllib3-1.26.20` 144 KB (o pyppeteer exige `<2`; a 2.8.0 segue no espelho),
+  `pyee-13.0.1` (playwright) e `pyee-11.1.1` (pyppeteer) 16 KB cada, `appdirs-1.4.4` 10 KB e `websockets-10.4.tar.gz`
+  85 KB. `playwright` e `pyppeteer` entraram em `packages.txt`; `tqdm`, `certifi`, `importlib_metadata`, `zipp` e
+  `typing_extensions` já estavam.
+  **`websockets` 10.4 só existe como sdist para cp313**: o PyPI real só tem wheels cp37 a cp311 e o `.tar.gz`, e o
+  `pip install pyppeteer` no oráculo constrói a partir dele (`setup.py`, extensão C opcional que cai no Python puro).
+  O servidor do espelho (`crates/mirror`) já indexa `.tar.gz`, mas o `pip` do pseudo-linux precisa construir uma sdist
+  (isolamento de build, `setuptools` e `wheel` do espelho, e a falha do compilador C virando o fallback em Python puro).
+  Isto é um trabalho do `pip` (degrau 3) a medir, não do espelho.
 
 ## CDP: o que o servidor do ul-chromium ainda não trata
 
@@ -100,6 +109,50 @@ Observações medidas no oráculo que o servidor precisa reproduzir:
 - `page.goto("http://127.0.0.1:1/")` falha com `net::ERR_UNSAFE_PORT`: a lista de portas inseguras do Chromium faz parte
   do comportamento visível.
 - `/json/list` com um navegador novo traz dois alvos `browser_ui` (os popups do omnibox) mais as páginas.
+
+## Contrato do `greenlet` (medido no oráculo, greenlet 3.5.6, CPython 3.13.5)
+
+Frente própria do `ul-python`, sem dono hoje: um módulo nativo `greenlet` (e `greenlet._greenlet`, o que o pacote do PyPI
+importa) sobre o `crates/ul-python/src/gthread.rs`. Cena e golden: `cases/gl_api.py` e `golden/gl_api.out`
+(`testbench/oracle/automation/run.sh gl_api`); o critério de pronto é a saída idêntica, linha a linha, mais a suíte
+`greenlet/tests` do pacote que o `pip` instala.
+
+- **Superfície do módulo** (nomes públicos, na ordem de `sorted`): `CLOCKS_PER_SEC`, `GREENLET_USE_CONTEXT_VARS`,
+  `GREENLET_USE_GC`, `GREENLET_USE_TRACING`, `GreenletExit`, `enable_optional_cleanup`, `error`,
+  `get_clocks_used_doing_optional_cleanup`, `getcurrent`, `gettrace`, `greenlet`, `settrace`; `__version__ == "3.5.6"`.
+  `greenlet.greenlet` tem `GreenletExit`, `dead`, `error`, `getcurrent`, `gettrace`, `gr_context`, `gr_frame`, `parent`,
+  `run`, `settrace`, `switch`, `throw`; base `object`. `GreenletExit` herda de `BaseException`; `greenlet.error` de `Exception`.
+- **`switch`**: `g.switch(*args, **kwargs)` entrega os argumentos ao `run` na primeira vez e, nas seguintes, devolve ao
+  ponto suspenso: um argumento vira o valor, vários viram `tuple`, nenhum vira `()`; só com `kwargs` vira `dict`.
+  Quando o `run` termina, o valor de retorno vai ao pai como retorno do `switch`; trocar para um greenlet morto troca
+  direto para o pai e devolve o valor (`g.switch()` retorna `[]`, que é `()`).
+- **`getcurrent`**: devolve o greenlet atual; o principal tem `parent is None`. `g.parent` começa no criador e aceita
+  `parent=` no construtor.
+- **`parent`**: `ValueError("cyclic parent chain")` ao formar ciclo (inclusive `g.parent = g`);
+  `AttributeError("cannot set the parent of a main greenlet")`;
+  `TypeError("GreenletChecker: Expected any type of greenlet, not int")` (também no construtor com `parent=5`).
+- **`dead`, `bool(g)`, `gr_frame`, `gr_context`, `run`**: `bool(g)` é verdadeiro só com o greenlet iniciado e não
+  terminado (falso antes de iniciar e depois de morto); `gr_frame` é `None` antes de iniciar, o quadro suspenso depois;
+  `gr_context` é `None` sem `contextvars` ativas; `g.run` existe antes de iniciar e depois de iniciado
+  `g.run = 1` levanta `AttributeError("run cannot be set after the start of the greenlet")`; sem `run`, `switch`
+  levanta `AttributeError("run")`; `run` não chamável: `TypeError("'int' object is not callable")` ao `switch`.
+  Subclasse que define `run` como método é chamada com os argumentos do primeiro `switch` (o padrão do Playwright).
+- **`throw`**: `g.throw(exc)` num greenlet suspenso levanta `exc` no ponto suspenso e devolve o retorno do `run`; num
+  greenlet não iniciado levanta `exc` no chamador e o greenlet fica morto; `g.throw()` sem argumentos lança
+  `GreenletExit` e o `switch` pai recebe a **instância** `GreenletExit`; `getcurrent().throw(ValueError(...))` levanta
+  no próprio chamador. Exceção não tratada no `run` propaga ao pai como se o `switch` a tivesse levantado
+  (`KeyError('k')`, `ZeroDivisionError`).
+- **`settrace` e `gettrace`**: o gancho recebe `(evento, (origem, destino))` com `evento` em `"switch"` e `"throw"`;
+  a sequência medida para `switch` ao filho, retorno ao principal, `throw(GreenletExit)` e retorno é
+  `switch, switch, throw, switch`; `settrace` devolve o gancho anterior.
+- **Threads**: trocar para um greenlet criado em outra thread (que já terminou) levanta
+  `greenlet.error("cannot switch to a different thread (which happens to have exited)")`.
+- **Coleta**: soltar a última referência a um greenlet suspenso (`del g; gc.collect()`) lança `GreenletExit` nele, e os
+  `finally` do corpo rodam.
+- **Quem usa assim**: `playwright/_impl/_greenlets.py` (`MainGreenlet`, `RouteGreenlet`, `LocatorHandlerGreenlet`,
+  `EventGreenlet` herdam de `greenlet.greenlet` e usam `greenlet.settrace`), `_impl/_sync_base.py` e `_disposable.py`
+  (`getcurrent`, `switch`, `parent`), `sync_api/_context_manager.py` (greenlet despachante). Os padrões estão em
+  `cases/gl_api.py` (`dispatcher`).
 
 ## Degraus, do menor para o maior (cada um com o critério medido)
 
