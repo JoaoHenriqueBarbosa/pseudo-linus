@@ -93,7 +93,7 @@ impl Page {
             fetcher,
             url: RefCell::new(final_url),
             navigation: RefCell::new(None),
-            pending_styles: RefCell::new(Vec::new()),
+            unsynced_styles: RefCell::new(Vec::new()),
         };
         Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, console: Rc::new(SilentConsole) })
     }

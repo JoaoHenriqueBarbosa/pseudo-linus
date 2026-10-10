@@ -119,6 +119,14 @@ fn shadow_root_slots() {
     assert_eq!(log, "HTMLSlotElement http://www.w3.org/1999/xhtml x em\n");
 }
 
+/// `overflow: scroll` reserva a barra clássica de 15px (o teste de barra visível do svelte.dev).
+#[test]
+fn scroll_container_reserves_scrollbar() {
+    let script = "<body><script>var d = document.createElement('div'); Object.assign(d.style, { width: '100px', height: '100px', overflow: 'scroll', position: 'absolute', top: '-9999px' }); document.body.append(d); console.log(d.offsetWidth, d.clientWidth, d.clientHeight)</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "100 85 85\n");
+}
+
 #[test]
 fn push_apply_in_timer() {
     let script = "<script>setTimeout(function () { for (var n of [10, 1000, 70000, 200000]) { var a = []; var b = new Array(n).fill(1); a.push.apply(a, b); console.log(n, a.length) } }, 0)</script>";

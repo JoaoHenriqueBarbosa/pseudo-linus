@@ -65,13 +65,7 @@ impl<T: Deref<Target = ComputedValues>> taffy::CoreStyle for TaffyStyloStyle<T> 
 
     #[inline]
     fn scrollbar_width(&self) -> f32 {
-        // pseudo-linus: a barra clássica do Chromium no Linux tem 15px (`scrollbar-width: thin`, 11px; `none`, 0).
-        use style::properties::longhands::scrollbar_width::computed_value::T as ScrollbarWidth;
-        match self.0.clone_scrollbar_width() {
-            ScrollbarWidth::Auto => 15.0,
-            ScrollbarWidth::Thin => 11.0,
-            ScrollbarWidth::None => 0.0,
-        }
+        convert::scrollbar_width(&self.0)
     }
 
     #[inline]

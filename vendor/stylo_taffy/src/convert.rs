@@ -713,6 +713,16 @@ pub fn max_track(
     }
 }
 
+/// pseudo-linus: a barra clássica do Chromium no Linux tem 15px (`scrollbar-width: thin`, 11px; `none`, 0).
+pub fn scrollbar_width(style: &stylo::ComputedValues) -> f32 {
+    use style::properties::longhands::scrollbar_width::computed_value::T as ScrollbarWidth;
+    match style.clone_scrollbar_width() {
+        ScrollbarWidth::Auto => 15.0,
+        ScrollbarWidth::Thin => 11.0,
+        ScrollbarWidth::None => 0.0,
+    }
+}
+
 /// Eagerly convert an entire [`stylo::ComputedValues`] into a [`taffy::Style`]
 pub fn to_taffy_style(style: &stylo::ComputedValues) -> taffy::Style<Atom> {
     let display = style.clone_display();
@@ -733,7 +743,7 @@ pub fn to_taffy_style(style: &stylo::ComputedValues) -> taffy::Style<Atom> {
             y: self::overflow(style.clone_overflow_y()),
         },
         direction: self::direction(style.clone_direction()),
-        scrollbar_width: 0.0,
+        scrollbar_width: self::scrollbar_width(style),
         contain: self::contain(style.clone_contain(), style.clone_display()),
 
         #[cfg(feature = "floats")]
