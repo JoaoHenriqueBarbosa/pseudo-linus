@@ -120,10 +120,12 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o que foi guardado é do programa.
-/// O estado das instâncias e dos iteradores é opaco: adia a coleta enquanto existir.
-pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
-    marker.defer_while(INSTANCES.with(|instances| !instances.borrow().is_empty()));
-    marker.defer_while(ITERATORS.with(|iterators| !iterators.borrow().is_empty()));
+/// As listas de pares (só texto e bytes, sem valores do programa) são campo da instância e saem com ela; o iterador
+/// segura a instância dona, como o `m_iterable` do iterador do WebCore.
+pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: crate::runtime::gc::SidePhase) -> bool {
+    let instances = crate::runtime::gc::side_table(&INSTANCES, marker, phase, |_, _| {});
+    let iterators = crate::runtime::gc::side_table(&ITERATORS, marker, phase, |iterator, out| out.push(JSValue::decode(iterator.owner)));
+    instances | iterators
 }
 
 pub(crate) fn reset_for_program() {

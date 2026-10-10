@@ -110,12 +110,27 @@ thread_local! {
 }
 
 /// Fim do programa: os observadores guardam objetos do programa.
-/// As raízes do coletor: o protótipo e as listas (sem valores dentro); os observadores guardam o callback e adiam a
-/// coleta enquanto existirem.
+/// As raízes do coletor: o protótipo e cada observador que observa (a lista de observadores registrados do global o
+/// segura, com o callback e a fila).
 pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
     marker.value(LIST_PROTOTYPE.with(Cell::get));
-    LISTS.with(|lists| lists.borrow().keys().for_each(|list| marker.encoded(*list)));
-    marker.defer_while(OBSERVERS.with(|observers| !observers.borrow().is_empty()));
+    OBSERVERS.with(|observers| {
+        for (object, observer) in observers.borrow().iter().filter(|(_, observer)| observer.mode != Mode::None) {
+            marker.encoded(*object);
+            marker.value(observer.callback);
+            observer.queue.iter().for_each(|entry| marker.value(entry.detail()));
+        }
+    });
+}
+
+/// O observador desconectado e cada lista entregue vivem enquanto o objeto vive.
+pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: crate::runtime::gc::SidePhase) -> bool {
+    let observers = crate::runtime::gc::side_table(&OBSERVERS, marker, phase, |observer, out| {
+        out.push(observer.callback);
+        out.extend(observer.queue.iter().map(Entry::detail));
+    });
+    let lists = crate::runtime::gc::side_table(&LISTS, marker, phase, |entries, out| out.extend(entries.iter().map(Entry::detail)));
+    observers | lists
 }
 
 pub(crate) fn reset_for_program() {

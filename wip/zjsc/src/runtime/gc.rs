@@ -132,7 +132,16 @@ thread_local! {
 fn visit_side_tables(marker: &mut Marker, phase: SidePhase) -> bool {
     use crate::runtime as rt;
     let mut progressed = false;
-    for visit in [rt::url::visit_side_table, rt::request::visit_side_table, rt::response::visit_side_table, rt::abort_signal::visit_side_table] {
+    for visit in [
+        rt::url::visit_side_table,
+        rt::request::visit_side_table,
+        rt::response::visit_side_table,
+        rt::abort_signal::visit_side_table,
+        rt::crypto::visit_side_table,
+        rt::performance::visit_side_table,
+        rt::performance_observer::visit_side_table,
+        rt::web_iterable::visit_side_table,
+    ] {
         progressed |= visit(marker, phase);
     }
     progressed
@@ -156,25 +165,29 @@ pub(crate) fn side_table<S>(
     phase: SidePhase,
     children: impl Fn(&S, &mut Vec<JSValue>),
 ) -> bool {
+    table.with(|table| match table.try_borrow_mut() {
+        Ok(mut table) => side_map(&mut table, marker, phase, children),
+        Err(_) => {
+            marker.abort();
+            false
+        }
+    })
+}
+
+/// O `side_table` de um mapa que mora dentro de outro estado do módulo.
+pub(crate) fn side_map<S>(
+    map: &mut HashMap<crate::runtime::js_value::EncodedJSValue, S>,
+    marker: &mut Marker,
+    phase: SidePhase,
+    children: impl Fn(&S, &mut Vec<JSValue>),
+) -> bool {
     let key_doomed = |marker: &Marker, key: i64| matches!(JSValue::decode(key), JSValue::Cell(cell_id) if marker.is_doomed(cell_id));
     if phase == SidePhase::Sweep {
-        table.with(|table| {
-            if let Ok(mut table) = table.try_borrow_mut() {
-                table.retain(|key, _| !key_doomed(marker, *key));
-            }
-        });
+        map.retain(|key, _| !key_doomed(marker, *key));
         return false;
     }
     let mut values = Vec::new();
-    match table.with(|table| {
-        table.try_borrow().map(|table| table.iter().filter(|(key, _)| !key_doomed(marker, **key)).for_each(|(_, state)| children(state, &mut values)))
-    }) {
-        Ok(()) => {}
-        Err(_) => {
-            marker.abort();
-            return false;
-        }
-    }
+    map.iter().filter(|(key, _)| !key_doomed(marker, **key)).for_each(|(_, state)| children(state, &mut values));
     let mut progressed = false;
     for value in values {
         if let JSValue::Cell(cell_id) = value {
@@ -207,8 +220,8 @@ fn visit_host_roots(marker: &mut Marker) {
     rt::js_module_loader::visit_gc_roots(marker);
     rt::url::visit_gc_roots(marker);
     rt::performance_observer::visit_gc_roots(marker);
+    rt::performance::visit_gc_roots(marker);
     rt::abort_signal::visit_gc_roots(marker);
-    rt::web_iterable::visit_gc_roots(marker);
     rt::response::visit_gc_roots(marker);
     rt::request::visit_gc_roots(marker);
     rt::queuing_strategy::visit_gc_roots(marker);

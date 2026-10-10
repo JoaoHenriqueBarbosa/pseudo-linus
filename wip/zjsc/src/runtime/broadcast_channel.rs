@@ -90,11 +90,18 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): os canais e a fila guardam objetos do programa.
-/// As raízes do coletor: os canais e as portas fechadas; as entregas na fila guardam valores e adiam a coleta.
+/// As raízes do coletor: os canais, as portas fechadas e cada entrega na fila (a tarefa do laço segura o destino, o
+/// dado e as portas transferidas).
 pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
     CHANNELS.with(|channels| channels.borrow().keys().for_each(|channel| marker.encoded(*channel)));
     CLOSED_PORTS.with(|ports| ports.borrow().iter().for_each(|port| marker.encoded(*port)));
-    marker.defer_while(QUEUE.with(|queue| !queue.borrow().is_empty()));
+    QUEUE.with(|queue| {
+        for delivery in queue.borrow().iter() {
+            marker.encoded(delivery.key);
+            marker.value(delivery.data);
+            marker.values(&delivery.ports);
+        }
+    });
 }
 
 pub(crate) fn reset_for_program() {
@@ -384,10 +391,18 @@ fn close_peers_below(global_object: &JSGlobalObject, peers: &mut Vec<(u64, Encod
 }
 
 fn deliver_messages(global_object: &JSGlobalObject, peers: &mut Vec<(u64, EncodedJSValue)>) {
+    // As entregas tiradas da fila (o lote, as que esperam ouvinte) vivem só nestes locais enquanto os ouvintes rodam JS.
+    let marked = crate::runtime::gc::RootScope::new(&[]);
+    let mark = |delivery: &Delivery| {
+        marked.append(JSValue::decode(delivery.key));
+        marked.append(delivery.data);
+        delivery.ports.iter().for_each(|port| marked.append(*port));
+    };
     let mut waiting: Vec<Delivery> = Vec::new();
     let mut delivered = 0;
     while delivered < MAX_DELIVERIES_PER_CALL {
         let Some(delivery) = QUEUE.with(|queue| queue.borrow_mut().pop_front()) else { break };
+        mark(&delivery);
         let Some((open, is_port, serial)) = with_channel(JSValue::decode(delivery.key), |channel| (!channel.closed, matches!(channel.route, Route::Port { .. }), channel.serial)) else { continue };
         close_peers_below(global_object, peers, serial);
         if !open {
@@ -419,6 +434,7 @@ fn deliver_messages(global_object: &JSGlobalObject, peers: &mut Vec<(u64, Encode
                 *queue = other;
                 batch.extend(same);
             });
+            batch.iter().for_each(mark);
             batch
         } else {
             vec![delivery]

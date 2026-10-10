@@ -216,7 +216,11 @@ pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
             }
         });
     }
-    marker.defer_while(KEYS.with(|keys| !keys.borrow().is_empty()));
+}
+
+/// O material de cada `CryptoKey` é campo do objeto (sem valores do programa dentro): sai com ele.
+pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: crate::runtime::gc::SidePhase) -> bool {
+    crate::runtime::gc::side_table(&KEYS, marker, phase, |_, _| {})
 }
 
 pub(crate) fn reset_for_program() {

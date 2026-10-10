@@ -162,6 +162,39 @@ thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
 }
 
+impl Entry {
+    /// O `detail` da marca ou da medida (o valor que a entrada segura para o coletor).
+    pub(crate) fn detail(&self) -> JSValue {
+        self.detail
+    }
+}
+
+/// As raízes do coletor: o objeto `performance`, o `timing`, os protótipos, o tratador do buffer cheio, o objeto único
+/// de cada entrada gravada e o `detail` do buffer (a linha do tempo segura tudo isso enquanto existir).
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    STATE.with(|state| {
+        let Ok(state) = state.try_borrow() else {
+            marker.abort();
+            return;
+        };
+        state.performance.into_iter().chain(state.timing).for_each(|encoded| marker.encoded(encoded));
+        marker.values(&[state.mark_prototype, state.measure_prototype, state.on_resource_timing_buffer_full].into_iter().flatten().collect::<Vec<_>>());
+        state.entry_objects.values().for_each(|object| marker.value(*object));
+        state.buffer.iter().for_each(|entry| marker.value(entry.detail));
+    });
+}
+
+/// O `Entry` de cada objeto devolvido ao script é campo dele: o `detail` vive com o objeto.
+pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: crate::runtime::gc::SidePhase) -> bool {
+    STATE.with(|state| match state.try_borrow_mut() {
+        Ok(mut state) => crate::runtime::gc::side_map(&mut state.objects, marker, phase, |entry, out| out.push(entry.detail)),
+        Err(_) => {
+            marker.abort();
+            false
+        }
+    })
+}
+
 /// Fim do programa (`cell_registry::reset_program_state`): o estado guarda objetos e `detail` do programa.
 pub(crate) fn reset_for_program() {
     let taken = STATE.try_with(|state| std::mem::take(&mut *state.borrow_mut()));

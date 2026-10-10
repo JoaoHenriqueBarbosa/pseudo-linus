@@ -283,6 +283,32 @@ fn side_tables_follow_their_objects() {
     assert!(gc::statistics().freed_cells > freed_before, "as tabelas laterais ainda adiam a coleta");
 }
 
+/// Segunda leva: o `detail` de marcas e medidas, o observador que observa (raiz) e o desconectado (com o objeto),
+/// a lista entregue ao callback, a mensagem na fila do `BroadcastChannel` e o iterador de `Headers` e
+/// `URLSearchParams` (segura a instância).
+#[test]
+fn performance_broadcast_and_iterators_survive() {
+    let program = format!("{CHURN} var log = [];
+        performance.mark('m', {{ detail: {{ d: 'mark' }} }});
+        new PerformanceObserver((list) => {{ churn(); log.push(list.getEntries()[0].detail.d); }}).observe({{ type: 'mark' }});
+        var a = new BroadcastChannel('c'), b = new BroadcastChannel('c'); b.onmessage = (e) => log.push(e.data.v); a.postMessage({{ v: 'bc' }});
+        var it = new Headers({{ k: 'v' }}).entries(); var sp = new URLSearchParams('x=1').keys();
+        churn(); performance.mark('n', {{ detail: {{ d: 'obs' }} }});
+        setTimeout(() => {{ churn(); log.push(performance.getEntriesByName('m')[0].detail.d, it.next().value.join('='), sp.next().value); a.close(); b.close(); R = log.sort().join(); }}, 5);");
+    assert_eq!(stressed(&program), "bc,k=v,mark,obs,x");
+}
+
+/// O lote de mensagens de uma porta sai da fila antes do primeiro ouvinte rodar: as que ainda não foram entregues
+/// vivem só no laço de entrega.
+#[test]
+fn queued_port_messages_survive_the_batch() {
+    let program = format!("{CHURN} var log = []; var c = new MessageChannel();
+        c.port2.onmessage = (e) => {{ churn(); log.push(e.data instanceof Uint8Array ? e.data.join('') : e.data.v); }};
+        c.port1.postMessage({{ v: 'a' }}); c.port1.postMessage(new Uint8Array([1, 2])); c.port1.postMessage({{ v: 'b' }});
+        setTimeout(() => {{ c.port1.close(); R = log.join(); }}, 5);");
+    assert_eq!(stressed(&program), "a,12,b");
+}
+
 /// Cada tipo de dono sozinho, para a lápide apontar a aresta que falta.
 fn survives(setup: &str, step: &str, check: &str, expected: &str) {
     let program = format!("{setup}; for (let i = 0; i < 250000; i++) {{ const g = {{ i: i }}; if (i % 1000 === 0) {{ {step}; }} }} String({check})");
