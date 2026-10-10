@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture da automação</title>
+  <style>
+    body { font: 16px sans-serif; margin: 20px; }
+    #box { width: 120px; height: 40px; background: #36c; color: #fff; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1 id="title">Olá, automação</h1>
+  <label for="name">Nome</label>
+  <input id="name" type="text" placeholder="seu nome">
+  <input id="agree" type="checkbox" aria-label="Concordo">
+  <select id="color"><option value="r">Vermelho</option><option value="g">Verde</option></select>
+  <button id="go" type="button">Enviar</button>
+  <p id="out"></p>
+  <div id="box">caixa</div>
+  <ul id="list"><li>um</li><li>dois</li><li>três</li></ul>
+  <a id="link" href="/second.html">segunda</a>
+  <script>
+    document.getElementById('go').addEventListener('click', () => {
+      const value = document.getElementById('name').value;
+      document.getElementById('out').textContent = 'oi ' + value;
+      console.log('clicado', value);
+      console.warn('aviso', 1, { a: 1 });
+    });
+    document.getElementById('name').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') document.getElementById('go').click();
+    });
+    window.later = () => new Promise((resolve) => setTimeout(() => resolve('depois'), 50));
+    window.fail = () => { throw new Error('quebrou'); };
+    window.ping = () => fetch('/api.json').then((response) => response.json());
+    window.ask = () => confirm('certeza?');
+    window.async_error = () => setTimeout(() => { throw new Error('assíncrono'); }, 0);
+    setTimeout(() => document.getElementById('title').dataset.ready = '1', 100);
+  </script>
+</body>
+</html>

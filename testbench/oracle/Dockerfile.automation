@@ -1,0 +1,19 @@
+# Oráculo da automação de navegador em Python (Playwright e Puppeteer): o chromium do Debian 13 da camada
+# `pl-oracle-chromium` mais pip, venv e as bibliotecas fixadas. O Playwright traz o próprio driver (um Node
+# empacotado dentro da wheel); o Puppeteer em Python é o pyppeteer, que fala CDP direto com o executável dado.
+# Camada à parte para não mexer na imagem do Chromium que os goldens de páginas usam.
+FROM pl-oracle-chromium
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3-pip python3-venv \
+ && rm -rf /var/lib/apt/lists/*
+
+# Versões medidas em 2026-10-10. O pyppeteer 2.0.0 (2024-02) é a última release; ele fixa websockets antigo, por
+# isso mora num venv próprio, longe do websockets do sistema que o gravador de fitas usa.
+RUN python3 -m venv /opt/playwright \
+ && /opt/playwright/bin/pip install --no-cache-dir playwright==1.63.0 pytest-playwright \
+ && python3 -m venv /opt/pyppeteer \
+ && /opt/pyppeteer/bin/pip install --no-cache-dir pyppeteer==2.0.0
+
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 PYPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
