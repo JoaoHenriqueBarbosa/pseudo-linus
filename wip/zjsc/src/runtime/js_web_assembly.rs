@@ -1047,7 +1047,11 @@ fn read_imports(
                         if target.arguments != arguments || target.returns != returns {
                             return Err(link("imported function", "signature doesn't match the provided WebAssembly function's signature"));
                         }
-                        wasm_imports.push((import.kind_index, value));
+                        // Só a função própria do módulo dona é compartilhada: o wrapper de um import do JS, reexportado
+                        // por outra instância, é novo a cada instância (medido no bun: `inst(i.r).r !== i.r`).
+                        if (target.index as usize) >= target.instance.info().import_function_type_signature_indices.len() {
+                            wasm_imports.push((import.kind_index, value));
+                        }
                     }
                 }
                 ImportValue::Function(host_function_for(value, arguments, returns))
@@ -1981,5 +1985,19 @@ mod streaming_tests {
              log.push(i.r === a.f, i.rf() === a.f, i.r.name, j.r.name, j.r === j.rf(), j.r());",
         );
         assert_eq!(log, r#"[true,true,"0","",true,3]"#);
+    }
+
+    /// Medido no bun 1.4.2: o wrapper de um import do JS reexportado por uma instância não é o de quem o importa
+    /// depois (`inst(i.r).r !== i.r`), mas dentro de cada instância `r === rf()`.
+    #[test]
+    fn reexported_js_import_wrapper_is_per_instance() {
+        let log = run(
+            "const imp = new Uint8Array([0,97,115,109,1,0,0,0, 1,9,2,0x60,0,1,0x7f,0x60,0,1,0x70, 2,9,1,3,101,110,118,1,102,0,0, \
+               3,2,1,1, 7,10,2,1,114,0,0,2,114,102,0,1, 9,5,1,3,0,1,0, 10,6,1,4,0,0xd2,0,0x0b]); \
+             const inst = (f) => new WebAssembly.Instance(new WebAssembly.Module(imp), { env: { f } }).exports; \
+             const j = () => 7; const i = inst(j), k = inst(i.r), l = inst(k.r); \
+             log.push(l.r === i.r, l.r === j, l.rf() === i.rf(), i.rf() === i.r, k.rf() === k.r, l.r.name);",
+        );
+        assert_eq!(log, r#"[false,false,false,true,true,""]"#);
     }
 }
