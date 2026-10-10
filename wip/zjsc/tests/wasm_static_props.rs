@@ -69,6 +69,17 @@ fn module_descriptor_matches_table_attributes() {
     assert_eq!(run(program), "function,true,true,true,2,1,exports");
 }
 
+/// A mensagem de `Module.exports`, `imports` e `customSections` com argumento que não é módulo, medida no bun 1.4.2.
+#[test]
+fn module_statics_reject_non_modules_with_the_jsc_message() {
+    let program = "['exports', 'imports'].map(function (m) { return [[], [1], [{}]].map(function (a) { \
+                   try { WebAssembly.Module[m].apply(null, a); return 'ok' } catch (e) { return e.message } }).join(';') }).join('|')";
+    let expected = ["exports", "imports"]
+        .map(|member| vec![format!("WebAssembly.Module.{member} called with non WebAssembly.Module argument"); 3].join(";"))
+        .join("|");
+    assert_eq!(run(program), expected);
+}
+
 /// Os acessores dos protótipos, medidos no bun 1.4.2: `Instance.exports` e `Global.value` são `JSC_NATIVE_GETTER` (o
 /// `toString` traz o `get `), `Memory.buffer` e `Table.length` são `CustomAccessor` (o `toString` traz o nome puro).
 #[test]

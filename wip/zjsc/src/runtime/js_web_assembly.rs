@@ -180,9 +180,10 @@ fn kind_name(kind: ExternalKind) -> &'static str {
     }
 }
 
-/// O `ModuleState` do argumento 0 (`dynamicDowncast<JSWebAssemblyModule>`), com a mensagem do C++.
+/// O `ModuleState` do argumento 0 (`dynamicDowncast<JSWebAssemblyModule>`), com a mensagem do C++ (medida no bun 1.4.2,
+/// igual sem argumento, com primitivo e com objeto comum).
 fn module_argument<R>(call: &HostCall, member: &str, body: impl FnOnce(&ModuleState) -> R) -> Result<R, Thrown> {
-    let message = format!("WebAssembly.Module.{member}(): Argument 0 must be a WebAssembly.Module");
+    let message = format!("WebAssembly.Module.{member} called with non WebAssembly.Module argument");
     with_instance::<ModuleState, _>(call.argument(0), &message, |state, _| Ok(body(state)))
 }
 
@@ -228,11 +229,7 @@ fn module_custom_sections_body(global_object: &JSGlobalObject, call: &HostCall) 
     if call.argument_count() < 2 {
         return Err(Thrown::type_error("Not enough arguments"));
     }
-    let info = with_instance::<ModuleState, _>(
-        call.argument(0),
-        "WebAssembly.Module.customSections called with non WebAssembly.Module argument",
-        |state, _| Ok(Rc::clone(&state.info)),
-    )?;
+    let info = module_argument(call, "customSections", |state| Rc::clone(&state.info))?;
     let name = to_rust_string(global_object, call.argument(1))?;
     let items: Vec<JSValue> = info
         .custom_sections
