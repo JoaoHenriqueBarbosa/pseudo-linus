@@ -361,6 +361,14 @@ fn cssom_write_serializes_canonically() {
 }
 
 #[test]
+fn two_value_transform_origin_keeps_no_z() {
+    // Medido no oráculo: o Blink não acrescenta o `0px` do eixo z que o stylo completa.
+    let script = "<body><p id=p></p><script>var p = document.getElementById('p'); p.style.transformOrigin = '50% 50%'; console.log(p.getAttribute('style'))</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "transform-origin: 50% 50%;\n");
+}
+
+#[test]
 fn module_scripts_with_dynamic_import_and_top_level_await() {
     let html = "<body><script type=module>import { a } from './m.js'; const { b } = await import('/n.js'); console.log(a, b, document.currentScript, import.meta.url)</script><script type=module>console.log(typeof C)</script><script>var C = 1</script>";
     let (_, log) = run(&[("/", html), ("/m.js", "export const a = 'a'"), ("/n.js", "export const b = 'b'")]);

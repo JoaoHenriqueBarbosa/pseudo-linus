@@ -164,8 +164,12 @@ pub fn normalize_style(text: &str) -> String {
     // serialização logo depois das que vinham antes delas no texto.
     let mut known = String::new();
     let mut extra: Vec<(usize, String, String)> = Vec::new();
+    let mut origin_components = None;
     for (name, value, important) in split_declarations(&text) {
         let lower = name.to_ascii_lowercase();
+        if lower == "transform-origin" {
+            origin_components = Some(value.split_ascii_whitespace().count());
+        }
         if stylo_knows(&lower) || name.starts_with("--") {
             known.push_str(&format!("{name}: {value}{};", if important { " !important" } else { "" }));
         } else if let Some(value) = crate::blink_css::serialize(&lower, &value, proxy_value) {
@@ -175,6 +179,15 @@ pub fn normalize_style(text: &str) -> String {
         }
     }
     let mut out: Vec<String> = parse_block(&known);
+    // O stylo completa o `transform-origin` de dois valores com o `0px` do eixo z; o Blink guarda o que foi escrito
+    // (`50% 50%` continua `50% 50%`, medido no oráculo).
+    if origin_components == Some(2) {
+        for decl in &mut out {
+            if decl.starts_with("transform-origin: ") {
+                *decl = decl.replacen(" 0px;", ";", 1).replacen(" 0px !important;", " !important;", 1);
+            }
+        }
+    }
     for (at, name, value) in extra.into_iter().rev() {
         out.insert(at.min(out.len()), format!("{name}: {value};"));
     }
