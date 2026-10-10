@@ -321,8 +321,21 @@ fn deep_equals_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResu
 
 host_function!(bun_deep_equals, deep_equals_body);
 
+/// `jsFunctionBunStripANSI`: o argumento vira texto (`toString`); sem sequência ANSI volta a própria string.
+fn strip_ansi_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let argument = call.argument(0);
+    let units = units_of(global_object, argument)?;
+    match crate::runtime::ansi::strip_ansi(&units) {
+        Some(stripped) => Ok(units_value(global_object.vm(), &stripped)),
+        None if argument.is_string() => Ok(argument),
+        None => Ok(units_value(global_object.vm(), &units)),
+    }
+}
+
+host_function!(bun_strip_ansi, strip_ansi_body);
+
 /// `bunObjectTable` de `BunObject.cpp`, na ordem do `@begin`, só com as entradas portadas.
-static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 14] = [
+static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 15] = [
     lazy_entry_with_attributes("argv", DONT_DELETE, create_argv),
     native_function_entry("deepEquals", DONT_DELETE, bun_deep_equals, 2, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("env", READ_ONLY | DONT_DELETE, create_env),
@@ -336,6 +349,7 @@ static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 14] = [
     lazy_entry_with_attributes("revision", READ_ONLY | DONT_DELETE, create_revision),
     native_function_entry("sleep", DONT_DELETE, bun_sleep, 1, Intrinsic::NoIntrinsic),
     native_function_entry("sleepSync", DONT_DELETE, bun_sleep_sync, 1, Intrinsic::NoIntrinsic),
+    native_function_entry("stripANSI", DONT_DELETE, bun_strip_ansi, 1, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("version", READ_ONLY | DONT_DELETE, create_version),
 ];
 

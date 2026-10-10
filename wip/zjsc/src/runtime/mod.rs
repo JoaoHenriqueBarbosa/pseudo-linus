@@ -441,6 +441,7 @@ pub mod finalization_registry_prototype;
 pub mod finalization_registry_constructor;
 pub mod weak_ref_globals;
 pub mod aggregate_error;
+pub mod ansi;
 pub mod suppressed_error;
 pub mod array_prototype_unscopables;
 pub mod atomics_object;
