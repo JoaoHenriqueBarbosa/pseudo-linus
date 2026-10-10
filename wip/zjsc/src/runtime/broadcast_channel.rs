@@ -377,8 +377,9 @@ fn close_peers_below(global_object: &JSGlobalObject, peers: &mut Vec<(u64, Encod
 }
 
 fn deliver_messages(global_object: &JSGlobalObject, peers: &mut Vec<(u64, EncodedJSValue)>) {
-    let mut waiting = Vec::new();
-    for _ in 0..MAX_DELIVERIES_PER_CALL {
+    let mut waiting: Vec<Delivery> = Vec::new();
+    let mut delivered = 0;
+    while delivered < MAX_DELIVERIES_PER_CALL {
         let Some(delivery) = QUEUE.with(|queue| queue.borrow_mut().pop_front()) else { break };
         let Some((open, is_port, serial)) = with_channel(JSValue::decode(delivery.key), |channel| (!channel.closed, matches!(channel.route, Route::Port { .. }), channel.serial)) else { continue };
         close_peers_below(global_object, peers, serial);
@@ -390,11 +391,39 @@ fn deliver_messages(global_object: &JSGlobalObject, peers: &mut Vec<(u64, Encode
             waiting.push(delivery);
             continue;
         }
-        if let Ok(event) = create_message_event(global_object, delivery.data, &delivery.ports) {
-            // A exceção de um ouvinte já foi para o relatório de erros não capturados dentro de `dispatch_event`.
-            let _ = dispatch_event(global_object, target, event);
+        // Medido no bun 1.4.2: a porta entrega numa tarefa só tudo o que já está na fila dela, na ordem (o que esperava
+        // um ouvinte vem antes), mesmo que um ouvinte a feche no meio; outra porta com mensagem anterior a uma destas
+        // espera o lote acabar. O que chega durante o lote fica para um lote seguinte.
+        let batch: Vec<Delivery> = if is_port {
+            let key = delivery.key;
+            let mut batch: Vec<Delivery> = Vec::new();
+            let mut index = 0;
+            while index < waiting.len() {
+                if waiting[index].key == key {
+                    batch.push(waiting.remove(index));
+                } else {
+                    index += 1;
+                }
+            }
+            batch.push(delivery);
+            QUEUE.with(|queue| {
+                let mut queue = queue.borrow_mut();
+                let (same, other): (VecDeque<Delivery>, VecDeque<Delivery>) = queue.drain(..).partition(|queued| queued.key == key);
+                *queue = other;
+                batch.extend(same);
+            });
+            batch
+        } else {
+            vec![delivery]
+        };
+        for delivery in batch {
+            delivered += 1;
+            if let Ok(event) = create_message_event(global_object, delivery.data, &delivery.ports) {
+                // A exceção de um ouvinte já foi para o relatório de erros não capturados dentro de `dispatch_event`.
+                let _ = dispatch_event(global_object, target, event);
+            }
+            global_object.vm().drain_microtasks();
         }
-        global_object.vm().drain_microtasks();
     }
     QUEUE.with(|queue| {
         let mut queue = queue.borrow_mut();

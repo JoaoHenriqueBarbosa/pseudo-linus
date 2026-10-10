@@ -11,7 +11,8 @@
 //!   do host (a do `BroadcastChannel`, em `broadcast_channel.rs`): depois das microtasks e antes de `setImmediate` e dos
 //!   timers. A mensagem para uma porta sem ouvinte de `message` espera até ela ter um (`onmessage` ou
 //!   `addEventListener`; `start()` não é necessário e não muda nada). Fechar a porta que enviou não cancela o que já saiu;
-//!   fechar a que recebe descarta; `postMessage`, `start` e `close` numa porta fechada não fazem nada;
+//!   fechar a que recebe descarta; `postMessage`, `start` e `close` numa porta fechada não fazem nada. A porta entrega em
+//!   lote tudo o que está na fila dela (`m1, n2, m3` sai `m1, m3, n2`), e fechá-la dentro do lote não corta o resto;
 //! - `postMessage(valor, transfer)`: `transfer` é uma lista (iterável) ou `{ transfer }`; aceita `MessagePort` (a porta
 //!   original fica destacada e muda, `hasRef()` falso; a nova chega em `event.ports`, ligada ao mesmo par, e herda as
 //!   mensagens que já estavam a caminho) e `ArrayBuffer` (destacado no remetente); erros em `DataCloneError`;
