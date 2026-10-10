@@ -43,6 +43,7 @@ use crate::runtime::js_async_function_generator::{JSAsyncFunctionGenerator, JSAs
 use crate::runtime::js_promise::JSPromise;
 use crate::runtime::js_promise_combinators_context::JSPromiseCombinatorsGlobalContext;
 use crate::runtime::js_value::JSValue;
+use crate::runtime::options_list::Options;
 use crate::runtime::script_executable::ScriptExecutableRef;
 use crate::runtime::stack_frame::{Location, StackFrame};
 use crate::runtime::vm::VM;
@@ -87,32 +88,26 @@ impl Interpreter {
         if exception.stack_captured() {
             return;
         }
-        // DIVERGÊNCIA de custo: o `Exception::create` do C++ guarda `m_stack` (até `exceptionStackTraceLimit`
-        // frames) com `StackFrame` preguiçosos, baratos. Aqui cada `StackFrame` já resolve nome, URL e linha, e
-        // ninguém lê `Exception::stack()`; capturar 100 frames a cada `throw` custava O(100) resoluções por
-        // nível de um rethrow recursivo (32 s em 1e4 níveis). O `m_stack` fica vazio e só marca a captura (salvo
-        // para um valor que não é `Error`, que guarda só o frame mais interno, abaixo).
+        // `Exception::create` guarda o `m_stack` (até `exceptionStackTraceLimit` frames) para todo valor. Os
+        // `StackFrame` resolvem nome, URL e linha só na primeira leitura, então guardar a pilha custa só o percurso;
+        // o bun a lê no relato de exceção não capturada que sai de um callback (`fromErrorInstance` com
+        // `&jscException->stack()`), onde os frames e a posição do `throw` substituem os do erro.
         // O `ErrorInstance` sem pilha ainda guarda a dele (limite do realm, `globalObject->stackTraceLimit()`,
         // o espelho de `Error.stackTraceLimit`, que `Error.cpp getStackTrace` lê); um que já tem pilha (o
         // `new Error` relançado) não anda a pilha de novo, porque `set_pending_stack` não faria nada.
         let thrown = exception.value();
         // `is_cell` vale também para o valor vazio (como no C++); só uma célula de verdade pode ser um `ErrorInstance`.
         let error = if matches!(thrown, JSValue::Cell(_)) { ErrorInstance::from_cell_id(thrown.as_cell()) } else { None };
-        match error {
-            Some(error) => {
-                if !error.has_stack_info() {
-                    if let Some(frames) = capture_frames(global_object, top_call_frame, None, include_top_native) {
-                        error.set_pending_stack(frames);
-                    }
+        if let Some(error) = error {
+            if !error.has_stack_info() {
+                if let Some(frames) = capture_frames(global_object, top_call_frame, None, include_top_native) {
+                    error.set_pending_stack(frames);
                 }
-                exception.set_stack(Vec::new());
-            }
-            // Um valor que não é `Error` (`throw "x"`) não carrega posição: o relato de exceção não capturada
-            // (`uncaught_report.rs`) lê o frame mais interno daqui, o único que ele mostra.
-            None => {
-                exception.set_stack(global_object.vm().interpreter().get_stack_trace(global_object.vm(), top_call_frame, 1, None, false))
             }
         }
+        let vm = global_object.vm();
+        let limit = Options::exception_stack_trace_limit() as usize;
+        exception.set_stack(vm.interpreter().get_stack_trace(vm, top_call_frame, limit, None, false));
     }
 
     /// `Interpreter::getStackTrace(vm, results, framesToSkip, maxStackSize, caller, ...)`: percorre os

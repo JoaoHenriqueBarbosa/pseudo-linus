@@ -23,6 +23,7 @@ use crate::runtime::js_value_conversions::number_to_string_radix10;
 use crate::runtime::literal_parser::{wtf_string_to_units, JsonHost, JsonKey};
 use crate::runtime::property_name::PropertyName;
 use crate::runtime::source_highlight::highlight_javascript;
+use crate::runtime::stack_frame::StackFrame;
 use crate::wtf::text::wtf_string::String as WtfString;
 
 /// O rodapé que o bun escreve depois de toda exceção não capturada.
@@ -64,7 +65,13 @@ pub fn finish_report(global_object: &JSGlobalObject, report: &[u8]) -> i32 {
 pub fn append_exception_report(out: &mut Vec<u8>, global_object: &JSGlobalObject, source: &str, exception: JSValue, with_trace: bool) {
     let (text, inspected) = match &exception {
         JSValue::Cell(cell_id) if ErrorInstance::from_cell_id(*cell_id).is_some() => {
-            append_error_report(out, global_object, source, ErrorInstance::from_cell_id(*cell_id).expect("conferido acima"), false);
+            // Saída de um callback, o bun relata a `JSC::Exception` e não o valor: `JSC__JSValue__toZigException` passa
+            // `&jscException->stack()` a `fromErrorInstance`, que usa essa pilha (a do `throw`, capturada por
+            // `Interpreter::unwind`) no lugar da do erro quando ela não é vazia. O frame de cima mostra então o ponto
+            // do `throw` (o fim da expressão lançada) e os frames são os de quando ele lançou, não os da construção.
+            let thrown = with_trace.then(|| thrown_stack(global_object, &exception)).flatten();
+            let error = ErrorInstance::from_cell_id(*cell_id).expect("conferido acima");
+            append_error_chain(out, global_object, source, error, &mut Vec::new(), thrown.as_deref(), false);
             return;
         }
         value if value.is_string() => (rust_string(&value.as_js_string().value()), None),
@@ -135,10 +142,9 @@ pub fn append_exception_report(out: &mut Vec<u8>, global_object: &JSGlobalObject
         other => (crate::api::eval::describe_exception(other), None),
     };
     let frame = with_trace
-        .then(|| global_object.vm().last_exception())
+        .then(|| thrown_stack(global_object, &exception))
         .flatten()
-        .filter(|last| last.value() == exception)
-        .and_then(|last| last.stack().into_iter().next())
+        .and_then(|stack| stack.into_iter().next())
         .filter(|frame| frame.has_line_and_column_info());
     match frame {
         Some(frame) => {
@@ -148,6 +154,11 @@ pub fn append_exception_report(out: &mut Vec<u8>, global_object: &JSGlobalObject
         }
         None => out.extend_from_slice(format_primitive(&text, inspected).as_bytes()),
     }
+}
+
+/// A pilha do `throw` de `exception` (a `m_stack` da última `Exception` do VM, se ela leva esse valor), não vazia.
+fn thrown_stack(global_object: &JSGlobalObject, exception: &JSValue) -> Option<Vec<StackFrame>> {
+    global_object.vm().last_exception().filter(|last| last.value() == *exception).map(|last| last.stack()).filter(|stack| !stack.is_empty())
 }
 
 
@@ -231,12 +242,13 @@ fn own_property(global_object: &JSGlobalObject, error: &ErrorInstanceRef, name: 
 /// vazio o trecho sai do fonte guardado no próprio erro (o do frame de cima, como o bun lê o do `SourceProvider`).
 /// `colors` liga as sequências ANSI (o `allow_ansi_color` do bun: fonte destacado, `^` vermelho, nome e frames).
 pub fn append_error_report(out: &mut Vec<u8>, global_object: &JSGlobalObject, source: &str, error: ErrorInstanceRef, colors: bool) {
-    append_error_chain(out, global_object, source, error, &mut Vec::new(), colors);
+    append_error_chain(out, global_object, source, error, &mut Vec::new(), None, colors);
 }
 
 /// O bloco de `error` e, depois de uma linha em branco, o da sua `cause` quando ela também é `Error`. Um
-/// `AggregateError` com elementos relata os elementos no lugar de si. `seen` corta ciclos de `cause`.
-fn append_error_chain(out: &mut Vec<u8>, global_object: &JSGlobalObject, source: &str, error: ErrorInstanceRef, seen: &mut Vec<usize>, colors: bool) {
+/// `AggregateError` com elementos relata os elementos no lugar de si. `seen` corta ciclos de `cause`. `thrown` é a
+/// pilha da `Exception` que trouxe a raiz, que substitui a do próprio erro só no bloco dela.
+fn append_error_chain(out: &mut Vec<u8>, global_object: &JSGlobalObject, source: &str, error: ErrorInstanceRef, seen: &mut Vec<usize>, thrown: Option<&[StackFrame]>, colors: bool) {
     if seen.contains(&error.cell_id()) {
         return;
     }
@@ -254,7 +266,7 @@ fn append_error_chain(out: &mut Vec<u8>, global_object: &JSGlobalObject, source:
                     let element = list.get_by_index(vm, index);
                     if let JSValue::Cell(cell_id) = element {
                         if let Some(inner) = ErrorInstance::from_cell_id(cell_id) {
-                            append_error_chain(out, global_object, source, inner, seen, colors);
+                            append_error_chain(out, global_object, source, inner, seen, None, colors);
                         }
                     }
                 }
@@ -268,12 +280,12 @@ fn append_error_chain(out: &mut Vec<u8>, global_object: &JSGlobalObject, source:
     let root = seen.len() == 1;
     let cause = cause_of(global_object, &error);
     let Some(cause) = cause else {
-        out.extend_from_slice(&error_block(global_object, source, &error, None, colors));
+        out.extend_from_slice(&error_block(global_object, source, &error, None, thrown, colors));
         return;
     };
     if cause.cell_id() == error.cell_id() {
         if root {
-            out.extend_from_slice(&error_block(global_object, source, &error, None, colors));
+            out.extend_from_slice(&error_block(global_object, source, &error, None, thrown, colors));
             out.push(b'\n');
         }
         out.extend_from_slice(&circular_tail(global_object, source, &error, colors));
@@ -283,14 +295,14 @@ fn append_error_chain(out: &mut Vec<u8>, global_object: &JSGlobalObject, source:
     if !root && is_cyclic(global_object, &error, &earlier) {
         out.extend_from_slice(&cyclic_block(global_object, source, &error, &earlier, colors));
     } else {
-        out.extend_from_slice(&error_block(global_object, source, &error, None, colors));
+        out.extend_from_slice(&error_block(global_object, source, &error, None, thrown, colors));
     }
     out.push(b'\n');
     if seen.contains(&cause.cell_id()) {
         out.extend_from_slice(&circular_tail(global_object, source, &cause, colors));
         return;
     }
-    append_error_chain(out, global_object, source, cause, seen, colors);
+    append_error_chain(out, global_object, source, cause, seen, None, colors);
 }
 
 /// A `cause` própria de `error` quando é um `Error`.
@@ -318,7 +330,7 @@ fn is_cyclic(global_object: &JSGlobalObject, error: &ErrorInstanceRef, earlier: 
 /// O bloco do erro repetido que fecha um ciclo: ele com ` cause: [Circular],` e, depois, a linha `[Circular]`.
 fn circular_tail(global_object: &JSGlobalObject, source: &str, error: &ErrorInstanceRef, colors: bool) -> Vec<u8> {
     let _ = error.materialize_stack(global_object);
-    let mut block = error_block(global_object, source, error, Some(b"[Circular]"), colors);
+    let mut block = error_block(global_object, source, error, Some(b"[Circular]"), None, colors);
     block.extend_from_slice(b"\n[Circular]");
     block
 }
@@ -327,7 +339,7 @@ fn circular_tail(global_object: &JSGlobalObject, source: &str, error: &ErrorInst
 /// relatada vira o próprio bloco aninhado seguido de `\n[Circular]`.
 fn cyclic_block(global_object: &JSGlobalObject, source: &str, error: &ErrorInstanceRef, earlier: &[usize], colors: bool) -> Vec<u8> {
     let _ = error.materialize_stack(global_object);
-    let Some(cause) = cause_of(global_object, error) else { return error_block(global_object, source, error, None, colors) };
+    let Some(cause) = cause_of(global_object, error) else { return error_block(global_object, source, error, None, None, colors) };
     let mut walked = earlier.to_vec();
     walked.push(error.cell_id());
     let inner = if walked.contains(&cause.cell_id()) {
@@ -337,14 +349,25 @@ fn cyclic_block(global_object: &JSGlobalObject, source: &str, error: &ErrorInsta
         nested.extend_from_slice(b"\n[Circular]");
         nested
     };
-    error_block(global_object, source, error, Some(&inner), colors)
+    error_block(global_object, source, error, Some(&inner), None, colors)
 }
 
 /// O bloco de `error` (trecho, cabeçalho, propriedades próprias e frames); `cause` acrescenta a linha ` cause: texto,`
-/// depois do cabeçalho.
-fn error_block(global_object: &JSGlobalObject, source: &str, error: &ErrorInstanceRef, cause: Option<&[u8]>, colors: bool) -> Vec<u8> {
-    let stack = error.stack_string().map(|stack| rust_string(&stack)).unwrap_or_default();
-    let position = (error.line() >= 1 && error.column() >= 1).then(|| (error.line() as usize, error.column() as usize));
+/// depois do cabeçalho. `thrown`, não vazia, dá os frames e a posição no lugar dos do erro.
+fn error_block(global_object: &JSGlobalObject, source: &str, error: &ErrorInstanceRef, cause: Option<&[u8]>, thrown: Option<&[StackFrame]>, colors: bool) -> Vec<u8> {
+    let (stack, position) = match thrown {
+        Some(frames) => {
+            // O bun não escreve o frame de função de host sem fonte (`dispatchEvent`); medido no bun 1.4.2.
+            let shown = frames.iter().filter(|frame| !frame.is_native_function());
+            let lines: String = shown.map(|frame| format!("\n{}", frame.to_stack_line())).collect();
+            let top = frames.first().filter(|frame| frame.has_line_and_column_info());
+            (lines, top.map(|frame| (frame.line() as usize, frame.column() as usize)))
+        }
+        None => (
+            error.stack_string().map(|stack| rust_string(&stack)).unwrap_or_default(),
+            (error.line() >= 1 && error.column() >= 1).then(|| (error.line() as usize, error.column() as usize)),
+        ),
+    };
     let (properties, code) = error_properties(global_object, error, colors);
     let own_source = error.source_text();
     let source = if source.is_empty() { own_source.as_deref().unwrap_or("") } else { source };

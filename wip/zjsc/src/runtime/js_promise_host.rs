@@ -227,10 +227,20 @@ pub fn thrown_from_llint_failure(global_object: &JSGlobalObject, failure: LLIntF
 
 /// Deixa o `Thrown` pendente no `VM` (o que `throwException(globalObject, scope, error)` faz) e devolve o
 /// `Thrown::Pending` de uma função nativa. A terminação já está pendente.
+///
+/// O `Thrown::Value` quase sempre é a exceção que `caught_exception` tirou do `VM` para atravessar o código do host;
+/// no C++ ela nunca saiu de lá. Quando o valor é o da última `Exception`, ela volta a ficar pendente (com a pilha do
+/// `throw` que o bun lê no relato de exceção não capturada), em vez de nascer outra sem pilha.
 pub fn rethrow(global_object: &JSGlobalObject, thrown: Thrown) -> HostThrown {
     if let Thrown::Value(value) = thrown {
-        let mut scope = ThrowScope::new(global_object.vm());
-        throw_exception(global_object, &mut scope, value);
+        let vm = global_object.vm();
+        match vm.last_exception().filter(|last| last.value() == value) {
+            Some(last) => vm.set_exception(last),
+            None => {
+                let mut scope = ThrowScope::new(vm);
+                throw_exception(global_object, &mut scope, value);
+            }
+        }
     }
     HostThrown::Pending
 }
