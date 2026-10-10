@@ -9,9 +9,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { spawnSync } = require("child_process");
 
-const BUN = process.env.BUN || "bun";
 const cases = [];
 const seen = new Set();
 const add = (files) => {
@@ -169,28 +167,4 @@ add({
     "L(JSON.stringify([e.constructor.name, String(e), e.code, Object.getOwnPropertyNames(e).filter(f), Object.keys(e), Object.hasOwn(e, 'code'), 'code' in e, p === TypeError.prototype, Object.getPrototypeOf(p) === TypeError.prototype, Object.getOwnPropertyNames(p), String(e.stack).split('\\n')[0]]));",
 });
 
-const lines = [];
-const failures = [];
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "zjsc-module-meta-resolve-golden-"));
-const runner = path.join(tmp, "runner.mjs");
-fs.writeFileSync(runner, RUNNER);
-cases.forEach((caseFiles, i) => {
-  const dir = path.join(tmp, "case" + i);
-  for (const [name, source] of Object.entries(caseFiles)) {
-    const file = path.join(dir, name);
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, source);
-  }
-  const r = spawnSync(BUN, [runner, dir], { encoding: "utf8", timeout: 10000, cwd: tmp });
-  let out = (r.stdout || "").trim().split("\n").pop() || "";
-  if (r.error || r.status === null) out = JSON.stringify({ log: [], error: "timeout" });
-  else if (!out.startsWith("{")) out = JSON.stringify({ log: [], error: "exit " + r.status });
-  const clean = JSON.stringify(caseFiles);
-  if (/[\t\n\r]/.test(clean) || /[\t\n\r]/.test(out)) throw new Error("tab ou quebra de linha no caso " + i);
-  if (out.includes(tmp)) failures.push(i);
-  lines.push(clean + "\t" + out);
-});
-fs.rmSync(tmp, { recursive: true, force: true });
-if (failures.length) throw new Error("caminho da máquina na saída dos casos " + failures.join(","));
-process.stdout.write(require("./golden-prelude.js").assertPublicResult(lines.join("\n") + "\n"));
-process.stderr.write(`casos: ${lines.length}\n`);
+require("./module-golden-run.js").runModuleGolden("module-meta-resolve-golden", RUNNER, cases);

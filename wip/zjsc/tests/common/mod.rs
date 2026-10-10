@@ -17,6 +17,8 @@
 //! `evaluate_golden_program(source, meta, "<nome>.js", "R")`.
 #![allow(dead_code)]
 
+pub mod module_golden;
+
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use std::borrow::Cow;
