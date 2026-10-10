@@ -4,6 +4,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+mod common;
+
 use ul_chromium::fetch::Fetcher;
 use ul_chromium::page::Page;
 use ul_net::net::client::{FetchError, Response};
@@ -43,6 +45,7 @@ fn serve(files: &[(&str, &str)]) -> Fetcher {
 }
 
 fn run(files: &[(&str, &str)]) -> (String, String) {
+    common::install_image_fonts();
     let mut page = Page::load("http://t.test/", serve(files)).unwrap();
     let console = Rc::new(Capture::default());
     page.console = console.clone();
@@ -255,6 +258,21 @@ setTimeout(() => console.log(out.join('\n')), 200);
 </script>"#;
     let (_, log) = run(&[("/", html)]);
     assert_eq!(log, "load 40x20 40x20 true\nload 300x150 300x150 true\nload 40x20 40x20 true\nload 300x150 300x150 true\nload 300x32 300x32 true\nerror 0 true\nblob 1x1 true\nbefore true 0\n");
+}
+
+#[test]
+fn font_families_resolve_like_debian_chromium() {
+    // Medido no oráculo (`testbench/oracle/measured/font-families.html`): sans-serif e Arial são a Liberation Sans,
+    // família desconhecida cai na padrão (Liberation Serif), monospace é a DejaVu Sans Mono.
+    let html = "<body><script>
+const width = (family) => { const s = document.createElement('span'); s.style.font = '16px ' + family; s.style.display = 'inline-block'; s.textContent = 'Hamburgefonstiv WQ 0123'; document.body.append(s); const w = s.getBoundingClientRect().width; s.remove(); return w; };
+const named = (f) => width('\"' + f + '\"');
+const ref = { sans: named('Liberation Sans'), serif: named('Liberation Serif'), mono: named('DejaVu Sans Mono'), dvs: named('DejaVu Sans') };
+const pick = (w) => Object.keys(ref).find((k) => ref[k] === w) || w;
+console.log(ref.sans, ['sans-serif', 'Arial', 'Helvetica', 'serif', 'Foo', '\"Times New Roman\"', 'monospace', 'system-ui'].map((f) => f + '=' + pick(width(f))).join(' '));
+</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "192.984375 sans-serif=sans Arial=sans Helvetica=sans serif=serif Foo=serif \"Times New Roman\"=serif monospace=mono system-ui=dvs\n");
 }
 
 #[test]

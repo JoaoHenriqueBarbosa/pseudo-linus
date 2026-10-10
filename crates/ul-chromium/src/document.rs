@@ -23,7 +23,12 @@ pub fn parse(html: &str) -> BaseDocument {
 pub const WINDOW: (u32, u32) = (780, 493);
 
 fn config(base_url: &str) -> DocumentConfig {
-    DocumentConfig { base_url: Some(base_url.to_owned()), viewport: Some(Viewport::new(WINDOW.0, WINDOW.1, 1.0, ColorScheme::Light)), ..DocumentConfig::default() }
+    DocumentConfig {
+        base_url: Some(base_url.to_owned()),
+        viewport: Some(Viewport::new(WINDOW.0, WINDOW.1, 1.0, ColorScheme::Light)),
+        font_ctx: Some(crate::fonts::context()),
+        ..DocumentConfig::default()
+    }
 }
 
 /// [`parse`] com a URL do documento como base (o Blitz resolve por ela os `href` de folhas e imagens). Documento

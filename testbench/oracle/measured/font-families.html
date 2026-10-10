@@ -1,0 +1,14 @@
+<!doctype html><body><script>
+const ctx = document.createElement('canvas').getContext('2d');
+const text = 'Hamburgefonstiv WQ 0123';
+const w = (f) => { ctx.font = '20px ' + f; return ctx.measureText(text).width; };
+const real = ['Liberation Sans', 'Liberation Serif', 'Liberation Mono', 'DejaVu Sans', 'DejaVu Serif', 'DejaVu Sans Mono'];
+const ref = Object.fromEntries(real.map((f) => [f, w('"' + f + '"')]));
+const ask = ['sans-serif', 'serif', 'monospace', 'system-ui', 'cursive', 'fantasy', 'Arial', 'Helvetica', '"Times New Roman"', 'Times', '"Courier New"', 'Courier', 'Foo', 'ui-monospace', 'ui-sans-serif', 'math', 'emoji', '-apple-system', 'BlinkMacSystemFont', 'Verdana', 'Georgia', 'Inter', 'Roboto', '"Segoe UI"'];
+const out = ask.map((f) => { const v = w(f); const hit = real.find((r) => ref[r] === v); return f + '=' + (hit || v); });
+const m = (ctx.font = '10px sans-serif', ctx.measureText('Hello'));
+out.push('metrics ' + [m.width, m.actualBoundingBoxLeft, m.actualBoundingBoxRight, m.actualBoundingBoxAscent, m.actualBoundingBoxDescent, m.fontBoundingBoxAscent, m.fontBoundingBoxDescent, m.alphabeticBaseline, m.hangingBaseline, m.ideographicBaseline].join(','));
+const d = document.createElement('span'); d.style.font = '16px sans-serif'; d.textContent = text; document.body.append(d);
+out.push('span ' + d.getBoundingClientRect().width + ' ' + d.getBoundingClientRect().height + ' default ' + getComputedStyle(document.body).fontFamily);
+document.body.setAttribute('data-out', out.join('|'));
+</script></body>

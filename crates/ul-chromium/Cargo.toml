@@ -15,10 +15,13 @@ ul-net = { path = "../ul-net" }
 html5ever = "0.39"
 markup5ever = "0.39"
 encoding_rs = "0.8"
-# O DOM, o parser e os seletores vêm do Blitz (Dioxus), não de uma árvore própria.
-blitz-dom = "=0.3.0-beta.2"
+# O DOM, o parser e os seletores vêm do Blitz (Dioxus), não de uma árvore própria. Sem `system-fonts`: as fontes
+# do hospedeiro não podem entrar (ver `fonts`).
+blitz-dom = { version = "=0.3.0-beta.2", default-features = false, features = ["svg", "woff", "accessibility", "file-input", "custom-widget"] }
 blitz-html = "=0.3.0-beta.2"
 blitz-traits = "=0.3.0-beta.2"
+# O contexto de fontes do Blitz, montado aqui com as fontes da VFS (sem as do sistema hospedeiro).
+parley = { version = "0.11.1", default-features = false, features = ["std"] }
 # O motor de CSS do Servo (o mesmo que o Blitz usa): parse e serialização canônica do `style` escrito via CSSOM.
 stylo = "=0.20.0"
 # O parser de media query do `matchMedia` é o do stylo, que pede o tokenizador e os modos de parse dele.

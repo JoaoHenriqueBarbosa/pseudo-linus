@@ -5,6 +5,7 @@ pub mod cli;
 pub mod document;
 pub mod encoding;
 pub mod fetch;
+pub mod fonts;
 pub mod imaging;
 pub mod page;
 

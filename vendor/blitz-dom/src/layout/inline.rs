@@ -423,8 +423,9 @@ impl BaseDocument {
                     AvailableSpace::Definite(limit) => (limit * scale)
                         .min(max_content_width + float_width)
                         .max(min_content_width),
-                }
-                .ceil();
+                };
+                // O Blink arredonda a largura intrínseca para cima na unidade de layout dele (1/64 px), não no pixel.
+                let computed_width = (computed_width * 64.0).ceil() / 64.0;
 
                 let style_width = node_size.width.map(|w| w * scale);
                 let min_width = node_min_size.width.map(|w| w * scale);
@@ -465,7 +466,7 @@ impl BaseDocument {
                 .inline_layout_data = Some(inline_layout);
 
             let measured_size = inputs.known_dimensions.unwrap_or(taffy::Size {
-                width: width.ceil() / scale,
+                width: (width * 64.0).ceil() / 64.0 / scale,
                 // Height is ignored if RequestedAxis if Horizontal
                 height: 0.0,
             });

@@ -11,6 +11,8 @@ use std::sync::Mutex;
 
 use sysabi::testkit::TestKit;
 
+mod common;
+
 use ul_chromium::fetch::Fetcher;
 use ul_chromium::page::Page;
 use ul_net::net::client::{FetchError, Response};
@@ -167,7 +169,7 @@ fn internet_scoreboard() {
         *CURRENT.lock().unwrap() = Some((tape_dir, address.to_owned()));
         // A página roda num pseudo-processo no instante da gravação: o `Date` dela lê o mesmo relógio que o oráculo
         // tinha sob o faketime.
-        let kit = TestKit::new().programs(vec![sysabi::Program::bin("tape-page", tape_page_main)]).time(recorded_at);
+        let kit = common::with_image_fonts(TestKit::new().programs(vec![sysabi::Program::bin("tape-page", tape_page_main)]).time(recorded_at));
         let run = kit.run(&["tape-page"], b"");
         let dump = DUMP.lock().unwrap().take();
         let actual = match (run.status == sysabi::WaitStatus::Exited(0), dump) {

@@ -5,6 +5,8 @@ use std::path::PathBuf;
 
 use sysabi::testkit::TestKit;
 
+mod common;
+
 fn bench() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../testbench")
 }
@@ -21,7 +23,7 @@ fn dump_dom_matches_oracle() {
         let file = path.file_name().unwrap().to_string_lossy().into_owned();
         let name = path.file_stem().unwrap().to_string_lossy().into_owned();
         let expected = std::fs::read_to_string(golden.join(format!("{name}.dom"))).unwrap();
-        let kit = TestKit::new().programs(ul_chromium::programs()).file(&format!("/pg/{file}"), std::fs::read(path).unwrap(), 0o644);
+        let kit = common::with_image_fonts(TestKit::new().programs(ul_chromium::programs()).file(&format!("/pg/{file}"), std::fs::read(path).unwrap(), 0o644));
         let run = kit.run(&["chromium", "--headless", "--no-sandbox", "--disable-gpu", "--dump-dom", &format!("file:///pg/{file}")], b"");
         let actual = run.stdout_str();
         // Divergência conhecida que passou a casar é aviso para tirar da lista, não sucesso silencioso.
