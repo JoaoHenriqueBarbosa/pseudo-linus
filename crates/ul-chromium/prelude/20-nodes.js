@@ -50,7 +50,7 @@ const isIndex = (key) => typeof key === 'string' && key !== '' && /^(0|[1-9][0-9
 
 const liveList = (proto, fetch) => {
   const target = Object.create(proto);
-  return new Proxy(target, {
+  return proxied(target, {
     get(t, key, receiver) {
       if (isIndex(key)) return fetch()[+key];
       if (key === 'length') return fetch().length;
@@ -88,8 +88,8 @@ class Node extends EventTarget {
     return op('name', id);
   }
   get nodeValue() { const kind = this.nodeType; return kind === 3 || kind === 8 ? op('data', idOf(this)) : null; }
-  set nodeValue(value) { const kind = this.nodeType; if (kind === 3 || kind === 8) this.__setData(toStr(value)); }
-  __setData(value) {
+  set nodeValue(value) { const kind = this.nodeType; if (kind === 3 || kind === 8) this[P.__setData](toStr(value)); }
+  [P.__setData](value) {
     const old = op('data', idOf(this));
     op('setData', idOf(this), value);
     mutationHook.record({ type: 'characterData', target: this, oldValue: old });
@@ -103,7 +103,7 @@ class Node extends EventTarget {
   set textContent(value) {
     const kind = this.nodeType;
     const text = value === null || value === undefined ? '' : String(value);
-    if (kind === 3 || kind === 8) return this.__setData(text);
+    if (kind === 3 || kind === 8) return this[P.__setData](text);
     if (kind === 9) return;
     const removed = this.childNodes.length ? Array.from(this.childNodes) : [];
     op('setTextContent', idOf(this), text);
@@ -114,9 +114,9 @@ class Node extends EventTarget {
   get childNodes() { const id = idOf(this); return liveList(NodeList.prototype, () => op('children', id).map(wrap)); }
   get firstChild() { const kids = childIds(this); return kids.length ? wrap(kids[0]) : null; }
   get lastChild() { const kids = childIds(this); return kids.length ? wrap(kids[kids.length - 1]) : null; }
-  get previousSibling() { return this.__sibling(-1); }
-  get nextSibling() { return this.__sibling(1); }
-  __sibling(step) {
+  get previousSibling() { return this[P.__sibling](-1); }
+  get nextSibling() { return this[P.__sibling](1); }
+  [P.__sibling](step) {
     const id = idOf(this);
     const parent = op('parent', id);
     if (parent === null) return null;
@@ -131,7 +131,7 @@ class Node extends EventTarget {
   getRootNode() {
     let node = this;
     for (let parent = node.parentNode; parent; parent = node.parentNode) node = parent;
-    if (node.__host && arguments[0] && arguments[0].composed) return node.__host.getRootNode(arguments[0]);
+    if (node[P.__host] && arguments[0] && arguments[0].composed) return node[P.__host].getRootNode(arguments[0]);
     return node;
   }
   contains(other) {
@@ -139,15 +139,15 @@ class Node extends EventTarget {
     for (let node = other; node; node = node.parentNode) if (node === this) return true;
     return false;
   }
-  __checkInsert(node, reference, method) {
+  [P.__checkInsert](node, reference, method) {
     if (!isNode(node)) throw new TypeError(`Failed to execute '${method}' on 'Node': parameter 1 is not of type 'Node'.`);
     const kind = this.nodeType;
     if (kind !== 1 && kind !== 9 && kind !== 11) throw domException(`Failed to execute '${method}' on 'Node': This node type does not support this method.`, 'HierarchyRequestError');
     if (node.contains(this)) throw domException(`Failed to execute '${method}' on 'Node': The new child element contains the parent.`, 'HierarchyRequestError');
     if (reference !== null && reference.parentNode !== this) throw domException(`Failed to execute '${method}' on 'Node': The node before which the new node is to be inserted is not a child of this node.`, 'NotFoundError');
   }
-  __insert(node, reference, method) {
-    this.__checkInsert(node, reference, method);
+  [P.__insert](node, reference, method) {
+    this[P.__checkInsert](node, reference, method);
     const wasFragment = node.nodeType === 11;
     const added = wasFragment ? Array.from(node.childNodes) : [node];
     const oldParent = wasFragment ? null : node.parentNode;
@@ -160,10 +160,10 @@ class Node extends EventTarget {
     for (const child of added) afterInsert(child);
     return node;
   }
-  appendChild(node) { return this.__insert(node, null, 'appendChild'); }
+  appendChild(node) { return this[P.__insert](node, null, 'appendChild'); }
   insertBefore(node, reference) {
     if (arguments.length < 2) throw new TypeError("Failed to execute 'insertBefore' on 'Node': 2 arguments required, but only 1 present.");
-    return this.__insert(node, reference === undefined ? null : reference, 'insertBefore');
+    return this[P.__insert](node, reference === undefined ? null : reference, 'insertBefore');
   }
   removeChild(child) {
     if (!isNode(child)) throw new TypeError("Failed to execute 'removeChild' on 'Node': parameter 1 is not of type 'Node'.");
@@ -180,7 +180,7 @@ class Node extends EventTarget {
     if (!isNode(child) || child.parentNode !== this) throw domException("Failed to execute 'replaceChild' on 'Node': The node to be replaced is not a child of this node.", 'NotFoundError');
     const next = child.nextSibling === node ? node.nextSibling : child.nextSibling;
     this.removeChild(child);
-    this.__insert(node, next, 'replaceChild');
+    this[P.__insert](node, next, 'replaceChild');
     return child;
   }
   cloneNode(deep) { return wrap(op('clone', idOf(this), !!deep)); }
@@ -203,7 +203,7 @@ class Node extends EventTarget {
         else {
           let after = child.nextSibling;
           while (after && after.nodeType === 3) {
-            child.__setData(child.data + after.data);
+            child[P.__setData](child.data + after.data);
             const following = after.nextSibling;
             this.removeChild(after);
             after = following;
@@ -275,7 +275,7 @@ const NonElementSiblings = {
 
 class CharacterData extends Node {
   get data() { return op('data', idOf(this)); }
-  set data(value) { this.__setData(toStr(value)); }
+  set data(value) { this[P.__setData](toStr(value)); }
   get length() { return this.data.length; }
   substringData(offset, count) { return this.data.substr(offset, count); }
   appendData(value) { this.data = this.data + value; }
@@ -329,6 +329,10 @@ mixin(DocumentFragment.prototype, ParentNode);
 delete DocumentFragment.prototype.getElementById;
 DocumentFragment.prototype.getElementById = function (id) { return this.querySelector('#' + CSS.escape(String(id))); };
 
-class DocumentType extends Node {}
+class DocumentType extends Node {
+  get name() { return this[P.__name]; }
+  get publicId() { return this[P.__publicId]; }
+  get systemId() { return this[P.__systemId]; }
+}
 tag(DocumentType, 'DocumentType');
 mixin(DocumentType.prototype, ChildNode);

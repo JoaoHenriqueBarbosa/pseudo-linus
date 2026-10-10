@@ -100,6 +100,17 @@ fn no_server_runtime_globals() {
     assert_eq!(log, "undefined undefined undefined\n");
 }
 
+/// O estado interno do navegador não aparece como propriedade própria de nenhum objeto da página.
+#[test]
+fn no_internal_own_properties() {
+    let script = "<div id=h></div><script>var el = document.getElementById('h'); el.attachShadow({mode:'open'}); el.classList.add('x'); \
+        var x = new XMLHttpRequest(); var e = new Event('a'); document.doctype; \
+        console.log([el, el.shadowRoot, document, x, e, document.doctype, history, location, window].map(o => Reflect.ownKeys(o).filter(k => String(k).startsWith('__') || String(k).startsWith('Symbol(__')).length).join(), \
+        Object.keys(x).length, 'withCredentials' in XMLHttpRequest.prototype, el.shadowRoot.mode, document.doctype.name)</script>";
+    let (_, log) = run(&[("/", &format!("<!DOCTYPE html>{script}"))]);
+    assert_eq!(log, "0,0,0,0,0,0,0,0,0 0 true open html\n");
+}
+
 /// O innerHTML da raiz de sombra cria elementos HTML (o contexto é o host) e o slot atribui por nome.
 #[test]
 fn shadow_root_slots() {

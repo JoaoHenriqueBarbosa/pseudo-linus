@@ -130,6 +130,11 @@ impl PageRunner {
         self.modules.set_network_latency_ms(milliseconds);
     }
 
+    /// Troca o `Math.random` da página pelo do V8 com a semente dada (o `--js-flags=--random-seed` do Chromium).
+    pub fn set_random_seed(&self, seed: u64) {
+        self.global_object.set_v8_random_seed(seed);
+    }
+
     /// Entrega ao hospedeiro as rejeições sem tratador: `handle` recebe `("unhandled", promise, reason)` ao fim de
     /// cada checkpoint e `("handled", promise)` quando o tratador chega depois. Tira o tratamento padrão do bun.
     pub fn set_rejection_hook(&self, handle: &HostHandle) {
@@ -167,6 +172,13 @@ pub fn run_page<T>(console: Rc<dyn ConsoleHost>, dom: Rc<dyn DomHost>, document_
         global_object.set_console_host(console);
         dom_bridge::install(&global_object, dom);
         install_global_function_with_visibility(&global_object, "__pl_eval", 2, pl_eval, ImplementationVisibility::Private);
+        install_global_function_with_visibility(
+            &global_object,
+            "__pl_private",
+            1,
+            crate::runtime::js_global_object_private_functions::create_private_symbol,
+            ImplementationVisibility::Private,
+        );
         let modules = Rc::new(UrlModuleHost::new(document_url, fetch));
         install_url_module_loader(&global_object, modules.clone());
         PAGE_GLOBAL.with(|slot| *slot.borrow_mut() = Some(global_object.clone()));

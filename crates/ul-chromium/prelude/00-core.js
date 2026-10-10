@@ -1,9 +1,31 @@
 const op = __pl_dom;
 const evalGlobal = __pl_eval;
+const privateSymbol = __pl_private;
 delete globalThis.__pl_dom;
 delete globalThis.__pl_eval;
+delete globalThis.__pl_private;
 
-const hidden = (target, key, value) => Object.defineProperty(target, key, { value, writable: true, configurable: true, enumerable: false });
+// O estado interno do navegador vive em símbolos privados do JSC (`P.__nome`, criados sob demanda): invisíveis a
+// Reflect.ownKeys, getOwnPropertyNames, `in`, JSON, descritores, structuredClone e às armadilhas de Proxy.
+const privateNames = new Map();
+const P = new Proxy(Object.create(null), {
+  get(_, name) {
+    let symbol = privateNames.get(name);
+    if (symbol === undefined) privateNames.set(name, (symbol = privateSymbol(name)));
+    return symbol;
+  },
+});
+const hidden = (target, key, value) => { target[P[key]] = value; };
+// Um nome privado lido num Proxy fica no próprio Proxy, não vai ao alvo nem ao protótipo dele: o objeto do DOM que
+// é Proxy (listas vivas, classList, style, dataset, storage) leva consigo o estado e os métodos privados do alvo.
+const proxied = (target, handler) => {
+  const proxy = new Proxy(target, handler);
+  for (const symbol of privateNames.values()) {
+    const value = target[symbol];
+    if (value !== undefined) proxy[symbol] = value;
+  }
+  return proxy;
+};
 const tag = (cls, name) => Object.defineProperty(cls.prototype, Symbol.toStringTag, { value: name, configurable: true });
 const ILLEGAL = Symbol('illegal');
 const HTML_NS = 'http://www.w3.org/1999/xhtml';

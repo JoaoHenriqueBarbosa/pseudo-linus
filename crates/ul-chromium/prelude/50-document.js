@@ -12,13 +12,13 @@ const cookieJar = new Map();
 
 class Document extends Node {
   constructor() { throw new TypeError('Illegal constructor'); }
-  get __html() { return true; }
+  get [P.__html]() { return true; }
   get nodeName() { return '#document'; }
   get documentElement() { return wrapOrNull(op('docElement', idOf(this))); }
   get head() { const html = this.documentElement; return html ? Array.from(html.children).find((c) => c.localName === 'head') || null : null; }
   get body() { const html = this.documentElement; return html ? Array.from(html.children).find((c) => c.localName === 'body' || c.localName === 'frameset') || null : null; }
   set body(value) { const html = this.documentElement; const old = this.body; if (old) html.replaceChild(value, old); else html.appendChild(value); }
-  get doctype() { const dt = op('doctype'); if (dt === null) return null; if (!this.__doctype) { const o = Object.create(DocumentType.prototype); ids.set(o, -2); const m = /^<!DOCTYPE ([^ >]*)(?: PUBLIC "([^"]*)"(?: "([^"]*)")?)?/.exec(dt); hidden(o, 'name', m[1]); hidden(o, 'publicId', m[2] || ''); hidden(o, 'systemId', m[3] || ''); hidden(this, '__doctype', o); } return this.__doctype; }
+  get doctype() { const dt = op('doctype'); if (dt === null) return null; if (!this[P.__doctype]) { const o = Object.create(DocumentType.prototype); ids.set(o, -2); const m = /^<!DOCTYPE ([^ >]*)(?: PUBLIC "([^"]*)"(?: "([^"]*)")?)?/.exec(dt); hidden(o, '__name', m[1]); hidden(o, '__publicId', m[2] || ''); hidden(o, '__systemId', m[3] || ''); hidden(this, '__doctype', o); } return this[P.__doctype]; }
   get title() { const t = this.querySelector('title'); return t ? t.textContent.replace(/[ \t\n\f\r]+/g, ' ').trim() : ''; }
   set title(value) {
     let t = this.querySelector('title');
@@ -45,12 +45,12 @@ class Document extends Node {
   get charset() { return 'UTF-8'; }
   get inputEncoding() { return 'UTF-8'; }
   get compatMode() { return op('doctype') === null ? 'BackCompat' : 'CSS1Compat'; }
-  get readyState() { return this.__readyState || 'loading'; }
+  get readyState() { return this[P.__readyState] || 'loading'; }
   get visibilityState() { return 'visible'; }
   get hidden() { return false; }
   get defaultView() { return window; }
-  get currentScript() { return this.__currentScript || null; }
-  get activeElement() { return this.__active || this.body; }
+  get currentScript() { return this[P.__currentScript] || null; }
+  get activeElement() { return this[P.__active] || this.body; }
   get lastModified() { return '01/01/1970 00:00:00'; }
   get designMode() { return 'off'; }
   get dir() { return this.documentElement ? this.documentElement.dir : ''; }
@@ -64,8 +64,8 @@ class Document extends Node {
   get embeds() { return liveList(HTMLCollection.prototype, () => Array.from(document.querySelectorAll('embed'))); }
   get styleSheets() { return Object.assign(Array.from(document.querySelectorAll('style,link[rel~=stylesheet]'), (el) => el.sheet).filter(Boolean), { item(i) { return this[i] || null; } }); }
   get fonts() { return fontFaceSet; }
-  get adoptedStyleSheets() { return this.__adopted || (this.__adopted = []); }
-  set adoptedStyleSheets(v) { this.__adopted = v; }
+  get adoptedStyleSheets() { return this[P.__adopted] || (this[P.__adopted] = []); }
+  set adoptedStyleSheets(v) { this[P.__adopted] = v; }
   get scrollingElement() { return this.documentElement; }
   get timeline() { return { currentTime: performance.now() }; }
   get implementation() { return domImplementation; }
@@ -136,7 +136,7 @@ Object.defineProperty(Document.prototype, 'getElementById', { value: Document.pr
 defineHandlerProperties(Document.prototype, [...GLOBAL_HANDLERS, 'readystatechange', 'visibilitychange', 'fullscreenchange', 'fullscreenerror', 'pointerlockchange', 'pointerlockerror', 'freeze', 'resume', 'prerenderingchange', 'beforecopy', 'beforecut', 'beforepaste', 'search', 'webkitfullscreenchange', 'webkitfullscreenerror']);
 
 function documentWrite(html) {
-  const current = document.__currentScript;
+  const current = document[P.__currentScript];
   const holder = parseFragment(current ? current.parentNode : document.body, html);
   const fragment = document.createDocumentFragment();
   while (holder.firstChild) fragment.appendChild(holder.firstChild);
@@ -152,9 +152,9 @@ class DOMImplementation {
   createDocumentType(name, publicId, systemId) {
     const o = Object.create(DocumentType.prototype);
     ids.set(o, -2);
-    hidden(o, 'name', String(name));
-    hidden(o, 'publicId', String(publicId));
-    hidden(o, 'systemId', String(systemId));
+    hidden(o, '__name', String(name));
+    hidden(o, '__publicId', String(publicId));
+    hidden(o, '__systemId', String(systemId));
     return o;
   }
   hasFeature() { return true; }
@@ -209,12 +209,12 @@ tag(Range, 'Range');
 
 class TreeWalker {
   constructor(root, whatToShow, filter) { this.root = root; this.whatToShow = whatToShow; this.filter = filter; this.currentNode = root; }
-  __accept(node) {
+  [P.__accept](node) {
     if (!(this.whatToShow & (1 << (node.nodeType - 1)))) return 3;
     if (!this.filter) return 1;
     return typeof this.filter === 'function' ? this.filter(node) : this.filter.acceptNode(node);
   }
-  __next(from, skipChildren) {
+  [P.__next](from, skipChildren) {
     let node = from;
     for (;;) {
       if (!skipChildren && node.firstChild) node = node.firstChild;
@@ -224,12 +224,12 @@ class TreeWalker {
         node = node.nextSibling;
       }
       skipChildren = false;
-      const verdict = this.__accept(node);
+      const verdict = this[P.__accept](node);
       if (verdict === 1) return node;
       if (verdict === 2) skipChildren = true;
     }
   }
-  nextNode() { const n = this.__next(this.currentNode, false); if (n) this.currentNode = n; return n; }
+  nextNode() { const n = this[P.__next](this.currentNode, false); if (n) this.currentNode = n; return n; }
   firstChild() { const kid = this.currentNode.firstChild; if (!kid) return null; this.currentNode = kid; return kid; }
   parentNode() { const p = this.currentNode.parentNode; if (!p || this.currentNode === this.root) return null; this.currentNode = p; return p; }
   nextSibling() { const s = this.currentNode.nextSibling; if (!s) return null; this.currentNode = s; return s; }
@@ -239,7 +239,7 @@ class TreeWalker {
 }
 tag(TreeWalker, 'TreeWalker');
 class NodeIterator extends TreeWalker {
-  nextNode() { const n = this.__next(this.referenceNode || this.root, false); this.referenceNode = n || this.referenceNode; return n; }
+  nextNode() { const n = this[P.__next](this.referenceNode || this.root, false); this.referenceNode = n || this.referenceNode; return n; }
   previousNode() { return null; }
   detach() {}
 }

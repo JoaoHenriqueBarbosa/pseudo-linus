@@ -122,6 +122,8 @@ fn tape_page_main(ctx: &mut sysabi::Ctx, _argv: &[std::ffi::OsString]) -> i32 {
         }
     };
     page.budget_ms = BUDGET_MS;
+    // A mesma semente do oráculo (`--js-flags=--random-seed=1` em replay-dump.sh).
+    page.random_seed = Some(1);
     if std::env::var("CONSOLE").is_ok() {
         page.console = Rc::new(StderrConsole);
     }

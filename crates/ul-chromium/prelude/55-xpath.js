@@ -133,24 +133,24 @@ const xpathParse = (source) => {
 // Avaliação. Valores: número, string, booleano, ou conjunto de nós (array em ordem de documento).
 const docOrder = (nodes) => {
   const unique = Array.from(new Set(nodes));
-  return unique.sort((a, b) => (a === b ? 0 : a.__xattr || b.__xattr ? xattrOrder(a, b) : a.compareDocumentPosition(b) & 4 ? -1 : 1));
+  return unique.sort((a, b) => (a === b ? 0 : a[P.__xattr] || b[P.__xattr] ? xattrOrder(a, b) : a.compareDocumentPosition(b) & 4 ? -1 : 1));
 };
-const xattrOwner = (n) => (n.__xattr ? n.__owner : n);
+const xattrOwner = (n) => (n[P.__xattr] ? n[P.__owner] : n);
 const xattrOrder = (a, b) => {
   const oa = xattrOwner(a), ob = xattrOwner(b);
   if (oa !== ob) return oa.compareDocumentPosition(ob) & 4 ? -1 : 1;
-  return a.__xattr ? (b.__xattr ? 0 : 1) : -1;
+  return a[P.__xattr] ? (b[P.__xattr] ? 0 : 1) : -1;
 };
 const xattrs = (el) => (el.nodeType === 1 ? el.getAttributeNames().map((name) => { const a = makeAttr(el, name, el.getAttribute(name)); hidden(a, '__xattr', true); return a; }) : []);
-const stringValue = (n) => (n.__xattr ? n.value : n.nodeType === 9 ? (n.documentElement ? n.documentElement.textContent : '') : n.textContent ?? '');
+const stringValue = (n) => (n[P.__xattr] ? n.value : n.nodeType === 9 ? (n.documentElement ? n.documentElement.textContent : '') : n.textContent ?? '');
 const toStringValue = (v) => (Array.isArray(v) ? (v.length ? stringValue(v[0]) : '') : typeof v === 'number' ? (Number.isInteger(v) ? String(v) : Number.isNaN(v) ? 'NaN' : String(v)) : String(v));
 const toNumberValue = (v) => { if (typeof v === 'number') return v; if (typeof v === 'boolean') return v ? 1 : 0; const s = toStringValue(v).trim(); return s === '' || !/^-?(\d+(\.\d*)?|\.\d+)$/.test(s) ? NaN : Number(s); };
 const toBooleanValue = (v) => (Array.isArray(v) ? v.length > 0 : typeof v === 'number' ? v !== 0 && !Number.isNaN(v) : typeof v === 'string' ? v.length > 0 : !!v);
 
 const axisNodes = (node, axis) => {
-  const kids = (n) => (n.__xattr ? [] : Array.from(n.childNodes));
+  const kids = (n) => (n[P.__xattr] ? [] : Array.from(n.childNodes));
   const descendants = (n, out = []) => { for (const c of kids(n)) { out.push(c); descendants(c, out); } return out; };
-  const parent = (n) => (n.__xattr ? n.__owner : n.parentNode);
+  const parent = (n) => (n[P.__xattr] ? n[P.__owner] : n.parentNode);
   const ancestors = (n) => { const out = []; for (let p = parent(n); p; p = p.parentNode) out.push(p); return out; };
   switch (axis) {
     case 'child': return kids(node);
@@ -161,8 +161,8 @@ const axisNodes = (node, axis) => {
     case 'ancestor': return ancestors(node);
     case 'ancestor-or-self': return [node, ...ancestors(node)];
     case 'attribute': return xattrs(node);
-    case 'following-sibling': { if (node.__xattr) return []; const out = []; for (let s = node.nextSibling; s; s = s.nextSibling) out.push(s); return out; }
-    case 'preceding-sibling': { if (node.__xattr) return []; const out = []; for (let s = node.previousSibling; s; s = s.previousSibling) out.push(s); return out; }
+    case 'following-sibling': { if (node[P.__xattr]) return []; const out = []; for (let s = node.nextSibling; s; s = s.nextSibling) out.push(s); return out; }
+    case 'preceding-sibling': { if (node[P.__xattr]) return []; const out = []; for (let s = node.previousSibling; s; s = s.previousSibling) out.push(s); return out; }
     case 'following': { const out = []; for (let n = xattrOwner(node); n; n = parent(n)) for (let s = n.nextSibling; s; s = s.nextSibling) { out.push(s); descendants(s, out); } return out; }
     case 'preceding': {
       const out = [];
@@ -177,17 +177,17 @@ const reverseAxis = (axis) => ['ancestor', 'ancestor-or-self', 'preceding', 'pre
 const matchesTest = (n, test, axis) => {
   switch (test.type) {
     case 'node': return true;
-    case 'text': return !n.__xattr && n.nodeType === 3;
-    case 'comment': return !n.__xattr && n.nodeType === 8;
+    case 'text': return !n[P.__xattr] && n.nodeType === 3;
+    case 'comment': return !n[P.__xattr] && n.nodeType === 8;
     case 'processing-instruction': return false;
     default: {
-      const principal = axis === 'attribute' ? !!n.__xattr : !n.__xattr && n.nodeType === 1;
+      const principal = axis === 'attribute' ? !!n[P.__xattr] : !n[P.__xattr] && n.nodeType === 1;
       if (!principal) return false;
       if (test.name === '*') return true;
-      const name = n.__xattr ? n.name : n.localName;
+      const name = n[P.__xattr] ? n.name : n.localName;
       const wanted = test.name.includes(':') ? test.name.slice(test.name.indexOf(':') + 1) : test.name;
       if (wanted === '*') return true;
-      return n.__xattr || n.namespaceURI !== HTML_NS ? name === wanted : name === wanted.toLowerCase();
+      return n[P.__xattr] || n.namespaceURI !== HTML_NS ? name === wanted : name === wanted.toLowerCase();
     }
   }
 };
@@ -197,9 +197,9 @@ const xpathFunctions = {
   position: (ctx) => ctx.position,
   count: (ctx, [a]) => a.length,
   id: (ctx, [a]) => { const ids = (Array.isArray(a) ? a.map(stringValue).join(' ') : toStringValue(a)).split(/\s+/).filter(Boolean); return docOrder(ids.map((x) => document.getElementById(x)).filter(Boolean)); },
-  'local-name': (ctx, args) => { const n = args.length ? args[0][0] : ctx.node; return !n ? '' : n.__xattr ? n.name : n.nodeType === 1 ? n.localName : ''; },
-  name: (ctx, args) => { const n = args.length ? args[0][0] : ctx.node; return !n ? '' : n.__xattr ? n.name : n.nodeType === 1 ? n.localName : ''; },
-  'namespace-uri': (ctx, args) => { const n = args.length ? args[0][0] : ctx.node; return n && !n.__xattr && n.nodeType === 1 ? n.namespaceURI || '' : ''; },
+  'local-name': (ctx, args) => { const n = args.length ? args[0][0] : ctx.node; return !n ? '' : n[P.__xattr] ? n.name : n.nodeType === 1 ? n.localName : ''; },
+  name: (ctx, args) => { const n = args.length ? args[0][0] : ctx.node; return !n ? '' : n[P.__xattr] ? n.name : n.nodeType === 1 ? n.localName : ''; },
+  'namespace-uri': (ctx, args) => { const n = args.length ? args[0][0] : ctx.node; return n && !n[P.__xattr] && n.nodeType === 1 ? n.namespaceURI || '' : ''; },
   string: (ctx, args) => toStringValue(args.length ? args[0] : [ctx.node]),
   concat: (ctx, args) => args.map(toStringValue).join(''),
   'starts-with': (ctx, [a, b]) => toStringValue(a).startsWith(toStringValue(b)),
@@ -300,15 +300,15 @@ function xpathEval(expr, ctx) {
 
 class XPathResult {
   constructor() { throw new TypeError('Illegal constructor'); }
-  get resultType() { return this.__type; }
-  get numberValue() { if (this.__type !== 1) throw new TypeError("Failed to read the 'numberValue' property from 'XPathResult': The result type is not a number."); return this.__value; }
-  get stringValue() { if (this.__type !== 2) throw new TypeError("Failed to read the 'stringValue' property from 'XPathResult': The result type is not a string."); return this.__value; }
-  get booleanValue() { if (this.__type !== 3) throw new TypeError("Failed to read the 'booleanValue' property from 'XPathResult': The result type is not a boolean."); return this.__value; }
-  get singleNodeValue() { if (this.__type !== 8 && this.__type !== 9) throw new TypeError("Failed to read the 'singleNodeValue' property from 'XPathResult': The result type is not a single node."); return this.__value[0] || null; }
-  get snapshotLength() { if (this.__type !== 6 && this.__type !== 7) throw new TypeError("Failed to read the 'snapshotLength' property from 'XPathResult': The result type is not a snapshot."); return this.__value.length; }
+  get resultType() { return this[P.__type]; }
+  get numberValue() { if (this[P.__type] !== 1) throw new TypeError("Failed to read the 'numberValue' property from 'XPathResult': The result type is not a number."); return this[P.__value]; }
+  get stringValue() { if (this[P.__type] !== 2) throw new TypeError("Failed to read the 'stringValue' property from 'XPathResult': The result type is not a string."); return this[P.__value]; }
+  get booleanValue() { if (this[P.__type] !== 3) throw new TypeError("Failed to read the 'booleanValue' property from 'XPathResult': The result type is not a boolean."); return this[P.__value]; }
+  get singleNodeValue() { if (this[P.__type] !== 8 && this[P.__type] !== 9) throw new TypeError("Failed to read the 'singleNodeValue' property from 'XPathResult': The result type is not a single node."); return this[P.__value][0] || null; }
+  get snapshotLength() { if (this[P.__type] !== 6 && this[P.__type] !== 7) throw new TypeError("Failed to read the 'snapshotLength' property from 'XPathResult': The result type is not a snapshot."); return this[P.__value].length; }
   get invalidIteratorState() { return false; }
-  iterateNext() { if (this.__type !== 4 && this.__type !== 5) throw new TypeError("Failed to execute 'iterateNext' on 'XPathResult': The result type is not an iterator."); return this.__value[this.__cursor++] || null; }
-  snapshotItem(i) { if (this.__type !== 6 && this.__type !== 7) throw new TypeError("Failed to execute 'snapshotItem' on 'XPathResult': The result type is not a snapshot."); return this.__value[i] || null; }
+  iterateNext() { if (this[P.__type] !== 4 && this[P.__type] !== 5) throw new TypeError("Failed to execute 'iterateNext' on 'XPathResult': The result type is not an iterator."); return this[P.__value][this[P.__cursor]++] || null; }
+  snapshotItem(i) { if (this[P.__type] !== 6 && this[P.__type] !== 7) throw new TypeError("Failed to execute 'snapshotItem' on 'XPathResult': The result type is not a snapshot."); return this[P.__value][i] || null; }
 }
 Object.assign(XPathResult, XPATH_TYPES);
 Object.assign(XPathResult.prototype, XPATH_TYPES);
@@ -318,7 +318,7 @@ class XPathExpression {
   constructor() { throw new TypeError('Illegal constructor'); }
   evaluate(contextNode, type = 0) {
     if (!isNode(contextNode)) throw new TypeError("Failed to execute 'evaluate' on 'XPathExpression': parameter 1 is not of type 'Node'.");
-    let value = xpathEval(this.__tree, { node: contextNode, position: 1, size: 1 });
+    let value = xpathEval(this[P.__tree], { node: contextNode, position: 1, size: 1 });
     let resultType = Number(type) || 0;
     if (resultType === 0) resultType = Array.isArray(value) ? 4 : typeof value === 'number' ? 1 : typeof value === 'string' ? 2 : 3;
     if (resultType === 1) value = toNumberValue(value);

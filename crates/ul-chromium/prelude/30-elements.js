@@ -4,18 +4,18 @@ const attrNames = (id) => { const flat = op('attrs', id); const out = []; for (l
 
 class Attr extends Node {
   constructor() { super(ILLEGAL); }
-  get name() { return this.__name; }
-  get localName() { return this.__name; }
+  get name() { return this[P.__name]; }
+  get localName() { return this[P.__name]; }
   get namespaceURI() { return null; }
   get prefix() { return null; }
-  get value() { return this.__owner ? this.__owner.getAttribute(this.__name) ?? '' : this.__value; }
-  set value(v) { if (this.__owner) this.__owner.setAttribute(this.__name, v); else this.__value = String(v); }
+  get value() { return this[P.__owner] ? this[P.__owner].getAttribute(this[P.__name]) ?? '' : this[P.__value]; }
+  set value(v) { if (this[P.__owner]) this[P.__owner].setAttribute(this[P.__name], v); else this[P.__value] = String(v); }
   get nodeValue() { return this.value; }
   get textContent() { return this.value; }
-  get ownerElement() { return this.__owner || null; }
+  get ownerElement() { return this[P.__owner] || null; }
   get specified() { return true; }
   get nodeType() { return 2; }
-  get nodeName() { return this.__name; }
+  get nodeName() { return this[P.__name]; }
 }
 tag(Attr, 'Attr');
 const makeAttr = (owner, name, value) => {
@@ -29,18 +29,18 @@ const makeAttr = (owner, name, value) => {
 
 class NamedNodeMap {
   constructor() { throw new TypeError('Illegal constructor'); }
-  get length() { return attrNames(idOf(this.__owner)).length; }
-  item(i) { const names = attrNames(idOf(this.__owner)); return i < names.length ? this.getNamedItem(names[i]) : null; }
-  getNamedItem(name) { const v = this.__owner.getAttribute(name); return v === null ? null : makeAttr(this.__owner, lower(name) === name ? name : name, v); }
-  setNamedItem(attr) { this.__owner.setAttribute(attr.name, attr.value); return null; }
-  removeNamedItem(name) { const a = this.getNamedItem(name); if (!a) throw domException('Failed to execute \'removeNamedItem\' on \'NamedNodeMap\': No item with name \'' + name + '\' was found.', 'NotFoundError'); this.__owner.removeAttribute(name); return a; }
+  get length() { return attrNames(idOf(this[P.__owner])).length; }
+  item(i) { const names = attrNames(idOf(this[P.__owner])); return i < names.length ? this.getNamedItem(names[i]) : null; }
+  getNamedItem(name) { const v = this[P.__owner].getAttribute(name); return v === null ? null : makeAttr(this[P.__owner], lower(name) === name ? name : name, v); }
+  setNamedItem(attr) { this[P.__owner].setAttribute(attr.name, attr.value); return null; }
+  removeNamedItem(name) { const a = this.getNamedItem(name); if (!a) throw domException('Failed to execute \'removeNamedItem\' on \'NamedNodeMap\': No item with name \'' + name + '\' was found.', 'NotFoundError'); this[P.__owner].removeAttribute(name); return a; }
   [Symbol.iterator]() { return Array.from({ length: this.length }, (_, i) => this.item(i))[Symbol.iterator](); }
 }
 tag(NamedNodeMap, 'NamedNodeMap');
 const attributeMap = (owner) => {
   const target = Object.create(NamedNodeMap.prototype);
   hidden(target, '__owner', owner);
-  return new Proxy(target, {
+  return proxied(target, {
     get(t, key, receiver) {
       if (isIndex(key)) return t.item(+key) ?? undefined;
       if (typeof key === 'string' && !(key in t)) { const a = t.getNamedItem(key); if (a) return a; }
@@ -52,57 +52,63 @@ const attributeMap = (owner) => {
 
 class DOMTokenList {
   constructor() { throw new TypeError('Illegal constructor'); }
-  __tokens() { const v = this.__element.getAttribute(this.__attr); return v ? v.split(/[ \t\n\f\r]+/).filter(Boolean) : []; }
-  __write(tokens) { this.__element.setAttribute(this.__attr, tokens.join(' ')); }
-  __check(token, method) {
+  [P.__tokens]() { const v = this[P.__element].getAttribute(this[P.__attr]); return v ? v.split(/[ \t\n\f\r]+/).filter(Boolean) : []; }
+  // Os passos de atualização: sem o atributo e com o conjunto vazio, nada se escreve (nada de `class=""`); o conjunto
+  // é ordenado e sem repetição.
+  [P.__write](tokens) {
+    const unique = tokens.filter((t, i) => tokens.indexOf(t) === i);
+    if (unique.length === 0 && !this[P.__element].hasAttribute(this[P.__attr])) return;
+    this[P.__element].setAttribute(this[P.__attr], unique.join(' '));
+  }
+  [P.__check](token, method) {
     token = String(token);
     if (token === '') throw domException(`Failed to execute '${method}' on 'DOMTokenList': The token provided must not be empty.`, 'SyntaxError');
     if (/[ \t\n\f\r]/.test(token)) throw domException(`Failed to execute '${method}' on 'DOMTokenList': The token provided ('${token}') contains HTML space characters, which are not valid in tokens.`, 'InvalidCharacterError');
     return token;
   }
-  get length() { return this.__tokens().length; }
-  get value() { return this.__element.getAttribute(this.__attr) ?? ''; }
-  set value(v) { this.__element.setAttribute(this.__attr, v); }
-  item(i) { return this.__tokens()[i] ?? null; }
-  contains(token) { return this.__tokens().includes(String(token)); }
+  get length() { return this[P.__tokens]().length; }
+  get value() { return this[P.__element].getAttribute(this[P.__attr]) ?? ''; }
+  set value(v) { this[P.__element].setAttribute(this[P.__attr], v); }
+  item(i) { return this[P.__tokens]()[i] ?? null; }
+  contains(token) { return this[P.__tokens]().includes(String(token)); }
   add(...tokens) {
-    const list = this.__tokens();
-    for (const t of tokens) { const token = this.__check(t, 'add'); if (!list.includes(token)) list.push(token); }
-    this.__write(list);
+    const list = this[P.__tokens]();
+    for (const t of tokens) { const token = this[P.__check](t, 'add'); if (!list.includes(token)) list.push(token); }
+    this[P.__write](list);
   }
   remove(...tokens) {
-    const set = new Set(tokens.map((t) => this.__check(t, 'remove')));
-    this.__write(this.__tokens().filter((t) => !set.has(t)));
+    const set = new Set(tokens.map((t) => this[P.__check](t, 'remove')));
+    this[P.__write](this[P.__tokens]().filter((t) => !set.has(t)));
   }
   toggle(token, force) {
-    token = this.__check(token, 'toggle');
+    token = this[P.__check](token, 'toggle');
     const has = this.contains(token);
     if (has && force !== true) { this.remove(token); return false; }
     if (!has && force !== false) { this.add(token); return true; }
     return has;
   }
   replace(oldToken, newToken) {
-    const list = this.__tokens();
+    const list = this[P.__tokens]();
     const i = list.indexOf(String(oldToken));
     if (i < 0) return false;
-    list[i] = this.__check(newToken, 'replace');
-    this.__write(list.filter((t, j) => list.indexOf(t) === j));
+    list[i] = this[P.__check](newToken, 'replace');
+    this[P.__write](list);
     return true;
   }
   supports() { return true; }
-  forEach(cb, thisArg) { this.__tokens().forEach((t, i) => cb.call(thisArg, t, i, this)); }
-  entries() { return this.__tokens().entries(); }
-  keys() { return this.__tokens().keys(); }
-  values() { return this.__tokens().values(); }
+  forEach(cb, thisArg) { this[P.__tokens]().forEach((t, i) => cb.call(thisArg, t, i, this)); }
+  entries() { return this[P.__tokens]().entries(); }
+  keys() { return this[P.__tokens]().keys(); }
+  values() { return this[P.__tokens]().values(); }
   toString() { return this.value; }
-  [Symbol.iterator]() { return this.__tokens().values(); }
+  [Symbol.iterator]() { return this[P.__tokens]().values(); }
 }
 tag(DOMTokenList, 'DOMTokenList');
 const tokenList = (element, attr) => {
   const target = Object.create(DOMTokenList.prototype);
   hidden(target, '__element', element);
   hidden(target, '__attr', attr);
-  return new Proxy(target, { get(t, key, receiver) { return isIndex(key) ? t.item(+key) ?? undefined : Reflect.get(t, key, receiver); } });
+  return proxied(target, { get(t, key, receiver) { return isIndex(key) ? t.item(+key) ?? undefined : Reflect.get(t, key, receiver); } });
 };
 
 // CSSStyleDeclaration sobre o atributo `style`: lê e escreve `prop: valor;` e serializa como o Chromium.
@@ -137,41 +143,41 @@ class CSSStyleDeclaration {
   constructor() { throw new TypeError('Illegal constructor'); }
   // O bloco de declarações é o do motor de CSS: o atributo lido passa pela serialização canônica (a que o Chromium
   // mostra em `cssText` e grava no atributo depois de uma escrita via CSSOM).
-  __list() { const raw = this.__element.getAttribute('style'); return raw ? parseDeclarations(op('normalizeStyle', raw)) : []; }
-  __save(list) {
-    if (list.length === 0 && this.__element.getAttribute('style') === null) return;
+  [P.__list]() { const raw = this[P.__element].getAttribute('style'); return raw ? parseDeclarations(op('normalizeStyle', raw)) : []; }
+  [P.__save](list) {
+    if (list.length === 0 && this[P.__element].getAttribute('style') === null) return;
     const text = list.map((d) => `${d.name}: ${d.value}${d.priority ? ' !important' : ''};`).join(' ');
-    this.__element.setAttribute('style', op('normalizeStyle', text));
+    this[P.__element].setAttribute('style', op('normalizeStyle', text));
   }
-  get cssText() { const raw = this.__element.getAttribute('style'); return raw ? op('normalizeStyle', raw) : ''; }
-  set cssText(v) { this.__element.setAttribute('style', op('normalizeStyle', String(v))); }
-  get length() { return this.__list().length; }
-  item(i) { const l = this.__list(); return i < l.length ? l[i].name : ''; }
-  getPropertyValue(name) { const n = String(name); const d = this.__list().find((x) => x.name === (n.startsWith('--') ? n : n.toLowerCase())); return d ? d.value : ''; }
-  getPropertyPriority(name) { const d = this.__list().find((x) => x.name === lower(name)); return d ? d.priority : ''; }
+  get cssText() { const raw = this[P.__element].getAttribute('style'); return raw ? op('normalizeStyle', raw) : ''; }
+  set cssText(v) { this[P.__element].setAttribute('style', op('normalizeStyle', String(v))); }
+  get length() { return this[P.__list]().length; }
+  item(i) { const l = this[P.__list](); return i < l.length ? l[i].name : ''; }
+  getPropertyValue(name) { const n = String(name); const d = this[P.__list]().find((x) => x.name === (n.startsWith('--') ? n : n.toLowerCase())); return d ? d.value : ''; }
+  getPropertyPriority(name) { const d = this[P.__list]().find((x) => x.name === lower(name)); return d ? d.priority : ''; }
   setProperty(name, value, priority = '') {
     name = String(name);
     if (!name.startsWith('--')) name = name.toLowerCase();
-    const list = this.__list();
+    const list = this[P.__list]();
     const i = list.findIndex((d) => d.name === name);
     if (value === null || value === undefined || String(value) === '') { if (i >= 0) list.splice(i, 1); }
     else if (i >= 0) list[i] = { name, value: String(value), priority: priority === 'important' ? 'important' : '' };
     else list.push({ name, value: String(value), priority: priority === 'important' ? 'important' : '' });
-    this.__save(list);
+    this[P.__save](list);
   }
   removeProperty(name) {
     const old = this.getPropertyValue(name);
     this.setProperty(name, '');
     return old;
   }
-  [Symbol.iterator]() { return this.__list().map((d) => d.name).values(); }
+  [Symbol.iterator]() { return this[P.__list]().map((d) => d.name).values(); }
   get parentRule() { return null; }
 }
 tag(CSSStyleDeclaration, 'CSSStyleDeclaration');
 const styleOf = (element) => {
   const target = Object.create(CSSStyleDeclaration.prototype);
   hidden(target, '__element', element);
-  return new Proxy(target, {
+  return proxied(target, {
     get(t, key, receiver) {
       if (typeof key === 'string' && !(key in t)) {
         if (isIndex(key)) return t.item(+key);
@@ -224,15 +230,15 @@ class Element extends Node {
   get slot() { return this.getAttribute('slot') ?? ''; }
   set slot(v) { this.setAttribute('slot', v); }
   get attributes() { return attributeMap(this); }
-  getAttribute(name) { return op('getAttr', idOf(this), this.__attrName(name)); }
-  __attrName(name) { name = toStr(name); return this.namespaceURI === HTML_NS && this.ownerDocument.__html ? name.toLowerCase() : name; }
+  getAttribute(name) { return op('getAttr', idOf(this), this[P.__attrName](name)); }
+  [P.__attrName](name) { name = toStr(name); return this.namespaceURI === HTML_NS && this.ownerDocument[P.__html] ? name.toLowerCase() : name; }
   getAttributeNS(ns, local) { return this.getAttribute(local); }
-  getAttributeNode(name) { const v = this.getAttribute(name); return v === null ? null : makeAttr(this, this.__attrName(name), v); }
+  getAttributeNode(name) { const v = this.getAttribute(name); return v === null ? null : makeAttr(this, this[P.__attrName](name), v); }
   getAttributeNames() { return attrNames(idOf(this)); }
   hasAttribute(name) { return this.getAttribute(name) !== null; }
   hasAttributes() { return attrNames(idOf(this)).length > 0; }
   setAttribute(name, value) {
-    name = this.__attrName(name);
+    name = this[P.__attrName](name);
     if (!/^[A-Za-z_:][-A-Za-z0-9_:.]*$/.test(name)) throw domException(`Failed to execute 'setAttribute' on 'Element': '${name}' is not a valid attribute name.`, 'InvalidCharacterError');
     const old = op('getAttr', idOf(this), name);
     op('setAttr', idOf(this), name, toStr(value));
@@ -241,7 +247,7 @@ class Element extends Node {
   setAttributeNS(ns, name, value) { this.setAttribute(name, value); }
   setAttributeNode(attr) { this.setAttribute(attr.name, attr.value); return null; }
   removeAttribute(name) {
-    name = this.__attrName(name);
+    name = this[P.__attrName](name);
     const old = op('getAttr', idOf(this), name);
     if (old === null) return;
     op('removeAttr', idOf(this), name);
@@ -306,13 +312,13 @@ class Element extends Node {
   get style() { return styleOf(this); }
   set style(v) { this.style.cssText = v; }
   get dataset() { return datasetOf(this); }
-  get shadowRoot() { return this.__shadow && this.__shadow.mode === 'open' ? this.__shadow : null; }
+  get shadowRoot() { return this[P.__shadow] && this[P.__shadow].mode === 'open' ? this[P.__shadow] : null; }
   attachShadow(init) {
-    if (this.__shadow) throw domException("Failed to execute 'attachShadow' on 'Element': Shadow root cannot be created on a host which already hosts a shadow tree.", 'NotSupportedError');
+    if (this[P.__shadow]) throw domException("Failed to execute 'attachShadow' on 'Element': Shadow root cannot be created on a host which already hosts a shadow tree.", 'NotSupportedError');
     const root = new DocumentFragment();
     Object.setPrototypeOf(root, ShadowRoot.prototype);
     hidden(root, '__host', this);
-    hidden(root, 'mode', init.mode);
+    hidden(root, '__mode', init.mode);
     hidden(this, '__shadow', root);
     return root;
   }
@@ -345,8 +351,8 @@ class Element extends Node {
   scrollIntoView() {}
   scrollTo() {}
   scroll() {}
-  focus() { if (document.__active !== this) { const prev = document.__active; document.__active = this; if (prev) prev.dispatchEvent(new FocusEvent('blur')); this.dispatchEvent(new FocusEvent('focus')); this.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); } }
-  blur() { if (document.__active === this) { document.__active = null; this.dispatchEvent(new FocusEvent('blur')); this.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); } }
+  focus() { if (document[P.__active] !== this) { const prev = document[P.__active]; document[P.__active] = this; if (prev) prev.dispatchEvent(new FocusEvent('blur')); this.dispatchEvent(new FocusEvent('focus')); this.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); } }
+  blur() { if (document[P.__active] === this) { document[P.__active] = null; this.dispatchEvent(new FocusEvent('blur')); this.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); } }
   click() { this.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, composed: true })); }
   animate() { return { cancel() {}, finish() {}, play() {}, pause() {}, finished: Promise.resolve(), onfinish: null }; }
   getAnimations() { return []; }
@@ -363,7 +369,8 @@ delete Element.prototype.getElementById;
 mixin(Element.prototype, NonElementSiblings);
 
 class ShadowRoot extends DocumentFragment {
-  get host() { return this.__host; }
+  get mode() { return this[P.__mode]; }
+  get host() { return this[P.__host]; }
   get innerHTML() { return op('innerHTML', idOf(this)); }
   set innerHTML(html) { op('setInnerHTML', idOf(this), toStr(html)); }
   get activeElement() { return null; }

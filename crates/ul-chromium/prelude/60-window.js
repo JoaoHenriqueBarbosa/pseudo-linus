@@ -10,24 +10,24 @@ const pageState = { url: op('pageUrl') };
 
 class Location {
   constructor() { throw new TypeError('Illegal constructor'); }
-  get __u() { return new URL(pageState.url); }
+  get [P.__u]() { return new URL(pageState.url); }
   get href() { return pageState.url; }
   set href(v) { navigate(resolveUrl(v)); }
-  get origin() { return this.__u.origin; }
-  get protocol() { return this.__u.protocol; }
-  set protocol(v) { const u = this.__u; u.protocol = v; navigate(u.href); }
-  get host() { return this.__u.host; }
-  set host(v) { const u = this.__u; u.host = v; navigate(u.href); }
-  get hostname() { return this.__u.hostname; }
-  set hostname(v) { const u = this.__u; u.hostname = v; navigate(u.href); }
-  get port() { return this.__u.port; }
-  set port(v) { const u = this.__u; u.port = v; navigate(u.href); }
-  get pathname() { return this.__u.pathname; }
-  set pathname(v) { const u = this.__u; u.pathname = v; navigate(u.href); }
-  get search() { return this.__u.search; }
-  set search(v) { const u = this.__u; u.search = v; navigate(u.href); }
-  get hash() { return this.__u.hash; }
-  set hash(v) { const u = this.__u; u.hash = v; navigate(u.href); }
+  get origin() { return this[P.__u].origin; }
+  get protocol() { return this[P.__u].protocol; }
+  set protocol(v) { const u = this[P.__u]; u.protocol = v; navigate(u.href); }
+  get host() { return this[P.__u].host; }
+  set host(v) { const u = this[P.__u]; u.host = v; navigate(u.href); }
+  get hostname() { return this[P.__u].hostname; }
+  set hostname(v) { const u = this[P.__u]; u.hostname = v; navigate(u.href); }
+  get port() { return this[P.__u].port; }
+  set port(v) { const u = this[P.__u]; u.port = v; navigate(u.href); }
+  get pathname() { return this[P.__u].pathname; }
+  set pathname(v) { const u = this[P.__u]; u.pathname = v; navigate(u.href); }
+  get search() { return this[P.__u].search; }
+  set search(v) { const u = this[P.__u]; u.search = v; navigate(u.href); }
+  get hash() { return this[P.__u].hash; }
+  set hash(v) { const u = this[P.__u]; u.hash = v; navigate(u.href); }
   get ancestorOrigins() { return []; }
   assign(url) { navigate(resolveUrl(url)); }
   replace(url) { navigate(resolveUrl(url)); }
@@ -43,9 +43,9 @@ function navigate(url) {
   const old = pageState.url;
   if (url === old) return;
   if (sameDocument(url, old)) {
-    history.__entries.splice(history.__index + 1);
-    history.__entries.push({ state: null, url });
-    history.__index++;
+    history[P.__entries].splice(history[P.__index] + 1);
+    history[P.__entries].push({ state: null, url });
+    history[P.__index]++;
     pageState.url = url;
     window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
     setTimeout(() => { window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: old, newURL: url })); }, 0);
@@ -57,27 +57,27 @@ const sameDocument = (a, b) => a.replace(/#.*$/, '') === b.replace(/#.*$/, '');
 
 class History {
   constructor() { throw new TypeError('Illegal constructor'); }
-  get length() { return this.__entries.length; }
-  get state() { return this.__entries[this.__index].state; }
-  get scrollRestoration() { return this.__scroll || 'auto'; }
-  set scrollRestoration(v) { this.__scroll = v; }
-  __check(url) {
+  get length() { return this[P.__entries].length; }
+  get state() { return this[P.__entries][this[P.__index]].state; }
+  get scrollRestoration() { return this[P.__scroll] || 'auto'; }
+  set scrollRestoration(v) { this[P.__scroll] = v; }
+  [P.__check](url) {
     if (url === undefined || url === null) return pageState.url;
     const next = resolveUrl(url);
     const a = new URL(next), b = new URL(pageState.url);
     if (a.origin !== b.origin && !(a.protocol === 'file:' && b.protocol === 'file:')) throw domException(`Failed to execute 'pushState' on 'History': A history state object with URL '${next}' cannot be created in a document with origin '${b.origin}' and URL '${pageState.url}'.`, 'SecurityError');
     return next;
   }
-  pushState(state, title, url) { const next = this.__check(url); this.__entries.splice(this.__index + 1); this.__entries.push({ state, url: next }); this.__index++; pageState.url = next; }
-  replaceState(state, title, url) { const next = this.__check(url); this.__entries[this.__index] = { state, url: next }; pageState.url = next; }
+  pushState(state, title, url) { const next = this[P.__check](url); this[P.__entries].splice(this[P.__index] + 1); this[P.__entries].push({ state, url: next }); this[P.__index]++; pageState.url = next; }
+  replaceState(state, title, url) { const next = this[P.__check](url); this[P.__entries][this[P.__index]] = { state, url: next }; pageState.url = next; }
   go(delta) {
-    const target = this.__index + (delta | 0);
-    if (!delta || target < 0 || target >= this.__entries.length) return;
-    const entry = this.__entries[target];
+    const target = this[P.__index] + (delta | 0);
+    if (!delta || target < 0 || target >= this[P.__entries].length) return;
+    const entry = this[P.__entries][target];
     // A primeira entrada é o about:blank de onde o headless partiu: voltar até ela é sair do documento.
     if (target === 0) { op('navigate', entry.url); return; }
     const old = pageState.url;
-    this.__index = target;
+    this[P.__index] = target;
     pageState.url = entry.url;
     setTimeout(() => {
       window.dispatchEvent(new PopStateEvent('popstate', { state: entry.state }));
@@ -134,24 +134,24 @@ const navigator = Object.create(Navigator.prototype);
 
 class Storage {
   constructor() { throw new TypeError('Illegal constructor'); }
-  get length() { return this.__data.size; }
-  key(i) { return Array.from(this.__data.keys())[i] ?? null; }
-  getItem(k) { const v = this.__data.get(String(k)); return v === undefined ? null : v; }
-  setItem(k, v) { this.__data.set(String(k), String(v)); }
-  removeItem(k) { this.__data.delete(String(k)); }
-  clear() { this.__data.clear(); }
+  get length() { return this[P.__data].size; }
+  key(i) { return Array.from(this[P.__data].keys())[i] ?? null; }
+  getItem(k) { const v = this[P.__data].get(String(k)); return v === undefined ? null : v; }
+  setItem(k, v) { this[P.__data].set(String(k), String(v)); }
+  removeItem(k) { this[P.__data].delete(String(k)); }
+  clear() { this[P.__data].clear(); }
 }
 tag(Storage, 'Storage');
 const makeStorage = () => {
   const target = Object.create(Storage.prototype);
   hidden(target, '__data', new Map());
-  return new Proxy(target, {
-    get(t, key, receiver) { if (typeof key === 'string' && !(key in t)) { const v = t.__data.get(key); return v === undefined ? undefined : v; } return Reflect.get(t, key, receiver); },
-    set(t, key, value) { if (typeof key === 'string' && !(key in t)) { t.__data.set(key, String(value)); return true; } return Reflect.set(t, key, value, t); },
-    deleteProperty(t, key) { t.__data.delete(key); return true; },
-    has(t, key) { return Reflect.has(t, key) || (typeof key === 'string' && t.__data.has(key)); },
-    ownKeys(t) { return Array.from(t.__data.keys()); },
-    getOwnPropertyDescriptor(t, key) { return typeof key === 'string' && t.__data.has(key) ? { value: t.__data.get(key), writable: true, enumerable: true, configurable: true } : undefined; },
+  return proxied(target, {
+    get(t, key, receiver) { if (typeof key === 'string' && !(key in t)) { const v = t[P.__data].get(key); return v === undefined ? undefined : v; } return Reflect.get(t, key, receiver); },
+    set(t, key, value) { if (typeof key === 'string' && !(key in t)) { t[P.__data].set(key, String(value)); return true; } return Reflect.set(t, key, value, t); },
+    deleteProperty(t, key) { t[P.__data].delete(key); return true; },
+    has(t, key) { return Reflect.has(t, key) || (typeof key === 'string' && t[P.__data].has(key)); },
+    ownKeys(t) { return Array.from(t[P.__data].keys()); },
+    getOwnPropertyDescriptor(t, key) { return typeof key === 'string' && t[P.__data].has(key) ? { value: t[P.__data].get(key), writable: true, enumerable: true, configurable: true } : undefined; },
   });
 };
 
@@ -173,20 +173,20 @@ const CSS = { escape: cssEscape, supports: () => true, px: (n) => ({ value: n, u
 
 class CSSStyleSheet {
   constructor(options) { hidden(this, '__rules', []); this.media = { mediaText: '' }; this.disabled = false; this.ownerNode = null; this.href = null; this.type = 'text/css'; this.parentStyleSheet = null; this.ownerRule = null; this.title = null; }
-  get cssRules() { return Object.assign(this.__rules.slice(), { item(i) { return this[i] || null; } }); }
+  get cssRules() { return Object.assign(this[P.__rules].slice(), { item(i) { return this[i] || null; } }); }
   get rules() { return this.cssRules; }
-  insertRule(rule, index = 0) { this.__rules.splice(index, 0, { cssText: String(rule), selectorText: String(rule).split('{')[0].trim(), style: styleOfText(String(rule)) }); return index; }
-  deleteRule(index) { this.__rules.splice(index, 1); }
+  insertRule(rule, index = 0) { this[P.__rules].splice(index, 0, { cssText: String(rule), selectorText: String(rule).split('{')[0].trim(), style: styleOfText(String(rule)) }); return index; }
+  deleteRule(index) { this[P.__rules].splice(index, 1); }
   addRule(selector, style, index) { this.insertRule(`${selector} { ${style} }`, index); return -1; }
   removeRule(index) { this.deleteRule(index); }
-  replaceSync(text) { this.__rules.length = 0; }
+  replaceSync(text) { this[P.__rules].length = 0; }
   replace(text) { this.replaceSync(text); return Promise.resolve(this); }
 }
 tag(CSSStyleSheet, 'CSSStyleSheet');
 const styleOfText = (rule) => { const body = rule.slice(rule.indexOf('{') + 1, rule.lastIndexOf('}')); const holder = document.createElement('span'); holder.setAttribute('style', body); return holder.style; };
 function sheetFor(owner) {
-  if (!owner.__sheet) { const sheet = new CSSStyleSheet(); sheet.ownerNode = owner; sheet.href = owner.localName === 'link' ? owner.href : null; hidden(owner, '__sheet', sheet); }
-  return owner.__sheet;
+  if (!owner[P.__sheet]) { const sheet = new CSSStyleSheet(); sheet.ownerNode = owner; sheet.href = owner.localName === 'link' ? owner.href : null; hidden(owner, '__sheet', sheet); }
+  return owner[P.__sheet];
 }
 const fontFaceSet = Object.assign(Object.create(EventTarget.prototype), { ready: Promise.resolve(), status: 'loaded', size: 0, check: () => true, load: () => Promise.resolve([]), add() {}, delete() { return false; }, clear() {}, forEach() {}, onloading: null, onloadingdone: null, onloadingerror: null });
 
@@ -201,7 +201,7 @@ const getComputedStyle = (el) => {
   const target = Object.create(CSSStyleDeclaration.prototype);
   hidden(target, '__element', el);
   const read = (name) => { const v = inline.getPropertyValue(name); if (v) return v; if (name === 'display') return el.hidden ? 'none' : defaultDisplay(el); if (name === 'visibility') return 'visible'; if (name === 'position') return 'static'; if (name === 'opacity') return '1'; return ''; };
-  return new Proxy(target, {
+  return proxied(target, {
     get(t, key, receiver) {
       if (key === 'getPropertyValue') return (n) => read(String(n).toLowerCase());
       if (typeof key === 'string' && !(key in t)) return read(kebab(key));
@@ -246,12 +246,12 @@ class MutationObserver {
     if (opts.attributes === undefined && (opts.attributeOldValue || opts.attributeFilter)) opts.attributes = true;
     if (opts.characterData === undefined && opts.characterDataOldValue) opts.characterData = true;
     if (!opts.childList && !opts.attributes && !opts.characterData) throw new TypeError("Failed to execute 'observe' on 'MutationObserver': The options object must set at least one of 'attributes', 'characterData', or 'childList' to true.");
-    const existing = this.__regs.find((r) => r.target === target);
-    if (existing) existing.opts = opts; else this.__regs.push({ target, opts });
+    const existing = this[P.__regs].find((r) => r.target === target);
+    if (existing) existing.opts = opts; else this[P.__regs].push({ target, opts });
     observers.add(this);
   }
-  disconnect() { this.__regs.length = 0; this.__queue.length = 0; observers.delete(this); }
-  takeRecords() { return this.__queue.splice(0); }
+  disconnect() { this[P.__regs].length = 0; this[P.__queue].length = 0; observers.delete(this); }
+  takeRecords() { return this[P.__queue].splice(0); }
 }
 tag(MutationObserver, 'MutationObserver');
 mutationHook.record = (rec) => {
@@ -259,7 +259,7 @@ mutationHook.record = (rec) => {
   if (renderObservers.size) requestRender();
   if (!observers.size) return;
   for (const observer of observers) {
-    for (const reg of observer.__regs) {
+    for (const reg of observer[P.__regs]) {
       if (!(rec.target === reg.target || (reg.opts.subtree && reg.target.contains(rec.target)))) continue;
       const o = reg.opts;
       if (rec.type === 'childList' && !o.childList) continue;
@@ -271,7 +271,7 @@ mutationHook.record = (rec) => {
         previousSibling: rec.previousSibling || null, nextSibling: rec.nextSibling || null, attributeName: rec.attributeName ?? null, attributeNamespace: null,
         oldValue: (rec.type === 'attributes' && o.attributeOldValue) || (rec.type === 'characterData' && o.characterDataOldValue) ? rec.oldValue ?? null : null,
       });
-      observer.__queue.push(record);
+      observer[P.__queue].push(record);
       break;
     }
   }
@@ -280,8 +280,8 @@ mutationHook.record = (rec) => {
     queueMicrotask(() => {
       deliveryScheduled = false;
       for (const observer of Array.from(observers)) {
-        const records = observer.__queue.splice(0);
-        if (records.length) { try { observer.__callback.call(observer, records, observer); } catch (error) { reportError(error); } }
+        const records = observer[P.__queue].splice(0);
+        if (records.length) { try { observer[P.__callback].call(observer, records, observer); } catch (error) { reportError(error); } }
       }
     });
   }
@@ -297,8 +297,8 @@ const requestRender = () => {
     renderPending = false;
     // Medido no oráculo: as entregas de ResizeObserver saem antes das de IntersectionObserver no mesmo quadro.
     const all = Array.from(renderObservers);
-    for (const observer of all) if (observer instanceof ResizeObserver) observer.__measure();
-    for (const observer of all) if (!(observer instanceof ResizeObserver)) observer.__measure();
+    for (const observer of all) if (observer instanceof ResizeObserver) observer[P.__measure]();
+    for (const observer of all) if (!(observer instanceof ResizeObserver)) observer[P.__measure]();
   }, 16);
 };
 const sizeEntry = (inlineSize, blockSize) => Object.freeze([Object.freeze({ inlineSize, blockSize })]);
@@ -313,22 +313,22 @@ class ResizeObserver {
     hidden(this, '__targets', new Map());
   }
   observe(target) {
-    if (!this.__targets.has(target)) this.__targets.set(target, null);
+    if (!this[P.__targets].has(target)) this[P.__targets].set(target, null);
     renderObservers.add(this);
     requestRender();
   }
-  unobserve(target) { this.__targets.delete(target); }
-  disconnect() { this.__targets.clear(); renderObservers.delete(this); }
-  __measure() {
+  unobserve(target) { this[P.__targets].delete(target); }
+  disconnect() { this[P.__targets].clear(); renderObservers.delete(this); }
+  [P.__measure]() {
     const entries = [];
-    for (const [target, last] of this.__targets) {
+    for (const [target, last] of this[P.__targets]) {
       const b = boxOf(target);
       const width = b ? b.width - b.border[1] - b.border[3] - b.padding[1] - b.padding[3] : 0;
       const height = b ? b.height - b.border[0] - b.border[2] - b.padding[0] - b.padding[2] : 0;
       // A primeira observação de um alvo de tamanho zero não entra: o tamanho registrado começa em 0x0.
       const previous = last || { width: 0, height: 0, first: true };
       if (previous.width === width && previous.height === height && !(previous.first && b)) continue;
-      this.__targets.set(target, { width, height });
+      this[P.__targets].set(target, { width, height });
       const entry = Object.create(ResizeObserverEntry.prototype);
       Object.defineProperties(entry, {
         target: { value: target, enumerable: true },
@@ -339,7 +339,7 @@ class ResizeObserver {
       });
       entries.push(entry);
     }
-    if (entries.length) invokeReaction(() => this.__cb.call(this, entries, this));
+    if (entries.length) invokeReaction(() => this[P.__cb].call(this, entries, this));
   }
 }
 tag(ResizeObserver, 'ResizeObserver');
@@ -362,17 +362,17 @@ class IntersectionObserver {
     });
   }
   observe(target) {
-    if (!this.__targets.has(target)) this.__targets.set(target, -1);
+    if (!this[P.__targets].has(target)) this[P.__targets].set(target, -1);
     renderObservers.add(this);
     requestRender();
   }
-  unobserve(target) { this.__targets.delete(target); }
-  disconnect() { this.__targets.clear(); renderObservers.delete(this); }
+  unobserve(target) { this[P.__targets].delete(target); }
+  disconnect() { this[P.__targets].clear(); renderObservers.delete(this); }
   takeRecords() { return []; }
-  __measure() {
+  [P.__measure]() {
     const entries = [];
     const root = { x: 0, y: 0, width: windowMetrics.innerWidth, height: windowMetrics.innerHeight };
-    for (const [target, last] of this.__targets) {
+    for (const [target, last] of this[P.__targets]) {
       const b = boxOf(target) || { x: 0, y: 0, width: 0, height: 0 };
       const left = Math.max(b.x, root.x), top = Math.max(b.y, root.y);
       const right = Math.min(b.x + b.width, root.x + root.width), bottom = Math.min(b.y + b.height, root.y + root.height);
@@ -384,7 +384,7 @@ class IntersectionObserver {
       if (!isIntersecting) index = 0;
       const state = index * 2 + (isIntersecting ? 1 : 0);
       if (state === last) continue;
-      this.__targets.set(target, state);
+      this[P.__targets].set(target, state);
       const entry = Object.create(IntersectionObserverEntry.prototype);
       Object.defineProperties(entry, {
         time: { value: performance.now(), enumerable: true },
@@ -398,7 +398,7 @@ class IntersectionObserver {
       });
       entries.push(entry);
     }
-    if (entries.length) invokeReaction(() => this.__cb.call(this, entries, this));
+    if (entries.length) invokeReaction(() => this[P.__cb].call(this, entries, this));
   }
 }
 tag(IntersectionObserver, 'IntersectionObserver');
@@ -417,59 +417,64 @@ class XMLHttpRequest extends EventTarget {
     super();
     hidden(this, '__headers', []);
     hidden(this, '__state', { method: 'GET', url: '', async: true, sent: false, aborted: false });
-    this.readyState = 0;
-    this.status = 0;
-    this.statusText = '';
-    this.responseType = '';
-    this.responseURL = '';
-    this.timeout = 0;
-    this.withCredentials = false;
-    this.upload = Object.create(EventTarget.prototype);
-    this.__response = null;
+    // Os atributos do XHR são acessores do protótipo, como no Chromium: o objeto não tem propriedade própria.
+    hidden(this, '__fields', { readyState: 0, status: 0, statusText: '', responseType: '', responseURL: '', timeout: 0, withCredentials: false, upload: Object.create(EventTarget.prototype) });
+    hidden(this, '__response', null);
   }
+  get readyState() { return this[P.__fields].readyState; }
+  get status() { return this[P.__fields].status; }
+  get statusText() { return this[P.__fields].statusText; }
+  get responseURL() { return this[P.__fields].responseURL; }
+  get responseType() { return this[P.__fields].responseType; }
+  set responseType(v) { const t = String(v); if (['', 'arraybuffer', 'blob', 'document', 'json', 'text'].includes(t)) this[P.__fields].responseType = t; }
+  get timeout() { return this[P.__fields].timeout; }
+  set timeout(v) { this[P.__fields].timeout = Math.max(0, Number(v) >>> 0); }
+  get withCredentials() { return this[P.__fields].withCredentials; }
+  set withCredentials(v) { this[P.__fields].withCredentials = !!v; }
+  get upload() { return this[P.__fields].upload; }
   get response() {
-    const r = this.__response;
+    const r = this[P.__response];
     if (!r) return this.responseType === '' || this.responseType === 'text' ? '' : null;
     if (this.responseType === 'json') { try { return JSON.parse(r.text); } catch { return null; } }
     if (this.responseType === 'arraybuffer') return r.bytes.slice().buffer;
     if (this.responseType === 'blob') return new Blob([r.bytes], { type: this.getResponseHeader('content-type') || '' });
     return r.text;
   }
-  get responseText() { if (this.responseType !== '' && this.responseType !== 'text') throw domException("Failed to read the 'responseText' property from 'XMLHttpRequest': The value is only accessible if the object's 'responseType' is '' or 'text' (was '" + this.responseType + "').", 'InvalidStateError'); return this.__response ? this.__response.text : ''; }
+  get responseText() { if (this.responseType !== '' && this.responseType !== 'text') throw domException("Failed to read the 'responseText' property from 'XMLHttpRequest': The value is only accessible if the object's 'responseType' is '' or 'text' (was '" + this.responseType + "').", 'InvalidStateError'); return this[P.__response] ? this[P.__response].text : ''; }
   get responseXML() { return null; }
-  __setState(n) { this.readyState = n; this.dispatchEvent(new Event('readystatechange')); }
+  [P.__setState](n) { this[P.__fields].readyState = n; this.dispatchEvent(new Event('readystatechange')); }
   open(method, url, async = true) {
-    const s = this.__state;
+    const s = this[P.__state];
     s.method = String(method).toUpperCase(); s.url = resolveUrl(url); s.async = async !== false; s.sent = false; s.aborted = false;
-    this.__headers.length = 0;
-    this.__response = null;
-    this.__setState(1);
+    this[P.__headers].length = 0;
+    this[P.__response] = null;
+    this[P.__setState](1);
   }
-  setRequestHeader(name, value) { this.__headers.push([String(name), String(value)]); }
+  setRequestHeader(name, value) { this[P.__headers].push([String(name), String(value)]); }
   overrideMimeType() {}
-  getResponseHeader(name) { const r = this.__response; if (!r) return null; const found = r.headers.filter(([k]) => k.toLowerCase() === lower(name)).map(([, v]) => v); return found.length ? found.join(', ') : null; }
-  getAllResponseHeaders() { const r = this.__response; return r ? r.headers.map(([k, v]) => `${k.toLowerCase()}: ${v}`).join('\r\n') + (r.headers.length ? '\r\n' : '') : ''; }
-  abort() { this.__state.aborted = true; if (this.readyState > 1 && this.readyState < 4) { this.readyState = 4; this.dispatchEvent(new Event('readystatechange')); this.dispatchEvent(new ProgressEvent('abort')); this.dispatchEvent(new ProgressEvent('loadend')); } this.readyState = 0; }
+  getResponseHeader(name) { const r = this[P.__response]; if (!r) return null; const found = r.headers.filter(([k]) => k.toLowerCase() === lower(name)).map(([, v]) => v); return found.length ? found.join(', ') : null; }
+  getAllResponseHeaders() { const r = this[P.__response]; return r ? r.headers.map(([k, v]) => `${k.toLowerCase()}: ${v}`).join('\r\n') + (r.headers.length ? '\r\n' : '') : ''; }
+  abort() { const f = this[P.__fields]; this[P.__state].aborted = true; if (f.readyState > 1 && f.readyState < 4) { f.readyState = 4; this.dispatchEvent(new Event('readystatechange')); this.dispatchEvent(new ProgressEvent('abort')); this.dispatchEvent(new ProgressEvent('loadend')); } f.readyState = 0; }
   send(body) {
-    const s = this.__state;
+    const s = this[P.__state];
     if (this.readyState !== 1) throw domException("Failed to execute 'send' on 'XMLHttpRequest': The object's state must be OPENED.", 'InvalidStateError');
     s.sent = true;
     const run = () => {
       if (s.aborted) return;
-      const result = netFetch(s.method, s.url, this.__headers.flat(), body === undefined || body === null ? null : String(body));
+      const result = netFetch(s.method, s.url, this[P.__headers].flat(), body === undefined || body === null ? null : String(body));
       if (s.aborted) return;
       if (result === null) {
-        this.__setState(4);
+        this[P.__setState](4);
         this.dispatchEvent(new ProgressEvent('error'));
         this.dispatchEvent(new ProgressEvent('loadend'));
         return;
       }
-      this.status = result[0]; this.statusText = result[1]; this.responseURL = result[2];
+      Object.assign(this[P.__fields], { status: result[0], statusText: result[1], responseURL: result[2] });
       const bytes = rawBytes(result[4]);
-      this.__response = { headers: headerList(result[3]), bytes, text: decodeBody(bytes, result[5]) };
-      this.__setState(2);
-      this.__setState(3);
-      this.__setState(4);
+      this[P.__response] = { headers: headerList(result[3]), bytes, text: decodeBody(bytes, result[5]) };
+      this[P.__setState](2);
+      this[P.__setState](3);
+      this[P.__setState](4);
       this.dispatchEvent(new ProgressEvent('load', { lengthComputable: true, loaded: bytes.length, total: bytes.length }));
       this.dispatchEvent(new ProgressEvent('loadend', { lengthComputable: true, loaded: bytes.length, total: bytes.length }));
     };
@@ -514,12 +519,12 @@ const realFetch = (input, init = {}) => new Promise((resolve, reject) => {
 // ---- Scripts inseridos pela página.
 const isClassic = (type) => type === '' || /^(text|application)\/(x-)?(java|ecma)script$/.test(type) || type === 'text/jscript' || type === 'text/livescript';
 function execScript(el, code, url) {
-  const previous = document.__currentScript;
+  const previous = document[P.__currentScript];
   hidden(document, '__currentScript', el);
   try { evalGlobal(code, url); } catch (error) { reportError(error); } finally { hidden(document, '__currentScript', previous || null); }
 }
 function runDynamicScript(el) {
-  if (!el.__fresh || el.__started) return;
+  if (!el[P.__fresh] || el[P.__started]) return;
   hidden(el, '__started', true);
   const type = lower(el.getAttribute('type') || '').trim();
   if (!isClassic(type)) return;

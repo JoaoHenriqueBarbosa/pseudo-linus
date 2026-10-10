@@ -45,7 +45,7 @@ class EventTarget {
   }
   dispatchEvent(event) {
     if (!(event instanceof Event)) throw new TypeError("Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.");
-    if (event.__dispatching) throw domException('The event is already being dispatched.', 'InvalidStateError');
+    if (event[P.__dispatching]) throw domException('The event is already being dispatched.', 'InvalidStateError');
     return dispatch(targetOf(this), event);
   }
 }
@@ -57,8 +57,8 @@ const eventParent = (target, event) => {
     const parent = op('parent', ids.get(target));
     if (parent !== null) return wrappers.get(parent) || wrap(parent);
     // A raiz de sombra só passa o evento ao host quando ele é `composed`.
-    if (target.__host) return event && event.composed ? target.__host : null;
-    return target.nodeType === 9 && target.__window ? target.__window : null;
+    if (target[P.__host]) return event && event.composed ? target[P.__host] : null;
+    return target.nodeType === 9 && target[P.__window] ? target[P.__window] : null;
   }
   return null;
 };
@@ -75,14 +75,14 @@ const reportError = (error) => {
 };
 
 const invoke = (target, event, entry) => {
-  event.__passive = entry.passive;
+  event[P.__passive] = entry.passive;
   try {
     if (typeof entry.callback === 'function') entry.callback.call(target, event);
     else if (entry.callback && typeof entry.callback.handleEvent === 'function') entry.callback.handleEvent(event);
   } catch (error) {
     reportError(error);
   }
-  event.__passive = false;
+  event[P.__passive] = false;
 };
 
 const attributeHandler = (target, type) => {
@@ -127,11 +127,11 @@ const callHandlerProperty = (target, event) => {
 };
 
 const dispatch = (target, event) => {
-  event.__dispatching = true;
-  event.target = event.__targetOverride || target;
+  event[P.__dispatching] = true;
+  event.target = event[P.__targetOverride] || target;
   const path = [];
   for (let node = target; node; node = eventParent(node, event)) path.push(node);
-  event.__path = path.slice();
+  event[P.__path] = path.slice();
   const run = (node, phase) => {
     event.currentTarget = node;
     event.eventPhase = phase;
@@ -142,19 +142,19 @@ const dispatch = (target, event) => {
       if (phase === 3 && entry.capture) continue;
       if (entry.once) node.removeEventListener(event.type, entry.callback, entry.capture);
       invoke(node, event, entry);
-      if (event.__stopImmediate) return;
+      if (event[P.__stopImmediate]) return;
     }
     if (phase !== 1) callHandlerProperty(node, event);
   };
-  for (let i = path.length - 1; i > 0 && !event.__stop; i--) run(path[i], 1);
-  if (!event.__stop) run(path[0], 2);
-  if (event.bubbles) for (let i = 1; i < path.length && !event.__stop; i++) run(path[i], 3);
+  for (let i = path.length - 1; i > 0 && !event[P.__stop]; i--) run(path[i], 1);
+  if (!event[P.__stop]) run(path[0], 2);
+  if (event.bubbles) for (let i = 1; i < path.length && !event[P.__stop]; i++) run(path[i], 3);
   event.currentTarget = null;
   event.eventPhase = 0;
-  event.__dispatching = false;
-  event.__stop = false;
-  event.__stopImmediate = false;
-  event.__path = [];
+  event[P.__dispatching] = false;
+  event[P.__stop] = false;
+  event[P.__stopImmediate] = false;
+  event[P.__path] = [];
   return !event.defaultPrevented;
 };
 
@@ -179,14 +179,14 @@ class Event {
     this.isTrusted = false;
     this.srcElement = null;
   }
-  get cancelBubble() { return this.__stop; }
-  set cancelBubble(value) { if (value) this.__stop = true; }
+  get cancelBubble() { return this[P.__stop]; }
+  set cancelBubble(value) { if (value) this[P.__stop] = true; }
   get returnValue() { return !this.defaultPrevented; }
   set returnValue(value) { if (!value) this.preventDefault(); }
-  stopPropagation() { this.__stop = true; }
-  stopImmediatePropagation() { this.__stop = true; this.__stopImmediate = true; }
-  preventDefault() { if (this.cancelable && !this.__passive) this.defaultPrevented = true; }
-  composedPath() { return this.__dispatching ? this.__path.slice() : []; }
+  stopPropagation() { this[P.__stop] = true; }
+  stopImmediatePropagation() { this[P.__stop] = true; this[P.__stopImmediate] = true; }
+  preventDefault() { if (this.cancelable && !this[P.__passive]) this.defaultPrevented = true; }
+  composedPath() { return this[P.__dispatching] ? this[P.__path].slice() : []; }
   initEvent(type, bubbles, cancelable) {
     this.type = String(type);
     this.bubbles = !!bubbles;

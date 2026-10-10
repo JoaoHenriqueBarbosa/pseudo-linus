@@ -99,18 +99,18 @@ defineHtml('HTMLInputElement', ['input'], (cls) => {
   reflect(cls, [['name', 'name'], ['placeholder', 'placeholder'], ['disabled', 'disabled', 'bool'], ['required', 'required', 'bool'], ['readOnly', 'readonly', 'bool'], ['multiple', 'multiple', 'bool'], ['accept', 'accept'], ['autocomplete', 'autocomplete'], ['min', 'min'], ['max', 'max'], ['step', 'step'], ['pattern', 'pattern'], ['src', 'src', 'url'], ['alt', 'alt'], ['formAction', 'formaction', 'url'], ['defaultValue', 'value'], ['defaultChecked', 'checked', 'bool'], ['maxLength', 'maxlength', 'long'], ['minLength', 'minlength', 'long'], ['size', 'size', 'long']]);
   Object.defineProperties(cls.prototype, {
     type: { get() { const t = lower(this.getAttribute('type') || 'text'); return ['button', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image', 'month', 'number', 'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'text', 'time', 'url', 'week'].includes(t) ? t : 'text'; }, set(v) { this.setAttribute('type', v); }, configurable: true, enumerable: true },
-    value: { get() { return this.__value !== undefined ? this.__value : this.getAttribute('value') ?? (this.type === 'checkbox' || this.type === 'radio' ? 'on' : ''); }, set(v) { hidden(this, '__value', toStr(v)); }, configurable: true, enumerable: true },
-    checked: { get() { return this.__checked !== undefined ? this.__checked : this.hasAttribute('checked'); }, set(v) { hidden(this, '__checked', !!v); }, configurable: true, enumerable: true },
+    value: { get() { return this[P.__value] !== undefined ? this[P.__value] : this.getAttribute('value') ?? (this.type === 'checkbox' || this.type === 'radio' ? 'on' : ''); }, set(v) { hidden(this, '__value', toStr(v)); }, configurable: true, enumerable: true },
+    checked: { get() { return this[P.__checked] !== undefined ? this[P.__checked] : this.hasAttribute('checked'); }, set(v) { hidden(this, '__checked', !!v); }, configurable: true, enumerable: true },
     form: { get() { return formOwner(this); }, configurable: true },
     labels: { get() { return staticNodeList([]); }, configurable: true },
     files: { get() { return null; }, configurable: true },
     valueAsNumber: { get() { return parseFloat(this.value); }, configurable: true },
-    selectionStart: { get() { return this.__selStart ?? this.value.length; }, set(v) { hidden(this, '__selStart', v); }, configurable: true },
-    selectionEnd: { get() { return this.__selEnd ?? this.value.length; }, set(v) { hidden(this, '__selEnd', v); }, configurable: true },
+    selectionStart: { get() { return this[P.__selStart] ?? this.value.length; }, set(v) { hidden(this, '__selStart', v); }, configurable: true },
+    selectionEnd: { get() { return this[P.__selEnd] ?? this.value.length; }, set(v) { hidden(this, '__selEnd', v); }, configurable: true },
     validity: { get() { return { valid: true, valueMissing: false, typeMismatch: false, patternMismatch: false, tooLong: false, tooShort: false, rangeUnderflow: false, rangeOverflow: false, stepMismatch: false, badInput: false, customError: false }; }, configurable: true },
     validationMessage: { get() { return ''; }, configurable: true },
     willValidate: { get() { return !this.disabled; }, configurable: true },
-    indeterminate: { get() { return !!this.__indeterminate; }, set(v) { hidden(this, '__indeterminate', !!v); }, configurable: true },
+    indeterminate: { get() { return !!this[P.__indeterminate]; }, set(v) { hidden(this, '__indeterminate', !!v); }, configurable: true },
   });
   Object.assign(cls.prototype, { select() {}, setSelectionRange(a, b) { hidden(this, '__selStart', a); hidden(this, '__selEnd', b); }, setCustomValidity() {}, checkValidity() { return true; }, reportValidity() { return true; }, stepUp() {}, stepDown() {}, showPicker() {} });
 });
@@ -118,12 +118,12 @@ defineHtml('HTMLTextAreaElement', ['textarea'], (cls) => {
   reflect(cls, [['name', 'name'], ['placeholder', 'placeholder'], ['disabled', 'disabled', 'bool'], ['required', 'required', 'bool'], ['readOnly', 'readonly', 'bool'], ['rows', 'rows', 'long'], ['cols', 'cols', 'long'], ['maxLength', 'maxlength', 'long'], ['wrap', 'wrap']]);
   Object.defineProperties(cls.prototype, {
     defaultValue: { get() { return this.textContent; }, set(v) { this.textContent = v; }, configurable: true },
-    value: { get() { return this.__value !== undefined ? this.__value : this.textContent; }, set(v) { hidden(this, '__value', toStr(v)); }, configurable: true, enumerable: true },
+    value: { get() { return this[P.__value] !== undefined ? this[P.__value] : this.textContent; }, set(v) { hidden(this, '__value', toStr(v)); }, configurable: true, enumerable: true },
     type: { get() { return 'textarea'; }, configurable: true },
     form: { get() { return formOwner(this); }, configurable: true },
     textLength: { get() { return this.value.length; }, configurable: true },
-    selectionStart: { get() { return this.__selStart ?? this.value.length; }, set(v) { hidden(this, '__selStart', v); }, configurable: true },
-    selectionEnd: { get() { return this.__selEnd ?? this.value.length; }, set(v) { hidden(this, '__selEnd', v); }, configurable: true },
+    selectionStart: { get() { return this[P.__selStart] ?? this.value.length; }, set(v) { hidden(this, '__selStart', v); }, configurable: true },
+    selectionEnd: { get() { return this[P.__selEnd] ?? this.value.length; }, set(v) { hidden(this, '__selEnd', v); }, configurable: true },
   });
   Object.assign(cls.prototype, { select() {}, setSelectionRange(a, b) { hidden(this, '__selStart', a); hidden(this, '__selEnd', b); }, setCustomValidity() {}, checkValidity() { return true; }, reportValidity() { return true; } });
 });
@@ -151,7 +151,7 @@ defineHtml('HTMLOptionElement', ['option'], (cls) => {
   Object.defineProperties(cls.prototype, {
     value: { get() { return this.getAttribute('value') ?? this.text; }, set(v) { this.setAttribute('value', v); }, configurable: true, enumerable: true },
     text: { get() { return this.textContent.replace(/[ \t\n\f\r]+/g, ' ').trim(); }, set(v) { this.textContent = v; }, configurable: true },
-    selected: { get() { return this.__selected !== undefined ? this.__selected : this.hasAttribute('selected'); }, set(v) { hidden(this, '__selected', !!v); }, configurable: true, enumerable: true },
+    selected: { get() { return this[P.__selected] !== undefined ? this[P.__selected] : this.hasAttribute('selected'); }, set(v) { hidden(this, '__selected', !!v); }, configurable: true, enumerable: true },
     index: { get() { const s = this.closest('select'); return s ? Array.from(s.querySelectorAll('option')).indexOf(this) : 0; }, configurable: true },
     form: { get() { return formOwner(this); }, configurable: true },
   });
@@ -183,13 +183,13 @@ defineHtml('HTMLLabelElement', ['label'], (cls) => {
 defineHtml('HTMLTemplateElement', ['template'], (cls) => {
   Object.defineProperty(cls.prototype, 'content', {
     get() {
-      if (!this.__content) {
+      if (!this[P.__content]) {
         const content = Object.create(TemplateContent.prototype);
         ids.set(content, idOf(this));
         hidden(content, '__template', this);
         hidden(this, '__content', content);
       }
-      return this.__content;
+      return this[P.__content];
     },
     configurable: true,
   });
@@ -204,7 +204,7 @@ class TemplateContent extends DocumentFragment {
     for (const child of Array.from(this.childNodes)) fragment.appendChild(child.cloneNode(!!deep));
     return fragment;
   }
-  __flatten() {
+  [P.__flatten]() {
     const fragment = document.createDocumentFragment();
     for (const child of Array.from(this.childNodes)) fragment.appendChild(child);
     return fragment;
@@ -241,7 +241,7 @@ defineHtml('HTMLSlotElement', ['slot'], (cls) => {
     while (root && !(root instanceof ShadowRoot)) root = root.parentNode;
     if (!root) return [];
     const name = slot.getAttribute('name') || '';
-    return Array.from(root.__host.childNodes).filter((n) => (n.nodeType === 1 ? (n.getAttribute('slot') || '') === name : n.nodeType === 3 && name === ''));
+    return Array.from(root[P.__host].childNodes).filter((n) => (n.nodeType === 1 ? (n.getAttribute('slot') || '') === name : n.nodeType === 3 && name === ''));
   };
   Object.assign(cls.prototype, { assignedNodes() { return assigned(this); }, assignedElements() { return assigned(this).filter((n) => n.nodeType === 1); } });
 });
@@ -288,8 +288,8 @@ defineHtml('HTMLFrameSetElement', ['frameset']);
 // `className` de SVG é um SVGAnimatedString vivo sobre o atributo `class`.
 class SVGAnimatedString {
   constructor() { throw new TypeError('Illegal constructor'); }
-  get baseVal() { return this.__element.getAttribute(this.__attr) ?? ''; }
-  set baseVal(v) { this.__element.setAttribute(this.__attr, v); }
+  get baseVal() { return this[P.__element].getAttribute(this[P.__attr]) ?? ''; }
+  set baseVal(v) { this[P.__element].setAttribute(this[P.__attr], v); }
   get animVal() { return this.baseVal; }
 }
 tag(SVGAnimatedString, 'SVGAnimatedString');
@@ -347,12 +347,12 @@ class CustomElementRegistry {
   }
   get(name) { const def = customByName.get(String(name)); return def ? def.ctor : undefined; }
   getName(ctor) { const def = customByCtor.get(ctor); return def ? def.name : null; }
-  whenDefined(name) { const def = customByName.get(String(name)); return def ? Promise.resolve(def.ctor) : new Promise((resolve) => { const w = this.__waiting || (this.__waiting = new Map()); (w.get(name) || w.set(name, []).get(name)).push(resolve); this.__pending = true; }); }
+  whenDefined(name) { const def = customByName.get(String(name)); return def ? Promise.resolve(def.ctor) : new Promise((resolve) => { const w = this[P.__waiting] || (this[P.__waiting] = new Map()); (w.get(name) || w.set(name, []).get(name)).push(resolve); this[P.__pending] = true; }); }
   upgrade(root) { for (const el of Array.from(root.querySelectorAll('*'))) { const def = customByName.get(el.localName); if (def) upgradeElement(el, def); } }
 }
 tag(CustomElementRegistry, 'CustomElementRegistry');
 const upgradeElement = (el, def) => {
-  if (el.__upgraded || !(el instanceof HTMLElement)) return;
+  if (el[P.__upgraded] || !(el instanceof HTMLElement)) return;
   hidden(el, '__upgraded', true);
   Object.setPrototypeOf(el, def.ctor.prototype);
   upgrading = el;
@@ -368,7 +368,7 @@ const customElements = Object.create(CustomElementRegistry.prototype);
 const originalDefine = CustomElementRegistry.prototype.define;
 CustomElementRegistry.prototype.define = function (name, ctor, options) {
   originalDefine.call(this, name, ctor, options);
-  const waiting = this.__waiting && this.__waiting.get(String(name));
+  const waiting = this[P.__waiting] && this[P.__waiting].get(String(name));
   if (waiting) for (const resolve of waiting) resolve(ctor);
 };
 
@@ -378,8 +378,8 @@ function afterInsert(node) {
   const connected = node.isConnected;
   const walk = (el) => {
     const def = customByName.get(el.localName);
-    if (def && !el.__upgraded && connected) upgradeElement(el, def);
-    else if (def && el.__upgraded && connected && typeof el.connectedCallback === 'function') invokeReaction(() => el.connectedCallback());
+    if (def && !el[P.__upgraded] && connected) upgradeElement(el, def);
+    else if (def && el[P.__upgraded] && connected && typeof el.connectedCallback === 'function') invokeReaction(() => el.connectedCallback());
     if (connected && el.localName === 'script') runDynamicScript(el);
     for (const child of Array.from(el.children)) walk(child);
   };
@@ -390,7 +390,7 @@ function afterInsert(node) {
 function afterRemove(node) {
   if (node.nodeType !== 1) return;
   const walk = (el) => {
-    if (el.__upgraded && typeof el.disconnectedCallback === 'function') invokeReaction(() => el.disconnectedCallback());
+    if (el[P.__upgraded] && typeof el.disconnectedCallback === 'function') invokeReaction(() => el.disconnectedCallback());
     for (const child of Array.from(el.children)) walk(child);
   };
   walk(node);
