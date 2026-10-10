@@ -369,6 +369,64 @@ fn two_value_transform_origin_keeps_no_z() {
 }
 
 #[test]
+fn parsed_images_load_and_pick_their_source() {
+    // Medido no oráculo (testbench/oracle, headless sob --virtual-time-budget, imagens que respondem 404): toda imagem
+    // do documento busca a fonte, lazy inclusive (a qualquer distância e com display: none, no primeiro quadro), e a
+    // lazy desconectada busca como a eager; a fonte vem do srcset pela densidade 1 e do primeiro <source> do <picture>
+    // que serve; o error não borbulha, e tudo termina antes do load da janela.
+    let html = r#"<body><img id=a src="a.png"><img id=b loading=lazy src="b.png">
+<img id=c srcset="c1.png 1x, c2.png 2x" src="c0.png">
+<img id=d srcset="d300.png 300w, d900.png 900w, d2000.png 2000w" sizes="(max-width: 500px) 100px, 50vw">
+<img id=e srcset="e2.png 2x" src="e1.png">
+<picture><source media="(min-width: 5000px)" srcset="f-big.png"><source type="image/x-unknown" srcset="f-unk.png"><source srcset="f-ok.png"><img id=f src="f-img.png"></picture>
+<img id=g><img id=h src=""><div style="height: 30000px"></div><img id=i loading=lazy src="i.png" style="display:none">
+<script>
+var ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'], seen = [];
+for (var id of ids) document.getElementById(id).addEventListener('error', function (ev) { seen.push(ev.target.id + (ev.bubbles ? '!' : '')); });
+var dyn = document.createElement('img'); dyn.loading = 'lazy'; dyn.onerror = function () { seen.push('dyn'); }; dyn.src = 'dyn.png';
+document.getElementById('h').decode().then(function () { console.log('h decodificou'); }, function (e) { console.log('h', e.name, e.message); });
+window.addEventListener('load', function () {
+  console.log(seen.slice().sort().join(','));
+  console.log(ids.map(function (id) { var el = document.getElementById(id); return id + '=' + el.complete + ':' + el.currentSrc.split('/').pop(); }).join(' '));
+});
+</script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(
+        log,
+        concat!(
+            "h EncodingError The source image cannot be decoded.\n",
+            "a,b,c,d,dyn,e,f,h,i\n",
+            "a=true:a.png b=true:b.png c=true:c1.png d=true:d900.png e=true:e1.png f=true:f-ok.png g=true: h=true: i=true:i.png\n",
+        )
+    );
+}
+
+#[test]
+fn transform_functions_keep_written_arity() {
+    // Medido no oráculo: o Blink guarda o segundo argumento de translate, scale e skew mesmo quando ele é o padrão.
+    let cases = ["translate(0px, 0px)", "translate(10px,0)", "translate(5px)", "translate(0px, 0%)", "scale(1,1)", "scale(2)", "scale(2, 2)", "skew(10deg, 0)", "skew(10deg)", "translate(0, 0) scale(1, 1)", "translate(-50%, -50%) rotate(45deg)"];
+    let list = cases.iter().map(|c| format!("'{c}'")).collect::<Vec<_>>().join(",");
+    let script = format!("<body><script>for (var c of [{list}]) {{ var p = document.createElement('p'); p.style.transform = c; var q = document.createElement('p'); q.setAttribute('style', 'transform: ' + c); console.log(p.getAttribute('style') + ' | ' + q.style.transform) }}</script>");
+    let (_, log) = run(&[("/", &script)]);
+    assert_eq!(
+        log,
+        concat!(
+            "transform: translate(0px, 0px); | translate(0px, 0px)\n",
+            "transform: translate(10px, 0px); | translate(10px, 0px)\n",
+            "transform: translate(5px); | translate(5px)\n",
+            "transform: translate(0px, 0%); | translate(0px, 0%)\n",
+            "transform: scale(1, 1); | scale(1, 1)\n",
+            "transform: scale(2); | scale(2)\n",
+            "transform: scale(2, 2); | scale(2, 2)\n",
+            "transform: skew(10deg, 0deg); | skew(10deg, 0deg)\n",
+            "transform: skew(10deg); | skew(10deg)\n",
+            "transform: translate(0px, 0px) scale(1, 1); | translate(0px, 0px) scale(1, 1)\n",
+            "transform: translate(-50%, -50%) rotate(45deg); | translate(-50%, -50%) rotate(45deg)\n",
+        )
+    );
+}
+
+#[test]
 fn module_scripts_with_dynamic_import_and_top_level_await() {
     let html = "<body><script type=module>import { a } from './m.js'; const { b } = await import('/n.js'); console.log(a, b, document.currentScript, import.meta.url)</script><script type=module>console.log(typeof C)</script><script>var C = 1</script>";
     let (_, log) = run(&[("/", html), ("/m.js", "export const a = 'a'"), ("/n.js", "export const b = 'b'")]);

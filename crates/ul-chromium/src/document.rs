@@ -165,10 +165,14 @@ pub fn normalize_style(text: &str) -> String {
     let mut known = String::new();
     let mut extra: Vec<(usize, String, String)> = Vec::new();
     let mut origin_components = None;
+    let mut transform_written = None;
     for (name, value, important) in split_declarations(&text) {
         let lower = name.to_ascii_lowercase();
         if lower == "transform-origin" {
             origin_components = Some(value.split_ascii_whitespace().count());
+        }
+        if lower == "transform" {
+            transform_written = Some(value.clone());
         }
         if stylo_knows(&lower) || name.starts_with("--") {
             known.push_str(&format!("{name}: {value}{};", if important { " !important" } else { "" }));
@@ -188,6 +192,13 @@ pub fn normalize_style(text: &str) -> String {
             }
         }
     }
+    if let Some(written) = &transform_written {
+        for decl in &mut out {
+            if let Some(rest) = decl.strip_prefix("transform: ") {
+                *decl = format!("transform: {}", keep_transform_arity(written, rest));
+            }
+        }
+    }
     for (at, name, value) in extra.into_iter().rev() {
         out.insert(at.min(out.len()), format!("{name}: {value};"));
     }
@@ -197,6 +208,90 @@ pub fn normalize_style(text: &str) -> String {
 /// Se o stylo (com as preferências do Blitz) analisa a propriedade.
 fn stylo_knows(name: &str) -> bool {
     style::properties::PropertyId::parse_enabled_for_all_content(name).is_ok()
+}
+
+/// As funções de nível superior de uma lista de transformações: (início do nome, abre-parêntese, fecha-parêntese).
+fn transform_calls(text: &str) -> Vec<(usize, usize, usize)> {
+    let bytes = text.as_bytes();
+    let mut calls = Vec::new();
+    let mut depth = 0usize;
+    let mut name_start = None;
+    for (i, &b) in bytes.iter().enumerate() {
+        match b {
+            b'(' => {
+                if depth == 0 {
+                    calls.push((name_start.unwrap_or(i), i, i));
+                }
+                depth += 1;
+            }
+            b')' if depth > 0 => {
+                depth -= 1;
+                if depth == 0 {
+                    if let Some(last) = calls.last_mut() {
+                        last.2 = i;
+                    }
+                }
+            }
+            _ if depth == 0 && (b.is_ascii_alphanumeric() || b == b'-') => {
+                if name_start.is_none() {
+                    name_start = Some(i);
+                }
+                continue;
+            }
+            _ => {}
+        }
+        if depth == 0 || b == b'(' {
+            name_start = None;
+        }
+    }
+    calls
+}
+
+/// Quantos argumentos uma função recebeu (vírgulas de nível superior mais um).
+fn argument_count(inner: &str) -> usize {
+    let mut depth = 0i32;
+    let mut count = 1;
+    for c in inner.chars() {
+        match c {
+            '(' => depth += 1,
+            ')' => depth -= 1,
+            ',' if depth == 0 => count += 1,
+            _ => {}
+        }
+    }
+    count
+}
+
+/// O stylo encurta `translate(x, 0)`, `scale(s, s)` e `skew(a, 0)` para um argumento; o Blink guarda a aridade escrita
+/// (medido no oráculo: `translate(0px, 0px)`, `scale(1, 1)` e `skew(10deg, 0deg)` saem assim).
+fn keep_transform_arity(written: &str, serialized: &str) -> String {
+    let wanted = transform_calls(written);
+    let found = transform_calls(serialized);
+    if wanted.len() != found.len() {
+        return serialized.to_owned();
+    }
+    let mut out = String::new();
+    let mut copied = 0;
+    for (want, have) in wanted.iter().zip(&found) {
+        let name = serialized[have.0..have.1].to_ascii_lowercase();
+        let inner = &serialized[have.1 + 1..have.2];
+        let written_args = argument_count(&written[want.1 + 1..want.2]);
+        if written[want.0..want.1].to_ascii_lowercase() != name || written_args != 2 || argument_count(inner) != 1 {
+            continue;
+        }
+        let second = match name.as_str() {
+            "translate" => "0px",
+            "skew" => "0deg",
+            "scale" => inner.trim(),
+            _ => continue,
+        };
+        out.push_str(&serialized[copied..have.2]);
+        out.push_str(", ");
+        out.push_str(second);
+        copied = have.2;
+    }
+    out.push_str(&serialized[copied..]);
+    out
 }
 
 /// O bloco serializado pelo stylo, uma declaração por item (`nome: valor;`).
