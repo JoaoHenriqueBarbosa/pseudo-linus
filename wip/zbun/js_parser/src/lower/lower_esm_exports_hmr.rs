@@ -728,7 +728,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                 .append_list(&core::mem::take(&mut part.declared_symbols))?;
             self.last_part
                 .import_record_indices
-                .append_slice(part.import_record_indices.slice());
+                .append_slice(part.import_record_indices.as_slice());
             // Note: reshaped for borrowck: index loop avoids
             // holding two shared borrows of `part.symbol_uses` while &mut-borrowing `last_part`.
             for i in 0..part.symbol_uses.count() {

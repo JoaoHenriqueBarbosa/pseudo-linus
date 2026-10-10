@@ -1032,18 +1032,21 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .with_is_template_tag(is_template_tag)
                                 .with_is_delete_target(is_delete_target)
                                 .with_assign_target(in_.assign_target);
+                            let key_bytes = p.store.str(s.data).to_vec();
+                            let target = p.store[e_].target;
                             if let Some(rewrite) = p.maybe_rewrite_property_access(
                                 expr.loc,
-                                p.store[e_].target,
-                                s.data.slice(),
+                                target,
+                                &key_bytes,
                                 unwrapped.loc,
                                 opts,
                             ) {
                                 *e = rewrite;
                                 return;
                             }
-                            p.store[e_].is_import_property_use =
-                                p.record_import_property_use(&p.store[e_].target, s.data.slice(), opts);
+                            let target = p.store[e_].target;
+                            let is_import_property_use = p.record_import_property_use(&target, &key_bytes, opts);
+                            p.store[e_].is_import_property_use = is_import_property_use;
                         }
                     }
                 }
@@ -2391,10 +2394,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         .original_name),
                     Data::EImportIdentifier(id) => p.store.str(p.symbols[id.ref_.inner_index() as usize]
                         .original_name),
-                    Data::ECommonjsExportIdentifier(id) => p.symbols
-                        [id.ref_.inner_index() as usize]
-                        .original_name
-                        .slice(),
+                    Data::ECommonjsExportIdentifier(id) => p.store.str(p.symbols[id.ref_.inner_index() as usize]
+                        .original_name),
                     Data::EDot(dot) => p.store.str(p.store[*dot].name),
                     _ => break 'try_record_hook,
                 };

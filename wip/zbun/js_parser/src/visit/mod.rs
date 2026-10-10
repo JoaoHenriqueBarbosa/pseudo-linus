@@ -220,7 +220,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     }
 
     pub(crate) fn visit_args(&mut self, args: &mut [G::Arg], opts: &VisitArgsOpts) {
-        let strict_loc = fn_body_contains_use_strict(opts.body);
+        let strict_loc = fn_body_contains_use_strict(&self.store, opts.body);
         let has_simple_args = Self::is_simple_parameter_list(args, opts.has_rest_arg);
         // StringVoidMap::get returns a pool guard; Drop releases.
         let mut duplicate_args_check: Option<
@@ -1066,7 +1066,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         ..Default::default()
                     };
                     // PropertyKind::ClassStaticBlock guarantees `Some`; arena-owned for 'a.
-                    let csb = property.class_static_block_mut().unwrap();
+                    let csb_ref = property.class_static_block.unwrap();
+                    let csb = self.store[csb_ref];
                     self.push_scope_for_visit_pass(ScopeKind::ClassStaticInit, csb.loc)
                         .expect("unreachable");
 
@@ -1079,7 +1080,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     list.extend_from_slice(&csb_stmts);
                     self.visit_stmts(&mut list, StmtsKind::FnBody)
                         .expect("unreachable");
-                    csb.stmts = self.store.alloc_slice(list);
+                    let visited_stmts = self.store.alloc_slice(list);
+                    self.store[csb_ref].stmts = visited_stmts;
                     self.pop_scope();
 
                     self.fn_or_arrow_data_visit = old_fn_or_arrow_data;
@@ -2172,7 +2174,7 @@ fn scopes_for_enum_at<'a>(
         .expect("scopes_in_order_for_enum miss for enum stmt loc")
 }
 
-fn fn_body_contains_use_strict(body: &[Stmt]) -> Option<bun_ast::Loc> {
+fn fn_body_contains_use_strict(store: &bun_ast::store::Store, body: &[Stmt]) -> Option<bun_ast::Loc> {
     use bun_ast::stmt::Data as StmtData;
     for stmt in body {
         // "use strict" has to appear at the top of the function body
@@ -2180,8 +2182,7 @@ fn fn_body_contains_use_strict(body: &[Stmt]) -> Option<bun_ast::Loc> {
         match &stmt.data {
             StmtData::SComment(_) => continue,
             StmtData::SDirective(dir) => {
-                // SAFETY: arena-owned slice valid for the parse.
-                if dir.value.slice() == b"use strict" {
+                if store.str(store[*dir].value) == b"use strict" {
                     return Some(stmt.loc);
                 }
             }

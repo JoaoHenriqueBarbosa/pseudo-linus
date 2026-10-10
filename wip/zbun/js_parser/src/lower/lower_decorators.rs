@@ -887,8 +887,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             js_ast::ExprData::EFunction(e) => {
                 let temps_before = self.temp_refs_to_declare.len();
-                let stmts = (&mut self.store[self.store[*e].func.body.stmts]);
-                self.rewrite_private_accesses_in_stmts(stmts, map);
+                let range = self.store[*e].func.body.stmts;
+                self.rewrite_private_accesses_in_stmt_range(range, map);
                 self.store[*e].func.body.stmts = self.declare_capture_temps_in_fn_body(
                     self.store[*e].func.body.stmts,
                     temps_before,
@@ -897,8 +897,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             js_ast::ExprData::EArrow(e) => {
                 let temps_before = self.temp_refs_to_declare.len();
-                let stmts = (&mut self.store[self.store[*e].body.stmts]);
-                self.rewrite_private_accesses_in_stmts(stmts, map);
+                let range = self.store[*e].body.stmts;
+                self.rewrite_private_accesses_in_stmt_range(range, map);
                 self.store[*e].body.stmts =
                     self.declare_capture_temps_in_fn_body(self.store[*e].body.stmts, temps_before, self.store[*e].body.loc);
             }
@@ -954,6 +954,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.store.alloc_slice(new_stmts)
     }
 
+    /// `rewrite_private_accesses_in_stmts` sobre uma faixa do `Store` (ver `rewrite_stmt_range`).
+    fn rewrite_private_accesses_in_stmt_range(
+        &mut self,
+        range: bun_ast::StoreSlice<Stmt>,
+        map: &PrivateLoweredMap,
+    ) {
+        let mut list = self.store[range].to_vec();
+        self.rewrite_private_accesses_in_stmts(&mut list, map);
+        self.store[range].copy_from_slice(&list);
+    }
+
     fn rewrite_private_accesses_in_stmts(&mut self, stmts: &mut [Stmt], map: &PrivateLoweredMap) {
         for stmt_item in stmts.iter_mut() {
             match &mut stmt_item.data {
@@ -971,10 +982,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     { let mut arg_a = self.store[*data].value; self.rewrite_private_accesses_in_expr( &mut arg_a, map); self.store[*data].value = arg_a; }
                 }
                 js_ast::StmtData::SLocal(data) => {
-                    for decl in (&mut self.store[self.store[*data].decls]) {
-                        if let Some(v) = &mut decl.value {
+                    let decls = self.store[*data].decls;
+                    for index in 0..decls.len() {
+                        let mut slot = self.store[decls][index].value;
+                        if let Some(v) = &mut slot {
                             self.rewrite_private_accesses_in_expr(v, map);
                         }
+                        self.store[decls][index].value = slot;
                     }
                 }
                 js_ast::StmtData::SIf(data) => {
@@ -991,8 +1005,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.store[*data].no = slot;
                 }
                 js_ast::StmtData::SBlock(data) => {
-                    let stmts = (&mut self.store[self.store[*data].stmts]);
-                    self.rewrite_private_accesses_in_stmts(stmts, map);
+                    let range = self.store[*data].stmts;
+                    self.rewrite_private_accesses_in_stmt_range(range, map);
                 }
                 js_ast::StmtData::SFor(data) => {
                     let mut slot = self.store[*data].init;
@@ -1050,28 +1064,28 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut t = self.store[*data].test;
                     self.rewrite_private_accesses_in_expr(&mut t, map);
                     self.store[*data].test = t;
-                    let cases = (&mut self.store[self.store[*data].cases]);
-                    for case in cases.iter_mut() {
-                        if let Some(v) = &mut case.value {
+                    let cases = self.store[*data].cases;
+                    for index in 0..cases.len() {
+                        let mut slot = self.store[cases][index].value;
+                        if let Some(v) = &mut slot {
                             self.rewrite_private_accesses_in_expr(v, map);
                         }
-                        let body = (&mut self.store[case.body]);
-                        self.rewrite_private_accesses_in_stmts(body, map);
+                        self.store[cases][index].value = slot;
+                        let body = self.store[cases][index].body;
+                        self.rewrite_private_accesses_in_stmt_range(body, map);
                     }
                 }
                 js_ast::StmtData::STry(data) => {
-                    let body = (&mut self.store[self.store[*data].body]);
-                    self.rewrite_private_accesses_in_stmts(body, map);
+                    let body = self.store[*data].body;
+                    self.rewrite_private_accesses_in_stmt_range(body, map);
                     let mut slot = self.store[*data].catch;
                     if let Some(c) = &mut slot {
-                        let cb = (&mut self.store[c.body]);
-                        self.rewrite_private_accesses_in_stmts(cb, map);
+                        self.rewrite_private_accesses_in_stmt_range(c.body, map);
                     }
                     self.store[*data].catch = slot;
                     let mut slot = self.store[*data].finally;
                     if let Some(f) = &mut slot {
-                        let fb = (&mut self.store[f.stmts]);
-                        self.rewrite_private_accesses_in_stmts(fb, map);
+                        self.rewrite_private_accesses_in_stmt_range(f.stmts, map);
                     }
                     self.store[*data].finally = slot;
                 }
@@ -2004,8 +2018,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if let Some(v) = &mut nprop.value {
                     p.rewrite_private_accesses_in_expr(v, &private_lowered_map);
                 }
-                if let Some(sb) = nprop.class_static_block_mut() {
-                    p.rewrite_private_accesses_in_stmts(sb.stmts.slice_mut(), &private_lowered_map);
+                if let Some(block) = nprop.class_static_block {
+                    let block_stmts = p.store[block].stmts;
+                    p.rewrite_private_accesses_in_stmt_range(block_stmts, &private_lowered_map);
                 }
             }
             for entry in instance_init_entries.iter_mut() {
@@ -2019,9 +2034,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
             for sb_ptr in extracted_static_blocks.iter_mut() {
-                // `StoreRef::DerefMut`: arena-owned, safe under the StoreRef invariant.
-                let sb = &mut p.store[*sb_ptr];
-                p.rewrite_private_accesses_in_stmts((&mut p.store[sb.stmts]), &private_lowered_map);
+                let block_stmts = p.store[*sb_ptr].stmts;
+                p.rewrite_private_accesses_in_stmt_range(block_stmts, &private_lowered_map);
             }
             for elem in static_non_field_elements.iter_mut() {
                 p.rewrite_private_accesses_in_expr(elem, &private_lowered_map);

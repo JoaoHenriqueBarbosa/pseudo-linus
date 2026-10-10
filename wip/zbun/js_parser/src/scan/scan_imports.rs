@@ -591,11 +591,8 @@ impl<'a> ImportScanner<'a> {
                 js_ast::StmtData::SFunction(st) => {
                     if p.store[st].func.flags.contains(bun_ast::flags::Function::IsExport) {
                         if let Some(name) = p.store[st].func.name {
-                            // SAFETY: arena-owned slice valid for 'p.
-                            let original_name: &'p [u8] = p.symbols
-                                [name.ref_.inner_index() as usize]
-                                .original_name
-                                .slice();
+                            let original_name =
+                                p.arena_str(p.symbols[name.ref_.inner_index() as usize].original_name);
                             p.record_export(name.loc, original_name, name.ref_)?;
                         } else {
                             p.log().add_range_error(
@@ -612,11 +609,8 @@ impl<'a> ImportScanner<'a> {
                 js_ast::StmtData::SClass(st) => {
                     if p.store[st].is_export {
                         if let Some(name) = p.store[st].class.class_name {
-                            // SAFETY: arena-owned slice valid for 'p.
-                            let original_name: &'p [u8] = p.symbols
-                                [name.ref_.inner_index() as usize]
-                                .original_name
-                                .slice();
+                            let original_name =
+                                p.arena_str(p.symbols[name.ref_.inner_index() as usize].original_name);
                             p.record_export(name.loc, original_name, name.ref_)?;
                         } else {
                             p.log().add_range_error(

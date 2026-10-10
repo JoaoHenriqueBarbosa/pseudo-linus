@@ -1847,12 +1847,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // The parser may print a temporary or helper it generated in a deeper
         // scope than it referenced it in; not so its generated import items.
         fn generated(symbols: &[Symbol], scope: &Scope, spans: &mut Vec<ScopeUseSpan>) {
-            for ref_ in scope.generated.slice() {
+            for ref_ in scope.generated.as_slice() {
                 if symbols[ref_.inner_index() as usize].kind != js_ast::symbol::Kind::Import {
                     spans.push(ScopeUseSpan::whole_file(ref_.inner_index()));
                 }
             }
-            for child in scope.children.slice() {
+            for child in scope.children.as_slice() {
                 generated(symbols, child, spans);
             }
         }
@@ -1890,6 +1890,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         fn visit(
+            store: &bun_ast::store::Store,
             symbols: &[js_ast::Symbol],
             char_freq: &mut js_ast::CharFreq,
             scope: &js_ast::Scope,
@@ -1897,9 +1898,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             for (_, member) in scope.members.iter() {
                 let symbol: &Symbol = &symbols[member.ref_.inner_index() as usize];
                 if symbol.slot_namespace() != js_ast::symbol::SlotNamespace::MustNotBeRenamed {
-                    // SAFETY: Symbol.original_name is an arena-owned slice valid for the parser lifetime.
                     char_freq.scan(
-                        symbol.original_name.slice(),
+                        store.str(symbol.original_name),
                         -(i32::try_from(symbol.use_count_estimate).expect("int cast")),
                     );
                 }
@@ -1908,19 +1908,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if let Some(r#ref) = scope.label_ref.to_nullable() {
                 let symbol = &symbols[r#ref.inner_index() as usize];
                 if symbol.slot_namespace() != js_ast::symbol::SlotNamespace::MustNotBeRenamed {
-                    // SAFETY: see above.
                     char_freq.scan(
-                        symbol.original_name.slice(),
+                        store.str(symbol.original_name),
                         -(i32::try_from(symbol.use_count_estimate).expect("int cast")) - 1,
                     );
                 }
             }
 
-            for child in scope.children.slice() {
-                visit(symbols, char_freq, child);
+            for child in scope.children.as_slice() {
+                visit(store, symbols, char_freq, child);
             }
         }
-        visit(self.symbols.as_slice(), &mut freq, self.module_scope());
+        visit(&self.store, self.symbols.as_slice(), &mut freq, self.module_scope());
 
         // TODO: mangledProps
 
@@ -3777,7 +3776,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         {
             // `StoreRef` Deref: arena-owned, valid for parser 'a lifetime; the
             // recursive calls only touch descendant scopes.
-            let children = self.store[scope].children.slice();
+            let children = self.store[scope].children.as_slice();
             for child in children {
                 self.hoist_symbols(*child);
             }
@@ -4186,7 +4185,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let children = &self.store[parent].children;
         // Remove the last child from the parent scope
         let last = children.len_u32() - 1;
-        if children.slice()[last as usize] != to_discard {
+        if children.as_slice()[last as usize] != to_discard {
             self.panic("Internal error", format_args!(""));
         }
 
@@ -5714,7 +5713,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let js_ast::ExprData::EObject(literal) = &value.data else {
                     return false;
                 };
-                if !Self::object_literal_has_only_plain_keys(literal) {
+                if !Self::object_literal_has_only_plain_keys(&self.store, literal) {
                     return false;
                 }
                 for property in (&self.store[self.store[bo].properties]) {
@@ -5731,7 +5730,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let js_ast::ExprData::EString(key) = &property.key.data else {
                         return false;
                     };
-                    let Some(matched) = Self::object_literal_data_property(literal, key) else {
+                    let Some(matched) = Self::object_literal_data_property(&self.store, literal, key) else {
                         return false;
                     };
                     if !self.pattern_can_be_removed_if_unused_without_dce_check(
@@ -5747,8 +5746,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     }
 
     /// Only string keys (a numeric key `0` is the same property as `"0"`), no spread, no computed key, and no `__proto__` (it sets the prototype).
-    fn object_literal_has_only_plain_keys(literal: &E::Object) -> bool {
-        literal.properties.slice().iter().all(|property| {
+    fn object_literal_has_only_plain_keys(store: &bun_ast::store::Store, literal: &E::Object) -> bool {
+        store[literal.properties].iter().all(|property| {
             property.kind != js_ast::g::PropertyKind::Spread
                 && !property.flags.contains(Flags::Property::IsComputed)
                 && property.initializer.is_none()
@@ -5763,10 +5762,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     }
 
     /// The value of data property `key`: the last duplicate key wins, an accessor gives `None`.
-    fn object_literal_data_property(literal: &E::Object, key: &E::EString) -> Option<Expr> {
-        literal
-            .properties
-            .slice()
+    fn object_literal_data_property(
+        store: &bun_ast::store::Store,
+        literal: &E::Object,
+        key: &E::EString,
+    ) -> Option<Expr> {
+        store[literal.properties]
             .iter()
             .rev()
             .find(|property| {
@@ -8213,10 +8214,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Remove the last child from the parent scope
         let last = self.store[parent].children.len_u32() - 1;
-        debug_assert!(self.store[parent].children.slice()[last as usize] == to_flatten);
+        debug_assert!(self.store[parent].children.as_slice()[last as usize] == to_flatten);
         self.store[parent].children.truncate(last as usize);
 
-        for item in self.store[to_flatten].children.slice() {
+        for item in self.store[to_flatten].children.as_slice() {
             let mut item = *item;
             item.parent = Some(parent);
             self.store[parent].children.push(item);

@@ -1398,7 +1398,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // never looked at (an awaited `require()` result only has its `then`
         // read), so the importee is loaded for its side effects only.
         if p.options.bundle {
-            match bare_statement_namespace(data.value.data) {
+            match bare_statement_namespace(&p.store, data.value.data) {
                 BareStatementNamespace::Import(ns) => p.note_tracked_namespace_use(ns),
                 BareStatementNamespace::Require(req, awaited) => {
                     if let Some(ns) = p.require_namespace_ref(req)
@@ -2453,7 +2453,10 @@ enum BareStatementNamespace {
 
 /// Classify an expression statement whose value is a discarded
 /// `import()` / `require()` result.
-fn bare_statement_namespace(value: js_ast::ExprData) -> BareStatementNamespace {
+fn bare_statement_namespace(
+    store: &bun_ast::store::Store,
+    value: js_ast::ExprData,
+) -> BareStatementNamespace {
     let (awaited, mut e) = match value {
         js_ast::ExprData::EAwait(aw) => (true, aw.value.data),
         e => (false, e),
@@ -2461,7 +2464,7 @@ fn bare_statement_namespace(value: js_ast::ExprData) -> BareStatementNamespace {
     // `.catch` / `.finally` on the import() promise, not on a namespace.
     if let js_ast::ExprData::ECall(call) = e
         && let js_ast::ExprData::EDot(dot) = call.target.data
-        && matches!(dot.name.slice(), b"catch" | b"finally")
+        && matches!(store.str(dot.name), b"catch" | b"finally")
         && matches!(dot.target.data, js_ast::ExprData::EImport(_))
     {
         e = dot.target.data;

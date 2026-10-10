@@ -1029,7 +1029,7 @@ impl<'a> Parser<'a> {
                 match &stmt.data {
                     js_ast::StmtData::SLocal(local) => {
                         if (local.decls.len_u32() as usize) > 1 {
-                            for decl in local.decls.slice() {
+                            for decl in &p.store[local.decls] {
                                 // `S::Local`/`Decl` are not `Copy`;
                                 // rebuild the struct instead of `**local`.
                                 let _local = S::Local {
@@ -1359,8 +1359,8 @@ impl<'a> Parser<'a> {
                 if rec.escaped {
                     continue;
                 }
-                rec.aliases.sort_by(|a, b| a.slice().cmp(b.slice()));
-                rec.aliases.dedup_by(|a, b| a.slice() == b.slice());
+                rec.aliases.sort_by(|a, b| p.store.str(*a).cmp(p.store.str(*b)));
+                rec.aliases.dedup_by(|a, b| p.store.str(*a) == p.store.str(*b));
                 let aliases = arena.alloc_slice_copy(&rec.aliases);
                 let items = arena.alloc_slice_copy(&rec.items);
                 bun_core::handle_oom(
@@ -1686,7 +1686,7 @@ impl<'a> Parser<'a> {
 
             if let Some(found) = found {
                 let part = &mut parts[found.part_idx];
-                let stmt_loc = part.stmts.slice()[found.stmt_idx].loc;
+                let stmt_loc = p.store[part.stmts][found.stmt_idx].loc;
 
                 // Like `s_export_star`: the export star declares its own namespace symbol.
                 let name = p.load_name_from_ref(found.namespace_ref);
@@ -1698,7 +1698,7 @@ impl<'a> Parser<'a> {
                 })?;
 
                 part.stmts = {
-                    let old_stmts: &[Stmt] = part.stmts.slice();
+                    let old_stmts: Vec<Stmt> = p.store[part.stmts].to_vec();
                     let mut new_stmts =
                         BumpVec::<Stmt>::with_capacity_in(old_stmts.len() + 1, p.arena);
                     new_stmts.extend_from_slice(&old_stmts[..found.stmt_idx]);
