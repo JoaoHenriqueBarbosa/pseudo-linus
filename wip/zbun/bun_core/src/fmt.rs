@@ -423,8 +423,12 @@ mod tests {
     }
 }
 
-/// O texto entre aspas duplas, com `"`, `\` e os caracteres de controle escapados como num literal de string JSON.
-/// Os bytes que não formam UTF-8 válido saem como `\u00XX`.
+
+/// O texto entre aspas duplas, como o bun imprime um caminho em "Try require(..) instead". A regra foi medida no
+/// bun 1.4.2: `"` e `\` ganham barra; `\b`, `\t`, `\n`, `\f`, `\r` têm a forma curta; os demais controles abaixo de
+/// 0x20 e U+2028 e U+2029 saem como `\uXXXX` com hex em maiúscula; DEL, o resto do ASCII e todo não ASCII ficam
+/// crus. O caminho vem do lexer, que já trocou o surrogate solto por U+FFFD, então bytes inválidos não chegam aqui;
+/// se chegarem, saem como U+FFFD pelo mesmo motivo.
 pub struct QuotedFormatter<'a> {
     pub text: &'a [u8],
 }
@@ -438,15 +442,19 @@ impl core::fmt::Display for QuotedFormatter<'_> {
                 match c {
                     '"' => f.write_str("\\\"")?,
                     '\\' => f.write_str("\\\\")?,
-                    '\n' => f.write_str("\\n")?,
-                    '\r' => f.write_str("\\r")?,
+                    '\u{8}' => f.write_str("\\b")?,
                     '\t' => f.write_str("\\t")?,
-                    c if (c as u32) < 0x20 => write!(f, "\\u{:04x}", c as u32)?,
+                    '\n' => f.write_str("\\n")?,
+                    '\u{c}' => f.write_str("\\f")?,
+                    '\r' => f.write_str("\\r")?,
+                    c if (c as u32) < 0x20 || c == '\u{2028}' || c == '\u{2029}' => {
+                        write!(f, "\\u{:04X}", c as u32)?
+                    }
                     c => f.write_char(c)?,
                 }
             }
-            for byte in chunk.invalid() {
-                write!(f, "\\u{:04x}", byte)?;
+            if !chunk.invalid().is_empty() {
+                f.write_char('\u{FFFD}')?;
             }
         }
         f.write_char('"')
@@ -457,14 +465,32 @@ impl core::fmt::Display for QuotedFormatter<'_> {
 mod quoted_formatter_tests {
     use super::QuotedFormatter;
 
+    fn quoted(text: &[u8]) -> String {
+        format!("{}", QuotedFormatter { text })
+    }
+
+    // Os esperados abaixo são a saída do bun 1.4.2 (`note: Try require(..) instead`) para um import CJS+ESM.
     #[test]
-    fn escapes_like_a_json_string() {
-        let quoted = format!("{}", QuotedFormatter { text: b"a\"b\\c\nd\x01" });
-        assert_eq!(quoted, "\"a\\\"b\\\\c\\nd\\u0001\"");
+    fn matches_the_oracle_for_quote_backslash_and_tab() {
+        assert_eq!(quoted(b"./we\"ird\\na\tme.mjs"), "\"./we\\\"ird\\\\na\\tme.mjs\"");
     }
 
     #[test]
-    fn invalid_utf8_bytes_become_escapes() {
-        assert_eq!(format!("{}", QuotedFormatter { text: b"x\xffy" }), "\"x\\u00ffy\"");
+    fn matches_the_oracle_for_controls_and_unicode() {
+        let text = "./a\u{1}b\nc\rd\u{7f}e\u{e9}f\u{1F600}g'h/i\u{8}j\u{b}k\u{c}l\u{2028}m.mjs";
+        let want = "\"./a\\u0001b\\nc\\rd\u{7f}e\u{e9}f\u{1F600}g'h/i\\bj\\u000Bk\\fl\\u2028m.mjs\"";
+        assert_eq!(quoted(text.as_bytes()), want);
+    }
+
+    #[test]
+    fn matches_the_oracle_for_separator_replacement_and_high_controls() {
+        let text = "./p\u{2029}q\u{FFFD}r\u{FFFF}s\u{80}t\u{a0}u\u{1f}v.mjs";
+        let want = "\"./p\\u2029q\u{FFFD}r\u{FFFF}s\u{80}t\u{a0}u\\u001Fv.mjs\"";
+        assert_eq!(quoted(text.as_bytes()), want);
+    }
+
+    #[test]
+    fn invalid_utf8_becomes_the_replacement_character() {
+        assert_eq!(quoted(b"x\xffy"), "\"x\u{FFFD}y\"");
     }
 }
