@@ -118,6 +118,10 @@ struct SetRecord {
     other: JSValue,
     has: JSValue,
     keys: JSValue,
+    /// O `MarkedArgumentBuffer` da operação: `has`, `keys`, o iterador de `keys()` e o `next` dele vivem só em locais
+    /// Rust enquanto os getters e callbacks do outro conjunto rodam JS. Os conjuntos-resultado são `Rc` (raiz pela
+    /// contagem) e o `other` vem dos argumentos do frame.
+    marked: crate::runtime::gc::RootScope,
 }
 
 /// `getSetSizeAsInt(globalObject, value)` (GetSetRecord, passos 1 a 7).
@@ -149,16 +153,19 @@ fn get_set_size_as_int(global_object: &JSGlobalObject, value: JSValue) -> Result
 /// `isCallable` (`"Set.prototype.<method> expects other.has to be callable"`).
 fn get_set_record(global_object: &JSGlobalObject, other: JSValue, method: &str) -> Result<SetRecord, Thrown> {
     let vm = global_object.vm();
+    let marked = crate::runtime::gc::RootScope::new(&[other]);
     let size = get_set_size_as_int(global_object, other)?;
     let has = get_value_property(global_object, other, &PropertyName::from_identifier(&vm.property_names.has))?;
+    marked.append(has);
     if !has.is_callable() {
         return Err(Thrown::type_error(&format!("Set.prototype.{method} expects other.has to be callable")));
     }
     let keys = get_value_property(global_object, other, &PropertyName::from_identifier(&vm.property_names.keys))?;
+    marked.append(keys);
     if !keys.is_callable() {
         return Err(Thrown::type_error(&format!("Set.prototype.{method} expects other.keys to be callable")));
     }
-    Ok(SetRecord { size, other, has, keys })
+    Ok(SetRecord { size, other, has, keys, marked })
 }
 
 impl SetRecord {
@@ -169,7 +176,9 @@ impl SetRecord {
 
     /// `other.keys()`: o iterador, ainda sem o `next`.
     fn call_keys(&self, global_object: &JSGlobalObject) -> Result<JSValue, Thrown> {
-        call_checked(global_object, self.keys, self.other, &[], "Type error")
+        let iterator = call_checked(global_object, self.keys, self.other, &[], "Type error")?;
+        self.marked.append(iterator);
+        Ok(iterator)
     }
 
     /// `other.keys()` e o `next` dele conferido como chamável
@@ -181,6 +190,7 @@ impl SetRecord {
             iterator,
             &PropertyName::from_identifier(&global_object.vm().property_names.next),
         )?;
+        self.marked.append(next_method);
         if !next_method.is_callable() {
             return Err(Thrown::type_error(&format!("Set.prototype.{method} expects other.keys().next to be callable")));
         }
@@ -225,6 +235,7 @@ fn set_union(global_object: &JSGlobalObject, this_set: &JSSetRef, other: JSValue
     // `getSetSizeAsInt` não tem uso aqui, mas é observável.
     let record = get_set_record(global_object, other, "union")?;
     let iteration_record = iterator_direct(global_object, record.call_keys(global_object)?)?;
+    record.marked.append(iteration_record.next_method);
     let result = clone_set(global_object, this_set);
     for_each_in_iteration_record(global_object, iteration_record, |key| {
         result.add(key);

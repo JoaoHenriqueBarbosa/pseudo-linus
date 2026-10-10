@@ -324,6 +324,51 @@ fn generator_overflow_collects_by_exception_stack_bytes() {
         .unwrap_or_else(|panic| std::panic::resume_unwind(panic));
 }
 
+/// Os locais Rust dos nativos que chamam JS (o `MarkedArgumentBuffer` do C++): cada caso roda JS do usuário com
+/// coleta a cada alocação enquanto o nativo segura valores só em locais.
+#[test]
+fn set_methods_hold_the_other_record() {
+    let program = format!("{CHURN} var R = '';
+        var other = {{ get size() {{ churn(); return 2; }}, get has() {{ churn(); return k => {{ churn(); return k === 'b'; }}; }},
+            get keys() {{ churn(); return () => {{ var a = ['b', 'c'], i = 0; churn(); return {{ get next() {{ churn(); return () => {{ churn(); return i < a.length ? {{ value: a[i++], done: false }} : {{ done: true }}; }}; }} }}; }}; }} }};
+        var s = new Set(['a', 'b']);
+        R = [...s.union(other)].join() + '|' + [...s.intersection(other)].join() + '|' + [...s.difference(other)].join() + '|' + [...s.symmetricDifference(other)].join() + '|' + s.isSubsetOf(other) + s.isSupersetOf(other) + s.isDisjointFrom(other);");
+    assert_eq!(stressed(&program), "a,b,c|b|a|a,c|falsefalsefalse");
+}
+
+#[test]
+fn thenable_jobs_hold_the_resolving_functions() {
+    let program = format!("{CHURN} var R = '';
+        class P extends Promise {{ static get [Symbol.species]() {{ churn(); return Promise; }} }}
+        var thenable = {{ get then() {{ churn(); return (res, rej) => {{ churn(); res({{ v: 't' }}); }}; }} }};
+        Promise.resolve().then(() => thenable).then(o => {{ churn(); R += o.v; }});
+        P.resolve(1).then(x => {{ churn(); return {{ v: 'p' + x }}; }}).then(o => {{ R += o.v; }});");
+    assert_eq!(stressed(&program), "p1t");
+}
+
+#[test]
+fn json_reviver_holds_the_holder() {
+    let program = format!("{CHURN} var R = JSON.stringify(JSON.parse('{{\"a\":[1,{{\"b\":2}}],\"c\":\"x\"}}', function (k, v) {{ churn(); return typeof v === 'number' ? [v * 10] : v; }}));");
+    assert_eq!(stressed(&program), "{\"a\":[[10],{\"b\":[20]}],\"c\":\"x\"}");
+}
+
+#[test]
+fn splice_over_proxy_holds_the_result() {
+    let program = format!("{CHURN} var R = '';
+        var p = new Proxy([{{ v: 'a' }}, {{ v: 'b' }}, {{ v: 'c' }}, {{ v: 'd' }}], {{ get(t, k) {{ churn(); return t[k]; }}, set(t, k, v) {{ churn(); t[k] = v; return true; }}, deleteProperty(t, k) {{ churn(); return delete t[k]; }} }});
+        var out = Array.prototype.splice.call(p, 1, 2, {{ v: 'x' }});
+        R = out.map(o => o.v).join() + '|' + Array.prototype.map.call(p, o => o.v).join();");
+    assert_eq!(stressed(&program), "b,c|a,x,d");
+}
+
+#[test]
+fn timers_hold_callbacks_across_reentry() {
+    let program = format!("{CHURN} var R = '';
+        var a = setInterval((o) => {{ churn(); R += o.v; if (R.length >= 2) clearInterval(a); }}, 1, {{ v: 'i' }});
+        setTimeout(() => {{ churn(); setTimeout((x) => {{ churn(); R += x[0]; }}, 1, ['n']); }}, 1);");
+    assert_eq!(stressed(&program), "iin");
+}
+
 /// As tabelas laterais por célula (o estado que no C++ é campo do objeto) seguram o que o objeto segura e saem
 /// com ele: `URL.searchParams`, `Request.headers` e `signal`, `Response.headers`, o `reason` e as origens de um
 /// `AbortSignal.any`. Sem adiar a coleta: o laço solta células enquanto elas existem.

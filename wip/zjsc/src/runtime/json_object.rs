@@ -540,6 +540,9 @@ struct Walker<'a, H: JsonHost + ?Sized> {
     function: JSValue,
     /// `m_sourceRanges`.
     ranges: Option<&'a JsonRanges>,
+    /// O `MarkedArgumentBuffer markStack` do C++ e os valores que lá vivem na pilha nativa (varrida pelo coletor): os
+    /// holders empilhados, o valor lido e o devolvido pelo reviver, que só existem em locais enquanto ele roda JS.
+    marked: crate::runtime::gc::RootScope,
 }
 
 impl<'a, H: JsonHost + ?Sized> Walker<'a, H> {
@@ -565,6 +568,9 @@ impl<'a, H: JsonHost + ?Sized> Walker<'a, H> {
             context = Some(object);
         }
 
+        if let Some(object) = context {
+            self.marked.append(object);
+        }
         let arguments = [property, unfiltered, context.unwrap_or(JSValue::Undefined)];
         let count = if context.is_some() { 3 } else { 2 };
         Ok(host.call(self.function, this_object, &arguments[..count])?)
@@ -626,6 +632,7 @@ impl<'a, H: JsonHost + ?Sized> Walker<'a, H> {
 
                     let array = in_value;
                     mark_stack.push(array);
+                    self.marked.append(array);
                     if self.ranges.is_some() {
                         if let Some(range) = in_range {
                             if !matches!(range.properties, JsonRangeProperties::Array(_)) {
@@ -657,6 +664,7 @@ impl<'a, H: JsonHost + ?Sized> Walker<'a, H> {
                         index_stack.pop();
                     } else {
                         in_value = host.get(array, &JsonKey::Index(index))?;
+                        self.marked.append(in_value);
 
                         if self.ranges.is_some() {
                             in_range = Self::array_child_range(&entry_stack, index, in_value);
@@ -677,7 +685,9 @@ impl<'a, H: JsonHost + ?Sized> Walker<'a, H> {
                     let array = *mark_stack.last().expect("mark_stack vazia");
                     let index = *index_stack.last().expect("index_stack vazia");
                     let property = JSValue::from_js_string(js_string(vm, &WtfString::number_u32(index)));
+                    self.marked.append(property);
                     let filtered_value = self.call_reviver(array, property, out_value, out_range)?;
+                    self.marked.append(filtered_value);
                     if filtered_value.is_undefined() {
                         host.delete_property(array, &JsonKey::Index(index))?;
                     } else {
@@ -694,6 +704,7 @@ impl<'a, H: JsonHost + ?Sized> Walker<'a, H> {
 
                     let object = in_value;
                     mark_stack.push(object);
+                    self.marked.append(object);
                     if self.ranges.is_some() {
                         if let Some(range) = in_range {
                             if !matches!(range.properties, JsonRangeProperties::Object(_)) {
@@ -723,6 +734,7 @@ impl<'a, H: JsonHost + ?Sized> Walker<'a, H> {
                         let key = property_stack.last().expect("property_stack vazia")[index as usize].clone();
                         // O holder pode ser modificado pelo reviver, então qualquer leitura pode lançar.
                         in_value = host.get(object, &key)?;
+                        self.marked.append(in_value);
 
                         if self.ranges.is_some() {
                             in_range = Self::object_child_range(&entry_stack, &key, in_value);
@@ -744,7 +756,9 @@ impl<'a, H: JsonHost + ?Sized> Walker<'a, H> {
                     let index = *index_stack.last().expect("index_stack vazia");
                     let key = property_stack.last().expect("property_stack vazia")[index as usize].clone();
                     let property = JSValue::from_js_string(js_string(vm, &key.to_wtf_string()));
+                    self.marked.append(property);
                     let filtered_value = self.call_reviver(object, property, out_value, out_range)?;
+                    self.marked.append(filtered_value);
                     if filtered_value.is_undefined() {
                         host.delete_property(object, &key)?;
                     } else {
@@ -780,6 +794,7 @@ impl<'a, H: JsonHost + ?Sized> Walker<'a, H> {
         }
 
         let final_holder = host.new_object()?;
+        self.marked.append(final_holder);
         host.create_data_property(final_holder, &empty_key(), out_value)?;
         let empty_string = JSValue::from_js_string(js_empty_string(vm));
         self.call_reviver(final_holder, empty_string, out_value, out_range)
@@ -809,7 +824,8 @@ pub fn json_parse<H: JsonHost + ?Sized>(
     let Some(function) = function else {
         return Ok(unfiltered);
     };
-    let walker = Walker { host, source: text, function, ranges: if track_ranges { Some(&ranges) } else { None } };
+    let marked = crate::runtime::gc::RootScope::new(&[unfiltered, function]);
+    let walker = Walker { host, source: text, function, ranges: if track_ranges { Some(&ranges) } else { None }, marked };
     walker.walk(unfiltered)
 }
 

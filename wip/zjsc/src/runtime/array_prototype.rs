@@ -999,6 +999,8 @@ pub fn array_proto_func_splice(call: &ArrayCall) -> ArrayResult {
     }
 
     let result = species_copy_range(call, &object, start, start + delete_count)?;
+    // O array devolvido só vive neste local enquanto o deslocamento roda as traps de um Proxy.
+    let _result = crate::runtime::gc::RootScope::new(&[result]);
     let new_length = length - delete_count + item_count;
     if item_count < delete_count {
         move_elements(call, &object, start + delete_count, start + item_count, length)?;
