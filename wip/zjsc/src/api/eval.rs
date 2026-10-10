@@ -16,7 +16,7 @@ use crate::runtime::identifier::Identifier;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
 use crate::runtime::intrinsic::Intrinsic;
 use crate::runtime::js_array::JSArray;
-use crate::runtime::js_function::put_direct_native_function_without_transition;
+use crate::runtime::js_function::put_direct_native_function_with_display_name;
 use crate::runtime::js_type::JSType;
 use crate::runtime::js_typeof::{js_type_string_for_value, js_typeof_is_function, js_typeof_is_object};
 use crate::runtime::object_constructor::construct_empty_object;
@@ -752,7 +752,9 @@ pub(crate) fn reset_for_program() {
 }
 
 /// Cria a função nativa `name` em `holder`. `visibility` privada tira o frame nativo da pilha (os acessores de
-/// `module` e `require` não têm frame no bun; `_compile` e as extensões têm).
+/// `module` e `require` não têm frame no bun; `_compile` e as extensões têm). Os donos são objetos comuns
+/// (`constructEmptyObject`), com a estrutura compartilhada do global: a gravação vai com transição (`putDirect`), como o
+/// C++ faz nesses objetos; `putDirectWithoutTransition` só vale em estrutura própria e aqui poria a função em todo `{}`.
 fn define_native(
     vm: &VM,
     global_object: &JSGlobalObject,
@@ -762,11 +764,12 @@ fn define_native(
     function: NativeFunction,
     visibility: ImplementationVisibility,
 ) -> crate::runtime::js_function::JSFunctionRef {
-    put_direct_native_function_without_transition(
+    put_direct_native_function_with_display_name(
         vm,
         global_object,
         holder,
         &Identifier::from_span(vm, name.as_bytes()),
+        &WtfString::from_utf8(name.as_bytes()),
         length,
         function,
         visibility,
@@ -1555,30 +1558,10 @@ fn evaluate_with_cjs_caller(source: &[u16], caller_file: &str, caller: &str, res
         let _clear = ClearHost;
         let identifier = |name: &str| Identifier::from_span(&vm, name.as_bytes());
         let builtin_holder = construct_empty_object(&global_object);
-        let builtin = put_direct_native_function_without_transition(
-            &vm,
-            &global_object,
-            &builtin_holder,
-            &identifier("builtin"),
-            1,
-            runner_builtin as NativeFunction,
-            ImplementationVisibility::Public,
-            Intrinsic::NoIntrinsic,
-            0,
-        )
-        .as_value();
+        let builtin = define_native(&vm, &global_object, &builtin_holder, "builtin", 1, runner_builtin as NativeFunction, ImplementationVisibility::Public)
+            .as_value();
         let fs_object = construct_empty_object(&global_object);
-        put_direct_native_function_without_transition(
-            &vm,
-            &global_object,
-            &fs_object,
-            &identifier("readFileSync"),
-            1,
-            fs_read_file_sync as NativeFunction,
-            ImplementationVisibility::Public,
-            Intrinsic::NoIntrinsic,
-            0,
-        );
+        define_native(&vm, &global_object, &fs_object, "readFileSync", 1, fs_read_file_sync as NativeFunction, ImplementationVisibility::Public);
         let boot = evaluate(&global_object, &program_source(RUN_IN_THIS_CONTEXT_BOOT)).expect("bootstrap de require lançou");
         let boot_data = get_call_data(boot.clone());
         let require = match call_returning_exception(&global_object, boot, &boot_data, JSValue::undefined(), &[builtin, fs_object.as_value()]) {
