@@ -14,6 +14,7 @@ use zjsc::runtime::dom_bridge::{DomArg, DomError, DomHost};
 use crate::document;
 use crate::encoding;
 use crate::fetch::Fetcher;
+use crate::local_storage::Change;
 
 /// O User-Agent do Chromium do oráculo (o Debian 13 traz o 154; o Chromium reduz a versão a `154.0.0.0`).
 pub const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36";
@@ -392,7 +393,7 @@ impl DomHost for Bridge {
                 let origin = self.storage_origin();
                 let tab = self.tab.borrow().clone();
                 let action = str_arg(args, 1)?;
-                let run = |area: &mut crate::session::StorageArea| -> Result<DomArg, DomError> {
+                let run = |area: &mut crate::session::StorageArea, notify: &mut dyn FnMut(Change)| -> Result<DomArg, DomError> {
                     let text = |value: Option<&str>| value.map_or(DomArg::Null, |v| DomArg::Str(v.to_owned()));
                     match action {
                         "length" => Ok(DomArg::Num(area.len() as f64)),
@@ -400,23 +401,38 @@ impl DomHost for Bridge {
                         "get" => Ok(text(area.get(str_arg(args, 2)?))),
                         "keys" => Ok(DomArg::List(area.keys().into_iter().map(DomArg::Str).collect())),
                         "set" => {
-                            area.set(str_arg(args, 2)?, str_arg(args, 3)?);
+                            let (key, value) = (str_arg(args, 2)?, str_arg(args, 3)?);
+                            area.set(key, value);
+                            notify(Change::Set(key, value));
                             Ok(DomArg::Undefined)
                         }
                         "remove" => {
-                            area.remove(str_arg(args, 2)?);
+                            let key = str_arg(args, 2)?;
+                            area.remove(key);
+                            notify(Change::Remove(key));
                             Ok(DomArg::Undefined)
                         }
                         "clear" => {
                             area.clear();
+                            notify(Change::Clear);
                             Ok(DomArg::Undefined)
                         }
                         _ => Err(illegal()),
                     }
                 };
                 match str_arg(args, 0)? {
-                    "local" => run(tab.profile.local.lock().unwrap_or_else(std::sync::PoisonError::into_inner).area(&origin)),
-                    _ => run(tab.session.borrow_mut().area(&origin)),
+                    // O banco do perfil (quando há `--user-data-dir`) fica sabendo de cada mudança; o que não muda
+                    // nada ele mesmo descarta.
+                    "local" => {
+                        let mut areas = tab.profile.local.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                        let store = areas.store();
+                        run(areas.area(&origin), &mut |change| {
+                            if let Some(store) = &store {
+                                store.record(&origin, change);
+                            }
+                        })
+                    }
+                    _ => run(tab.session.borrow_mut().area(&origin), &mut |_| {}),
                 }
             }
             // `[ação, nome, texto]`: os bancos do IndexedDB da origem no perfil (`load` devolve `[[nome, texto], ...]`).

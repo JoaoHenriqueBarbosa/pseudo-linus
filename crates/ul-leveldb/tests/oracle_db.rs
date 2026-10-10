@@ -2,7 +2,7 @@
 //! escritas da execução seguinte e confere que os arquivos resultantes são os mesmos, byte a byte (o `LOG` só difere
 //! na hora e no id da thread). Os diretórios em `tests/fixtures` vêm de `testbench/oracle/measure-reopen.sh`.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use ul_leveldb::batch::{Op, WriteBatch};
 use ul_leveldb::env::{Env, MemEnv};
@@ -100,7 +100,7 @@ fn reopen(previous: &str, next: &str) -> MemEnv {
     let mut options = Options::chromium(0x4e);
     options.create_if_missing = false;
     {
-        let mut db = Db::open(Rc::new(env.clone()), DIR, options).unwrap();
+        let mut db = Db::open(Arc::new(env.clone()), DIR, options).unwrap();
         replay(&mut db, &new_batches(previous, next));
     }
     env
@@ -153,7 +153,7 @@ fn a_new_database_matches_the_first_run_of_the_oracle() {
     let env = MemEnv::new();
     env.set_clock(1_791_666_000_000_000);
     {
-        let mut db = Db::open(Rc::new(env.clone()), DIR, Options::chromium(0x5a)).unwrap();
+        let mut db = Db::open(Arc::new(env.clone()), DIR, Options::chromium(0x5a)).unwrap();
         replay(&mut db, &new_batches("", "reopen/run1"));
     }
     assert_same_directory(&env, "reopen/run1");

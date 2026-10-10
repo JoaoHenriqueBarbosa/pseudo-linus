@@ -8,6 +8,8 @@ use std::sync::{Arc, Mutex};
 
 use ul_common::hash::rapidhash::{wtf_string_hash, DEFAULT_SEED};
 
+use crate::local_storage::LocalStorageStore;
+
 /// Um balde da tabela.
 #[derive(Debug, Clone)]
 enum Slot {
@@ -155,13 +157,32 @@ impl StorageArea {
     }
 }
 
-/// As áreas de cada origem (serializada, como `location.origin`).
+/// As áreas de cada origem (serializada, como `location.origin`). No contexto padrão de um navegador com
+/// `--user-data-dir`, a primeira vez que uma origem é aberta a tabela é montada com o que o banco do perfil tem, na
+/// ordem de chave dele (é nessa ordem que o Blink insere o que o navegador entrega).
 #[derive(Debug, Default)]
-pub struct Areas(HashMap<String, StorageArea>);
+pub struct Areas {
+    map: HashMap<String, StorageArea>,
+    store: Option<Arc<LocalStorageStore>>,
+}
 
 impl Areas {
     pub fn area(&mut self, origin: &str) -> &mut StorageArea {
-        self.0.entry(origin.to_owned()).or_default()
+        let store = &self.store;
+        self.map.entry(origin.to_owned()).or_insert_with(|| {
+            let mut area = StorageArea::default();
+            if let Some(store) = store {
+                for (key, value) in store.open_area(origin) {
+                    area.set(&key, &value);
+                }
+            }
+            area
+        })
+    }
+
+    /// O banco que guarda estas áreas, se o perfil é o de um navegador com `--user-data-dir`.
+    pub fn store(&self) -> Option<Arc<LocalStorageStore>> {
+        self.store.clone()
     }
 }
 
@@ -175,6 +196,11 @@ pub struct Profile {
 }
 
 impl Profile {
+    /// O perfil cujo `localStorage` persiste no banco do `--user-data-dir`.
+    pub fn with_local_storage(store: Arc<LocalStorageStore>) -> Profile {
+        Profile { local: Mutex::new(Areas { map: HashMap::new(), store: Some(store) }), databases: Mutex::default() }
+    }
+
     /// Os bancos de `origin`.
     pub fn databases_of(&self, origin: &str) -> Vec<(String, String)> {
         self.databases.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get(origin).cloned().unwrap_or_default()
@@ -236,6 +262,32 @@ mod tests {
 
     fn numbered(prefix: &str, range: std::ops::Range<usize>) -> Vec<&'static str> {
         range.map(|i| &*Box::leak(format!("{prefix}{i}").into_boxed_str())).collect()
+    }
+
+    /// `ls-order.html` no oráculo: quarenta chaves gravadas na ordem `(i * 7) % 40` saem de `Object.keys` na ordem da
+    /// primeira execução; na seguinte o navegador carrega o banco (chaves em ordem de bytes) e a tabela é montada
+    /// inserindo nessa ordem, o que dá outra ordem de `Object.keys`.
+    #[test]
+    fn a_reloaded_area_is_built_in_the_databases_key_order() {
+        let written: Vec<String> = (0..40).map(|i| format!("key{}", (i * 7) % 40)).collect();
+        let mut first = StorageArea::default();
+        for key in &written {
+            first.set(key, "v");
+        }
+        assert_eq!(
+            first.keys().join(","),
+            "key21,key24,key11,key31,key38,key14,key7,key12,key19,key0,key2,key16,key26,key23,key18,key35,key6,key39,key17,key10,key22,key8,key36,key33,key32,key3,key34,key15,key5,key25,key20,key9,key28,key27,key4,key1,key30,key29,key13,key37"
+        );
+        let mut by_bytes = written;
+        by_bytes.sort();
+        let mut reloaded = StorageArea::default();
+        for key in &by_bytes {
+            reloaded.set(key, "v");
+        }
+        assert_eq!(
+            reloaded.keys().join(","),
+            "key21,key24,key11,key31,key38,key14,key7,key12,key19,key0,key16,key2,key26,key18,key23,key35,key6,key39,key17,key10,key22,key33,key36,key32,key8,key3,key15,key34,key5,key25,key20,key9,key28,key27,key4,key1,key30,key29,key13,key37"
+        );
     }
 
     /// A ordem de `localStorage.key(i)` no oráculo (`storage-order2.js` e `storage-order3.js` da medição): a ordem da

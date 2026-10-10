@@ -13,8 +13,10 @@ pub mod encoding;
 pub mod fetch;
 pub mod fonts;
 pub mod imaging;
+pub mod local_storage;
 pub mod page;
 pub mod session;
+pub mod sys_env;
 pub mod webp;
 
 /// Os programas deste crate.

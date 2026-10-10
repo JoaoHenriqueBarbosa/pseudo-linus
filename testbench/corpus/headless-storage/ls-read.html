@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ls read</title>
+<script>
+// Só lê: a ordem das chaves como a página a vê e os valores.
+const keys = Object.keys(localStorage);
+document.title = 'read:' + localStorage.length + ':' + keys.join(',');
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.textContent = JSON.stringify(keys.map((key) => [key, localStorage.getItem(key)]));
+});
+</script>
+<body>ls read</body>

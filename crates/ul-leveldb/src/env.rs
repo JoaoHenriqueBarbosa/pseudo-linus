@@ -3,14 +3,14 @@
 //! de unidade) e sobre um diretório do hospedeiro (a conferência contra os bancos que o Chromium do oráculo escreveu,
 //! só nos testes).
 
-use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
-use std::rc::Rc;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use crate::{Error, Result};
 
-/// Os arquivos de um diretório de banco. Os caminhos são textos com `/`; o diretório do banco é o prefixo.
-pub trait Env {
+/// Os arquivos de um diretório de banco. Os caminhos são textos com `/`; o diretório do banco é o prefixo. O trait é
+/// `Send + Sync` porque o banco fica atrás de um `Mutex` compartilhado entre as threads das abas.
+pub trait Env: Send + Sync {
     /// Cria o diretório e os pais que faltam; não falha se ele já existe.
     fn create_dir_all(&self, path: &str) -> Result<()>;
     fn exists(&self, path: &str) -> bool;
@@ -34,7 +34,7 @@ pub trait Env {
 /// Um sistema de arquivos em memória, para os testes.
 #[derive(Clone, Default)]
 pub struct MemEnv {
-    state: Rc<RefCell<MemState>>,
+    state: Arc<Mutex<MemState>>,
 }
 
 #[derive(Default)]
@@ -50,14 +50,18 @@ impl MemEnv {
         MemEnv::default()
     }
 
+    fn state(&self) -> MutexGuard<'_, MemState> {
+        self.state.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
     /// Fixa o relógio (e a cada leitura ele anda um milissegundo, para o `LOG` ter horas crescentes).
     pub fn set_clock(&self, micros: u64) {
-        self.state.borrow_mut().clock = micros;
+        self.state().clock = micros;
     }
 
     /// Uma cópia de todos os arquivos (nome completo para conteúdo), para comparar.
     pub fn snapshot(&self) -> BTreeMap<String, Vec<u8>> {
-        self.state.borrow().files.clone()
+        self.state().files.clone()
     }
 }
 
@@ -71,51 +75,51 @@ fn not_found(path: &str) -> Error {
 
 impl Env for MemEnv {
     fn create_dir_all(&self, path: &str) -> Result<()> {
-        self.state.borrow_mut().dirs.insert(path.to_owned());
+        self.state().dirs.insert(path.to_owned());
         Ok(())
     }
 
     fn exists(&self, path: &str) -> bool {
-        let state = self.state.borrow();
+        let state = self.state();
         state.files.contains_key(path) || state.dirs.contains(path)
     }
 
     fn read_file(&self, path: &str) -> Result<Vec<u8>> {
-        self.state.borrow().files.get(path).cloned().ok_or_else(|| not_found(path))
+        self.state().files.get(path).cloned().ok_or_else(|| not_found(path))
     }
 
     fn write_file(&self, path: &str, data: &[u8]) -> Result<()> {
-        self.state.borrow_mut().files.insert(path.to_owned(), data.to_vec());
+        self.state().files.insert(path.to_owned(), data.to_vec());
         Ok(())
     }
 
     fn append_file(&self, path: &str, data: &[u8]) -> Result<()> {
-        self.state.borrow_mut().files.entry(path.to_owned()).or_default().extend_from_slice(data);
+        self.state().files.entry(path.to_owned()).or_default().extend_from_slice(data);
         Ok(())
     }
 
     fn file_size(&self, path: &str) -> Result<u64> {
-        self.state.borrow().files.get(path).map(|data| data.len() as u64).ok_or_else(|| not_found(path))
+        self.state().files.get(path).map(|data| data.len() as u64).ok_or_else(|| not_found(path))
     }
 
     fn rename(&self, from: &str, to: &str) -> Result<()> {
-        let mut state = self.state.borrow_mut();
+        let mut state = self.state();
         let data = state.files.remove(from).ok_or_else(|| not_found(from))?;
         state.files.insert(to.to_owned(), data);
         Ok(())
     }
 
     fn remove_file(&self, path: &str) -> Result<()> {
-        self.state.borrow_mut().files.remove(path).map(|_| ()).ok_or_else(|| not_found(path))
+        self.state().files.remove(path).map(|_| ()).ok_or_else(|| not_found(path))
     }
 
     fn list_dir(&self, path: &str) -> Result<Vec<String>> {
-        let state = self.state.borrow();
+        let state = self.state();
         Ok(state.files.keys().filter(|name| parent(name) == path).map(|name| name[path.len() + 1..].to_owned()).collect())
     }
 
     fn lock_file(&self, path: &str) -> Result<()> {
-        let mut state = self.state.borrow_mut();
+        let mut state = self.state();
         if !state.locked.insert(path.to_owned()) {
             return Err(Error::Io(format!("lock {path}: already held by process")));
         }
@@ -124,11 +128,11 @@ impl Env for MemEnv {
     }
 
     fn unlock_file(&self, path: &str) {
-        self.state.borrow_mut().locked.remove(path);
+        self.state().locked.remove(path);
     }
 
     fn now_micros(&self) -> u64 {
-        let mut state = self.state.borrow_mut();
+        let mut state = self.state();
         state.clock += 1000;
         state.clock
     }
