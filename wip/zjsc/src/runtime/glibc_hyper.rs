@@ -6,17 +6,17 @@
 //!
 //! Contração em FMA: no x86_64 o ifunc escolhe `__expm1_fma` e `__log1p_fma` (compilados com `-mfma`), então
 //! `expm1` e `log1p` usam `mul_add` onde o GCC contrai `a*b+c` (deduzido da árvore de expressão, NÃO medido).
-//! `exp` e `log` vêm de `glibc_math` (também variante FMA). Os demais arquivos não têm multiarch: compilados
+//! `exp` e `log` vêm de `ul_common::libm` (também variante FMA). Os demais arquivos não têm multiarch: compilados
 //! para o x86_64 base, sem FMA, então aqui são contas simples.
 //! Pontos de dúvida se o golden divergir em último bit: em `log1p`, `R = fma(z, Lp1, z2*R2) + ...` (qual dos
 //! dois produtos o GCC funde) e `s*(hfsq+R) + (k*ln2_lo + c)` do ramo final.
 
-use crate::runtime::glibc_math::{exp, log};
+use ul_common::libm::{exp, log};
 
 const ONE: f64 = 1.0;
 const LN2: f64 = 6.931_471_805_599_453_094_17e-1; // 0x3fe62e42fefa39ef
 
-use crate::runtime::glibc_words::{fma, high_word, low_word, set_high_word};
+use ul_common::libm::words::{fma, high_word, low_word, set_high_word};
 
 /// Soma `k` ao expoente pelo high word (`SET_HIGH_WORD (y, high + (k << 20))`).
 #[inline]

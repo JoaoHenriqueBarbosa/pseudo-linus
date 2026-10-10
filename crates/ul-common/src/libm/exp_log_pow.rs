@@ -1,25 +1,26 @@
 //! Porte da família exp/log/pow da libm do glibc 2.41 (`sysdeps/ieee754/dbl-64`: `e_exp.c`, `e_exp2.c`,
 //! `e_log.c`, `e_log2.c`, `e_pow.c`), que são as "optimized routines" da ARM (Szabolcs Nagy). As tabelas
-//! exatas estão em `glibc_math_data.rs`. Nenhum `unsafe`: `asuint64`/`asdouble` são `to_bits`/`from_bits`.
+//! exatas estão em `data.rs`. Nenhum `unsafe`: `asuint64`/`asdouble` são `to_bits`/`from_bits`.
 //!
-//! Decisão sobre FMA (registrada em `wip-notes/math-audit.md`): o glibc do bun roda num x86_64 moderno,
+//! Decisão sobre FMA (registrada em `wip/zjsc/wip-notes/math-audit.md`): o glibc do bun roda num x86_64 moderno,
 //! onde o ifunc escolhe as variantes `e_exp-fma.c`, `e_log-fma.c`, `e_log2-fma.c` e `e_pow-fma.c`
 //! (compiladas com `-mfma -mavx2`). Nelas `__FP_FAST_FMA` está definido, então os ramos `__builtin_fma`
 //! valem, e o GCC (`-ffp-contract=fast`) ainda contrai por conta própria cada `a*b+c` cujo produto só
 //! alimenta somas. Este módulo porta SOMENTE a variante FMA, com `mul_add` nesses dois tipos de ponto.
 //! As contrações do compilador foram deduzidas da árvore de expressão (soma associa à esquerda, o produto
-//! de uso único vira `fma`), não medidas: o teste `tests/math_bun_golden.rs` é quem confirma. Se divergir
+//! de uso único vira `fma`), não medidas: os testes contra o golden do bun (`math_common` do zjsc) é que
+//! confirmam. Se divergir
 //! em último bit, o suspeito é uma contração (ou a falta dela) numa dessas expressões. O ramo sem FMA
 //! (`tab2`, `rhi`/`rlo`) não foi portado, as tabelas `*_TAB2` ficam sem uso.
 
-use crate::runtime::glibc_math_data::*;
+use super::data::*;
 
 #[inline]
 fn d(bits: u64) -> f64 {
     f64::from_bits(bits)
 }
 
-use crate::runtime::glibc_words::fma;
+use super::words::fma;
 
 #[inline]
 fn top12(x: f64) -> u32 {
@@ -483,56 +484,6 @@ pub fn pow(x: f64, y: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Os casos do golden do bun (`tests/golden/math_bun.tsv`): `nome<TAB>argumentos<TAB>resultado`.
-    fn golden_cases() -> Vec<(String, Vec<u64>, u64)> {
-        let text = include_str!("../../tests/golden/math_bun.tsv");
-        text.lines()
-            .filter_map(|line| {
-                let fields: Vec<&str> = line.split('\t').collect();
-                if fields.len() != 3 {
-                    return None;
-                }
-                let (name, result) = (fields[0], fields[2]);
-                // Os argumentos vêm em hexadecimal separados por vírgula.
-                let arguments = fields[1].split(',').map(|f| u64::from_str_radix(f, 16).ok()).collect::<Option<Vec<_>>>()?;
-                Some((name.to_string(), arguments, u64::from_str_radix(result, 16).ok()?))
-            })
-            .collect()
-    }
-
-    fn canonical(value: f64) -> u64 {
-        if value.is_nan() { 0x7ff8_0000_0000_0000 } else { value.to_bits() }
-    }
-
-    fn check(name: &str, count: usize, function: impl Fn(&[f64]) -> f64) {
-        let cases: Vec<_> = golden_cases().into_iter().filter(|(case, arguments, _)| case == name && arguments.len() == if name == "pow" { 2 } else { 1 }).take(count).collect();
-        assert!(!cases.is_empty(), "sem casos para {name}");
-        for (_, arguments, expected) in cases {
-            let inputs: Vec<f64> = arguments.iter().map(|&bits| f64::from_bits(bits)).collect();
-            assert_eq!(canonical(function(&inputs)), expected, "{name}({:x?})", arguments);
-        }
-    }
-
-    #[test]
-    fn exp_matches_bun_golden() {
-        check("exp", 30, |a| exp(a[0]));
-    }
-
-    #[test]
-    fn log_matches_bun_golden() {
-        check("log", 30, |a| log(a[0]));
-    }
-
-    #[test]
-    fn log2_matches_bun_golden() {
-        check("log2", 30, |a| log2(a[0]));
-    }
-
-    #[test]
-    fn pow_matches_bun_golden() {
-        check("pow", 30, |a| pow(a[0], a[1]));
-    }
 
     #[test]
     fn exp_and_log_special_values() {

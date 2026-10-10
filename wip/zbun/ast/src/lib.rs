@@ -73,6 +73,7 @@ pub mod lexer_log;
 pub mod lexer_tables;
 pub mod loader;
 pub mod logger;
+pub mod math;
 pub mod new_store;
 pub mod nodes;
 pub mod op;

@@ -176,7 +176,7 @@ const SINCOSTAB: [u64; 440] = [
     0x3FE812EDE9AE4BA4, 0xBC87830ADF402DDA, 0x3FE514F57D7BF3DA, 0x3C747A108073C259,
 ];
 
-use crate::runtime::glibc_words::{high_word, low_word};
+use ul_common::libm::words::{high_word, low_word};
 
 /// `SINCOS_TABLE_LOOKUP`: `(sn, ssn, cs, ccs)` pela metade baixa de `u.x = big + |x|`.
 #[inline]

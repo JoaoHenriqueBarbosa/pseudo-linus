@@ -868,14 +868,8 @@ pub fn round_down_to_multiple_of_const<const DIVISOR: usize, T: WtfInt>(x: T) ->
 // range). Aqui, a arquitetura é a `x86_64`: `cvttsd2si`/`cvttss2si` devolvem o "inteiro indefinido"
 // (o menor valor do tipo com sinal) quando o resultado não cabe.
 
-/// `truncateDoubleToInt32`: `_mm_cvttsd_si32`.
-pub fn truncate_double_to_int32(number: f64) -> i32 {
-    if number > -2147483649.0 && number < 2147483648.0 {
-        number as i32
-    } else {
-        i32::MIN
-    }
-}
+/// `truncateDoubleToInt32`: `_mm_cvttsd_si32`. Mora em `ul_common::libm`, onde o `operationMathPow` a usa.
+pub use ul_common::libm::truncate_double_to_int32;
 
 /// `truncateDoubleToInt64`: `_mm_cvttsd_si64`.
 pub fn truncate_double_to_int64(number: f64) -> i64 {

@@ -19,7 +19,7 @@
 use crate::runtime::class_info::ClassInfo;
 use crate::runtime::glibc_hyper;
 use crate::runtime::glibc_hypot;
-use crate::runtime::glibc_math;
+use ul_common::libm;
 use crate::runtime::host_call::{HostCall, HostResult, Thrown};
 use crate::runtime::identifier::Identifier;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
@@ -184,14 +184,14 @@ unary_math_function!(math_proto_func_cbrt, cbrt_body, JSValue::double_number, gl
 unary_math_function!(math_proto_func_ceil, ceil_body, js_number, f64::ceil);
 unary_math_function!(math_proto_func_cos, cos_body, JSValue::double_number, super::glibc_trig::cos);
 unary_math_function!(math_proto_func_cosh, cosh_body, JSValue::double_number, glibc_hyper::cosh);
-unary_math_function!(math_proto_func_exp, exp_body, JSValue::double_number, glibc_math::exp);
+unary_math_function!(math_proto_func_exp, exp_body, JSValue::double_number, libm::exp);
 unary_math_function!(math_proto_func_expm1, expm1_body, JSValue::double_number, glibc_hyper::expm1);
 unary_math_function!(math_proto_func_floor, floor_body, js_number, f64::floor);
 unary_math_function!(math_proto_func_fround, fround_body, JSValue::double_number, |x: f64| x as f32 as f64);
-unary_math_function!(math_proto_func_log, log_body, JSValue::double_number, glibc_math::log);
+unary_math_function!(math_proto_func_log, log_body, JSValue::double_number, libm::log);
 unary_math_function!(math_proto_func_log10, log10_body, JSValue::double_number, glibc_hyper::log10);
 unary_math_function!(math_proto_func_log1p, log1p_body, JSValue::double_number, glibc_hyper::log1p);
-unary_math_function!(math_proto_func_log2, log2_body, JSValue::double_number, glibc_math::log2);
+unary_math_function!(math_proto_func_log2, log2_body, JSValue::double_number, libm::log2);
 unary_math_function!(math_proto_func_round, round_body, js_number, math_common::js_round);
 unary_math_function!(math_proto_func_sign, sign_body, js_number, operations::sign);
 unary_math_function!(math_proto_func_sin, sin_body, JSValue::double_number, super::glibc_trig::sin);
@@ -315,12 +315,12 @@ impl MathObject {
         object.finish_creation(vm);
 
         let constant_attributes = DONT_DELETE | DONT_ENUM | READ_ONLY;
-        let exp_one = glibc_math::exp(1.0);
+        let exp_one = libm::exp(1.0);
         let constants: [(&str, f64); 8] = [
             ("E", exp_one),
-            ("LN2", glibc_math::log(2.0)),
-            ("LN10", glibc_math::log(10.0)),
-            ("LOG2E", glibc_math::log2(exp_one)),
+            ("LN2", libm::log(2.0)),
+            ("LN10", libm::log(10.0)),
+            ("LOG2E", libm::log2(exp_one)),
             ("LOG10E", glibc_hyper::log10(exp_one)),
             ("PI", std::f64::consts::PI),
             ("SQRT1_2", 0.5f64.sqrt()),

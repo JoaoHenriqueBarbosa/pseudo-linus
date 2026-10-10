@@ -9,6 +9,7 @@ pub mod fnmatch;
 pub mod fsutil;
 pub mod getopt;
 pub mod hash;
+pub mod libm;
 pub mod quote;
 pub mod signal;
 pub mod time;

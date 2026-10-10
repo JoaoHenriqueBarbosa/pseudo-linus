@@ -17,6 +17,7 @@ enum-map.workspace = true
 enumset.workspace = true
 hashbrown.workspace = true
 strum.workspace = true
+ul-common = { path = "../../../crates/ul-common" }
 
 [lints]
 workspace = true

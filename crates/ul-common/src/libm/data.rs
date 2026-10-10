@@ -439,7 +439,8 @@ pub static LOG_TAB: [[u64; 2]; 128] = [
     [0x3fe756cadbd6130c, 0x3fd432eee32fe000],
 ];
 
-/// Pares `(chi, clo)`.
+/// Pares `(chi, clo)`. Sem uso: só o ramo sem FMA do glibc as lê, e este porte é só da variante FMA.
+#[allow(dead_code)]
 pub static LOG_TAB2: [[u64; 2]; 128] = [
     [0x3fe61000014fb66b, 0x3c7e026c91425b3c],
     [0x3fe63000034db495, 0x3c8dbfea48005d41],
@@ -664,7 +665,8 @@ pub static LOG2_TAB: [[u64; 2]; 64] = [
     [0x3fe767dcf99eff8c, 0x3fdce0a43dbf4000],
 ];
 
-/// Pares `(chi, clo)`.
+/// Pares `(chi, clo)`. Sem uso, como a `LOG_TAB2`.
+#[allow(dead_code)]
 pub static LOG2_TAB2: [[u64; 2]; 64] = [
     [0x3fe6200012b90a8e, 0x3c8904ab0644b605],
     [0x3fe66000045734a6, 0x3c61ff9bea62f7a9],

@@ -14,6 +14,8 @@
 //! - `roundDouble`, `jsRoundDouble`, `roundFloat` e `jsRound` têm o mesmo corpo: ver `js_round`.
 //! - `mathPowInternal` e o ramo `OS(DARWIN) && CPU(ARM_THUMB2)` (`fdlibmPow`, `fdlibmScalbn`):
 //!   no Linux x86_64 `mathPowInternal` é `pow`, que entra direto em `operation_math_pow`.
+//! - `operationMathPow` e `maxExponentForIntegerMathPow` moram em `ul_common::libm`, com o `pow` do glibc,
+//!   porque o transpilador do bun (`wip/zbun`) dobra `a ** b` com a mesma função.
 //! - `jsMaxDouble`/`jsMinDouble` têm um ramo `CPU(ARM64)` com assembly; no x86_64 são `fMax`/`fMin`.
 //! - `HAVE(FJCVTZS_INSTRUCTION)` (ARM64) em `toInt32`.
 //! - `UCPUStrictInt32` é `uint64_t` no alvo de 64 bits (`CPU.h`).
@@ -21,9 +23,9 @@
 //! `canBeInt32`, `canBeStrictInt32`, `toInt8` e família não existem neste arquivo no WebKit do Bun;
 //! `tryConvertToStrictInt32` vive em `wtf::math_extras` (o `MathExtras.h`).
 
-use crate::wtf::math_extras::{truncate_double_to_int32, WtfFloat};
+use crate::wtf::math_extras::WtfFloat;
 
-pub const MAX_EXPONENT_FOR_INTEGER_MATH_POW: i32 = 1000;
+pub use ul_common::libm::operation_math_pow;
 
 pub const fn max_safe_integer() -> f64 {
     // 2 ^ 53 - 1
@@ -195,54 +197,6 @@ pub fn safe_reciprocal_for_div_by_const(constant: f64) -> Option<f64> {
     Some(reciprocal)
 }
 
-/// `operationMathPow`.
-pub fn operation_math_pow(x: f64, y: f64) -> f64 {
-    if y.is_nan() {
-        return f64::NAN;
-    }
-    let absolute_base = x.abs();
-    if absolute_base == 1.0 && y.is_infinite() {
-        return f64::NAN;
-    }
-
-    if y == 0.5 {
-        if absolute_base == 0.0 {
-            return 0.0;
-        }
-        if absolute_base == f64::INFINITY {
-            return f64::INFINITY;
-        }
-        return x.sqrt();
-    }
-
-    if y == -0.5 {
-        if absolute_base == 0.0 {
-            return f64::INFINITY;
-        }
-        if absolute_base == f64::INFINITY {
-            return 0.0;
-        }
-        return 1.0 / x.sqrt();
-    }
-
-    let mut y_as_int = truncate_double_to_int32(y);
-    if (y_as_int as f64) == y && y_as_int >= 0 && y_as_int <= MAX_EXPONENT_FOR_INTEGER_MATH_POW {
-        // If the exponent is a small positive int32 integer, we do a fast exponentiation
-        let mut result = 1.0;
-        let mut xd = x;
-        while y_as_int != 0 {
-            if y_as_int & 1 != 0 {
-                result *= xd;
-            }
-            xd *= xd;
-            y_as_int >>= 1;
-        }
-        return result;
-    }
-    // `mathPowInternal` no Linux x86_64 é `pow`.
-    crate::runtime::glibc_math::pow(x, y)
-}
-
 /// `operationToInt32`.
 pub fn operation_to_int32(value: f64) -> u64 {
     to_ucpu_strict_int32(to_int32(value))
@@ -370,6 +324,46 @@ mod tests {
         assert_eq!(js_round(0.49999999999999994f64), 0.0);
         assert_eq!(js_round(-0.4f32), 0.0);
         assert_eq!(js_round(1.5f32), 2.0);
+    }
+
+    /// Os casos do golden do bun (`tests/golden/math_bun.tsv`): `nome<TAB>argumentos<TAB>resultado`. Conferem
+    /// a família exp/log/pow do glibc que mora em `ul_common::libm`, contra o bun do oráculo.
+    fn golden_cases() -> Vec<(String, Vec<u64>, u64)> {
+        let text = include_str!("../../tests/golden/math_bun.tsv");
+        text.lines()
+            .filter_map(|line| {
+                let fields: Vec<&str> = line.split('\t').collect();
+                if fields.len() != 3 {
+                    return None;
+                }
+                let (name, result) = (fields[0], fields[2]);
+                // Os argumentos vêm em hexadecimal separados por vírgula.
+                let arguments = fields[1].split(',').map(|f| u64::from_str_radix(f, 16).ok()).collect::<Option<Vec<_>>>()?;
+                Some((name.to_string(), arguments, u64::from_str_radix(result, 16).ok()?))
+            })
+            .collect()
+    }
+
+    fn canonical(value: f64) -> u64 {
+        if value.is_nan() { 0x7ff8_0000_0000_0000 } else { value.to_bits() }
+    }
+
+    fn check(name: &str, count: usize, function: impl Fn(&[f64]) -> f64) {
+        let cases: Vec<_> = golden_cases().into_iter().filter(|(case, arguments, _)| case == name && arguments.len() == if name == "pow" { 2 } else { 1 }).take(count).collect();
+        assert!(!cases.is_empty(), "sem casos para {name}");
+        for (_, arguments, expected) in cases {
+            let inputs: Vec<f64> = arguments.iter().map(|&bits| f64::from_bits(bits)).collect();
+            assert_eq!(canonical(function(&inputs)), expected, "{name}({:x?})", arguments);
+        }
+    }
+
+    #[test]
+    fn glibc_exp_log_pow_match_bun_golden() {
+        use ul_common::libm::{exp, log, log2, pow};
+        check("exp", 30, |a| exp(a[0]));
+        check("log", 30, |a| log(a[0]));
+        check("log2", 30, |a| log2(a[0]));
+        check("pow", 30, |a| pow(a[0], a[1]));
     }
 
     #[test]
