@@ -18,6 +18,8 @@
 //!   chamada. `int32ToString` e `int52ToString` só servem ao JIT e não são portados; `numberToString`
 //!   escreve o mesmo texto que `numberToStringInternal` (`to_string_with_radix`).
 
+use std::cell::Cell;
+
 use crate::runtime::big_integer::BigInteger;
 use crate::runtime::class_info::ClassInfo;
 use crate::runtime::default_number_format::NumericInput;
@@ -280,7 +282,93 @@ pub fn to_string_with_radix(double_value: f64, radix: i32) -> WtfString {
         return WtfString::number_f64(double_value);
     }
 
+    if V8_RADIX_STRINGS.with(Cell::get) {
+        return WtfString::from_latin1(&double_to_radix_c_string(double_value, radix as u32));
+    }
     WtfString::from_latin1(&to_string_with_radix_internal(double_value, radix as u32))
+}
+
+thread_local! {
+    /// O programa é um navegador: `toString(radix)` de número não inteiro segue o V8, não o JSC.
+    static V8_RADIX_STRINGS: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Liga (o navegador) ou desliga o `toString(radix)` do V8 para o programa em curso.
+pub fn set_v8_radix_strings(enabled: bool) {
+    V8_RADIX_STRINGS.with(|flag| flag.set(enabled));
+}
+
+/// Fim do programa: volta ao JSC.
+pub(crate) fn reset_for_program() {
+    let _ = V8_RADIX_STRINGS.try_with(|flag| flag.set(false));
+}
+
+/// `Double(value).Exponent()` do V8: o expoente com a mantissa de 53 bits tomada como inteiro.
+fn v8_double_exponent(value: f64) -> i32 {
+    let biased = ((value.to_bits() >> 52) & 0x7FF) as i32;
+    if biased == 0 { 1 - 0x3FF - 52 } else { biased - 0x3FF - 52 }
+}
+
+/// `DoubleToRadixCString(value, radix)` do V8 (`src/numbers/conversions.cc`): dígitos da fração até a precisão do
+/// `double` (meio ulp) e a cauda arredondada para o par com propagação do vai-um; a parte inteira por divisões. O
+/// número é finito e não é inteiro de 32 bits.
+fn double_to_radix_c_string(value: f64, radix: u32) -> Vec<u8> {
+    let negative = value < 0.0;
+    let value = value.abs();
+    let mut integer = value.floor();
+    let mut fraction = value - integer;
+    let next_up = |x: f64| f64::from_bits(x.to_bits() + 1);
+    let mut delta = (0.5 * (next_up(value) - value)).max(next_up(0.0));
+    let mut fraction_text: Vec<u8> = Vec::new();
+    if fraction >= delta {
+        loop {
+            fraction *= radix as f64;
+            delta *= radix as f64;
+            let digit = fraction as u32;
+            fraction_text.push(RADIX_DIGITS[digit as usize]);
+            fraction -= digit as f64;
+            if (fraction > 0.5 || (fraction == 0.5 && digit & 1 == 1)) && fraction + delta > 1.0 {
+                // Arredonda para cima, propagando o vai-um; se passar da vírgula, soma à parte inteira.
+                loop {
+                    let Some(last) = fraction_text.pop() else {
+                        integer += 1.0;
+                        break;
+                    };
+                    let digit = RADIX_DIGITS.iter().position(|&c| c == last).unwrap_or(0) as u32;
+                    if digit + 1 < radix {
+                        fraction_text.push(RADIX_DIGITS[digit as usize + 1]);
+                        break;
+                    }
+                }
+                break;
+            }
+            if fraction < delta {
+                break;
+            }
+        }
+    }
+    let mut integer_text: Vec<u8> = Vec::new();
+    while v8_double_exponent(integer / radix as f64) > 0 {
+        integer /= radix as f64;
+        integer_text.push(b'0');
+    }
+    loop {
+        let remainder = integer % radix as f64;
+        integer_text.push(RADIX_DIGITS[remainder as usize]);
+        integer = (integer - remainder) / radix as f64;
+        if integer <= 0.0 {
+            break;
+        }
+    }
+    if negative {
+        integer_text.push(b'-');
+    }
+    integer_text.reverse();
+    if !fraction_text.is_empty() {
+        integer_text.push(b'.');
+        integer_text.extend_from_slice(&fraction_text);
+    }
+    integer_text
 }
 
 /// `numberToString(vm, doubleValue, radix)`.
@@ -610,6 +698,22 @@ mod tests {
         assert_eq!(radix(4503599627370496.0, 16), "10000000000000");
         assert_eq!(radix(9007199254740993.0, 10), "9007199254740992");
         assert_eq!(radix(1e21, 10), "1e+21");
+    }
+
+    /// O `DoubleToRadixCString` do V8, medido no Chromium 154; o JSC (padrão) arredonda a cauda de outro jeito.
+    #[test]
+    fn v8_radix_strings_round_the_tail_like_chromium() {
+        assert_eq!(radix(0.123456789, 36), "0.4fzzzxjylrz");
+        set_v8_radix_strings(true);
+        let cases = [
+            (0.123456789, 36, "0.4fzzzxjylrx"),
+            (0.9876543210123, 36, "0.zk00001xj0a"),
+            (0.000123456, 36, "0.005rcwu8qgexl"),
+            (2f64.powi(-30) + 0.1, 7, "0.04620462051066354516"),
+        ];
+        let got: Vec<String> = cases.iter().map(|(value, base, _)| radix(*value, *base)).collect();
+        reset_for_program();
+        assert_eq!(got, cases.iter().map(|(_, _, text)| text.to_string()).collect::<Vec<_>>());
     }
 
     #[test]
