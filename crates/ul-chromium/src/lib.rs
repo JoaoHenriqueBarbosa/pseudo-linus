@@ -1,5 +1,6 @@
 //! `chromium --headless` do pseudo-linus.
 
+pub mod blink_css;
 pub mod bridge;
 pub mod cli;
 pub mod document;

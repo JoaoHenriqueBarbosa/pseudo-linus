@@ -276,6 +276,22 @@ console.log(ref.sans, ['sans-serif', 'Arial', 'Helvetica', 'serif', 'Foo', '\"Ti
 }
 
 #[test]
+fn blink_only_properties_survive_cssom() {
+    // Medido no oráculo: `transform-box` (que o stylo do Servo não tem) fica no bloco, na ordem de escrita, e o
+    // getComputedStyle dá o inicial `view-box` sem declaração (o motion do nextjs.org escreve `fill-box`).
+    let html = "<body><div id=d></div><p id=p></p><script>
+const s = d.style;
+s.transformOrigin = '50% 50% 0px'; const a = s.cssText;
+s.transformBox = 'fill-box'; const b = s.cssText;
+s.transformOrigin = '10px 0px 0px'; const c = s.cssText;
+s.transformBox = 'bogus'; const e = s.cssText;
+console.log([a, b, c, e, getComputedStyle(d).transformBox, getComputedStyle(p).transformBox, getComputedStyle(p).writingMode].join(' | '));
+</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "transform-origin: 50% 50% 0px; | transform-origin: 50% 50% 0px; transform-box: fill-box; | transform-origin: 10px 0px 0px; transform-box: fill-box; | transform-origin: 10px 0px 0px; transform-box: fill-box; | fill-box | view-box | horizontal-tb\n");
+}
+
+#[test]
 fn switch_with_many_numeric_cases() {
     // O getBumpedLaneForHydrationByLane do React 19.3 (nextjs.org): com o switch errado a hidratação nunca agenda.
     let script = "<script>function e$(e){switch(e){case 2:e=1;break;case 8:e=4;break;case 32:e=16;break;case 256:case 512:case 1024:case 2048:case 4096:case 8192:case 16384:case 32768:case 65536:case 131072:case 262144:case 524288:case 1048576:case 2097152:case 4194304:case 8388608:case 0x1000000:case 0x2000000:e=128;break;case 0x10000000:e=0x8000000;break;default:e=0}return e}

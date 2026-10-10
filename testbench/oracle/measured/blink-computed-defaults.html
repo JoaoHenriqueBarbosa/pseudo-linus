@@ -1,0 +1,7 @@
+<!doctype html><body><script>
+const cs = getComputedStyle(document.body);
+const out = {};
+for (let i = 0; i < cs.length; i++) out[cs[i]] = cs.getPropertyValue(cs[i]);
+const pre = document.createElement('pre'); pre.id = 'out'; pre.textContent = JSON.stringify(out);
+document.documentElement.append(pre);
+</script></body>

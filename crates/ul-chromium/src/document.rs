@@ -159,14 +159,119 @@ pub fn hide_nonces(doc: &mut BaseDocument) {
 /// valores computados de especificação (`0` vira `0px`), aliases trocados (`word-wrap` vira `overflow-wrap`) e o
 /// que não parseia descartado. É o stylo do Blitz.
 pub fn normalize_style(text: &str) -> String {
+    let text = blink_precision(text);
+    // As declarações que o stylo conhece vão para o bloco dele; as que só o Blink tem (`blink_css`) entram na
+    // serialização logo depois das que vinham antes delas no texto.
+    let mut known = String::new();
+    let mut extra: Vec<(usize, String, String)> = Vec::new();
+    for (name, value, important) in split_declarations(&text) {
+        let lower = name.to_ascii_lowercase();
+        if stylo_knows(&lower) || name.starts_with("--") {
+            known.push_str(&format!("{name}: {value}{};", if important { " !important" } else { "" }));
+        } else if let Some(value) = crate::blink_css::serialize(&lower, &value, proxy_value) {
+            extra.retain(|(_, n, _)| *n != lower);
+            let at = parse_block(&known).len();
+            extra.push((at, lower, format!("{value}{}", if important { " !important" } else { "" })));
+        }
+    }
+    let mut out: Vec<String> = parse_block(&known);
+    for (at, name, value) in extra.into_iter().rev() {
+        out.insert(at.min(out.len()), format!("{name}: {value};"));
+    }
+    out.join(" ")
+}
+
+/// Se o stylo (com as preferências do Blitz) analisa a propriedade.
+fn stylo_knows(name: &str) -> bool {
+    style::properties::PropertyId::parse_enabled_for_all_content(name).is_ok()
+}
+
+/// O bloco serializado pelo stylo, uma declaração por item (`nome: valor;`).
+fn parse_block(text: &str) -> Vec<String> {
     use style::properties::parse_style_attribute;
     use style::stylesheets::{CssRuleType, UrlExtraData};
     let base = url::Url::parse("about:blank").expect("about:blank");
     let data = UrlExtraData(style::servo_arc::Arc::new(base));
-    let text = blink_precision(text);
-    let block = parse_style_attribute(&text, &data, None, selectors::matching::QuirksMode::NoQuirks, CssRuleType::Style);
+    let block = parse_style_attribute(text, &data, None, selectors::matching::QuirksMode::NoQuirks, CssRuleType::Style);
     let mut out = String::new();
     let _ = block.to_css(&mut out);
+    split_declarations(&out).into_iter().map(|(n, v, i)| format!("{n}: {v}{};", if i { " !important" } else { "" })).collect()
+}
+
+/// O valor como o stylo o serializa na propriedade `property`, ou `None` quando ele o recusa.
+fn proxy_value(property: &str, value: &str) -> Option<String> {
+    let block = parse_block(&format!("{property}: {value};"));
+    let first = block.first()?;
+    first.strip_prefix(&format!("{property}: "))?.strip_suffix(';').map(str::to_owned)
+}
+
+/// As declarações de um texto de estilo: (nome, valor, `!important`), respeitando aspas, parênteses e comentários.
+fn split_declarations(text: &str) -> Vec<(String, String, bool)> {
+    let mut out = Vec::new();
+    let mut flush = |part: &str| {
+        let Some(colon) = part.find(':') else { return };
+        let name = part[..colon].trim();
+        let mut value = part[colon + 1..].trim();
+        let mut important = false;
+        let lower = value.to_ascii_lowercase();
+        if let Some(at) = lower.rfind('!') {
+            if lower[at + 1..].trim() == "important" {
+                important = true;
+                value = value[..at].trim();
+            }
+        }
+        if !name.is_empty() && !value.is_empty() {
+            out.push((name.to_owned(), value.to_owned(), important));
+        }
+    };
+    // Comentários saem antes da divisão (fora de aspas).
+    let mut cleaned = String::new();
+    let mut quote: Option<char> = None;
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if quote.is_none() && c == '/' && chars.peek() == Some(&'*') {
+            chars.next();
+            let mut last = '\0';
+            for c in chars.by_ref() {
+                if last == '*' && c == '/' {
+                    break;
+                }
+                last = c;
+            }
+            continue;
+        }
+        match quote {
+            Some(q) if c == q => quote = None,
+            None if c == '"' || c == '\'' => quote = Some(c),
+            _ => {}
+        }
+        cleaned.push(c);
+    }
+    let (mut depth, mut quote, mut escaped) = (0i32, None, false);
+    let mut part = String::new();
+    for c in cleaned.chars() {
+        if let Some(q) = quote {
+            if escaped {
+                escaped = false;
+            } else if c == '\\' {
+                escaped = true;
+            } else if c == q {
+                quote = None;
+            }
+        } else if c == '"' || c == '\'' {
+            quote = Some(c);
+        } else if c == '(' {
+            depth += 1;
+        } else if c == ')' {
+            depth -= 1;
+        } else if c == ';' && depth <= 0 {
+            flush(&part);
+            part.clear();
+            continue;
+        }
+        part.push(c);
+    }
+    flush(&part);
     out
 }
 
@@ -184,7 +289,15 @@ pub fn computed_value(doc: &mut BaseDocument, id: NodeId, name: &str) -> Option<
         Some(styles) => styles.clone(),
         None => doc.resolve_undisplayed_style(id)?,
     };
-    let property = PropertyId::parse_enabled_for_all_content(name).ok()?;
+    let Ok(property) = PropertyId::parse_enabled_for_all_content(name) else {
+        // Propriedade só do Blink: o valor do `style` em linha, ou o inicial medido no oráculo. As folhas de estilo
+        // não chegam aqui, porque o stylo descarta a declaração ao analisá-las.
+        let initial = crate::blink_css::initial(name)?;
+        let inline = node.attr(LocalName::from("style")).map(|text| normalize_style(text)).and_then(|text| {
+            split_declarations(&text).into_iter().rev().find(|(n, _, _)| n == name).map(|(_, v, _)| v)
+        });
+        return Some(inline.unwrap_or_else(|| initial.to_owned()));
+    };
     match property.as_shorthand() {
         Err(declaration) => Some(styles.computed_value_to_string(declaration)),
         Ok(shorthand) => {

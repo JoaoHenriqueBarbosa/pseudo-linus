@@ -171,6 +171,8 @@ class CSSStyleDeclaration {
     const list = this[P.__list]();
     const i = list.findIndex((d) => d.name === name);
     if (value === null || value === undefined || String(value) === '') { if (i >= 0) list.splice(i, 1); }
+    // Valor inválido não muda a declaração que já existe.
+    else if (op('normalizeStyle', `${name}: ${String(value)};`) === '') return;
     else if (i >= 0) list[i] = { name, value: String(value), priority: priority === 'important' ? 'important' : '' };
     else list.push({ name, value: String(value), priority: priority === 'important' ? 'important' : '' });
     this[P.__save](list);
