@@ -65,6 +65,14 @@ pub fn run_at(address: &str, headers: &[(&str, &str)], files: &[(&str, &str)]) -
     (dom, log)
 }
 
+/// Roda uma sonda servida em `/` e devolve o JSON que ela grava em `data-out` (sem ele, falha mostrando o console).
+#[allow(dead_code)]
+pub fn probe_output(probe: &str) -> serde_json::Value {
+    let (dom, log) = run(&[("/", probe)]);
+    let start = dom.find("data-out=\"").unwrap_or_else(|| panic!("sem data-out; console:\n{log}")) + 10;
+    serde_json::from_str(&dom[start..start + dom[start..].find('"').unwrap()].replace("&quot;", "\"")).unwrap()
+}
+
 /// As fontes da imagem do kernel: (caminho na VFS, bytes), o que o pseudo-linus tem em `/usr/share/fonts`.
 pub fn image_fonts() -> Vec<(String, Vec<u8>)> {
     let image = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../kernel/image");

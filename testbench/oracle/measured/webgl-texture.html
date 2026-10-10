@@ -1,0 +1,158 @@
+<!doctype html><body><img id="png" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAATUlEQVR4nGNgYIj6b8NQcb2CYdr6LQxb2hlE3KL+B7hVXO9xm7b+hBtQQKMn6n9KT8X1BT3T1t/pAQrYXIr6X3Gp4vqWS9PWf7i0pR0ADMAisd3lE3gAAAAASUVORK5CYII="><script>
+// Texturas do WebGL no oráculo (ANGLE sobre SwiftShader): cada cena desenha num canvas de 24x24 sem antisserrilhado e
+// guarda o readPixels (RGBA, de baixo para cima) em base64. Rodar com `chromium --headless --disable-gpu --dump-dom`;
+// o resultado sai no atributo data-out do body.
+const W = 24, H = 24;
+const b64 = (u8) => { let s = ''; for (const b of u8) s += String.fromCharCode(b); return btoa(s); };
+const VS1 = 'attribute vec2 p; attribute vec2 uv; varying vec2 v; void main() { v = uv; gl_Position = vec4(p, 0.0, 1.0); }';
+const FS1 = 'precision highp float; varying vec2 v; uniform sampler2D t; void main() { gl_FragColor = texture2D(t, v); }';
+const VS2 = '#version 300 es\nin vec2 p; in vec2 uv; out vec2 v; void main() { v = uv; gl_Position = vec4(p, 0.0, 1.0); }';
+// Um padrão determinístico de w x h texels RGBA.
+const pattern = (w, h, k = 1) => { const a = new Uint8Array(w * h * 4); for (let i = 0; i < w * h; i++) { a[i * 4] = (i * 37 * k + 11) & 255; a[i * 4 + 1] = (i * 91 + 7 * k) & 255; a[i * 4 + 2] = (i * 53 + 200) & 255; a[i * 4 + 3] = 255 - ((i * 29 * k) & 127); } return a; };
+const full = [-1, -1, 1, -1, -1, 1, 1, 1];
+const uv01 = [0, 0, 1, 0, 0, 1, 1, 1];
+// Um quadrilátero girado com coordenadas que passam de 0 e 1 (para os modos de repetição).
+const tilted = [-0.9, -0.5, 0.6, -0.95, -0.4, 0.95, 0.95, 0.4];
+const uvWide = [-0.7, -0.3, 2.2, -0.1, -0.4, 1.9, 2.6, 2.3];
+const params = (gl, min, mag, ws, wt) => { gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, min); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, mag); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, ws ?? gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wt ?? ws ?? gl.CLAMP_TO_EDGE); };
+const rgba = (gl, w, h, data) => gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+const canvas2d = () => { const c = document.createElement('canvas'); c.width = 6; c.height = 5; const x = c.getContext('2d'); x.fillStyle = '#c03080'; x.fillRect(0, 0, 6, 5); x.fillStyle = 'rgba(20, 200, 90, 0.5)'; x.fillRect(1, 1, 3, 2); x.fillStyle = '#ffee00'; x.fillRect(4, 0, 2, 5); return c; };
+const scenes = {
+  'nearest': (gl, d) => { rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'linear': (gl, d) => { rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  'linear-tilted': (gl, d) => { rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(tilted, uv01); },
+  'repeat-nearest': (gl, d) => { rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.NEAREST, gl.NEAREST, gl.REPEAT); d.draw(tilted, uvWide); },
+  'repeat-linear': (gl, d) => { rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.LINEAR, gl.LINEAR, gl.REPEAT); d.draw(tilted, uvWide); },
+  'mirror-linear': (gl, d) => { rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.LINEAR, gl.LINEAR, gl.MIRRORED_REPEAT); d.draw(tilted, uvWide); },
+  'clamp-linear': (gl, d) => { rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(tilted, uvWide); },
+  'mixed-wrap': (gl, d) => { rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.LINEAR, gl.NEAREST, gl.REPEAT, gl.MIRRORED_REPEAT); d.draw(tilted, uvWide); },
+  'npot': (gl, d) => { rgba(gl, 5, 3, pattern(5, 3, 3)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  'minify-nearest': (gl, d) => { rgba(gl, 64, 64, pattern(64, 64, 5)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'minify-linear': (gl, d) => { rgba(gl, 64, 64, pattern(64, 64, 5)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  'mipmap-nearest': (gl, d) => { rgba(gl, 64, 64, pattern(64, 64, 5)); gl.generateMipmap(gl.TEXTURE_2D); params(gl, gl.NEAREST_MIPMAP_NEAREST, gl.NEAREST, gl.REPEAT); d.draw(tilted, uvWide); },
+  'mipmap-linear': (gl, d) => { rgba(gl, 64, 64, pattern(64, 64, 5)); gl.generateMipmap(gl.TEXTURE_2D); params(gl, gl.LINEAR_MIPMAP_LINEAR, gl.LINEAR, gl.REPEAT); d.draw(tilted, uvWide); },
+  'mipmap-lin-near': (gl, d) => { rgba(gl, 64, 64, pattern(64, 64, 5)); gl.generateMipmap(gl.TEXTURE_2D); params(gl, gl.LINEAR_MIPMAP_NEAREST, gl.LINEAR, gl.REPEAT); d.draw(tilted, uvWide); },
+  'mipmap-near-lin': (gl, d) => { rgba(gl, 64, 64, pattern(64, 64, 5)); gl.generateMipmap(gl.TEXTURE_2D); params(gl, gl.NEAREST_MIPMAP_LINEAR, gl.NEAREST, gl.REPEAT); d.draw(tilted, uvWide); },
+  'incomplete': (gl, d) => { rgba(gl, 4, 4, pattern(4, 4)); d.draw(full, uv01); },
+  'unbound': (gl, d) => { gl.bindTexture(gl.TEXTURE_2D, null); d.draw(full, uv01); },
+  'rgb': (gl, d) => { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 3, 3, 0, gl.RGB, gl.UNSIGNED_BYTE, pattern(3, 3).subarray(0, 27)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  'luminance': (gl, d) => { gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 4, 4, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, pattern(4, 4).subarray(0, 16)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  'alpha': (gl, d) => { gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, 4, 4, 0, gl.ALPHA, gl.UNSIGNED_BYTE, pattern(4, 4).subarray(0, 16)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'luminance-alpha': (gl, d) => { gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, 4, 4, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, pattern(4, 4).subarray(0, 32)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  '565': (gl, d) => { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 4, 4, 0, gl.RGB, gl.UNSIGNED_SHORT_5_6_5, new Uint16Array(pattern(4, 4).buffer, 0, 16)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  '4444': (gl, d) => { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 4, 4, 0, gl.RGBA, gl.UNSIGNED_SHORT_4_4_4_4, new Uint16Array(pattern(4, 4).buffer, 0, 16)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  '5551': (gl, d) => { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 4, 4, 0, gl.RGBA, gl.UNSIGNED_SHORT_5_5_5_1, new Uint16Array(pattern(4, 4).buffer, 0, 16)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'unpack-align': (gl, d) => { gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 3, 3, 0, gl.RGB, gl.UNSIGNED_BYTE, pattern(3, 3).subarray(0, 27)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'sub-image': (gl, d) => { rgba(gl, 4, 4, pattern(4, 4)); gl.texSubImage2D(gl.TEXTURE_2D, 0, 1, 2, 2, 2, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(16).fill(240)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'flip-y': (gl, d) => { gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'premultiply': (gl, d) => { gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'imagedata': (gl, d) => { const im = new ImageData(new Uint8ClampedArray(pattern(5, 4, 7)), 5, 4); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'imagedata-flip-premul': (gl, d) => { gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); const im = new ImageData(new Uint8ClampedArray(pattern(5, 4, 7)), 5, 4); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'canvas2d': (gl, d) => { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas2d()); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'canvas2d-linear-flip': (gl, d) => { gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas2d()); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  'canvas2d-premul': (gl, d) => { gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas2d()); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'image': (gl, d) => { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, document.getElementById('png')); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'webgl-canvas': (gl, d) => {
+    const c = document.createElement('canvas'); c.width = 4; c.height = 3;
+    const g2 = c.getContext('webgl', { antialias: false });
+    g2.clearColor(0.2, 0.7, 0.4, 1); g2.clear(g2.COLOR_BUFFER_BIT); g2.enable(g2.SCISSOR_TEST); g2.scissor(0, 0, 2, 1); g2.clearColor(1, 0.1, 0, 1); g2.clear(g2.COLOR_BUFFER_BIT);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01);
+  },
+  'two-units': (gl, d) => {
+    const p = d.program('precision highp float; varying vec2 v; uniform sampler2D t; uniform sampler2D u; void main() { gl_FragColor = texture2D(t, v) * 0.5 + texture2D(u, v.yx) * 0.5; }');
+    rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.NEAREST, gl.NEAREST);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gl.createTexture()); rgba(gl, 2, 2, pattern(2, 2, 9)); params(gl, gl.LINEAR, gl.LINEAR);
+    gl.uniform1i(gl.getUniformLocation(p, 'u'), 1); d.draw(full, uv01);
+  },
+  'bias-and-proj': (gl, d) => {
+    d.program('precision highp float; varying vec2 v; uniform sampler2D t; void main() { gl_FragColor = texture2DProj(t, vec3(v * 1.5, 1.5)) * 0.5 + texture2D(t, v, 1.0) * 0.5; }');
+    rgba(gl, 64, 64, pattern(64, 64, 5)); gl.generateMipmap(gl.TEXTURE_2D); params(gl, gl.LINEAR_MIPMAP_LINEAR, gl.LINEAR, gl.REPEAT); d.draw(full, uv01);
+  },
+  'vertex-texture': (gl, d) => {
+    d.program('precision highp float; varying vec2 v; void main() { gl_FragColor = vec4(v, 0.5, 1.0); }', 'attribute vec2 p; attribute vec2 uv; varying vec2 v; uniform sampler2D t; void main() { v = texture2D(t, uv).rg; gl_Position = vec4(p, 0.0, 1.0); }');
+    rgba(gl, 2, 2, pattern(2, 2, 3)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01);
+  },
+  'cube': (gl, d) => {
+    d.program('precision highp float; varying vec2 v; uniform samplerCube c; void main() { vec2 q = v * 2.0 - 1.0; gl_FragColor = textureCube(c, vec3(q.x, q.y, 0.6)) * 0.5 + textureCube(c, vec3(1.0, q.y, q.x)) * 0.5; }');
+    const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_CUBE_MAP, t);
+    for (let f = 0; f < 6; f++) gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + f, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, pattern(2, 2, f + 2));
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    d.draw(full, uv01);
+  },
+};
+const UV_BITS = (c) => '#version 300 es\nprecision highp float; in vec2 v; out vec4 o; void main() { uint b = floatBitsToUint(v.' + c + '); o = vec4(uvec4(b, b >> 8, b >> 16, b >> 24) & 255u) / 255.0; }';
+const scenes2 = {
+  // Os bits do varying interpolado (a coordenada que a amostragem recebe), um byte por canal.
+  'gl2-uv-bits-x': (gl, d) => { d.program(UV_BITS('x'), VS2); d.draw(full, uv01); },
+  'gl2-uv-bits-y': (gl, d) => { d.program(UV_BITS('y'), VS2); d.draw(full, uv01); },
+  'gl2-uv-bits-tilted-x': (gl, d) => { d.program(UV_BITS('x'), VS2); d.draw(tilted, uvWide); },
+  'gl2-texelfetch': (gl, d) => { d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2D t; out vec4 o; void main() { ivec2 s = textureSize(t, 0); o = texelFetch(t, ivec2(v * vec2(s)), 0) + vec4(float(s.x) / 16.0, float(s.y) / 16.0, 0.0, 0.0) * 0.0; }', VS2); rgba(gl, 5, 3, pattern(5, 3, 3)); d.draw(full, uv01); },
+  'gl2-texturesize': (gl, d) => { d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2D t; out vec4 o; void main() { ivec2 s = textureSize(t, 1); o = vec4(float(s.x) / 64.0, float(s.y) / 64.0, v); }', VS2); rgba(gl, 40, 24, pattern(40, 24)); gl.generateMipmap(gl.TEXTURE_2D); d.draw(full, uv01); },
+  'gl2-lod': (gl, d) => { d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2D t; out vec4 o; void main() { o = textureLod(t, v, v.x * 4.0); }', VS2); rgba(gl, 64, 64, pattern(64, 64, 5)); gl.generateMipmap(gl.TEXTURE_2D); params(gl, gl.LINEAR_MIPMAP_LINEAR, gl.LINEAR, gl.REPEAT); d.draw(full, uv01); },
+  'gl2-r8': (gl, d) => { d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2D t; out vec4 o; void main() { o = texture(t, v); }', VS2); gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 4, 4, 0, gl.RED, gl.UNSIGNED_BYTE, pattern(4, 4).subarray(0, 16)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  'gl2-rg8': (gl, d) => { d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2D t; out vec4 o; void main() { o = texture(t, v); }', VS2); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG8, 4, 4, 0, gl.RG, gl.UNSIGNED_BYTE, pattern(4, 4).subarray(0, 32)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  'gl2-float': (gl, d) => { d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2D t; out vec4 o; void main() { o = texture(t, v) * 0.25; }', VS2); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 3, 3, 0, gl.RGBA, gl.FLOAT, Float32Array.from(pattern(3, 3), (x) => x / 64)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'gl2-half-linear': (gl, d) => { d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2D t; out vec4 o; void main() { o = texture(t, v); }', VS2); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, 3, 3, 0, gl.RGBA, gl.FLOAT, Float32Array.from(pattern(3, 3), (x) => x / 255)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  'gl2-storage-sub': (gl, d) => { d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2D t; out vec4 o; void main() { o = texture(t, v); }', VS2); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, 4, 4); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 4, 4, gl.RGBA, gl.UNSIGNED_BYTE, pattern(4, 4, 11)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'gl2-usampler': (gl, d) => { d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp usampler2D t; out vec4 o; void main() { uvec4 x = texture(t, v); o = vec4(x) / 255.0; }', VS2); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8UI, 4, 4, 0, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, pattern(4, 4)); params(gl, gl.NEAREST, gl.NEAREST); d.draw(full, uv01); },
+  'gl2-srgb': (gl, d) => { d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2D t; out vec4 o; void main() { o = texture(t, v); }', VS2); gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, 4, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, pattern(4, 4)); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01); },
+  'gl2-3d': (gl, d) => {
+    d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler3D t; out vec4 o; void main() { o = texture(t, vec3(v, v.x * 0.7 + 0.1)); }', VS2);
+    const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_3D, t); gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, 2, 2, 3, 0, gl.RGBA, gl.UNSIGNED_BYTE, pattern(2, 6, 4));
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); d.draw(full, uv01);
+  },
+  'gl2-array': (gl, d) => {
+    d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2DArray t; out vec4 o; void main() { o = texture(t, vec3(v, floor(v.x * 3.0))); }', VS2);
+    const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D_ARRAY, t); gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA8, 2, 2, 3, 0, gl.RGBA, gl.UNSIGNED_BYTE, pattern(2, 6, 6));
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR); d.draw(full, uv01);
+  },
+  'gl2-sampler-object': (gl, d) => {
+    d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2D t; out vec4 o; void main() { o = texture(t, v); }', VS2);
+    rgba(gl, 4, 4, pattern(4, 4)); params(gl, gl.NEAREST, gl.NEAREST);
+    const sm = gl.createSampler(); gl.samplerParameteri(sm, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.samplerParameteri(sm, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.samplerParameteri(sm, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.bindSampler(0, sm);
+    d.draw(tilted, uvWide);
+  },
+  'gl2-shadow': (gl, d) => {
+    d.program('#version 300 es\nprecision highp float; in vec2 v; uniform highp sampler2DShadow t; out vec4 o; void main() { o = vec4(texture(t, vec3(v, v.y))); }', VS2);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT32F, 4, 4, 0, gl.DEPTH_COMPONENT, gl.FLOAT, Float32Array.from({ length: 16 }, (_, i) => ((i * 7) % 16) / 15));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE); params(gl, gl.LINEAR, gl.LINEAR); d.draw(full, uv01);
+  },
+};
+const run = (name, fn, version) => {
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const gl = canvas.getContext(version === 2 ? 'webgl2' : 'webgl', { antialias: false });
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+  const vb = gl.createBuffer(), ub = gl.createBuffer();
+  let prog;
+  const d = {
+    program(fs, vs) {
+      prog = gl.createProgram();
+      gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs || VS1)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
+      gl.bindAttribLocation(prog, 0, 'p'); gl.bindAttribLocation(prog, 1, 'uv');
+      gl.linkProgram(prog); gl.useProgram(prog);
+      return prog;
+    },
+    draw(pos, uv) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pos), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, ub); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uv), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    },
+  };
+  d.program(FS1);
+  gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+  gl.clearColor(0.1, 0.1, 0.1, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  fn(gl, d);
+  const px = new Uint8Array(W * H * 4);
+  gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  return b64(px);
+};
+window.onload = () => {
+  const out = {};
+  for (const [name, fn] of Object.entries(scenes)) out[name] = run(name, fn, 1);
+  for (const [name, fn] of Object.entries(scenes2)) out[name] = run(name, fn, 2);
+  document.body.setAttribute('data-out', JSON.stringify(out));
+};
+</script></body>

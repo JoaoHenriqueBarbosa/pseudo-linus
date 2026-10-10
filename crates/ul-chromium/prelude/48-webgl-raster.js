@@ -22,7 +22,7 @@ const glTarget = (s) => {
     const samples = s.attrs.antialias ? SAMPLES_4X : SAMPLES_1X;
     const n = samples.length;
     t = s.target = { width: w, height: h, samples, color: new Uint8Array(w * h * 4 * n), depth: s.attrs.depth ? new Float32Array(w * h * n).fill(1) : null, stencil: s.attrs.stencil ? new Uint8Array(w * h * n) : null, resolved: null };
-    s.queue = [];
+    glDropQueue(s);
   }
   return t;
 };
@@ -30,13 +30,17 @@ const glTarget = (s) => {
 // O valor que um parâmetro tinha quando o comando entrou na fila.
 const glSnapshot = (s) => new Map(s.params);
 
-// Copia na escrita: um buffer guardado por um desenho pendente é trocado antes de mudar.
-const pinBuffer = (b) => { if (b) b.pinned = true; };
-const unpinForWrite = (b) => { if (b.pinned) { b.data = b.data.slice(); b.pinned = false; } };
+// Um buffer ou imagem lido por um desenho pendente não muda por baixo dele: antes da escrita, a fila roda (o
+// resultado é o mesmo da execução imediata do Chromium). Copiar na escrita deixava a fila reter uma cópia inteira da
+// textura por texSubImage até a página ler os pixels. O pino aponta para a fila que o guarda; descartar a fila
+// (rodada ou apagada) a esvazia e solta de uma vez todos os seus pinos.
+const glPin = (s, o) => { if (o) o.pinned = s.queue; };
+const glDropQueue = (s) => { if (s.queue) s.queue.length = 0; s.queue = []; };
+const glBeforeWrite = (s, o) => { if (o && o.pinned && o.pinned.length) glFlush(s); };
 
 const glEnqueue = (s, entry) => {
   glTarget(s);
-  if (entry.kind === 'clear' && glClearsAll(s, entry)) s.queue = [];
+  if (entry.kind === 'clear' && glClearsAll(s, entry)) glDropQueue(s);
   s.queue.push(entry);
   s.target.resolved = null;
 };
@@ -54,11 +58,12 @@ const glQueueClear = (s, mask) => glEnqueue(s, { kind: 'clear', mask, params: gl
 const glQueueDraw = (ctx, mode, first, count, instances, elements) => {
   const s = glState(ctx);
   const program = objOf(s.params.get('CURRENT_PROGRAM'));
-  const attribs = s.vao.attribs.map((a) => { const b = a.buffer && objOf(a.buffer); pinBuffer(b); return { ...a, data: b ? b.data : null }; });
-  if (elements) pinBuffer(elements.buffer);  glEnqueue(s, {
+  const attribs = s.vao.attribs.map((a) => { const b = a.buffer && objOf(a.buffer); glPin(s, b); return { ...a, data: b ? b.data : null }; });
+  if (elements) glPin(s, elements.buffer);
+  glEnqueue(s, {
     kind: 'draw', mode, first, count, instances, params: glSnapshot(s),
     program: { sources: program.sources, attribs: program.attribs, uniforms: program.uniforms, values: new Map(program.uniformValues), cache: program },
-    attribs, current: s.current.slice(),
+    attribs, current: s.current.slice(), textures: glTextureSnapshot(s),
     elements: elements ? { data: elements.buffer.data, type: elements.type, offset: elements.offset } : null,
   });
 };
@@ -68,7 +73,7 @@ const glFlush = (s) => {
   const t = glTarget(s);
   if (s.queue.length) {
     for (const entry of s.queue) (entry.kind === 'clear' ? glRunClear : glRunDraw)(s, t, entry);
-    s.queue = [];
+    glDropQueue(s);
     t.resolved = null;
   }
   if (!t.resolved) t.resolved = glResolve(t);
@@ -78,6 +83,8 @@ const glFlush = (s) => {
 // `float` para 8 bits como o SwiftShader: o produto por 255 em binário32, arredondado ao par mais próximo (0,3 vira
 // 76,5 e sai 76; 0,1 vira 25,5 e sai 26).
 const unorm8 = (c) => (c >= 1 ? 255 : c > 0 ? roundEven(fr(c * 255)) : 0);
+// O clear vai pelo fastClear do Blitter: (255 * c + 0,5) truncado, em binário32 (0,7 vira 178,5 e sai 179).
+const unorm8Clear = (c) => (c >= 1 ? 255 : c > 0 ? Math.trunc(fr(fr(c * 255) + 0.5)) : 0);
 
 const glRunClear = (s, t, entry) => {
   const p = entry.params;
@@ -87,7 +94,7 @@ const glRunClear = (s, t, entry) => {
   if (entry.mask & GL.COLOR_BUFFER_BIT) {
     const color = p.get('COLOR_CLEAR_VALUE');
     const mask = p.get('COLOR_WRITEMASK');
-    const bytes = Array.from(color, (c, i) => (i === 3 && !s.attrs.alpha ? 255 : unorm8(c)));
+    const bytes = Array.from(color, (c, i) => (i === 3 && !s.attrs.alpha ? 255 : unorm8Clear(c)));
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) for (let k = 0; k < n; k++) { const i = ((y * t.width + x) * n + k) * 4; for (let c = 0; c < 4; c++) if (mask[c]) t.color[i + c] = bytes[c]; }
   }
   if (t.depth && entry.mask & GL.DEPTH_BUFFER_BIT && p.get('DEPTH_WRITEMASK')) {
@@ -197,7 +204,7 @@ const glRunDraw = (s, t, entry) => {
   const vsMain = vs.functions.get('main')[0], fsMain = fs.functions.get('main')[0];
   const inputs = entry.program.attribs.map((a) => ({ slot: vs.globals.get(a.name)?.slot, location: a.location, t: vs.globals.get(a.name)?.t })).filter((a) => a.slot !== undefined);
   const posSlot = vs.globals.get('gl_Position').slot, idSlot = vs.globals.get('gl_VertexID').slot, instSlot = vs.globals.get('gl_InstanceID').slot;
-  const rt = glRuntime(s);
+  const rt = glRuntime(entry, 'fragment'), vrt = glRuntime(entry, 'vertex');
   const indices = glIndices(entry);
   for (let instance = 0; instance < entry.instances; instance++) {
     const cache = new Map();
@@ -212,13 +219,13 @@ const glRunDraw = (s, t, entry) => {
         g[a.slot] = d.scalar ? GLSL_CONV[kind](raw[0]) : raw.slice(0, d.n).map(GLSL_CONV[kind]);
       }
       g[idSlot] = index; g[instSlot] = instance;
-      vsMain.body({ g, l: new Array(vsMain.count), rt });
+      vsMain.body({ g, l: new Array(vsMain.count), rt: vrt });
       v = { pos: g[posSlot].slice(), vary: varyings.map((x) => glslClone(g[x.vs])) };
       cache.set(index, v);
       return v;
     };
     for (const prim of glPrimitives(entry.mode, indices)) {
-      if (prim.length === 3) glTriangle(s, t, entry, stages, fsGlobals, fsMain, prim.map(shade), rt);
+      if (prim.length === 3) glTriangle(s, t, entry, stages, fsGlobals, fsMain, prim.map(shade), rt, prim.provoking);
     }
   }
 };
@@ -231,12 +238,14 @@ const glIndices = (entry) => {
   return Array.from({ length: entry.count }, (_, i) => (size === 1 ? view.getUint8(i) : size === 2 ? view.getUint16(i * 2, true) : view.getUint32(i * 4, true)));
 };
 
-// Triângulos de cada modo, com a ordem de vértices que preserva o sentido (o último vértice provoca).
+// Triângulos de cada modo na ordem do Vulkan (faixa ímpar: i, i + 2, i + 1; leque: i, i + 1, 0), com o índice do vértice
+// provocador do GL (o último do triângulo no GL).
 const glPrimitives = (mode, idx) => {
   const out = [];
-  if (mode === GL.TRIANGLES) for (let i = 0; i + 2 < idx.length; i += 3) out.push([idx[i], idx[i + 1], idx[i + 2]]);
-  else if (mode === GL.TRIANGLE_STRIP) for (let i = 0; i + 2 < idx.length; i++) out.push(i % 2 ? [idx[i + 1], idx[i], idx[i + 2]] : [idx[i], idx[i + 1], idx[i + 2]]);
-  else if (mode === GL.TRIANGLE_FAN) for (let i = 1; i + 1 < idx.length; i++) out.push([idx[i], idx[i + 1], idx[0]]);
+  const tri = (a, b, c, provoking) => out.push(Object.assign([a, b, c], { provoking }));
+  if (mode === GL.TRIANGLES) for (let i = 0; i + 2 < idx.length; i += 3) tri(idx[i], idx[i + 1], idx[i + 2], 2);
+  else if (mode === GL.TRIANGLE_STRIP) for (let i = 0; i + 2 < idx.length; i++) { if (i % 2) tri(idx[i], idx[i + 2], idx[i + 1], 1); else tri(idx[i], idx[i + 1], idx[i + 2], 2); }
+  else if (mode === GL.TRIANGLE_FAN) for (let i = 1; i + 1 < idx.length; i++) tri(idx[i], idx[i + 1], idx[0], 1);
   return out;
 };
 
@@ -264,9 +273,9 @@ const glClip = (verts) => {
 const glLerp = (a, b, k) => (Array.isArray(a) ? a.map((x, i) => glLerp(x, b[i], k)) : typeof a === 'number' ? fr(a + (b - a) * k) : a);
 
 const SUBPIXEL = 16;
-const glTriangle = (s, t, entry, stages, fsGlobals, fsMain, verts, rt) => {
+const glTriangle = (s, t, entry, stages, fsGlobals, fsMain, verts, rt, provokingIndex) => {
   const p = entry.params;
-  const provoking = verts[2];
+  const provoking = verts[provokingIndex];
   const tagged = verts.map((v, i) => ({ pos: v.pos, vary: v.vary, weights: [i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0] }));
   const poly = glClip(tagged);
   if (poly.length < 3) return;
@@ -278,7 +287,7 @@ const glTriangle = (s, t, entry, stages, fsGlobals, fsMain, verts, rt) => {
     const w = v.pos[3];
     const rhw = w !== 0 ? fr(1 / w) : 1;
     const X = Math.round(fr(X0xF + fr(fr(v.pos[0] * rhw) * WxF))), Y = Math.round(fr(Y0xF + fr(fr(v.pos[1] * rhw) * HxF)));
-    return { X, Y, x: X / SUBPIXEL, y: Y / SUBPIXEL, w, rhw, z: fr(fr(fr(v.pos[2] * rhw) * fr((range[1] - range[0]) / 2)) + fr((range[1] + range[0]) / 2)), vary: v.vary };
+    return { X, Y, x: X / SUBPIXEL, y: Y / SUBPIXEL, w, rhw, cy: v.pos[1], z: fr(fr(fr(v.pos[2] * rhw) * fr((range[1] - range[0]) / 2)) + fr((range[1] + range[0]) / 2)), vary: v.vary };
   });
   for (let i = 1; i + 1 < win.length; i++) glRasterTriangle(s, t, entry, stages, fsGlobals, fsMain, [win[0], win[i], win[i + 1]], provoking, rt);
 };
@@ -325,23 +334,34 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
   const inside = (x, y) => edges.every((e) => { const v = e.dx * (y - e.y0) - e.dy * (x - e.x0); return v > 0 || (v === 0 && e.topLeft); });
   // As equações de plano do SetupRoutine do SwiftShader, em binário32 e relativas ao vértice 0: cada interpolante é
   // P.x * dx + P.y * dy + P.z (o atributo sobre w), e o plano W dá 1/w; o fragmento multiplica pelo inverso dele.
-  const x1 = fr(fr(b.w * (1 / SUBPIXEL)) * (b.X - a.X)), y1 = fr(fr(b.w * (1 / SUBPIXEL)) * (b.Y - a.Y));
-  const x2 = fr(fr(c.w * (1 / SUBPIXEL)) * (c.X - a.X)), y2 = fr(fr(c.w * (1 / SUBPIXEL)) * (c.Y - a.Y));
+  // Os vértices dos planos na ordem do SetupRoutine. Com o provocador no fim (VK_EXT_provoking_vertex no modo LAST), o
+  // triângulo (a, b, c) chega como (c, a, b); depois gira para o de menor y de recorte vir primeiro e, em seguida, o de
+  // maior w (com valores iguais as duas rotações de cada critério se desfazem). O ANGLE inverte o y para o Vulkan, então
+  // os planos vivem no espaço invertido, com o Y de janela contado de cima (`YV`).
+  const flipped = (v) => ({ ...v, YV: t.height * SUBPIXEL - v.Y });
+  let [pa, pb, pc] = [flipped(c), flipped(a), flipped(b)];
+  const rotate = (cond1, cond2) => { if (cond1) [pa, pb, pc] = [pb, pc, pa]; if (cond2) [pa, pb, pc] = [pc, pa, pb]; };
+  { const yMin = Math.min(pa.cy, pb.cy, pc.cy); rotate(yMin === pb.cy, yMin === pc.cy); }
+  { const [w1, w2] = [pb.w, pc.w], wMax = Math.max(pa.w, w1, w2); rotate(wMax === w1, wMax === w2); }
+  const x1 = fr(fr(pb.w * (1 / SUBPIXEL)) * (pb.X - pa.X)), y1 = fr(fr(pb.w * (1 / SUBPIXEL)) * (pb.YV - pa.YV));
+  const x2 = fr(fr(pc.w * (1 / SUBPIXEL)) * (pc.X - pa.X)), y2 = fr(fr(pc.w * (1 / SUBPIXEL)) * (pc.YV - pa.YV));
   const det = fr(fr(x1 * y2) - fr(x2 * y1));
   if (det === 0) return;
-  const A = fr(1 / det), D = fr(A * a.rhw);
-  const M = [[fr(fr(fr(y1 * c.w) - fr(y2 * b.w)) * D), fr(fr(fr(x2 * b.w) - fr(x1 * c.w)) * D), a.rhw], [fr(y2 * A), fr(-x2 * A), 0], [fr(-y1 * A), fr(x1 * A), 0]];
+  const A = fr(1 / det), D = fr(A * pa.rhw);
+  const M = [[fr(fr(fr(y1 * pc.w) - fr(y2 * pb.w)) * D), fr(fr(fr(x2 * pb.w) - fr(x1 * pc.w)) * D), pa.rhw], [fr(y2 * A), fr(-x2 * A), 0], [fr(-y1 * A), fr(x1 * A), 0]];
   const plane = (i0, i1, i2) => [0, 1, 2].map((k) => fr(fr(fr(i0 * M[0][k]) + fr(i1 * M[1][k])) + fr(i2 * M[2][k])));
   const W = plane(1, 1, 1);
   // A origem dos planos é o vértice 0 deslocado de meio pixel (o centro do pixel fica nos inteiros), e cada linha
   // soma D = C + y * B antes do termo em x, como o QuadRasterizer.
-  const ax = fr((a.X - SUBPIXEL / 2) / SUBPIXEL), ay = fr((a.Y - SUBPIXEL / 2) / SUBPIXEL);
-  const planes = stages.varyings.map((v, i) => (v.flat ? null : glslMap3(a.vary[i], b.vary[i], c.vary[i], plane)));
+  const ax = fr((pa.X - SUBPIXEL / 2) / SUBPIXEL), ay = fr((pa.YV - SUBPIXEL / 2) / SUBPIXEL);
+  // A linha de um pixel e a de uma amostra no espaço invertido.
+  const rowV = (y) => t.height - 1 - y, sampleRowV = (y, sy) => fr(t.height - y - sy - 0.5);
+  const planes = stages.varyings.map((v, i) => (v.flat ? null : glslMap3(pa.vary[i], pb.vary[i], pc.vary[i], plane)));
   const zPlane = (() => {
-    const z1 = fr(b.z - a.z), z2 = fr(c.z - a.z);
-    const u1 = fr((b.X - a.X) / SUBPIXEL), v1 = fr((b.Y - a.Y) / SUBPIXEL), u2 = fr((c.X - a.X) / SUBPIXEL), v2 = fr((c.Y - a.Y) / SUBPIXEL);
+    const z1 = fr(pb.z - pa.z), z2 = fr(pc.z - pa.z);
+    const u1 = fr((pb.X - pa.X) / SUBPIXEL), v1 = fr((pb.YV - pa.YV) / SUBPIXEL), u2 = fr((pc.X - pa.X) / SUBPIXEL), v2 = fr((pc.YV - pa.YV) / SUBPIXEL);
     const Dz = fr(1 / fr(fr(u1 * v2) - fr(u2 * v1)));
-    return [fr(fr(fr(v2 * z1) - fr(v1 * z2)) * Dz), fr(fr(fr(u1 * z2) - fr(u2 * z1)) * Dz), a.z];
+    return [fr(fr(fr(v2 * z1) - fr(v1 * z2)) * Dz), fr(fr(fr(u1 * z2) - fr(u2 * z1)) * Dz), pa.z];
   })();
   const evalPlane = (P, dx, dy) => fr(fr(dx * P[0]) + fr(P[2] + fr(dy * P[1])));
   const varyings = stages.varyings;
@@ -354,12 +374,12 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
   const [srcRgb, dstRgb, srcA, dstA] = ['BLEND_SRC_RGB', 'BLEND_DST_RGB', 'BLEND_SRC_ALPHA', 'BLEND_DST_ALPHA'].map((k) => BLEND_FACTORS[p.get(k)]);
   const [eqRgb, eqA] = ['BLEND_EQUATION_RGB', 'BLEND_EQUATION_ALPHA'].map((k) => BLEND_EQUATIONS[p.get(k)]);
   const alphaBits = s.attrs.alpha;
-  for (let y = by0; y < by1; y++) for (let x = bx0; x < bx1; x++) {
-    let covered = 0;
-    for (let k = 0; k < n; k++) { const [sx, sy] = t.samples[k]; if (inside(x + sx, y + sy)) covered |= 1 << k; }
-    if (!covered) continue;
-    // O fragmento: interpolantes no centro do pixel, com correção de perspectiva pelo plano W.
-    const dx = fr(x - ax), dy = fr(y - ay);
+  // O sombreador de fragmento roda por quad de 2x2 pixels, como no SwiftShader, alinhado no espaço invertido do Vulkan:
+  // as faixas 0 e 1 na linha de cima (em GL), 2 e 3 na de baixo. Quando o sombreador troca valores entre faixas
+  // (derivadas, lod implícito), as faixas não cobertas rodam como auxiliares e as passadas se repetem até os valores
+  // trocados ficarem estáveis.
+  const fragment = (x, y) => {
+    const dx = fr(x - ax), dy = fr(rowV(y) - ay);
     const rhwPix = evalPlane(W, dx, dy);
     const wPix = fr(1 / rhwPix);
     const z = evalPlane(zPlane, dx, dy);
@@ -371,15 +391,18 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
     g[facingSlot] = front;
     rt.discarded = false;
     fsMain.body({ g, l: new Array(fsMain.count), rt });
-    if (rt.discarded) continue;
+    if (rt.discarded) return null;
     const out = stages.usesFragData && !g[fragSlot].some((x) => x !== 0) ? g[stages.fs.globals.get('gl_FragData').slot][0] : g[fragSlot];
-    const src = out.map((v) => Math.min(1, Math.max(0, v)));
+    return out.map((v) => Math.min(1, Math.max(0, v)));
+  };
+  const runLane = (lane, x, y, prev, cur) => { rt.lane = lane; rt.calls = 0; rt.prev = prev; rt.cur = cur; return fragment(x, y); };
+  const write = (x, y, covered, src) => {
     for (let k = 0; k < n; k++) {
       if (!(covered & (1 << k))) continue;
       const si = (y * t.width + x) * n + k;
       if (depthTest) {
         const [sx, sy] = t.samples[k];
-        const zs = Math.min(1, Math.max(0, evalPlane(zPlane, fr(fr(x + sx - 0.5) - ax), fr(fr(y + sy - 0.5) - ay))));
+        const zs = Math.min(1, Math.max(0, evalPlane(zPlane, fr(fr(x + sx - 0.5) - ax), fr(sampleRowV(y, sy) - ay))));
         if (!depthFn(zs, t.depth[si])) continue;
         if (depthWrite) t.depth[si] = zs;
       }
@@ -394,7 +417,35 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
       }
       for (let ch = 0; ch < 4; ch++) if (mask[ch]) t.color[ci + ch] = ch === 3 && !alphaBits ? 255 : unorm8(rgba[ch]);
     }
+  };
+  for (let qv = (t.height - by1) & ~1; qv < t.height - by0; qv += 2) for (let qx = bx0 & ~1; qx < bx1; qx += 2) {
+    const top = t.height - 1 - qv;
+    const lanes = [[qx, top], [qx + 1, top], [qx, top - 1], [qx + 1, top - 1]];
+    const covers = lanes.map(([x, y]) => {
+      if (x < bx0 || x >= bx1 || y < by0 || y >= by1) return 0;
+      let covered = 0;
+      for (let k = 0; k < n; k++) { const [sx, sy] = t.samples[k]; if (inside(x + sx, y + sy)) covered |= 1 << k; }
+      return covered;
+    });
+    if (!covers.some(Boolean)) continue;
+    rt.crossLane = false;
+    let cur = [];
+    let results = lanes.map(([x, y], lane) => (covers[lane] ? runLane(lane, x, y, null, cur) : null));
+    if (rt.crossLane) {
+      for (let pass = 0; pass < 6; pass++) {
+        const prev = cur;
+        cur = [];
+        results = lanes.map(([x, y], lane) => runLane(lane, x, y, prev, cur));
+        if (pass > 0 && glSameRecords(prev, cur)) break;
+      }
+    }
+    lanes.forEach(([x, y], lane) => { if (covers[lane] && results[lane]) write(x, y, covers[lane], results[lane]); });
   }
+};
+// Os valores trocados entre faixas de duas passadas são iguais.
+const glSameRecords = (a, b) => {
+  const eq = (x, y) => (Array.isArray(x) ? Array.isArray(y) && x.length === y.length && x.every((v, i) => eq(v, y[i])) : Object.is(x, y));
+  return a.length === b.length && a.every((lanes, k) => lanes.length === b[k].length && [0, 1, 2, 3].every((i) => eq(lanes[i], b[k][i])));
 };
 // Aplica `fn` componente a componente sobre três valores iguais em forma (o plano de cada componente) e de volta.
 const glslMap3 = (a, b, c, fn) => (Array.isArray(a) ? a.map((x, i) => glslMap3(x, b[i], c[i], fn)) : typeof a === 'number' ? fn(a, b, c) : { constant: a });
@@ -418,12 +469,57 @@ const glCanvasSurface = (s) => {
   return s.surface;
 };
 
-// O que os sombreadores pedem ao ambiente: amostragem (texturas ainda sem dados: o valor de textura incompleta) e
-// derivadas (zero, sem quadras de pixels).
-const glRuntime = () => ({
-  discarded: false,
-  sample: (unit, type) => (/^[iu]/.test(type) ? [0, 0, 0, 1] : /Shadow$/.test(type) ? 0 : [0, 0, 0, 1]),
-  texelFetch: () => [0, 0, 0, 1],
-  textureSize: () => [0, 0],
-  derivative: (f, e) => { const v = f(e); return Array.isArray(v) ? v.map(() => 0) : 0; },
-});
+// O que os sombreadores pedem ao ambiente: amostragem pelas texturas fixadas no desenho (`49-webgl-texture.js`) e as
+// trocas entre faixas do quad (derivadas grossas como o OpDPdx do SwiftShader: a faixa 1 menos a 0 em x; em y, a 2
+// menos a 0 no espaço invertido, que o ANGLE nega de volta). Sem os valores das quatro faixas (a primeira passada), a
+// troca vale zero.
+const glRuntime = (entry, stage) => {
+  const rt = { discarded: false, lane: 0, calls: 0, prev: null, cur: null, crossLane: false };
+  const viewOf = (unit, type) => { const u = entry.textures[unit]; return (u && u[SAMPLER_TARGET(type)]) || texIncomplete(type); };
+  const share = (value) => {
+    rt.crossLane = true;
+    const k = rt.calls++;
+    if (rt.cur) (rt.cur[k] ??= [])[rt.lane] = value;
+    const all = rt.prev && rt.prev[k];
+    return all && [0, 1, 2, 3].every((i) => all[i] !== undefined) ? all : null;
+  };
+  const integerResult = (type, c) => (/^[iu]/.test(type) ? c.map((x) => x | 0) : c);
+  rt.sample = (unit, type, coord, lod, bias, proj) => {
+    const view = viewOf(unit, type);
+    const c = Array.isArray(coord) ? coord : [coord];
+    const dims = /Cube|3D|Array/.test(type) ? 3 : 2;
+    const shadow = /Shadow$/.test(type);
+    let own = c.slice(0, dims);
+    let dref = shadow ? c[dims] : 0;
+    if (proj) {
+      const q = c[c.length - 1];
+      own = own.map((x) => fr(x / q));
+      if (shadow) dref = fr(dref / q);
+    }
+    let method = lod !== null ? 'Lod' : bias ? 'Bias' : 'Implicit';
+    let lodOrBias = lod !== null ? lod : bias;
+    if (stage === 'vertex' && method !== 'Lod') { method = 'Lod'; lodOrBias = 0; }
+    const quad = method === 'Implicit' || method === 'Bias' ? share(own) : null;
+    const out = texSample(view, method, own, quad, lodOrBias, dref);
+    return shadow ? out[0] : integerResult(type, out);
+  };
+  rt.texelFetch = (unit, type, p, l) => {
+    const view = viewOf(unit, type);
+    const pos = Array.isArray(p) ? p : [p];
+    return integerResult(type, texSample(view, 'Fetch', [pos[0], pos[1] ?? 0, pos[2] ?? 0], null, l, 0));
+  };
+  rt.textureSize = (unit, type, l) => {
+    const view = viewOf(unit, type);
+    const img = view.levels[l]?.[0];
+    if (!img) return /3D|Array/.test(type) ? [0, 0, 0] : [0, 0];
+    return /3D|Array/.test(type) ? [img.w, img.h, img.d] : [img.w, img.h];
+  };
+  rt.derivative = (f, e, axis) => {
+    const v = f(e);
+    const lanes = share(v);
+    const diff = (a, b) => (Array.isArray(a) ? a.map((x, i) => diff(x, b[i])) : fr(a - b));
+    if (!lanes) return Array.isArray(v) ? v.map(() => 0) : 0;
+    return axis === 'x' ? diff(lanes[1], lanes[0]) : diff(lanes[0], lanes[2]);
+  };
+  return rt;
+};

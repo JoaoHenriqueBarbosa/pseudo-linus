@@ -659,7 +659,7 @@ const glMethods = {
     const b = objOf(buffer);
     const bytes = viewBytes(data, srcOffset, length);
     if (offset < 0 || !b.data || offset + bytes.length > b.data.length) { glError(this, GL.INVALID_VALUE); return; }
-    unpinForWrite(b);
+    glBeforeWrite(s, b);
     b.data.set(bytes, offset);
   },
   getBufferParameter(target, pname) {
@@ -894,20 +894,20 @@ const glMethods = {
     if (!name) return;
     const texture = boundTexture(s, name);
     if (!texture) { glError(this, GL.INVALID_OPERATION); return; }
-    let size;
-    if (rest.length >= 6) size = [rest[0], rest[1]];
-    else size = sourceSize(rest[2]);
-    if (!size) { glError(this, GL.INVALID_VALUE); return; }
-    if (size[0] < 0 || size[1] < 0 || level < 0) { glError(this, GL.INVALID_VALUE); return; }
-    const t = objOf(texture);
-    if (t.params.get('TEXTURE_IMMUTABLE_FORMAT')) { glError(this, GL.INVALID_OPERATION); return; }
-    t.levels.set(level, size);
+    const explicit = rest.length >= 6;
+    const [width, height, border, format, type, source, srcOffset] = explicit ? rest : [undefined, undefined, 0, rest[0], rest[1], rest[2]];
+    texImage(this, s, objOf(texture), target, level, internalformat, explicit ? [width, height, 1] : null, border, format, type, source, srcOffset);
   },
-  texSubImage2D(target) {
+  texSubImage2D(target, level, xoffset, yoffset, ...rest) {
     const s = glState(this);
     if (s.lost) return;
     const name = imageTarget(this, target);
-    if (name && !boundTexture(s, name)) glError(this, GL.INVALID_OPERATION);
+    if (!name) return;
+    const texture = boundTexture(s, name);
+    if (!texture) { glError(this, GL.INVALID_OPERATION); return; }
+    const explicit = rest.length >= 5;
+    const [width, height, format, type, source, srcOffset] = explicit ? rest : [undefined, undefined, rest[0], rest[1], rest[2]];
+    texSubImage(this, s, objOf(texture), target, level, [xoffset, yoffset, 0], explicit ? [width, height, 1] : null, format, type, source, srcOffset);
   },
   compressedTexImage2D(target, level, internalformat, width, height) {
     const s = glState(this);
@@ -918,25 +918,64 @@ const glMethods = {
     objOf(texture).levels.set(level, [width, height]);
   },
   compressedTexSubImage2D() {},
-  copyTexImage2D(target, level, internalformat, x, y, width, height) {
+  copyTexImage2D(target, level, internalformat, x, y, width, height, border) {
     const s = glState(this);
+    if (s.lost) return;
     const name = imageTarget(this, target);
     if (!name) return;
     const texture = boundTexture(s, name);
     if (!texture) { glError(this, GL.INVALID_OPERATION); return; }
-    objOf(texture).levels.set(level, [width, height]);
+    const t = objOf(texture);
+    if (t.params.get('TEXTURE_IMMUTABLE_FORMAT')) { glError(this, GL.INVALID_OPERATION); return; }
+    if (level < 0 || width < 0 || height < 0 || border !== 0) { glError(this, GL.INVALID_VALUE); return; }
+    const fmtName = { [GL.RGBA]: 'RGBA8', [GL.RGB]: 'RGB8', [GL.LUMINANCE]: 'LUMINANCE', [GL.ALPHA]: 'ALPHA', [GL.LUMINANCE_ALPHA]: 'LUMINANCE_ALPHA' }[internalformat] || Object.keys(TEX_SIZED).find((k) => GL[k] === internalformat && s.version === 2);
+    if (!fmtName) { glError(this, GL.INVALID_ENUM); return; }
+    const fmt = TEX_FORMATS[fmtName];
+    const face = texFace(target);
+    const img = texNewImage(fmt, width, height, 1);
+    texSetImage(t, face, level, img);
+    t.levels.set(level, [width, height]);
+    texCopyFromFramebuffer(s, img, 0, 0, 0, x, y, width, height);
   },
-  copyTexSubImage2D() {},
+  copyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height) {
+    const s = glState(this);
+    if (s.lost) return;
+    const name = imageTarget(this, target);
+    if (!name) return;
+    const texture = boundTexture(s, name);
+    if (!texture) { glError(this, GL.INVALID_OPERATION); return; }
+    const t = objOf(texture), face = texFace(target);
+    const img = t.images && t.images.get(texImageKey(face, level));
+    if (!img) { glError(this, GL.INVALID_OPERATION); return; }
+    if (xoffset < 0 || yoffset < 0 || width < 0 || height < 0 || xoffset + width > img.w || yoffset + height > img.h) { glError(this, GL.INVALID_VALUE); return; }
+    texCopyFromFramebuffer(s, texWritable(s, t, face, level), xoffset, yoffset, 0, x, y, width, height);
+  },
   generateMipmap(target) {
     const s = glState(this);
+    if (s.lost) return;
     const name = textureTarget(this, target);
     if (!name) return;
     const texture = boundTexture(s, name);
     if (!texture) { glError(this, GL.INVALID_OPERATION); return; }
-    const base = objOf(texture).levels.get(0);
-    if (!base) { glError(this, GL.INVALID_OPERATION); return; }
-    let [w, h] = base;
-    for (let level = 1; w > 1 || h > 1; level++) { w = Math.max(1, w >> 1); h = Math.max(1, h >> 1); objOf(texture).levels.set(level, [w, h]); }
+    const t = objOf(texture);
+    const base = s.version === 2 ? t.params.get('TEXTURE_BASE_LEVEL') : 0;
+    const faces = name === 'TEXTURE_CUBE_MAP' ? 6 : 1;
+    const img0 = t.images && t.images.get(texImageKey(0, base));
+    if (!img0) { glError(this, GL.INVALID_OPERATION); return; }
+    if (s.version !== 2 && (!texIsPot(img0.w) || !texIsPot(img0.h))) { glError(this, GL.INVALID_OPERATION); return; }
+    if (img0.fmt.kind === 'uint' || img0.fmt.kind === 'int' || img0.fmt.depth || !texFilterable(s, img0.fmt)) { glError(this, GL.INVALID_OPERATION); return; }
+    for (let f = 0; f < faces; f++) { const o = t.images.get(texImageKey(f, base)); if (!o || o.w !== img0.w || o.h !== img0.h || o.fmt !== img0.fmt) { glError(this, GL.INVALID_OPERATION); return; } }
+    const third = name === 'TEXTURE_3D';
+    const maxLevel = s.version === 2 ? t.params.get('TEXTURE_MAX_LEVEL') : 1000;
+    for (let f = 0; f < faces; f++) {
+      let src = t.images.get(texImageKey(f, base));
+      for (let level = base + 1; level <= maxLevel && (src.w > 1 || src.h > 1 || (third && src.d > 1)); level++) {
+        const next = texBlitLevel(src, Math.max(1, src.w >> 1), Math.max(1, src.h >> 1), third ? Math.max(1, src.d >> 1) : src.d);
+        texSetImage(t, f, level, next);
+        t.levels.set(level, [next.w, next.h]);
+        src = next;
+      }
+    }
   },
 
   createFramebuffer() { return glState(this).lost ? null : mkObject(this, WebGLFramebuffer, { attachments: new Map(), used: false }); },
@@ -1110,6 +1149,7 @@ const gl2Methods = {
     if (!rb || !wb) { glError(this, GL.INVALID_OPERATION); return; }
     const src = objOf(rb).data, dst = objOf(wb).data;
     if (!src || !dst || readOffset + size > src.length || writeOffset + size > dst.length) { glError(this, GL.INVALID_VALUE); return; }
+    glBeforeWrite(s, objOf(wb));
     dst.set(src.slice(readOffset, readOffset + size), writeOffset);
   },
   bindBufferBase(target, index, buffer) { this.bindBufferRange(target, index, buffer, 0, 0); },
@@ -1179,30 +1219,27 @@ const gl2Methods = {
     if (pname !== GL.SAMPLES) { glError(this, GL.INVALID_ENUM); return null; }
     return new Int32Array([4]);
   },
-  texStorage2D(target, levels, internalformat, width, height) {
+  texStorage2D(target, levels, internalformat, width, height) { texStorage(this, target, levels, internalformat, [width, height, 1], false); },
+  texStorage3D(target, levels, internalformat, width, height, depth) { texStorage(this, target, levels, internalformat, [width, height, depth], true); },
+  texImage3D(target, level, internalformat, width, height, depth, border, format, type, source, srcOffset) {
     const s = glState(this);
-    const name = textureTarget(this, target);
-    if (!name) return;
+    if (s.lost) return;
+    const name = enumName(s, target, ['TEXTURE_3D', 'TEXTURE_2D_ARRAY']);
+    if (!name) { glError(this, GL.INVALID_ENUM); return; }
     const texture = boundTexture(s, name);
     if (!texture) { glError(this, GL.INVALID_OPERATION); return; }
-    const t = objOf(texture);
-    if (t.params.get('TEXTURE_IMMUTABLE_FORMAT')) { glError(this, GL.INVALID_OPERATION); return; }
-    if (levels < 1 || width < 1 || height < 1) { glError(this, GL.INVALID_VALUE); return; }
-    let w = width, h = height;
-    for (let level = 0; level < levels; level++) { t.levels.set(level, [w, h]); w = Math.max(1, w >> 1); h = Math.max(1, h >> 1); }
-    t.params.set('TEXTURE_IMMUTABLE_FORMAT', true);
-    t.params.set('TEXTURE_IMMUTABLE_LEVELS', levels);
+    texImage(this, s, objOf(texture), target, level, internalformat, [width, height, depth], border, format, type, source, srcOffset);
   },
-  texStorage3D(target, levels, internalformat, width, height, depth) { gl2Methods.texStorage2D.call(this, target, levels, internalformat, width, height); },
-  texImage3D(target, level, internalformat, width, height) {
+  texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, source, srcOffset) {
     const s = glState(this);
-    const name = textureTarget(this, target);
-    if (!name) return;
+    if (s.lost) return;
+    const name = enumName(s, target, ['TEXTURE_3D', 'TEXTURE_2D_ARRAY']);
+    if (!name) { glError(this, GL.INVALID_ENUM); return; }
     const texture = boundTexture(s, name);
     if (!texture) { glError(this, GL.INVALID_OPERATION); return; }
-    objOf(texture).levels.set(level, [width, height]);
+    texSubImage(this, s, objOf(texture), target, level, [xoffset, yoffset, zoffset], [width, height, depth], format, type, source, srcOffset);
   },
-  texSubImage3D() {}, copyTexSubImage3D() {}, compressedTexImage3D() {}, compressedTexSubImage3D() {},
+  copyTexSubImage3D() {}, compressedTexImage3D() {}, compressedTexSubImage3D() {},
   getFragDataLocation(program, name) {
     const p = programOf(this, program, 'getFragDataLocation');
     if (!p) return -1;

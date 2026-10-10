@@ -3,6 +3,7 @@
 
 mod common;
 
+use common::probe_output;
 use ul_chromium::canvas_text::{measure, CanvasFont};
 
 const FIELDS: [&str; 7] = ["width", "actualBoundingBoxLeft", "actualBoundingBoxRight", "actualBoundingBoxAscent", "actualBoundingBoxDescent", "fontBoundingBoxAscent", "fontBoundingBoxDescent"];
@@ -40,12 +41,6 @@ fn hit_tests_match_oracle() {
     assert_eq!(probe_output(include_str!("../../../testbench/oracle/measured/canvas-hit.html")), serde_json::from_str::<serde_json::Value>(include_str!("canvas-hit.json")).unwrap());
 }
 
-/// Roda uma sonda do oráculo aqui e devolve o JSON que ela grava em `data-out`.
-fn probe_output(probe: &str) -> serde_json::Value {
-    let (dom, _) = common::run(&[("/", probe)]);
-    let start = dom.find("data-out=\"").unwrap() + 10;
-    serde_json::from_str(&dom[start..start + dom[start..].find('"').unwrap()].replace("&quot;", "\"")).unwrap()
-}
 
 /// O `toDataURL` contra `testbench/oracle/measured/canvas-encode.html`: PNG e JPEG byte a byte iguais aos do Chromium
 /// nas cenas sem antisserrilhado.
@@ -172,5 +167,26 @@ fn webgl_raster_matches_oracle() {
             wrong.push(format!("{name}: {} pixels fora; {}", diff.len(), shown.join(" ")));
         }
     }
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+}
+
+/// As texturas do WebGL contra o SwiftShader do oráculo (`testbench/oracle/measured/webgl-texture.html`): envio de
+/// typed array, ImageData, canvas e imagem com os formatos e as opções de desempacotamento, e a amostragem (filtros,
+/// repetição, mipmaps, cubo, 3D, arrays, comparação), pixel a pixel.
+#[test]
+fn webgl_textures_match_oracle() {
+    let ours = probe_output(include_str!("../../../testbench/oracle/measured/webgl-texture.html"));
+    let oracle: serde_json::Value = serde_json::from_str(include_str!("webgl-texture.json")).unwrap();
+    let decode = |v: &serde_json::Value| ul_common::codec::base64_decode(v.as_str().unwrap_or("").as_bytes(), true).unwrap_or_default();
+    let wrong: Vec<String> = oracle
+        .as_object()
+        .unwrap()
+        .iter()
+        .filter_map(|(name, want)| {
+            let (a, b) = (decode(want), decode(&ours[name]));
+            let bad = if a.len() == b.len() { (0..a.len()).step_by(4).filter(|&i| a[i..i + 4] != b[i..i + 4]).count() } else { a.len() / 4 };
+            (bad > 0).then(|| format!("{name}: {bad} pixels"))
+        })
+        .collect();
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));
 }
