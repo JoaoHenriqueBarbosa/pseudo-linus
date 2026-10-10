@@ -104,3 +104,34 @@ for (const [name, expected] of Object.entries(oracle)) {{
     eprintln!("{log}");
     assert!(scores.len() == 27 && wrong.is_empty(), "cenas fora da régua (nome, diferença média, fração ruim):\n{}\n\nlog:\n{log}", wrong.join("\n"));
 }
+
+/// A rasterização do WebGL contra o SwiftShader do oráculo (`testbench/oracle/measured/webgl-raster.html`): a cobertura
+/// (quais pixels e quantas amostras) é exata, e cada canal fica a no máximo 1 do oráculo. O 1 que sobra é a última
+/// casa do binário32: a mistura do SwiftShader para alvos de 8 bits e o `mulAdd` da interpolação ainda não são portes
+/// bit a bit (as cenas sem mistura e com atributo variável já saem iguais).
+#[test]
+fn webgl_raster_matches_oracle() {
+    let ours = probe_output(include_str!("../../../testbench/oracle/measured/webgl-raster.html"));
+    let oracle: serde_json::Value = serde_json::from_str(include_str!("webgl-raster.json")).unwrap();
+    let mut wrong = Vec::new();
+    for (name, want) in oracle.as_object().unwrap() {
+        // O toDataURL das cenas sem mistura sai byte a byte igual; o da mistura herda a casa do binário32 de cima.
+        if let Some(scene) = name.strip_suffix(":png") {
+            if scene != "aa-blend" {
+                assert_eq!(&ours[name], want, "{name}");
+            }
+            continue;
+        }
+        let decode = |v: &serde_json::Value| ul_common::codec::base64_decode(v.as_str().unwrap_or("").as_bytes(), true).unwrap_or_default();
+        let (a, b) = (decode(want), decode(&ours[name]));
+        assert_eq!(a.len(), b.len(), "{name}");
+        let off = |i: usize| (a[i] as i32 - b[i] as i32).abs();
+        let coverage = |p: &[u8], i: usize| p[i..i + 4] == [0, 0, 0, 0];
+        let diff: Vec<usize> = (0..a.len()).step_by(4).filter(|&i| coverage(&a, i) != coverage(&b, i) || (i..i + 4).any(|k| off(k) > 1)).collect();
+        if !diff.is_empty() {
+            let shown: Vec<String> = diff.iter().take(6).map(|&i| format!("({},{}) {:?} / {:?}", i / 4 % 24, i / 96, &a[i..i + 4], &b[i..i + 4])).collect();
+            wrong.push(format!("{name}: {} pixels fora; {}", diff.len(), shown.join(" ")));
+        }
+    }
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+}

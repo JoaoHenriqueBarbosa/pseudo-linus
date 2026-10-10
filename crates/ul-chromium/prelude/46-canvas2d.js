@@ -628,19 +628,26 @@ const canvas2dGetContext = (canvas, attributes) => {
   hidden(context, '__path', state.path);
   return context;
 };
-// Os pixels de um canvas 2D, RGBA não pré-multiplicado; WebGL e canvas sem contexto, um bitmap transparente.
+// Os pixels de um canvas, RGBA não pré-multiplicado: o 2D pela superfície dele, o WebGL pelos pixels resolvidos (o
+// desenho pendente rasteriza aqui); canvas sem contexto, um bitmap transparente.
 const canvasContextOf = (canvas) => canvas[P.__context]?.[1];
-const canvasPixels = (canvas) => {
+const canvasSurfaceOf = (canvas) => {
   const context = canvasContextOf(canvas);
-  if (context && canvas2dStates.has(context)) return new Uint8Array(bytesOf(op('canvasRead', canvas2dStates.get(context).surface, 0, 0, canvas.width, canvas.height)).buffer);
+  if (!context) return null;
+  if (canvas2dStates.has(context)) return canvas2dStates.get(context).surface;
+  const gl = context[P.__gl];
+  return gl && !gl.lost && canvas.width && canvas.height ? glCanvasSurface(gl) : null;
+};
+const canvasPixels = (canvas) => {
+  const surface = canvasSurfaceOf(canvas);
+  if (surface !== null) return new Uint8Array(bytesOf(op('canvasRead', surface, 0, 0, canvas.width, canvas.height)).buffer);
   return new Uint8Array(canvas.width * canvas.height * 4);
 };
 // O `toDataURL` do canvas: PNG ou JPEG pela ponte; canvas vazio (lado 0) é `data:,`.
 const canvasDataURL = (canvas, type, quality) => {
   const [width, height] = [canvas.width, canvas.height];
   if (width === 0 || height === 0) return 'data:,';
-  const context = canvasContextOf(canvas);
-  const surface = context && canvas2dStates.has(context) ? canvas2dStates.get(context).surface : null;
+  const surface = canvasSurfaceOf(canvas);
   const q = typeof quality === 'number' && quality >= 0 && quality <= 1 ? quality : -1;
   return 'data:' + op('canvasEncode', surface, width, height, type === undefined ? 'image/png' : String(type), q);
 };

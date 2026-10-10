@@ -231,12 +231,8 @@ const sourceSize = (src) => {
   return null;
 };
 
-// O buffer de desenho padrão: RGBA de 8 bits, transparente, refeito quando o canvas muda de tamanho.
-const drawingBuffer = (s) => {
-  const w = s.canvas.width, h = s.canvas.height;
-  if (!s.pixels || s.width !== w || s.height !== h) { s.width = w; s.height = h; s.pixels = new Uint8Array(w * h * 4); }
-  return s.pixels;
-};
+// O buffer de desenho padrão: os pixels resolvidos depois de rodar a fila (`48-webgl-raster.js`).
+const drawingBuffer = (s) => glFlush(s);
 
 const linkProgram = (ctx, program) => {
   const s = glState(ctx);
@@ -288,6 +284,7 @@ const linkProgram = (ctx, program) => {
     }
   }
   p.log = '';
+  p.sources = [vertex.source, fragment.source];
   p.linked = true;
   p.generation++;
 };
@@ -429,7 +426,7 @@ const drawArrays = (ctx, mode, first, count, instances) => {
   if (s.lost) return;
   if (!enumName(s, mode, DRAW_MODES)) { glError(ctx, GL.INVALID_ENUM); return; }
   if (first < 0 || count < 0 || instances < 0) { glError(ctx, GL.INVALID_VALUE); return; }
-  checkDraw(ctx, count ? first + count : 0, instances);
+  if (checkDraw(ctx, count ? first + count : 0, instances) && count && instances && !s.params.get('DRAW_FRAMEBUFFER_BINDING')) glQueueDraw(ctx, mode, first, count, instances, null);
 };
 // O maior índice lido do buffer de elementos decide quantos vértices cada atributo precisa cobrir.
 const drawElements = (ctx, mode, count, type, offset, instances) => {
@@ -447,7 +444,7 @@ const drawElements = (ctx, mode, count, type, offset, instances) => {
   const view = new DataView(data.buffer, data.byteOffset + offset, count * size);
   let max = -1;
   for (let i = 0; i < count; i++) { const v = size === 1 ? view.getUint8(i) : size === 2 ? view.getUint16(i * 2, true) : view.getUint32(i * 4, true); if (v > max) max = v; }
-  checkDraw(ctx, max + 1, instances);
+  if (checkDraw(ctx, max + 1, instances) && count && instances && !s.params.get('DRAW_FRAMEBUFFER_BINDING')) glQueueDraw(ctx, mode, 0, count, instances, { buffer: objOf(element), type, offset });
 };
 const TYPE_BYTES = { [GL.BYTE]: 1, [GL.UNSIGNED_BYTE]: 1, [GL.SHORT]: 2, [GL.UNSIGNED_SHORT]: 2, [GL.INT]: 4, [GL.UNSIGNED_INT]: 4, [GL.FLOAT]: 4, [GL.HALF_FLOAT]: 2, [GL.INT_2_10_10_10_REV]: 4, [GL.UNSIGNED_INT_2_10_10_10_REV]: 4 };
 // Validação do Chromium antes do desenho: programa ligado e cada atributo ativo habilitado com buffer que cobre os
@@ -662,6 +659,7 @@ const glMethods = {
     const b = objOf(buffer);
     const bytes = viewBytes(data, srcOffset, length);
     if (offset < 0 || !b.data || offset + bytes.length > b.data.length) { glError(this, GL.INVALID_VALUE); return; }
+    unpinForWrite(b);
     b.data.set(bytes, offset);
   },
   getBufferParameter(target, pname) {
@@ -1039,16 +1037,8 @@ const glMethods = {
     if (mask & ~(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT | GL.STENCIL_BUFFER_BIT)) { glError(this, GL.INVALID_VALUE); return; }
     const fb = s.params.get('DRAW_FRAMEBUFFER_BINDING');
     if (fb && framebufferStatus(s, fb) !== GL.FRAMEBUFFER_COMPLETE) { glError(this, GL.INVALID_FRAMEBUFFER_OPERATION); return; }
-    if (fb || !(mask & GL.COLOR_BUFFER_BIT)) return;
-    // O clear do buffer padrão respeita a tesoura e a máscara de cor; a cor sai em 8 bits por canal.
-    const pixels = drawingBuffer(s);
-    const color = s.params.get('COLOR_CLEAR_VALUE');
-    const writemask = s.params.get('COLOR_WRITEMASK');
-    const alpha = s.attrs.alpha;
-    const bytes = Array.from(color, (c, i) => (i === 3 && !alpha ? 255 : Math.round(Math.min(1, Math.max(0, c)) * 255)));
-    let [x0, y0, x1, y1] = [0, 0, s.width, s.height];
-    if (s.params.get('SCISSOR_TEST')) { const b = s.params.get('SCISSOR_BOX'); x0 = Math.max(0, b[0]); y0 = Math.max(0, b[1]); x1 = Math.min(s.width, b[0] + b[2]); y1 = Math.min(s.height, b[1] + b[3]); }
-    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = (y * s.width + x) * 4; for (let c = 0; c < 4; c++) if (writemask[c]) pixels[i + c] = bytes[c]; }
+    if (fb || !mask) return;
+    glQueueClear(s, mask);
   },
   drawArrays(mode, first, count) { drawArrays(this, mode, first, count, 1); },
   drawElements(mode, count, type, offset) { drawElements(this, mode, count, type, offset, 1); },
@@ -1067,7 +1057,7 @@ const glMethods = {
     if (out.length < width * height * 4) { glError(this, GL.INVALID_OPERATION); return; }
     const fb = s.params.get('READ_FRAMEBUFFER_BINDING');
     if (fb) { if (framebufferStatus(s, fb) !== GL.FRAMEBUFFER_COMPLETE) glError(this, GL.INVALID_FRAMEBUFFER_OPERATION); return; }
-    const pixels = drawingBuffer(s);
+    const pixels = glFlush(s);
     for (let row = 0; row < height; row++) for (let col = 0; col < width; col++) {
       const sx = x + col, sy = y + row, o = (row * width + col) * 4;
       if (sx < 0 || sy < 0 || sx >= s.width || sy >= s.height) continue;
