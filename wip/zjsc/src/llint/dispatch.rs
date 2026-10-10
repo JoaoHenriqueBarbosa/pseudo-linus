@@ -254,6 +254,7 @@ impl Interpreter {
         loop {
             let instruction = code_block.borrow().instructions().at(pc);
             let opcode = instruction.opcode_id_enum();
+            crate::runtime::cpu_clock::count_instruction();
             let size = instruction.size() as u32;
             // `storePC`: o `currentVPC` do frame, que o desenrolar de exceção consulta.
             call_frame.set_current_vpc(&mut self.stack, BytecodeIndex::from_offset(pc));

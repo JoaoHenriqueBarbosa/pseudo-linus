@@ -95,16 +95,24 @@ pub fn has_pending_timers() -> bool {
 }
 
 /// O relógio virtual em milissegundos. É o mesmo relógio dos timers do host (`timers.rs`): os dois tipos de
-/// prazo vencem em ordem de tempo virtual.
+/// prazo vencem em ordem de tempo virtual. Com o tempo de CPU ligado, o trabalho feito desde a última leitura entra
+/// antes (`cpu_clock`).
 pub fn virtual_now() -> f64 {
-    LISTS.with(|lists| lists.borrow().now)
-}
-
-/// Leva o relógio virtual a `time` se ele ainda estiver antes (o relógio nunca anda para trás).
-pub fn advance_virtual_clock_to(time: f64) {
+    let work = crate::runtime::cpu_clock::take_pending_ms();
     LISTS.with(|lists| {
         let mut lists = lists.borrow_mut();
-        lists.now = lists.now.max(time);
+        lists.now += work;
+        lists.now
+    })
+}
+
+/// Leva o relógio virtual a `time` se ele ainda estiver antes (o relógio nunca anda para trás). O trabalho de CPU
+/// ainda não cobrado aconteceu antes do salto e entra primeiro.
+pub fn advance_virtual_clock_to(time: f64) {
+    let work = crate::runtime::cpu_clock::take_pending_ms();
+    LISTS.with(|lists| {
+        let mut lists = lists.borrow_mut();
+        lists.now = (lists.now + work).max(time);
     });
 }
 
