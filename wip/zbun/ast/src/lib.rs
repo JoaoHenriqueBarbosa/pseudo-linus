@@ -57,6 +57,7 @@ pub mod base;
 pub mod binding;
 pub mod e;
 pub mod expr;
+pub mod fold_string_addition;
 pub mod g;
 pub mod ast_result;
 pub mod char_freq;

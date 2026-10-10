@@ -799,4 +799,221 @@ impl Data {
 
         Equality::Unknown
     }
+
+    pub fn known_primitive(&self, store: &Store) -> PrimitiveType {
+        self.known_primitive_with_check(store, bun_core::StackCheck::init())
+    }
+
+    fn known_primitive_with_check(&self, store: &Store, stack_check: bun_core::StackCheck) -> PrimitiveType {
+        use crate::OpCode;
+        if !stack_check.is_safe_to_recurse() {
+            return PrimitiveType::Unknown;
+        }
+        match *self {
+            Data::EBigInt(_) => PrimitiveType::Bigint,
+            Data::EBoolean(_) | Data::EBranchBoolean(_) => PrimitiveType::Boolean,
+            Data::ENull(_) => PrimitiveType::Null,
+            Data::ENumber(_) => PrimitiveType::Number,
+            Data::EString(_) => PrimitiveType::String,
+            Data::EUndefined(_) => PrimitiveType::Undefined,
+            Data::ETemplate(t) => {
+                if store[t].tag.is_none() {
+                    PrimitiveType::String
+                } else {
+                    PrimitiveType::Unknown
+                }
+            }
+            Data::EIf(e_if) => {
+                let e_if = &store[e_if];
+                e_if.yes.data.merge_known_primitive_with_check(&e_if.no.data, store, stack_check)
+            }
+            Data::EBinary(binary) => 'brk: {
+                let binary = &store[binary];
+                match binary.op {
+                    OpCode::BinStrictEq
+                    | OpCode::BinStrictNe
+                    | OpCode::BinLooseEq
+                    | OpCode::BinLooseNe
+                    | OpCode::BinLt
+                    | OpCode::BinGt
+                    | OpCode::BinLe
+                    | OpCode::BinGe
+                    | OpCode::BinInstanceof
+                    | OpCode::BinIn => break 'brk PrimitiveType::Boolean,
+                    OpCode::BinLogicalOr | OpCode::BinLogicalAnd => {
+                        break 'brk binary.left.data.merge_known_primitive_with_check(
+                            &binary.right.data,
+                            store,
+                            stack_check,
+                        );
+                    }
+
+                    OpCode::BinNullishCoalescing => {
+                        let left = binary.left.data.known_primitive_with_check(store, stack_check);
+                        let right = binary.right.data.known_primitive_with_check(store, stack_check);
+                        if left == PrimitiveType::Null || left == PrimitiveType::Undefined {
+                            break 'brk right;
+                        }
+
+                        if left != PrimitiveType::Unknown {
+                            if left != PrimitiveType::Mixed {
+                                break 'brk left; // Definitely not null or undefined
+                            }
+
+                            if right != PrimitiveType::Unknown {
+                                break 'brk PrimitiveType::Mixed; // Definitely some kind of primitive
+                            }
+                        }
+                    }
+
+                    OpCode::BinAdd => {
+                        let left = binary.left.data.known_primitive_with_check(store, stack_check);
+                        let right = binary.right.data.known_primitive_with_check(store, stack_check);
+
+                        if left == PrimitiveType::String || right == PrimitiveType::String {
+                            break 'brk PrimitiveType::String;
+                        }
+
+                        if left == PrimitiveType::Bigint || right == PrimitiveType::Bigint {
+                            break 'brk PrimitiveType::Bigint;
+                        }
+
+                        let left_ok =
+                            !matches!(left, PrimitiveType::Unknown | PrimitiveType::Mixed | PrimitiveType::Bigint);
+                        let right_ok =
+                            !matches!(right, PrimitiveType::Unknown | PrimitiveType::Mixed | PrimitiveType::Bigint);
+                        if left_ok && right_ok {
+                            break 'brk PrimitiveType::Number;
+                        }
+
+                        break 'brk PrimitiveType::Mixed; // Can be number or bigint or string (or an exception)
+                    }
+
+                    OpCode::BinSub
+                    | OpCode::BinSubAssign
+                    | OpCode::BinMul
+                    | OpCode::BinMulAssign
+                    | OpCode::BinDiv
+                    | OpCode::BinDivAssign
+                    | OpCode::BinRem
+                    | OpCode::BinRemAssign
+                    | OpCode::BinPow
+                    | OpCode::BinPowAssign
+                    | OpCode::BinBitwiseAnd
+                    | OpCode::BinBitwiseAndAssign
+                    | OpCode::BinBitwiseOr
+                    | OpCode::BinBitwiseOrAssign
+                    | OpCode::BinBitwiseXor
+                    | OpCode::BinBitwiseXorAssign
+                    | OpCode::BinShl
+                    | OpCode::BinShlAssign
+                    | OpCode::BinShr
+                    | OpCode::BinShrAssign
+                    | OpCode::BinUShr
+                    | OpCode::BinUShrAssign => break 'brk PrimitiveType::Mixed, // Can be number or bigint (or an exception)
+
+                    OpCode::BinAssign | OpCode::BinComma => {
+                        break 'brk binary.right.data.known_primitive_with_check(store, stack_check);
+                    }
+
+                    _ => {}
+                }
+
+                PrimitiveType::Unknown
+            }
+
+            Data::EUnary(unary) => {
+                let unary = &store[unary];
+                match unary.op {
+                    OpCode::UnVoid => PrimitiveType::Undefined,
+                    OpCode::UnTypeof => PrimitiveType::String,
+                    OpCode::UnNot | OpCode::UnDelete => PrimitiveType::Boolean,
+                    OpCode::UnPos => PrimitiveType::Number, // Cannot be bigint because that throws an exception
+                    OpCode::UnNeg | OpCode::UnCpl => {
+                        match unary.value.data.known_primitive_with_check(store, stack_check) {
+                            PrimitiveType::Bigint => PrimitiveType::Bigint,
+                            PrimitiveType::Unknown | PrimitiveType::Mixed => PrimitiveType::Mixed,
+                            _ => PrimitiveType::Number, // Can be number or bigint
+                        }
+                    }
+                    OpCode::UnPreDec | OpCode::UnPreInc | OpCode::UnPostDec | OpCode::UnPostInc => {
+                        PrimitiveType::Mixed // Can be number or bigint
+                    }
+
+                    _ => PrimitiveType::Unknown,
+                }
+            }
+
+            Data::EInlinedEnum(inlined) => store[inlined].value.data.known_primitive_with_check(store, stack_check),
+
+            _ => PrimitiveType::Unknown,
+        }
+    }
+
+    fn merge_known_primitive_with_check(
+        &self,
+        rhs: &Data,
+        store: &Store,
+        stack_check: bun_core::StackCheck,
+    ) -> PrimitiveType {
+        PrimitiveType::merge(
+            self.known_primitive_with_check(store, stack_check),
+            rhs.known_primitive_with_check(store, stack_check),
+        )
+    }
+}
+
+impl Expr {
+    pub fn known_primitive(&self, store: &Store) -> PrimitiveType {
+        self.data.known_primitive(store)
+    }
+
+    /// O texto que o valor teria como string, quando ele é conhecido sem efeito colateral. O upstream aponta o
+    /// `E::String` novo para uma fatia `'static` ou da arena; aqui o texto é gravado no `Store`.
+    pub(crate) fn to_string_expr_without_side_effects(&self, store: &mut Store) -> Option<Expr> {
+        let expr = *self;
+        let unwrapped = expr.unwrap_inlined(store);
+        let fixed: &'static [u8] = match unwrapped.data {
+            Data::ENull(_) => b"null",
+            Data::EString(_) => return Some(expr),
+            Data::EUndefined(_) => b"undefined",
+            Data::EBoolean(data) | Data::EBranchBoolean(data) => {
+                if data.value {
+                    b"true"
+                } else {
+                    b"false"
+                }
+            }
+            Data::EBigInt(bigint) => {
+                let value = store[bigint].value;
+                if E::BigInt::has_radix(store.str(value)) {
+                    return None;
+                }
+                return Some(Expr::init(store, E::EString::init(value), expr.loc));
+            }
+            Data::ENumber(num) => {
+                let text = num.to_string(store)?;
+                return Some(Expr::init(store, E::EString::init(text), expr.loc));
+            }
+            Data::ERegExp(regexp) => {
+                let value = store[regexp].value;
+                return Some(Expr::init(store, E::EString::init(value), expr.loc));
+            }
+            Data::EDot(dot) => {
+                // This is dumb but some JavaScript obfuscators use this to generate string literals
+                let dot = &store[dot];
+                if store.str(dot.name) != b"constructor" {
+                    return None;
+                }
+                match dot.target.data {
+                    Data::EString(_) => b"function String() { [native code] }",
+                    Data::ERegExp(_) => b"function RegExp() { [native code] }",
+                    _ => return None,
+                }
+            }
+            _ => return None,
+        };
+        let text = store.alloc_str(fixed);
+        Some(Expr::init(store, E::EString::init(text), expr.loc))
+    }
 }

@@ -9,9 +9,11 @@ pub mod generic_index;
 pub mod identifier;
 pub mod lexer_tables;
 pub mod output;
+pub mod stack_check;
 pub mod strings;
 
 pub use output as Output;
+pub use stack_check::StackCheck;
 
 pub use strings::CodePoint;
 
