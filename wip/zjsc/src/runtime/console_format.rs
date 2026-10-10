@@ -241,6 +241,8 @@ fn native_class_label(value: JSValue) -> Option<&'static str> {
 fn prints_prototype_members(id: usize) -> bool {
     match cell_registry::get(id) {
         None => true,
+        // O objeto comum registrado (`Object.create`, instância de classe do usuário) é o mesmo caso do não registrado.
+        Some(CellEntry::Object(_)) => true,
         // `DOMException`: `code`, `name`, `message`, as constantes `*_ERR` e `toString` vêm do protótipo.
         Some(CellEntry::DOMException(_)) => true,
         Some(CellEntry::WrapperObject(wrapper)) => wrapper.type_() == JSType::ObjectType,
@@ -629,7 +631,7 @@ impl Formatter {
     /// typed array) e sem a chave `__proto__`.
     fn level_is_fast(global_object: &JSGlobalObject, level: JSValue) -> Option<bool> {
         let vm = global_object.vm();
-        if global_object.is_array(level).ok()? || cell_registry::get(level.as_cell()).is_some_and(|entry| !matches!(entry, CellEntry::WrapperObject(_))) {
+        if global_object.is_array(level).ok()? || cell_registry::get(level.as_cell()).is_some_and(|entry| !matches!(entry, CellEntry::WrapperObject(_) | CellEntry::Object(_))) {
             return Some(false);
         }
         let object = level.as_object();

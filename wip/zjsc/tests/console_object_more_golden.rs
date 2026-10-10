@@ -146,5 +146,5 @@ fn console_object_more_match_bun() {
     eprintln!("console_object_more: {checked} em escopo, {xfail} xfail ({xfail_passing} já batem), {total} no total");
     assert!(total >= 900, "poucos casos: {total}");
     assert_eq!(checked + xfail, total);
-    assert!(failures.is_empty(), "{} de {checked} em escopo divergem:\n{}", failures.len(), failures.iter().take(10).cloned().collect::<Vec<_>>().join("\n"));
+    assert!(failures.is_empty(), "{} de {checked} em escopo divergem:\n{}", failures.len(), failures.iter().take(100).cloned().collect::<Vec<_>>().join("\n"));
 }
