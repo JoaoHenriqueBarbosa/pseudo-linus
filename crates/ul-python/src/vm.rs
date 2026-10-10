@@ -943,7 +943,27 @@ impl PyIter {
 fn iterator_value(v: Value) -> PyResult<Value> {
     match &v {
         Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Range(_) => Ok(crate::lazy::IterBox::new(get_iter(&v)?)),
-        Value::Instance(_) | Value::Class(_) | Value::Dict(_) | Value::Set(_) | Value::Bytes(_) | Value::ByteArray(_) | Value::Ext(_) | Value::Native(_) => Ok(v),
+        Value::Dict(_) | Value::Set(_) | Value::Bytes(_) | Value::ByteArray(_) => crate::builtins::make_iter(&v),
+        // O `__iter__` de instância roda na criação da expressão (o `GET_ITER` de fora), e o que ele devolve tem de ser
+        // um iterador.
+        Value::Instance(_) => {
+            let it = crate::builtins::make_iter(&v)?;
+            let is_iterator = match &it {
+                Value::Instance(i) => i.class().lookup("__next__").is_some(),
+                Value::Ext(e) => e.is_iterable(),
+                Value::Int(_) | Value::Big(_) | Value::Float(_) | Value::Bool(_) | Value::None | Value::Str(_) | Value::List(_)
+                | Value::Tuple(_) | Value::Dict(_) | Value::Set(_) | Value::Bytes(_) | Value::ByteArray(_) | Value::Range(_) => false,
+                _ => true,
+            };
+            if is_iterator {
+                Ok(it)
+            } else {
+                Err(type_error(format!("iter() returned non-iterator of type '{}'", it.type_name())))
+            }
+        }
+        // Uma view de dicionário (ou outro iterável que não é o próprio iterador) vira o iterador dela.
+        Value::Ext(e) if !e.is_iterable() => crate::builtins::make_iter(&v),
+        Value::Class(_) | Value::Ext(_) | Value::Native(_) => Ok(v),
         _ => get_iter(&v).map(|_| v),
     }
 }
