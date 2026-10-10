@@ -331,6 +331,21 @@ fn string_spread_and_map_survive() {
     assert_eq!(stressed(program), "4.114.117.110.48|5.114.117.110.51.57");
 }
 
+/// O callee do frame do `/app/main.js` (o wrapper CommonJS) nunca é dado como morto: o erro criado nele e lido com o
+/// principal ainda executando, e o criado nele e lido num timer depois de o principal devolver, mantêm o caminho normal
+/// de `stack` (cabeçalho com a mensagem e `originalLine`), com a coleta a cada alocação. No bun o wrapper do principal
+/// segue vivo depois de devolver (medido com `Bun.gc(true)`); o caminho de texto (`Error` sem mensagem, sem
+/// `originalLine`) é só de quem perdeu o callee. O `module.exports` do topo faz o principal ser CommonJS (sem ele o
+/// bun o trata como ESM, cuja função, essa sim, morre depois de devolver).
+#[test]
+fn main_wrapper_callee_survives_collections() {
+    let program = format!("module.exports.ready = true; {CHURN} var executing = new Error('executing'); churn();
+        var running = executing.stack.split('\\n')[0] + ' ' + Object.getOwnPropertyNames(executing).includes('originalLine');
+        var later = new Error('later');
+        setTimeout(() => {{ churn(); console.log(running + '|' + later.stack.split('\\n')[0] + ' ' + Object.getOwnPropertyNames(later).includes('originalLine')); }}, 1);");
+    assert_eq!(stressed_main(&program), "Error: executing true|Error: later true\n");
+}
+
 /// Cada tipo de dono sozinho, para a lápide apontar a aresta que falta.
 fn survives(setup: &str, step: &str, check: &str, expected: &str) {
     let program = format!("{setup}; for (let i = 0; i < 250000; i++) {{ const g = {{ i: i }}; if (i % 1000 === 0) {{ {step}; }} }} String({check})");

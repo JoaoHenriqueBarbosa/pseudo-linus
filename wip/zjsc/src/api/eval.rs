@@ -687,6 +687,7 @@ fn run_commonjs_wrapper(global_object: &JSGlobalObjectRef, body: &[u16], url: &s
             require_from: require_from.as_value(),
             resolve_from: resolve_from.as_value(),
             helper: None,
+            wrapper: JSValue::undefined(),
         })
     });
     let mut text = utf16_units(&format!(
@@ -712,6 +713,11 @@ fn run_commonjs_wrapper(global_object: &JSGlobalObjectRef, body: &[u16], url: &s
         named.provider().expect("SourceCode sem provedor").set_position_map(Rc::new(map));
     }
     let wrapper = evaluate(&global_object, &named)?;
+    CJS_STATE.with(|cell| {
+        if let Some(state) = cell.borrow_mut().as_mut() {
+            state.wrapper = wrapper;
+        }
+    });
     let filename = JSValue::from_js_string(js_string(&vm, &WtfString::from_utf8(url.as_bytes())));
     let dirname = JSValue::from_js_string(js_string(&vm, &WtfString::from_utf8(dirname.as_bytes())));
     let call_data = get_call_data(wrapper.clone());
@@ -798,6 +804,11 @@ struct CjsState {
     resolve_from: JSValue,
     /// O ajudante em JavaScript (`CJS_HELPER`), criado no primeiro `require` com sistema de arquivos.
     helper: Option<JSValue>,
+    /// A função wrapper do módulo principal. No bun ela segue viva depois de devolver (medido com `Bun.gc(true)` num
+    /// timer: o erro criado no principal mantém `originalLine`, `originalColumn` e o cabeçalho do tipo, ou seja, o callee
+    /// do frame pendente dele não morre), ao contrário do wrapper de um módulo carregado por `require` e da função do
+    /// módulo ESM principal, cujos erros caem no caminho de texto. É também o callee do frame que está executando.
+    wrapper: JSValue,
 }
 
 /// Os slots de um módulo (índices de `CJS_ACCESSORS` a partir de `_compile`).
@@ -832,6 +843,7 @@ pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
         marker.values(&state.slots);
         marker.values(&[state.require, state.require_from, state.resolve_from]);
         marker.value(state.helper);
+        marker.value(state.wrapper);
         for module in &state.modules {
             marker.values(&[module.module, module.require]);
             marker.values(&module.slots);
