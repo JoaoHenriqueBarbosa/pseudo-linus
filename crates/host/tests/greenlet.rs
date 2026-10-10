@@ -82,6 +82,28 @@ fn thread_limit_scene_matches_the_oracle() {
     );
 }
 
+/// `list.sort` esvazia a lista enquanto ordena, restaura a original quando a chave ou a comparação levantam, e acusa a
+/// modificação durante a ordenação.
+#[test]
+fn list_sort_state_scene_matches_the_oracle() {
+    scene_matches(
+        "list_sort_state",
+        include_str!("../../../testbench/oracle/automation/cases/list_sort_state.py"),
+        include_str!("../../../testbench/oracle/automation/golden/list_sort_state.out"),
+    );
+}
+
+/// `list.sort` compara na mesma ordem e com os mesmos pares do CPython (powersort, inserção binária, galope), e a
+/// comparação que levanta no meio deixa a mesma permutação parcial.
+#[test]
+fn list_sort_compare_scene_matches_the_oracle() {
+    scene_matches(
+        "list_sort_compare",
+        include_str!("../../../testbench/oracle/automation/cases/list_sort_compare.py"),
+        include_str!("../../../testbench/oracle/automation/golden/list_sort_compare.out"),
+    );
+}
+
 /// O módulo `resource` como usuário comum: constantes, `getrlimit`, `setrlimit` (mensagens de tipo, tamanho e permissão),
 /// `prlimit` do próprio processo e `getrusage`.
 #[test]

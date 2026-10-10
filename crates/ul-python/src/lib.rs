@@ -48,6 +48,7 @@ pub mod stdbuf;
 pub mod stdin;
 pub mod suggest;
 pub mod textcodec;
+mod timsort;
 mod textcodec_tables;
 #[cfg(test)]
 mod stdlib_tests;

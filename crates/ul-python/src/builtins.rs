@@ -705,34 +705,6 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 // Ordenação, soma, mínimo e máximo
 // ---------------------------------------------------------------------------------------------
 
-/// Merge sort estável sobre pares (chave, valor); compara com `<` e propaga o erro. A comparação é
-/// `direita < esquerda`, como o CPython, para a mensagem de `TypeError` sair na ordem dele.
-fn merge_sort(mut v: Vec<(Value, Value)>) -> PyResult<Vec<(Value, Value)>> {
-    if v.len() <= 1 {
-        return Ok(v);
-    }
-    let right = v.split_off(v.len() / 2);
-    let left = merge_sort(v)?;
-    let right = merge_sort(right)?;
-    let mut out = Vec::with_capacity(left.len() + right.len());
-    let mut l = left.into_iter().peekable();
-    let mut r = right.into_iter().peekable();
-    loop {
-        let take_right = match (l.peek(), r.peek()) {
-            (Some(a), Some(b)) => Some(py_lt(&b.0, &a.0)?),
-            (Some(_), None) => Some(false),
-            (None, Some(_)) => Some(true),
-            (None, None) => None,
-        };
-        match take_right {
-            Some(true) => out.extend(r.next()),
-            Some(false) => out.extend(l.next()),
-            None => break,
-        }
-    }
-    Ok(out)
-}
-
 /// Ordena `items` (estável) pela chave `key` (ou pelo próprio valor), opcionalmente invertido. As chaves são
 /// chamadas na ordem dos itens, antes de qualquer comparação e antes de inverter (`list.sort` do CPython).
 pub fn sort_items(vm: &mut Vm, items: Vec<Value>, key: Option<Value>, reverse: bool) -> PyResult<Vec<Value>> {
@@ -747,17 +719,25 @@ pub fn sort_items(vm: &mut Vm, items: Vec<Value>, key: Option<Value>, reverse: b
     sort_keyed(pairs, reverse)
 }
 
-/// Ordena os pares (chave, item) de forma estável pela chave, opcionalmente invertido, e devolve os itens.
-pub(crate) fn sort_keyed(mut pairs: Vec<(Value, Value)>, reverse: bool) -> PyResult<Vec<Value>> {
+/// Ordena os pares (chave, item) pela chave com o `list.sort` do CPython (`timsort`), opcionalmente invertido, e
+/// devolve os itens. A comparação é `<` entre as chaves.
+pub(crate) fn sort_keyed(pairs: Vec<(Value, Value)>, reverse: bool) -> PyResult<Vec<Value>> {
+    let (out, outcome) = sort_keyed_partial(pairs, reverse);
+    outcome.map(|()| out)
+}
+
+/// Como [`sort_keyed`], mas devolve sempre os itens, mesmo quando a comparação levanta: aí eles estão na permutação
+/// parcial em que o CPython deixa a lista (o `list.sort` a mostra assim ao programa).
+pub(crate) fn sort_keyed_partial(mut pairs: Vec<(Value, Value)>, reverse: bool) -> (Vec<Value>, PyResult<()>) {
+    // A inversão antes e depois dá a estabilidade de `reverse=True`.
     if reverse {
         pairs.reverse();
     }
-    let sorted = merge_sort(pairs)?;
-    let mut out: Vec<Value> = sorted.into_iter().map(|p| p.1).collect();
+    let outcome = crate::timsort::sort(&mut pairs, &mut |a, b| py_lt(a, b));
     if reverse {
-        out.reverse();
+        pairs.reverse();
     }
-    Ok(out)
+    (pairs.into_iter().map(|p| p.1).collect(), outcome)
 }
 
 fn b_sorted(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
