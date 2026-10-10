@@ -698,11 +698,12 @@ const hook = (name, a, b) => {
     case 'fire': { const el = wrappers.get(a) || wrap(a); el.dispatchEvent(new Event(b)); break; }
     case 'scriptError': {
       const event = new ErrorEvent('error', { message: 'Uncaught ' + a, filename: b || '', cancelable: true });
-      if (window.dispatchEvent(event)) console.error('Uncaught ' + a);
+      if (window.dispatchEvent(event)) devtoolsAgent.quietly(() => console.error('Uncaught ' + a));
       break;
     }
     case 'currentScript': hidden(document, '__currentScript', a === null ? null : wrap(a)); break;
     case 'namedLookup': return namedValue;
+    case 'consoleHook': return devtoolsAgent.console;
     // O agente do DevTools (`65-devtools.js`): configuração do contexto, uma mensagem, e a caixa de saída.
     case 'cdpInit': devtoolsAgent.init(a); break;
     case 'cdp': devtoolsAgent.dispatch(a); break;
@@ -713,7 +714,10 @@ const hook = (name, a, b) => {
     case 'unhandled': {
       reportedRejections.add(a);
       const event = new PromiseRejectionEvent('unhandledrejection', { promise: a, reason: b, cancelable: true });
-      if (window.dispatchEvent(event)) console.error('Uncaught (in promise)', b);
+      if (window.dispatchEvent(event)) {
+        devtoolsAgent.uncaught(b);
+        devtoolsAgent.quietly(() => console.error('Uncaught (in promise)', b));
+      }
       break;
     }
     case 'handled': {

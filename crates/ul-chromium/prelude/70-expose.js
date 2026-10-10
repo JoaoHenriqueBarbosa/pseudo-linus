@@ -39,8 +39,9 @@ const windowGlobals = {
   HTMLDocument: Document,
 };
 for (const [key, value] of Object.entries(windowGlobals)) Object.defineProperty(globalThis, key, { value, writable: true, configurable: true, enumerable: key === 'document' || key === 'location' ? true : false });
-Object.defineProperty(globalThis, 'document', { value: document, writable: false, configurable: false, enumerable: true });
-Object.defineProperty(globalThis, 'location', { get: () => location, set: (v) => { location.href = v; }, configurable: false, enumerable: true });
+// Configuráveis por ora: a passagem final (`WINDOW_KEYS`) os redefine na ordem e na forma do Chromium e os tranca.
+Object.defineProperty(globalThis, 'document', { value: document, writable: false, configurable: true, enumerable: true });
+Object.defineProperty(globalThis, 'location', { get: () => location, set: (v) => { location.href = v; }, configurable: true, enumerable: true });
 
 // Acesso nomeado da janela (o WindowProperties do Blink): o motor pergunta o nome que a janela e a cadeia dela não
 // têm. Acha o elemento de id `x`, ou de nome `x` entre embed, form, img e object; mais de um vira HTMLCollection viva.
@@ -164,3 +165,36 @@ for (const key of ['requestAnimationFrame', 'cancelAnimationFrame', 'requestIdle
   Object.defineProperty(globalThis, key, { enumerable: false });
 }
 
+// As propriedades próprias enumeráveis da janela na ordem e na forma do Chromium (`data/window-keys.json`, medido no
+// oráculo): `v` é valor (`w` gravável), `a` é acessor (`s` com setter), `c` configurável. O resto fica não enumerável.
+// O que o navegador ainda não tem continua ausente, como pede a regra de não imitar pela metade.
+{
+  const chromium = new Map(WINDOW_KEYS);
+  for (const key of Reflect.ownKeys(globalThis)) {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, key);
+    if (descriptor.enumerable && !chromium.has(key) && descriptor.configurable) Object.defineProperty(globalThis, key, { enumerable: false });
+  }
+  for (const [key, shape] of WINDOW_KEYS) {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, key);
+    if (descriptor === undefined || !descriptor.configurable) continue;
+    delete globalThis[key];
+    const configurable = shape.includes('c');
+    if (shape[0] === 'v') {
+      const value = 'value' in descriptor ? descriptor.value : descriptor.get.call(window);
+      Object.defineProperty(globalThis, key, { value, writable: shape.includes('w'), configurable, enumerable: true });
+      continue;
+    }
+    let get = descriptor.get;
+    let set = descriptor.set;
+    if (get === undefined) {
+      let current = descriptor.value;
+      get = function () { return current; };
+      Object.defineProperty(get, 'name', { value: 'get ' + key });
+      if (shape.includes('s')) {
+        set = function (value) { current = value; };
+        Object.defineProperty(set, 'name', { value: 'set ' + key });
+      }
+    }
+    Object.defineProperty(globalThis, key, shape.includes('s') ? { get, set, configurable, enumerable: true } : { get, configurable, enumerable: true });
+  }
+}

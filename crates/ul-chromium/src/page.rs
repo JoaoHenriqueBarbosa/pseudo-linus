@@ -18,7 +18,7 @@ use crate::{document, encoding};
 
 /// O prelúdio JavaScript: o DOM e as APIs de janela escritos sobre a ponte. O valor do `let` de topo é o gancho de
 /// ciclo de vida; não é propriedade do global, então a página não o enxerga por introspecção.
-const PRELUDE_PARTS: [&str; 23] = [
+const PRELUDE_PARTS: [&str; 26] = [
     include_str!("../prelude/00-core.js"),
     include_str!("../prelude/10-events.js"),
     include_str!("../prelude/20-nodes.js"),
@@ -42,6 +42,9 @@ const PRELUDE_PARTS: [&str; 23] = [
     include_str!("../prelude/55-xpath.js"),
     include_str!("../prelude/60-window.js"),
     include_str!("../prelude/65-devtools.js"),
+    "const WINDOW_KEYS = ",
+    include_str!("../data/window-keys.json"),
+    ";\n",
 ];
 const PRELUDE_TAIL: &str = include_str!("../prelude/70-expose.js");
 
@@ -114,6 +117,19 @@ impl Page {
     /// Busca `url` (`file:`, `http:` ou `https:`) e monta o documento.
     pub fn load(url: &str, fetcher: Fetcher) -> Result<Page, String> {
         let response = fetch_document(url, &fetcher)?;
+        Ok(Page::build(response, fetcher))
+    }
+
+    /// A página de erro de rede do Chromium (`chrome-error://chromewebdata/`) para a navegação a `url` que falhou com
+    /// `error` (`net::ERR_...`): o modelo do `neterror.html` com o `loadTimeDataRaw` do código, medidos no oráculo.
+    /// `None` para código sem texto medido.
+    pub fn error_page(url: &str, error: &str, fetcher: Fetcher) -> Option<Page> {
+        let html = neterror_html(url, error)?;
+        let response = DocumentResponse { bytes: html.into_bytes(), final_url: "chrome-error://chromewebdata/".to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, cross_origin_isolated: false };
+        Some(Page::build(response, fetcher))
+    }
+
+    fn build(response: DocumentResponse, fetcher: Fetcher) -> Page {
         let source = encoding::decode(&response.bytes, response.content_type.as_deref());
         let net = std::sync::Arc::new(document::QueuedNet::default());
         let mut doc = document::parse_page(&source, &response.final_url, net.clone());
@@ -132,7 +148,7 @@ impl Page {
             cross_origin_isolated: response.cross_origin_isolated,
             canvases: RefCell::new(Vec::new()),
         };
-        Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len() })
+        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len() }
     }
 
     /// A navegação que a página pediu (`location.href = ...`) e ainda não aconteceu.
@@ -202,6 +218,10 @@ impl Page {
             // O acesso nomeado da janela (`window.x` para o elemento de id `x`), pedido ao gancho.
             if let Ok(named) = runner.call_hidden(&hook, &[HostArg::Str("namedLookup")]) {
                 runner.set_global_named_lookup(&named);
+            }
+            // Cada chamada de `console` vai também ao agente do DevTools, que a guarda para o `Runtime.consoleAPICalled`.
+            if let Ok(console) = runner.call_hidden(&hook, &[HostArg::Str("consoleHook")]) {
+                runner.set_console_hook(&console);
             }
             runner.set_network_latency_ms(NETWORK_LATENCY_MS);
             if let Some(seed) = self.random_seed {
@@ -423,6 +443,27 @@ const BAD_PORTS: [u16; 82] = [
     4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080,
 ];
 
+/// O modelo da página de erro e o `loadTimeDataRaw` de cada código, com `{{HOST}}` e `{{URL}}` no lugar do destino.
+const NETERROR_TEMPLATE: &str = include_str!("../data/neterror/template.html");
+const NETERROR_DATA: &str = include_str!("../data/neterror/load-time-data.json");
+
+fn neterror_html(url: &str, error: &str) -> Option<String> {
+    use crate::devtools::json::{self, Json};
+    let code = error.strip_prefix("net::").unwrap_or(error);
+    let table = json::parse(NETERROR_DATA).ok()?;
+    let data = table.get(code)?.as_str()?;
+    let host = ul_net::net::url::parse(url, false).map(|u| u.host_for_url()).unwrap_or_default();
+    // Os valores entram já escapados como texto JSON (sem as aspas), no meio do literal do modelo.
+    let inner = |text: &str| {
+        let quoted = Json::str(text).to_compact();
+        quoted[1..quoted.len() - 1].to_owned()
+    };
+    let data = data.replace("{{URL}}", &inner(url)).replace("{{HOST}}", &inner(&host));
+    let title = json::parse(&data).ok()?.get("title")?.as_str()?.to_owned();
+    let escaped = title.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
+    Some(NETERROR_TEMPLATE.replacen("{{TITLE}}", &escaped, 1).replacen("{{DATA}}", &data, 1))
+}
+
 fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, String> {
     let local = |bytes: Vec<u8>, content_type: Option<String>| DocumentResponse { bytes, final_url: address.to_owned(), content_type, header_csp: false, cross_origin_isolated: false };
     // A aba nova (`about:blank`) é um documento vazio sem rede; `data:` sai pelo processador de data: URL do Fetch.
@@ -455,4 +496,19 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
         final_url,
         cross_origin_isolated,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    /// O título e o `loadTimeDataRaw` da página de erro como o oráculo os mostrou para `http://127.0.0.1:8999/a?b=1`.
+    #[test]
+    fn neterror_page_as_the_oracle() {
+        let html = super::neterror_html("http://127.0.0.1:8999/a?b=1", "net::ERR_CONNECTION_REFUSED").unwrap();
+        assert!(html.contains("<title>127.0.0.1</title>"));
+        assert!(html.contains(r#""reloadButton":{"msg":"Reload","reloadUrl":"http://127.0.0.1:8999/a?b=1"}"#));
+        // O `<` sai como a sequência de escape do JSON do Chromium (barra invertida, `u003C`).
+        let lt = concat!("\\", "u003C");
+        assert!(html.contains(&format!(r#""summary":{{"msg":"{lt}strong>127.0.0.1{lt}/strong> refused to connect."}}"#)));
+        assert!(super::neterror_html("http://x/", "net::ERR_NOT_MEASURED").is_none());
+    }
 }

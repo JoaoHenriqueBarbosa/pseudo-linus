@@ -71,7 +71,10 @@ const describeError = (error) => {
 const reportError = (error) => {
   const event = new ErrorEvent('error', { message: 'Uncaught ' + describeError(error), error, cancelable: true });
   const handled = !window.dispatchEvent(event);
-  if (!handled) console.error('Uncaught ' + describeError(error));
+  if (!handled) {
+    devtoolsAgent.uncaught(error);
+    devtoolsAgent.quietly(() => console.error('Uncaught ' + describeError(error)));
+  }
 };
 
 const invoke = (target, event, entry) => {

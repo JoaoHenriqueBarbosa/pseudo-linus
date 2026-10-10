@@ -11,6 +11,25 @@ fn console_reaches_host() {
     assert_eq!(log, "oi\n");
 }
 
+/// As propriedades próprias enumeráveis do `window`, na ordem e com a forma do descritor (valor ou acessor, com
+/// `set` e `configurable`) do Chromium do oráculo (`data/window-keys.json`). O `returnByValue` do
+/// DevTools e todo `Object.keys(window)` de página dependem delas.
+#[test]
+fn window_own_properties_match_the_oracle() {
+    let expected: Vec<(String, String)> = serde_json::from_str(include_str!("../data/window-keys.json")).unwrap();
+    let script = "console.log(JSON.stringify(Object.keys(window).map(k => { const d = Object.getOwnPropertyDescriptor(window, k); return [k, 'value' in d ? 'v' + (d.writable ? 'w' : '') + (d.configurable ? 'c' : '') : 'a' + (d.set ? 's' : '') + (d.configurable ? 'c' : '')]; })))";
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    let actual: Vec<(String, String)> = serde_json::from_str(log.trim()).unwrap();
+    let missing: Vec<&(String, String)> = expected.iter().filter(|e| !actual.contains(e)).collect();
+    let extra: Vec<&(String, String)> = actual.iter().filter(|a| !expected.contains(a)).collect();
+    assert!(extra.is_empty(), "sobram {extra:?}");
+    // O que existe sai na ordem e na forma do Chromium; o que ainda não foi portado falta (ausente como pede a regra,
+    // nunca imitado pela metade). A catraca só desce: 34 interfaces faltando quando o teste entrou.
+    let present: Vec<&(String, String)> = expected.iter().filter(|e| actual.contains(e)).collect();
+    assert_eq!(actual.iter().collect::<Vec<_>>(), present);
+    assert!(missing.len() <= 34, "faltam {missing:?}");
+}
+
 /// O `measureText` do canvas passa pelas fontes da VFS; os valores são os do Chromium do oráculo.
 #[test]
 fn canvas_measure_text() {

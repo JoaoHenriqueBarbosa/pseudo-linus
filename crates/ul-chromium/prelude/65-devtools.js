@@ -27,6 +27,7 @@ const devtoolsAgent = (() => {
   const arrayBufferLength = getOwnDescriptor(ArrayBuffer.prototype, 'byteLength').get;
   const promiseState = new WeakMap();
   const ObjectCtor = Object;
+  const dateNow = Date.now;
 
   const state = {
     // O id do isolate (um `int64` aleatório do V8) e o contexto corrente; cada navegação cria um contexto novo.
@@ -40,6 +41,10 @@ const devtoolsAgent = (() => {
     // Os scripts que o V8 já compilou antes do primeiro `evaluate` do inspetor.
     scriptId: 2,
     scripts: new Map(),
+    // As mensagens guardadas para repetir no `Runtime.enable` (o `V8ConsoleMessageStorage`, até 1000).
+    stored: [],
+    // Sem eco: o relato de erro do próprio navegador usa `console.error`, que não é chamada da página.
+    quiet: 0,
     objects: new Map(),
     groups: new Map(),
     enabled: new Set(),
@@ -145,7 +150,9 @@ const devtoolsAgent = (() => {
     }
     const out = {};
     for (const key of ObjectCtor.keys(value)) {
-      const item = byValue(value[key], depth + 1);
+      let read;
+      try { read = value[key]; } catch (error) { if (error instanceof RangeError) throw error; continue; }
+      const item = byValue(read, depth + 1);
       if (item !== undefined) out[key] = item;
     }
     return out;
@@ -234,7 +241,8 @@ const devtoolsAgent = (() => {
       try {
         mirror = remoteObject(value, thrown ? { objectGroup: params.objectGroup } : options);
       } catch (error) {
-        if (error instanceof ChainTooLong) { fail(message, -32000, 'Object reference chain is too long'); return; }
+        // A profundidade de 1000 do V8 ou, antes dela, a pilha do motor: os dois são a mesma recusa para o cliente.
+        if (error instanceof ChainTooLong || error instanceof RangeError) { fail(message, -32000, 'Object reference chain is too long'); return; }
         throw error;
       }
       if (!thrown) { reply(message, { result: mirror }); return; }
@@ -369,6 +377,103 @@ const devtoolsAgent = (() => {
     reply(message, out);
   };
 
+  // A prévia do `ValueMirror`: até 5 propriedades num objeto e 100 índices numa lista, cada uma com o valor como
+  // texto; o erro mostra `stack` e `message` (próprias, mesmo não enumeráveis).
+  const preview = (value, mirror) => {
+    const isList = mirror.subtype === 'array' || mirror.subtype === 'typedarray';
+    const limit = isList ? 100 : 5;
+    let keys;
+    try {
+      // No V8 o `stack` é a primeira propriedade própria do erro (instalada na construção), depois `message`.
+      keys = mirror.subtype === 'error' ? ['stack', 'message'].filter((k) => getOwnDescriptor(value, k) !== undefined) : ObjectCtor.keys(value);
+    } catch { keys = []; }
+    const properties = [];
+    for (const key of keys) {
+      if (properties.length >= limit) break;
+      let item;
+      try { item = getOwnDescriptor(value, key); } catch { continue; }
+      if (!item) continue;
+      if (!('value' in item)) { properties.push({ name: key, type: 'accessor' }); continue; }
+      const inner = item.value;
+      const entry = { name: key };
+      if (inner === null) { entry.type = 'object'; entry.value = 'null'; entry.subtype = 'null'; }
+      else if (typeof inner === 'object' || typeof inner === 'function') {
+        const shape = typeof inner === 'function' ? { description: '' } : objectShape(inner);
+        entry.type = typeof inner === 'function' ? 'function' : 'object';
+        entry.value = shape.description;
+        if (shape.subtype) entry.subtype = shape.subtype;
+      } else if (typeof inner === 'symbol') { entry.type = 'symbol'; entry.value = call(symbolToString, inner); }
+      else if (typeof inner === 'bigint') { entry.type = 'bigint'; entry.value = call(bigintToString, inner) + 'n'; }
+      else { entry.type = typeof inner; entry.value = String(inner); }
+      properties.push(entry);
+    }
+    const out = { type: mirror.type };
+    if (mirror.subtype) out.subtype = mirror.subtype;
+    out.description = mirror.description;
+    out.overflow = keys.length > limit;
+    out.properties = properties;
+    return out;
+  };
+
+  const withPreview = (value, options) => {
+    const mirror = remoteObject(value, options);
+    if (mirror.objectId !== undefined && mirror.type === 'object') mirror.preview = preview(value, mirror);
+    return mirror;
+  };
+
+  // As molduras do `stack` no formato do V8 (`at f (url:L:C)` ou `at url:L:C`), sem as do próprio navegador.
+  const callFrames = (stack, skip) => {
+    const frames = [];
+    for (const line of String(stack).split('\n').slice(1 + skip)) {
+      const found = /^\s*at (?:(.*?) \()?(.*?):(\d+):(\d+)\)?$/.exec(line);
+      if (!found) continue;
+      const url = found[2] === '<anonymous>' ? '' : found[2];
+      frames.push({ functionName: found[1] || '', scriptId: String(url === '' ? state.scriptId : 0), url, lineNumber: Number(found[3]) - 1, columnNumber: Number(found[4]) - 1 });
+    }
+    return frames;
+  };
+
+  const store = (method, params) => {
+    state.stored.push([method, params]);
+    if (state.stored.length > 1000) state.stored.shift();
+    emit(method, params);
+  };
+
+  const consoleCall = (kind, args) => {
+    if (state.quiet > 0) return;
+    let type = kind;
+    let values = args;
+    // `count`, `timeEnd` e `timeLog` viram texto como o V8 os escreve.
+    if (kind === 'count') values = [args[0] + ': ' + args[1]];
+    else if (kind === 'timeEnd' || kind === 'timeLog') {
+      values = [args[0] + ': ' + args[1] + ' ms', ...args.slice(2)];
+      if (kind === 'timeLog') type = 'log';
+    } else if (kind === 'assert') values = args.length === 0 ? ['console.assert'] : args;
+    const params = {
+      type,
+      args: values.map((value) => withPreview(value, {})),
+      executionContextId: state.contextId,
+      timestamp: dateNow(),
+    };
+    const frames = callFrames(new Error().stack, 1);
+    if (frames.length) params.stackTrace = { callFrames: frames };
+    store('Runtime.consoleAPICalled', params);
+  };
+
+  // Exceção que ninguém tratou (o relato do navegador depois do evento `error` da janela).
+  const uncaught = (error) => {
+    state.exceptionId++;
+    const frames = error instanceof Error ? callFrames(getOwnDescriptor(error, 'stack')?.value || '', 0) : [];
+    const top = frames[0];
+    const details = { exceptionId: state.exceptionId, text: 'Uncaught', lineNumber: top ? top.lineNumber : 0, columnNumber: top ? top.columnNumber : 0 };
+    if (top) details.scriptId = top.scriptId;
+    if (top && top.url) details.url = top.url;
+    if (frames.length) details.stackTrace = { callFrames: frames };
+    details.exception = withPreview(error, {});
+    details.executionContextId = state.contextId;
+    store('Runtime.exceptionThrown', { timestamp: dateNow(), exceptionDetails: details });
+  };
+
   const commands = {
     'Runtime.enable': (message) => {
       const sessionId = message.sessionId === undefined ? '' : message.sessionId;
@@ -377,6 +482,12 @@ const devtoolsAgent = (() => {
         const out = { method: 'Runtime.executionContextCreated', params: { context: contextDescription() } };
         if (sessionId !== '') out.sessionId = sessionId;
         state.outbox.push(out);
+        // O V8 guarda as mensagens do console e as exceções do contexto e as repete a quem liga o domínio.
+        for (const [method, params] of state.stored) {
+          const replay = { method, params };
+          if (sessionId !== '') replay.sessionId = sessionId;
+          state.outbox.push(replay);
+        }
       }
       reply(message, {});
     },
@@ -398,12 +509,23 @@ const devtoolsAgent = (() => {
     },
     'Runtime.runIfWaitingForDebugger': (message) => reply(message, {}),
     'Runtime.getIsolateId': (message) => reply(message, { id: state.isolateId }),
-    'Runtime.discardConsoleEntries': (message) => reply(message, {}),
+    'Runtime.discardConsoleEntries': (message) => {
+      state.stored.length = 0;
+      reply(message, {});
+    },
   };
 
   return {
     // Um marco do carregamento (`DOMContentLoaded`, `load`) para os eventos de `Page`, com o título do documento e se
     // ele tem o que pintar (os `first*Paint` do Chromium só saem com conteúdo).
+    // O observador do console do motor (`PageRunner::set_console_hook`) e o relato de exceção não tratada.
+    console: (kind, ...args) => consoleCall(kind, args),
+    uncaught,
+    // Roda `fn` sem que as chamadas de console dela virem mensagens da página.
+    quietly(fn) {
+      state.quiet++;
+      try { return fn(); } finally { state.quiet--; }
+    },
     lifecycle(name) {
       const body = document.body;
       const contentful = body !== null && (body.textContent.trim() !== '' || body.querySelector('img, canvas, svg, video, input, button, textarea, select, iframe') !== null);
@@ -424,7 +546,8 @@ const devtoolsAgent = (() => {
       const message = jsonParse(text);
       const handler = commands[message.method];
       if (handler === undefined) { fail(message, -32601, "'" + message.method + "' wasn't found"); return; }
-      handler(message, message.params || {});
+      // Toda mensagem tem resposta: um cliente esperando uma que nunca vem trava.
+      try { handler(message, message.params || {}); } catch (error) { fail(message, -32000, String(error && error.message)); }
     },
     drain() {
       const out = state.outbox.map((item) => jsonStringify(item));

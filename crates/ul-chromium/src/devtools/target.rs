@@ -231,7 +231,11 @@ impl Tab {
         }
         let (page, error) = match Page::load(&url, fetch::network()) {
             Ok(page) => (page, None),
-            Err(error) => (Page::load("about:blank", fetch::network()).expect("about:blank"), Some(error)),
+            Err(error) => {
+                // A navegação que falha compromete a página de erro do Chromium no lugar do documento.
+                let page = Page::error_page(&url, &error, fetch::network()).unwrap_or_else(|| Page::load("about:blank", fetch::network()).expect("about:blank"));
+                (page, Some(error))
+            }
         };
         self.url = if error.is_some() { "chrome-error://chromewebdata/".to_owned() } else { page.bridge.url.borrow().clone() };
         if let Some(request) = &request {
@@ -478,12 +482,7 @@ fn secure_context_type(url: &str) -> &'static str {
     }
 }
 
-/// O domínio registrável (eTLD+1) da URL, vazio para IP, `localhost` e esquema sem host.
+/// O domínio registrável do host da URL (`registry::domain_and_registry`).
 fn domain_and_registry(url: &str) -> String {
-    let Some(host) = url::Url::parse(url).ok().and_then(|u| u.domain().map(str::to_owned)) else { return String::new() };
-    let labels: Vec<&str> = host.split('.').collect();
-    if labels.len() < 2 {
-        return String::new();
-    }
-    labels[labels.len() - 2..].join(".")
+    url::Url::parse(url).ok().and_then(|u| u.host_str().map(super::registry::domain_and_registry)).unwrap_or_default()
 }
