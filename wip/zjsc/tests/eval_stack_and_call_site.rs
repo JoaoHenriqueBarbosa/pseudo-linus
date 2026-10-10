@@ -116,3 +116,21 @@ fn compile_syntax_error_parse_frame_has_the_file_name() {
     let source = "var r = []; for (const t of ['(', ';;)']) { try { module._compile(t, 'y.js'); } catch (e) { r.push(e.stack.split('\\n')[1].trim()); } } R = r.join('|');";
     assert_eq!(run_cjs(source), "at <parse> (y.js:2)|at <parse> (y.js:2)");
 }
+
+/// Medido no bun 1.4.2: o erro cujo frame de cima é um builtin em JS (`native:1:11`) só ganha `line`, `column` e
+/// `stack`; o criado em código do usuário ganha também `originalLine`, `originalColumn` e `sourceURL`.
+#[test]
+fn error_from_a_js_builtin_frame_has_no_original_position() {
+    let keys = "e => Object.getOwnPropertyNames(e).join()";
+    let source = format!(
+        "const k = {keys}; const r = []; \
+         const s = new DisposableStack(); s.defer(() => {{ throw 1 }}); s.defer(() => {{ throw 2 }}); \
+         try {{ s.dispose() }} catch (e) {{ r.push(k(e)) }} \
+         try {{ [].reduce((a, b) => a) }} catch (e) {{ r.push(k(e)) }} \
+         r.push(k(new SuppressedError(1, 2))); r.join('|')"
+    );
+    assert_eq!(
+        run(&source),
+        "error,suppressed,line,column,stack|message,line,column,stack|error,suppressed,originalLine,originalColumn,line,column,sourceURL,stack"
+    );
+}

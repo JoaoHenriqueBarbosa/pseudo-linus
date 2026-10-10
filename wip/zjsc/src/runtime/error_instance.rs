@@ -316,10 +316,12 @@ impl ErrorInstance {
             // Medido no `bun`: quando o frame de cima é o construtor padrão (`class X extends TypeError {}`, fonte
             // sintético `unknown:1:28`), `originalLine`, `originalColumn` e `sourceURL` não são gravados (só
             // `line`, `column` e `stack`); construtor explícito ou `extends Error` (cujo frame padrão não aparece) gravam.
+            // O mesmo com o frame de cima num builtin em JS (`native:1:11`: o `SuppressedError` do `dispose`, o
+            // `TypeError` do `reduce` vazio), que o bun não remapeia.
             // Com o frame de cima sintético a ordem medida é `line,column,stack` (antes de `stack`, não depois).
             if let Some(top) = frames.iter().find(|top| top.has_line_and_column_info()) {
                 let names = &vm.property_names;
-                let has_source = top.source_url() != "unknown";
+                let has_source = !matches!(top.source_url(), "unknown" | "native");
                 let original = [(&names.original_line, top.line()), (&names.original_column, top.column())];
                 let original: &[_] = if has_source { &original } else { &[] };
                 for (name, value) in original.iter().copied().chain([(&names.line, top.line()), (&names.column, top.column())]) {
