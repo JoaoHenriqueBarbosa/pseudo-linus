@@ -33,3 +33,13 @@ fn sparse_switch_with_duplicate_key_takes_the_first() {
         default:return 'd'}} [5,100000,9,1].map(t).join(' ')";
     assert_eq!(run(source), "first b c d");
 }
+
+/// O `switch` sobre string feita por concatenação (rope) resolve a rope antes de procurar na tabela, como o
+/// `slow_path_switch_string` do C++ (`value(globalObject)`); antes caía no `debug_assert` do `getValueImpl()`.
+#[test]
+fn string_switch_over_a_rope_resolves_it() {
+    let source = "function f(s) { switch (s) { case 'ab': return 1; case 'cd': return 2; case 'ef': return 3; \
+                  case 'gh': return 4; default: return 0; } } \
+                  var x = 'a'; [f(x + String.fromCharCode(98)), f('c' + x.replace('a', 'd')), f(x + 'z')].join()";
+    assert_eq!(run(source), "1,2,0");
+}
