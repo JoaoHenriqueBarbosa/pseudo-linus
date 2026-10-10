@@ -728,6 +728,11 @@ fn create_key(global_object: &JSGlobalObject, state: KeyState) -> JSValue {
     key
 }
 
+/// `value` é uma `CryptoKey` (o `inherits<JSCryptoKey>` do `util.types.isCryptoKey`).
+pub(crate) fn is_crypto_key(value: JSValue) -> bool {
+    KEYS.with(|keys| keys.borrow().contains_key(&value.encode()))
+}
+
 /// `structuredClone` de uma `CryptoKey` (`CryptoKeyTag` do WebCore): a chave nova leva o mesmo estado (tipo, algoritmo, usos,
 /// material e `extractable`); `None` quando `value` não é uma chave.
 pub(crate) fn clone_crypto_key(global_object: &JSGlobalObject, value: &JSValue) -> Option<JSValue> {

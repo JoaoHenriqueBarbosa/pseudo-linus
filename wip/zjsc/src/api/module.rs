@@ -29,6 +29,14 @@ impl ModuleHost for EntryHost {
         self.inner.resolve(specifier, referrer)
     }
 
+    fn builtin_exports(
+        &self,
+        global_object: &crate::runtime::js_global_object::JSGlobalObject,
+        key: &str,
+    ) -> Option<Result<(Vec<crate::runtime::identifier::Identifier>, Vec<JSValue>), crate::runtime::host_call::Thrown>> {
+        self.inner.builtin_exports(global_object, key)
+    }
+
     fn fetch(&self, key: &str) -> Result<String, String> {
         if key == self.specifier {
             return Ok(self.source.clone());
@@ -174,8 +182,20 @@ struct FileUrlHost {
 }
 
 impl ModuleHost for FileUrlHost {
+    /// Os embutidos (`node:path`, `path`) resolvem sempre, como no bun, mesmo sem sistema de arquivos.
     fn resolve(&self, specifier: &str, referrer: Option<&str>) -> Result<String, String> {
+        if let Some(key) = crate::api::builtin_modules::import_key(specifier) {
+            return Ok(key);
+        }
         self.inner.resolve(specifier, referrer)
+    }
+
+    fn builtin_exports(
+        &self,
+        global_object: &crate::runtime::js_global_object::JSGlobalObject,
+        key: &str,
+    ) -> Option<Result<(Vec<crate::runtime::identifier::Identifier>, Vec<JSValue>), crate::runtime::host_call::Thrown>> {
+        crate::api::builtin_modules::import_exports(global_object, key)
     }
 
     fn fetch(&self, key: &str) -> Result<String, String> {
