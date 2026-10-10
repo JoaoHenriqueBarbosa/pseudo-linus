@@ -654,6 +654,44 @@ pub fn eql(self_: &[u8], other: &[u8]) -> bool {
     self_ == other
 }
 
+/// No upstream a versão `comptime` só muda o caminho SIMD; o resultado é o de `eql`.
+pub use eql as eql_comptime;
+
+pub fn has_suffix_comptime(self_: &[u8], alt: &'static [u8]) -> bool {
+    self_.ends_with(alt)
+}
+
+pub fn starts_with(self_: &[u8], str: &[u8]) -> bool {
+    self_.starts_with(str)
+}
+
+pub fn last_index_of(self_: &[u8], str: &[u8]) -> Option<usize> {
+    if str.is_empty() {
+        return Some(self_.len());
+    }
+    self_.windows(str.len()).rposition(|w| w == str)
+}
+
+pub fn contains_any(slice: &[u8], chars: &[u8]) -> bool {
+    index_of_any(slice, chars).is_some()
+}
+
+pub fn index_equal_any(in_: &[&[u8]], target: &[u8]) -> Option<usize> {
+    in_.iter().position(|str| *str == target)
+}
+
+pub fn sort_desc(in_: &mut [&[u8]]) {
+    in_.sort_unstable_by(|a, b| b.cmp(a));
+}
+
+pub fn cat(first: &[u8], second: &[u8]) -> Result<Box<[u8]>, bun_alloc::AllocError> {
+    Ok([first, second].concat().into_boxed_slice())
+}
+
+pub fn concat(args: &[&[u8]]) -> Box<[u8]> {
+    args.concat().into_boxed_slice()
+}
+
 pub fn index_of(self_: &[u8], str: &[u8]) -> Option<usize> {
     let self_len = self_.len();
     let str_len = str.len();
@@ -850,6 +888,22 @@ pub mod lexer_step {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// O `memrmem` do highway: agulha vazia dá o tamanho; a última ocorrência ganha.
+    #[test]
+    fn searches_follow_upstream() {
+        assert_eq!(last_index_of(b"a/node_modules/b/node_modules/c", b"node_modules"), Some(17));
+        assert_eq!(last_index_of(b"abc", b""), Some(3));
+        assert_eq!(last_index_of(b"ab", b"abc"), None);
+        assert!(has_suffix_comptime(b"x.tsx", b".tsx") && !has_suffix_comptime(b"sx", b".tsx"));
+        assert!(contains_any(b"a-b", b"-:") && !contains_any(b"ab", b"-:"));
+        assert_eq!(index_equal_any(&[b"a", b"react"], b"react"), Some(1));
+        let mut names: Vec<&[u8]> = vec![b"b", b"c", b"a"];
+        sort_desc(&mut names);
+        assert_eq!(names, [b"c", b"b", b"a"]);
+        assert_eq!(&*concat(&[b"_", b"x"]), b"_x");
+        assert_eq!(&*cat(b"_", b"y").unwrap(), b"_y");
+    }
 
     #[test]
     fn utf16_round_trip_and_replacement() {

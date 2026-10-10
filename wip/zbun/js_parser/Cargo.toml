@@ -18,6 +18,8 @@ bun_paths = { path = "../paths" }
 bun_wyhash = { path = "../bun_wyhash" }
 bitflags.workspace = true
 enumset.workspace = true
+scopeguard.workspace = true
+smallvec.workspace = true
 thiserror.workspace = true
 bytemuck.workspace = true
 strum.workspace = true
