@@ -101,8 +101,18 @@ virar por perfil (`Bun` e `Browser`), com o perfil escolhido pelo embedder antes
 - Oráculo: o bun 1.4.2 já está no oráculo (`ff5d46fb`); os goldens de `fs` saem de lá, com arquivos num diretório
   temporário do próprio oráculo (nada do home de quem desenvolve em fita ou golden).
 
-## 6. Pergunta que preciso que a coordenação decida
+## 6. Decisão (coordenação, 2026-10-10): opção A
 
-Opção A (recomendada) ou B. A decide se o zjsc passa a depender do `sysabi`. O resto do desenho (erros do libuv,
-macrotarefa para o assíncrono, perfis) vale para as duas. Enquanto isso não houver decisão, sigo com os `Bun.*`
-pequenos e puros e com `util`, `assert`, `url`, `querystring` e `timers`, que não dependem desta escolha.
+O zjsc depende do `sysabi` e chama `sysabi::sys::current()` direto; os testes rodam no `testkit`, como no
+`ul-chromium`. A opção B foi recusada porque cria 35 repasses. Entram já na primeira fatia do `fs`:
+
+1. `BUILTINS` por perfil (`Bun` e `Browser`), com teste de regressão no `ul-chromium` provando que `require`,
+   `process` e `fs` não aparecem no navegador.
+2. As mensagens do libuv medidas no bun do oráculo (código, `errno` negativo, `syscall`, `path`), numa tabela
+   única no `ul-common` se outro programa precisar dela.
+3. `realpath` como helper no `ul-common`.
+4. `copyFile` com laço de `read`/`write`. Antes, conferir no oráculo se o bun usa `copy_file_range` ou `sendfile`
+   e se isso é observável por `strace`; se não for observável, o laço basta.
+5. `fs.watch` é item do plano, com o pedido de `inotify` ao kernel, e não fica fora de escopo.
+
+Ordem: primeiro os `Bun.*` pequenos e puros, depois o `fs`.
