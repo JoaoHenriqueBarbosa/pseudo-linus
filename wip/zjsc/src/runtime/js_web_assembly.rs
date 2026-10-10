@@ -858,11 +858,15 @@ fn exported_function_wrapper(global_object: &JSGlobalObject, instance: &Rc<Insta
 
 fn create_exported_function(global_object: &JSGlobalObject, instance: &Rc<Instance>, index: u32) -> JSValue {
     let (arguments, returns) = function_signature(instance.info(), index);
+    // A função importada do JS (a de outra instância wasm já chega com o funcref da dona) ganha o wrapper de nome
+    // vazio, não o índice (medido no bun 1.4.2: `fn:/0` para o import reexportado ou tirado de `ref.func`).
+    let imported = (index as usize) < instance.info().import_function_type_signature_indices.len();
+    let name = if imported { String::new() } else { index.to_string() };
     let function = JSFunction::create_native(
         global_object.vm(),
         global_object,
         arguments.len() as u32,
-        &WtfString::from_utf8(index.to_string().as_bytes()),
+        &WtfString::from_utf8(name.as_bytes()),
         exported_function,
         ImplementationVisibility::Public,
         Intrinsic::NoIntrinsic,
@@ -1901,5 +1905,18 @@ mod streaming_tests {
                 r#""[object Object] inst","[object WebAssembly.Module]"]"#
             )
         );
+    }
+
+    /// Medido no bun 1.4.2: a função importada do JS e reexportada tem wrapper de nome vazio; a própria do módulo
+    /// tem o índice.
+    #[test]
+    fn imported_js_function_wrapper_has_empty_name() {
+        let log = run(
+            "const b = new Uint8Array([0,97,115,109,1,0,0,0, 1,5,1,0x60,0,1,0x7f, 2,9,1,3,101,110,118,1,102,0,0, \
+               3,2,1,0, 7,11,2, 1,114,0,0, 3,111,119,110,0,1, 10,6,1,4,0,0x41,7,0x0b]); \
+             const e = new WebAssembly.Instance(new WebAssembly.Module(b), { env: { f: () => 1 } }).exports; \
+             log.push(e.r.name, e.r.length, e.own.name, e.r());",
+        );
+        assert_eq!(log, r#"["",0,"1",1]"#);
     }
 }
