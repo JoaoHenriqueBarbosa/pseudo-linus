@@ -224,7 +224,20 @@ defineHtml('HTMLIFrameElement', ['iframe'], (cls) => {
 });
 defineHtml('HTMLCanvasElement', ['canvas'], (cls) => {
   for (const [dim, def] of [['width', 300], ['height', 150]]) Object.defineProperty(cls.prototype, dim, { get() { const n = parseInt(this.getAttribute(dim), 10); return Number.isFinite(n) ? n : def; }, set(v) { this.setAttribute(dim, v); }, configurable: true, enumerable: true });
-  Object.assign(cls.prototype, { getContext() { return null; }, toDataURL() { return 'data:,'; }, toBlob(cb) { cb(null); }, transferControlToOffscreen() { throw new TypeError('not supported'); } });
+  Object.assign(cls.prototype, {
+    // Um contexto por canvas: o mesmo tipo devolve o mesmo objeto, outro tipo devolve null.
+    getContext(type, options) {
+      if (arguments.length < 1) throw new TypeError("Failed to execute 'getContext' on 'HTMLCanvasElement': 1 argument required, but only 0 present.");
+      const kind = { webgl: 1, 'experimental-webgl': 1, webgl2: 2 }[String(type)];
+      const existing = this[P.__context];
+      if (existing) return existing[0] === kind ? existing[1] : null;
+      if (!kind) return null;
+      const ctx = createWebGLContext(this, kind, options);
+      hidden(this, '__context', [kind, ctx]);
+      return ctx;
+    },
+    toDataURL() { return 'data:,'; }, toBlob(cb) { cb(null); }, transferControlToOffscreen() { throw new TypeError('not supported'); },
+  });
 });
 for (const [name, tags] of [['HTMLVideoElement', ['video']], ['HTMLAudioElement', ['audio']]]) {
   defineHtml(name, tags, (cls) => {

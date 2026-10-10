@@ -210,6 +210,25 @@ console.log([r.getAttribute('value'), t.getAttribute('value'), h.getAttribute('v
 }
 
 #[test]
+fn webgl_state_matches_swiftshader() {
+    // `tests/webgl/state.expected` é o `data-out` do oráculo (--disable-gpu, ANGLE sobre SwiftShader) para a mesma
+    // página: contexto, parâmetros, extensões, shaders, link, uniforms, buffers, texturas, framebuffer e erros.
+    let (_, log) = run(&[("/", include_str!("webgl/state.html"))]);
+    assert_eq!(log, include_str!("webgl/state.expected"));
+}
+
+#[test]
+fn request_resolves_against_document() {
+    // Medido no oráculo (em file:///, aqui na origem do teste): a URL relativa resolve contra a página (Rive do vite.dev).
+    let html = "<body><script>
+const r = new Request('/a?b', { method: 'POST' });
+console.log([r.url, r.method, Request.name, Request.length, String(Request), Object.prototype.toString.call(r), Object.getPrototypeOf(Request) === Function.prototype, new Request(r).url].join(' | '));
+</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "http://t.test/a?b | POST | Request | 1 | function Request() { [native code] } | [object Request] | true | http://t.test/a?b\n");
+}
+
+#[test]
 fn switch_with_many_numeric_cases() {
     // O getBumpedLaneForHydrationByLane do React 19.3 (nextjs.org): com o switch errado a hidratação nunca agenda.
     let script = "<script>function e$(e){switch(e){case 2:e=1;break;case 8:e=4;break;case 32:e=16;break;case 256:case 512:case 1024:case 2048:case 4096:case 8192:case 16384:case 32768:case 65536:case 131072:case 262144:case 524288:case 1048576:case 2097152:case 4194304:case 8388608:case 0x1000000:case 0x2000000:e=128;break;case 0x10000000:e=0x8000000;break;default:e=0}return e}

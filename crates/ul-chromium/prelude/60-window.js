@@ -565,6 +565,15 @@ const networkBody = (bytes) => new ReadableStream({
   },
 });
 
+// O Request do motor não conhece o documento: o da janela resolve a URL relativa contra a base da página. É o mesmo
+// protótipo, com o construtor trocado, para a cadeia de protótipos ser a do Chromium.
+const EngineRequest = globalThis.Request;
+const Request = function Request(input, ...init) {
+  if (!new.target) throw new TypeError("Failed to construct 'Request': Please use the 'new' operator, this DOM object constructor cannot be called as a function.");
+  return Reflect.construct(EngineRequest, [typeof input === 'string' || input instanceof URL ? resolveUrl(String(input)) : input, ...init], new.target);
+};
+Object.defineProperty(Request, 'prototype', { value: EngineRequest.prototype, writable: false, enumerable: false, configurable: false });
+Object.defineProperty(EngineRequest.prototype, 'constructor', { value: Request, writable: true, configurable: true });
 const realFetch = (input, init = {}) => new Promise((resolve, reject) => {
   const request = typeof input === 'object' && input !== null && !(input instanceof URL) ? input : null;
   const url = resolveUrl(request ? request.url : String(input));
