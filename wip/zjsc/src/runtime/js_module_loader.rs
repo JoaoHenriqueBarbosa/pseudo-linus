@@ -81,7 +81,7 @@ use crate::runtime::js_string::js_string;
 use crate::runtime::js_value::{js_null, EncodedJSValue, JSValue};
 use crate::runtime::microtask::InternalMicrotask;
 use crate::runtime::module_analyzer::ModuleAnalyzer;
-use crate::runtime::own_property_names::get_own_property_names;
+use crate::runtime::proxy_object::object_get_own_property_names;
 use crate::runtime::property_attribute::{CUSTOM_ACCESSOR, DONT_ENUM};
 use crate::runtime::property_name::PropertyName;
 use crate::runtime::property_name_array::PropertyNameArrayBuilder;
@@ -978,7 +978,8 @@ fn retrieve_fetch_parameters(global_object: &JSGlobalObject, options: JSValue) -
     }
 
     let mut properties = PropertyNameArrayBuilder::new(vm, PropertyNameMode::Strings, PrivateSymbolMode::Exclude);
-    get_own_property_names(vm, &attributes.as_object(), &mut properties, DontEnumPropertiesMode::Exclude)?;
+    // `attributesObject->getOwnPropertyNames(...)` passa pela tabela de métodos: o `Proxy` roda o trap `ownKeys`.
+    object_get_own_property_names(global_object, &attributes.as_object(), &mut properties, DontEnumPropertiesMode::Exclude)?;
     let type_name = Identifier::from_span(vm, b"type");
     let mut type_value: Option<WtfString> = None;
     let mut any_attribute = false;
@@ -1481,7 +1482,11 @@ fn global_func_import_module(global_object: &JSGlobalObject, call_frame: &mut Na
     let parameters = match retrieve_fetch_parameters(global_object, call_frame.argument(1)) {
         Ok(parameters) => parameters,
         Err(Thrown::Unported(what)) => panic!("módulos: {what} ainda não portado"),
-        Err(_) => return reject_with_caught_exception(None),
+        Err(thrown) => {
+            // O `ownKeys` do `Proxy` em `options.with` devolve a violação de invariante sem lançar: lança agora.
+            crate::runtime::host_call::throw_thrown(global_object, thrown);
+            return reject_with_caught_exception(None);
+        }
     };
     let deferred = call_frame.argument(2).is_true();
     let referrer = (!source_origin.is_null()).then(|| rust_string(source_origin.string()));

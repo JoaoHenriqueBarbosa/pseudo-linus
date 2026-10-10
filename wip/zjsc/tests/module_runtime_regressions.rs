@@ -132,3 +132,22 @@ fn dynamic_import_own_errors_carry_the_caller_stack() {
         )
     );
 }
+
+/// As chaves de `options.with` passam pela tabela de métodos: o trap `ownKeys` de um `Proxy` roda, e o que ele lança
+/// (ou a violação de invariante) rejeita o `import()` (medido no bun 1.4.2).
+#[test]
+fn dynamic_import_options_with_proxy_runs_own_keys() {
+    let (log, error) = run(&[(
+        "main.mjs",
+        "const t = (h) => import('./a.mjs', { with: new Proxy({}, h) }).then(() => L('ok'), (e) => L(e.name + ': ' + e.message)); \
+         await t({ ownKeys() { throw new RangeError('trap'); } }); await t({ ownKeys() { return [1]; } });",
+    )]);
+    assert_eq!(error, None);
+    assert_eq!(
+        log,
+        concat!(
+            r#"["RangeError: trap","#,
+            r#""TypeError: Proxy handler's 'ownKeys' method must return an array-like object containing only Strings and Symbols"]"#
+        )
+    );
+}
