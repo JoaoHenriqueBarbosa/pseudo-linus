@@ -153,6 +153,9 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_ast` | `lexer_log.rs` | portado (cópia) | nada |
 | `bun_ast` | `lib.rs` (o `logger`) | parcial: `Kind`, `Level`, `Location`, `Data`, `Msg`, `Log`, `Path`, `Source`, `range_data`, `alloc_print` e as posições de erro | `Msg` sem `metadata`; o `Log` não tem o `LineColumnTracker` (só acelera a conta de linha, o resultado é o mesmo) nem o `tracked_range_data`, que virou a chamada direta de `range_data` (era repasse); `Span` entra em `nodes.rs` |
 | `bun_js_parser` | `lexer.rs` | portado (cópia por Bash, travessões e en dashes trocados por ferramenta), com testes dos oito casos do plano | ver "lexer.rs" abaixo |
+| `bun_options_types` | `jsx.rs`, `bundle_enums.rs` | portado (cópia por Bash, travessões trocados por ferramenta), com testes | nada; o `lib.rs` só declara estes dois e o `schema` |
+| `bun_options_types` | `schema.rs` | parcial: `api::{Target, Loader, JsxRuntime, Jsx}` | só os tipos que `jsx.rs` e `bundle_enums.rs` leem; o resto do esquema é da CLI e do instalador |
+| `bun_core` | `strings` (`split`, `tokenize`) | portado, com teste | o `next` inerente do `SplitIterator` e o do `Iterator` (repasse) viram um só, no `Iterator` |
 
 ### `lexer.rs`
 

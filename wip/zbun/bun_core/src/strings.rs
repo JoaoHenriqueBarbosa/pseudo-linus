@@ -664,6 +664,50 @@ pub fn index_of_any(slice: &[u8], chars: &[u8]) -> Option<usize> {
     slice.iter().position(|b| chars.contains(b))
 }
 
+/// `std.mem.splitSequence`: os campos entre ocorrências de `delimiter`, vazios incluídos.
+pub fn split<'a>(self_: &'a [u8], delimiter: &'a [u8]) -> SplitIterator<'a> {
+    SplitIterator { buffer: self_, index: Some(0), delimiter }
+}
+
+pub struct SplitIterator<'a> {
+    pub(crate) buffer: &'a [u8],
+    pub(crate) index: Option<usize>,
+    pub(crate) delimiter: &'a [u8],
+}
+
+// O upstream tem um `next` inerente e o do `Iterator` só o chama (repasse); aqui o corpo fica no `Iterator`.
+impl<'a> Iterator for SplitIterator<'a> {
+    type Item = &'a [u8];
+
+    /// O próximo campo, ou `None` quando a divisão acabou.
+    fn next(&mut self) -> Option<&'a [u8]> {
+        let start = self.index?;
+        let end = if let Some(delim_start) = index_of(&self.buffer[start..], self.delimiter) {
+            let del = delim_start + start;
+            self.index = Some(del + self.delimiter.len());
+            delim_start + start
+        } else {
+            self.index = None;
+            self.buffer.len()
+        };
+
+        Some(&self.buffer[start..end])
+    }
+}
+
+// Concreto (e não `impl Iterator`) para o empréstimo da entrada terminar no último uso do iterador.
+pub type TokenizeIterator<'a> = core::iter::Filter<SplitIterator<'a>, fn(&&'a [u8]) -> bool>;
+
+fn is_non_empty_field(s: &&[u8]) -> bool {
+    !s.is_empty()
+}
+
+/// `std.mem.tokenizeSequence`: [`split`] sem os campos vazios, então sequências do delimitador e delimitadores no
+/// começo ou no fim não produzem nada.
+pub fn tokenize<'a>(self_: &'a [u8], delimiter: &'a [u8]) -> TokenizeIterator<'a> {
+    split(self_, delimiter).filter(is_non_empty_field as fn(&&[u8]) -> bool)
+}
+
 /// O primeiro byte `<= ' '` ou não ASCII a partir de `offset`; a posição é absoluta. O primeiro byte tem o teste
 /// do upstream (que deixa passar o TAB), o resto é o kernel `index_of_space_or_newline_or_non_ascii`.
 pub fn index_of_space_or_newline_or_non_ascii(slice_: &[u8], offset: u32) -> Option<u32> {
@@ -827,5 +871,14 @@ mod tests {
         assert!(eql_long(b"abc", b"abc", true));
         assert!(!eql_long(b"abcd", b"abc", true));
         assert!(eql_long(b"abcd", b"abc", false));
+    }
+
+    #[test]
+    fn split_and_tokenize() {
+        let fields: Vec<&[u8]> = split(b".React..createElement.", b".").collect();
+        assert_eq!(fields, [&b""[..], b"React", b"", b"createElement", b""]);
+        let tokens: Vec<&[u8]> = tokenize(b".React..createElement.", b".").collect();
+        assert_eq!(tokens, [&b"React"[..], b"createElement"]);
+        assert_eq!(tokenize(b".", b".").next(), None);
     }
 }
