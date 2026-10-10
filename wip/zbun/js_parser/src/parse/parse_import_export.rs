@@ -113,9 +113,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         ))
     }
 
-    pub(crate) fn parse_import_clause(&mut self) -> Result<ImportClause<'a>, Error> {
+    pub(crate) fn parse_import_clause(&mut self) -> Result<ImportClause, Error> {
         let p = self;
-        let mut items = bun_alloc::ArenaVec::<ClauseItem>::new_in(p.arena);
+        let mut items = Vec::<ClauseItem>::new();
         p.lexer.expect(T::TOpenBrace)?;
         let mut is_single_line = !p.lexer.has_newline_before;
         // this variable should not exist if we're not in a typescript file
@@ -278,7 +278,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         p.lexer.expect(T::TCloseBrace)?;
         Ok(ImportClause {
-            items: items.into_bump_slice_mut(),
+            items: p.store.alloc_slice(items),
             is_single_line,
             had_type_only_imports: if TYPESCRIPT {
                 had_type_only_imports
@@ -288,9 +288,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         })
     }
 
-    pub(crate) fn parse_export_clause(&mut self) -> Result<ExportClauseResult<'a>, Error> {
+    pub(crate) fn parse_export_clause(&mut self) -> Result<ExportClauseResult, Error> {
         let p = self;
-        let mut items = bun_alloc::ArenaVec::<ClauseItem>::with_capacity_in(1, p.arena);
+        let mut items = Vec::<ClauseItem>::with_capacity(1);
         p.lexer.expect(T::TOpenBrace)?;
         let mut is_single_line = !p.lexer.has_newline_before;
         let mut first_non_identifier_loc = bun_ast::Loc { start: 0 };
@@ -464,7 +464,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         Ok(ExportClauseResult {
-            clauses: items.into_bump_slice_mut(),
+            clauses: p.store.alloc_slice(items),
             is_single_line,
             had_type_only_exports,
         })

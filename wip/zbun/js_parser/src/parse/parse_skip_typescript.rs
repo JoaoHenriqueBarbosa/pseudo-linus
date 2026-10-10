@@ -1602,7 +1602,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let result: Result<(), Error> = (|| {
             self.lexer.expect(T::TColon)?;
             self.skip_typescript_return_type()?;
-            self.parse_arrow_body(&mut [], &mut data)?;
+            self.parse_arrow_body(Vec::new(), &mut data)?;
             // The ":" that pairs with the "?"
             self.lexer.expect(T::TColon)?;
             Ok(())

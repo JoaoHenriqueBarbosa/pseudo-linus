@@ -487,7 +487,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // Eat the comma token
             p.lexer.next()?;
         }
-        let items: &'a mut [Expr] = items_list.into_bump_slice_mut();
+        let mut items: Vec<Expr> = items_list.into_vec();
 
         // The parenthetical construct must end with a close parenthesis
         p.lexer.expect(T::TCloseParen)?;
@@ -586,8 +586,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         loc_.add_error(p.log(), p.source);
                     }
                 }
-                let args_slice: &'a mut [G::Arg] = args.into_bump_slice_mut();
-                let mut arrow = p.parse_arrow_body(args_slice, &mut arrow_data)?;
+                let mut arrow = p.parse_arrow_body(args.into_vec(), &mut arrow_data)?;
                 arrow.is_async = opts.is_async;
                 arrow.has_rest_arg = spread_range.len > 0;
                 p.pop_scope();
@@ -621,7 +620,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return Ok(p.new_expr(
                 E::Call {
                     target: async_expr,
-                    args: self.store.alloc_slice((items).to_vec()),
+                    args: self.store.alloc_slice(items),
                     ..Default::default()
                 },
                 loc,
@@ -637,7 +636,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 return Err(crate::Error::SyntaxError);
             }
 
-            let mut value = Expr::join_all_with_comma(items);
+            let mut value = Expr::join_all_with_comma(&mut p.store, &items);
             p.mark_expr_as_parenthesized(&mut value);
             return Ok(value);
         }
@@ -1143,9 +1142,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                     return Ok(p.b(
                         B::Object {
-                            properties: self.store.alloc_slice(
-                                properties.into_bump_slice_mut(),
-                            ),
+                            properties: self.store.alloc_slice(properties.into_vec()),
                             is_single_line,
                         },
                         loc,
@@ -1595,10 +1592,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if level.lte(Level::Assign) {
                         let async_ref = p.store_name_in_ref(b"async");
                         let arg_binding = p.b(B::Identifier { r#ref: async_ref }, async_range.loc);
-                        let args: &'a mut [G::Arg] = p.arena.alloc_slice_fill_with(1, |_| G::Arg {
+                        let args = vec![G::Arg {
                             binding: arg_binding,
                             ..Default::default()
-                        });
+                        }];
                         let _ = p
                             .push_scope_for_parse_pass(
                                 js_ast::scope::Kind::FunctionArgs,
@@ -1629,11 +1626,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             let ref_ = p.store_name_in_ref(p.lexer.identifier);
                             let arg_loc = p.lexer.loc();
                             let arg_binding = p.b(B::Identifier { r#ref: ref_ }, arg_loc);
-                            let args: &'a mut [G::Arg] =
-                                p.arena.alloc_slice_fill_with(1, |_| G::Arg {
-                                    binding: arg_binding,
-                                    ..Default::default()
-                                });
+                            let args = vec![G::Arg {
+                                binding: arg_binding,
+                                ..Default::default()
+                            }];
                             p.lexer.next()?;
 
                             let _ = p.push_scope_for_parse_pass(

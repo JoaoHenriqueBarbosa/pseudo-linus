@@ -164,7 +164,15 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
   índice tem 4 bytes e não 8; o tamanho não aparece na saída, então a fidelidade não muda. As funções do upstream
   que recebem só o nó passam a receber também `&Store` ou `&mut Store`; essa é a mudança sistemática do porte nos
   arquivos de `ast`, `js_parser` e `js_printer`.
-
+- **Listas de trabalho que saíam do parser como `&'a mut [T]`.** Quem as consome sem guardá-las no nó recebe
+  `Vec<T>` ou `&[T]` (`lower_class` devolve `Vec<Stmt>`, `append_part` lê `&[Stmt]`, `parse_arrow_body` e
+  `generate_closure_for_type_script_namespace_or_enum` recebem `Vec`). Quem guarda a lista no nó a grava com
+  `store.alloc_slice` no ponto em que o nó nasce: `ImportClause.items` e `ExportClauseResult.clauses` já são
+  `StoreSlice<ClauseItem>` (o `'a` desses dois tipos saiu), e `Part.scopes` é um `Vec<StoreRef<Scope>>`.
+- **`ScopeOrder.scope` é `StoreRef<Scope>`** (Copy), e o escopo do módulo nasce no `Store` do arquivo
+  (`define.store.clone()` antes do `P`). `scope_ref()` saiu: era um repasse sobre o campo. O `'arena` do
+  `ScopeOrder` fica até as faixas `&'a [ScopeOrder<'a>]` (`scope_order_to_visit` e `scopes_in_order_for_enum`)
+  migrarem para o `Store`.
 ## `Define` com um `Store` por arquivo (passo 2, decidido (B))
 
 No upstream, `DefineData.value` é um `ExprData` cujos `StoreRef` apontam para nós de vida de processo (tabelas

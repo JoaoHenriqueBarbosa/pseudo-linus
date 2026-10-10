@@ -1074,7 +1074,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if !mark_as_dead || was_export_inside_namespace {
             // Lower class field syntax for browsers that don't support it
-            stmts.extend_from_slice(lowered);
+            stmts.extend_from_slice(&lowered);
         } else {
             let ref_ = data
                 .class
@@ -2380,7 +2380,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             data.name.loc,
             data.name.ref_,
             data.arg,
-            value_stmts.into_bump_slice_mut(),
+            value_stmts.into_vec(),
             all_values_are_pure,
         )?;
         Ok(())
@@ -2429,7 +2429,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             data.name.loc,
             data.name.ref_,
             data.arg,
-            prepend_list.into_bump_slice_mut(),
+            prepend_list.into_vec(),
             false,
         )?;
         Ok(())

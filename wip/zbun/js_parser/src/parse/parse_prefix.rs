@@ -263,10 +263,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // reshaped for borrowck: build binding before borrowing arena.
             // `Arg` is non-Copy (owns Vec) → use fill_iter instead of alloc_slice_copy.
             let binding = p.b(B::Identifier { r#ref: ref_ }, loc);
-            let args = p.arena.alloc_slice_fill_iter([Arg {
+            let args = vec![Arg {
                 binding,
                 ..Default::default()
-            }]);
+            }];
 
             let _ = p
                 .push_scope_for_parse_pass(scope::Kind::FunctionArgs, loc)

@@ -1341,7 +1341,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         S::ExportFrom {
                             // SAFETY: sole owner: fresh arena slice from parse_export_clause,
                             // moved into the AST node here; no other &mut alias exists.
-                            items: export_clause.clauses.into(),
+                            items: export_clause.clauses,
                             is_single_line: export_clause.is_single_line,
                             namespace_ref,
                             import_record_index,
@@ -1365,7 +1365,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     S::ExportClause {
                         // SAFETY: sole owner: fresh arena slice from parse_export_clause,
                         // moved into the AST node here; no other &mut alias exists.
-                        items: export_clause.clauses.into(),
+                        items: export_clause.clauses,
                         is_single_line: export_clause.is_single_line,
                     },
                     loc,
@@ -1477,7 +1477,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     import_record_index: u32::MAX,
                     // SAFETY: sole owner: fresh arena slice from parse_import_clause,
                     // moved into the AST node here; no other &mut alias exists.
-                    items: import_clause.items.into(),
+                    items: import_clause.items,
                     is_single_line: import_clause.is_single_line,
                     ..Default::default()
                 };
@@ -1643,7 +1643,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                             // SAFETY: sole owner: fresh arena slice from parse_import_clause,
                             // moved into the AST node here; no other &mut alias exists.
-                            stmt.items = import_clause.items.into();
+                            stmt.items = import_clause.items;
                             stmt.is_single_line = import_clause.is_single_line;
                         }
                         _ => {

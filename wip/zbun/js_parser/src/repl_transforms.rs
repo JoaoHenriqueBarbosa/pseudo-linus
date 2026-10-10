@@ -67,7 +67,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                 all_stmts.push(*stmt);
             }
         }
-        let all_stmts: &mut [Stmt] = all_stmts.into_bump_slice_mut();
+        let all_stmts: Vec<Stmt> = all_stmts.into_vec();
 
         // Check if there's top-level await or imports (imports become dynamic awaited imports)
         let mut has_top_level_await = self.top_level_await_keyword.len > 0;
@@ -81,7 +81,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         }
 
         // Apply transform with is_async based on presence of top-level await
-        self.repl_transform_with_hoisting(parts, all_stmts, bump, has_top_level_await)
+        self.repl_transform_with_hoisting(parts, &all_stmts, bump, has_top_level_await)
     }
 
     /// Transform code with hoisting and IIFE wrapper
@@ -489,12 +489,11 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         self.repl_wrap_last_expression_with_return(&mut inner_stmts, bump);
 
         // Create the IIFE: (() => { ...inner_stmts... })() or (async () => { ... })()
-        let inner_slice: &mut [Stmt] = inner_stmts.into_bump_slice_mut();
         let arrow = self.new_expr(
             E::Arrow {
                 body: G::FnBody {
                     loc: bun_ast::Loc::EMPTY,
-                    stmts: self.store.alloc_slice(inner_slice),
+                    stmts: self.store.alloc_slice(inner_stmts.into_vec()),
                 },
                 is_async,
                 ..Default::default()
@@ -524,18 +523,18 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
             },
             bun_ast::Loc::EMPTY,
         ));
-        let final_slice: &mut [Stmt] = final_stmts.into_bump_slice_mut();
+        let final_stmts = final_stmts.into_vec();
 
         // Update parts. Input consisting solely of a consumed "use strict"
         // prologue arrives with no parts at all: create one so the
         // reinjected directive's IIFE isn't dropped.
         if parts.is_empty() {
             parts.push(js_ast::Part {
-                stmts: self.store.alloc_slice(final_slice),
+                stmts: self.store.alloc_slice(final_stmts),
                 ..Default::default()
             });
         } else {
-            parts[0].stmts = self.store.alloc_slice(final_slice);
+            parts[0].stmts = self.store.alloc_slice(final_stmts);
             parts.truncate(1);
         }
 

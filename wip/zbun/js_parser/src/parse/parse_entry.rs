@@ -837,8 +837,8 @@ impl<'a> Parser<'a> {
         // Which makes sense.
         // June 4: "Parsing took: 18028000"
         // June 4: "Rest of this took: 8003000"
-        let stmts: &'a mut [Stmt] = match p.parse_stmts_up_to(js_lexer::T::TEndOfFile, &mut opts) {
-            Ok(s) => s.into_bump_slice_mut(),
+        let mut stmts: Vec<Stmt> = match p.parse_stmts_up_to(js_lexer::T::TEndOfFile, &mut opts) {
+            Ok(s) => s.into_vec(),
             Err(e) => {
                 parse_tracer.end();
                 if e == crate::Error::StackOverflow {
@@ -890,9 +890,9 @@ impl<'a> Parser<'a> {
                     .then(|| "ssr".to_owned()),
                 ..Default::default()
             };
-            let opt_out = bun_react_compiler::has_module_scope_opt_out(stmts);
+            let opt_out = bun_react_compiler::has_module_scope_opt_out(&stmts);
             let import_bindings = bun_react_compiler::collect_import_bindings(
-                stmts,
+                &stmts,
                 p.import_records.items(),
                 p.symbols.as_slice(),
             );
@@ -961,7 +961,7 @@ impl<'a> Parser<'a> {
         //
         // This is also necessary because other code might be appended to the code
         // that we're processing and expect to be able to access top-level variables.
-        p.will_wrap_module_in_try_catch_for_using = p.should_lower_using_declarations(stmts);
+        p.will_wrap_module_in_try_catch_for_using = p.should_lower_using_declarations(&stmts);
 
         // Bind symbols in a second pass over the AST. I started off doing this in a
         // single pass, but it turns out it's pretty much impossible to do this
@@ -974,7 +974,7 @@ impl<'a> Parser<'a> {
         // nested scope.
         if !p.options.tree_shaking || p.will_wrap_module_in_try_catch_for_using {
             // When tree shaking is disabled, everything comes in a single part
-            p.append_part(&mut parts, stmts)?;
+            p.append_part(&mut parts, &stmts)?;
         } else {
             // Preprocess TypeScript enums to improve code generation. Otherwise
             // uses of an enum before that enum has been declared won't be inlined:
@@ -1009,8 +1009,8 @@ impl<'a> Parser<'a> {
                         p.scope_order_to_visit = p.scopes_in_order_for_enum.values()[idx];
 
                         let mut enum_parts = BumpVec::<js_ast::Part>::new_in(arena);
-                        let sliced = arena.alloc_slice_copy(&[*stmt]);
-                        p.append_part(&mut enum_parts, sliced)?;
+                        let sliced = [*stmt];
+                        p.append_part(&mut enum_parts, &sliced)?;
                         preprocessed_enums.push(enum_parts);
 
                         p.scope_order_to_visit = old_scopes_in_order;
@@ -1036,12 +1036,12 @@ impl<'a> Parser<'a> {
                                     }),
                                 };
                                 let new_stmt = p.s(_local, stmt.loc);
-                                let sliced = arena.alloc_slice_copy(&[new_stmt]);
-                                p.append_part(&mut parts, sliced)?;
+                                let sliced = [new_stmt];
+                                p.append_part(&mut parts, &sliced)?;
                             }
                         } else {
-                            let sliced = arena.alloc_slice_copy(&[*stmt]);
-                            p.append_part(&mut parts, sliced)?;
+                            let sliced = [*stmt];
+                            p.append_part(&mut parts, &sliced)?;
                         }
                     }
                     js_ast::StmtData::SImport(_)
@@ -1064,8 +1064,8 @@ impl<'a> Parser<'a> {
                             &mut parts
                         };
 
-                        let sliced = arena.alloc_slice_copy(&[*stmt]);
-                        p.append_part(parts_list, sliced)?;
+                        let sliced = [*stmt];
+                        p.append_part(parts_list, &sliced)?;
                     }
 
                     js_ast::StmtData::SClass(class) => {
@@ -1074,8 +1074,8 @@ impl<'a> Parser<'a> {
                         // https://github.com/kysely-org/kysely/issues/412
                         let should_move = !p.options.bundle && class.class.can_be_moved();
 
-                        let sliced = arena.alloc_slice_copy(&[*stmt]);
-                        p.append_part(&mut parts, sliced)?;
+                        let sliced = [*stmt];
+                        p.append_part(&mut parts, &sliced)?;
 
                         if should_move {
                             // `Part` isn't `Copy`; pop+push instead of last+truncate.
@@ -1087,8 +1087,8 @@ impl<'a> Parser<'a> {
                         // This automatically resolves some cyclical import issues in packages like luxon
                         // https://github.com/oven-sh/bun/issues/1961
                         let should_move = !p.options.bundle && value.can_be_moved();
-                        let sliced = arena.alloc_slice_copy(&[*stmt]);
-                        p.append_part(&mut parts, sliced)?;
+                        let sliced = [*stmt];
+                        p.append_part(&mut parts, &sliced)?;
 
                         if should_move {
                             before.push(parts.pop().expect("unreachable"));
@@ -1117,8 +1117,8 @@ impl<'a> Parser<'a> {
                         p.scope_order_to_visit = &p.scope_order_to_visit[enum_scope_count..];
                     }
                     _ => {
-                        let sliced = arena.alloc_slice_copy(&[*stmt]);
-                        p.append_part(&mut parts, sliced)?;
+                        let sliced = [*stmt];
+                        p.append_part(&mut parts, &sliced)?;
                     }
                 }
             }

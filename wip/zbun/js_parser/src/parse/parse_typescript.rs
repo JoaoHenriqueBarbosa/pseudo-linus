@@ -467,13 +467,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .insert(name.ref_, ns_member_data);
         }
 
-        // S::Namespace.stmts is `StoreSlice<Stmt>` (arena slice). BumpVec → bump slice.
-        let stmts_slice: &'a mut [Stmt] = stmts.into_bump_slice_mut();
+        // S::Namespace.stmts é `StoreSlice<Stmt>`: a lista de trabalho vai para o Store aqui.
         Ok(p.s(
             S::Namespace {
                 name,
                 arg: arg_ref,
-                stmts: self.store.alloc_slice(stmts_slice),
+                stmts: self.store.alloc_slice(stmts.into_vec()),
                 is_export: opts.is_export,
             },
             loc,

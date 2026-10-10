@@ -1168,35 +1168,23 @@ pub(crate) type StringBoolMap = StringHashMap<bool>;
 pub(crate) type RefMap = HashMap<Ref, ()>;
 pub(crate) type RefRefMap = HashMap<Ref, Ref>;
 
-// `scope` is `*mut` (not `&'arena`) because the visit pass writes
-// through it (push_scope_for_visit_pass assigns it to `current_scope: *mut`)
-// and the parse pass needs Copy for the BumpVec<Option<ScopeOrder>> to be
-// indexable + truncatable. The Scope itself is arena-owned for `'arena`.
+// O escopo é um índice no Store (`StoreRef`, Copy): o passe de visita escreve por ele e o passe de parse
+// precisa de Copy para a lista de `Option<ScopeOrder>` ser indexável e truncável. O `'arena` só existe enquanto
+// as faixas `&'a [ScopeOrder<'a>]` do parser não migram para o Store (fatia seguinte do passe).
 #[derive(Clone, Copy)]
 pub struct ScopeOrder<'arena> {
     pub(crate) loc: bun_ast::Loc,
-    pub(crate) scope: *mut Scope,
+    pub(crate) scope: js_ast::StoreRef<Scope>,
     _phantom: core::marker::PhantomData<&'arena Scope>,
 }
 impl<'arena> ScopeOrder<'arena> {
     #[inline]
-    pub(crate) fn new(loc: bun_ast::Loc, scope: *mut Scope) -> Self {
+    pub(crate) fn new(loc: bun_ast::Loc, scope: js_ast::StoreRef<Scope>) -> Self {
         Self {
             loc,
             scope,
             _phantom: core::marker::PhantomData,
         }
-    }
-    /// Arena-backed handle to the scope. `StoreRef` has safe `Deref`/`DerefMut`,
-    /// so callers read `order.scope_ref().kind` instead of open-coding
-    /// `unsafe { &*order.scope }` at every visit-pass check.
-    #[inline]
-    pub(crate) fn scope_ref(&self) -> js_ast::StoreRef<Scope> {
-        // `scope` is always set from a live arena allocation in
-        // `push_scope_for_parse_pass`; never null in practice.
-        js_ast::StoreRef::from(
-            core::ptr::NonNull::new(self.scope).expect("ScopeOrder.scope non-null"),
-        )
     }
 }
 
@@ -1326,10 +1314,9 @@ impl DeferredErrors {
     }
 }
 
-pub(crate) struct ImportClause<'a> {
-    /// Arena-owned. `&mut` (not `&`) so callers can hand it to AST nodes
-    /// (`S::Import.items: StoreSlice<ClauseItem>`).
-    pub(crate) items: &'a mut [js_ast::ClauseItem],
+pub(crate) struct ImportClause {
+    /// Já no Store: o nó `S::Import.items` guarda esta mesma faixa.
+    pub(crate) items: bun_ast::StoreSlice<js_ast::ClauseItem>,
     pub(crate) is_single_line: bool,
     pub(crate) had_type_only_imports: bool,
 }
@@ -1417,10 +1404,9 @@ pub struct FindSymbolResult {
     pub(crate) is_inside_with_scope: bool,
 }
 
-pub(crate) struct ExportClauseResult<'a> {
-    /// Arena-owned. `&mut` (not `&`) so callers can hand it to AST nodes
-    /// (`S::Export{From,Clause}.items: StoreSlice<ClauseItem>`).
-    pub(crate) clauses: &'a mut [js_ast::ClauseItem],
+pub(crate) struct ExportClauseResult {
+    /// Já no Store: os nós `S::Export{From,Clause}.items` guardam esta mesma faixa.
+    pub(crate) clauses: bun_ast::StoreSlice<js_ast::ClauseItem>,
     pub(crate) is_single_line: bool,
     pub(crate) had_type_only_exports: bool,
 }

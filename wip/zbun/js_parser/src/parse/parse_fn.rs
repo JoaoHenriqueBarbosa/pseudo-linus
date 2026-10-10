@@ -520,7 +520,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     pub(crate) fn parse_arrow_body(
         &mut self,
-        args: &'a mut [G::Arg],
+        mut args: Vec<G::Arg>,
         data: &mut FnOrArrowDataParse,
     ) -> Result<E::Arrow, Error> {
         let p = self;
@@ -548,7 +548,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         data.allow_super_property = p.fn_or_arrow_data_parse.allow_super_property;
         data.is_this_disallowed = p.fn_or_arrow_data_parse.is_this_disallowed;
 
-        let args_slice = bun_ast::StoreSlice::<G::Arg>::new_mut(args);
+        let args_slice = p.store.alloc_slice(args);
 
         if p.lexer.token == T::TOpenBrace {
             let body = p.parse_fn_body(data)?;
