@@ -1574,8 +1574,10 @@ impl Instance {
                         }
                         table.get(selector as u32)
                     };
+                    // A entrada nula do JSC (`FuncRefTable::Function`) tem o tipo de assinatura nulo, que nunca casa
+                    // com o esperado: o `call_indirect` falha pela assinatura, não pelo nulo (medido no bun 1.4.2).
                     let Some((owner, callee)) = func_ref_target(entry) else {
-                        return Err(trap(ExceptionType::NullTableEntry));
+                        return Err(trap(ExceptionType::BadSignature));
                     };
                     // A referência carrega a instância dona (como no C++): a assinatura se compara pelo tipo
                     // canônico, que vale entre módulos, e a chamada roda na dona.
@@ -2981,9 +2983,10 @@ mod tests {
             call(&instance, "dispatch", &[2]),
             Err(WasmError::Runtime("call_indirect to a signature that does not match".to_string()))
         );
+        // A entrada nula falha pela assinatura, como no JSC (o tipo da entrada nula nunca casa).
         assert_eq!(
             call(&instance, "dispatch", &[3]),
-            Err(WasmError::Runtime("call_indirect to a null table entry".to_string()))
+            Err(WasmError::Runtime("call_indirect to a signature that does not match".to_string()))
         );
         assert_eq!(
             call(&instance, "dispatch", &[4]),
