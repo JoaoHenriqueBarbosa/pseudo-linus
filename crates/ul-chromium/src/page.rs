@@ -110,6 +110,7 @@ impl Page {
             navigation: RefCell::new(None),
             net,
             unsynced_styles: RefCell::new(Vec::new()),
+            images: RefCell::new(Vec::new()),
         };
         Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: bytes.len() })
     }

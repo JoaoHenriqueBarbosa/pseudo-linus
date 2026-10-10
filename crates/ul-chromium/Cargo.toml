@@ -26,6 +26,10 @@ stylo_traits = "=0.20.0"
 cssparser = "0.37"
 selectors = "=0.40.0"
 url = "2.5"
+# O processador de `data:` URL da especificação de Fetch (o do Servo).
+data-url = "0.3"
+# Decodificação das imagens que a página carrega (dimensões e pixels), nos formatos que o Chromium aceita.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico"] }
 # Motor JavaScript: o JavaScriptCore portado, ainda fora do workspace (ver wip/zjsc).
 zjsc = { path = "../../wip/zjsc" }
 

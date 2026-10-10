@@ -229,6 +229,35 @@ console.log([r.url, r.method, Request.name, Request.length, String(Request), Obj
 }
 
 #[test]
+fn images_decode_svg_and_blob() {
+    // Medido no oráculo: tamanho intrínseco de SVG (atributos, viewBox, 300x150), erro em lixo, PNG de blob: URL.
+    let html = r#"<body><script>
+const cases = [
+  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 25"></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg" width="40" viewBox="0 0 50 25"></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg" width="50%" height="2em"></svg>',
+  'garbage',
+];
+const out = [];
+cases.forEach((c, i) => {
+  const img = new Image();
+  img.onload = () => { out[i] = 'load ' + img.naturalWidth + 'x' + img.naturalHeight + ' ' + img.width + 'x' + img.height + ' ' + img.complete; };
+  img.onerror = () => { out[i] = 'error ' + img.naturalWidth + ' ' + img.complete; };
+  img.src = 'data:image/svg+xml,' + encodeURIComponent(c);
+});
+const b = new Blob([new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1,8,6,0,0,0,31,21,196,137,0,0,0,13,73,68,65,84,120,156,99,248,207,192,240,31,0,5,0,1,255,137,153,61,29,0,0,0,0,73,69,78,68,174,66,96,130])], { type: 'image/png' });
+const u = URL.createObjectURL(b);
+const bi = new Image(); bi.onload = () => { out[6] = 'blob ' + bi.naturalWidth + 'x' + bi.naturalHeight + ' ' + /^blob:http:\/\/t\.test\/[0-9a-f-]{36}$/.test(u); }; bi.onerror = () => { out[6] = 'blob error'; }; bi.src = u;
+const before = new Image(); out[7] = 'before ' + before.complete + ' ' + before.naturalWidth;
+setTimeout(() => console.log(out.join('\n')), 200);
+</script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "load 40x20 40x20 true\nload 300x150 300x150 true\nload 40x20 40x20 true\nload 300x150 300x150 true\nload 300x32 300x32 true\nerror 0 true\nblob 1x1 true\nbefore true 0\n");
+}
+
+#[test]
 fn switch_with_many_numeric_cases() {
     // O getBumpedLaneForHydrationByLane do React 19.3 (nextjs.org): com o switch errado a hidratação nunca agenda.
     let script = "<script>function e$(e){switch(e){case 2:e=1;break;case 8:e=4;break;case 32:e=16;break;case 256:case 512:case 1024:case 2048:case 4096:case 8192:case 16384:case 32768:case 65536:case 131072:case 262144:case 524288:case 1048576:case 2097152:case 4194304:case 8388608:case 0x1000000:case 0x2000000:e=128;break;case 0x10000000:e=0x8000000;break;default:e=0}return e}

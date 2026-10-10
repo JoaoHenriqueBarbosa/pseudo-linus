@@ -69,10 +69,12 @@ defineHtml('HTMLAnchorElement', ['a'], (cls) => {
 });
 defineHtml('HTMLImageElement', ['img'], (cls) => {
   reflect(cls, [['src', 'src', 'url'], ['alt', 'alt'], ['srcset', 'srcset'], ['sizes', 'sizes'], ['useMap', 'usemap'], ['isMap', 'ismap', 'bool'], ['loading', 'loading'], ['decoding', 'decoding'], ['crossOrigin', 'crossorigin', 'cors'], ['referrerPolicy', 'referrerpolicy'], ['fetchPriority', 'fetchpriority']]);
-  for (const dim of ['width', 'height']) Object.defineProperty(cls.prototype, dim, { get() { return parseInt(this.getAttribute(dim), 10) || 0; }, set(v) { this.setAttribute(dim, v); }, configurable: true, enumerable: true });
+  // Sem atributo, `width`/`height` são as dimensões naturais (a imagem fora do layout).
+  for (const dim of ['width', 'height']) Object.defineProperty(cls.prototype, dim, { get() { const n = parseInt(this.getAttribute(dim), 10); if (Number.isFinite(n)) return n; const image = this[P.__image]; return image ? image[dim === 'width' ? 1 : 2] : 0; }, set(v) { this.setAttribute(dim, v); }, configurable: true, enumerable: true });
   Object.defineProperties(cls.prototype, {
-    naturalWidth: { get() { return 0; }, configurable: true }, naturalHeight: { get() { return 0; }, configurable: true },
-    complete: { get() { return !this.hasAttribute('src') || this.getAttribute('src') === ''; }, configurable: true },
+    naturalWidth: { get() { const image = this[P.__image]; return image ? image[1] : 0; }, configurable: true }, naturalHeight: { get() { const image = this[P.__image]; return image ? image[2] : 0; }, configurable: true },
+    // Completa sem `src`, ou depois do `load`/`error`.
+    complete: { get() { return !this.hasAttribute('src') || this.getAttribute('src') === '' || this[P.__imageDone] === true; }, configurable: true },
     currentSrc: { get() { return this.src; }, configurable: true },
     x: { get() { return 0; }, configurable: true }, y: { get() { return 0; }, configurable: true },
   });
@@ -568,14 +570,39 @@ function loadLink(link) {
 
 // A imagem cuja `src` a página define é buscada (conectada ou não, como no Chromium) e dispara `load` ou `error`
 // quando a resposta chega; a última `src` vence.
+// A imagem busca e decodifica o `src` (rede da página ou `blob:` criada por URL.createObjectURL); `load` com as
+// dimensões naturais, `error` quando a busca falha ou os bytes não são imagem.
 function loadImage(img, src) {
   const url = src === '' ? '' : resolveUrl(src);
   hidden(img, '__imageUrl', url);
+  hidden(img, '__image', null);
+  hidden(img, '__imageDone', false);
+  const finish = (bytes) => {
+    if (img[P.__imageUrl] !== url) return;
+    const decoded = bytes === null ? null : op('decodeImage', bytes);
+    hidden(img, '__image', decoded);
+    hidden(img, '__imageDone', true);
+    img.dispatchEvent(new Event(decoded ? 'load' : 'error'));
+  };
+  const blob = url.startsWith('blob:') ? blobUrls.get(url.replace(/#.*$/, '')) : undefined;
+  if (blob !== undefined) {
+    // A leitura do Blob é assíncrona; a busca continua em voo até ela terminar.
+    afterNetwork(() => {
+      networkInFlight++;
+      blob.arrayBuffer().then((buffer) => {
+        networkInFlight--;
+        let latin1 = '';
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.length; i += 8192) latin1 += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+        finish(latin1);
+      });
+    }, img.isConnected);
+    return;
+  }
   afterNetwork(() => {
     if (img[P.__imageUrl] !== url) return;
     const result = url === '' ? null : netFetch('GET', url, [], null);
-    const ok = result !== null && result[0] >= 200 && result[0] < 300;
-    img.dispatchEvent(new Event(ok ? 'load' : 'error'));
+    finish(result !== null && result[0] >= 200 && result[0] < 300 ? result[4] : null);
   }, img.isConnected);
 }
 

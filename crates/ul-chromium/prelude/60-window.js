@@ -565,6 +565,16 @@ const networkBody = (bytes) => new ReadableStream({
   },
 });
 
+// As URLs `blob:` da página: `blob:<origem>/<uuid>` (origem `null` em file:), resolvidas por imagem e fetch.
+const blobUrls = new Map();
+const blobOrigin = () => { const origin = new URL(pageState.url).origin; return origin === 'null' || origin === 'file://' ? 'null' : origin; };
+Object.defineProperty(URL, 'createObjectURL', { value: { createObjectURL(object) {
+  if (!(object instanceof Blob)) throw new TypeError("Failed to execute 'createObjectURL' on 'URL': Overload resolution failed.");
+  const url = `blob:${blobOrigin()}/${crypto.randomUUID()}`;
+  blobUrls.set(url, object);
+  return url;
+} }.createObjectURL, writable: true, enumerable: true, configurable: true });
+Object.defineProperty(URL, 'revokeObjectURL', { value: { revokeObjectURL(url) { blobUrls.delete(String(url)); } }.revokeObjectURL, writable: true, enumerable: true, configurable: true });
 // O Request do motor não conhece o documento: o da janela resolve a URL relativa contra a base da página. É o mesmo
 // protótipo, com o construtor trocado, para a cadeia de protótipos ser a do Chromium.
 const EngineRequest = globalThis.Request;
@@ -584,6 +594,17 @@ const realFetch = (input, init = {}) => new Promise((resolve, reject) => {
   addHeaders(init.headers);
   const body = init.body === undefined || init.body === null ? null : String(init.body);
   if (init.signal && init.signal.aborted) return reject(domException('The user aborted a request.', 'AbortError'));
+  if (url.startsWith('blob:')) {
+    const blob = blobUrls.get(url.replace(/#.*$/, ''));
+    afterNetwork(() => {
+      if (!blob || method !== 'GET') return reject(new TypeError('Failed to fetch'));
+      const response = new Response(blob, { status: 200, statusText: 'OK', headers: [['content-length', String(blob.size)], ['content-type', blob.type]] });
+      Object.defineProperty(response, 'url', { value: url, configurable: true });
+      Object.defineProperty(response, 'type', { value: 'basic', configurable: true });
+      resolve(response);
+    });
+    return undefined;
+  }
   afterNetwork(() => {
     if (init.signal && init.signal.aborted) return reject(domException('The user aborted a request.', 'AbortError'));
     const result = netFetch(method, url, headers, body);

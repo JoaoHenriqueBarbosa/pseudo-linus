@@ -37,6 +37,9 @@ pub struct Bridge {
     pub unsynced_styles: RefCell<Vec<NodeId>>,
     /// Os subrecursos que o Blitz pediu (folhas, imagens, fontes), servidos pela rede da página antes de cada medida.
     pub net: std::sync::Arc<document::QueuedNet>,
+    /// As imagens que a página decodificou, pelo índice que o prelúdio guarda (o `drawImage` e o `texImage2D` leem os
+    /// pixels daqui).
+    pub images: RefCell<Vec<crate::imaging::Decoded>>,
 }
 
 /// As operações que leem o atributo `style` (e por isso o sincronizam): a lista inteira de atributos, a serialização,
@@ -184,6 +187,19 @@ impl Bridge {
             _ => Vec::new(),
         };
         let page_url = self.url.borrow().clone();
+        // `data:` responde sem rede, pelo processador de data: URL da especificação de Fetch (só GET).
+        if target.get(..5).is_some_and(|s| s.eq_ignore_ascii_case("data:")) {
+            let Ok(parsed) = data_url::DataUrl::process(target) else { return Ok(DomArg::Null) };
+            let Ok((bytes, _)) = parsed.decode_to_vec() else { return Ok(DomArg::Null) };
+            if method != "GET" {
+                return Ok(DomArg::Null);
+            }
+            let mime = parsed.mime_type().to_string();
+            let charset = encoding::label(Some(&mime));
+            let raw: String = bytes.iter().map(|&b| char::from(b)).collect();
+            let headers = vec![DomArg::Str("content-type".to_owned()), DomArg::Str(mime)];
+            return Ok(DomArg::List(vec![DomArg::Num(200.0), DomArg::Str("OK".to_owned()), DomArg::Str(target.to_owned()), DomArg::List(headers), DomArg::Str(raw), DomArg::Str(charset)]));
+        }
         let page_origin = origin_of(&page_url);
         let target_origin = origin_of(target);
         let Some(target_origin) = target_origin else { return Ok(DomArg::Null) };
@@ -329,6 +345,15 @@ impl DomHost for Bridge {
                 Ok(DomArg::Undefined)
             }
             "fetch" => self.fetch(args),
+            // Decodifica os bytes (em latin1, um byte por unidade) e devolve [índice, largura, altura], ou null.
+            "decodeImage" => {
+                let bytes: Vec<u8> = str_arg(args, 0)?.chars().map(|c| c as u32 as u8).collect();
+                let Some(decoded) = crate::imaging::decode(&bytes) else { return Ok(DomArg::Null) };
+                let (width, height) = (decoded.width, decoded.height);
+                let mut images = self.images.borrow_mut();
+                images.push(decoded);
+                Ok(DomArg::List(vec![DomArg::Num((images.len() - 1) as f64), DomArg::Num(f64::from(width)), DomArg::Num(f64::from(height))]))
+            }
             "root" => Ok(num(self.doc.borrow().root_node().id)),
             "docElement" => {
                 let doc = self.doc.borrow();
