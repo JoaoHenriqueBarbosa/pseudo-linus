@@ -46,8 +46,7 @@ Estado do passo 1: feito (`import_record`, `ImportKind`, `part`, `runtime`, `ast
 `SlotCounts`). Medida do passo 2 (cópia de todo o `js_parser` restante, 2026-10-10): a primeira compilação para em
 169 erros de resolução antes de chegar aos tipos. O que falta, por grupo:
 
-- crates e módulos do upstream que o parser importa e o porte ainda não tem: `bun_options_types` (o `jsx`, os
-  `bundle_enums`), `bun_paths::fs`, `bun_crash_handler`, `bun_react_compiler`, `bun_core::{Output, feature_flags,
+- crates e módulos do upstream que o parser importa e o porte ainda não tem: `bun_crash_handler`, `bun_react_compiler`, `bun_core::{Output, feature_flags,
   todo_panic}`, `bun_alloc::{ArenaVec, ArenaVecExt, arena_format, AllocError}`, `bun_collections::{VecExt, HashMap,
   StringHashMap, StringSet, object_pool}`, `bun_ast::{Flags, fold_string_addition, RuntimeTranspilerCache,
   expr::{EFlags, Equality, LooseEql, StrictEql}}`;
@@ -156,6 +155,8 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_options_types` | `jsx.rs`, `bundle_enums.rs` | portado (cópia por Bash, travessões trocados por ferramenta), com testes | nada; o `lib.rs` só declara estes dois e o `schema` |
 | `bun_options_types` | `schema.rs` | parcial: `api::{Target, Loader, JsxRuntime, Jsx}` | só os tipos que `jsx.rs` e `bundle_enums.rs` leem; o resto do esquema é da CLI e do instalador |
 | `bun_core` | `strings` (`split`, `tokenize`) | portado, com teste | o `next` inerente do `SplitIterator` e o do `Iterator` (repasse) viram um só, no `Iterator` |
+| `bun_core` | `fmt` (`fmt_identifier`, `FormatValidIdentifier`) | portado, com teste | o `write_bytes` sem checagem vira `from_utf8` checado (só recebe codepoints de identificador); o `has_needed_gap`, que ninguém lia, sai |
+| `bun_paths` | `lib.rs` (`NODE_MODULES_NEEDLE`, `fs::{PathName, Path}`) | parcial, com testes | só POSIX; `Path` só com `init` e `name`; `dir_with_trailing_slash` (ponteiro cru, o parser não usa) e `into_static` ficam fora |
 
 ### `lexer.rs`
 

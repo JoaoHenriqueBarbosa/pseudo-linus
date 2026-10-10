@@ -276,9 +276,100 @@ mod parse_tests {
     }
 }
 
+/// Format a string to an ECMAScript identifier. Always allocates/copies.
+pub fn fmt_identifier(name: &[u8]) -> FormatValidIdentifier<'_> {
+    FormatValidIdentifier { name }
+}
+
+/// Format a string to an ECMAScript identifier.
+pub struct FormatValidIdentifier<'a> {
+    pub name: &'a [u8],
+}
+
+/// O `write_bytes` do upstream é um `from_utf8_unchecked`. Os trechos que chegam aqui são feitos só de
+/// codepoints de identificador, que nunca são surrogates soltos, então a conversão checada não falha.
+fn write_bytes(f: &mut core::fmt::Formatter<'_>, bytes: &[u8]) -> core::fmt::Result {
+    f.write_str(core::str::from_utf8(bytes).map_err(|_| core::fmt::Error)?)
+}
+
+impl core::fmt::Display for FormatValidIdentifier<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        use crate::identifier::{is_identifier_part as is_identifier_continue, is_identifier_start};
+        use crate::strings::{CodepointIterator, Cursor};
+
+        let mut iterator = CodepointIterator::init(self.name);
+        let mut cursor = Cursor::default();
+
+        let mut needs_gap;
+        let mut start_i: usize = 0;
+
+        if !iterator.next(&mut cursor) {
+            return f.write_str("_");
+        }
+
+        // Common case: no gap necessary. No allocation necessary.
+        needs_gap = !is_identifier_start(cursor.c);
+        if !needs_gap {
+            // Are there any non-alphanumeric chars at all?
+            while iterator.next(&mut cursor) {
+                if !is_identifier_continue(cursor.c) {
+                    needs_gap = true;
+                    start_i = cursor.i as usize;
+                    break;
+                }
+            }
+        }
+
+        if needs_gap {
+            needs_gap = false;
+            if start_i > 0 {
+                write_bytes(f, &self.name[..start_i])?;
+            } else {
+                // the first letter can be a non-identifier start
+                // https://github.com/oven-sh/bun/issues/2946
+                f.write_str("_")?;
+            }
+            let slice = &self.name[start_i..];
+            iterator = CodepointIterator::init(slice);
+            cursor = Cursor::default();
+
+            while iterator.next(&mut cursor) {
+                if is_identifier_continue(cursor.c) {
+                    if needs_gap {
+                        f.write_str("_")?;
+                        needs_gap = false;
+                    }
+                    let i = cursor.i as usize;
+                    write_bytes(f, &slice[i..i + cursor.width as usize])?;
+                } else if !needs_gap {
+                    needs_gap = true;
+                    // skip the code point, replace it with a single _
+                }
+            }
+
+            // If it ends with an emoji
+            if needs_gap {
+                f.write_str("_")?;
+            }
+            return Ok(());
+        }
+
+        write_bytes(f, self.name)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::FormatDouble;
+    use super::{FormatDouble, fmt_identifier};
+
+    #[test]
+    fn identifier_formatting() {
+        assert_eq!(fmt_identifier(b"").to_string(), "_");
+        assert_eq!(fmt_identifier(b"react").to_string(), "react");
+        assert_eq!(fmt_identifier(b"react-dom").to_string(), "react_dom");
+        assert_eq!(fmt_identifier(b"1abc").to_string(), "_1abc");
+        assert_eq!(fmt_identifier(b"a--b!").to_string(), "a_b_");
+    }
 
     fn js(n: f64) -> String {
         let mut buf = [0u8; 124];
