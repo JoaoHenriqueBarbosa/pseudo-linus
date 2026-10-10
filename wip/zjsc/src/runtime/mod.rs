@@ -322,6 +322,7 @@ pub mod json_object;
 pub mod js_raw_json_object;
 pub mod object_to_primitive;
 pub mod current_realm;
+pub mod global_named_lookup;
 pub mod json_host;
 pub mod json_object_native;
 pub mod error_constructor;
