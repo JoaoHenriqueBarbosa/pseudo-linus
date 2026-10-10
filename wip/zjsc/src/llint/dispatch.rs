@@ -183,6 +183,53 @@ impl LabelGenerator for DecodedLabel {
     }
 }
 
+/// As instruções que entram no caminho lento de alocação (`LocalAllocator::allocateSlowCase` chama
+/// `Heap::collectIfNecessaryOrDefer`): as que criam célula e as chamadas, por onde passa a alocação dos nativos. No
+/// começo delas todo valor vivo do JS está nos registradores que a varredura conservadora percorre. DIVERGÊNCIA: a
+/// alocação de dentro de um nativo não coleta ali (os locais Rust dele não são varridos); a coleta que ela pediria
+/// acontece no próximo destes pontos.
+fn allocates(opcode: OpcodeID) -> bool {
+    use OpcodeID::*;
+    matches!(
+        opcode,
+        op_new_object
+            | op_new_array
+            | op_new_array_buffer
+            | op_new_array_with_size
+            | op_new_array_with_species
+            | op_new_array_with_spread
+            | op_new_reg_exp
+            | op_new_func
+            | op_new_func_exp
+            | op_new_generator_func
+            | op_new_generator_func_exp
+            | op_new_async_func
+            | op_new_async_func_exp
+            | op_new_async_generator_func
+            | op_new_async_generator_func_exp
+            | op_new_generator
+            | op_new_promise
+            | op_create_this
+            | op_create_promise
+            | op_create_generator
+            | op_create_async_generator
+            | op_create_lexical_environment
+            | op_create_rest
+            | op_create_direct_arguments
+            | op_create_scoped_arguments
+            | op_create_cloned_arguments
+            | op_strcat
+            | op_call
+            | op_call_ignore_result
+            | op_call_varargs
+            | op_call_direct_eval
+            | op_construct
+            | op_construct_varargs
+            | op_tail_call
+            | op_tail_call_varargs
+    )
+}
+
 impl Interpreter {
     /// `cloopCallJSFunction` do `LLIntEntry`: executa o frame que o chamador montou na pilha (cabeçalho em
     /// `CallFrameSlot`, `CodeBlock` já no slot do frame) até o `op_ret`, e devolve o valor retornado. A
@@ -303,6 +350,9 @@ impl Interpreter {
             // `storep cfr, VM::topCallFrame` do `prepareStateForCCall`: o `.asm` o grava antes de cada
             // chamada a C++; aqui uma vez por instrução, que dá o mesmo frame a quem a instrução chamar.
             vm.set_top_call_frame(call_frame.registers());
+            if allocates(opcode) {
+                crate::runtime::gc::safe_point(self, &vm);
+            }
 
             let step = {
                 let block = code_block.borrow();

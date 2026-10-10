@@ -133,7 +133,7 @@ impl ErrorInstance {
 
     /// `ErrorInstance::finalizeUnconditionally`: com um frame cujo callee ou `this` a varredura vai soltar, o erro é
     /// materializado agora pelo caminho de texto (sem `Error.prepareStackTrace`, sem `originalLine` e
-    /// `originalColumn`, cabeçalho `Error: mensagem`), enquanto as células ainda são legíveis.
+    /// `originalColumn`, cabeçalho `Error`), enquanto as células ainda são legíveis.
     pub(crate) fn finalize_frames(&self, marker: &crate::runtime::gc::Marker) {
         if crate::runtime::stack_frame::v8_stack_format() {
             return;
@@ -146,8 +146,11 @@ impl ErrorInstance {
             return;
         }
         let frames = data.pending_frames.take().unwrap_or_default();
-        let message = data.message.utf8(ConversionMode::LenientConversion);
-        let header = if message.is_empty() { "Error".to_string() } else { format!("Error: {}", String::from_utf8_lossy(&message)) };
+        // Medido no bun 1.4.2 (`function* g() { yield* g() } g().next()`, o `RangeError` de estouro com os frames
+        // mortos): o cabeçalho do caminho de texto é só `Error`, sem tipo nem mensagem, e as propriedades são
+        // `message,line,column,sourceURL,stack`. DIVERGÊNCIA: as linhas do bun nesse caminho trazem a URL com
+        // `file://`; aqui saem como no caminho normal.
+        let header = "Error";
         let top = frames.iter().find(|top| top.has_line_and_column_info());
         let position = top.map(|top| (top.line(), top.column(), top.source_url().to_string()));
         let stack = stack_text(&WtfString::from_utf8(header.as_bytes()), &frames, None);

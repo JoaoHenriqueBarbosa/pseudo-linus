@@ -204,7 +204,7 @@ fn v8_stack_state_survives_with_its_object() {
 }
 
 /// `ErrorInstance::finalizeUnconditionally`: o frame de um callee que morre antes da primeira leitura de `stack`
-/// leva o erro ao caminho de texto (cabeçalho `Error: mensagem`, sem `originalLine`), e o que vive segue o caminho
+/// leva o erro ao caminho de texto (cabeçalho `Error`, sem `originalLine`), e o que vive segue o caminho
 /// normal (o cabeçalho do tipo).
 #[test]
 fn errors_with_dead_frames_take_the_text_path() {
@@ -212,7 +212,7 @@ fn errors_with_dead_frames_take_the_text_path() {
         function alive() {{ return new TypeError('m'); }} var live = alive();
         for (let i = 0; i < 2000; i++) {{ const g = [i]; }}
         R = [dead.stack.split('\\n')[0], Object.getOwnPropertyNames(dead).join('+'), live.stack.split('\\n')[0], Object.getOwnPropertyNames(live).includes('originalLine')].join('|');");
-    assert_eq!(stressed(&program), "Error: m|message+line+column+sourceURL+stack|TypeError: m|true");
+    assert_eq!(stressed(&program), "Error|message+line+column+sourceURL+stack|TypeError: m|true");
 }
 
 /// Locais Rust de nativos que chamam JS (o `MarkedArgumentBuffer` e a pilha C++ do JSC): a coleção nova do
@@ -254,6 +254,17 @@ fn deep_yield_star_recursion_fits_under_collection() {
         .unwrap_or_else(|_| panic!("o programa lançou exceção"));
     let plain = String::from_utf8_lossy(&plain.to_wtf_string().utf8(ConversionMode::LenientConversion)).into_owned();
     assert_eq!(stressed(program), plain);
+}
+
+/// Os três casos do golden de erros: a recursão de geradores estoura a pilha, o desenrolar mata os corpos (uma
+/// função por gerador, como o `@generatorNext` do JSC) e uma coleta antes da leitura de `stack` leva o erro ao
+/// caminho de texto. Medido no bun 1.4.2: cabeçalho `Error`, sem o tipo nem a mensagem.
+#[test]
+fn stack_overflow_in_generators_takes_the_text_path() {
+    let program = "function describe(src) { try { (0, eval)(src); } catch (e) { var t = String(e); return e.stack.slice(0, t.length) === t; } }
+        R = [describe('function* g() { yield* g() } g().next()'), describe('function* g() { yield* g() } [...g()]'),
+             describe('var g = function* () { for (var x of g()); }; g().next()'), describe('function f() { f() } f()')].join();";
+    assert_eq!(stressed(program), "false,false,false,true");
 }
 
 /// Cada tipo de dono sozinho, para a lápide apontar a aresta que falta.
