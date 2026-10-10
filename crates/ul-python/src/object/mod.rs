@@ -572,6 +572,7 @@ const C_EXTENSION_MODULES: &[(&str, &str)] = &[
     ("_sqlite3", "_sqlite3"),
     ("_typing", "_typing"),
     ("greenlet._greenlet", "greenlet._greenlet"),
+    ("_contextvars", "_contextvars"),
 ];
 
 /// Funções soltas de módulos que no CPython misturam Python e C, como `(módulo daqui, módulo do CPython,
@@ -1569,7 +1570,7 @@ pub(crate) const FROZEN_MODULES: &[&str] = &[
 /// Módulos embutidos no executável do CPython 3.13 do Debian (`sys.builtin_module_names`).
 /// Módulos escritos em Python cujos tipos, no Debian, vêm de um módulo C com o `__module__` do módulo
 /// público (`_datetime` dá `datetime.timezone`): os tipos são de C, o módulo não é embutido.
-pub(crate) const C_TYPE_MODULES: &[&str] = &["datetime"];
+pub(crate) const C_TYPE_MODULES: &[&str] = &["datetime", "_contextvars"];
 
 /// Tipos em C de extensões de terceiros que aqui são classes Python, como `(__module__, nome)`: o `greenlet.greenlet`
 /// do greenlet 3.5.6. Os outros nomes do módulo (as exceções `greenlet.error` e `GreenletExit`, feitas por
@@ -1581,6 +1582,7 @@ pub(crate) const C_EXTENSION_TYPES: &[(&str, &str)] =
 /// levantados no oráculo sobre os módulos embutidos, `datetime` e `types`, e o `greenlet.greenlet` (oráculo de
 /// automação).
 pub(crate) const STATIC_C_TYPES: &[(&str, &str)] = &[
+    ("_contextvars", "Context"), ("_contextvars", "ContextVar"), ("_contextvars", "Token"),
     ("collections", "OrderedDict"), ("datetime", "date"), ("datetime", "datetime"), ("datetime", "time"),
     ("datetime", "timedelta"), ("datetime", "timezone"), ("datetime", "tzinfo"), ("greenlet", "greenlet"),
     ("greenlet._greenlet", "UnswitchableGreenlet"), ("pickle", "PickleBuffer"),
@@ -2075,7 +2077,7 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
             Some(h) => Ok(h?),
             // `__hash__ = None` na classe: instâncias não são hasheáveis.
             None if matches!(i.class().lookup("__hash__"), Some(Value::None)) => {
-                Err(ObjError::TypeError(format!("unhashable type: '{}'", i.class().name)))
+                Err(ObjError::TypeError(format!("unhashable type: '{}'", i.class().tp_name())))
             }
             None => Ok(py_addr_hash(Rc::as_ptr(i) as usize)),
         },

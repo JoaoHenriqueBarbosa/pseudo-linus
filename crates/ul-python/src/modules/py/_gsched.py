@@ -27,6 +27,8 @@ class _Green:
         self.deadline = None
         self.idents = [_thread._MAIN_IDENT]
         self.hooks = (None, None)
+        # O contexto corrente do `contextvars` (o `ts->context` do C): nasce na primeira consulta, vazio.
+        self.ctx = None
 
 
 # `main` é a thread principal (tid 0); `_cur[0]`, a que roda agora.

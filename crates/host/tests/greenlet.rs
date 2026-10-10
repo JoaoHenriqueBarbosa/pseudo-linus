@@ -110,6 +110,17 @@ fn range_index_scene_matches_the_oracle() {
     );
 }
 
+/// O `contextvars` sobre o `_contextvars` do `lib-dynload`: o mapeamento, `run`, `set`/`reset` com `Token`, um contexto
+/// por thread e por tarefa do asyncio, e a superfície dos tipos estáticos (mensagens, `dir`, pickle, subclasse).
+#[test]
+fn contextvars_api_scene_matches_the_oracle() {
+    scene_matches(
+        "contextvars_api",
+        include_str!("../../../testbench/oracle/automation/cases/contextvars_api.py"),
+        include_str!("../../../testbench/oracle/automation/golden/contextvars_api.out"),
+    );
+}
+
 /// O estado interno não aparece em nada que o programa enxergue (`__dict__`, `vars`, `dir`, `__del__`, `__slots__`),
 /// o tipo é estático como no C e as funções de módulo são `builtin_function_or_method` de `greenlet._greenlet`.
 #[test]
