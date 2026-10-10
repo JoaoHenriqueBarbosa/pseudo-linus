@@ -108,7 +108,15 @@ pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
             marker.value(*signal);
         }
     });
-    marker.defer_while(SIGNALS.with(|signals| !signals.borrow().is_empty()));
+}
+
+/// O estado de cada `AbortSignal` é campo do objeto: o `reason`, os dependentes e as origens vivem com ele.
+pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: crate::runtime::gc::SidePhase) -> bool {
+    crate::runtime::gc::side_table(&SIGNALS, marker, phase, |state, out| {
+        out.push(state.reason);
+        out.extend_from_slice(&state.dependents);
+        out.extend_from_slice(&state.sources);
+    })
 }
 
 pub(crate) fn reset_for_program() {

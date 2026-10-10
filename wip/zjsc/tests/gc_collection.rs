@@ -267,6 +267,22 @@ fn stack_overflow_in_generators_takes_the_text_path() {
     assert_eq!(stressed(program), "false,false,false,true");
 }
 
+/// As tabelas laterais por célula (o estado que no C++ é campo do objeto) seguram o que o objeto segura e saem
+/// com ele: `URL.searchParams`, `Request.headers` e `signal`, `Response.headers`, o `reason` e as origens de um
+/// `AbortSignal.any`. Sem adiar a coleta: o laço solta células enquanto elas existem.
+#[test]
+fn side_tables_follow_their_objects() {
+    let program = format!("{CHURN} var u = new URL('http://a/?x=1'); u.searchParams.append('y', '2');
+        var c = new AbortController(); var q = new Request('http://a/', {{ headers: {{ k: 'v' }}, signal: c.signal }});
+        var r = new Response('b', {{ headers: {{ z: 'w' }} }}); var any = AbortSignal.any([c.signal]); c.abort({{ why: 'w' }});
+        for (var i = 0; i < 20; i++) {{ new URL('http://t/' + i); new Request('http://t/'); new Response('x'); }}
+        churn();
+        R = [u.search, q.headers.get('k'), q.signal.aborted, r.headers.get('z'), any.reason.why].join();");
+    let freed_before = gc::statistics().freed_cells;
+    assert_eq!(stressed(&program), "?x=1&y=2,v,true,w,w");
+    assert!(gc::statistics().freed_cells > freed_before, "as tabelas laterais ainda adiam a coleta");
+}
+
 /// Cada tipo de dono sozinho, para a lápide apontar a aresta que falta.
 fn survives(setup: &str, step: &str, check: &str, expected: &str) {
     let program = format!("{setup}; for (let i = 0; i < 250000; i++) {{ const g = {{ i: i }}; if (i % 1000 === 0) {{ {step}; }} }} String({check})");

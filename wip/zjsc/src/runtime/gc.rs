@@ -128,6 +128,65 @@ thread_local! {
     static HOST_ROOTS: std::cell::RefCell<Vec<fn(&mut Marker)>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
+/// As tabelas laterais por célula dos módulos do host (ver `side_table`).
+fn visit_side_tables(marker: &mut Marker, phase: SidePhase) -> bool {
+    use crate::runtime as rt;
+    let mut progressed = false;
+    for visit in [rt::url::visit_side_table, rt::request::visit_side_table, rt::response::visit_side_table, rt::abort_signal::visit_side_table] {
+        progressed |= visit(marker, phase);
+    }
+    progressed
+}
+
+/// A fase de uma tabela lateral por célula na coleta.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SidePhase {
+    /// O ponto fixo dos efêmeros: o estado de objeto marcado marca o que segura.
+    Mark,
+    /// Antes da varredura: o estado do objeto que vai ser solto sai com ele.
+    Sweep,
+}
+
+/// Uma tabela lateral por célula (o estado que no C++ é campo do próprio objeto: o `URL` do `DOMURL`, o
+/// `AbortSignal`, o `Request`): a entrada vive enquanto o objeto da chave vive, e o que ela segura é filho dele.
+/// `children` põe em `out` os valores que o estado segura. Na fase `Mark` devolve se marcou algo novo.
+pub(crate) fn side_table<S>(
+    table: &'static std::thread::LocalKey<std::cell::RefCell<HashMap<crate::runtime::js_value::EncodedJSValue, S>>>,
+    marker: &mut Marker,
+    phase: SidePhase,
+    children: impl Fn(&S, &mut Vec<JSValue>),
+) -> bool {
+    let key_doomed = |marker: &Marker, key: i64| matches!(JSValue::decode(key), JSValue::Cell(cell_id) if marker.is_doomed(cell_id));
+    if phase == SidePhase::Sweep {
+        table.with(|table| {
+            if let Ok(mut table) = table.try_borrow_mut() {
+                table.retain(|key, _| !key_doomed(marker, *key));
+            }
+        });
+        return false;
+    }
+    let mut values = Vec::new();
+    match table.with(|table| {
+        table.try_borrow().map(|table| table.iter().filter(|(key, _)| !key_doomed(marker, **key)).for_each(|(_, state)| children(state, &mut values)))
+    }) {
+        Ok(()) => {}
+        Err(_) => {
+            marker.abort();
+            return false;
+        }
+    }
+    let mut progressed = false;
+    for value in values {
+        if let JSValue::Cell(cell_id) = value {
+            if marker.is_doomed(cell_id) {
+                marker.cell(cell_id);
+                progressed = true;
+            }
+        }
+    }
+    progressed
+}
+
 /// O gancho do embedder (o ul-chromium registra o estado do DOM aqui): a função marca com `Marker::value`/`cell` o
 /// que o host segura e adia a coleta com `Marker::defer_while` para o que ainda não sabe percorrer.
 pub fn register_host_roots(visit: fn(&mut Marker)) {
@@ -464,6 +523,7 @@ fn mark_and_sweep(
         marker.deferred_weak.splice(0..0, deferred);
         // As tabelas laterais por célula (o estado da pilha V8) são efêmeros do mesmo jeito.
         progressed |= crate::runtime::v8_stack::visit_ephemerons(&mut marker);
+        progressed |= visit_side_tables(&mut marker, SidePhase::Mark);
         if !progressed {
             break;
         }
@@ -474,6 +534,7 @@ fn mark_and_sweep(
     // `finalizeUnconditionally` das células fracas, antes da varredura (as lápides ainda são células).
     let mut registries_to_clean = Vec::new();
     crate::runtime::v8_stack::remove_dead(&marker);
+    visit_side_tables(&mut marker, SidePhase::Sweep);
     for entry in &marker.deferred_weak {
         match entry {
             CellEntry::WeakMap(map) => map.table().borrow_mut().remove_dead_keys(&marker),

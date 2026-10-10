@@ -101,7 +101,14 @@ thread_local! {
 /// As raízes do coletor: o protótipo; o estado dos pedidos guarda valores e adia a coleta enquanto existir.
 pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
     marker.value(REQUEST_PROTOTYPE.with(|prototype| *prototype.borrow()));
-    marker.defer_while(INSTANCES.with(|instances| !instances.borrow().is_empty()));
+}
+
+/// O estado de cada `Request` é campo do objeto: `headers`, `signal` e o stream do corpo vivem com ele.
+pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: crate::runtime::gc::SidePhase) -> bool {
+    crate::runtime::gc::side_table(&INSTANCES, marker, phase, |state, out| {
+        out.extend([state.headers, state.signal]);
+        out.extend(state.body.as_ref().and_then(|body| body.stream));
+    })
 }
 
 pub(crate) fn reset_for_program() {

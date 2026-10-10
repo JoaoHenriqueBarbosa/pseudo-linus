@@ -82,8 +82,7 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o que foi guardado é do programa.
-/// As raízes do coletor: o protótipo e os donos dos `searchParams`; o estado das URLs guarda valores e adia a coleta
-/// enquanto existir.
+/// As raízes do coletor: o protótipo e os donos dos `searchParams`.
 pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
     marker.value(PROTOTYPE.with(|prototype| *prototype.borrow()));
     PARAM_OWNERS.with(|owners| {
@@ -92,7 +91,11 @@ pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
             marker.value(*owner);
         }
     });
-    marker.defer_while(URLS.with(|urls| !urls.borrow().is_empty()));
+}
+
+/// O estado de cada `URL` é campo do objeto: o `searchParams` vive com ele.
+pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: crate::runtime::gc::SidePhase) -> bool {
+    crate::runtime::gc::side_table(&URLS, marker, phase, |state, out| out.extend(state.search_params))
 }
 
 pub(crate) fn reset_for_program() {
