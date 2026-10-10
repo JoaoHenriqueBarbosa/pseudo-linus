@@ -1,0 +1,109 @@
+<!doctype html><body><script>
+// Render em framebuffer do WebGL no oráculo (ANGLE sobre SwiftShader): cada cena desenha num FBO de 24x24 (textura
+// RGBA8 ou renderbuffer) e guarda o readPixels do FBO (RGBA, de baixo para cima) em base64; as cenas `*-sampled`
+// amostram a textura renderizada no buffer padrão. Rodar com `chromium --headless --disable-gpu --dump-dom`; o
+// resultado sai no atributo data-out do body.
+const W = 24, H = 24;
+const b64 = (u8) => { let s = ''; for (const b of u8) s += String.fromCharCode(b); return btoa(s); };
+const VS = 'attribute vec3 p; attribute vec4 c; varying vec4 v; uniform float size; void main() { v = c; gl_PointSize = size; gl_Position = vec4(p, 1.0); }';
+const FS = 'precision mediump float; varying vec4 v; void main() { gl_FragColor = v; }';
+const FS_COORD = 'precision mediump float; varying vec4 v; void main() { gl_FragColor = vec4(fract(gl_FragCoord.xy / 8.0), gl_FrontFacing ? 1.0 : 0.0, 1.0); }';
+const FS_DERIV = '#extension GL_OES_standard_derivatives : enable\nprecision mediump float; varying vec4 v; void main() { gl_FragColor = vec4(0.5 + 8.0 * dFdx(v.r), 0.5 + 8.0 * dFdy(v.g), 0.5 + 4.0 * dFdy(gl_FragCoord.y) / 8.0, 1.0); }';
+const FS_POINT = 'precision mediump float; varying vec4 v; void main() { gl_FragColor = vec4(gl_PointCoord, 0.0, 1.0); }';
+const FS_SAMPLE = 'precision mediump float; varying vec4 v; uniform sampler2D t; void main() { gl_FragColor = texture2D(t, v.xy); }';
+const at = (x, y) => [(x / W) * 2 - 1, (y / H) * 2 - 1, 0];
+const tri = [-0.8, -0.8, 0, 0.8, -0.8, 0, 0, 0.8, 0];
+const quad = [-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0];
+const scenes = {
+  'fbo-triangle': (gl, d) => d.draw(tri, [[1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1]], gl.TRIANGLES),
+  'fbo-edges': (gl, d) => { d.draw([at(0, 0), at(12, 0), at(0, 12)].flat(), [[1, 1, 1, 1]], gl.TRIANGLES); d.draw([at(12, 12), at(24, 12), at(12, 24)].flat(), [[1, 0.5, 0, 1]], gl.TRIANGLES); d.draw([at(3, 15), at(9, 15), at(9, 21), at(3, 15), at(9, 21), at(3, 21)].flat(), [[0, 1, 1, 1]], gl.TRIANGLES); },
+  'fbo-fractional': (gl, d) => d.draw([-0.33, -0.71, 0, 0.9, -0.12, 0, 0.17, 0.83, 0], [[0.9, 0.5, 0.1, 1]], gl.TRIANGLES),
+  'fbo-fragcoord-facing': (gl, d) => { d.draw(tri, [[0, 0, 0, 1]], gl.TRIANGLES, 1, FS_COORD); d.draw([-0.9, 0.9, 0, 0.9, 0.9, 0, 0, 0.1, 0], [[0, 0, 0, 1]], gl.TRIANGLES, 1, FS_COORD); },
+  'fbo-cull-back': (gl, d) => { gl.enable(gl.CULL_FACE); d.draw(tri, [[1, 0, 1, 1]], gl.TRIANGLES); d.draw([-0.8, 0.8, 0, 0.8, 0.8, 0, 0, -0.8, 0], [[0, 1, 1, 1]], gl.TRIANGLES); },
+  'fbo-derivatives': (gl, d) => d.draw([at(1, 1), at(23, 3), at(4, 22)].flat(), [[0, 0, 0, 1], [1, 0, 0, 1], [0, 1, 0, 1]], gl.TRIANGLES, 1, FS_DERIV),
+  'fbo-points': (gl, d) => d.draw([at(5.0, 3.0), at(12.3, 4.7), at(18.5, 18.5), at(6.25, 15.75)].flat(), [[1, 1, 1, 1]], gl.POINTS, 6, FS_POINT),
+  'fbo-lines': (gl, d) => d.draw([at(1.5, 4.5), at(22.5, 18.5), at(2.5, 20.5), at(20.5, 2.5), at(2, 9.5), at(20, 9.5)].flat(), [[1, 0, 0, 1], [0, 0, 1, 1], [0, 1, 0, 1], [1, 0, 0, 1], [1, 1, 0, 1]], gl.LINES),
+  'fbo-scissor-viewport': (gl, d) => { gl.viewport(2, 5, 17, 13); gl.enable(gl.SCISSOR_TEST); gl.scissor(4, 3, 12, 11); d.draw(quad, [[0.2, 0.6, 0.9, 1]], gl.TRIANGLES); },
+  'fbo-clear': (gl) => { gl.clearColor(0.2, 0.4, 0.6, 0.8); gl.clear(gl.COLOR_BUFFER_BIT); gl.enable(gl.SCISSOR_TEST); gl.scissor(3, 7, 9, 5); gl.clearColor(1, 0.5, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); },
+  'fbo-blend': (gl, d) => { gl.clearColor(0.1, 0.2, 0.3, 1); gl.clear(gl.COLOR_BUFFER_BIT); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); d.draw(tri, [[1, 0, 0, 0.5]], gl.TRIANGLES); },
+};
+// Cenas com profundidade e estêncil em renderbuffer.
+const depthScenes = {
+  'fbo-depth-stencil': (gl, d) => {
+    gl.enable(gl.DEPTH_TEST); gl.enable(gl.STENCIL_TEST); gl.clear(gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+    gl.stencilFunc(gl.ALWAYS, 1, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+    d.draw([-0.9, -0.9, 0.5, 0.9, -0.9, 0.5, 0, 0.9, 0.5], [[1, 0, 0, 1]], gl.TRIANGLES);
+    gl.stencilFunc(gl.EQUAL, 1, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+    d.draw([-0.9, 0.9, 0.2, 0.9, 0.9, 0.2, 0, -0.9, 0.8], [[0, 0, 1, 1]], gl.TRIANGLES);
+  },
+};
+const out = {};
+const run = (name, fn, kind) => {
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const gl = canvas.getContext('webgl', { antialias: false, preserveDrawingBuffer: true });
+  gl.getExtension('OES_standard_derivatives');
+  const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
+  const programs = new Map();
+  const program = (fs) => {
+    if (!programs.has(fs)) {
+      const prog = gl.createProgram();
+      gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
+      gl.bindAttribLocation(prog, 0, 'p'); gl.bindAttribLocation(prog, 1, 'c'); gl.linkProgram(prog);
+      programs.set(fs, prog);
+    }
+    return programs.get(fs);
+  };
+  const vb = gl.createBuffer(), cb = gl.createBuffer();
+  const d = {
+    draw(pos, colors, mode, size = 1, fs = FS) {
+      const n = pos.length / 3, prog = program(fs);
+      gl.useProgram(prog); gl.uniform1f(gl.getUniformLocation(prog, 'size'), size);
+      gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pos), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, cb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Array.from({ length: n }, (_, i) => colors[Math.min(i, colors.length - 1)]).flat()), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(mode, 0, n);
+    },
+  };
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  let tex = null;
+  if (kind === 'renderbuffer' || kind === 'depth') {
+    const rb = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, rb); gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, W, H);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+    if (kind === 'depth') {
+      const ds = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, ds); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, W, H);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, ds);
+    }
+  } else {
+    tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+  }
+  out[name + ':status'] = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+  gl.viewport(0, 0, W, H);
+  gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  fn(gl, d);
+  const px = new Uint8Array(W * H * 4);
+  gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  out[name] = b64(px);
+  if (tex) {
+    // A textura renderizada, amostrada num quadro cheio do buffer padrão (texel a texel, NEAREST).
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.disable(gl.SCISSOR_TEST); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE); gl.viewport(0, 0, W, H);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    d.draw(quad, [[0, 0, 0, 1], [1, 0, 0, 1], [0, 1, 0, 1], [0, 1, 0, 1], [1, 0, 0, 1], [1, 1, 0, 1]], gl.TRIANGLES, 1, FS_SAMPLE);
+    const back = new Uint8Array(W * H * 4);
+    gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, back);
+    out[name + '-sampled'] = b64(back);
+  }
+};
+for (const [name, fn] of Object.entries(scenes)) run(name, fn, 'texture');
+run('rb-triangle', scenes['fbo-triangle'], 'renderbuffer');
+run('rb-clear', scenes['fbo-clear'], 'renderbuffer');
+for (const [name, fn] of Object.entries(depthScenes)) run(name, fn, 'depth');
+document.body.setAttribute('data-out', JSON.stringify(out));
+</script></body>

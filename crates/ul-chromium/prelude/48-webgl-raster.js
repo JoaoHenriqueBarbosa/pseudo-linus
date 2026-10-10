@@ -21,10 +21,72 @@ const glTarget = (s) => {
   if (!t || t.width !== w || t.height !== h) {
     const samples = s.attrs.antialias ? SAMPLES_4X : SAMPLES_1X;
     const n = samples.length;
-    t = s.target = { width: w, height: h, samples, color: new Uint8Array(w * h * 4 * n), depth: s.attrs.depth ? new Float32Array(w * h * n).fill(1) : null, stencil: s.attrs.stencil ? new Uint8Array(w * h * n) : null, resolved: null };
+    t = s.target = { width: w, height: h, samples, color: new Uint8Array(w * h * 4 * n), depth: s.attrs.depth ? new Float32Array(w * h * n).fill(1) : null, stencil: s.attrs.stencil ? new Uint8Array(w * h * n) : null, resolved: null, max: BITS_8_MAX, alpha: s.attrs.alpha };
     glDropQueue(s);
   }
   return t;
+};
+
+// ---- Framebuffers. O SwiftShader guarda cada formato com os bits dele (RGBA4 lido de volta dá múltiplos de 17), e o
+// ANGLE não inverte o y fora do buffer padrão: o alvo de um framebuffer guarda as linhas espelhadas (a de cima do GL
+// primeiro, como o renderbuffer) e o desenho entra espelhado, para o espaço do Vulkan do rasterizador coincidir com o
+// do GL.
+const BITS_8_MAX = [255, 255, 255, 255];
+const GL_COLOR_BITS = { RGBA4: [4, 4, 4, 4], RGB5_A1: [5, 5, 5, 1], RGB565: [5, 6, 5, 0], RGBA8: [8, 8, 8, 8], RGB8: [8, 8, 8, 0] };
+// Um valor de `bits` bits expandido para 8, como a conversão de leitura do ANGLE.
+const expandTo8 = (q, bits) => (bits === 8 ? q : bits === 0 ? 255 : bits === 1 ? q * 255 : bits === 4 ? q * 17 : (q << (8 - bits)) | (q >> (2 * bits - 8)));
+// O alvo de um framebuffer completo a partir dos anexos fotografados no comando, ou `null` se o formato de cor ainda
+// não tem caminho de escrita (cor em ponto flutuante).
+const glFramebufferTarget = (attachments) => {
+  const att = (...names) => names.map((n) => attachments.get(GL[n])).find(Boolean);
+  const color = att('COLOR_ATTACHMENT0'), depth = att('DEPTH_ATTACHMENT', 'DEPTH_STENCIL_ATTACHMENT'), stencil = att('STENCIL_ATTACHMENT', 'DEPTH_STENCIL_ATTACHMENT');
+  const any = color || depth || stencil, first = objOf(any.object);
+  const [w, h] = first.size || first.levels.get(any.level);
+  const t = { width: w, height: h, samples: SAMPLES_1X, upright: true, color: null, depth: null, stencil: null, max: BITS_8_MAX, alpha: true, bits: [8, 8, 8, 8], image: null };
+  if (color) {
+    const o = objOf(color.object);
+    if (o.size) {
+      const bits = GL_COLOR_BITS[o.formatName] || [8, 8, 8, 8];
+      Object.assign(t, { color: o.color, bits, max: bits.map((b) => (b ? (1 << b) - 1 : 255)), alpha: bits[3] > 0 });
+    } else {
+      const img = o.images.get(texImageKey(texFace(color.textarget), color.level));
+      if (img.fmt.kind !== 'unorm' || img.fmt.depth) return null;
+      const bits = [0, 1, 2, 3].map((c) => (c < img.fmt.comps && !(img.fmt.alphaOne && c === 3) ? img.fmt.bits[c] : 0));
+      Object.assign(t, { image: img, color: new Uint8Array(w * h * 4), bits, max: bits.map((b) => (b ? (1 << b) - 1 : 255)), alpha: bits[3] > 0 });
+      const n = img.fmt.comps;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 4; c++) {
+        t.color[((h - 1 - y) * w + x) * 4 + c] = bits[c] ? img.data[(y * w + x) * n + c] >> (16 - bits[c]) : 255;
+      }
+    }
+  }
+  if (depth) t.depth = objOf(depth.object).depth;
+  if (stencil) t.stencil = objOf(stencil.object).stencil;
+  return t;
+};
+// Devolve a cor do alvo à textura anexada.
+const glStoreTarget = (t) => {
+  const img = t.image, n = img.fmt.comps, { width: w, height: h } = t;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < n; c++) {
+    if (t.bits[c]) img.data[(y * w + x) * n + c] = (t.color[((h - 1 - y) * w + x) * 4 + c] << (16 - t.bits[c])) & 0xffff;
+  }
+};
+// O readPixels de um framebuffer: roda a fila e devolve RGBA de 8 bits com a linha 0 embaixo.
+const glReadFramebuffer = (s, f) => {
+  glFlush(s);
+  const t = glFramebufferTarget(f.attachments);
+  if (!t || !t.color) return null;
+  const { width: w, height: h } = t, pixels = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 4; c++) pixels[(y * w + x) * 4 + c] = expandTo8(t.color[((h - 1 - y) * w + x) * 4 + c], t.bits[c]);
+  return { pixels, width: w, height: h };
+};
+// A fotografia do framebuffer de desenho no comando, com a imagem de cor fixada.
+const glDrawFramebuffer = (s) => {
+  const fb = s.params.get('DRAW_FRAMEBUFFER_BINDING');
+  if (!fb) return null;
+  const attachments = new Map(objOf(fb).attachments);
+  const color = attachments.get(GL.COLOR_ATTACHMENT0);
+  if (color && color.level !== undefined) glPin(s, objOf(color.object).images.get(texImageKey(texFace(color.textarget), color.level)));
+  return { attachments };
 };
 
 // O valor que um parâmetro tinha quando o comando entrou na fila.
@@ -40,9 +102,10 @@ const glBeforeWrite = (s, o) => { if (o && o.pinned && o.pinned.length) glFlush(
 
 const glEnqueue = (s, entry) => {
   glTarget(s);
-  if (entry.kind === 'clear' && glClearsAll(s, entry)) glDropQueue(s);
+  // Um clear inteiro do buffer padrão apaga o que estava na fila, desde que nada dela vá para um framebuffer.
+  if (entry.kind === 'clear' && !entry.fb && glClearsAll(s, entry) && s.queue.every((e) => !e.fb)) glDropQueue(s);
   s.queue.push(entry);
-  s.target.resolved = null;
+  if (!entry.fb) s.target.resolved = null;
 };
 const glClearsAll = (s, entry) => {
   const p = entry.params;
@@ -53,7 +116,7 @@ const glClearsAll = (s, entry) => {
   return true;
 };
 
-const glQueueClear = (s, mask) => glEnqueue(s, { kind: 'clear', mask, params: glSnapshot(s) });
+const glQueueClear = (s, mask) => glEnqueue(s, { kind: 'clear', mask, params: glSnapshot(s), fb: glDrawFramebuffer(s) });
 
 const glQueueDraw = (ctx, mode, first, count, instances, elements) => {
   const s = glState(ctx);
@@ -61,7 +124,7 @@ const glQueueDraw = (ctx, mode, first, count, instances, elements) => {
   const attribs = s.vao.attribs.map((a) => { const b = a.buffer && objOf(a.buffer); glPin(s, b); return { ...a, data: b ? b.data : null }; });
   if (elements) glPin(s, elements.buffer);
   glEnqueue(s, {
-    kind: 'draw', mode, first, count, instances, params: glSnapshot(s),
+    kind: 'draw', mode, first, count, instances, params: glSnapshot(s), fb: glDrawFramebuffer(s),
     program: { sources: program.sources, attribs: program.attribs, uniforms: program.uniforms, values: new Map(program.uniformValues), cache: program },
     attribs, current: s.current.slice(), textures: glTextureSnapshot(s),
     elements: elements ? { data: elements.buffer.data, type: elements.type, offset: elements.offset } : null,
@@ -72,7 +135,12 @@ const glQueueDraw = (ctx, mode, first, count, instances, elements) => {
 const glFlush = (s) => {
   const t = glTarget(s);
   if (s.queue.length) {
-    for (const entry of s.queue) (entry.kind === 'clear' ? glRunClear : glRunDraw)(s, t, entry);
+    for (const entry of s.queue) {
+      const target = entry.fb ? glFramebufferTarget(entry.fb.attachments) : t;
+      if (!target) continue;
+      (entry.kind === 'clear' ? glRunClear : glRunDraw)(s, target, entry);
+      if (target.image) glStoreTarget(target);
+    }
     glDropQueue(s);
     t.resolved = null;
   }
@@ -80,21 +148,24 @@ const glFlush = (s) => {
   return t.resolved;
 };
 
-// `float` para 8 bits como o SwiftShader: o produto por 255 em binário32, arredondado ao par mais próximo (0,3 vira
-// 76,5 e sai 76; 0,1 vira 25,5 e sai 26).
-const unorm8 = (c) => (c >= 1 ? 255 : c > 0 ? roundEven(fr(c * 255)) : 0);
-// O clear vai pelo fastClear do Blitter: (255 * c + 0,5) truncado, em binário32 (0,7 vira 178,5 e sai 179).
-const unorm8Clear = (c) => (c >= 1 ? 255 : c > 0 ? Math.trunc(fr(fr(c * 255) + 0.5)) : 0);
+// `float` para `max` (2^bits - 1) como o SwiftShader: o produto em binário32, arredondado ao par mais próximo (0,3 vira
+// 76,5 em 8 bits e sai 76; 0,1 vira 25,5 e sai 26).
+const unormN = (c, max) => (c >= 1 ? max : c > 0 ? roundEven(fr(c * max)) : 0);
+// O clear vai pelo fastClear do Blitter: (max * c + 0,5) truncado, em binário32 (0,7 vira 178,5 e sai 179).
+const unormClear = (c, max) => (c >= 1 ? max : c > 0 ? Math.trunc(fr(fr(c * max) + 0.5)) : 0);
+// As linhas [y0, y1) de um retângulo do GL no alvo (espelhadas num framebuffer).
+const glRows = (t, y0, y1) => (t.upright ? [t.height - y1, t.height - y0] : [y0, y1]);
 
 const glRunClear = (s, t, entry) => {
   const p = entry.params;
   let [x0, y0, x1, y1] = [0, 0, t.width, t.height];
   if (p.get('SCISSOR_TEST')) { const b = p.get('SCISSOR_BOX'); x0 = Math.max(0, b[0]); y0 = Math.max(0, b[1]); x1 = Math.min(t.width, b[0] + b[2]); y1 = Math.min(t.height, b[1] + b[3]); }
+  [y0, y1] = glRows(t, y0, y1);
   const n = t.samples.length;
-  if (entry.mask & GL.COLOR_BUFFER_BIT) {
+  if (t.color && entry.mask & GL.COLOR_BUFFER_BIT) {
     const color = p.get('COLOR_CLEAR_VALUE');
     const mask = p.get('COLOR_WRITEMASK');
-    const bytes = Array.from(color, (c, i) => (i === 3 && !s.attrs.alpha ? 255 : unorm8Clear(c)));
+    const bytes = Array.from(color, (c, i) => (i === 3 && !t.alpha ? t.max[3] : unormClear(c, t.max[i])));
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) for (let k = 0; k < n; k++) { const i = ((y * t.width + x) * n + k) * 4; for (let c = 0; c < 4; c++) if (mask[c]) t.color[i + c] = bytes[c]; }
   }
   if (t.depth && entry.mask & GL.DEPTH_BUFFER_BIT && p.get('DEPTH_WRITEMASK')) {
@@ -195,7 +266,16 @@ const glFetchAttrib = (a, current, vertex, instance) => {
 };
 
 // ---- Desenho.
-const glRunDraw = (s, t, entry) => {
+// O comando visto no alvo espelhado de um framebuffer: tesoura refletida e a face da frente trocada (o Y de janela
+// reflete em glWindow e as linhas do viewport em glRasterTriangle).
+const glMirrored = (entry, height) => {
+  const p = new Map(entry.params), box = p.get('SCISSOR_BOX');
+  p.set('SCISSOR_BOX', [box[0], height - box[1] - box[3], box[2], box[3]]);
+  p.set('FRONT_FACE', p.get('FRONT_FACE') === GL.CCW ? GL.CW : GL.CCW);
+  return { ...entry, params: p };
+};
+const glRunDraw = (s, t, original) => {
+  const entry = t.upright ? glMirrored(original, t.height) : original;
   let stages;
   try { stages = glProgramStages(entry); } catch (error) { if (error instanceof GlslCompileError) return; throw error; }
   const { vs, fs, varyings } = stages;
@@ -205,6 +285,7 @@ const glRunDraw = (s, t, entry) => {
   const inputs = entry.program.attribs.map((a) => ({ slot: vs.globals.get(a.name)?.slot, location: a.location, t: vs.globals.get(a.name)?.t })).filter((a) => a.slot !== undefined);
   const posSlot = vs.globals.get('gl_Position').slot, idSlot = vs.globals.get('gl_VertexID').slot, instSlot = vs.globals.get('gl_InstanceID').slot, sizeSlot = vs.globals.get('gl_PointSize').slot;
   const rt = glRuntime(entry, 'fragment'), vrt = glRuntime(entry, 'vertex');
+  rt.upright = !!t.upright;
   const indices = glIndices(entry);
   for (let instance = 0; instance < entry.instances; instance++) {
     const cache = new Map();
@@ -280,8 +361,10 @@ const glClip = (verts) => {
 const glLerp = (a, b, k) => (Array.isArray(a) ? a.map((x, i) => glLerp(x, b[i], k)) : typeof a === 'number' ? fr(a + (b - a) * k) : a);
 
 const SUBPIXEL = 16;
-// A janela como o SetupRoutine do SwiftShader: X = RoundInt(X0xF + x * rhw * WxF), em 1/16 de pixel e binário32.
-const glWindow = (p) => {
+// A janela como o SetupRoutine do SwiftShader: X = RoundInt(X0xF + x * rhw * WxF), em 1/16 de pixel e binário32. Num
+// framebuffer (`mirror` é a altura do alvo), o Y arredondado reflete nas linhas espelhadas do alvo; a posição de
+// recorte, que decide a rotação do setup, fica a do GL.
+const glWindow = (p, mirror) => {
   const vp = p.get('VIEWPORT'), range = p.get('DEPTH_RANGE');
   const halfW = fr(vp[2] / 2), halfH = fr(vp[3] / 2);
   const X0xF = fr(fr(vp[0] + halfW) * SUBPIXEL), Y0xF = fr(fr(vp[1] + halfH) * SUBPIXEL), WxF = fr(halfW * SUBPIXEL), HxF = fr(halfH * SUBPIXEL);
@@ -289,7 +372,8 @@ const glWindow = (p) => {
   return (v) => {
     const w = v.pos[3];
     const rhw = w !== 0 ? fr(1 / w) : 1;
-    const X = Math.round(fr(X0xF + fr(fr(v.pos[0] * rhw) * WxF))), Y = Math.round(fr(Y0xF + fr(fr(v.pos[1] * rhw) * HxF)));
+    const X = Math.round(fr(X0xF + fr(fr(v.pos[0] * rhw) * WxF))), Yg = Math.round(fr(Y0xF + fr(fr(v.pos[1] * rhw) * HxF)));
+    const Y = mirror ? mirror * SUBPIXEL - Yg : Yg;
     return { X, Y, x: X / SUBPIXEL, y: Y / SUBPIXEL, w, rhw, cy: v.pos[1], z: fr(fr(fr(v.pos[2] * rhw) * zScale) + zBias), vary: v.vary };
   };
 };
@@ -299,7 +383,7 @@ const glTriangle = (s, t, entry, stages, fsGlobals, fsMain, verts, rt, provoking
   const tagged = verts.map((v, i) => ({ pos: v.pos, vary: v.vary, weights: [i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0] }));
   const poly = glClip(tagged);
   if (poly.length < 3) return;
-  const win = poly.map(glWindow(p));
+  const win = poly.map(glWindow(p, t.upright && t.height));
   for (let i = 1; i + 1 < win.length; i++) glRasterTriangle(s, t, entry, stages, fsGlobals, fsMain, [win[0], win[i], win[i + 1]], provoking, rt);
 };
 
@@ -317,11 +401,15 @@ const glPoint = (s, t, entry, stages, fsGlobals, fsMain, v, rt) => {
   if (!(v.pos[3] > 0) || v.pos[2] < -v.pos[3] || v.pos[2] > v.pos[3]) return;
   const range = p.get('ALIASED_POINT_SIZE_RANGE');
   const size = Math.min(Math.max(v.size ?? 1, range[0]), range[1]);
-  const c = glWindow(p)(v), half = Math.round(fr(size * SUBPIXEL) / 2);
-  const x0 = fr(c.x - fr(size / 2)), y1 = fr(c.y + fr(size / 2));
+  const c = glWindow(p, t.upright && t.height)(v), half = Math.round(fr(size * SUBPIXEL) / 2);
+  // A origem de gl_PointCoord fica em cima no sentido do GL também num framebuffer (linhas espelhadas no alvo).
+  const x0 = fr(c.x - fr(size / 2)), y0 = fr(c.y - fr(size / 2)), y1 = fr(c.y + fr(size / 2)), rcp = fr(1 / size);
+  // O desempate do ponto é fixo no GL (entram as bordas esquerda e de baixo, no buffer padrão e num framebuffer):
+  // nas linhas espelhadas do framebuffer, a borda horizontal aceita é a outra. gl_PointCoord multiplica pelo recíproco
+  // do tamanho (1/6 arredonda para cima e 5/6 sai acima de 212,5/255).
   const prim = {
-    z: () => c.z, rhw: () => c.rhw, vary: (i) => glslClone(c.vary[i]),
-    coord: (x, y) => [fr(fr(fr(x + 0.5) - x0) / size), fr(fr(y1 - fr(y + 0.5)) / size)],
+    z: () => c.z, rhw: () => c.rhw, vary: (i) => glslClone(c.vary[i]), flipTies: !!t.upright,
+    coord: (x, y) => [fr(fr(fr(x + 0.5) - x0) * rcp), t.upright ? fr(fr(fr(y + 0.5) - y0) * rcp) : fr(fr(y1 - fr(y + 0.5)) * rcp)],
   };
   glRasterQuad(s, t, entry, stages, fsGlobals, fsMain, [glShifted(c, -half, -half), glShifted(c, half, -half), glShifted(c, half, half), glShifted(c, -half, half)], v, rt, prim);
 };
@@ -334,7 +422,7 @@ const glPoint = (s, t, entry, stages, fsGlobals, fsMain, v, rt) => {
 const glLine = (s, t, entry, stages, fsGlobals, fsMain, [P0, P1], provoking, rt) => {
   const p = entry.params;
   if (!(P0.pos[3] > 0) || !(P1.pos[3] > 0)) { glLineBehind(s, t, entry, stages, fsGlobals, fsMain, [P0, P1], provoking, rt); return; }
-  const toWindow = glWindow(p);
+  const toWindow = glWindow(p, t.upright && t.height);
   const [a, b] = [P0, P1].map(toWindow);
   const dX = b.X - a.X, dY = b.Y - a.Y;
   if (dX === 0 && dY === 0) return;
@@ -435,12 +523,12 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
   const edges = [0, 1, 2].map((i) => {
     const p0 = vk[order[i]], p1 = vk[order[(i + 1) % 3]];
     const dx = p1.x - p0.x, dy = p1.y - p0.y;
-    return { dx, dy, x0: p0.x, y0: p0.y, topLeft: dy < 0 || (dy === 0 && dx > 0) };
+    return { dx, dy, x0: p0.x, y0: p0.y, topLeft: dy < 0 || (dy === 0 && (prim && prim.flipTies ? dx < 0 : dx > 0)) };
   });
   let bx0 = Math.floor(Math.min(a.x, b.x, c.x)), bx1 = Math.ceil(Math.max(a.x, b.x, c.x));
   let by0 = Math.floor(Math.min(a.y, b.y, c.y)), by1 = Math.ceil(Math.max(a.y, b.y, c.y));
-  const vp = p.get('VIEWPORT');
-  bx0 = Math.max(bx0, 0, vp[0]); by0 = Math.max(by0, 0, vp[1]); bx1 = Math.min(bx1, t.width, vp[0] + vp[2]); by1 = Math.min(by1, t.height, vp[1] + vp[3]);
+  const vp = p.get('VIEWPORT'), [vy0, vy1] = glRows(t, vp[1], vp[1] + vp[3]);
+  bx0 = Math.max(bx0, 0, vp[0]); by0 = Math.max(by0, 0, vy0); bx1 = Math.min(bx1, t.width, vp[0] + vp[2]); by1 = Math.min(by1, t.height, vy1);
   if (p.get('SCISSOR_TEST')) { const sb = p.get('SCISSOR_BOX'); bx0 = Math.max(bx0, sb[0]); by0 = Math.max(by0, sb[1]); bx1 = Math.min(bx1, sb[0] + sb[2]); by1 = Math.min(by1, sb[1] + sb[3]); }
   const n = t.samples.length;
   // (x, y) em coordenadas do Vulkan.
@@ -495,7 +583,7 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
   const constant = p.get('BLEND_COLOR');
   const [srcRgb, dstRgb, srcA, dstA] = ['BLEND_SRC_RGB', 'BLEND_DST_RGB', 'BLEND_SRC_ALPHA', 'BLEND_DST_ALPHA'].map((k) => BLEND_FACTORS[p.get(k)]);
   const [eqRgb, eqA] = ['BLEND_EQUATION_RGB', 'BLEND_EQUATION_ALPHA'].map((k) => BLEND_EQUATIONS[p.get(k)]);
-  const alphaBits = s.attrs.alpha;
+  const alphaBits = t.alpha, max = t.max;
   // O sombreador de fragmento roda por quad de 2x2 pixels, como no SwiftShader, alinhado no espaço invertido do Vulkan:
   // as faixas 0 e 1 na linha de cima (em GL), 2 e 3 na de baixo. Quando o sombreador troca valores entre faixas
   // (derivadas, lod implícito), as faixas não cobertas rodam como auxiliares e as passadas se repetem até os valores
@@ -510,7 +598,7 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
     varyings.forEach((v, i) => {
       g[v.fs] = v.flat ? glslClone(provoking.vary[i]) : direct ? direct.vary(i, cx, cyw) : glslMapPlane(planes[i], (P) => fr(evalPlane(P, dx, dy) * wPix));
     });
-    g[coordSlot] = [cx, cyw, z, rhwPix];
+    g[coordSlot] = [cx, t.upright ? fr(t.height - cyw) : cyw, z, rhwPix];
     g[facingSlot] = front;
     if (prim) g[pointCoordSlot] = prim.coord(x, y);
     rt.discarded = false;
@@ -535,14 +623,14 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
       if (stencil) glStencilApply(t, stencil, si, stencil.zpass);
       const ci = si * 4;
       let rgba = src;
-      if (blend) {
-        const dst = [t.color[ci] / 255, t.color[ci + 1] / 255, t.color[ci + 2] / 255, alphaBits ? t.color[ci + 3] / 255 : 1];
+      if (blend && t.color) {
+        const dst = [t.color[ci] / max[0], t.color[ci + 1] / max[1], t.color[ci + 2] / max[2], alphaBits ? t.color[ci + 3] / max[3] : 1];
         rgba = [0, 1, 2, 3].map((ch) => {
           const sf = (ch === 3 ? srcA : srcRgb)(src, dst, ch, constant), df = (ch === 3 ? dstA : dstRgb)(src, dst, ch, constant);
           return Math.min(1, Math.max(0, (ch === 3 ? eqA : eqRgb)(fr(src[ch] * sf), fr(dst[ch] * df), src[ch], dst[ch])));
         });
       }
-      for (let ch = 0; ch < 4; ch++) if (mask[ch]) t.color[ci + ch] = ch === 3 && !alphaBits ? 255 : unorm8(rgba[ch]);
+      if (t.color) for (let ch = 0; ch < 4; ch++) if (mask[ch]) t.color[ci + ch] = ch === 3 && !alphaBits ? max[3] : unormN(rgba[ch], max[ch]);
     }
   };
   for (let qv = (t.height - by1) & ~1; qv < t.height - by0; qv += 2) for (let qx = bx0 & ~1; qx < bx1; qx += 2) {
@@ -646,7 +734,8 @@ const glRuntime = (entry, stage) => {
     const lanes = share(v);
     const diff = (a, b) => (Array.isArray(a) ? a.map((x, i) => diff(x, b[i])) : fr(a - b));
     if (!lanes) return Array.isArray(v) ? v.map(() => 0) : 0;
-    return axis === 'x' ? diff(lanes[1], lanes[0]) : diff(lanes[0], lanes[2]);
+    // Em y, o ANGLE nega a derivada do buffer padrão (invertido); num framebuffer a faixa 2 já é a linha de cima.
+    return axis === 'x' ? diff(lanes[1], lanes[0]) : rt.upright ? diff(lanes[2], lanes[0]) : diff(lanes[0], lanes[2]);
   };
   return rt;
 };

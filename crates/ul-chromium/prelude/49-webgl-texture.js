@@ -325,7 +325,7 @@ const texUpload = (ctx, s, args) => {
     pixels = texUnpackOptions(s, texReadSource(s, data, w, h, d, format, type, source ? (offset || 0) * (source.BYTES_PER_ELEMENT || 1) : offset || 0), w, h, d, format, type);
   }
   let img = sub ? texWritable(s, t, face, level) : null;
-  if (!sub) { img = texNewImage(fmt, w, h, d); texSetImage(t, face, level, img); }
+  if (!sub) { glBeforeWrite(s, t.images && t.images.get(texImageKey(face, level))); img = texNewImage(fmt, w, h, d); texSetImage(t, face, level, img); }
   if (!img || !pixels) return;
   const store = texStorer(img.fmt, type), n = pixels.n;
   for (let z = 0; z < d; z++) for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) store(pixels.data, ((z * h + y) * w + x) * n, n, img.data, ((z0 + z) * img.h + y0 + y) * img.w + x0 + x);

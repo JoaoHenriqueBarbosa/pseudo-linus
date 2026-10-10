@@ -426,7 +426,7 @@ const drawArrays = (ctx, mode, first, count, instances) => {
   if (s.lost) return;
   if (!enumName(s, mode, DRAW_MODES)) { glError(ctx, GL.INVALID_ENUM); return; }
   if (first < 0 || count < 0 || instances < 0) { glError(ctx, GL.INVALID_VALUE); return; }
-  if (checkDraw(ctx, count ? first + count : 0, instances) && count && instances && !s.params.get('DRAW_FRAMEBUFFER_BINDING')) glQueueDraw(ctx, mode, first, count, instances, null);
+  if (checkDraw(ctx, count ? first + count : 0, instances) && count && instances) glQueueDraw(ctx, mode, first, count, instances, null);
 };
 // O maior índice lido do buffer de elementos decide quantos vértices cada atributo precisa cobrir.
 const drawElements = (ctx, mode, count, type, offset, instances) => {
@@ -444,7 +444,7 @@ const drawElements = (ctx, mode, count, type, offset, instances) => {
   const view = new DataView(data.buffer, data.byteOffset + offset, count * size);
   let max = -1;
   for (let i = 0; i < count; i++) { const v = size === 1 ? view.getUint8(i) : size === 2 ? view.getUint16(i * 2, true) : view.getUint32(i * 4, true); if (v > max) max = v; }
-  if (checkDraw(ctx, max + 1, instances) && count && instances && !s.params.get('DRAW_FRAMEBUFFER_BINDING')) glQueueDraw(ctx, mode, 0, count, instances, { buffer: objOf(element), type, offset });
+  if (checkDraw(ctx, max + 1, instances) && count && instances) glQueueDraw(ctx, mode, 0, count, instances, { buffer: objOf(element), type, offset });
 };
 const TYPE_BYTES = { [GL.BYTE]: 1, [GL.UNSIGNED_BYTE]: 1, [GL.SHORT]: 2, [GL.UNSIGNED_SHORT]: 2, [GL.INT]: 4, [GL.UNSIGNED_INT]: 4, [GL.FLOAT]: 4, [GL.HALF_FLOAT]: 2, [GL.INT_2_10_10_10_REV]: 4, [GL.UNSIGNED_INT_2_10_10_10_REV]: 4 };
 // Validação do Chromium antes do desenho: programa ligado e cada atributo ativo habilitado com buffer que cobre os
@@ -456,6 +456,8 @@ const checkDraw = (ctx, vertices, instances = 1) => {
   if (ref(s.params.get('STENCIL_REF')) !== ref(s.params.get('STENCIL_BACK_REF')) || ((s.params.get('STENCIL_VALUE_MASK') ^ s.params.get('STENCIL_BACK_VALUE_MASK')) & max) || ((s.params.get('STENCIL_WRITEMASK') ^ s.params.get('STENCIL_BACK_WRITEMASK')) & max)) { glError(ctx, GL.INVALID_OPERATION); return false; }
   const program = s.params.get('CURRENT_PROGRAM');
   if (!program || !objOf(program).linked) { glError(ctx, GL.INVALID_OPERATION); return false; }
+  const fb = s.params.get('DRAW_FRAMEBUFFER_BINDING');
+  if (fb && framebufferStatus(s, fb) !== GL.FRAMEBUFFER_COMPLETE) { glError(ctx, GL.INVALID_FRAMEBUFFER_OPERATION); return false; }
   for (const active of objOf(program).attribs) {
     const a = s.vao.attribs[active.location];
     if (!a || !a.enabled) continue;
@@ -1079,7 +1081,7 @@ const glMethods = {
     if (mask & ~(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT | GL.STENCIL_BUFFER_BIT)) { glError(this, GL.INVALID_VALUE); return; }
     const fb = s.params.get('DRAW_FRAMEBUFFER_BINDING');
     if (fb && framebufferStatus(s, fb) !== GL.FRAMEBUFFER_COMPLETE) { glError(this, GL.INVALID_FRAMEBUFFER_OPERATION); return; }
-    if (fb || !mask) return;
+    if (!mask) return;
     glQueueClear(s, mask);
   },
   drawArrays(mode, first, count) { drawArrays(this, mode, first, count, 1); },
@@ -1098,12 +1100,14 @@ const glMethods = {
     const out = new Uint8Array(dst.buffer, dst.byteOffset + dstOffset, dst.byteLength - dstOffset);
     if (out.length < width * height * 4) { glError(this, GL.INVALID_OPERATION); return; }
     const fb = s.params.get('READ_FRAMEBUFFER_BINDING');
-    if (fb) { if (framebufferStatus(s, fb) !== GL.FRAMEBUFFER_COMPLETE) glError(this, GL.INVALID_FRAMEBUFFER_OPERATION); return; }
-    const pixels = glFlush(s);
+    if (fb && framebufferStatus(s, fb) !== GL.FRAMEBUFFER_COMPLETE) { glError(this, GL.INVALID_FRAMEBUFFER_OPERATION); return; }
+    const source = fb ? glReadFramebuffer(s, objOf(fb)) : { pixels: glFlush(s), width: s.width, height: s.height };
+    if (!source) return;
+    const { pixels } = source;
     for (let row = 0; row < height; row++) for (let col = 0; col < width; col++) {
       const sx = x + col, sy = y + row, o = (row * width + col) * 4;
-      if (sx < 0 || sy < 0 || sx >= s.width || sy >= s.height) continue;
-      const i = (sy * s.width + sx) * 4;
+      if (sx < 0 || sy < 0 || sx >= source.width || sy >= source.height) continue;
+      const i = (sy * source.width + sx) * 4;
       for (let c = 0; c < 4; c++) out[o + c] = pixels[i + c];
     }
   },
@@ -1478,7 +1482,12 @@ const renderbufferStorage = (ctx, target, samples, internalformat, width, height
   if (width < 0 || height < 0 || width > s.table.params.MAX_RENDERBUFFER_SIZE || height > s.table.params.MAX_RENDERBUFFER_SIZE) { glError(ctx, GL.INVALID_VALUE); return; }
   const formatName = Object.keys(GL).find((k) => GL[k] === internalformat && /^(RGB|RGBA|DEPTH|STENCIL|R8|RG8|R16|RG16|R32|RG32|SRGB)/.test(k));
   if (!formatName) { glError(ctx, GL.INVALID_ENUM); return; }
-  Object.assign(objOf(rb), { size: [width, height], format: internalformat, formatName, samples });
+  // O conteúdo começa como o WebGL manda: cor zero, profundidade 1 e estêncil zero, com as linhas de cima primeiro.
+  const n = width * height, isDepth = /DEPTH/.test(formatName), isStencil = /STENCIL/.test(formatName);
+  Object.assign(objOf(rb), {
+    size: [width, height], format: internalformat, formatName, samples,
+    color: isDepth || isStencil ? null : new Uint8Array(n * 4), depth: isDepth ? new Float32Array(n).fill(1) : null, stencil: isStencil ? new Uint8Array(n) : null,
+  });
 };
 // O que o compilador do ANGLE rejeita antes de qualquer análise: o fonte vazio e chaves desbalanceadas. A mensagem
 // segue o formato do ANGLE (`ERROR: 0:linha: 'símbolo' : descrição`).

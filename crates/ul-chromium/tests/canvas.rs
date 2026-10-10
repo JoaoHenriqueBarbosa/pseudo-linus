@@ -194,6 +194,14 @@ fn webgl_points_and_lines_match_oracle() {
     assert_scenes_exact(include_str!("../../../testbench/oracle/measured/webgl-prims.html"), include_str!("webgl-prims.json"));
 }
 
+/// O render em framebuffer (textura RGBA8 e renderbuffers RGBA4 e DEPTH_STENCIL, sem a inversão do buffer padrão:
+/// arestas, gl_FragCoord, faces, derivadas, pontos, linhas, viewport, tesoura, clear e mistura) e a textura
+/// renderizada amostrada de volta, contra `testbench/oracle/measured/webgl-fbo.html`, pixel a pixel.
+#[test]
+fn webgl_framebuffers_match_oracle() {
+    assert_scenes_exact(include_str!("../../../testbench/oracle/measured/webgl-fbo.html"), include_str!("webgl-fbo.json"));
+}
+
 /// Roda a sonda e exige cada cena (readPixels em base64) igual à do oráculo em todos os pixels.
 fn assert_scenes_exact(probe: &str, oracle: &str) {
     let ours = probe_output(probe);
