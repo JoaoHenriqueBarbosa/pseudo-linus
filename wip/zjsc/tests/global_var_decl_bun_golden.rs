@@ -4,12 +4,11 @@
 //! `tests/golden/global_var_decl_bun.tsv` (modo, nome, fonte, resultado, separados por `\t`) sai de
 //! `scripts/gen-global-var-decl-golden.js`, rodado no bun 1.4.2 com `node:vm` `runInThisContext`.
 //! O resultado é `out.join('|')` (erro do eval como `ERR nome: mensagem`, depois `typeof NOME` e o descritor).
-//! No modo `script` uma instanciação que lança aborta o script inteiro e o golden guarda `SCRIPTERR nome: mensagem`;
-//! `evaluate_named_script_reporting_uncaught` devolve `Uncaught nome: mensagem` do valor lançado, e o runner confere
-//! o `nome: mensagem` exato contra o golden.
+//! No modo `script` uma instanciação ou execução que lança aborta o script e o golden guarda `SCRIPTERR nome:
+//! mensagem`; o runner repete os `vm.runInThisContext` do driver do gerador com `evaluate_script_sequence_result`.
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
-use zjsc::api::eval::evaluate_named_script_reporting_uncaught;
+use zjsc::api::eval::evaluate_script_sequence_result;
 use zjsc::wtf::text::conversion_mode::ConversionMode;
 
 const GOLDEN: &str = include_str!("golden/global_var_decl_bun.tsv");
@@ -56,17 +55,25 @@ fn build(mode: &str, name: &str, source: &str) -> String {
     }
 }
 
-/// Roda um caso num realm novo e devolve `out.join('|')`, ou `SCRIPTERR nome: mensagem` se o script lançou.
+/// Roda um caso num realm novo como o driver do gerador: no modo `script` o prelúdio é um `vm.runInThisContext` à
+/// parte e o programa outro (qualquer exceção dele vira `SCRIPTERR nome: mensagem`); nos modos de eval o programa
+/// inteiro é um script só. O resultado é um terceiro script, `__final()`, avaliado como está (não `globalThis.__final()`:
+/// o programa pode ter trocado o `globalThis`).
 fn run(mode: &str, name: &str, source: &str) -> Result<String, String> {
     let program = build(mode, name, source);
-    let outcome = catch_unwind(AssertUnwindSafe(|| evaluate_named_script_reporting_uncaught(&program, "global_var_decl_bun_golden.js", "__final()")));
+    let sources: Vec<&str> = if mode == "script" { vec![PRELUDE, &program[PRELUDE.len()..]] } else { vec![&program] };
+    let outcome = catch_unwind(AssertUnwindSafe(|| evaluate_script_sequence_result(&sources, "program", "__final()")));
     match outcome {
-        Ok(Ok(Ok(value))) if value.is_string() => {
+        Ok((errors, _)) if mode == "script" && !errors.is_empty() => {
+            let error = &errors[0];
+            Ok(format!("SCRIPTERR {}", error.split_once(':').map_or(error.as_str(), |(_, text)| text)))
+        }
+        Ok((errors, _)) if !errors.is_empty() => Err(format!("o programa lançou: {}", errors.join("; "))),
+        Ok((_, Ok(value))) if value.is_string() => {
             let bytes = value.as_js_string().value().utf8(ConversionMode::LenientConversion);
             Ok(String::from_utf8_lossy(&bytes).into_owned())
         }
-        Ok(Ok(_)) => Err("o resultado não é string".to_string()),
-        Ok(Err(uncaught)) => Ok(format!("SCRIPTERR {}", uncaught.strip_prefix("Uncaught ").unwrap_or(&uncaught))),
+        Ok((_, _)) => Err("o resultado não é string".to_string()),
         Err(panic) => {
             let reason = panic
                 .downcast_ref::<String>()
