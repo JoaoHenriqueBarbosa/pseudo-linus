@@ -62,6 +62,12 @@ fn is_top_level(site: &JSCallSite) -> bool {
     if site.frame().is_strict {
         return true;
     }
+    // Medido no `bun` 1.4.2 em CommonJS sloppy: a função de host em C++ (`[native code]`: `JSON.parse`, `sort`,
+    // `module._compile`) é sempre toplevel, porque o frame dela não guarda o receptor; o builtin em JS (`[unknown]`:
+    // `reduce`, `forEach`) segue o receptor.
+    if !site.frame().has_line_and_column_info() {
+        return true;
+    }
     // Medido no `bun` 1.4.2: o frame de função JS em código sloppy nunca é toplevel, qualquer que seja o `this`.
     if site.frame().code_type == CodeType::FunctionCode && !site.frame().is_native_function() {
         return false;
