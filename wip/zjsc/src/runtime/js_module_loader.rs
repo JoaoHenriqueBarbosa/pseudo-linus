@@ -51,6 +51,8 @@ use crate::runtime::abstract_module_record::AbstractModuleRecordRef;
 use crate::runtime::constructor_kind::ConstructorKind;
 use crate::runtime::enumeration_mode::{DontEnumPropertiesMode, PrivateSymbolMode, PropertyNameMode};
 use crate::runtime::error::{create_error, create_syntax_error, create_type_error};
+use crate::runtime::error_instance::ErrorInstance;
+use crate::runtime::error_natives::capture_frames;
 use crate::runtime::node_error::throw_native_type_error;
 use crate::runtime::error_type::ErrorType;
 use crate::runtime::host_call::Thrown;
@@ -1443,13 +1445,25 @@ fn resolve_for_import_meta(global_object: &JSGlobalObject, call_frame: &mut Nati
 fn global_func_import_module(global_object: &JSGlobalObject, call_frame: &mut NativeCallFrame<'_>) -> EncodedJSValue {
     let vm = global_object.vm();
 
-    // `rejectWithCaughtException`: a promessa já rejeitada com a exceção pendente.
+    // `rejectWithCaughtException`: a promessa já rejeitada com a exceção pendente. O erro que o próprio `importModule`
+    // cria (opções inválidas, specifier sem `toString`) nunca chega ao desempilhamento do interpretador, onde o porte
+    // guarda a pilha do erro lançado: guarda aqui, a partir do frame de quem chamou, como o `finishCreation` do C++
+    // (medido no bun 1.4.2: `stack`, `line`, `column` e `sourceURL` próprios, com os frames do chamador).
     let reject_with_caught_exception = |message: Option<&str>| -> EncodedJSValue {
         let promise = JSPromise::create(vm, &global_object.promise_structure());
-        match message {
-            Some(message) => promise.reject(global_object, create_type_error(global_object, &WtfString::from_utf8(message.as_bytes())).as_value()),
-            None => promise.reject(global_object, take_pending_exception(global_object)),
+        let reason = match message {
+            Some(message) => create_type_error(global_object, &WtfString::from_utf8(message.as_bytes())).as_value(),
+            None => take_pending_exception(global_object),
+        };
+        let error = if matches!(reason, JSValue::Cell(_)) { ErrorInstance::from_cell_id(reason.as_cell()) } else { None };
+        if let Some(error) = error {
+            if !error.has_stack_info() {
+                if let Some(frames) = capture_frames(global_object, call_frame.call_frame(), None, false) {
+                    error.set_pending_stack(frames);
+                }
+            }
         }
+        promise.reject(global_object, reason);
         promise.as_value().encode()
     };
 

@@ -112,3 +112,23 @@ fn resolve_sync_parent_builtins_and_messages() {
         )
     );
 }
+
+/// O erro que o próprio `import()` cria (opções que não são objeto, specifier símbolo) rejeita a promessa com a pilha
+/// do chamador, como o `finishCreation` do C++: `stack`, `line`, `column` e `sourceURL` próprios (medido no bun 1.4.2).
+#[test]
+fn dynamic_import_own_errors_carry_the_caller_stack() {
+    let (log, error) = run(&[(
+        "main.mjs",
+        "const IO = (s, o) => import(s, o); \
+         await IO('./a.mjs', 1).catch((e) => { L(Object.getOwnPropertyNames(e).join()); L(typeof e.stack); L(e.stack.split('\\n').length); }); \
+         await import(Symbol()).catch((e) => { L(Object.getOwnPropertyNames(e).join()); L(e.stack.split('\\n').length); });",
+    )]);
+    assert_eq!(error, None);
+    assert_eq!(
+        log,
+        concat!(
+            r#"["message,originalLine,originalColumn,line,column,sourceURL,stack","string","3","#,
+            r#""message,originalLine,originalColumn,line,column,sourceURL,stack","2"]"#
+        )
+    );
+}
