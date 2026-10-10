@@ -82,6 +82,18 @@ fn thread_limit_scene_matches_the_oracle() {
     );
 }
 
+/// O módulo `resource` como usuário comum: constantes, `getrlimit`, `setrlimit` (mensagens de tipo, tamanho e permissão),
+/// `prlimit` do próprio processo e `getrusage`.
+#[test]
+fn resource_api_scene_matches_the_oracle() {
+    scene_matches_as(
+        "resource_api",
+        include_str!("../../../testbench/oracle/automation/cases/resource_api.py"),
+        include_str!("../../../testbench/oracle/automation/golden/resource_api.out"),
+        Some("nobody"),
+    );
+}
+
 #[test]
 fn gl_api_scene_matches_the_oracle() {
     scene_matches(
@@ -187,6 +199,16 @@ fn gc_referents_generator_expression_scene_matches_the_oracle() {
         "gc_referents_genexp",
         include_str!("../../../testbench/oracle/automation/cases/gc_referents_genexp.py"),
         include_str!("../../../testbench/oracle/automation/golden/gc_referents_genexp.out"),
+    );
+}
+
+/// `gc.get_referents` de `reversed()`, dos iteradores de dict, set, bytes e range, e do `itertools`.
+#[test]
+fn gc_referents_iterators_scene_matches_the_oracle() {
+    scene_matches(
+        "gc_referents_iters",
+        include_str!("../../../testbench/oracle/automation/cases/gc_referents_iters.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gc_referents_iters.out"),
     );
 }
 

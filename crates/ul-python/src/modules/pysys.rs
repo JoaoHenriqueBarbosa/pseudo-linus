@@ -231,14 +231,18 @@ fn referents(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 /// thread de `clone` do CPython. Com o limite atingido: `RuntimeError("can't start new thread")`.
 fn task_reserve(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("_task_reserve", &kw)?;
-    sysabi::sys::current().reserve_task().map_err(|_| exc("RuntimeError", "can't start new thread"))?;
+    if let Some(sys) = sysabi::sys::try_current() {
+        sys.reserve_task().map_err(|_| exc("RuntimeError", "can't start new thread"))?;
+    }
     Ok(Value::None)
 }
 
 /// `_task_release()`: devolve a vaga de `_task_reserve` (a thread acabou).
 fn task_release(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("_task_release", &kw)?;
-    sysabi::sys::current().release_task();
+    if let Some(sys) = sysabi::sys::try_current() {
+        sys.release_task();
+    }
     Ok(Value::None)
 }
 

@@ -1,0 +1,55 @@
+consts [('RLIMIT_AS', 9), ('RLIMIT_CORE', 4), ('RLIMIT_CPU', 0), ('RLIMIT_DATA', 2), ('RLIMIT_FSIZE', 1), ('RLIMIT_MEMLOCK', 8), ('RLIMIT_MSGQUEUE', 12), ('RLIMIT_NICE', 13), ('RLIMIT_NOFILE', 7), ('RLIMIT_NPROC', 6), ('RLIMIT_OFILE', 7), ('RLIMIT_RSS', 5), ('RLIMIT_RTPRIO', 14), ('RLIMIT_RTTIME', 15), ('RLIMIT_SIGPENDING', 11), ('RLIMIT_STACK', 3), ('RLIM_INFINITY', -1), ('RUSAGE_CHILDREN', -1), ('RUSAGE_SELF', 0), ('RUSAGE_THREAD', 1)]
+dir ['RLIMIT_AS', 'RLIMIT_CORE', 'RLIMIT_CPU', 'RLIMIT_DATA', 'RLIMIT_FSIZE', 'RLIMIT_MEMLOCK', 'RLIMIT_MSGQUEUE', 'RLIMIT_NICE', 'RLIMIT_NOFILE', 'RLIMIT_NPROC', 'RLIMIT_OFILE', 'RLIMIT_RSS', 'RLIMIT_RTPRIO', 'RLIMIT_RTTIME', 'RLIMIT_SIGPENDING', 'RLIMIT_STACK', 'RLIM_INFINITY', 'RUSAGE_CHILDREN', 'RUSAGE_SELF', 'RUSAGE_THREAD', 'error', 'getpagesize', 'getrlimit', 'getrusage', 'prlimit', 'setrlimit', 'struct_rusage']
+error True resource struct_rusage
+get_neg EXC ValueError ('invalid resource specified',) invalid resource specified
+get_16 EXC ValueError ('invalid resource specified',) invalid resource specified
+get_str EXC TypeError ("'str' object cannot be interpreted as an integer",) 'str' object cannot be interpreted as an integer
+get_float EXC TypeError ("'float' object cannot be interpreted as an integer",) 'float' object cannot be interpreted as an integer
+get_none EXC TypeError ("'NoneType' object cannot be interpreted as an integer",) 'NoneType' object cannot be interpreted as an integer
+get_core (-1, -1)
+get_nofile_type ['int', 'int']
+get_10 (-1, -1)
+get_nargs EXC TypeError ('resource.getrlimit() takes exactly one argument (0 given)',) resource.getrlimit() takes exactly one argument (0 given)
+set_one EXC ValueError ('expected a tuple of 2 integers',) expected a tuple of 2 integers
+set_int EXC TypeError ("'int' object is not iterable",) 'int' object is not iterable
+set_list None
+set_three EXC ValueError ('expected a tuple of 2 integers',) expected a tuple of 2 integers
+set_str EXC TypeError ("'str' object cannot be interpreted as an integer",) 'str' object cannot be interpreted as an integer
+set_float EXC TypeError ("'float' object cannot be interpreted as an integer",) 'float' object cannot be interpreted as an integer
+set_inv_res EXC ValueError ('invalid resource specified',) invalid resource specified
+set_big EXC OverflowError ('Python int too large to convert to C long',) Python int too large to convert to C long
+set_cur_gt_max EXC ValueError ('current limit exceeds maximum limit',) current limit exceeds maximum limit
+set_ok None
+get_after (10, 20)
+raise_hard EXC ValueError ('not allowed to raise maximum limit',) not allowed to raise maximum limit
+lower_hard None
+get_final (5, 15)
+inf_soft EXC ValueError ('current limit exceeds maximum limit',) current limit exceeds maximum limit
+neg_two EXC ValueError ('current limit exceeds maximum limit',) current limit exceeds maximum limit
+prl_self (5, 15)
+prl_pid (5, 15)
+prl_set (5, 15)
+prl_after (4, 15)
+prl_nopid EXC ProcessLookupError (3, 'No such process') [Errno 3] No such process
+prl_bad_res EXC ValueError ('invalid resource specified',) invalid resource specified
+prl_bad_lim EXC ValueError ('expected a tuple of 2 integers',) expected a tuple of 2 integers
+prl_str_pid EXC TypeError ("'str' object cannot be interpreted as an integer",) 'str' object cannot be interpreted as an integer
+prl_neg_pid EXC ProcessLookupError (3, 'No such process') [Errno 3] No such process
+ru_self 'struct_rusage'
+ru_len (16, 'float', 'int', None)
+ru_fields 16
+ru_seqf (16, 0)
+ru_bad EXC ValueError ('invalid who parameter',) invalid who parameter
+ru_str EXC TypeError ("'str' object cannot be interpreted as an integer",) 'str' object cannot be interpreted as an integer
+ru_children 16
+ru_thread 16
+pagesize 4096
+struct_new 1
+struct_new_short EXC TypeError ('resource.struct_rusage() takes a 16-sequence (3-sequence given)',) resource.struct_rusage() takes a 16-sequence (3-sequence given)
+doc_get None
+doc_set None
+doc_prl None
+doc_ru None
+doc_ps None
+doc_mod None
+ru_repr 'resource.struct_rusage(ru_utime=1, ru_stime=2, ru_maxrss=0, ru_ixrss=0, ru_idrss=0, ru_isrss=0, ru_minflt=0, ru_majflt=0, ru_nswap=0, ru_inblock=0, ru_oublock=0, ru_msgsnd=0, ru_msgrcv=0, ru_nsignals=0, ru_nvcsw=0, ru_nivcsw=0)'

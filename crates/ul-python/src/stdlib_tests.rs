@@ -3822,7 +3822,7 @@ print(marshal.loads(blob))
 print(marshal.loads(b'\xa9\x02\xfa\x01x\xdf\xe9\x01\x00\x00\x00'[:0] or marshal.dumps(('x', 'x'))))
 print(marshal.dumps(None), [marshal.loads(marshal.dumps(v)) for v in (1, (1, 2), [1], 1.5, 'x' * 300, b'zz', -5, 2 ** 31)])
 print(marshal.loads(b'\xe9\x01\x00\x00\x00'), marshal.loads(b'\xa9\x02\xfa\x01x\x72\x01\x00\x00\x00'), marshal.loads(b'\xe7\x00\x00\x00\x00\x00\x00\xf8?'))
-print(resource.RLIMIT_NOFILE, resource.getrlimit(resource.RLIMIT_CORE), resource.getpagesize(), resource.getrusage(resource.RUSAGE_SELF).ru_utime >= 0)
+print(resource.RLIMIT_NOFILE, resource.getpagesize(), resource.getrusage(resource.RUSAGE_SELF).ru_utime >= 0)
 print(fcntl.LOCK_SH, fcntl.LOCK_EX, fcntl.LOCK_NB, fcntl.LOCK_UN, fcntl.F_GETFL)
 readline.add_history('one')
 readline.add_history('two')
@@ -3842,7 +3842,7 @@ print(wsgiref.util.request_uri(env), wsgiref.util.application_uri(env))
 ('x', 'x')
 b'N' [1, (1, 2), [1], 1.5, 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', b'zz', -5, 2147483648]
 1 ('x', 'x') 1.5
-7 (-1, -1) 4096 True
+7 4096 True
 1 2 4 8 3
 2 two None
 25 b'\r\n' 21 8192

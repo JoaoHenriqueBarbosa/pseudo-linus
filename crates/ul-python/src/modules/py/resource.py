@@ -46,22 +46,30 @@ def prlimit(pid, resource, limits=None):
     return old
 
 
-class struct_rusage(tuple):
-    _fields = ('ru_utime', 'ru_stime', 'ru_maxrss', 'ru_ixrss', 'ru_idrss', 'ru_isrss', 'ru_minflt', 'ru_majflt',
-               'ru_nswap', 'ru_inblock', 'ru_oublock', 'ru_msgsnd', 'ru_msgrcv', 'ru_nsignals', 'ru_nvcsw',
-               'ru_nivcsw')
+_RUSAGE_FIELDS = ('ru_utime', 'ru_stime', 'ru_maxrss', 'ru_ixrss', 'ru_idrss', 'ru_isrss', 'ru_minflt', 'ru_majflt',
+                  'ru_nswap', 'ru_inblock', 'ru_oublock', 'ru_msgsnd', 'ru_msgrcv', 'ru_nsignals', 'ru_nvcsw',
+                  'ru_nivcsw')
 
-    def __new__(cls, values):
+
+class struct_rusage(tuple):
+    __slots__ = ()
+    n_fields = 16
+    n_sequence_fields = 16
+    n_unnamed_fields = 0
+
+    def __new__(cls, sequence):
+        values = tuple(sequence)
+        if len(values) != 16:
+            raise TypeError('resource.struct_rusage() takes a 16-sequence (%d-sequence given)' % len(values))
         return tuple.__new__(cls, values)
 
-    def __getattr__(self, name):
-        try:
-            return self[self._fields.index(name)]
-        except ValueError:
-            raise AttributeError(name) from None
-
     def __repr__(self):
-        return 'resource.struct_rusage(%s)' % ', '.join('%s=%r' % kv for kv in zip(self._fields, self))
+        return 'resource.struct_rusage(%s)' % ', '.join('%s=%r' % kv for kv in zip(_RUSAGE_FIELDS, self))
+
+
+for _i, _name in enumerate(_RUSAGE_FIELDS):
+    setattr(struct_rusage, _name, property(lambda self, i=_i: self[i]))
+del _i, _name
 
 
 def _rusage(utime, stime, maxrss):
@@ -70,6 +78,8 @@ def _rusage(utime, stime, maxrss):
 
 
 def getrusage(who):
+    import operator
+    who = operator.index(who)
     if who not in (RUSAGE_SELF, RUSAGE_CHILDREN, RUSAGE_THREAD):
         raise ValueError('invalid who parameter')
     if who == RUSAGE_CHILDREN:

@@ -481,7 +481,12 @@ impl ExtObject for SeqIter {
     }
 
     fn referents(&self) -> Vec<Value> {
-        if self.exhausted.get() { Vec::new() } else { self.source.clone().into_iter().collect() }
+        let mut out: Vec<Value> = if self.exhausted.get() { Vec::new() } else { self.source.clone().into_iter().collect() };
+        // O `dict_itemiterator` guarda também a tupla de resultado que reaproveita.
+        if self.kind == "dict_itemiterator" {
+            out.push(Value::tuple(vec![Value::None, Value::None]));
+        }
+        out
     }
 
     fn repr(&self) -> String {
@@ -530,6 +535,9 @@ impl ExtObject for SeqIter {
 }
 
 pub(crate) fn make_iter(v: &Value) -> PyResult<Value> {
+    if let Some(view) = crate::dictview::view_iters(v) {
+        return Ok(seq_iter(view.forward, iterate(v)?, 0, Some(view.dict), false));
+    }
     let kind = match v {
         Value::List(_) => "list_iterator",
         Value::Tuple(_) => "tuple_iterator",
@@ -658,7 +666,7 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         let payload = inst.payload.borrow().clone();
         if let Some(p @ (Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Bytes(_) | Value::ByteArray(_))) = payload {
             let kind = if matches!(p, Value::List(_)) { "list_reverseiterator" } else { "reversed" };
-            return Ok(crate::lazy::ReversedIter::new(kind, iterate(&p)?));
+            return Ok(crate::lazy::ReversedIter::new(kind, iterate(&p)?, Some(p)));
         }
         // Protocolo de sequência: `__len__` e `__getitem__`.
         let class = inst.class();
@@ -671,8 +679,11 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                     out.push(vm.call(&getitem, vec![Value::Int(i)], Vec::new())?);
                 }
             }
-            return Ok(crate::lazy::ReversedIter::new("reversed", out));
+            return Ok(crate::lazy::ReversedIter::new("reversed", out, Some(v.clone())));
         }
+    }
+    if let Some(view) = crate::dictview::view_iters(&v) {
+        return Ok(crate::lazy::ReversedIter::new(view.reverse, iterate(&v)?, Some(view.dict)));
     }
     match &v {
         Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Range(_) | Value::Bytes(_) | Value::ByteArray(_) | Value::Dict(_) => {
@@ -682,7 +693,9 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                 Value::Dict(_) => "dict_reversekeyiterator",
                 _ => "reversed",
             };
-            Ok(crate::lazy::ReversedIter::new(kind, iterate(&v)?))
+            // O `range` reverso guarda só os números.
+            let source = (!matches!(v, Value::Range(_))).then(|| v.clone());
+            Ok(crate::lazy::ReversedIter::new(kind, iterate(&v)?, source))
         }
         other => Err(type_error(format!("'{}' object is not reversible", other.type_name()))),
     }
