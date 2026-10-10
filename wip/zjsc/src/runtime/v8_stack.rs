@@ -332,6 +332,11 @@ pub fn call_site_method(global_object: &JSGlobalObject, frame: &StackFrame, meth
     })
 }
 
+/// `Number::toString` de `value`, como as mensagens do V8 o escrevem (`Invalid count value: -1`).
+pub fn number_text(value: f64) -> String {
+    to_rust_string(&crate::runtime::number_prototype::to_string_with_radix(value, 10))
+}
+
 /// O texto de `(evaluating '...')` / `(In '...'` de uma mensagem do JSC.
 fn quoted_after<'a>(message: &'a str, marker: &str) -> Option<&'a str> {
     let start = message.find(marker)? + marker.len();

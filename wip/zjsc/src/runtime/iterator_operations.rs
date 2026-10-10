@@ -283,7 +283,7 @@ pub fn for_each_in_iterable_with_method(
     // `validateIterable` + `getIteratorErrorMessage`: o `@@iterator` não chamável diz `{} is not iterable`
     // (e não o `Type error` do `iteratorForIterable`).
     if get_call_data(iterator_method).is_none() {
-        return Err(Thrown::type_error(crate::llint::handlers_iterator::not_iterable_message(iterable)));
+        return Err(Thrown::type_error(&crate::llint::handlers_iterator::not_iterable_message(iterable)));
     }
     for_each_in_iterable_with_method_unchecked(global_object, iterable, iterator_method, callback)
 }
