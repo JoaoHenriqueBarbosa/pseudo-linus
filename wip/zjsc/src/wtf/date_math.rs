@@ -93,6 +93,7 @@ pub mod int64_milliseconds {
 }
 
 use int64_milliseconds as i64ms;
+use std::cell::Cell;
 
 /// `jsCurrentTime()`: o instante atual em milissegundos inteiros desde a época, no relógio do pseudo-processo.
 pub fn js_current_time() -> f64 {
@@ -100,8 +101,35 @@ pub fn js_current_time() -> f64 {
 }
 
 /// `WTF::currentTimeInNanoseconds()`: o instante atual em nanossegundos desde a época, do mesmo relógio de
-/// `js_current_time`, sem o arredondamento para milissegundos.
-pub use ul_common::time::realtime_nanos as current_time_in_nanoseconds;
+/// `js_current_time`, sem o arredondamento para milissegundos. Com o relógio virtual ligado (o navegador sob
+/// `--virtual-time-budget`), é a origem mais o tempo virtual do laço de eventos.
+pub fn current_time_in_nanoseconds() -> i128 {
+    match VIRTUAL_ORIGIN_NS.with(Cell::get) {
+        Some(origin) => origin + (crate::runtime::waiter_list_manager::virtual_now() * 1_000_000.0) as i128,
+        None => ul_common::time::realtime_nanos(),
+    }
+}
+
+thread_local! {
+    /// A época, em nanossegundos, do instante 0 do relógio virtual; `None` é o relógio do sistema.
+    static VIRTUAL_ORIGIN_NS: Cell<Option<i128>> = const { Cell::new(None) };
+}
+
+/// Liga o relógio virtual do programa: `Date` e o `performance` passam a andar com o tempo virtual dos timers, a
+/// partir de `origin_ms` (a época do início da página).
+pub fn set_virtual_clock(origin_ms: f64) {
+    VIRTUAL_ORIGIN_NS.with(|origin| origin.set(Some((origin_ms * 1_000_000.0) as i128)));
+}
+
+/// A origem do relógio virtual, em nanossegundos desde a época, quando ligado.
+pub fn virtual_clock_origin_ns() -> Option<i128> {
+    VIRTUAL_ORIGIN_NS.with(Cell::get)
+}
+
+/// Fim do programa: volta ao relógio do sistema.
+pub(crate) fn reset_for_program() {
+    let _ = VIRTUAL_ORIGIN_NS.try_with(|origin| origin.set(None));
+}
 
 /// `timeClip(t)`.
 pub fn time_clip(t: f64) -> f64 {

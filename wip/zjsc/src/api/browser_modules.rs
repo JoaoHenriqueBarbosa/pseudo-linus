@@ -323,6 +323,25 @@ mod tests {
         );
     }
 
+    /// O relógio virtual do navegador: `Date` e `performance` andam com o tempo dos timers a partir da origem.
+    #[test]
+    fn virtual_clock_moves_date_and_performance_with_the_timers() {
+        let log = run_program(|| {
+            let (vm, global_object) = new_global_object();
+            let _finalizer = VmFinalizer::new(&vm);
+            crate::wtf::date_math::set_virtual_clock(1_700_000_000_000.0);
+            crate::runtime::timers::enable_event_loop();
+            let script = "globalThis.log = []; const t = () => [Date.now() - performance.timeOrigin, performance.now()].join('/'); \
+                          log.push(performance.timeOrigin, t(), new Date().getTime() - 1700000000000); \
+                          setTimeout(() => log.push(t()), 5); setTimeout(() => log.push(t()), 30);";
+            evaluate(&global_object, &program_source(script)).expect("script");
+            crate::runtime::timers::run_event_loop_for(&global_object, 100.0);
+            let value = evaluate(&global_object, &program_source("JSON.stringify(log)")).expect("log");
+            String::from_utf8_lossy(&value.as_js_string().value().utf8(ConversionMode::LenientConversion)).into_owned()
+        });
+        assert_eq!(log, r#"[1700000000000,"0/0",0,"5/5","30/30"]"#);
+    }
+
     #[test]
     fn dynamic_import_resolution_failure_has_the_short_message() {
         let (log, error) = run(
