@@ -5,5 +5,5 @@
 pub mod array_hash_map;
 pub mod bit_set;
 
-pub use array_hash_map::{AllocError, StringArrayHashMap};
+pub use array_hash_map::{AllocError, ArrayHashMap, OwnKey, StringArrayHashMap};
 pub use bit_set::IntegerBitSet;

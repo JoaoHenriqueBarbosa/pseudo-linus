@@ -343,6 +343,297 @@ pub struct Span {
     pub range: crate::Range,
 }
 
+/// TLA => Top Level Await
+#[derive(Copy, Clone)]
+pub struct TlaCheck {
+    pub depth: u32,
+    pub parent: crate::base::IndexInt,
+    pub import_record_index: crate::base::IndexInt,
+}
+
+impl Default for TlaCheck {
+    fn default() -> Self {
+        Self { depth: 0, parent: crate::Index::INVALID.get(), import_record_index: crate::Index::INVALID.get() }
+    }
+}
+
+/// Inlined enum values can only be numbers and strings. No upstream o valor é um `u64` com NaN-boxing (ponteiro de
+/// 48 bits ou `f64`); com a string no `Store`, a mesma codificação guarda o índice da `E::String` no lugar do
+/// endereço, e o número continua com o deslocamento do JSCJSValue.
+#[derive(Copy, Clone)]
+pub struct InlinedEnumValue {
+    pub(crate) raw_data: u64,
+}
+
+#[derive(Copy, Clone)]
+pub enum InlinedEnumValueDecoded {
+    String(StoreRef<E::EString>),
+    Number(f64),
+}
+
+impl InlinedEnumValue {
+    /// See JSCJSValue.h in WebKit for more details
+    const DOUBLE_ENCODE_OFFSET: u64 = 1 << 49;
+    /// See PureNaN.h in WebKit for more details
+    const PURE_NAN: f64 = f64::from_bits(0x7ff8000000000000);
+
+    fn purify_nan(value: f64) -> f64 {
+        if value.is_nan() { Self::PURE_NAN } else { value }
+    }
+
+    pub fn encode(decoded: InlinedEnumValueDecoded) -> InlinedEnumValue {
+        InlinedEnumValue {
+            raw_data: match decoded {
+                InlinedEnumValueDecoded::String(s) => u64::from(s.index.get()),
+                InlinedEnumValueDecoded::Number(num) => Self::purify_nan(num).to_bits() + Self::DOUBLE_ENCODE_OFFSET,
+            },
+        }
+    }
+
+    pub fn decode(self) -> InlinedEnumValueDecoded {
+        if self.raw_data > 0x0000_FFFF_FFFF_FFFF {
+            InlinedEnumValueDecoded::Number(f64::from_bits(self.raw_data - Self::DOUBLE_ENCODE_OFFSET))
+        } else {
+            let index = NonZeroU32::new(self.raw_data as u32).expect("InlinedEnumValue de string com índice zero");
+            InlinedEnumValueDecoded::String(StoreRef { index, _type: PhantomData })
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
+pub enum ExportsKind {
+    // This file doesn't have any kind of export, so it's impossible to say what
+    // kind of file this is. An empty file is in this category, for example.
+    None,
+
+    // The exports are stored on "module" and/or "exports". Calling "require()"
+    // on this module returns "module.exports". All imports to this module are
+    // allowed but may return undefined.
+    Cjs,
+
+    // All export names are known explicitly. Calling "require()" on this module
+    // generates an exports object (stored in "exports") with getters for the
+    // export names. Named imports to this module are only allowed if they are
+    // in the set of export names.
+    Esm,
+
+    // Some export names are known explicitly, but others fall back to a dynamic
+    // run-time object.
+    EsmWithDynamicFallback,
+
+    // Like "EsmWithDynamicFallback", but the module was originally a CommonJS
+    // module.
+    EsmWithDynamicFallbackFromCjs,
+}
+
+impl ExportsKind {
+    pub fn is_dynamic(self) -> bool {
+        matches!(self, Self::Cjs | Self::EsmWithDynamicFallback | Self::EsmWithDynamicFallbackFromCjs)
+    }
+
+    pub fn is_esm_with_dynamic_fallback(self) -> bool {
+        matches!(self, Self::EsmWithDynamicFallback | Self::EsmWithDynamicFallbackFromCjs)
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct DeclaredSymbol {
+    pub ref_: Ref,
+    pub is_top_level: bool,
+}
+
+/// No upstream é um `MultiArrayList` (uma coluna por campo); aqui as duas colunas são dois `Vec`, o que dá o mesmo
+/// `refs()` contíguo.
+#[derive(Default, Clone)]
+pub struct DeclaredSymbolList {
+    refs: Vec<Ref>,
+    is_top_level: Vec<bool>,
+}
+
+impl DeclaredSymbolList {
+    pub fn refs(&self) -> &[Ref] {
+        &self.refs
+    }
+
+    pub fn to_owned_slice(&mut self) -> DeclaredSymbolList {
+        core::mem::take(self)
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.refs.len()
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.refs.is_empty()
+    }
+
+    pub fn append(&mut self, entry: DeclaredSymbol) {
+        self.refs.push(entry.ref_);
+        self.is_top_level.push(entry.is_top_level);
+    }
+
+    pub fn append_list(&mut self, other: &DeclaredSymbolList) {
+        self.refs.extend_from_slice(&other.refs);
+        self.is_top_level.extend_from_slice(&other.is_top_level);
+    }
+
+    pub fn ensure_unused_capacity(&mut self, count: usize) {
+        self.refs.reserve(count);
+        self.is_top_level.reserve(count);
+    }
+
+    pub fn clear_retaining_capacity(&mut self) {
+        self.refs.clear();
+        self.is_top_level.clear();
+    }
+
+    pub fn init_capacity(capacity: usize) -> DeclaredSymbolList {
+        DeclaredSymbolList { refs: Vec::with_capacity(capacity), is_top_level: Vec::with_capacity(capacity) }
+    }
+
+    pub fn from_slice(entries: &[DeclaredSymbol]) -> DeclaredSymbolList {
+        let mut this = Self::init_capacity(entries.len());
+        for &entry in entries {
+            this.append(entry);
+        }
+        this
+    }
+}
+
+impl DeclaredSymbol {
+    pub fn for_each_top_level_symbol<C>(decls: &DeclaredSymbolList, ctx: &mut C, f: impl Fn(&mut C, Ref)) {
+        for (top, ref_) in decls.is_top_level.iter().zip(decls.refs.iter()) {
+            if *top {
+                f(ctx, *ref_);
+            }
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct Dependency {
+    pub source_index: crate::Index,
+    pub part_index: u32, // Index.Int
+}
+
+pub type DependencyList = Vec<Dependency>;
+
+/// Each file is made up of multiple parts, and each part consists of one or
+/// more top-level statements. Parts are used for tree shaking and code
+/// splitting analysis. Individual parts of a file can be discarded by tree
+/// shaking and can be assigned to separate chunks (i.e. output files) by code
+/// splitting.
+pub struct Part {
+    pub stmts: StoreSlice<Stmt>,
+    pub scopes: Vec<StoreRef<crate::Scope>>,
+
+    /// Each is an index into the file-level import record list
+    pub import_record_indices: PartImportRecordIndices,
+
+    /// All symbols that are declared in this part. Note that a given symbol may
+    /// have multiple declarations, and so may end up being declared in multiple
+    /// parts (e.g. multiple "var" declarations with the same name). Also note
+    /// that this list isn't deduplicated and may contain duplicates.
+    pub declared_symbols: DeclaredSymbolList,
+
+    /// An estimate of the number of uses of all symbols used within this part.
+    pub symbol_uses: PartSymbolUseMap,
+
+    /// This tracks property accesses off of imported symbols. We don't know
+    /// during parsing if an imported symbol is going to be an inlined enum
+    /// value or not. This is only known during linking.
+    pub import_symbol_property_uses: Option<Box<PartSymbolPropertyUseMap>>,
+
+    /// The indices of the other parts in this file that are needed if this part
+    /// is needed.
+    pub dependencies: DependencyList,
+
+    /// If true, this part can be removed if none of the declared symbols are
+    /// used. If the file containing this part is imported, then all parts that
+    /// don't have this flag enabled must be included.
+    pub can_be_removed_if_unused: bool,
+
+    /// This is used for generated parts that we don't want to be present if they
+    /// aren't needed. This enables tree shaking for these parts even if global
+    /// tree shaking isn't enabled.
+    pub force_tree_shaking: bool,
+
+    pub tag: PartTag,
+}
+
+pub type PartImportRecordIndices = Vec<u32>;
+pub type PartList = Vec<Part>;
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum PartTag {
+    None,
+    JsxImport,
+    Runtime,
+    ReactCompiler,
+    DirnameFilename,
+    BunTest,
+    DeadDueToInlining,
+    CommonjsNamedExport,
+    ImportToConvertFromRequire,
+}
+
+pub type PartSymbolUseMap = bun_collections::ArrayHashMap<Ref, crate::symbol::Use>;
+pub type PartSymbolPropertyUseMap =
+    bun_collections::ArrayHashMap<Ref, std::collections::HashMap<Box<[u8]>, PropertyUse>>;
+
+/// The reads of one `X.name` in `Part::import_symbol_property_uses`.
+#[derive(Default, Clone, Copy)]
+pub struct PropertyUse {
+    pub count_estimate: u32,
+    /// Some read is called, as `X.name()` or a template tag, with `X` as `this`.
+    pub is_call_target: bool,
+}
+
+impl Default for Part {
+    fn default() -> Self {
+        Self {
+            stmts: StoreSlice::EMPTY,
+            scopes: Vec::new(),
+            import_record_indices: Vec::new(),
+            declared_symbols: DeclaredSymbolList::default(),
+            symbol_uses: PartSymbolUseMap::default(),
+            import_symbol_property_uses: None,
+            dependencies: Vec::new(),
+            can_be_removed_if_unused: false,
+            force_tree_shaking: false,
+            tag: PartTag::None,
+        }
+    }
+}
+
+pub struct NamedImport {
+    /// Parts within this file that use this import
+    pub local_parts_with_uses: Vec<u32>,
+
+    /// The original export name from the source module being imported.
+    pub alias: Option<StoreStr>,
+    pub alias_loc: crate::Loc,
+    pub namespace_ref: Ref,
+    pub import_record_index: u32,
+
+    /// If true, the alias refers to the entire export namespace object of a
+    /// module.
+    pub alias_is_star: bool,
+
+    /// It's useful to flag exported imports because if they are in a TypeScript
+    /// file, we can't tell if they are a type or a value.
+    pub is_exported: bool,
+}
+
+#[derive(Copy, Clone)]
+pub struct NamedExport {
+    pub ref_: Ref,
+    pub alias_loc: crate::Loc,
+}
+
 impl Default for StmtOrExpr {
     fn default() -> Self {
         StmtOrExpr::Expr(Expr::default())

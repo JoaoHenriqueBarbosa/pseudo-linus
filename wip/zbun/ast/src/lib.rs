@@ -58,6 +58,7 @@ pub mod binding;
 pub mod e;
 pub mod expr;
 pub mod g;
+pub mod import_record;
 pub mod lexer_log;
 pub mod lexer_tables;
 pub mod loader;
@@ -82,6 +83,7 @@ pub use e::CallUnwrap as CanBeUnwrapped;
 pub use expr::{Data as ExprData, Expr, PrimitiveType as KnownPrimitive, Tag as ExprTag};
 pub use g as G;
 pub use g::NamespaceAlias;
+pub use import_record::{Flags as ImportRecordFlags, ImportRecord, Tag as ImportRecordTag};
 pub use lexer_log::LexerLog;
 pub use loader::{Loader, LoaderHashTable, SideEffects};
 pub use logger::{
@@ -94,6 +96,17 @@ pub use nodes::{
     StoreSlice, StoreStr, StrictModeKind,
 };
 pub use scope::Scope;
+
+/// `Part.{SymbolUseMap, SymbolPropertyUseMap, List}`: módulo para `crate::part::{SymbolUseMap, List}` resolver.
+pub mod part {
+    pub use crate::nodes::{
+        Part, PartList as List, PartSymbolPropertyUseMap as SymbolPropertyUseMap, PartSymbolUseMap as SymbolUseMap,
+    };
+}
+pub use nodes::{
+    DeclaredSymbol, DeclaredSymbolList, Dependency, ExportsKind, InlinedEnumValue, InlinedEnumValueDecoded,
+    NamedExport, NamedImport, Part, PartTag, PropertyUse, TlaCheck,
+};
 pub use ts::{TSNamespaceMember, TSNamespaceMemberMap, TSNamespaceScope};
 pub use use_directive::UseDirective;
 
@@ -241,6 +254,109 @@ impl Range {
     pub fn end_i(self) -> usize {
         // Saturates negatives to 0.
         (self.loc.start + self.len).max(0) as usize
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, enum_map::Enum, strum::IntoStaticStr)]
+pub enum ImportKind {
+    /// An entry point provided to `bun run` or `bun`
+    #[strum(serialize = "entry_point_run")]
+    EntryPointRun = 0,
+    /// An entry point provided to `bun build` or `Bun.build`
+    #[strum(serialize = "entry_point_build")]
+    EntryPointBuild = 1,
+    /// An ES6 import or re-export statement
+    #[default]
+    #[strum(serialize = "stmt")]
+    Stmt = 2,
+    /// A call to "require()"
+    #[strum(serialize = "require")]
+    Require = 3,
+    /// An "import()" expression with a string argument
+    #[strum(serialize = "dynamic")]
+    Dynamic = 4,
+    /// A call to "require.resolve()"
+    #[strum(serialize = "require_resolve")]
+    RequireResolve = 5,
+    /// A CSS "@import" rule
+    #[strum(serialize = "at")]
+    At = 6,
+    /// A CSS "@import" rule with import conditions
+    #[strum(serialize = "at_conditional")]
+    AtConditional = 7,
+    /// A CSS "url(...)" token
+    #[strum(serialize = "url")]
+    Url = 8,
+    /// A CSS "composes" property
+    #[strum(serialize = "composes")]
+    Composes = 9,
+    #[strum(serialize = "html_manifest")]
+    HtmlManifest = 10,
+    #[strum(serialize = "internal")]
+    Internal = 11,
+}
+
+impl ImportKind {
+    /// With code splitting, whether an edge of this kind puts its target in a
+    /// chunk of its own that is loaded when the expression runs.
+    #[inline]
+    pub fn can_be_lazy_chunk(self, target_is_bun: bool) -> bool {
+        match self {
+            ImportKind::Dynamic => true,
+            ImportKind::Require => target_is_bun,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    pub fn label(self) -> &'static [u8] {
+        match self {
+            ImportKind::EntryPointRun => b"entry-point-run",
+            ImportKind::EntryPointBuild => b"entry-point-build",
+            ImportKind::Stmt => b"import-statement",
+            ImportKind::Require => b"require-call",
+            ImportKind::Dynamic => b"dynamic-import",
+            ImportKind::RequireResolve => b"require-resolve",
+            ImportKind::At => b"import-rule",
+            ImportKind::AtConditional => b"",
+            ImportKind::Url => b"url-token",
+            ImportKind::Composes => b"composes",
+            ImportKind::Internal => b"internal",
+            ImportKind::HtmlManifest => b"html_manifest",
+        }
+    }
+
+    #[inline]
+    pub fn error_label(self) -> &'static [u8] {
+        match self {
+            ImportKind::EntryPointRun => b"entry point (run)",
+            ImportKind::EntryPointBuild => b"entry point (build)",
+            ImportKind::Stmt => b"import",
+            ImportKind::Require => b"require()",
+            ImportKind::Dynamic => b"import()",
+            ImportKind::RequireResolve => b"require.resolve()",
+            ImportKind::At => b"@import",
+            ImportKind::AtConditional => b"",
+            ImportKind::Url => b"url()",
+            ImportKind::Internal => b"<bun internal>",
+            ImportKind::Composes => b"composes",
+            ImportKind::HtmlManifest => b"HTML import",
+        }
+    }
+
+    #[inline]
+    pub fn is_common_js(self) -> bool {
+        matches!(self, Self::Require | Self::RequireResolve)
+    }
+
+    #[inline]
+    pub fn is_entry_point(self) -> bool {
+        matches!(self, Self::EntryPointRun | Self::EntryPointBuild)
+    }
+
+    pub fn is_from_css(self) -> bool {
+        self == Self::AtConditional || self == Self::At || self == Self::Url || self == Self::Composes
     }
 }
 
@@ -479,6 +595,12 @@ impl PartialEq for Ref {
     }
 }
 impl Eq for Ref {}
+/// O `Ref` é a própria chave guardada nos `ArrayHashMap` por símbolo.
+impl bun_collections::OwnKey<Ref> for Ref {
+    fn own(key: &Ref) -> Self {
+        *key
+    }
+}
 impl core::hash::Hash for Ref {
     #[inline]
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
