@@ -5,6 +5,7 @@
 
 use std::cmp::Ordering;
 
+use crate::comparator;
 use crate::dbformat::*;
 use crate::version::{total_file_size, Version};
 use crate::version_edit::{FileMeta, VersionEdit};
@@ -54,7 +55,7 @@ fn add_boundary_inputs(level_files: &[FileMeta], chosen: &mut Vec<FileMeta>) {
         let (_, largest) = get_range(chosen);
         let boundary = level_files
             .iter()
-            .filter(|file| compare_internal(&file.smallest, &largest) == Ordering::Greater && user_key(&file.smallest) == user_key(&largest))
+            .filter(|file| compare_internal(&file.smallest, &largest) == Ordering::Greater && comparator::compare(user_key(&file.smallest), user_key(&largest)) == Ordering::Equal)
             .min_by(|a, b| compare_internal(&a.smallest, &b.smallest));
         match boundary {
             Some(file) => chosen.push(file.clone()),
@@ -162,7 +163,7 @@ impl Compaction {
 
     /// `Compaction::IsBaseLevelForKey`: nenhum nível abaixo do de saída tem a chave, então uma remoção dela pode sumir.
     pub fn is_base_level_for_key(&self, user_key_bytes: &[u8]) -> bool {
-        !self.deeper.iter().any(|file| user_key(&file.smallest) <= user_key_bytes && user_key_bytes <= user_key(&file.largest))
+        !self.deeper.iter().any(|file| comparator::compare(user_key(&file.smallest), user_key_bytes) != Ordering::Greater && comparator::compare(user_key_bytes, user_key(&file.largest)) != Ordering::Greater)
     }
 
     /// `Compaction::AddInputDeletions`.

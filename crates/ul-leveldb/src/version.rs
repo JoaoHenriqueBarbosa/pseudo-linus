@@ -5,13 +5,12 @@
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 
+use crate::comparator;
 use crate::dbformat::*;
 use crate::env::Env;
 use crate::log::{read_records, Writer};
 use crate::version_edit::{FileMeta, VersionEdit};
 use crate::{Error, Result};
-
-pub const COMPARATOR_NAME: &[u8] = b"leveldb.BytewiseComparator";
 
 fn corruption(message: impl Into<String>) -> Error {
     Error::Corruption(message.into())
@@ -71,7 +70,7 @@ impl Version {
 
     /// Alguma tabela do nível cobre parte de `[smallest, largest]` (chaves do usuário).
     pub fn overlap_in_level(&self, level: usize, smallest: &[u8], largest: &[u8]) -> bool {
-        self.files[level].iter().any(|file| !(user_key(&file.largest) < smallest || user_key(&file.smallest) > largest))
+        self.files[level].iter().any(|file| !(comparator::compare(user_key(&file.largest), smallest) == Ordering::Less || comparator::compare(user_key(&file.smallest), largest) == Ordering::Greater))
     }
 
     /// `Version::GetOverlappingInputs`: as tabelas do nível que cobrem parte de `[begin, end]` (chaves do usuário). No
@@ -84,14 +83,14 @@ impl Version {
             let file = &self.files[level][index];
             index += 1;
             let (file_start, file_limit) = (user_key(&file.smallest), user_key(&file.largest));
-            if file_limit < begin.as_slice() || file_start > end.as_slice() {
+            if comparator::compare(file_limit, &begin) == Ordering::Less || comparator::compare(file_start, &end) == Ordering::Greater {
                 continue;
             }
             inputs.push(file.clone());
             if level == 0 {
-                if file_start < begin.as_slice() {
+                if comparator::compare(file_start, &begin) == Ordering::Less {
                     begin = file_start.to_vec();
-                } else if file_limit > end.as_slice() {
+                } else if comparator::compare(file_limit, &end) == Ordering::Greater {
                     end = file_limit.to_vec();
                 } else {
                     continue;
@@ -224,8 +223,8 @@ impl VersionSet {
         for record in read_records(&contents)? {
             let edit = VersionEdit::decode(&record)?;
             if let Some(name) = &edit.comparator {
-                if name != COMPARATOR_NAME {
-                    return Err(corruption(format!("{} does not match existing comparator : {}", String::from_utf8_lossy(name), String::from_utf8_lossy(COMPARATOR_NAME))));
+                if name != comparator::name() {
+                    return Err(corruption(format!("{} does not match existing comparator : {}", String::from_utf8_lossy(name), String::from_utf8_lossy(comparator::name()))));
                 }
             }
             apply_edit(&mut base, &mut self.compact_pointers, &edit);
@@ -319,7 +318,7 @@ impl VersionSet {
 
     /// `VersionSet::WriteSnapshot`: o estado inteiro, como o primeiro registro de um MANIFEST novo.
     fn snapshot_edit(&self) -> VersionEdit {
-        let mut edit = VersionEdit { comparator: Some(COMPARATOR_NAME.to_vec()), ..VersionEdit::default() };
+        let mut edit = VersionEdit { comparator: Some(comparator::name().to_vec()), ..VersionEdit::default() };
         for (level, pointer) in self.compact_pointers.iter().enumerate() {
             if !pointer.is_empty() {
                 edit.compact_pointers.push((level as u32, pointer.clone()));
@@ -382,7 +381,7 @@ mod tests {
     #[test]
     fn a_new_database_manifest_is_recovered_and_reused() {
         let env = MemEnv::new();
-        let mut record = VersionEdit { comparator: Some(COMPARATOR_NAME.to_vec()), log_number: Some(0), next_file_number: Some(2), last_sequence: Some(0), ..VersionEdit::default() };
+        let mut record = VersionEdit { comparator: Some(comparator::name().to_vec()), log_number: Some(0), next_file_number: Some(2), last_sequence: Some(0), ..VersionEdit::default() };
         let manifest = Writer::new().add_record(&record.encode());
         record.log_number = Some(0);
         env.write_file("/db/MANIFEST-000001", &manifest).unwrap();
@@ -400,7 +399,7 @@ mod tests {
     #[test]
     fn log_and_apply_appends_to_the_reused_manifest_and_recovers_the_files() {
         let env = MemEnv::new();
-        let edit = VersionEdit { comparator: Some(COMPARATOR_NAME.to_vec()), log_number: Some(0), next_file_number: Some(2), last_sequence: Some(0), ..VersionEdit::default() };
+        let edit = VersionEdit { comparator: Some(comparator::name().to_vec()), log_number: Some(0), next_file_number: Some(2), last_sequence: Some(0), ..VersionEdit::default() };
         env.write_file("/db/MANIFEST-000001", &Writer::new().add_record(&edit.encode())).unwrap();
         set_current_file(&env, "/db", 1).unwrap();
         let mut versions = VersionSet::new("/db", 2 << 20, true);

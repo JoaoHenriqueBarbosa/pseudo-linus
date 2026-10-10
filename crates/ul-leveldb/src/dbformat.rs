@@ -3,6 +3,7 @@
 use std::cmp::Ordering;
 
 use crate::coding::put_fixed64;
+use crate::comparator;
 
 pub const NUM_LEVELS: usize = 7;
 pub const L0_COMPACTION_TRIGGER: usize = 4;
@@ -50,10 +51,10 @@ pub fn parse_internal_key(internal_key: &[u8]) -> Option<(&[u8], u64, ValueType)
     Some((&internal_key[..split], packed >> 8, value_type))
 }
 
-/// A ordem do `InternalKeyComparator` com o comparador bytewise do usuário: chave do usuário crescente, e para a mesma
+/// A ordem do `InternalKeyComparator` com o comparador de usuário vigente (ver `comparator`): chave do usuário crescente, e para a mesma
 /// chave a sequência decrescente (a mais nova primeiro).
 pub fn compare_internal(a: &[u8], b: &[u8]) -> Ordering {
-    match user_key(a).cmp(user_key(b)) {
+    match comparator::compare(user_key(a), user_key(b)) {
         Ordering::Equal => {
             let pack = |key: &[u8]| u64::from_le_bytes(key[key.len() - 8..].try_into().unwrap_or([0; 8]));
             pack(b).cmp(&pack(a))
@@ -62,39 +63,11 @@ pub fn compare_internal(a: &[u8], b: &[u8]) -> Ordering {
     }
 }
 
-/// `BytewiseComparator::FindShortestSeparator`: encurta `start` para algo em `[start, limit)`.
-fn shortest_separator(start: &mut Vec<u8>, limit: &[u8]) {
-    let min_length = start.len().min(limit.len());
-    let mut diff_index = 0;
-    while diff_index < min_length && start[diff_index] == limit[diff_index] {
-        diff_index += 1;
-    }
-    if diff_index >= min_length {
-        return;
-    }
-    let diff_byte = start[diff_index];
-    if diff_byte < 0xff && diff_byte + 1 < limit[diff_index] {
-        start[diff_index] += 1;
-        start.truncate(diff_index + 1);
-    }
-}
-
-/// `BytewiseComparator::FindShortSuccessor`: a menor chave maior ou igual a `key` que o leveldb sabe fazer.
-fn short_successor(key: &mut Vec<u8>) {
-    for index in 0..key.len() {
-        if key[index] != 0xff {
-            key[index] += 1;
-            key.truncate(index + 1);
-            return;
-        }
-    }
-}
-
 /// `InternalKeyComparator::FindShortestSeparator`.
 pub fn internal_shortest_separator(start: &mut Vec<u8>, limit: &[u8]) {
     let mut tmp = user_key(start).to_vec();
-    shortest_separator(&mut tmp, user_key(limit));
-    if tmp.len() < user_key(start).len() && user_key(start) < tmp.as_slice() {
+    comparator::find_shortest_separator(&mut tmp, user_key(limit));
+    if tmp.len() < user_key(start).len() && comparator::compare(user_key(start), &tmp) == Ordering::Less {
         put_fixed64(&mut tmp, pack_sequence_and_type(MAX_SEQUENCE_NUMBER, VALUE_TYPE_FOR_SEEK));
         *start = tmp;
     }
@@ -103,8 +76,8 @@ pub fn internal_shortest_separator(start: &mut Vec<u8>, limit: &[u8]) {
 /// `InternalKeyComparator::FindShortSuccessor`.
 pub fn internal_short_successor(key: &mut Vec<u8>) {
     let mut tmp = user_key(key).to_vec();
-    short_successor(&mut tmp);
-    if tmp.len() < user_key(key).len() && user_key(key) < tmp.as_slice() {
+    comparator::find_short_successor(&mut tmp);
+    if tmp.len() < user_key(key).len() && comparator::compare(user_key(key), &tmp) == Ordering::Less {
         put_fixed64(&mut tmp, pack_sequence_and_type(MAX_SEQUENCE_NUMBER, VALUE_TYPE_FOR_SEEK));
         *key = tmp;
     }
@@ -196,13 +169,13 @@ mod tests {
     #[test]
     fn separators_and_successors_follow_the_bytewise_comparator() {
         let mut start = b"abcdefg".to_vec();
-        shortest_separator(&mut start, b"abzzz");
+        comparator::find_shortest_separator(&mut start, b"abzzz");
         assert_eq!(start, b"abd");
         let mut same = b"abc".to_vec();
-        shortest_separator(&mut same, b"abcd");
+        comparator::find_shortest_separator(&mut same, b"abcd");
         assert_eq!(same, b"abc");
         let mut key = b"\xff\xffa".to_vec();
-        short_successor(&mut key);
+        comparator::find_short_successor(&mut key);
         assert_eq!(key, b"\xff\xffb");
     }
 
