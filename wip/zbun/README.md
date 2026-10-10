@@ -19,10 +19,17 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
 - Ponteiro de arena da AST (`StoreRef`, `StoreSlice`, `Vec<T, AstAlloc>`) vira índice em arena tipada.
 - Chamada a biblioteca C (mimalloc, simdutf, highway) vira Rust puro com o mesmo resultado, num trecho comentado.
 - A fidelidade é medida contra o `bun build --no-bundle` do bun 1.4.2 do oráculo, byte a byte.
+- Mudança sistemática nos arquivos copiados: os travessões dos comentários do upstream viram dois-pontos ou hífen
+  (regra do repositório), por ferramenta, na hora da cópia. Nenhum outro texto muda.
 
 ## Estado por arquivo
 
 | Crate | Arquivo do upstream | Estado | O que mudou |
 |---|---|---|---|
 | `bun_ast` | `op.rs` | portado | nada (cópia) |
+| `bun_ast` | `target.rs` | portado | nada (cópia) |
 | `bun_ast` | `nodes.rs` | parcial: `AssignTarget` | o arquivo cresce item a item, na ordem em que os outros módulos pedem |
+| `bun_ast` | `loader.rs` | pendente | pede `bun_core::assert_ffi_discr!` e `bun_collections::StringArrayHashMap` |
+| `bun_core` | `comptime_string_map.rs` | portado, com os 8 testes do upstream | sem o `impl HasLength for &crate::String`, que volta com o porte de `bun_core::String` |
+| `bun_core_macros` | `comptime_string_map.rs` | portado | nada (cópia) |
+| `bun_core_macros` | `lib.rs` | parcial: só os dois proc-macros do mapa | `pretty_fmt!` e os derives de contagem de referência entram quando pedidos |

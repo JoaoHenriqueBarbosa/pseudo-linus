@@ -5,5 +5,7 @@
 
 pub mod nodes;
 pub mod op;
+pub mod target;
 
 pub use nodes::AssignTarget;
+pub use target::Target;

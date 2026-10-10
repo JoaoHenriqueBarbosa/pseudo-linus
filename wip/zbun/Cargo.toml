@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["ast"]
+members = ["ast", "bun_core", "bun_core_macros"]
 
 [workspace.package]
 edition = "2024"
