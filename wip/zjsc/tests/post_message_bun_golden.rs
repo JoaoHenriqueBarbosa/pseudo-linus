@@ -27,8 +27,11 @@ fn post_message_uncaught_matches_bun() {
 #[test]
 fn post_message_match_bun() {
     // O gerador (scripts/gen-post-message-golden.js) escreve exatamente 97 programas.
+    // Cada programa roda como no gerador: `R` declarada e a fonte por eval indireto (as `var` viram chaves do global no fim
+    // da ordem, depois de `onmessage, onerror`).
     common::check(GOLDEN, common::NO_PRELUDES, 97, |source| {
-        match catch_unwind(AssertUnwindSafe(|| evaluate_named_script_reporting_uncaught(source, "post_message_case.js", "R"))) {
+        let program = format!("(0, eval)(\"var R\");\n(0, eval)({});", common::json_quote(source));
+        match catch_unwind(AssertUnwindSafe(|| evaluate_named_script_reporting_uncaught(&program, "post_message_case.js", "R"))) {
             Ok(Err(uncaught)) => Ok(common::Units::from(uncaught)),
             Ok(Ok(read)) => common::guarded_units(|| read),
             Err(panic) => {
