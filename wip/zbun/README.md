@@ -94,10 +94,29 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_wyhash` | `lib.rs` | portado, com os 8 testes do upstream (vetores do wyhash e códigos do SMHasher) | as 5 leituras desalinhadas com `unsafe` viram `from_le_bytes` sobre a fatia (`read4`/`read8` deixam de existir, o `read_bytes` do módulo cobre os dois); sai o `#![feature(hasher_prefixfree_extras)]` e o `write_length_prefix` vazio do `OneShotHasher`, o que muda só o hash interno dos mapas; travessões trocados por ferramenta |
 | `bun_collections` | `array_hash_map.rs` | parcial: `StringArrayHashMap` | entradas em dois `Vec` na ordem de inserção, com a remoção por troca do Zig, e índice no `HashMap` da biblioteca padrão no lugar do `ArrayHashMap` com 25 trechos `unsafe`; a ordem observável é a mesma. Sem contexto nem alocador genéricos, sem o mapa sem caixa do Windows e sem os sinônimos `contains_key` e `put_assume_capacity` |
 | `bun_core` | `comptime_string_map.rs` | portado, com os 8 testes do upstream | sem o `impl HasLength for &crate::String`, que volta com o porte de `bun_core::String` |
-| `bun_core` | `strings` (`string/immutable.rs`, `string/immutable/unicode.rs`, `strings_impl` de `lib.rs`) | parcial: ASCII, igualdade e ordem, surrogates, WTF-8, `CodepointIterator`, UTF-8 para UTF-16 e volta | onde o upstream chama o simdutf, roda o laço escalar que o próprio upstream usa quando o simdutf recusa a entrada; para entrada válida os dois dão as mesmas unidades, então o porte usa sempre o laço. `eql_long` compara fatias no lugar da leitura por palavras com ponteiro |
+| `bun_core` | `strings` (`string/immutable.rs`, `string/immutable/unicode.rs`, `strings_impl` de `lib.rs`) | parcial: ASCII, igualdade e ordem, surrogates, WTF-8, `CodepointIterator`, UTF-8 para UTF-16 e volta, as buscas do lexer (`index_of*`, `contains`, `has_prefix_with_word_boundary`, `is_all_whitespace`, `is_unicode_space_separator`, `peek_n_codepoints_wtf8`, `lexer_step`), `copy_utf16_into_utf8` | onde o upstream chama o simdutf, roda o laço escalar que o próprio upstream usa quando o simdutf recusa a entrada; para entrada válida os dois dão as mesmas unidades, então o porte usa sempre o laço. As buscas SIMD do highway viram laços escalares com o mesmo resultado; o `copy_nonoverlapping` de `next_codepoint_multibyte` vira `copy_from_slice`. `eql_long` compara fatias no lugar da leitura por palavras com ponteiro. `to_utf8_alloc_with_type` (repasse de uma linha) vira reexportação de `to_utf8_alloc` |
 | `bun_core_macros` | `comptime_string_map.rs` | portado | nada (cópia) |
-| `bun_core` | `fmt.rs` | parcial: `FormatDouble` | o `WTF__dtoa` do WebKit vira os dígitos mais curtos do formatador do Rust montados pela regra do Number::toString do ECMAScript, com testes contra o `String(n)` do JavaScript |
-| `bun_core` | `util.rs` e `lib.rs` | parcial: `GenericIndex`, `GenericIndexOptional`, `trim` | nada (cópia) |
+| `bun_core` | `fmt.rs` | parcial: `FormatDouble`, `hex_digit_value(_u32)`, `ParseIntError`, `parse_int`, `parse_double` | o `WTF__dtoa` do WebKit vira os dígitos mais curtos do formatador do Rust montados pela regra do Number::toString do ECMAScript, com testes contra o `String(n)` do JavaScript. O `WTF__parseDouble` (fast_float do WebKit, por FFI) vira o reconhecimento do mesmo prefixo (`-` opcional, dígitos com ponto, expoente só com dígito) seguido da conversão do Rust, que arredonda corretamente como o fast_float |
+| `bun_core` | `util.rs`, `result.rs` e `lib.rs` | parcial: `GenericIndex`, `GenericIndexOptional`, `trim`, `impl_tag_error!`, os reexports `parse_int`, `ParseIntError` e `wtf::parse_double` | nada (cópia); `Environment` só com `IS_NATIVE = true` (o porte roda nativo) |
+| `bun_core_macros` | `lib.rs` | parcial: só os dois proc-macros do mapa | `pretty_fmt!` e os derives de contagem de referência entram quando pedidos |
+| `bun_collections` | `bit_set.rs` | parcial: `IntegerBitSet` | nada (cópia do subconjunto que o lexer usa) |
+| `bun_alloc` | `lib.rs` | parcial: `Arena` | o bump do mimalloc vira um `typed_arena` para bytes e outro para `u16`, sem `unsafe`; `alloc_slice_copy` e `alloc_slice_fill_default` |
+| `bun_ast` | `lexer_log.rs` | portado (cópia) | nada |
+| `bun_ast` | `lib.rs` (o `logger`) | parcial: `Kind`, `Level`, `Location`, `Data`, `Msg`, `Log`, `Path`, `Source`, `range_data`, `alloc_print` e as posições de erro | `Msg` sem `metadata`; o `Log` não tem o `LineColumnTracker` (só acelera a conta de linha, o resultado é o mesmo) nem o `tracked_range_data`, que virou a chamada direta de `range_data` (era repasse); `Span` entra em `nodes.rs` |
+| `bun_js_parser` | `lexer.rs` | portado (cópia por Bash, travessões e en dashes trocados por ferramenta), com testes dos oito casos do plano | ver "lexer.rs" abaixo |
+
+### `lexer.rs`
+
+- O `log` é `&'a mut Log` com dono único, no lugar do `NonNull<Log>` compartilhado com o parser; o parser chega a ele
+  por `p.lexer.log()`. Os dois acessos `unsafe` ao ponteiro e o `get_unchecked` de `next_codepoint_with` somem.
+- As fatias que viram `StoreStr` (comentários preservados, argumentos de pragma, `sourceMappingURL`, literal ASCII) são
+  faixas do fonte, que ocupa o começo do vetor de bytes do `Store` (`source_str`). Por isso `PragmaArg::scan` e
+  `scan_source_mapping_url_value` recebem `chunk_start`, o deslocamento do pedaço no fonte. O `range` deles segue a
+  conta do upstream, que só serve às mensagens de erro.
+- `to_e_string` e `to_utf8_e_string` recebem o `Store` e gravam nele o texto decodificado.
+- Os três kernels do highway (`index_of_newline_or_non_ascii_or_hash_or_at` e os dois "interesting character")
+  viram laços escalares com a mesma semântica do C++.
+- Sai `oom_from_alloc!(Error)`: sem alocador falível no porte, não há `AllocError` para converter.
 
 ### `e.rs`
 
@@ -114,4 +133,3 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 - `alphabetize_*` e `package_json_sort` usam o `sort_by` estável, que dá a mesma ordem do `index_sort` estável.
 - Pendente: o `Display` de `EString`. `EString::hash` entrou com o `bun_wyhash`, `is_identifier` com as tabelas
   do lexer e `Import::import_record_loader` com o `loader.rs`; os três recebem o `Store`.
-| `bun_core_macros` | `lib.rs` | parcial: só os dois proc-macros do mapa | `pretty_fmt!` e os derives de contagem de referência entram quando pedidos |

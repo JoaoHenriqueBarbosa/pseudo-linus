@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["ast", "bun_collections", "bun_core", "bun_core_macros", "bun_wyhash"]
+members = ["ast", "bun_alloc", "bun_collections", "bun_core", "bun_core_macros", "bun_wyhash", "js_parser"]
 
 [workspace.package]
 edition = "2024"
@@ -8,6 +8,8 @@ license = "MIT"
 
 [workspace.dependencies]
 bitflags = "2"
+bstr = "1"
+bytemuck = "1"
 enum-map = "2"
 enumset = "1"
 strum = { version = "0.26", features = ["derive"] }

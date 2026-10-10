@@ -148,8 +148,10 @@ pub struct StoreStr {
 impl StoreStr {
     pub const EMPTY: StoreStr = StoreStr { start: 0, len: 0 };
 
+    /// Faixa crua do vetor de bytes. O código-fonte ocupa o começo do vetor (seção "Arena tipada" do README),
+    /// então o lexer descreve uma fatia do fonte pelo deslocamento dela, sem gravar nada.
     #[inline]
-    pub(crate) const fn from_range(start: u32, len: u32) -> Self {
+    pub const fn from_range(start: u32, len: u32) -> Self {
         StoreStr { start, len }
     }
 
@@ -321,6 +323,12 @@ pub struct ArrayBinding {
 pub enum StmtOrExpr {
     Stmt(Stmt),
     Expr(Expr),
+}
+
+#[derive(Copy, Clone, Default)]
+pub struct Span {
+    pub text: StoreStr,
+    pub range: crate::Range,
 }
 
 impl Default for StmtOrExpr {

@@ -94,6 +94,188 @@ impl Writer<'_> {
     }
 }
 
+pub const fn hex_digit_value(b: u8) -> Option<u8> {
+    match b {
+        b'0'..=b'9' => Some(b - b'0'),
+        b'a'..=b'f' => Some(b - b'a' + 10),
+        b'A'..=b'F' => Some(b - b'A' + 10),
+        _ => None,
+    }
+}
+
+/// [`hex_digit_value`] para um code point decodificado: fora de `0..=0xFF` (inclusive o `-1i32 as u32` do EOF) dá
+/// `None`.
+#[inline]
+pub const fn hex_digit_value_u32(c: u32) -> Option<u8> {
+    if c <= 0xFF { hex_digit_value(c as u8) } else { None }
+}
+
+/// Error from [`parse_int`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ParseIntError {
+    InvalidCharacter,
+    Overflow,
+}
+
+impl ParseIntError {
+    #[inline]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::InvalidCharacter => "InvalidCharacter",
+            Self::Overflow => "Overflow",
+        }
+    }
+}
+
+/// O laço de dígitos de [`parse_int`]: `digits` já sem sinal, `radix` já resolvido (2..=36). Pula `_` no meio,
+/// recusa `_` no começo e no fim, acumula em `u128` com estouro verificado.
+#[inline]
+fn parse_with_sign(digits: &[u8], radix: u8) -> Result<u128, ParseIntError> {
+    debug_assert!((2..=36).contains(&radix));
+    if digits.is_empty() || digits[0] == b'_' || digits[digits.len() - 1] == b'_' {
+        return Err(ParseIntError::InvalidCharacter);
+    }
+    let radix_u = radix as u128;
+    let mut acc: u128 = 0;
+    for &c in digits {
+        if c == b'_' {
+            continue;
+        }
+        let d = match c {
+            b'0'..=b'9' => (c - b'0') as u128,
+            b'a'..=b'z' => (c - b'a' + 10) as u128,
+            b'A'..=b'Z' => (c - b'A' + 10) as u128,
+            _ => return Err(ParseIntError::InvalidCharacter),
+        };
+        if d >= radix_u {
+            return Err(ParseIntError::InvalidCharacter);
+        }
+        acc = acc
+            .checked_mul(radix_u)
+            .and_then(|v| v.checked_add(d))
+            .ok_or(ParseIntError::Overflow)?;
+    }
+    Ok(acc)
+}
+
+/// Com `radix == 0`, tira o prefixo `0x`/`0o`/`0b` e escolhe a base (10 sem prefixo).
+#[inline]
+fn auto_radix(digits: &[u8], radix: u8) -> (&[u8], u8) {
+    if radix != 0 {
+        return (digits, radix);
+    }
+    if digits.len() >= 2 && digits[0] == b'0' {
+        match digits[1] {
+            b'x' | b'X' => return (&digits[2..], 16),
+            b'o' | b'O' => return (&digits[2..], 8),
+            b'b' | b'B' => return (&digits[2..], 2),
+            _ => {}
+        }
+    }
+    (digits, 10)
+}
+
+/// O `std.fmt.parseInt` do Zig: sinal opcional, `_` entre dígitos, `radix` de 2 a 36 ou 0 para detectar pelo
+/// prefixo.
+pub fn parse_int<T>(buf: &[u8], radix: u8) -> Result<T, ParseIntError>
+where
+    T: TryFrom<i128> + TryFrom<u128>,
+{
+    if buf.is_empty() {
+        return Err(ParseIntError::InvalidCharacter);
+    }
+    let (neg, rest) = match buf[0] {
+        b'+' => (false, &buf[1..]),
+        b'-' => (true, &buf[1..]),
+        _ => (false, buf),
+    };
+    let (digits, radix) = auto_radix(rest, radix);
+    let acc = parse_with_sign(digits, radix)?;
+    if neg {
+        let signed: i128 = if acc == (i128::MAX as u128) + 1 {
+            i128::MIN
+        } else if acc > i128::MAX as u128 {
+            return Err(ParseIntError::Overflow);
+        } else {
+            -(acc as i128)
+        };
+        T::try_from(signed).map_err(|_| ParseIntError::Overflow)
+    } else {
+        T::try_from(acc).map_err(|_| ParseIntError::Overflow)
+    }
+}
+
+/// Error from [`parse_double`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct InvalidCharacter;
+
+impl core::fmt::Display for InvalidCharacter {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("InvalidCharacter")
+    }
+}
+impl core::error::Error for InvalidCharacter {}
+
+/// `WTF::parseDouble`: aceita o maior prefixo numérico (`b"1.5x"` dá 1.5) e recusa a entrada sem prefixo. No
+/// upstream é o `fast_float::from_chars` do WebKit com `chars_format::general`: `-` opcional (o `+` não), dígitos
+/// com ponto opcional (ao menos um dígito de um dos lados) e expoente só quando há dígito depois do `e`; sem
+/// `inf` nem `nan`. O prefixo reconhecido aqui é o mesmo, e a conversão do Rust arredonda corretamente como o
+/// fast_float, então o `f64` é o mesmo.
+pub fn parse_double(buf: &[u8]) -> Result<f64, InvalidCharacter> {
+    let digits_from = |mut i: usize| {
+        while i < buf.len() && buf[i].is_ascii_digit() {
+            i += 1;
+        }
+        i
+    };
+    let mut i = usize::from(buf.first() == Some(&b'-'));
+    let int_end = digits_from(i);
+    let mut n_digits = int_end - i;
+    i = int_end;
+    if i < buf.len() && buf[i] == b'.' {
+        let frac_end = digits_from(i + 1);
+        n_digits += frac_end - (i + 1);
+        i = frac_end;
+    }
+    if n_digits == 0 {
+        return Err(InvalidCharacter);
+    }
+    if i < buf.len() && (buf[i] == b'e' || buf[i] == b'E') {
+        let mut j = i + 1;
+        if j < buf.len() && (buf[j] == b'+' || buf[j] == b'-') {
+            j += 1;
+        }
+        let exp_end = digits_from(j);
+        if exp_end > j {
+            i = exp_end;
+        }
+    }
+    // O prefixo é ASCII por construção.
+    let text = core::str::from_utf8(&buf[..i]).map_err(|_| InvalidCharacter)?;
+    text.parse::<f64>().map_err(|_| InvalidCharacter)
+}
+
+#[cfg(test)]
+mod parse_tests {
+    use super::*;
+
+    #[test]
+    fn parse_int_and_double() {
+        assert_eq!(parse_int::<i32>(b"ff", 16), Ok(255));
+        assert_eq!(parse_int::<i32>(b"0x1_0", 0), Ok(16));
+        assert_eq!(parse_int::<u8>(b"256", 10), Err(ParseIntError::Overflow));
+        assert_eq!(parse_double(b"1.5x"), Ok(1.5));
+        assert_eq!(parse_double(b".5"), Ok(0.5));
+        assert_eq!(parse_double(b"5."), Ok(5.0));
+        assert_eq!(parse_double(b"1e"), Ok(1.0));
+        assert_eq!(parse_double(b"1e-2"), Ok(0.01));
+        assert_eq!(parse_double(b"-0"), Ok(-0.0));
+        assert_eq!(parse_double(b"."), Err(InvalidCharacter));
+        assert_eq!(parse_double(b"+1"), Err(InvalidCharacter));
+        assert_eq!(parse_double(b"Infinity"), Err(InvalidCharacter));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::FormatDouble;

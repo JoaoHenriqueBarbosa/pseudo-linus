@@ -11,7 +11,35 @@ pub mod strings;
 
 pub use strings::CodePoint;
 
+pub use fmt::{ParseIntError, parse_int};
+
 pub use generic_index::{GenericIndex, GenericIndexInt, GenericIndexOptional};
+
+/// `bun_core::wtf`: no upstream reexporta o `parse_double` de `fmt`.
+pub mod wtf {
+    pub use crate::fmt::parse_double;
+}
+
+/// `bun.Environment`, só com o que o transpilador consulta. O porte roda nativo (não é o alvo wasm do upstream).
+pub mod env {
+    pub const IS_NATIVE: bool = true;
+}
+pub use env as Environment;
+
+/// Stamp out `impl Display + impl Error` for one or more `strum::IntoStaticStr`-deriving error enums whose
+/// user-facing string is exactly the variant tag.
+#[macro_export]
+macro_rules! impl_tag_error {
+    ($($t:ty),+ $(,)?) => {$(
+        impl ::core::fmt::Display for $t {
+            #[inline]
+            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                f.write_str(<&'static str>::from(self))
+            }
+        }
+        impl ::core::error::Error for $t {}
+    )+};
+}
 
 /// `assert_ffi_discr!` de `src/opaque/lib.rs` do upstream (reexportado pelo `bun_core` lá): fixa em tempo de
 /// compilação o tamanho, o alinhamento e os discriminantes de um enum que atravessa FFI.

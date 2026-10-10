@@ -58,8 +58,10 @@ pub mod binding;
 pub mod e;
 pub mod expr;
 pub mod g;
+pub mod lexer_log;
 pub mod lexer_tables;
 pub mod loader;
+pub mod logger;
 pub mod new_store;
 pub mod nodes;
 pub mod op;
@@ -78,13 +80,23 @@ pub use e::CallUnwrap as CanBeUnwrapped;
 pub use expr::{Data as ExprData, Expr, PrimitiveType as KnownPrimitive, Tag as ExprTag};
 pub use g as G;
 pub use g::NamespaceAlias;
+pub use lexer_log::LexerLog;
 pub use loader::{Loader, LoaderHashTable, SideEffects};
+pub use logger::{
+    AddErrorOptions, Data, IntoText, Kind, Level, Location, Log, Msg, Path, Source, alloc_print, range_data,
+};
 pub use new_store::{NodeStore, Stored};
 pub use nodes::{
     ArrayBinding, AssignTarget, BindingNodeIndex, Case, Catch, ClauseItem, EnumValue, ExprNodeIndex, ExprNodeList,
-    Finally, ImportItemStatus, LocRef, OptionalChain, StmtNodeIndex, StmtNodeList, StmtOrExpr, StoreRef, StoreSlice,
-    StoreStr,
+    Finally, ImportItemStatus, LocRef, OptionalChain, Span, StmtNodeIndex, StmtNodeList, StmtOrExpr, StoreRef,
+    StoreSlice, StoreStr,
 };
+
+/// In range for every position in a source that passed [`Source::check_parseable_len`].
+#[inline]
+pub fn usize2loc(loc: usize) -> Loc {
+    Loc { start: i32::try_from(loc).expect("int cast") }
+}
 pub use op as Op;
 pub use op::Code as OpCode;
 pub use s as S;

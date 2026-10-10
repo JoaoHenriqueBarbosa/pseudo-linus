@@ -5,6 +5,8 @@
 
 use core::cmp::Ordering;
 
+pub use crate::fmt::ParseIntError;
+
 /// `bun.strings.CodePoint`.
 pub type CodePoint = i32;
 
@@ -593,6 +595,193 @@ pub fn to_utf8_alloc(utf16: &[u16]) -> Vec<u8> {
     let mut list = Vec::with_capacity(utf16.len());
     convert_utf16_to_utf8_append(&mut list, utf16);
     list
+}
+
+/// No upstream é uma função de uma linha que chama `to_utf8_alloc`; aqui é o mesmo nome reexportado.
+pub use self::to_utf8_alloc as to_utf8_alloc_with_type;
+
+/// Quantas unidades UTF-16 foram lidas e quantos bytes UTF-8 escritos.
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub struct EncodeIntoResult {
+    pub read: u32,
+    pub written: u32,
+}
+
+/// `copyUTF16IntoUTF8`: codifica UTF-16 num buffer UTF-8 de tamanho fixo, com surrogate solto virando U+FFFD, e
+/// para no último code point que cabe inteiro. No upstream o caminho rápido é o simdutf; o lento é este laço.
+pub fn copy_utf16_into_utf8(buf: &mut [u8], utf16: &[u16]) -> EncodeIntoResult {
+    let mut read = 0usize;
+    let mut written = 0usize;
+    let mut quad = [0u8; 4];
+    while read < utf16.len() {
+        let (cp, adv) = decode_utf16_with_fffd(&utf16[read..]);
+        let n = encode_wtf8_rune(&mut quad, cp);
+        if written + n > buf.len() {
+            break;
+        }
+        buf[written..written + n].copy_from_slice(&quad[..n]);
+        written += n;
+        read += adv as usize;
+    }
+    EncodeIntoResult {
+        read: read as u32,
+        written: written as u32,
+    }
+}
+
+// ─── Busca ──────────────────────────────────────────────────────────────────
+// No upstream estas buscas são os kernels SIMD do highway; aqui, laços escalares com o mesmo resultado.
+
+pub fn index_of_char(slice: &[u8], char: u8) -> Option<u32> {
+    // Wrapping cast.
+    index_of_char_usize(slice, char).map(|i| i as u32)
+}
+
+pub fn index_of_char_usize(slice: &[u8], char: u8) -> Option<usize> {
+    slice.iter().position(|&b| b == char)
+}
+
+pub fn index_of(self_: &[u8], str: &[u8]) -> Option<usize> {
+    let self_len = self_.len();
+    let str_len = str.len();
+    if self_len == 0 || str_len == 0 || self_len < str_len {
+        return None;
+    }
+    if str_len == 1 {
+        return index_of_char_usize(self_, str[0]);
+    }
+    self_.windows(str_len).position(|w| w == str)
+}
+
+#[inline]
+pub fn contains(self_: &[u8], str: &[u8]) -> bool {
+    index_of(self_, str).is_some()
+}
+
+/// Índice do primeiro byte de `slice` que aparece em `chars`.
+#[inline]
+pub fn index_of_any(slice: &[u8], chars: &[u8]) -> Option<usize> {
+    slice.iter().position(|b| chars.contains(b))
+}
+
+/// O primeiro byte `<= ' '` ou não ASCII a partir de `offset`; a posição é absoluta. O primeiro byte tem o teste
+/// do upstream (que deixa passar o TAB), o resto é o kernel `index_of_space_or_newline_or_non_ascii`.
+pub fn index_of_space_or_newline_or_non_ascii(slice_: &[u8], offset: u32) -> Option<u32> {
+    let remaining = &slice_[offset as usize..];
+    if remaining.is_empty() {
+        return None;
+    }
+    if remaining[0] > 127 || (remaining[0] < 0x20 && remaining[0] != 0x09) {
+        return Some(offset);
+    }
+    let i = remaining.iter().position(|&c| c <= b' ' || c > 127)?;
+    Some(i as u32 + offset)
+}
+
+pub fn first_non_ascii16(slice: &[u16]) -> Option<u32> {
+    slice.iter().position(|&c| c > 127).map(|i| i as u32)
+}
+
+pub fn has_prefix_comptime(self_: &[u8], alt: &'static [u8]) -> bool {
+    self_.starts_with(alt)
+}
+
+pub const WHITESPACE_CHARS: [u8; 6] = [b' ', b'\t', b'\n', b'\r', 0x0B /* VT */, 0x0C /* FF */];
+
+pub fn is_all_whitespace(slice: &[u8]) -> bool {
+    slice.iter().all(|c| WHITESPACE_CHARS.contains(c))
+}
+
+/// `input` começa com `prefix` e o que vem depois não continua um identificador:
+///
+/// ```text
+/// has_prefix_with_word_boundary("console.log", "console") // true
+/// has_prefix_with_word_boundary("console.log", "log") // false
+/// has_prefix_with_word_boundary("console.log", "console.log") // true
+/// ```
+pub fn has_prefix_with_word_boundary(input: &[u8], prefix: &'static [u8]) -> bool {
+    if has_prefix_comptime(input, prefix) {
+        if input.len() == prefix.len() {
+            return true;
+        }
+
+        let next = &input[prefix.len()..];
+        let bytes: [u8; 4] = [
+            next[0],
+            if next.len() > 1 { next[1] } else { 0 },
+            if next.len() > 2 { next[2] } else { 0 },
+            if next.len() > 3 { next[3] } else { 0 },
+        ];
+
+        let cp = decode_wtf8_rune_t::<i32>(bytes, wtf8_byte_sequence_length(next[0]), -1);
+        if cp < 0 || !crate::identifier::is_identifier_part(cp) {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Zs do Unicode (os separadores de espaço).
+pub const fn is_unicode_space_separator(cp: u32) -> bool {
+    matches!(
+        cp,
+        0x0020          // SPACE
+        | 0x00A0        // NO-BREAK SPACE
+        | 0x1680        // OGHAM SPACE MARK
+        | 0x2000
+            ..=0x200A // EN QUAD..HAIR SPACE
+        | 0x202F        // NARROW NO-BREAK SPACE
+        | 0x205F        // MEDIUM MATHEMATICAL SPACE
+        | 0x3000 // IDEOGRAPHIC SPACE
+    )
+}
+
+/// Os próximos `n` code points WTF-8 a partir de `at`, parando no fim ou numa sequência truncada.
+#[inline]
+pub fn peek_n_codepoints_wtf8(bytes: &[u8], at: usize, n: usize) -> &[u8] {
+    let mut end = at;
+    for _ in 0..n {
+        if end >= bytes.len() {
+            break;
+        }
+        let cp_len = wtf8_byte_sequence_length_with_invalid(bytes[end]) as usize;
+        if end + cp_len > bytes.len() {
+            break;
+        }
+        end += cp_len;
+    }
+    &bytes[at..end]
+}
+
+/// O passo WTF-8 dos lexers de JS e de JSON.
+pub mod lexer_step {
+    use super::{
+        CodePoint, UNICODE_REPLACEMENT, decode_wtf8_rune_t_multibyte, wtf8_byte_sequence_length_with_invalid,
+    };
+
+    /// O caminho não ASCII de `next_codepoint`. Byte de início inválido devolve o próprio byte (não o EOF), para o
+    /// laço do lexer cair no erro de sintaxe; sequência truncada no fim devolve -1.
+    #[cold]
+    #[inline(never)]
+    pub fn next_codepoint_multibyte(contents: &[u8], current: &mut usize, first: u8) -> CodePoint {
+        let cp_len = wtf8_byte_sequence_length_with_invalid(first) as usize;
+        let avail = contents.len() - *current;
+
+        let code_point: CodePoint = if cp_len == 1 {
+            first as CodePoint
+        } else if avail < cp_len {
+            -1
+        } else {
+            let mut quad = [0u8; 4];
+            quad[..cp_len].copy_from_slice(&contents[*current..*current + cp_len]);
+            decode_wtf8_rune_t_multibyte(quad, cp_len as u8, UNICODE_REPLACEMENT as CodePoint)
+        };
+
+        *current += if code_point != UNICODE_REPLACEMENT as CodePoint { cp_len } else { 1 };
+
+        code_point
+    }
 }
 
 #[cfg(test)]

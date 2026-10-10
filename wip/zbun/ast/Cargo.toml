@@ -9,6 +9,7 @@ path = "src/lib.rs"
 
 [dependencies]
 bitflags.workspace = true
+bstr.workspace = true
 bun_collections = { path = "../bun_collections" }
 bun_core = { path = "../bun_core" }
 bun_wyhash = { path = "../bun_wyhash" }
