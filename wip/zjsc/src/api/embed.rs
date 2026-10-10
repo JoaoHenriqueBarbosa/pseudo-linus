@@ -11,6 +11,7 @@ use crate::host_function;
 use crate::runtime::cell_registry::run_program;
 use crate::runtime::console_host::ConsoleHost;
 use crate::runtime::dom_bridge::{self, DomHost};
+use crate::runtime::gc::{Root, RootScope};
 use crate::runtime::host_call::{HostCall, HostResult, Thrown};
 use crate::runtime::js_global_object::{JSGlobalObject, JSGlobalObjectRef};
 use crate::runtime::js_module_loader::rust_string;
@@ -47,10 +48,15 @@ fn pl_eval_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 }
 host_function!(pl_eval, pl_eval_body);
 
-/// Um valor do programa escondido que o hospedeiro guarda para chamar depois ([`PageRunner::call_hidden`]).
-pub struct HostHandle(JSValue);
+/// Um valor do programa escondido que o hospedeiro guarda para chamar depois ([`PageRunner::call_hidden`]). É um
+/// `Strong<Unknown>` (o `JSValueProtect` da API C): o coletor não solta o valor enquanto o hospedeiro o segura.
+pub struct HostHandle(JSValue, #[allow(dead_code)] Root);
 
 impl HostHandle {
+    fn new(value: JSValue) -> HostHandle {
+        HostHandle(value, Root::new(value))
+    }
+
     /// O texto de um valor string (o que o gancho devolve ao hospedeiro, como a caixa de saída do DevTools); `None`
     /// para outro tipo.
     pub fn as_text(&self) -> Option<String> {
@@ -101,11 +107,11 @@ impl PageRunner {
     }
 
     /// Como [`PageRunner::eval_hidden`], guardando o valor de completude do programa (a função gancho do DOM, que
-    /// assim não precisa de binding global que a página enxergue). Sem coletor no porte, o valor vive até o fim.
+    /// assim não precisa de binding global que a página enxergue). O valor fica enraizado já antes das microtarefas.
     pub fn eval_hidden_value(&self, source: &str) -> Result<HostHandle, String> {
-        let result = crate::api::eval::evaluate_hidden_program(&self.global_object, source);
+        let result = crate::api::eval::evaluate_hidden_program(&self.global_object, source).map(HostHandle::new);
         self.vm.drain_microtasks();
-        result.map(HostHandle).map_err(|exception| describe_exception(&exception))
+        result.map_err(|exception| describe_exception(&exception))
     }
 
     /// Chama a função de `handle` com `args` a partir do hospedeiro (sem frame da página), esvazia as microtarefas e
@@ -119,13 +125,17 @@ impl PageRunner {
                 HostArg::Null => JSValue::null(),
             })
             .collect();
-        let result = call_function(&self.global_object, handle.0, JSValue::undefined(), &args).ok_or_else(|| {
-            let exception = self.vm.exception().map(|exception| describe_exception(&exception.value())).unwrap_or_default();
-            self.vm.clear_exception();
-            exception
-        });
+        // Os argumentos já criados vivem só aqui até a chamada os pôr na pilha do JavaScript.
+        let _arguments = RootScope::new(&args);
+        let result = call_function(&self.global_object, handle.0, JSValue::undefined(), &args)
+            .map(HostHandle::new)
+            .ok_or_else(|| {
+                let exception = self.vm.exception().map(|exception| describe_exception(&exception.value())).unwrap_or_default();
+                self.vm.clear_exception();
+                exception
+            });
         self.vm.drain_microtasks();
-        result.map(HostHandle)
+        result
     }
 
     /// Roda o laço de eventos (timers, immediates, microtarefas) no relógio virtual do motor até esvaziar ou até
@@ -155,7 +165,9 @@ impl PageRunner {
     /// cada checkpoint e `("handled", promise)` quando o tratador chega depois. Tira o tratamento padrão do bun.
     pub fn set_rejection_hook(&self, handle: &HostHandle) {
         let function = handle.0;
+        let root = Root::new(function);
         let notify = move |global_object: &JSGlobalObject, args: &[JSValue]| {
+            let _ = &root;
             let vm = global_object.vm();
             if call_function(global_object, function, JSValue::undefined(), args).is_none() {
                 vm.clear_exception();
@@ -182,7 +194,9 @@ impl PageRunner {
     /// `Runtime.consoleAPICalled` (ver `console_client::ConsoleObserver`). A saída no `ConsoleHost` não muda.
     pub fn set_console_hook(&self, handle: &HostHandle) {
         let function = handle.0;
+        let root = Root::new(function);
         crate::runtime::console_client::set_console_observer(Some(Rc::new(move |global_object: &JSGlobalObject, kind: &str, args: &[JSValue]| {
+            let _ = &root;
             let vm = global_object.vm();
             let mut values = vec![JSValue::from_js_string(js_string(vm, &WtfString::from_utf8(kind.as_bytes())))];
             values.extend_from_slice(args);
