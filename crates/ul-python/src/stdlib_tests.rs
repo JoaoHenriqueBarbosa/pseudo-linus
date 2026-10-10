@@ -3146,6 +3146,40 @@ hook ValueError B
     );
 }
 
+/// A fatia das threads verdes é contada em instruções, não em segundos de relógio: uma chamada nativa lenta (a
+/// máquina carregada, um build de depuração) logo antes da primeira instrução de uma thread não faz a fatia vencer
+/// e passar a vez a quem a iniciou. Com a fatia de relógio de 5 ms, o `'set'` saía antes do `'wait'` sob carga. E a
+/// preempção continua existindo: um laço que só gira na principal cede a vez à thread que o destrava.
+#[test]
+fn thread_slice_is_counted_in_instructions_not_wall_clock() {
+    let src = r##"
+import threading, time
+order = []
+ev = threading.Event()
+
+class Waiter(threading.Thread):
+    def run(self):
+        for _ in range(300): sum(range(20000))  # gasta relógio com poucas instruções
+        order.append('wait'); ev.wait(); order.append('go')
+
+def setter(): order.append('set'); ev.set()
+a = Waiter(); b = threading.Thread(target=setter)
+a.start(); b.start(); a.join(); b.join()
+print(order)
+
+flag = []
+def unblock(): time.sleep(0.001); flag.append(1)
+t = threading.Thread(target=unblock); t.start()
+spins = 0
+while not flag:
+    spins += 1
+t.join(); print(spins > 0, flag)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "['wait', 'set', 'go']\nTrue [1]\n");
+}
+
 #[test]
 fn re_flags_error_scenario() {
     let src = r##"
