@@ -1643,6 +1643,13 @@ mod hidden_program_tests {
         run_program(|| {
             let (vm, global_object) = new_global_object();
             let _finalizer = VmFinalizer::new(&vm);
+            crate::runtime::native_class_support::install_global_function_with_visibility(
+                &global_object,
+                "__pl_private",
+                1,
+                crate::runtime::js_global_object_private_functions::create_private_symbol,
+                ImplementationVisibility::Private,
+            );
             evaluate_hidden_program(&global_object, prelude).unwrap_or_else(|error| panic!("prelúdio: {}", describe_exception(&error)));
             let value = evaluate(&global_object, &named_program_source(page, "page.js")).unwrap_or_else(|error| panic!("página: {}", describe_exception(&error)));
             String::from_utf8_lossy(&value.to_wtf_string().utf8(ConversionMode::LenientConversion)).into_owned()
@@ -1666,5 +1673,20 @@ mod hidden_program_tests {
         assert!(shown.contains("page@") || shown.contains("at page"), "{shown}");
         let callback = run(PRELUDE, "make(function inner() { return new Error('x').stack; })");
         assert!(!callback.contains("make"), "{callback}");
+    }
+
+    /// O `createPrivateSymbol` do JSC entregue ao prelúdio: a chave privada não aparece para a página por nenhum
+    /// caminho de enumeração nem de cópia, e o acesso por ela não passa pelas armadilhas de um Proxy.
+    #[test]
+    fn private_symbols_of_the_host_stay_invisible() {
+        let prelude = "const P = __pl_private('shadow'); delete globalThis.__pl_private; \
+            globalThis.el = { a: 1 }; el[P] = 42; globalThis.readEl = () => el[P]; \
+            globalThis.trapped = []; const t = (name) => function () { trapped.push(name); return Reflect[name](...arguments); }; \
+            const proxy = new Proxy({}, { get: t('get'), set: t('set'), has: t('has'), defineProperty: t('defineProperty'), getOwnPropertyDescriptor: t('getOwnPropertyDescriptor') }); \
+            proxy[P] = 5; proxy[P]; P in proxy;";
+        let page = "[typeof __pl_private, Reflect.ownKeys(el).length, Object.getOwnPropertySymbols(el).length, Object.getOwnPropertyNames(el).length, \
+            JSON.stringify(el), Object.keys(Object.getOwnPropertyDescriptors(el)).length, Reflect.ownKeys(structuredClone(el)).length, \
+            Object.keys(Object.assign({}, el)).length, Reflect.ownKeys({ ...el }).length, readEl(), trapped.length].join('|')";
+        assert_eq!(run(prelude, page), "undefined|1|0|1|{\"a\":1}|1|1|1|1|42|0");
     }
 }
