@@ -28,18 +28,32 @@ pub struct Response {
 }
 
 /// A troca vista de fora do corpo: a versão do protocolo da resposta final, o corpo como veio no fio (antes do
-/// `Content-Encoding`) e quantos redirecionamentos levaram até ela.
+/// `Content-Encoding`), quantos redirecionamentos levaram até ela e quando cada etapa da troca final aconteceu.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Transfer {
     pub version: (u8, u8),
     pub encoded_size: usize,
     pub redirects: u32,
+    pub timing: Option<Timing>,
+}
+
+/// Os instantes da troca final no relógio monotônico (`ul_common::time::monotonic_nanos`), o que o Resource Timing
+/// mostra: a conexão (com o aperto de mão TLS no fim dela, quando há), o envio do pedido e a chegada da resposta.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Timing {
+    pub connect_start: i128,
+    /// O começo do TLS (`secureConnectionStart`), em `https`.
+    pub secure_start: Option<i128>,
+    pub connect_end: i128,
+    pub request_start: i128,
+    pub response_start: i128,
+    pub response_end: i128,
 }
 
 impl Transfer {
-    /// Uma resposta HTTP/1.1 de corpo sem codificação, a primeira da cadeia.
+    /// Uma resposta HTTP/1.1 de corpo sem codificação, a primeira da cadeia, sem os instantes da troca.
     pub fn identity(body_len: usize) -> Transfer {
-        Transfer { version: (1, 1), encoded_size: body_len, redirects: 0 }
+        Transfer { version: (1, 1), encoded_size: body_len, redirects: 0, timing: None }
     }
 
     /// O `nextHopProtocol` do Chromium (`http/1.1`, `http/1.0`, `h2`).
@@ -143,18 +157,23 @@ pub fn request(target: &str, spec: &RequestSpec<'_>) -> Result<Response, FetchEr
 /// Uma troca. Devolve a `Location` quando a resposta é um redirecionamento a seguir.
 fn exchange(u: &Url, method: &str, spec: &RequestSpec<'_>, body: &[u8]) -> Result<(Response, Option<String>), FetchError> {
     let port = u.port_or_default();
+    let now = ul_common::time::monotonic_nanos;
+    let connect_start = now();
     let tcp = io::connect(u.host.as_bytes(), port, spec.timeout).map_err(|errno| match errno {
         Errno::ECONNREFUSED => FetchError::ConnectionRefused,
         Errno::ETIMEDOUT => FetchError::TimedOut,
         _ => FetchError::NameNotResolved,
     })?;
+    let mut secure_start = None;
     let stream = if u.scheme == "https" {
+        secure_start = Some(now());
         let pem = sys::read_file(tls::DEFAULT_CA_BUNDLE.as_bytes()).unwrap_or_default();
         let config = tls::client_config(&tls::Verify::Roots(pem), &[b"http/1.1"]).map_err(FetchError::Tls)?;
         Stream::Tls(Box::new(tls::TlsStream::handshake(config, &u.host, tcp).map_err(|error| FetchError::Tls(format!("{error:?}")))?))
     } else {
         Stream::Plain(tcp)
     };
+    let connect_end = now();
     let mut conn = Conn::new(stream);
     conn.stream.set_deadline(io::Deadline::after(spec.timeout));
     let host_header = match u.port {
@@ -179,6 +198,7 @@ fn exchange(u: &Url, method: &str, spec: &RequestSpec<'_>, body: &[u8]) -> Resul
     }
     wire.extend_from_slice(b"\r\n");
     wire.extend_from_slice(body);
+    let request_start = now();
     conn.stream.write_all(&wire).map_err(|error| FetchError::Io(error.to_string()))?;
     let head = loop {
         let head = conn.read_head().map_err(|error| match error {
@@ -191,6 +211,7 @@ fn exchange(u: &Url, method: &str, spec: &RequestSpec<'_>, body: &[u8]) -> Resul
         }
         break head;
     };
+    let response_start = now();
     let location = matches!(head.status, 301 | 302 | 303 | 307 | 308).then(|| head.get_str("Location")).flatten();
     let mode = http::body_mode(&head, method == "HEAD");
     let mut decoder = match head.get_str("Content-Encoding") {
@@ -220,7 +241,12 @@ fn exchange(u: &Url, method: &str, spec: &RequestSpec<'_>, body: &[u8]) -> Resul
         headers: head.headers.clone(),
         body: collected,
         url: u.clone(),
-        transfer: Transfer { version: head.version, encoded_size, redirects: 0 },
+        transfer: Transfer {
+            version: head.version,
+            encoded_size,
+            redirects: 0,
+            timing: Some(Timing { connect_start, secure_start, connect_end, request_start, response_start, response_end: now() }),
+        },
     };
     Ok((response, location))
 }

@@ -163,26 +163,32 @@ class Navigator {
 tag(Navigator, 'Navigator');
 const navigator = Object.create(Navigator.prototype);
 
+// O `Storage` guarda os pares fora do documento (o `localStorage` no perfil, o `sessionStorage` na aba), na ordem da
+// tabela do Blink: o hospedeiro responde, o objeto só leva a área.
+const storageArity = (operation, needed, given) => {
+  if (given < needed) throw new TypeError(`Failed to execute '${operation}' on 'Storage': ${needed} argument${needed === 1 ? '' : 's'} required, but only ${given} present.`);
+};
 class Storage {
   constructor() { throw new TypeError('Illegal constructor'); }
-  get length() { return this[P.__data].size; }
-  key(i) { return Array.from(this[P.__data].keys())[i] ?? null; }
-  getItem(k) { const v = this[P.__data].get(String(k)); return v === undefined ? null : v; }
-  setItem(k, v) { this[P.__data].set(String(k), String(v)); }
-  removeItem(k) { this[P.__data].delete(String(k)); }
-  clear() { this[P.__data].clear(); }
+  get length() { receiver(this, P.__area); return op('storage', this[P.__area], 'length'); }
+  key(index) { receiver(this, P.__area); storageArity('key', 1, arguments.length); return op('storage', this[P.__area], 'key', Number(index) >>> 0); }
+  getItem(key) { receiver(this, P.__area); storageArity('getItem', 1, arguments.length); return op('storage', this[P.__area], 'get', String(key)); }
+  setItem(key, value) { receiver(this, P.__area); storageArity('setItem', 2, arguments.length); op('storage', this[P.__area], 'set', String(key), String(value)); }
+  removeItem(key) { receiver(this, P.__area); storageArity('removeItem', 1, arguments.length); op('storage', this[P.__area], 'remove', String(key)); }
+  clear() { receiver(this, P.__area); op('storage', this[P.__area], 'clear'); }
 }
 tag(Storage, 'Storage');
-const makeStorage = () => {
+const makeStorage = (area) => {
   const target = Object.create(Storage.prototype);
-  hidden(target, '__data', new Map());
+  hidden(target, '__area', area);
+  const item = (key) => op('storage', area, 'get', key);
   return proxied(target, {
-    get(t, key, receiver) { if (typeof key === 'string' && !(key in t)) { const v = t[P.__data].get(key); return v === undefined ? undefined : v; } return Reflect.get(t, key, receiver); },
-    set(t, key, value) { if (typeof key === 'string' && !(key in t)) { t[P.__data].set(key, String(value)); return true; } return Reflect.set(t, key, value, t); },
-    deleteProperty(t, key) { t[P.__data].delete(key); return true; },
-    has(t, key) { return Reflect.has(t, key) || (typeof key === 'string' && t[P.__data].has(key)); },
-    ownKeys(t) { return Array.from(t[P.__data].keys()); },
-    getOwnPropertyDescriptor(t, key) { return typeof key === 'string' && t[P.__data].has(key) ? { value: t[P.__data].get(key), writable: true, enumerable: true, configurable: true } : undefined; },
+    get(t, key, receiver) { if (typeof key === 'string' && !(key in t)) { const v = item(key); return v === null ? undefined : v; } return Reflect.get(t, key, receiver); },
+    set(t, key, value) { if (typeof key === 'string' && !(key in t)) { op('storage', area, 'set', key, String(value)); return true; } return Reflect.set(t, key, value, t); },
+    deleteProperty(t, key) { if (typeof key === 'string') op('storage', area, 'remove', key); return true; },
+    has(t, key) { return Reflect.has(t, key) || (typeof key === 'string' && item(key) !== null); },
+    ownKeys() { return op('storage', area, 'keys'); },
+    getOwnPropertyDescriptor(t, key) { const v = typeof key === 'string' ? item(key) : null; return v !== null ? { value: v, writable: true, enumerable: true, configurable: true } : undefined; },
   });
 };
 
@@ -329,6 +335,9 @@ let framesOver = false;
 // já (o relógio virtual está parado). O carimbo do quadro é o instante da grade, clampado como no Blink.
 const FRAME_INTERVAL_MS = 16.666;
 let frameAt = 0;
+// O primeiro quadro do documento sai no tick da grade a pelo menos um intervalo do começo dele (a ordem medida: um
+// `setTimeout` de 10 ms do primeiro script roda antes do primeiro rAF).
+const documentStartedAt = performance.now();
 const requestRender = () => {
   if (framesOver && !networkInFlight) return;
   if (frameTimer !== null) {
@@ -337,9 +346,16 @@ const requestRender = () => {
   }
   frameImmediate = networkInFlight > 0;
   const now = performance.now();
-  const tick = Math.floor(now / FRAME_INTERVAL_MS) + (frameImmediate ? 0 : 1);
-  frameAt = tick * FRAME_INTERVAL_MS;
-  frameTimer = setTimeout(renderFrame, frameImmediate ? 0 : Math.ceil(frameAt - now));
+  if (frameImmediate) {
+    frameAt = Math.floor(now / FRAME_INTERVAL_MS) * FRAME_INTERVAL_MS;
+    frameTimer = setTimeout(renderFrame, 0);
+    return;
+  }
+  // O quadro sai no tick seguinte da grade, mas nunca antes de um intervalo do começo do documento; nesse caso ele sai
+  // nessa hora com o carimbo do último tick (o compositor começa fora de fase com a grade).
+  const due = Math.max((Math.floor(now / FRAME_INTERVAL_MS) + 1) * FRAME_INTERVAL_MS, documentStartedAt + FRAME_INTERVAL_MS);
+  frameAt = Math.floor(due / FRAME_INTERVAL_MS + 1e-9) * FRAME_INTERVAL_MS;
+  frameTimer = setTimeout(renderFrame, Math.ceil(due - now));
 };
 const renderFrame = () => {
   frameTimer = null;

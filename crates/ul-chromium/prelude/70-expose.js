@@ -30,7 +30,7 @@ tag(XMLSerializer, 'XMLSerializer');
 const windowGlobals = {
   window, self: window, globalThis: window, frames: window, top: window, parent: window, document, location, history, navigator, CSS, NodeFilter,
   screen: { width: 800, height: 600, availWidth: 800, availHeight: 600, availLeft: 0, availTop: 0, colorDepth: 24, pixelDepth: 24, orientation: { type: 'landscape-primary', angle: 0, addEventListener() {}, removeEventListener() {} } },
-  localStorage: makeStorage(), sessionStorage: makeStorage(), customElements,
+  customElements,
   getComputedStyle, matchMedia, fetch: realFetch, Request, XMLHttpRequest, MutationObserver, MutationRecord, ResizeObserver, ResizeObserverEntry, IntersectionObserver, IntersectionObserverEntry, TextTrack, TextTrackList, PerformanceObserver,
   WebGLRenderingContext, WebGL2RenderingContext, WebGLObject, WebGLBuffer, WebGLFramebuffer, WebGLProgram, WebGLQuery, WebGLRenderbuffer, WebGLSampler, WebGLShader, WebGLSync, WebGLTexture, WebGLTransformFeedback, WebGLVertexArrayObject, WebGLUniformLocation, WebGLActiveInfo, WebGLShaderPrecisionFormat, WebGLContextEvent,
   Node, Element, HTMLElement, HTMLUnknownElement, SVGElement, SVGGraphicsElement, SVGSVGElement, MathMLElement, Text, Comment, CDATASection, CharacterData, DocumentFragment, ShadowRoot, DocumentType, Document, Attr, NamedNodeMap, NodeList, HTMLCollection,
@@ -42,6 +42,14 @@ for (const [key, value] of Object.entries(windowGlobals)) Object.defineProperty(
 // Configuráveis por ora: a passagem final (`WINDOW_KEYS`) os redefine na ordem e na forma do Chromium e os tranca.
 Object.defineProperty(globalThis, 'document', { value: document, writable: false, configurable: true, enumerable: true });
 Object.defineProperty(globalThis, 'location', { get: () => location, set: (v) => { location.href = v; }, configurable: true, enumerable: true });
+// O storage do documento: um objeto por área, sempre o mesmo; num documento `data:` (origem opaca), a leitura lança.
+for (const [name, area] of [['localStorage', 'local'], ['sessionStorage', 'session']]) {
+  let storage = null;
+  readonly(name, () => {
+    if (pageState.url.startsWith('data:')) throw domException(`Failed to read the '${name}' property from 'Window': Storage is disabled inside 'data:' URLs.`, 'SecurityError');
+    return storage || (storage = makeStorage(area));
+  });
+}
 
 // Acesso nomeado da janela (o WindowProperties do Blink): o motor pergunta o nome que a janela e a cadeia dela não
 // têm. Acha o elemento de id `x`, ou de nome `x` entre embed, form, img e object; mais de um vira HTMLCollection viva.
@@ -106,7 +114,9 @@ for (const name of ['setImmediate', 'clearImmediate']) delete globalThis[name];
 // `performance.measure`. Os instantes são os do carregamento desta página, em ms desde a origem de tempo.
 {
   const origin = performance.timeOrigin;
-  const marks = { navigationStart: 0, unloadEventStart: 0, unloadEventEnd: 0, redirectStart: 0, redirectEnd: 0, ...DOCUMENT_TRANSFER.marks };
+  // Os marcos da busca chegam em tempo real desde o início da navegação e saem no grão do `TimeClamper`.
+  const fetchMarks = Object.fromEntries(Object.entries(DOCUMENT_TRANSFER.marks).map(([name, at]) => [name, at === 0 ? 0 : op('frameTime', at)]));
+  const marks = { navigationStart: 0, unloadEventStart: 0, unloadEventEnd: 0, redirectStart: 0, redirectEnd: 0, ...fetchMarks };
   const lifecycle = { domInteractive: null, domContentLoadedEventStart: null, domContentLoadedEventEnd: null, domComplete: null, loadEventStart: null, loadEventEnd: null };
   document.addEventListener('readystatechange', () => {
     const now = performance.now();

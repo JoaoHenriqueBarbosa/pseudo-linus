@@ -69,6 +69,9 @@ pub struct Browser {
     browser_id: String,
     context_id: String,
     contexts: Vec<String>,
+    /// O perfil de cada contexto de navegação (o padrão e os de `Target.createBrowserContext`), que as abas dele
+    /// compartilham.
+    profiles: std::collections::HashMap<String, std::sync::Arc<crate::session::Profile>>,
     targets: Vec<Target>,
     sessions: Vec<Session>,
     conns: Vec<Conn>,
@@ -129,7 +132,7 @@ impl http::Browser for Browser {
     }
 
     fn create(&mut self, url: &str) -> TargetEntry {
-        let id = self.open_target(url, false, false);
+        let id = self.open_target(url, false, false, None);
         let target = self.target(&id).expect("alvo recém-criado");
         TargetEntry { id: target.id.clone(), kind: target.kind.to_owned(), title: String::new(), url: target.url.clone() }
     }
@@ -145,10 +148,13 @@ impl http::Browser for Browser {
 
 impl Browser {
     pub fn new(options: &Options) -> Browser {
+        let context_id = token();
+        let profiles = std::collections::HashMap::from([(context_id.clone(), std::sync::Arc::default())]);
         Browser {
             browser_id: uuid(),
-            context_id: token(),
+            context_id,
             contexts: Vec::new(),
+            profiles,
             targets: Vec::new(),
             sessions: Vec::new(),
             conns: Vec::new(),
@@ -203,21 +209,23 @@ impl Browser {
         }
     }
 
-    fn open_target(&mut self, url: &str, startup: bool, wait: bool) -> String {
+    /// Abre uma aba no contexto `context` (o padrão sem ele).
+    fn open_target(&mut self, url: &str, startup: bool, wait: bool, context: Option<&str>) -> String {
+        let profile = self.profiles.get(context.unwrap_or(&self.context_id)).cloned().unwrap_or_default();
         if self.windows < self.max_windows {
             self.windows += 1;
             for (ui, _) in crate::page::WEBUI_DOCUMENTS {
-                self.spawn_target("browser_ui", ui, "", true, false);
+                self.spawn_target("browser_ui", ui, "", true, false, profile.clone());
             }
         }
         let shown = if url.is_empty() { "about:blank" } else { url };
         // A primeira aba já nasce com o documento comprometido (título é a URL); a criada pelo protocolo, sem título.
-        self.spawn_target("page", shown, if startup { shown } else { "" }, startup, wait)
+        self.spawn_target("page", shown, if startup { shown } else { "" }, startup, wait, profile)
     }
 
-    fn spawn_target(&mut self, kind: &'static str, url: &str, title: &str, startup: bool, wait: bool) -> String {
+    fn spawn_target(&mut self, kind: &'static str, url: &str, title: &str, startup: bool, wait: bool, profile: std::sync::Arc<crate::session::Profile>) -> String {
         let id = token();
-        let Ok(link) = target::spawn(id.clone(), url.to_owned(), startup, wait) else { return id };
+        let Ok(link) = target::spawn(id.clone(), url.to_owned(), startup, wait, profile) else { return id };
         let window_id = (super::random_i64() & 0x7FFF_FFFF).max(1);
         let mut entry = Target { id: id.clone(), kind, title: title.to_owned(), url: url.to_owned(), link, window_id, pending: Vec::new(), inbox: Vec::new() };
         if kind == "browser_ui" {
@@ -543,7 +551,8 @@ impl Browser {
                     }
                 }
                 let wait = self.conn_mut(key).and_then(|c| c.auto_attach).is_some_and(|(_, wait)| wait);
-                let id = self.open_target(&url, false, wait);
+                let context = params.get("browserContextId").and_then(Json::as_str).map(str::to_owned);
+                let id = self.open_target(&url, false, wait, context.as_deref());
                 Ok(Json::object([("targetId", Json::str(id))]))
             }
             "Target.closeTarget" => match target_id {
@@ -557,6 +566,8 @@ impl Browser {
             "Target.createBrowserContext" => {
                 let context = token();
                 self.contexts.push(context.clone());
+                // O contexto novo nasce com o perfil vazio (o `localStorage` do padrão não aparece nele).
+                self.profiles.insert(context.clone(), std::sync::Arc::default());
                 Ok(Json::object([("browserContextId", Json::str(context))]))
             }
             "Target.getBrowserContexts" => Ok(Json::object([
@@ -568,6 +579,7 @@ impl Browser {
                 match self.contexts.iter().position(|c| c == context) {
                     Some(index) => {
                         self.contexts.remove(index);
+                        self.profiles.remove(context);
                         Ok(Json::object([]))
                     }
                     None => Err((-32602, "Failed to find context with id ".to_owned() + context)),
@@ -859,7 +871,7 @@ pub fn run(ctx: &mut Ctx, options: &Options, url: &str) -> i32 {
     if options.pipe {
         browser.add_conn(Fd(3), Transport::Pipe { output: Fd(4) });
     }
-    browser.open_target(url, true, false);
+    browser.open_target(url, true, false, None);
     browser.serve(listener);
     0
 }

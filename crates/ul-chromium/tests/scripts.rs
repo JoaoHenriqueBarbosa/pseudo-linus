@@ -218,6 +218,47 @@ fn navigation_api_as_the_oracle() {
     assert_eq!(log, "[2,\"push\",1,null]\n");
 }
 
+/// O storage atravessa a navegação como no oráculo (`persist.py` da medição): o documento seguinte da mesma origem, na
+/// mesma aba, vê o `localStorage` e o `sessionStorage`; outra origem do mesmo perfil não vê nada; outra aba do mesmo
+/// perfil vê o `localStorage` e não o `sessionStorage`; e num documento `data:` a leitura lança.
+#[test]
+fn storage_survives_navigation_as_the_oracle() {
+    use std::rc::Rc;
+    use std::sync::Arc;
+    use ul_chromium::session::{Profile, Tab};
+    let report = "<script>
+const report = (idb, dbs) => console.log(JSON.stringify([location.port + location.pathname, localStorage.length, localStorage.getItem('k'), sessionStorage.getItem('s'), idb, dbs]));
+indexedDB.databases().then((dbs) => {
+  const names = dbs.map((d) => d.name + ':' + d.version).join(',');
+  const r = indexedDB.open('db');
+  r.onsuccess = () => { const db = r.result; if (!db.objectStoreNames.contains('st')) { report('none v' + db.version, names); return; }
+    const q = db.transaction('st').objectStore('st').get('x'); q.onsuccess = () => report(q.result === undefined ? 'missing' : q.result, names); };
+  r.onerror = () => report('error', names);
+});
+</script>";
+    let writer = "<script>
+localStorage.setItem('k', 'v-' + location.pathname); sessionStorage.setItem('s', 'ss');
+const r = indexedDB.open('db', 1);
+r.onupgradeneeded = () => r.result.createObjectStore('st');
+r.onsuccess = () => { const t = r.result.transaction('st', 'readwrite'); t.objectStore('st').put('idb-value', 'x');
+  t.oncomplete = () => { r.result.close(); location.href = '/b'; }; };
+</script>";
+    let files = [("/a", writer), ("/b", report)];
+    let profile = Arc::new(Profile::default());
+    let tab = Rc::new(Tab::new(profile.clone()));
+    assert_eq!(common::run_in_tab("http://127.0.0.1:8000/a", &files, tab.clone()), "[\"8000/b\",1,\"v-/a\",\"ss\",\"idb-value\",\"db:1\"]\n");
+    assert_eq!(common::run_in_tab("http://127.0.0.1:8001/b", &files, Rc::new(Tab::new(profile.clone()))), "[\"8001/b\",0,null,null,\"none v1\",\"\"]\n");
+    assert_eq!(common::run_in_tab("http://127.0.0.1:8000/b", &files, Rc::new(Tab::new(profile))), "[\"8000/b\",1,\"v-/a\",null,\"idb-value\",\"db:1\"]\n");
+    assert_eq!(common::run_in_tab("http://127.0.0.1:8000/b", &files, Rc::new(Tab::default())), "[\"8000/b\",0,null,null,\"none v1\",\"\"]\n");
+    let probe = "<body><script>for(const n of ['localStorage','sessionStorage']){try{window[n];console.log(n+' ok');}catch(e){console.log(n+' '+e.name+': '+e.message);}}</script>";
+    let (_, log) = common::run_at(&format!("data:text/html,{}", probe.replace('%', "%25").replace('#', "%23")), &[], &[]);
+    assert_eq!(
+        log,
+        "localStorage SecurityError: Failed to read the 'localStorage' property from 'Window': Storage is disabled inside 'data:' URLs.\n\
+         sessionStorage SecurityError: Failed to read the 'sessionStorage' property from 'Window': Storage is disabled inside 'data:' URLs.\n"
+    );
+}
+
 /// A entrada `navigation` do Performance Timeline como o oráculo em tempo real, servida por HTTP/1.0 como o
 /// `http.server` da medição: a cadeia de protótipos, o `toJSON`, os instantes que são zero e a ordem dos demais, os
 /// tamanhos conferidos contra o corpo, e o legado `performance.timing` e `performance.navigation`.

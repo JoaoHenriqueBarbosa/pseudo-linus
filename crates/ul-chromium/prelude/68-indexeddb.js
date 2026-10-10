@@ -272,6 +272,19 @@ const compareIndexEntries = (a, b) => compareKeys(a.key, b.key) || compareKeys(a
 // ---- O armazenamento: bancos da origem (`databases`), cada um com stores (`{ name, keyPath, autoIncrement,
 // generator, records, indexes }`) e índices (`{ name, keyPath, unique, multiEntry, entries }`).
 const databases = new Map();
+// Os bancos vivem no perfil, fora do documento: o primeiro uso do IndexedDB no documento traz os da origem (cada um
+// serializado em texto) e cada transação que escreve devolve o banco inteiro ao perfil.
+let databasesLoaded = false;
+const loadDatabases = () => {
+  if (databasesLoaded) return;
+  databasesLoaded = true;
+  for (const [name, text] of op('idb', 'load')) {
+    if (databases.has(name)) continue;
+    const saved = deserializeValue(text);
+    databases.set(name, { name, version: saved.version, stores: saved.stores, connections: new Set(), transactions: [], waiting: null, creating: false });
+  }
+};
+const persistDatabase = (database) => op('idb', 'save', database.name, serializeValue({ version: database.version, stores: database.stores }));
 const MAX_GENERATED_KEY = 2 ** 53;
 const findRecord = (store, key) => {
   const position = searchSorted(store.records, (record) => compareKeys(record.key, key));
@@ -435,6 +448,7 @@ const maybeCommit = (state) => {
       schedulePump(state);
       return;
     }
+    if (state.mode !== 'readonly') persistDatabase(state.database);
     finishTransaction(state);
     const event = new Event('complete');
     event.isTrusted = true;
@@ -1203,6 +1217,7 @@ const awaitOtherConnections = (database, request, oldVersion, newVersion, procee
 };
 const UPGRADE_ABORTED = 'Version change transaction was aborted in upgradeneeded event handler.';
 const openDatabase = (name, version, request, next) => {
+  loadDatabases();
   let database = databases.get(name);
   if (database === undefined) {
     database = { name, version: 0, stores: new Map(), connections: new Set(), transactions: [], waiting: null, creating: true };
@@ -1259,6 +1274,7 @@ const openDatabase = (name, version, request, next) => {
   });
 };
 const deleteNamedDatabase = (name, request, next) => {
+  loadDatabases();
   const database = databases.get(name);
   const done = (oldVersion) => {
     const event = new IDBVersionChangeEvent('success', { oldVersion, newVersion: null });
@@ -1271,6 +1287,7 @@ const deleteNamedDatabase = (name, request, next) => {
   }
   awaitOtherConnections(database, request, database.version, null, () => {
     databases.delete(name);
+    op('idb', 'delete', name);
     done(database.version);
   });
 };
@@ -1297,6 +1314,7 @@ class IDBFactory {
   }
   databases() {
     receiver(this, P.__idbFactory);
+    loadDatabases();
     return new Promise((resolve) => setTimeout(() => resolve([...databases.values()].filter((database) => !database.creating).map((database) => ({ name: database.name, version: database.version }))), 0));
   }
   deleteDatabase(name) {
@@ -1312,6 +1330,8 @@ class IDBFactory {
     requireCount(arguments.length, 1, 'open', 'IDBFactory');
     const text = String(name);
     const requested = readVersion(version);
+    // Origem opaca (documento `data:`): o Blink recusa depois de validar a versão (medido no oráculo).
+    if (pageState.url.startsWith('data:')) throw domException(`${failed('open', 'IDBFactory')}access to the Indexed Database API is denied in this context.`, 'SecurityError');
     const request = new IDBOpenDBRequest(ILLEGAL);
     enqueueConnectionRequest(text, (next) => openDatabase(text, requested, request, next));
     return request;

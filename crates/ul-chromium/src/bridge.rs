@@ -45,6 +45,8 @@ pub struct Bridge {
     pub cross_origin_isolated: bool,
     /// As superfícies dos canvas 2D, pelo índice que o contexto guarda.
     pub canvases: RefCell<Vec<crate::canvas::Surface>>,
+    /// A aba do documento: o `sessionStorage` dela e o perfil com o `localStorage`, que sobrevivem à navegação.
+    pub tab: RefCell<std::rc::Rc<crate::session::Tab>>,
 }
 
 /// Bytes em latin1 (um byte por unidade de código), o jeito de pixels cruzarem a ponte como string.
@@ -126,6 +128,12 @@ fn attr_matches(name: &QualName, wanted: &str) -> bool {
 }
 
 impl Bridge {
+    /// A chave do storage do documento: a origem dele, e `file://` para todo `file:` (uma origem só, como no Chromium).
+    fn storage_origin(&self) -> String {
+        let address = self.url.borrow().clone();
+        origin_of(&address).unwrap_or_else(|| if address.starts_with("file:") { "file://".to_owned() } else { address })
+    }
+
     /// Serve os subrecursos pendentes do Blitz: a folha de estilo e a imagem chegadas valem para o layout.
     pub fn serve_resources(&self) {
         let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "*/*".to_owned())];
@@ -378,6 +386,56 @@ impl DomHost for Bridge {
             // O texto do estilo em linha, sem sincronizar.
             "getStyle" => Ok(self.style_attribute(id_arg(args, 0)?).map_or(DomArg::Null, DomArg::Str)),
             "pageUrl" => Ok(DomArg::Str(self.url.borrow().clone())),
+            // `[área, ação, chave, valor]`: o `localStorage` (no perfil) e o `sessionStorage` (na aba) da origem do
+            // documento; `file:` é uma origem só, como no Chromium.
+            "storage" => {
+                let origin = self.storage_origin();
+                let tab = self.tab.borrow().clone();
+                let action = str_arg(args, 1)?;
+                let run = |area: &mut crate::session::StorageArea| -> Result<DomArg, DomError> {
+                    let text = |value: Option<&str>| value.map_or(DomArg::Null, |v| DomArg::Str(v.to_owned()));
+                    match action {
+                        "length" => Ok(DomArg::Num(area.len() as f64)),
+                        "key" => Ok(text(area.key(num_arg(args, 2)? as usize))),
+                        "get" => Ok(text(area.get(str_arg(args, 2)?))),
+                        "keys" => Ok(DomArg::List(area.keys().into_iter().map(DomArg::Str).collect())),
+                        "set" => {
+                            area.set(str_arg(args, 2)?, str_arg(args, 3)?);
+                            Ok(DomArg::Undefined)
+                        }
+                        "remove" => {
+                            area.remove(str_arg(args, 2)?);
+                            Ok(DomArg::Undefined)
+                        }
+                        "clear" => {
+                            area.clear();
+                            Ok(DomArg::Undefined)
+                        }
+                        _ => Err(illegal()),
+                    }
+                };
+                match str_arg(args, 0)? {
+                    "local" => run(tab.profile.local.lock().unwrap_or_else(std::sync::PoisonError::into_inner).area(&origin)),
+                    _ => run(tab.session.borrow_mut().area(&origin)),
+                }
+            }
+            // `[ação, nome, texto]`: os bancos do IndexedDB da origem no perfil (`load` devolve `[[nome, texto], ...]`).
+            "idb" => {
+                let origin = self.storage_origin();
+                let profile = self.tab.borrow().profile.clone();
+                match str_arg(args, 0)? {
+                    "load" => Ok(DomArg::List(profile.databases_of(&origin).into_iter().map(|(name, text)| DomArg::List(vec![DomArg::Str(name), DomArg::Str(text)])).collect())),
+                    "save" => {
+                        profile.save_database(&origin, str_arg(args, 1)?, str_arg(args, 2)?);
+                        Ok(DomArg::Undefined)
+                    }
+                    "delete" => {
+                        profile.delete_database(&origin, str_arg(args, 1)?);
+                        Ok(DomArg::Undefined)
+                    }
+                    _ => Err(illegal()),
+                }
+            }
             "crossOriginIsolated" => Ok(DomArg::Bool(self.cross_origin_isolated)),
             // O carimbo do quadro: o instante (ms desde a origem) clampado pelo `TimeClamper`.
             "frameTime" => match args.first() {

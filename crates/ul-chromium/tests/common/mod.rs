@@ -76,6 +76,24 @@ pub fn run_at_for(address: &str, headers: &[(&str, &str)], files: &[(&str, &str)
     (dom, log)
 }
 
+/// Como `run_at`, seguindo as navegações que a página pede (`location.href = ...`) na aba `tab`, como o `chromium` do
+/// pseudo-linus faz; devolve o console de todos os documentos.
+#[allow(dead_code)]
+pub fn run_in_tab(address: &str, files: &[(&str, &str)], tab: Rc<ul_chromium::session::Tab>) -> String {
+    install_image_fonts();
+    let console = Rc::new(Capture::default());
+    let mut next = Some(address.to_owned());
+    while let Some(address) = next.take() {
+        let mut page = Page::load(&address, serve(files, &[])).unwrap();
+        page.enter_tab(tab.clone());
+        page.console = console.clone();
+        page.run();
+        next = page.pending_navigation().map(|target| url::resolve(&url::parse(&address, false).unwrap(), &target).unwrap().to_string_with(true));
+    }
+    let log = console.0.borrow().clone();
+    log
+}
+
 /// Roda uma sonda servida em `/` e devolve o JSON que ela grava em `data-out` (sem ele, falha mostrando o console).
 #[allow(dead_code)]
 pub fn probe_output(probe: &str) -> serde_json::Value {

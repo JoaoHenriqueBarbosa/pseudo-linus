@@ -18,7 +18,7 @@ use crate::{document, encoding};
 
 /// O prelúdio JavaScript: o DOM e as APIs de janela escritos sobre a ponte. O valor do `let` de topo é o gancho de
 /// ciclo de vida; não é propriedade do global, então a página não o enxerga por introspecção.
-const PRELUDE_PARTS: [&str; 35] = [
+const PRELUDE_PARTS: [&str; 36] = [
     include_str!("../prelude/00-core.js"),
     include_str!("../prelude/10-events.js"),
     include_str!("../prelude/20-nodes.js"),
@@ -50,6 +50,7 @@ const PRELUDE_PARTS: [&str; 35] = [
     include_str!("../prelude/66-trusted-types-csp.js"),
     include_str!("../prelude/67-navigation.js"),
     include_str!("../prelude/68-indexeddb.js"),
+    include_str!("../prelude/69-persistence.js"),
     include_str!("../prelude/65-devtools.js"),
     "const WINDOW_KEYS = ",
     include_str!("../data/window-keys.json"),
@@ -116,31 +117,15 @@ pub struct Page {
     csp_json: String,
     /// A troca de rede do documento, em JSON, para a entrada `navigation` do prelúdio.
     transfer_json: String,
+    /// O início da navegação no relógio monotônico (`ul_common::time::monotonic_nanos`): a origem de tempo da página.
+    navigation_start: i128,
 }
 
 /// A ida e volta de rede de uma busca em tempo virtual: o que já estava na fila de tarefas roda antes da resposta.
 /// Maior que o 1ms a que o `setTimeout(0)` é arredondado, para a resposta nunca empatar com uma tarefa já agendada.
 const NETWORK_LATENCY_MS: f64 = 2.0;
-/// O instante, desde a origem de tempo (o início da navegação), em que o primeiro script do documento roda: o oráculo
-/// mostrou de 41 a 79 ms. Fica logo depois de um tick da grade de quadros (o terceiro, 49,998 ms), para o próximo
-/// quadro guardar do primeiro script a mesma distância que a ordem medida dos quadros pede.
-const DOCUMENT_START_MS: f64 = 50.0;
-/// Os marcos da busca do documento antes dele (Navigation Timing), no perfil medido no oráculo em tempo real: a busca
-/// começa logo, a resolução de um IP literal não leva tempo, e a resposta chega uns 20 ms antes do primeiro script.
-/// `domLoading` (só no legado `performance.timing`) é o começo do parse.
-const NAVIGATION_MARKS: [(&str, f64); 9] = [
-    ("fetchStart", 2.6),
-    ("domainLookupStart", 19.2),
-    ("domainLookupEnd", 19.2),
-    ("connectStart", 19.2),
-    ("connectEnd", 19.5),
-    ("requestStart", 19.9),
-    ("responseStart", 20.3),
-    ("responseEnd", 20.8),
-    ("domLoading", 49.2),
-];
-/// O começo do aperto de mão TLS, dentro da conexão, só em `https`.
-const SECURE_CONNECTION_START_MS: f64 = 19.3;
+/// Um microssegundo além do fim do orçamento de tempo virtual (ver [`Page::run`]).
+const BUDGET_DEADLINE_SLACK_MS: f64 = 0.001;
 /// O custo virtual do trabalho da página (o `--virtual-time-budget` do Chromium anda com o renderer ocupado),
 /// calibrado contra o oráculo: instrução de bytecode executada e byte de fonte (documento e scripts) compilado.
 const NS_PER_INSTRUCTION: f64 = 0.0;
@@ -158,12 +143,14 @@ impl Page {
     /// `None` para código sem texto medido.
     pub fn error_page(url: &str, error: &str, fetcher: Fetcher) -> Option<Page> {
         let html = neterror_html(url, error)?;
-        let response = DocumentResponse { bytes: html.into_bytes(), final_url: "chrome-error://chromewebdata/".to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, csp: Vec::new(), cross_origin_isolated: false, transfer: None };
+        let response = DocumentResponse { bytes: html.into_bytes(), final_url: "chrome-error://chromewebdata/".to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, csp: Vec::new(), cross_origin_isolated: false, transfer: None, timing: Fetched::now() };
         Some(Page::build(response, fetcher))
     }
 
     fn build(response: DocumentResponse, fetcher: Fetcher) -> Page {
-        let transfer_json = response.transfer_json();
+        let parse_start = ul_common::time::monotonic_nanos();
+        let transfer_json = response.transfer_json(parse_start);
+        let navigation_start = response.timing.navigation_start;
         let source = encoding::decode(&response.bytes, response.content_type.as_deref());
         let net = std::sync::Arc::new(document::QueuedNet::default());
         let mut doc = document::parse_page(&source, &response.final_url, net.clone());
@@ -181,15 +168,21 @@ impl Page {
             images: RefCell::new(Vec::new()),
             cross_origin_isolated: response.cross_origin_isolated,
             canvases: RefCell::new(Vec::new()),
+            tab: RefCell::new(Rc::new(crate::session::Tab::default())),
         };
         use crate::devtools::json::Json;
         let csp_json = Json::Array(response.csp.iter().map(|(text, report_only)| Json::Array(vec![Json::str(text), Json::Bool(*report_only)])).collect()).to_compact();
-        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), csp_json, transfer_json }
+        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), csp_json, transfer_json, navigation_start }
     }
 
     /// A navegação que a página pediu (`location.href = ...`) e ainda não aconteceu.
     pub fn pending_navigation(&self) -> Option<String> {
         self.bridge.navigation.borrow_mut().take()
+    }
+
+    /// Põe o documento na aba `tab` (antes de rodar): o storage dela e do perfil dela passam a ser os dele.
+    pub fn enter_tab(&self, tab: Rc<crate::session::Tab>) {
+        *self.bridge.tab.borrow_mut() = tab;
     }
 
     /// O que `--dump-dom` imprime: o doctype, o `<html>` serializado e uma quebra de linha final.
@@ -210,7 +203,10 @@ impl Page {
     /// o orçamento de tempo virtual.
     pub fn run(&self) {
         let budget = self.budget_ms;
-        self.run_with(|_, _| {}, |runner, _| runner.run_event_loop_for(budget));
+        // O fim do orçamento é inclusivo: a tarefa marcada para o instante exato dele ainda roda (medido no oráculo, uma
+        // cadeia de 50 timers de 10 ms fecha com `--virtual-time-budget=500`). A folga absorve o erro de ponto
+        // flutuante da soma dos atrasos sobre uma origem fracionária.
+        self.run_with(|_, _| {}, |runner, _| runner.run_event_loop_for(budget + BUDGET_DEADLINE_SLACK_MS));
     }
 
     /// Como [`Page::run`], com `start` chamado quando o prelúdio fica pronto (antes do primeiro script da página) e
@@ -234,16 +230,18 @@ impl Page {
             // `Error.prototype.stack` e as mensagens de erro no formato do V8.
             zjsc::runtime::stack_frame::set_v8_stack_format(true);
             // Sob `--virtual-time-budget`, `Date` e `performance.now` andam com o tempo virtual dos timers, a partir
-            // do relógio do sistema no início da página. A navegação começou antes: a origem de tempo é o início dela
-            // e o primeiro script já vê o relógio em `DOCUMENT_START_MS` (o `Date` segue na hora de parede).
+            // do relógio do sistema no início da página. A origem de tempo é o início da navegação: o primeiro script
+            // vê o relógio no tempo real que a busca e o parse levaram (o `Date` segue na hora de parede).
+            let now_ticks = ul_common::time::monotonic_nanos();
+            let elapsed_ms = (now_ticks - self.navigation_start).max(0) as f64 / 1_000_000.0;
             let wall_ms = zjsc::wtf::date_math::current_time_in_nanoseconds() as f64 / 1_000_000.0;
-            zjsc::wtf::date_math::set_virtual_clock(wall_ms - DOCUMENT_START_MS);
-            zjsc::runtime::waiter_list_manager::advance_virtual_clock_to(DOCUMENT_START_MS);
+            zjsc::wtf::date_math::set_virtual_clock(wall_ms - elapsed_ms);
+            zjsc::runtime::waiter_list_manager::advance_virtual_clock_to(elapsed_ms);
             // O relógio da página arredonda como o `TimeClamper` do Blink: 100 µs, ou 5 µs com `crossOriginIsolated`, um
             // segredo aleatório por processo e a origem no relógio monotônico do sandbox.
-            let now_ticks_us = (ul_common::time::monotonic_nanos() / 1000) as i64;
+            let now_ticks_us = (now_ticks / 1000) as i64;
             let unix_at_zero_us = (zjsc::wtf::date_math::current_time_in_nanoseconds() / 1000) as i64 - now_ticks_us;
-            let origin_ticks_us = now_ticks_us - (DOCUMENT_START_MS * 1000.0) as i64;
+            let origin_ticks_us = (self.navigation_start / 1000) as i64;
             let resolution = if self.bridge.cross_origin_isolated { zjsc::runtime::time_clamper::FINE_RESOLUTION_US } else { zjsc::runtime::time_clamper::COARSE_RESOLUTION_US };
             zjsc::runtime::time_clamper::set_time_clamper(clock_secret(), resolution, origin_ticks_us, unix_at_zero_us);
             // O valor do programa é a função gancho: o hospedeiro a guarda, sem binding global que a página veja.
@@ -464,21 +462,59 @@ struct DocumentResponse {
     cross_origin_isolated: bool,
     /// A troca de rede do documento, ou `None` para o que não veio pela rede (`file:`, `data:`, `about:blank`).
     transfer: Option<(u16, Transfer, Option<String>)>,
+    /// Quando a navegação começou e a busca aconteceu.
+    timing: Fetched,
+}
+
+/// Os instantes da busca do documento no relógio monotônico (`ul_common::time::monotonic_nanos`).
+#[derive(Debug, Clone, Copy)]
+struct Fetched {
+    navigation_start: i128,
+    /// A busca: do pedido ao fim do corpo (a troca de rede tem os instantes de dentro, em [`Transfer::timing`]).
+    fetch_start: i128,
+    fetch_end: i128,
+}
+
+impl Fetched {
+    /// Um documento que nasce sem busca (a página de erro).
+    fn now() -> Fetched {
+        let now = ul_common::time::monotonic_nanos();
+        Fetched { navigation_start: now, fetch_start: now, fetch_end: now }
+    }
 }
 
 impl DocumentResponse {
     /// O que a entrada `navigation` do Performance Timeline mostra do carregamento, em JSON para o prelúdio. Sem rede
     /// (medido no oráculo com `file:` e `data:`), o protocolo é vazio, o status 200 e os tamanhos são os do documento.
-    fn transfer_json(&self) -> String {
+    /// Os marcos são o tempo real de cada etapa desde o início da navegação, em ms (o prelúdio os passa pelo
+    /// `TimeClamper`); sem os instantes de dentro da troca, a conexão e o pedido ficam no começo da busca e a resposta
+    /// no fim dela. `domLoading` (só no legado `performance.timing`) é o começo do parse.
+    fn transfer_json(&self, parse_start: i128) -> String {
         use crate::devtools::json::Json;
         let (status, transfer, encoding) = match &self.transfer {
             Some((status, transfer, encoding)) => (*status, *transfer, encoding.clone()),
             None => (200, Transfer::identity(self.bytes.len()), None),
         };
         let essence = self.content_type.as_deref().map(|value| value.split(';').next().unwrap_or("").trim().to_ascii_lowercase()).unwrap_or_else(|| "text/html".to_owned());
-        let mut marks: Vec<(String, Json)> = NAVIGATION_MARKS.iter().map(|(name, at)| ((*name).to_owned(), Json::Number(*at))).collect();
-        let secure = if self.final_url.starts_with("https:") { SECURE_CONNECTION_START_MS } else { 0.0 };
-        marks.push(("secureConnectionStart".to_owned(), Json::Number(secure)));
+        let Fetched { navigation_start, fetch_start, fetch_end } = self.timing;
+        let at = |tick: i128| Json::Number((tick - navigation_start).max(0) as f64 / 1_000_000.0);
+        let exchange = transfer.timing.unwrap_or(ul_net::net::client::Timing { connect_start: fetch_start, secure_start: None, connect_end: fetch_start, request_start: fetch_start, response_start: fetch_end, response_end: fetch_end });
+        let secure = match exchange.secure_start {
+            Some(tick) => at(tick),
+            None => Json::Number(0.0),
+        };
+        let marks = vec![
+            ("fetchStart".to_owned(), at(fetch_start)),
+            ("domainLookupStart".to_owned(), at(exchange.connect_start)),
+            ("domainLookupEnd".to_owned(), at(exchange.connect_start)),
+            ("connectStart".to_owned(), at(exchange.connect_start)),
+            ("secureConnectionStart".to_owned(), secure),
+            ("connectEnd".to_owned(), at(exchange.connect_end)),
+            ("requestStart".to_owned(), at(exchange.request_start)),
+            ("responseStart".to_owned(), at(exchange.response_start)),
+            ("responseEnd".to_owned(), at(exchange.response_end.max(fetch_end))),
+            ("domLoading".to_owned(), at(parse_start)),
+        ];
         Json::Object(vec![
             ("marks".to_owned(), Json::Object(marks)),
             ("network".to_owned(), Json::Bool(self.transfer.is_some())),
@@ -568,7 +604,18 @@ fn csp_policies(response: &ul_net::net::client::Response) -> Vec<(String, bool)>
 }
 
 fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, String> {
-    let local = |bytes: Vec<u8>, content_type: Option<String>| DocumentResponse { bytes, final_url: address.to_owned(), content_type, header_csp: false, csp: Vec::new(), cross_origin_isolated: false, transfer: None };
+    let now = ul_common::time::monotonic_nanos;
+    let navigation_start = now();
+    let local = |bytes: Vec<u8>, content_type: Option<String>| DocumentResponse {
+        bytes,
+        final_url: address.to_owned(),
+        content_type,
+        header_csp: false,
+        csp: Vec::new(),
+        cross_origin_isolated: false,
+        transfer: None,
+        timing: Fetched { navigation_start, fetch_start: navigation_start, fetch_end: now() },
+    };
     // A aba nova (`about:blank`) é um documento vazio sem rede; `data:` sai pelo processador de data: URL do Fetch.
     if address == "about:blank" {
         return Ok(local(Vec::new(), None));
@@ -590,7 +637,9 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
     }
     let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8".to_owned()), ("Accept-Language".to_owned(), "en-US,en;q=0.9".to_owned())];
     let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };
+    let fetch_start = now();
     let response = fetcher(address, &spec).map_err(|e| e.net_error().to_owned())?;
+    let fetch_end = now();
     let final_url = response.url.to_string_with(true);
     let cross_origin_isolated = policy_value(&response, "Cross-Origin-Opener-Policy").as_deref() == Some("same-origin")
         && matches!(policy_value(&response, "Cross-Origin-Embedder-Policy").as_deref(), Some("require-corp" | "credentialless"))
@@ -603,6 +652,7 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
         bytes: response.body,
         final_url,
         cross_origin_isolated,
+        timing: Fetched { navigation_start, fetch_start, fetch_end },
     })
 }
 

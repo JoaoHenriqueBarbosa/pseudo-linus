@@ -21,12 +21,12 @@ pub struct Link {
 /// Abre a aba `target_id` numa thread nova. A primeira aba do processo (`startup`) carrega `url` direto; a aba criada
 /// pelo protocolo nasce com o documento vazio e navega para `url` em seguida, e com `wait` (o
 /// `waitForDebuggerOnStart`) a navegação espera o `Runtime.runIfWaitingForDebugger`.
-pub fn spawn(target_id: String, url: String, startup: bool, wait: bool) -> sysabi::SysResult<Link> {
+pub fn spawn(target_id: String, url: String, startup: bool, wait: bool, profile: std::sync::Arc<crate::session::Profile>) -> sysabi::SysResult<Link> {
     let sys = sysabi::sys::current();
     let (command_read, command_write) = sys.pipe2(OFlags::CLOEXEC | OFlags::NONBLOCK)?;
     let (event_read, event_write) = sys.pipe2(OFlags::CLOEXEC)?;
     sysio::thread::spawn(move || {
-        let mut tab = Tab::new(target_id, command_read, event_write);
+        let mut tab = Tab::new(target_id, command_read, event_write, profile);
         tab.waiting = wait;
         if startup || url == "about:blank" {
             tab.run(url);
@@ -74,6 +74,8 @@ struct Tab {
     waiting: bool,
     /// Os marcos de rede ociosa pendentes: (quando saem, o `timestamp` deles, se houve pintura).
     idle: Option<(f64, f64, bool)>,
+    /// O storage da aba e do perfil do contexto dela, que atravessa as navegações.
+    session: std::rc::Rc<crate::session::Tab>,
 }
 
 /// Quanto tempo sem rede o Chromium espera antes de declarar `networkIdle` (a janela do `IdlenessDetector`).
@@ -87,7 +89,7 @@ fn message_session(message: &Json) -> String {
 }
 
 impl Tab {
-    fn new(target_id: String, input: Fd, output: Fd) -> Tab {
+    fn new(target_id: String, input: Fd, output: Fd, profile: std::sync::Arc<crate::session::Profile>) -> Tab {
         Tab {
             target_id,
             input,
@@ -108,6 +110,7 @@ impl Tab {
             held: None,
             waiting: false,
             idle: None,
+            session: std::rc::Rc::new(crate::session::Tab::new(profile)),
         }
     }
 
@@ -237,6 +240,7 @@ impl Tab {
                 (page, Some(error))
             }
         };
+        page.enter_tab(self.session.clone());
         self.url = if error.is_some() { "chrome-error://chromewebdata/".to_owned() } else { page.bridge.url.borrow().clone() };
         if let Some(request) = &request {
             let mut result = vec![("frameId", Json::str(&self.target_id)), ("loaderId", Json::str(&self.loader_id))];

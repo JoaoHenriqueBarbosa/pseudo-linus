@@ -1,0 +1,270 @@
+//! O que vive fora do documento e sobrevive à troca dele, como o navegador guarda fora do renderer: o perfil (o
+//! `localStorage` de cada origem, compartilhado pelas abas do mesmo contexto de navegação, cada uma na sua thread) e a
+//! aba (o `sessionStorage` de cada origem, que só ela vê).
+
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+use ul_common::hash::rapidhash::{wtf_string_hash, DEFAULT_SEED};
+
+/// Um balde da tabela.
+#[derive(Debug, Clone)]
+enum Slot {
+    Empty,
+    Deleted,
+    Full(String, String),
+}
+
+/// Uma área de armazenamento (o `Storage` de uma origem), na ordem que a página vê em `key(i)`, `Object.keys` e
+/// `for..in`: a dos baldes do `HashMap<String, String>` do `StorageAreaMap` do Blink, medida no oráculo. A chave vai ao
+/// balde pelo hash de texto do WTF do Blink (o rapidhash com a semente padrão); a tabela nasce com 8 baldes, dobra
+/// quando chaves e apagados chegam à metade (ou só se reorganiza, se as chaves vivas não passam de um sexto do dobro),
+/// cai à metade quando as chaves ficam abaixo de um sexto, colide em sondagem triangular e reusa o primeiro balde
+/// apagado do caminho.
+#[derive(Debug, Default, Clone)]
+pub struct StorageArea {
+    slots: Vec<Slot>,
+    count: usize,
+    deleted: usize,
+}
+
+const MINIMUM_TABLE_SIZE: usize = 8;
+const MAX_LOAD: usize = 2;
+const MIN_LOAD: usize = 6;
+
+fn key_hash(key: &str) -> usize {
+    wtf_string_hash(DEFAULT_SEED, &key.encode_utf16().collect::<Vec<u16>>()) as usize
+}
+
+impl StorageArea {
+    pub fn len(&self) -> usize {
+        self.count
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
+
+    fn entries(&self) -> impl Iterator<Item = (&String, &String)> {
+        self.slots.iter().filter_map(|slot| match slot {
+            Slot::Full(key, value) => Some((key, value)),
+            _ => None,
+        })
+    }
+
+    /// Os baldes que a busca de `hash` visita, na ordem da sondagem triangular.
+    fn probe(&self, hash: usize) -> impl Iterator<Item = usize> {
+        let mask = self.slots.len() - 1;
+        (0..self.slots.len()).scan(hash & mask, move |index, step| {
+            let current = *index;
+            *index = (*index + step + 1) & mask;
+            Some(current)
+        })
+    }
+
+    fn find(&self, key: &str) -> Option<usize> {
+        if self.slots.is_empty() {
+            return None;
+        }
+        for index in self.probe(key_hash(key)) {
+            match &self.slots[index] {
+                Slot::Empty => return None,
+                Slot::Full(existing, _) if existing == key => return Some(index),
+                _ => {}
+            }
+        }
+        None
+    }
+
+    fn rehash(&mut self, size: usize) {
+        let old = std::mem::replace(&mut self.slots, vec![Slot::Empty; size]);
+        self.deleted = 0;
+        for slot in old {
+            if let Slot::Full(key, value) = slot {
+                let index = self.probe(key_hash(&key)).find(|&index| matches!(self.slots[index], Slot::Empty)).expect("balde livre");
+                self.slots[index] = Slot::Full(key, value);
+            }
+        }
+    }
+
+    pub fn get(&self, key: &str) -> Option<&str> {
+        self.find(key).and_then(|index| match &self.slots[index] {
+            Slot::Full(_, value) => Some(value.as_str()),
+            _ => None,
+        })
+    }
+
+    pub fn key(&self, index: usize) -> Option<&str> {
+        self.entries().nth(index).map(|(key, _)| key.as_str())
+    }
+
+    pub fn keys(&self) -> Vec<String> {
+        self.entries().map(|(key, _)| key.clone()).collect()
+    }
+
+    /// Grava `value` em `key`; a chave que já existia fica no balde dela.
+    pub fn set(&mut self, key: &str, value: &str) {
+        if let Some(index) = self.find(key) {
+            self.slots[index] = Slot::Full(key.to_owned(), value.to_owned());
+            return;
+        }
+        if self.slots.is_empty() {
+            self.rehash(MINIMUM_TABLE_SIZE);
+        }
+        let mut target = None;
+        let mut reused = false;
+        for index in self.probe(key_hash(key)) {
+            match self.slots[index] {
+                Slot::Deleted if target.is_none() => {
+                    target = Some(index);
+                    reused = true;
+                }
+                Slot::Empty => {
+                    target.get_or_insert(index);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        let index = target.expect("balde livre");
+        if reused {
+            self.deleted -= 1;
+        }
+        self.slots[index] = Slot::Full(key.to_owned(), value.to_owned());
+        self.count += 1;
+        if (self.count + self.deleted) * MAX_LOAD >= self.slots.len() {
+            let size = if self.count * MIN_LOAD < self.slots.len() * 2 { self.slots.len() } else { self.slots.len() * 2 };
+            self.rehash(size);
+        }
+    }
+
+    pub fn remove(&mut self, key: &str) {
+        let Some(index) = self.find(key) else { return };
+        self.slots[index] = Slot::Deleted;
+        self.count -= 1;
+        self.deleted += 1;
+        if self.count * MIN_LOAD < self.slots.len() && self.slots.len() > MINIMUM_TABLE_SIZE {
+            self.rehash(self.slots.len() / 2);
+        }
+    }
+
+    /// `clear()` solta a tabela inteira.
+    pub fn clear(&mut self) {
+        *self = StorageArea::default();
+    }
+}
+
+/// As áreas de cada origem (serializada, como `location.origin`).
+#[derive(Debug, Default)]
+pub struct Areas(HashMap<String, StorageArea>);
+
+impl Areas {
+    pub fn area(&mut self, origin: &str) -> &mut StorageArea {
+        self.0.entry(origin.to_owned()).or_default()
+    }
+}
+
+/// O perfil de um contexto de navegação: o contexto padrão do navegador, ou um criado por
+/// `Target.createBrowserContext` (que nasce vazio e não vê o do padrão).
+#[derive(Debug, Default)]
+pub struct Profile {
+    pub local: Mutex<Areas>,
+    /// Os bancos do IndexedDB de cada origem, cada um serializado pelo prelúdio (nome e texto), na ordem de criação.
+    pub databases: Mutex<HashMap<String, Vec<(String, String)>>>,
+}
+
+impl Profile {
+    /// Os bancos de `origin`.
+    pub fn databases_of(&self, origin: &str) -> Vec<(String, String)> {
+        self.databases.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get(origin).cloned().unwrap_or_default()
+    }
+
+    /// Grava o banco `name` de `origin` (o que já existia fica na posição dele).
+    pub fn save_database(&self, origin: &str, name: &str, text: &str) {
+        let mut all = self.databases.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let list = all.entry(origin.to_owned()).or_default();
+        match list.iter_mut().find(|(existing, _)| existing == name) {
+            Some((_, saved)) => *saved = text.to_owned(),
+            None => list.push((name.to_owned(), text.to_owned())),
+        }
+    }
+
+    pub fn delete_database(&self, origin: &str, name: &str) {
+        if let Some(list) = self.databases.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get_mut(origin) {
+            list.retain(|(existing, _)| existing != name);
+        }
+    }
+}
+
+/// Uma aba: o perfil do contexto dela e o `sessionStorage`, que atravessa as navegações da aba.
+#[derive(Debug, Default)]
+pub struct Tab {
+    pub profile: Arc<Profile>,
+    pub session: RefCell<Areas>,
+}
+
+impl Tab {
+    pub fn new(profile: Arc<Profile>) -> Tab {
+        Tab { profile, session: RefCell::new(Areas::default()) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::StorageArea;
+
+    enum Op<'a> {
+        Set(&'a str),
+        Remove(&'a str),
+    }
+
+    fn order(ops: impl IntoIterator<Item = Op<'static>>) -> String {
+        let mut area = StorageArea::default();
+        for op in ops {
+            match op {
+                Op::Set(key) => area.set(key, "v"),
+                Op::Remove(key) => area.remove(key),
+            }
+        }
+        area.keys().join(" ")
+    }
+
+    fn sets(keys: &[&'static str]) -> Vec<Op<'static>> {
+        keys.iter().map(|key| Op::Set(key)).collect()
+    }
+
+    fn numbered(prefix: &str, range: std::ops::Range<usize>) -> Vec<&'static str> {
+        range.map(|i| &*Box::leak(format!("{prefix}{i}").into_boxed_str())).collect()
+    }
+
+    /// A ordem de `localStorage.key(i)` no oráculo (`storage-order2.js` e `storage-order3.js` da medição): a ordem da
+    /// inserção não importa, a regravação mantém o balde, a tabela cresce e encolhe, o balde apagado é reusado, e o
+    /// texto fora do Latin1 entra em UTF-16.
+    #[test]
+    fn key_order_as_the_oracle() {
+        assert_eq!(order(sets(&["b", "a", "c", "10", "2", "Z"])), "Z a 10 2 c b");
+        assert_eq!(order(sets(&["Z", "2", "10", "c", "a", "b"])), "Z a 10 2 c b");
+        assert_eq!(order(sets(&["b", "a", "c", "b"])), "c a b");
+        assert_eq!(order(sets(&["b", "a", "c", "d"]).into_iter().chain([Op::Remove("a"), Op::Set("e")])), "c e d b");
+        assert_eq!(order(sets(&numbered("k", 0..8))), "k7 k2 k3 k5 k4 k1 k6 k0");
+        assert_eq!(order(sets(&numbered("k", 0..20))), "k7 k12 k8 k18 k5 k4 k13 k15 k6 k0 k10 k2 k19 k14 k3 k1 k16 k9 k11 k17");
+        assert_eq!(
+            order(sets(&numbered("k", 0..40))),
+            "k21 k12 k37 k33 k24 k18 k15 k13 k20 k6 k36 k0 k28 k35 k14 k3 k26 k29 k23 k38 k16 k11 k17 k25 k7 k39 k32 k31 k8 k30 k5 k4 k27 k34 k22 k10 k2 k19 k1 k9"
+        );
+        assert_eq!(order(sets(&["a", "b"])), "a b");
+        assert_eq!(order(sets(&["b", "a"])), "a b");
+        let removed = || numbered("k", 0..36).into_iter().map(Op::Remove);
+        assert_eq!(order(sets(&numbered("k", 0..40)).into_iter().chain(removed())), "k39 k38 k37 k36");
+        assert_eq!(order(sets(&numbered("k", 0..40)).into_iter().chain(removed()).chain(sets(&numbered("n", 0..5)))), "n2 k39 n3 k37 n1 k38 n0 k36 n4");
+        let odd = numbered("k", 0..10).into_iter().skip(1).step_by(2).map(Op::Remove);
+        assert_eq!(order(sets(&numbered("k", 0..10)).into_iter().chain(odd).chain(sets(&numbered("m", 0..6)))), "m1 m2 m0 k2 m4 m5 k8 k4 k6 m3 k0");
+        assert_eq!(order(sets(&["k0", "k1", "k2"]).into_iter().chain([Op::Remove("k1"), Op::Set("k1"), Op::Set("z")])), "k1 k2 z k0");
+        assert_eq!(order(sets(&["ação", "é", "中文", "😀", "ü", "abc", "Ωmega", "\u{100}x"])), "ação abc Ωmega 😀 中文 ü Āx é");
+        let long = ["a", "b", "c", "d", "e", "f", "g"].iter().zip([17, 33, 49, 100, 4, 8, 3]).map(|(c, n)| &*Box::leak(c.repeat(n).into_boxed_str())).collect::<Vec<_>>();
+        let expected = [long[5], long[0], long[4], long[3], long[2], long[1], long[6]].join(" ");
+        assert_eq!(order(sets(&long)), expected);
+        assert_eq!(order(sets(&["", "x", "y"])), " x y");
+    }
+}

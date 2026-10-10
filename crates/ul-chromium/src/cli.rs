@@ -56,6 +56,8 @@ pub fn main(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     }
     let Some(first) = options.urls.first() else { return 0 };
     let mut address = first.clone();
+    // A aba atravessa as navegações: o storage do documento seguinte é o mesmo.
+    let tab = std::rc::Rc::new(crate::session::Tab::default());
     for _ in 0..MAX_NAVIGATIONS {
         let mut page = match Page::load(&address, fetch::network()) {
             Ok(page) => page,
@@ -64,6 +66,7 @@ pub fn main(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
                 return 1;
             }
         };
+        page.enter_tab(tab.clone());
         if let Some(budget) = options.virtual_time_budget {
             page.budget_ms = budget;
         }

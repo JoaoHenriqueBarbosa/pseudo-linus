@@ -13,6 +13,7 @@ pub mod fetch;
 pub mod fonts;
 pub mod imaging;
 pub mod page;
+pub mod session;
 pub mod webp;
 
 /// Os programas deste crate.
