@@ -98,8 +98,10 @@ pub use import_record::{Flags as ImportRecordFlags, ImportRecord, Tag as ImportR
 pub use lexer_log::LexerLog;
 pub use loader::{Loader, LoaderHashTable, SideEffects};
 pub use logger::{
-    AddErrorOptions, Data, IntoText, Kind, Level, Location, Log, Msg, Path, Source, alloc_print, range_data,
+    AddErrorOptions, Data, IntoText, Kind, Level, Location, Log, Msg, Path, Source, SourceTooLarge, alloc_print,
+    range_data,
 };
+pub mod known_global;
 pub use new_store::{NodeStore, Stored};
 pub use nodes::{
     ArrayBinding, AssignTarget, BindingNodeIndex, Case, Catch, ClauseItem, EnumValue, ExprNodeIndex, ExprNodeList,
@@ -116,7 +118,8 @@ pub mod part {
 }
 pub use nodes::{
     DeclaredSymbol, DeclaredSymbolList, Dependency, ExportsKind, InlinedEnumValue, InlinedEnumValueDecoded,
-    NamedExport, NamedImport, Part, PartImportRecordIndices, PartTag, PropertyUse, TlaCheck,
+    NamedExport, NamedImport, NAMESPACE_EXPORT_PART_INDEX, Part, PartImportRecordIndices, PartTag, PropertyUse,
+    TlaCheck,
 };
 pub use ts::{TSNamespaceMember, TSNamespaceMemberMap, TSNamespaceScope};
 pub use transpiler_cache::RuntimeTranspilerCache;

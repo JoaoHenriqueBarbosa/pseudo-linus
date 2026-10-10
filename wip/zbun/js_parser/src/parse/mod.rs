@@ -1324,7 +1324,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         Ok(G::DeclList::from_arena_slice(&decls))
     }
 
-    pub(crate) fn parse_path(&mut self) -> Result<ParsedPath<'a>, Error> {
+    pub(crate) fn parse_path(&mut self) -> Result<ParsedPath, Error> {
         let p = self;
         let path_text = p.lexer.to_utf8_e_string(&mut p.store)?;
         let mut path = ParsedPath {

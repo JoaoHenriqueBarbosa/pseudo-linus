@@ -91,11 +91,12 @@ use bun_ast::{Ast, Ref};
 //
 // PERF NOTE: `bun_ast::Ast` is ~1 KB. Boxing the `Ast` variant collapses `Result` to 16 B so only a thin pointer
 // is moved up the stack.
+// No porte, o `Ast` não tem tempo de vida (os nós são índices no `Store`), então `Result` também perde o `'a`.
 #[cfg(feature = "parser")]
-pub enum Result<'a> {
+pub enum Result {
     AlreadyBundled(AlreadyBundled),
     Cached,
-    Ast(Box<Ast<'a>>),
+    Ast(Box<Ast>),
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -110,8 +111,8 @@ pub enum AlreadyBundled {
 #[cfg(feature = "parser")]
 impl<'a, const IS_TS: bool, const SCAN: bool> bun_ast::expr::EqlParser for crate::p::P<'a, IS_TS, SCAN> {
     #[inline]
-    fn arena(&self) -> &bun_alloc::Arena {
-        self.arena
+    fn store_mut(&mut self) -> &mut bun_ast::Store {
+        &mut self.store
     }
     #[inline]
     fn module_ref(&self) -> Ref {

@@ -354,7 +354,7 @@ impl<'a> Parser<'a> {
 // surface lands.
 impl<'a> Parser<'a> {
     #[cfg_attr(not(target_arch = "wasm32"), allow(unused_mut))]
-    pub fn parse(mut self) -> Result<crate::Result<'a>, Error> {
+    pub fn parse(mut self) -> Result<crate::Result, Error> {
         #[cfg(target_arch = "wasm32")]
         {
             self.options.ts = true;
@@ -536,8 +536,8 @@ impl<'a> Parser<'a> {
         &mut self,
         expr: Expr,
         runtime_api_call: &'static [u8],
-        symbols: js_ast::symbol::List<'a>,
-    ) -> Result<crate::Result<'a>, Error> {
+        symbols: js_ast::symbol::List,
+    ) -> Result<crate::Result, Error> {
         // Move lexer/options out and leave inert
         // placeholders so `self` may drop without double-free.
         //
@@ -735,7 +735,7 @@ fn lower_one_date_time_literal<'a>(
 }
 
 impl<'a> Parser<'a> {
-    fn _parse<const TS: bool>(self) -> Result<crate::Result<'a>, Error> {
+    fn _parse<const TS: bool>(self) -> Result<crate::Result, Error> {
         // `Source.path` is `Path<'static>`, so
         // `path.text` satisfies `Action::Parse(&'static [u8])` directly.
         // O `scoped_action` só rotula o relatório de queda do `bun_crash_handler`, que fica fora do porte.

@@ -358,6 +358,10 @@ impl Default for Path {
     }
 }
 
+/// Returned by [`Source::check_parseable_len`] once it has logged the error.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SourceTooLarge;
+
 #[derive(Clone)]
 pub struct Source {
     pub path: Path,
@@ -491,6 +495,22 @@ impl Source {
     #[inline]
     pub fn contents(&self) -> &[u8] {
         &self.contents
+    }
+
+    /// Positions are `i32` [`Loc`]s, so no parser can take a longer source.
+    pub const MAX_PARSEABLE_LEN: usize = i32::MAX as usize;
+
+    /// Parsers call this before reading a source, whichever way it reached them.
+    pub fn check_parseable_len(&self, log: &mut Log, what: &str) -> Result<(), SourceTooLarge> {
+        if self.contents.len() <= Self::MAX_PARSEABLE_LEN {
+            return Ok(());
+        }
+        // Without a position: finding the line of one would scan the oversized source.
+        log.add_error_fmt_opts(
+            format_args!("{what} is too large to parse (2 GiB maximum)"),
+            AddErrorOptions { source: Some(self), loc: Loc::EMPTY, len: 0, redact_sensitive_information: false },
+        );
+        Err(SourceTooLarge)
     }
 
     pub(crate) fn init_error_position(&self, offset_loc: Loc) -> ErrorPosition {

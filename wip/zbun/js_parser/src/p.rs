@@ -636,8 +636,8 @@ pub struct P<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> {
     // warnings about non-string import paths will be omitted inside try blocks.
     pub(crate) await_target: Option<js_ast::ExprData>,
 
-    pub(crate) to_expr_wrapper_namespace: Binding2ExprWrapperNamespace,
-    pub(crate) to_expr_wrapper_hoisted: Binding2ExprWrapperHoisted,
+    pub(crate) to_expr_wrapper_namespace: Binding2ExprWrapperNamespace<'a, TYPESCRIPT, SCAN_ONLY>,
+    pub(crate) to_expr_wrapper_hoisted: Binding2ExprWrapperHoisted<'a, TYPESCRIPT, SCAN_ONLY>,
 
     // This helps recognize the "import().catch()" pattern. We also try to avoid
     // warning about this just like the "try { await import() }" pattern.
@@ -717,10 +717,19 @@ pub struct P<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> {
     pub(crate) decorator_class_name: Option<&'a [u8]>,
 }
 
-// `binding::ToExprWrapper` type-erases `*P` (which is generic over
-// `<'a, TYPESCRIPT, J, SCAN_ONLY>`). Wired in `prepare_for_visit_pass`.
-pub(crate) type Binding2ExprWrapperNamespace = bun_ast::binding::ToExprWrapper;
-pub(crate) type Binding2ExprWrapperHoisted = bun_ast::binding::ToExprWrapper;
+// No upstream, `binding::ToExprWrapper` apaga o tipo de `*P`. No porte ele é genérico no contexto e recebe o
+// `&mut P` na hora da chamada, sem ponteiro cru.
+pub(crate) type Binding2ExprWrapperNamespace<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> =
+    bun_ast::binding::ToExprWrapper<P<'a, TYPESCRIPT, SCAN_ONLY>>;
+pub(crate) type Binding2ExprWrapperHoisted<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> =
+    bun_ast::binding::ToExprWrapper<P<'a, TYPESCRIPT, SCAN_ONLY>>;
+
+impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> AsMut<bun_ast::Store> for P<'a, TYPESCRIPT, SCAN_ONLY> {
+    #[inline]
+    fn as_mut(&mut self) -> &mut bun_ast::Store {
+        &mut self.store
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> Drop for P<'a, TYPESCRIPT, SCAN_ONLY> {
@@ -3282,25 +3291,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn prepare_for_visit_pass(&mut self) -> Result<(), crate::Error> {
         {
             // The wrapper stores only the arena and a non-capturing
-            // fn-pointer trampoline; the `*mut P` context is supplied *at call
-            // time* (see `Binding::to_expr`) so the raw pointer's provenance is
-            // a child of the live `&mut P` at the call site rather than a stale
-            // tag captured here. The transposer shims need no wiring at all -
-            // call sites invoke `P::maybe_transpose_if_*` etc. directly.
-            self.to_expr_wrapper_namespace =
-                bun_ast::binding::ToExprWrapper::new(self.arena, |ctx, loc, ref_| {
-                    // SAFETY: `ctx` was derived from the caller's live `&mut P`
-                    // immediately before `Binding::to_expr`; no other `&mut P`
-                    // borrow is active for the duration of this call.
-                    let p = unsafe { &mut *ctx.cast::<P<'a, TYPESCRIPT, SCAN_ONLY>>() };
-                    p.wrap_identifier_namespace(loc, ref_)
-                });
-            self.to_expr_wrapper_hoisted =
-                bun_ast::binding::ToExprWrapper::new(self.arena, |ctx, loc, ref_| {
-                    // SAFETY: same as above.
-                    let p = unsafe { &mut *ctx.cast::<P<'a, TYPESCRIPT, SCAN_ONLY>>() };
-                    p.wrap_identifier_hoisting(loc, ref_)
-                });
+            // The `&mut P` context is supplied at call time (see `Binding::to_expr`).
+            self.to_expr_wrapper_namespace = bun_ast::binding::ToExprWrapper::new(|p, loc, ref_| p.wrap_identifier_namespace(loc, ref_));
+            self.to_expr_wrapper_hoisted = bun_ast::binding::ToExprWrapper::new(|p, loc, ref_| p.wrap_identifier_hoisting(loc, ref_));
         }
 
         {
@@ -4194,7 +4187,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn process_import_statement(
         &mut self,
         stmt_: S::Import,
-        path: ParsedPath<'a>,
+        path: ParsedPath,
         loc: bun_ast::Loc,
         was_originally_bare_import: bool,
     ) -> Result<Stmt, crate::Error> {
@@ -8830,7 +8823,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         exports_kind: js_ast::ExportsKind,
         wrap_mode: WrapMode,
         hashbang: &'a [u8],
-    ) -> Result<Box<js_ast::Ast<'a>>, crate::Error> {
+    ) -> Result<Box<js_ast::Ast>, crate::Error> {
         use crate::lower::lower_esm_exports_hmr::ConvertESMExportsForHmr;
         use crate::scan::scan_imports::ImportScanner;
 

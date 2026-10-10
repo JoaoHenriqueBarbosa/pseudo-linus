@@ -1068,7 +1068,7 @@ pub struct ThenCatchChain {
 }
 
 #[derive(Clone, Copy)]
-pub struct ParsedPath<'a> {
+pub struct ParsedPath {
     pub(crate) loc: bun_ast::Loc,
     /// Faixa do `Store` (no upstream, `&'a [u8]` com o tempo de vida apagado por `detach_lifetime`).
     pub(crate) text: bun_ast::StoreStr,
@@ -1133,10 +1133,12 @@ impl StringVoidMap {
         entry.found_existing
     }
 
-    fn init() -> Result<StringVoidMap, bun_core::Error> {
-        Ok(StringVoidMap {
+    /// No porte o `INIT` do pool é infalível (o `object_pool!` do upstream devolvia `Result`, e a criação de um
+    /// mapa vazio nunca falha).
+    fn init() -> StringVoidMap {
+        StringVoidMap {
             map: StringHashMap::default(),
-        })
+        }
     }
 
     fn reset(&mut self) {
@@ -1153,7 +1155,7 @@ impl StringVoidMap {
 }
 
 impl bun_collections::pool::ObjectPoolType for StringVoidMap {
-    const INIT: Option<fn() -> Result<Self, bun_core::Error>> = Some(StringVoidMap::init);
+    const INIT: fn() -> Self = StringVoidMap::init;
     #[inline]
     fn reset(&mut self) {
         StringVoidMap::reset(self)
@@ -1678,7 +1680,7 @@ pub fn new_lazy_export_ast<'bump>(
     expr: Expr,
     source: &'bump bun_ast::Source,
     runtime_api_call: &'static [u8],
-) -> crate::CrateResult<Option<js_ast::Ast<'bump>>> {
+) -> crate::CrateResult<Option<js_ast::Ast>> {
     new_lazy_export_ast_impl(
         bump,
         define,
@@ -1699,8 +1701,8 @@ pub fn new_lazy_export_ast_impl<'bump>(
     expr: Expr,
     source: &'bump bun_ast::Source,
     runtime_api_call: &'static [u8],
-    symbols: js_ast::symbol::List<'bump>,
-) -> crate::CrateResult<Option<js_ast::Ast<'bump>>> {
+    symbols: js_ast::symbol::List,
+) -> crate::CrateResult<Option<js_ast::Ast>> {
     let mut temp_log = bun_ast::Log::init();
     // parser.log and lexer.log both store `NonNull<Log>`; copy the lexer's
     // pointer so they share one provenance chain. See `Parser::init` for the

@@ -626,6 +626,13 @@ pub struct Part {
 pub type PartImportRecordIndices = Vec<u32>;
 pub type PartList = Vec<Part>;
 
+/// This is the index to the automatically-generated part containing code that
+/// calls "__export(exports, { ... getters ... })". This is used to generate
+/// getters on an exports object for ES6 export statements, and is both for
+/// ES6 star imports and CommonJS-style modules. All files have one of these,
+/// although it may contain no statements if there is nothing to export.
+pub const NAMESPACE_EXPORT_PART_INDEX: u32 = 0;
+
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum PartTag {
     None,

@@ -27,6 +27,37 @@ macro_rules! todo_panic {
     }};
 }
 
+/// What `err()` needs from a `bun_sys::Error` without naming the type.
+#[derive(Clone, Copy)]
+pub struct SysErrInfo {
+    pub tag_name: &'static [u8],
+    pub errno: i32,
+    pub syscall: &'static str,
+}
+
+/// Trait abstracting the error-name shapes accepted by `err()`.
+pub trait ErrName {
+    fn name(&self) -> &[u8];
+    fn as_sys_err_info(&self) -> Option<SysErrInfo> {
+        None
+    }
+}
+impl ErrName for &str {
+    fn name(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+impl ErrName for &[u8] {
+    fn name(&self) -> &[u8] {
+        self
+    }
+}
+impl ErrName for crate::CrateError {
+    fn name(&self) -> &[u8] {
+        (*self).name().as_bytes()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
