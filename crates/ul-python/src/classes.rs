@@ -3247,56 +3247,25 @@ impl Vm {
 
     /// `str(v)`, chamando `__str__` (ou `__repr__`) de usuário.
     pub(crate) fn str_of(&mut self, v: &Value) -> PyResult<String> {
-        if let Value::Class(c) = v {
-            for name in ["__str__", "__repr__"] {
-                if let Some(Value::Function(f)) = c.meta.as_ref().and_then(|m| m.lookup(name)) {
-                    return match self.call_function(&f, vec![v.clone()], Vec::new())? {
-                        Value::Str(s) => Ok(s.as_str().to_string()),
-                        other => Err(type_error(format!("{name} returned non-string (type {})", other.type_name()))),
-                    };
-                }
-            }
-        }
-        if let Value::Instance(i) = v {
-            for name in ["__str__", "__repr__"] {
-                // `str.__str__` devolve o próprio texto: o `__repr__` de usuário não entra em `str(x)`.
-                if name == "__repr__" && matches!(&*i.payload.borrow(), Some(Value::Str(_))) {
-                    continue;
-                }
-                if let Some(Value::Function(f)) = i.class().lookup(name) {
-                    let r = self.call_function(&f, vec![v.clone()], Vec::new())?;
-                    return match r {
-                        Value::Str(s) => Ok(s.as_str().to_string()),
-                        other => Err(type_error(format!("{name} returned non-string (type {})", other.type_name()))),
-                    };
-                }
-            }
-            return Ok(self.default_text(v, true));
-        }
-        Ok(to_str(v))
+        self.text_of(v, true)
     }
 
     /// `repr(v)`, chamando `__repr__` de usuário.
     pub(crate) fn repr_of(&mut self, v: &Value) -> PyResult<String> {
-        if let Value::Class(c) = v {
-            if let Some(Value::Function(f)) = c.meta.as_ref().and_then(|m| m.lookup("__repr__")) {
-                return match self.call_function(&f, vec![v.clone()], Vec::new())? {
-                    Value::Str(s) => Ok(s.as_str().to_string()),
-                    other => Err(type_error(format!("__repr__ returned non-string (type {})", other.type_name()))),
-                };
-            }
+        self.text_of(v, false)
+    }
+
+    /// `str(v)` (`is_str`) ou `repr(v)`, pelo método de usuário que `text_dunder` escolhe.
+    fn text_of(&mut self, v: &Value, is_str: bool) -> PyResult<String> {
+        if let Some((name, f)) = text_dunder(v, is_str) {
+            let r = self.call_function(&f, vec![v.clone()], Vec::new())?;
+            return Ok(to_str(&text_result(name, r)?));
         }
-        if let Value::Instance(i) = v {
-            if let Some(Value::Function(f)) = i.class().lookup("__repr__") {
-                let r = self.call_function(&f, vec![v.clone()], Vec::new())?;
-                return match r {
-                    Value::Str(s) => Ok(s.as_str().to_string()),
-                    other => Err(type_error(format!("__repr__ returned non-string (type {})", other.type_name()))),
-                };
-            }
-            return Ok(self.default_text(v, false));
-        }
-        Ok(crate::object::repr(v))
+        Ok(match v {
+            Value::Instance(_) => self.default_text(v, is_str),
+            _ if is_str => to_str(v),
+            _ => crate::object::repr(v),
+        })
     }
 
     /// `format(v, spec)`.
@@ -3507,45 +3476,23 @@ impl Vm {
 /// Texto de uma instância com `__str__`/`__repr__` de usuário, ou de exceção (`args`); `None` se a
 /// classe não define nada (o chamador usa o texto padrão).
 pub fn instance_text(v: &Value, is_str: bool) -> Option<String> {
-    if let Value::Class(c) = v {
-        // classe cuja metaclasse define `__repr__`/`__str__` (EnumType: `<enum 'Color'>`)
-        let meta = c.meta.as_ref()?;
-        let mut vm = current()?;
-        let names: &[&str] = if is_str { &["__str__", "__repr__"] } else { &["__repr__"] };
-        for name in names {
-            if let Some(Value::Function(f)) = meta.lookup(name) {
-                return match vm.call_function(&f, vec![v.clone()], Vec::new()) {
-                    Ok(Value::Str(s)) => Some(s.as_str().to_string()),
-                    _ => None,
-                };
-            }
-        }
+    // Classe cuja metaclasse define `__repr__`/`__str__` (EnumType: `<enum 'Color'>`) ou instância de usuário.
+    if !matches!(v, Value::Class(_) | Value::Instance(_)) {
         return None;
     }
-    let Value::Instance(i) = v else { return None };
     let mut vm = current()?;
-    let names: &[&str] = if is_str { &["__str__", "__repr__"] } else { &["__repr__"] };
-    for name in names {
-        if *name == "__repr__" && is_str && matches!(&*i.payload.borrow(), Some(Value::Str(_))) {
-            continue;
-        }
-        if let Some(Value::Function(f)) = i.class().lookup(name) {
-            return match vm.call_function(&f, vec![v.clone()], Vec::new()) {
-                Ok(Value::Str(s)) => Some(s.as_str().to_string()),
-                Ok(other) => {
-                    crate::vm::note_text_error(
-                        type_error(format!("{name} returned non-string (type {})", other.type_name())),
-                        vm.depth.get(),
-                    );
-                    None
-                }
-                Err(e) => {
-                    crate::vm::note_text_error(e, vm.depth.get());
-                    None
-                }
-            };
-        }
+    if let Some((name, f)) = text_dunder(v, is_str) {
+        let r = vm.call_function(&f, vec![v.clone()], Vec::new()).and_then(|r| text_result(name, r));
+        return match r {
+            Ok(s) => Some(to_str(&s)),
+            Err(e) if matches!(v, Value::Instance(_)) => {
+                crate::vm::note_text_error(e, vm.depth.get());
+                None
+            }
+            Err(_) => None,
+        };
     }
+    let Value::Instance(i) = v else { return None };
     if i.class().builtin_base.is_some() || is_property_instance(i) {
         return Some(vm.default_text(v, is_str));
     }
@@ -3555,6 +3502,31 @@ pub fn instance_text(v: &Value, is_str: bool) -> Option<String> {
 
 /// O tipo que responde pelos métodos mágicos de `v`: a classe de uma instância e a metaclasse de uma
 /// classe (`None` quando a metaclasse é o `type` padrão ou `v` não é objeto de usuário).
+/// O método em Python que `str(v)` (`is_str`: `__str__`, senão `__repr__`) ou `repr(v)` chama, com o nome dele: o
+/// da classe de uma instância ou o da metaclasse de uma classe. `str.__str__` devolve o próprio texto, então numa
+/// subclasse de `str` o `__repr__` de usuário não entra em `str(x)`.
+pub(crate) fn text_dunder(v: &Value, is_str: bool) -> Option<(&'static str, Rc<FuncObj>)> {
+    let ty = dispatch_type(v)?;
+    let names: &[&'static str] = if is_str { &["__str__", "__repr__"] } else { &["__repr__"] };
+    for &name in names {
+        if name == "__repr__" && is_str && matches!(v, Value::Instance(i) if matches!(&*i.payload.borrow(), Some(Value::Str(_)))) {
+            continue;
+        }
+        if let Some(Value::Function(f)) = ty.lookup(name) {
+            return Some((name, f));
+        }
+    }
+    None
+}
+
+/// O que `__str__`/`__repr__` (`name`) devolveu, se for texto; outro tipo é o `TypeError` do `PyObject_Str`.
+pub(crate) fn text_result(name: &str, v: Value) -> PyResult<Value> {
+    match v {
+        Value::Str(_) => Ok(v),
+        other => Err(type_error(format!("{name} returned non-string (type {})", other.type_name()))),
+    }
+}
+
 fn dispatch_type(v: &Value) -> Option<Rc<ClassObj>> {
     match v {
         Value::Instance(i) => Some(i.class()),

@@ -6,7 +6,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::native_util::want_int;
+use crate::native_util::{norm_bound, want_int};
 use crate::object::{repr, scan_list_eq, Kw, NativeFnPtr, Value};
 use crate::vm::{exc, iterate, py_lt, type_error, PyResult, Vm};
 
@@ -46,22 +46,6 @@ fn argc(fname: &str, rest: &[Value], min: usize, max: usize) -> PyResult<()> {
         format!("list.{fname}() takes at most {max} argument{} ({n} given)", plural(max))
     };
     Err(type_error(msg))
-}
-
-/// Normaliza `start`/`stop` de `index`: negativo soma o tamanho, e tudo é limitado a `0..=len`.
-fn norm_bound(v: Option<&Value>, len: usize, default: usize) -> PyResult<usize> {
-    match v {
-        None | Some(Value::None) => Ok(default),
-        Some(x) => {
-            let i = want_int(x)?;
-            if i < 0 {
-                let j = i.saturating_add(len as i64);
-                Ok(if j < 0 { 0 } else { j as usize })
-            } else {
-                Ok(i.min(len as i64) as usize)
-            }
-        }
-    }
 }
 
 fn append(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {

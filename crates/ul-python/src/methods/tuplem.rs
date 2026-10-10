@@ -2,7 +2,7 @@
 
 use std::rc::Rc;
 
-use crate::native_util::want_int;
+use crate::native_util::norm_bound;
 use crate::object::{eq_bool, Kw, NativeFnPtr, Value};
 use crate::vm::{exc, type_error, PyResult, Vm};
 
@@ -18,21 +18,6 @@ fn nokw(fname: &str, kw: &Kw) -> PyResult<()> {
         Ok(())
     } else {
         Err(type_error(format!("tuple.{fname}() takes no keyword arguments")))
-    }
-}
-
-fn norm_bound(v: Option<&Value>, len: usize, default: usize) -> PyResult<usize> {
-    match v {
-        None | Some(Value::None) => Ok(default),
-        Some(x) => {
-            let i = want_int(x)?;
-            if i < 0 {
-                let j = i.saturating_add(len as i64);
-                Ok(if j < 0 { 0 } else { j as usize })
-            } else {
-                Ok(i.min(len as i64) as usize)
-            }
-        }
     }
 }
 

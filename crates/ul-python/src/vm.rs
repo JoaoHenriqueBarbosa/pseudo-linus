@@ -1388,6 +1388,113 @@ pub(crate) struct Chain {
     pub(crate) rest: Vec<Attempt>,
     /// `invert` da tentativa em curso.
     pub(crate) invert: bool,
+    /// A busca numa lista ou tupla que espera esta igualdade (`None`: o resultado vai para a pilha).
+    pub(crate) scan: Option<Box<Scan>>,
+}
+
+/// A busca de `item` numa lista ou tupla (`in`, `index`, `count`, `remove`) quando a igualdade de algum par roda
+/// `__eq__` em Python: cada comparação dessas abre o quadro do método, e a busca segue de onde parou quando ele
+/// volta. A lista é relida a cada passo, como no `list_contains`, porque o `__eq__` pode mudá-la.
+pub(crate) struct Scan {
+    pub(crate) seq: Value,
+    pub(crate) item: Value,
+    pub(crate) pos: usize,
+    pub(crate) stop: usize,
+    pub(crate) mode: ScanMode,
+}
+
+pub(crate) enum ScanMode {
+    Contains { negate: bool },
+    Index,
+    Count(i64),
+    Remove,
+}
+
+impl Scan {
+    fn element(&self) -> Option<Value> {
+        if self.pos >= self.stop {
+            return None;
+        }
+        match &self.seq {
+            Value::List(l) => l.borrow().get(self.pos).cloned(),
+            Value::Tuple(t) => t.get(self.pos).cloned(),
+            _ => None,
+        }
+    }
+
+    /// O par da posição corrente deu `equal`: o resultado da busca, se ela acaba aqui.
+    fn matched(&mut self, equal: bool) -> Option<Value> {
+        if !equal {
+            return None;
+        }
+        match &mut self.mode {
+            ScanMode::Contains { negate } => Some(Value::Bool(!*negate)),
+            ScanMode::Index => Some(Value::Int(self.pos as i64)),
+            ScanMode::Count(n) => {
+                *n += 1;
+                None
+            }
+            ScanMode::Remove => {
+                if let Value::List(l) = &self.seq {
+                    let mut l = l.borrow_mut();
+                    if self.pos < l.len() {
+                        l.remove(self.pos);
+                    }
+                }
+                Some(Value::None)
+            }
+        }
+    }
+
+    /// A sequência acabou sem decidir.
+    fn exhausted(&self) -> PyResult<Value> {
+        match (&self.mode, &self.seq) {
+            (ScanMode::Contains { negate }, _) => Ok(Value::Bool(*negate)),
+            (ScanMode::Count(n), _) => Ok(Value::Int(*n)),
+            (ScanMode::Index, Value::Tuple(_)) => Err(exc("ValueError", "tuple.index(x): x not in tuple")),
+            (ScanMode::Index, _) => Err(exc("ValueError", format!("{} is not in list", repr(&self.item)))),
+            (ScanMode::Remove, _) => Err(exc("ValueError", "list.remove(x): x not in list")),
+        }
+    }
+}
+
+/// A busca de `item` em `seq` precisa de quadro: a sequência é lista ou tupla e algum lado de algum par é
+/// instância com `__eq__` em Python.
+fn scan_needs_frames(seq: &Value, item: &Value) -> bool {
+    let python_eq = |v: &Value| dunder_function(v, "__eq__").is_some();
+    match seq {
+        Value::List(l) => python_eq(item) || l.borrow().iter().any(python_eq),
+        Value::Tuple(t) => python_eq(item) || t.iter().any(python_eq),
+        _ => false,
+    }
+}
+
+/// A busca que a chamada `lista.index(x)`, `count`, `remove` ou `tupla.index(x)`, `count` faz, quando ela precisa
+/// de quadro; com outros argumentos a nativa responde (e dá os erros dela).
+fn scan_call(func: &Value, args: &[Value], kwargs: &[(String, Value)]) -> PyResult<Option<Box<Scan>>> {
+    let Value::Bound(b) = func else { return Ok(None) };
+    if !kwargs.is_empty() || !matches!(b.recv, Value::List(_) | Value::Tuple(_)) {
+        return Ok(None);
+    }
+    let len = match &b.recv {
+        Value::List(l) => l.borrow().len(),
+        Value::Tuple(t) => t.len(),
+        _ => return Ok(None),
+    };
+    let (mode, start, stop) = match (b.name, args) {
+        ("index", [_, rest @ ..]) if rest.len() <= 2 => {
+            let start = crate::native_util::norm_bound(rest.first(), len, 0)?;
+            let stop = crate::native_util::norm_bound(rest.get(1), len, len)?;
+            (ScanMode::Index, start, stop)
+        }
+        ("count", [_]) => (ScanMode::Count(0), 0, usize::MAX),
+        ("remove", [_]) if matches!(b.recv, Value::List(_)) => (ScanMode::Remove, 0, usize::MAX),
+        _ => return Ok(None),
+    };
+    if !scan_needs_frames(&b.recv, &args[0]) {
+        return Ok(None);
+    }
+    Ok(Some(Box::new(Scan { seq: b.recv.clone(), item: args[0].clone(), pos: start, stop, mode })))
 }
 
 /// O que um salto condicional ou um `not` faz com a verdade do operando.
@@ -1413,6 +1520,9 @@ pub(crate) enum Dunder {
     Truth { how: TruthUse, len: bool },
     /// `__iter__` de um `for`: o iterador vai para a pilha.
     Iter,
+    /// `repr(x)` ou `str(x)` com `__repr__`/`__str__` em Python (o nome do método): o texto vai para a pilha, e
+    /// outro tipo é o `TypeError` do `PyObject_Repr`/`PyObject_Str`.
+    Text(&'static str),
     /// Um callback Python de uma nativa (a função do `map`, o predicado do `filter`, a chave de
     /// `min`/`max`/`sorted`, o `__next__` ou o `__getitem__` de uma fonte, o `__iter__` de uma coleta): o valor
     /// que ele devolve volta à máquina de `Vm::drive` (`Vm::resume_callback`).
@@ -2066,6 +2176,12 @@ impl Vm {
                     Op::Binary { .. } | Op::Compare(_) if instance_at(stack, 0) || instance_at(stack, 1) => {
                         self.dunder_op(code, op, stack, env, &mut spawn)
                     }
+                    // `x in lista`: o `__eq__` em Python de algum elemento roda em quadro (`Scan`).
+                    Op::Compare(CmpOp::In | CmpOp::NotIn)
+                        if matches!(stack.last(), Some(Slot::Val(Value::List(_) | Value::Tuple(_)))) =>
+                    {
+                        self.dunder_op(code, op, stack, env, &mut spawn)
+                    }
                     Op::Subscript | Op::StoreSubscript | Op::DeleteSubscript if instance_at(stack, 1) => {
                         self.dunder_op(code, op, stack, env, &mut spawn)
                     }
@@ -2580,6 +2696,15 @@ impl Vm {
         // Com o perfil ligado, `sorted`, `min`, `sum`... geram `c_call` antes e `c_return` depois dos quadros do
         // callback: a coleta em quadros do laço não tem onde pô-los, então a nativa segue pela chamada recursiva.
         if !crate::tracing::reports_c_call(self, func) {
+            if let Some(scan) = scan_call(func, &args, &kwargs)? {
+                return self.scan_step(scan, None).and_then(entered_of);
+            }
+            // `repr(x)` e `str(x)` com o método de usuário em Python: o quadro dele roda no laço.
+            if let ([x], [], Some(name @ ("repr" | "str"))) = (&args[..], &kwargs[..], crate::fold::builtin_name(func))
+                && let Some((dunder, f)) = crate::classes::text_dunder(x, name == "str")
+            {
+                return self.open_dunder(&f, vec![x.clone()], Dunder::Text(dunder)).and_then(entered_of);
+            }
             if let Some((root, collect)) = collect_source(func, &args, &kwargs)? {
                 return self.start_pull(root, ResumeUse::Collect(Box::new(collect))).and_then(entered_of);
             }
@@ -3304,9 +3429,15 @@ impl Vm {
                         self.begin_chain(stack, ChainKind::Equal(cop), a, b, attempts)
                     }
                     CmpOp::In | CmpOp::NotIn => {
+                        let negate = cop == CmpOp::NotIn;
+                        if scan_needs_frames(&b, &a) {
+                            stack.truncate(stack.len() - 2);
+                            let scan = Scan { seq: b, item: a, pos: 0, stop: usize::MAX, mode: ScanMode::Contains { negate } };
+                            return self.scan_step(Box::new(scan), None).map(Some);
+                        }
                         let Some(f) = dunder_function(&b, "__contains__") else { return Ok(None) };
                         stack.truncate(stack.len() - 2);
-                        self.open_dunder(&f, vec![b, a], Dunder::Boolean { negate: cop == CmpOp::NotIn }).map(Some)
+                        self.open_dunder(&f, vec![b, a], Dunder::Boolean { negate }).map(Some)
                     }
                     _ => Ok(None),
                 }
@@ -3420,7 +3551,7 @@ impl Vm {
         }
         stack.truncate(stack.len() - 2);
         attempts.reverse();
-        self.advance_chain(Chain { kind, a, b, rest: attempts, invert: false }, None).map(Some)
+        self.advance_chain(Chain { kind, a, b, rest: attempts, invert: false, scan: None }, None).map(Some)
     }
 
     /// Abre o quadro do método mágico `f`; o que ele devolver será tratado por `finish_dunder`.
@@ -3442,6 +3573,7 @@ impl Vm {
             Dunder::Discard | Dunder::Signal => Ok(Next::Nothing),
             Dunder::Boolean { negate } => Ok(Next::Value(Value::Bool(v.is_true() != negate))),
             Dunder::Iter => iterator_from_dunder(v).map(Next::Iter),
+            Dunder::Text(name) => crate::classes::text_result(name, v).map(Next::Value),
             Dunder::Callback(callback) => self.resume_callback(*callback, Some(v)),
             Dunder::Import(_) | Dunder::Exec(_) => Err(internal("a module body closed as a method")),
             Dunder::Truth { how, len } => {
@@ -3463,7 +3595,8 @@ impl Vm {
         if let Some(v) = returned
             && !crate::classes::is_not_implemented(&v)
         {
-            return Ok(Next::Value(chain.conclude(v)));
+            let v = chain.conclude(v);
+            return self.chain_result(chain, v);
         }
         while let Some(at) = chain.rest.pop() {
             chain.invert = at.invert;
@@ -3474,10 +3607,47 @@ impl Vm {
                 None => {}
                 Some(Err(e)) => return Err(e),
                 Some(Ok(v)) if crate::classes::is_not_implemented(&v) => {}
-                Some(Ok(v)) => return Ok(Next::Value(chain.conclude(v))),
+                Some(Ok(v)) => {
+                    let v = chain.conclude(v);
+                    return self.chain_result(chain, v);
+                }
             }
         }
-        chain.fallback().map(Next::Value)
+        let v = chain.fallback()?;
+        self.chain_result(chain, v)
+    }
+
+    /// O operador da cadeia deu `v`: vai para a pilha, ou para a busca que o esperava.
+    fn chain_result(&mut self, mut chain: Chain, v: Value) -> PyResult<Next> {
+        match chain.scan.take() {
+            Some(scan) => self.scan_step(scan, Some(v.is_true())),
+            None => Ok(Next::Value(v)),
+        }
+    }
+
+    /// Segue a busca `scan`; `hit` é a igualdade do par corrente, quando ela acabou de voltar de um quadro.
+    fn scan_step(&mut self, mut scan: Box<Scan>, hit: Option<bool>) -> PyResult<Next> {
+        if let Some(equal) = hit {
+            if let Some(v) = scan.matched(equal) {
+                return Ok(Next::Value(v));
+            }
+            scan.pos += 1;
+        }
+        while let Some(x) = scan.element() {
+            let item = scan.item.clone();
+            if !is(&x, &item) && (dunder_function(&x, "__eq__").is_some() || dunder_function(&item, "__eq__").is_some()) {
+                let mut attempts = equal_attempts(CmpOp::Eq, &x, &item);
+                attempts.reverse();
+                let chain = Chain { kind: ChainKind::Equal(CmpOp::Eq), a: x, b: item, rest: attempts, invert: false, scan: Some(scan) };
+                return self.advance_chain(chain, None);
+            }
+            let equal = eq_bool(&x, &item)?;
+            if let Some(v) = scan.matched(equal) {
+                return Ok(Next::Value(v));
+            }
+            scan.pos += 1;
+        }
+        scan.exhausted().map(Next::Value)
     }
 
     /// Liga os argumentos aos parâmetros como o CPython (`_PyEval_MakeFrameVector`) e devolve o
