@@ -337,11 +337,18 @@ pub(super) fn run_ext(f: &mut SlowPathFrame, instruction: &InstructionRef) -> LL
         OpcodeID::op_switch_string => {
             let op: OpSwitchString = instruction.as_op();
             let scrutinee = f.get(op.scrutinee);
+            // `slow_path_switch_string`: `asString(scrutinee)->value(globalObject)` resolve a rope (e lança na
+            // falta de memória) antes de procurar na tabela.
+            let value = if scrutinee.is_string() {
+                let resolved = scrutinee.as_js_string().try_resolve();
+                Some(resolved.ok_or_else(|| crate::llint::slow_paths::throw_out_of_memory_error(f.code_block.global_object()))?)
+            } else {
+                None
+            };
             Step::Jump(f.code_block.with_unlinked_string_switch_jump_table(op.table_index as usize, |table| {
-                if scrutinee.is_string() {
-                    table.offset_for_value(&scrutinee.as_js_string().get_value_impl())
-                } else {
-                    table.default_offset
+                match value.as_ref().and_then(|value| value.impl_()) {
+                    Some(value) => table.offset_for_value(value),
+                    None => table.default_offset,
                 }
             }))
         }
