@@ -12,6 +12,7 @@ pub mod document;
 pub mod encoding;
 pub mod fetch;
 pub mod fonts;
+pub mod idb;
 pub mod imaging;
 pub mod local_storage;
 pub mod page;
