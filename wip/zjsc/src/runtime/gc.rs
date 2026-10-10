@@ -471,6 +471,7 @@ fn mark_and_sweep(
             CellEntry::WeakMap(map) => map.table().borrow_mut().remove_dead_keys(&marker),
             CellEntry::WeakSet(set) => set.table().borrow_mut().remove_dead_keys(&marker),
             CellEntry::WeakObjectRef(weak_ref) => weak_ref.finalize(&marker),
+            CellEntry::ErrorInstance(error) => error.finalize_frames(&marker),
             CellEntry::FinalizationRegistry(registry) => {
                 if registry.finalize(&marker) {
                     registries_to_clean.push(std::rc::Rc::clone(registry));

@@ -161,6 +161,18 @@ fn v8_stack_state_survives_with_its_object() {
     assert_eq!(text, "4:thrower");
 }
 
+/// `ErrorInstance::finalizeUnconditionally`: o frame de um callee que morre antes da primeira leitura de `stack`
+/// leva o erro ao caminho de texto (cabeçalho `Error: mensagem`, sem `originalLine`), e o que vive segue o caminho
+/// normal (o cabeçalho do tipo).
+#[test]
+fn errors_with_dead_frames_take_the_text_path() {
+    let program = format!("{CHURN} globalThis.maker = function () {{ return new TypeError('m'); }}; var dead = maker(); delete globalThis.maker;
+        function alive() {{ return new TypeError('m'); }} var live = alive();
+        for (let i = 0; i < 2000; i++) {{ const g = [i]; }}
+        R = [dead.stack.split('\\n')[0], Object.getOwnPropertyNames(dead).join('+'), live.stack.split('\\n')[0], Object.getOwnPropertyNames(live).includes('originalLine')].join('|');");
+    assert_eq!(stressed(&program), "Error: m|message+line+column+sourceURL+stack|TypeError: m|true");
+}
+
 /// Cada tipo de dono sozinho, para a lápide apontar a aresta que falta.
 fn survives(setup: &str, step: &str, check: &str, expected: &str) {
     let program = format!("{setup}; for (let i = 0; i < 250000; i++) {{ const g = {{ i: i }}; if (i % 1000 === 0) {{ {step}; }} }} String({check})");

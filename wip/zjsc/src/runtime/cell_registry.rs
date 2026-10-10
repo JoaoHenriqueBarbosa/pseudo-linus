@@ -208,7 +208,7 @@ impl CellEntry {
             _ => {}
         }
         // As coleções fracas e as referências fracas voltam depois da marcação forte (efêmeros e finalização).
-        if matches!(self, CellEntry::WeakMap(_) | CellEntry::WeakSet(_) | CellEntry::WeakObjectRef(_) | CellEntry::FinalizationRegistry(_)) {
+        if matches!(self, CellEntry::WeakMap(_) | CellEntry::WeakSet(_) | CellEntry::WeakObjectRef(_) | CellEntry::FinalizationRegistry(_) | CellEntry::ErrorInstance(_)) {
             marker.defer_weak(self.clone());
         }
     }
