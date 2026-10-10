@@ -57,7 +57,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         if reinject_strict {
             all_stmts.push(self.s(
                 S::Directive {
-                    value: b"use strict".into(),
+                    value: self.store.alloc_str(b"use strict"),
                 },
                 self.module_scope_directive_loc,
             ));
@@ -348,7 +348,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                             let dot_default = self.new_expr(
                                 E::Dot {
                                     target: ns_ref_expr,
-                                    name: b"default".into(),
+                                    name: self.store.alloc_str(b"default"),
                                     name_loc: stmt.loc,
                                     ..Default::default()
                                 },
@@ -380,7 +380,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                             let dot_default = self.new_expr(
                                 E::Dot {
                                     target: await_expr,
-                                    name: b"default".into(),
+                                    name: self.store.alloc_str(b"default"),
                                     name_loc: stmt.loc,
                                     ..Default::default()
                                 },
@@ -674,25 +674,23 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         let mut properties = BumpVec::<G::Property>::with_capacity_in(2, bump);
         // __proto__: null - creates null-prototype object
         properties.push(G::Property {
-            key: Some(self.new_expr(
-                E::String {
-                    data: b"__proto__".into(),
+            key: Some({ let arg_a = E::String {
+                    data: self.store.alloc_str(b"__proto__"),
                     ..Default::default()
-                },
+                }; self.new_expr( arg_a,
                 expr.loc,
-            )),
+            ) }),
             value: Some(self.new_expr(E::Null {}, expr.loc)),
             ..Default::default()
         });
         // value: expr - the actual result value
         properties.push(G::Property {
-            key: Some(self.new_expr(
-                E::String {
-                    data: b"value".into(),
+            key: Some({ let arg_a = E::String {
+                    data: self.store.alloc_str(b"value"),
                     ..Default::default()
-                },
+                }; self.new_expr( arg_a,
                 expr.loc,
-            )),
+            ) }),
             value: Some(expr),
             ..Default::default()
         });

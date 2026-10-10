@@ -83,6 +83,9 @@ crate::define_store! {
         // Escopos e os mapas de namespace do TypeScript
         scopes: crate::Scope,
         scope_orders: crate::scope::ScopeOrder,
+        // Os usos de import() dinâmico por registro (`DynamicImportUse`)
+        dynamic_import_aliases: crate::StoreStr,
+        dynamic_import_items: crate::ast_result::DynamicImportItem,
         ts_namespace_scopes: crate::TSNamespaceScope,
         ts_namespace_member_maps: crate::TSNamespaceMemberMap,
     }

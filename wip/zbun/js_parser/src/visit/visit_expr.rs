@@ -1203,7 +1203,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     p.ignore_usage_of_runtime_require();
                     *e = p.new_expr(
                         E::String {
-                            data: b"function".into(),
+                            data: p.store.alloc_str(b"function"),
                             ..Default::default()
                         },
                         expr.loc,

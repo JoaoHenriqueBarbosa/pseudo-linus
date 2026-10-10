@@ -664,15 +664,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if let Some(desc_ref) = info.accessor_desc_ref {
             let storage = self.use_ref(info.storage_ref, l);
             let desc = self.use_ref(desc_ref, l);
-            let dot = self.new_expr(
-                E::Dot {
+            let dot = { let arg_a = E::Dot {
                     target: desc,
-                    name: b"get".into(),
+                    name: self.store.alloc_str(b"get"),
                     name_loc: l,
                     ..Default::default()
-                },
+                }; self.new_expr( arg_a,
                 l,
-            );
+            ) };
             self.call_rt(l, b"__privateGet", &[obj, storage, dot])
         } else if let Some(fn_ref) = info.getter_fn_ref {
             let storage = self.use_ref(info.storage_ref, l);
@@ -698,15 +697,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if let Some(desc_ref) = info.accessor_desc_ref {
             let storage = self.use_ref(info.storage_ref, l);
             let desc = self.use_ref(desc_ref, l);
-            let dot = self.new_expr(
-                E::Dot {
+            let dot = { let arg_a = E::Dot {
                     target: desc,
-                    name: b"set".into(),
+                    name: self.store.alloc_str(b"set"),
                     name_loc: l,
                     ..Default::default()
-                },
+                }; self.new_expr( arg_a,
                 l,
-            );
+            ) };
             self.call_rt(l, b"__privateSet", &[obj, storage, val, dot])
         } else if let Some(fn_ref) = info.setter_fn_ref {
             let storage = self.use_ref(info.storage_ref, l);
@@ -800,7 +798,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             let call_target = self.new_expr(
                                 E::Dot {
                                     target: private_access,
-                                    name: b"call".into(),
+                                    name: self.store.alloc_str(b"call"),
                                     name_loc: expr_loc,
                                     ..Default::default()
                                 },
@@ -2427,13 +2425,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     ..Default::default()
                 };
                 let value = Some(p.new_expr(E::Function { func }, loc));
-                let key = Some(p.new_expr(
-                    E::EString {
-                        data: b"constructor".into(),
-                        ..Default::default()
-                    },
-                    loc,
-                ));
+                let constructor_text = p.store.alloc_str(b"constructor");
+                let key = Some(p.new_expr(E::EString::init(constructor_text), loc));
                 new_properties.insert(
                     0,
                     G::Property {

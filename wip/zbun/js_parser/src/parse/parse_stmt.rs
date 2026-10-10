@@ -555,7 +555,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut stmt_opts = ParseStatementOptions::default();
                     let decls =
                         p.parse_and_declare_decls(js_ast::symbol::Kind::Hoisted, &mut stmt_opts)?;
-                    decls_ptr = bun_ast::StoreSlice::new((&p.store[decls]));
+                    decls_ptr = decls;
                     init_ = Some(p.s(
                         S::Local {
                             kind: js_ast::s::Kind::KVar,
@@ -571,7 +571,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut stmt_opts = ParseStatementOptions::default();
                     let decls =
                         p.parse_and_declare_decls(js_ast::symbol::Kind::Constant, &mut stmt_opts)?;
-                    decls_ptr = bun_ast::StoreSlice::new((&p.store[decls]));
+                    decls_ptr = decls;
                     init_ = Some(p.s(
                         S::Local {
                             kind: js_ast::s::Kind::KConst,
@@ -652,7 +652,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
 
-                p.forbid_initializers((&p.store[decls_ptr]), "of", false)?;
+                { let arg_a = &p.store[decls_ptr].to_vec(); p.forbid_initializers( arg_a, "of", false) }?;
                 p.lexer.next()?;
                 let value = p.parse_expr(Level::Comma)?;
                 p.lexer.expect(T::TCloseParen)?;
@@ -671,7 +671,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Detect for-in loops
             if p.lexer.token == T::TIn {
-                p.forbid_initializers((&p.store[decls_ptr]), "in", is_var)?;
+                { let arg_a = &p.store[decls_ptr].to_vec(); p.forbid_initializers( arg_a, "in", is_var) }?;
                 p.lexer.next()?;
                 let value = p.parse_expr(Level::Lowest)?;
                 p.lexer.expect(T::TCloseParen)?;
@@ -692,7 +692,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 match &init_stmt.data {
                     js_ast::StmtData::SLocal(local) => {
                         if p.store[*local].kind == js_ast::s::Kind::KConst {
-                            p.require_initializers(js_ast::s::Kind::KConst, (&p.store[decls_ptr]))?;
+                            { let arg_b = &p.store[decls_ptr].to_vec(); p.require_initializers(js_ast::s::Kind::KConst, arg_b) }?;
                         }
                     }
                     _ => {}

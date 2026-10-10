@@ -649,7 +649,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                         Expr::init(&mut p.store, 
                             E::Dot {
                                 target: Expr::init_identifier(p.hmr_api_ref, bun_ast::Loc::EMPTY),
-                                name: b"exports".into(),
+                                name: p.store.alloc_str(b"exports"),
                                 name_loc: bun_ast::Loc::EMPTY,
                                 ..Default::default()
                             },
@@ -685,7 +685,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                                         p.hmr_api_ref,
                                         bun_ast::Loc::EMPTY,
                                     ),
-                                    name: b"reactRefreshAccept".into(),
+                                    name: p.store.alloc_str(b"reactRefreshAccept"),
                                     name_loc: bun_ast::Loc::EMPTY,
                                     ..Default::default()
                                 },

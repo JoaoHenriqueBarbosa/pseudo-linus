@@ -1024,18 +1024,16 @@ impl<'a> Parser<'a> {
             for stmt in stmts.iter() {
                 match &stmt.data {
                     js_ast::StmtData::SLocal(local) => {
+                        let local = p.store[*local].clone();
                         if (local.decls.len_u32() as usize) > 1 {
-                            for decl in &p.store[local.decls] {
-                                // `S::Local`/`Decl` are not `Copy`;
-                                // rebuild the struct instead of `**local`.
+                            for index in 0..local.decls.len() {
+                                let decl = p.store[local.decls][index];
+                                let single_decl = p.store.alloc_slice([decl]);
                                 let _local = S::Local {
                                     kind: local.kind,
                                     is_export: local.is_export,
                                     origin: local.origin,
-                                    decls: G::DeclList::init_one(G::Decl {
-                                        binding: decl.binding,
-                                        value: decl.value,
-                                    }),
+                                    decls: single_decl,
                                 };
                                 let new_stmt = p.s(_local, stmt.loc);
                                 let sliced = [new_stmt];
@@ -1165,7 +1163,7 @@ impl<'a> Parser<'a> {
                         ),
                         value: Some(p.new_expr(
                             E::String {
-                                data: p.source.path.name().dir.into(),
+                                data: p.store.alloc_str(p.source.path.name().dir),
                                 ..Default::default()
                             },
                             bun_ast::Loc::EMPTY,
@@ -1186,7 +1184,7 @@ impl<'a> Parser<'a> {
                         ),
                         value: Some(p.new_expr(
                             E::String {
-                                data: p.source.path.text.into(),
+                                data: p.store.alloc_str(p.source.path.text),
                                 ..Default::default()
                             },
                             bun_ast::Loc::EMPTY,
@@ -1304,7 +1302,7 @@ impl<'a> Parser<'a> {
                             continue;
                         }
                     }
-                    let alias = bun_ast::StoreStr::new(arena.alloc_slice_copy(key));
+                    let alias = p.store.alloc_str(key);
                     rec.aliases.push(alias);
                     let is_require_marker = p
                         .import_records
@@ -1350,14 +1348,14 @@ impl<'a> Parser<'a> {
                 }
                 rec.aliases.sort_by(|a, b| p.store.str(*a).cmp(p.store.str(*b)));
                 rec.aliases.dedup_by(|a, b| p.store.str(*a) == p.store.str(*b));
-                let aliases = arena.alloc_slice_copy(&rec.aliases);
-                let items = arena.alloc_slice_copy(&rec.items);
+                let aliases = p.store.alloc_slice(rec.aliases.to_vec());
+                let items = p.store.alloc_slice(rec.items.to_vec());
                 bun_core::handle_oom(
                     p.dynamic_import_aliases.put(
                         import_record_id,
                         bun_ast::ast_result::DynamicImportUse {
-                            aliases: bun_ast::StoreSlice::new(aliases),
-                            items: bun_ast::StoreSlice::new(items),
+                            aliases,
+                            items,
                             needs_namespace_object: rec.needs_value
                                 || p.dynamic_import_needs_object
                                     .contains_key(&import_record_id),
@@ -1682,6 +1680,7 @@ impl<'a> Parser<'a> {
                     new_stmts.extend_from_slice(&old_stmts[..found.stmt_idx]);
                     if let Some(leading) = found.leading {
                         new_stmts.push(Stmt::alloc(
+                            &mut p.store,
                             S::SExpr {
                                 value: leading,
                                 does_not_affect_tree_shaking: false,
@@ -1690,6 +1689,7 @@ impl<'a> Parser<'a> {
                         ));
                     }
                     new_stmts.push(Stmt::alloc(
+                        &mut p.store,
                         S::ExportStar {
                             import_record_index: found.import_record_index,
                             namespace_ref: export_star_ref,
@@ -1869,7 +1869,7 @@ impl<'a> Parser<'a> {
                     ),
                     value: Some(p.new_expr(
                         E::Dot {
-                            name: b"dir".into(),
+                            name: p.store.alloc_str(b"dir"),
                             name_loc: bun_ast::Loc::EMPTY,
                             target: import_meta,
                             ..Default::default()
@@ -1894,7 +1894,7 @@ impl<'a> Parser<'a> {
                     ),
                     value: Some(p.new_expr(
                         E::Dot {
-                            name: b"path".into(),
+                            name: p.store.alloc_str(b"path"),
                             name_loc: bun_ast::Loc::EMPTY,
                             target: import_meta,
                             ..Default::default()
@@ -1993,7 +1993,7 @@ impl<'a> Parser<'a> {
                     if p.symbols.as_slice()[r.inner_index() as usize].use_count_estimate > 0 {
                         let key = p.new_expr(
                             E::String {
-                                data: symbol_name.as_bytes().into(),
+                                data: p.store.alloc_str(symbol_name.as_bytes()),
                                 ..Default::default()
                             },
                             bun_ast::Loc::EMPTY,
@@ -2028,11 +2028,10 @@ impl<'a> Parser<'a> {
                     },
                     bun_ast::Loc::EMPTY,
                 );
-                let mut decls = G::DeclList::init_capacity(1);
-                decls.append_assume_capacity(G::Decl {
+                let decls = p.store.alloc_slice([G::Decl {
                     binding,
                     value: Some(value),
-                });
+                }]);
 
                 let local_stmt = p.s(
                     S::Local {
@@ -2071,9 +2070,9 @@ impl<'a> Parser<'a> {
                                 ref_: r,
                                 loc: bun_ast::Loc::EMPTY,
                             },
-                            alias: js_ast::StoreStr::new(symbol_name.as_bytes()),
+                            alias: p.store.alloc_str(symbol_name.as_bytes()),
                             alias_loc: bun_ast::Loc::EMPTY,
-                            original_name: js_ast::StoreStr::new(b""),
+                            original_name: js_ast::StoreStr::EMPTY,
                         });
                         declared_symbols.append_assume_capacity(DeclaredSymbol {
                             ref_: r,
