@@ -212,18 +212,8 @@ impl<'a> ImportScanner<'a> {
 
                                 // Remove the symbol if it's never used outside a dead code region
                                 if symbol.use_count_estimate != 0 {
-                                    // ClauseItem isn't `Copy`; bitwise-move it
-                                    // (its fields are all POD; arena-owned, never dropped).
-                                    if items_end != idx {
-                                        // SAFETY: items_end < idx < len; non-overlapping.
-                                        unsafe {
-                                            core::ptr::copy_nonoverlapping(
-                                                items.as_ptr().add(idx),
-                                                items.as_mut_ptr().add(items_end),
-                                                1,
-                                            );
-                                        }
-                                    }
+                                    // `ClauseItem` é Copy: o item que fica desce para `items_end`.
+                                    items[items_end] = items[idx];
                                     items_end += 1;
                                 }
                             }
