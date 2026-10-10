@@ -17,6 +17,7 @@ use crate::runtime::date_instance::DateInstance;
 use crate::runtime::enumeration_mode::{DontEnumPropertiesMode, PrivateSymbolMode, PropertyNameMode};
 use crate::runtime::error_instance::ErrorInstance;
 use crate::runtime::exception_helpers::calculated_class_name;
+use crate::runtime::gc::RootScope;
 use crate::runtime::host_call::{pending_or, Thrown};
 use crate::runtime::host_function_support::ObjectRef;
 use crate::runtime::identifier::Identifier;
@@ -54,6 +55,11 @@ pub(crate) struct Mode {
 /// Os pares em comparação (`Vector<std::pair<JSValue, JSValue>, 16>& stack`).
 type Stack = Vec<(JSValue, JSValue)>;
 
+/// Os dois lados de cada par como raiz enquanto o JS de getters e traps pode rodar o coletor.
+fn root_pairs(pairs: &[(JSValue, JSValue)]) -> RootScope {
+    RootScope::new(&pairs.iter().flat_map(|(left, right)| [*left, *right]).collect::<Vec<JSValue>>())
+}
+
 /// `Bun__deepEquals(globalObject, v1, v2, gcBuffer, stack, scope, true)` com a pilha vazia.
 pub(crate) fn deep_equals(global_object: &JSGlobalObject, mode: Mode, v1: JSValue, v2: JSValue) -> Result<bool, Thrown> {
     deep_equals_in(global_object, mode, &mut Stack::new(), v1, v2, true)
@@ -85,6 +91,8 @@ fn deep_equals_in(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack,
     }
 
     let length = stack.len();
+    // `gcBuffer.append(v1); gcBuffer.append(v2)`: um getter ou um trap no caminho pode tirar o par do grafo.
+    let _roots = add_to_stack.then(|| RootScope::new(&[v1, v2]));
     if add_to_stack {
         stack.push((v1, v2));
     }
@@ -194,6 +202,9 @@ fn each_property_equal(
         if prop1.is_empty() {
             return Ok(false);
         }
+        // O C++ guarda `prop1` na pilha nativa, varrida pelo coletor conservador; aqui vira raiz enquanto o getter de
+        // `o2` roda.
+        let _prop1 = RootScope::new(&[prop1]);
         let prop2 = get_if_property_exists(global_object, o2, &property_name)?;
         if !mode.strict && prop1.is_undefined() && prop2.is_none() {
             continue;
@@ -335,6 +346,8 @@ fn structures_equal(
             remain -= 1;
         }
     }
+    // `MarkedArgumentBuffer pairs`.
+    let _pairs = root_pairs(&pairs);
     for (left, right) in pairs {
         if same_value(left, right) {
             continue;
@@ -411,6 +424,7 @@ fn errors_equal(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack, l
         }
     }
     let left_cause = object_get(global_object, left, &cause, left.as_value())?;
+    let _left_cause = RootScope::new(&[left_cause]);
     let right_cause = object_get(global_object, right, &cause, right.as_value())?;
     if !deep_equals_in(global_object, mode, stack, left_cause, right_cause, true)? {
         return Ok(false);
@@ -555,13 +569,17 @@ fn special_objects_dequal(global_object: &JSGlobalObject, mode: Mode, stack: &mu
                 let cursor = set.table().borrow_mut().new_cursor();
                 std::iter::from_fn(|| set.table().borrow().next_entry(&cursor)).map(|(key, _)| key).collect()
             };
-            for key1 in keys(&set1) {
+            let keys1 = keys(&set1);
+            let _keys1 = RootScope::new(&keys1);
+            for key1 in keys1 {
                 if set2.table().borrow().has(key1) {
                     continue;
                 }
                 // Não achou: pode ser falso negativo da representação dos valores, então a busca linear.
                 let mut found = false;
-                for key2 in keys(&set2) {
+                let keys2 = keys(&set2);
+                let _keys2 = RootScope::new(&keys2);
+                for key2 in keys2 {
                     if deep_equals_in(global_object, mode, stack, key1, key2, false)? {
                         found = true;
                         break;
@@ -582,11 +600,15 @@ fn special_objects_dequal(global_object: &JSGlobalObject, mode: Mode, stack: &mu
                 let cursor = map.table().borrow_mut().new_cursor();
                 std::iter::from_fn(|| map.table().borrow().next_entry(&cursor)).collect()
             };
-            for (key1, value1) in entries(&map1) {
+            let entries1 = entries(&map1);
+            let _entries1 = root_pairs(&entries1);
+            for (key1, value1) in entries1 {
                 let mut value2 = map2.table().borrow().get(key1);
                 if value2.is_undefined() {
                     let mut found = false;
-                    for (key2, candidate) in entries(&map2) {
+                    let entries2 = entries(&map2);
+                    let _entries2 = root_pairs(&entries2);
+                    for (key2, candidate) in entries2 {
                         value2 = candidate;
                         if deep_equals_in(global_object, mode, stack, key1, key2, false)? {
                             found = true;
