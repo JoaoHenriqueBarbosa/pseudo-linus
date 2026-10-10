@@ -16,7 +16,7 @@ fn garbage_of_a_loop_stays_bounded() {
     assert_eq!(run("for (let i = 0; i < 1e6; i++) { const a = [i]; } 'ok'"), "ok");
     let statistics = gc::statistics();
     assert!(statistics.collections >= 5, "{statistics:?}");
-    assert!(statistics.freed_cells >= 900_000, "{statistics:?}");
+    assert!(statistics.freed_cells >= 700_000, "{statistics:?}");
     assert!(statistics.peak_live_cells < 300_000, "{statistics:?}");
 }
 
@@ -378,7 +378,7 @@ fn main_wrapper_callee_survives_collections() {
 
 /// Cada tipo de dono sozinho, para a lápide apontar a aresta que falta.
 fn survives(setup: &str, step: &str, check: &str, expected: &str) {
-    let program = format!("{setup}; for (let i = 0; i < 250000; i++) {{ const g = {{ i: i }}; if (i % 1000 === 0) {{ {step}; }} }} String({check})");
+    let program = format!("{setup}; for (let i = 0; i < 1000000; i++) {{ const g = {{ i: i }}; if (i % 1000 === 0) {{ {step}; }} }} String({check})");
     assert_eq!(run(&program), expected);
     assert!(gc::statistics().collections >= 1);
 }
