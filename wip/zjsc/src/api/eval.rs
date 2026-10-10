@@ -963,7 +963,13 @@ fn compile_module(global_object: &JSGlobalObject, module: JSValue, text: &WtfStr
     };
     let executable = ProgramExecutable::create(&global, &source);
     let wrapper = vm.interpreter().execute_program(&executable, &global);
-    if vm.exception().is_some() {
+    if let Some(exception) = vm.exception() {
+        // O bun nomeia o frame de parse com o nome dado e a linha do erro no fonte embrulhado: `<parse> (y.js:2)`.
+        if let JSValue::Cell(cell_id) = exception.value() {
+            if let Some(error) = ErrorInstance::from_cell_id(cell_id).filter(|error| error.is_parse_error()) {
+                error.set_parse_frame(&file_text, error.line());
+            }
+        }
         return Err(Thrown::Pending);
     }
     let exports = get_object_property(global_object, module.clone(), &Identifier::from_span(vm, b"exports"))?;

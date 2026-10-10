@@ -67,8 +67,10 @@ pub struct ErrorData {
     pub source_text: Option<std::rc::Rc<str>>,
     pub is_parse_error: bool,
     /// O `N` de `    at <parse> (:N)` no texto de `stack` de um `SyntaxError`: a linha do erro no fonte embrulhado de
-    /// `new Function` (só `FunctionExecutable::fromGlobalCode` grava); `0` nos demais (`eval`, `RegExp`, `JSON.parse`).
+    /// `new Function` e de `module._compile` (só eles gravam); `0` nos demais (`eval`, `RegExp`, `JSON.parse`).
     pub parse_frame_line: i32,
+    /// A URL antes do `:N` desse frame: o nome dado ao `module._compile` (`<parse> (y.js:2)`); vazia nos demais.
+    pub parse_frame_url: String,
     pub is_out_of_memory_error: bool,
     pub is_stack_overflow_error: bool,
 }
@@ -201,9 +203,11 @@ impl ErrorInstance {
         self.data.borrow().column
     }
 
-    /// Grava o `N` do frame `<parse> (:N)` (ver `ErrorData::parse_frame_line`).
-    pub fn set_parse_frame_line(&self, line: i32) {
-        self.data.borrow_mut().parse_frame_line = line.max(0);
+    /// Grava a URL e o `N` do frame `<parse> (URL:N)` (ver `ErrorData::parse_frame_line`).
+    pub fn set_parse_frame(&self, url: &str, line: i32) {
+        let mut data = self.data.borrow_mut();
+        data.parse_frame_url = url.to_owned();
+        data.parse_frame_line = line.max(0);
     }
 
     /// `setColumn(column)`.
@@ -334,8 +338,12 @@ impl ErrorInstance {
             // (`this.name = ...` depois do `super`, `E.prototype.name`).
             let object = ObjectRef::from_value(&self.as_value()).expect("ErrorInstance é objeto");
             let header = error_header_of_object(global_object, &object, false).map_err(|_| LLIntFailure::Thrown)?;
-            let parse_line = (self.error_type() == Some(ErrorType::SyntaxError)).then(|| self.data.borrow().parse_frame_line);
-            self.set_stack_value(vm, JSValue::from_js_string(js_string(vm, &stack_text(&header, &frames, parse_line))));
+            let parse_frame = (self.error_type() == Some(ErrorType::SyntaxError)).then(|| {
+                let data = self.data.borrow();
+                (data.parse_frame_url.clone(), data.parse_frame_line)
+            });
+            let parse_frame = parse_frame.as_ref().map(|(url, line)| (url.as_str(), *line));
+            self.set_stack_value(vm, JSValue::from_js_string(js_string(vm, &stack_text(&header, &frames, parse_frame))));
         }
         // `putDirect(line)` e `putDirect(column)` (`DontEnum`) do `materializeErrorInfoIfNeeded`, depois de
         // `stack` na ordem medida no `bun` (`message,stack,line,column`); valem a posição do frame de cima.
@@ -386,12 +394,13 @@ pub fn materialize_for_property(object: &JSObject, vm: &VM, property_name: &Prop
 /// O texto de `stack`: `header` e as linhas dos `frames` (ver `stack_frame.rs`). Medido no `bun` 1.4.2: todo
 /// `ErrorInstance` do tipo `SyntaxError` (`new SyntaxError`, `JSON.parse`, `eval`, `new RegExp`, `BigInt('x')`,
 /// subclasses) abre a lista com a linha `    at <parse> (:0)`, fora do limite de `stackTraceLimit` e ausente da lista de
-/// `CallSite` do `Error.prepareStackTrace`, por isso é só texto. `parse_line` é `None` fora de `SyntaxError`;
-/// `new Function` mostra `(:N)`, a linha do erro no fonte embrulhado (`ErrorData::parse_frame_line`), os demais `(:0)`.
-pub fn stack_text(header: &WtfString, frames: &[StackFrame], parse_line: Option<i32>) -> WtfString {
+/// `CallSite` do `Error.prepareStackTrace`, por isso é só texto. `parse_frame` é `None` fora de `SyntaxError`;
+/// `new Function` mostra `(:N)` e `module._compile` `(URL:N)`, a linha do erro no fonte embrulhado
+/// (`ErrorData::parse_frame_line`), os demais `(:0)`.
+pub fn stack_text(header: &WtfString, frames: &[StackFrame], parse_frame: Option<(&str, i32)>) -> WtfString {
     let mut header = String::from_utf8_lossy(&header.utf8(ConversionMode::LenientConversion)).into_owned();
-    if let Some(line) = parse_line {
-        header.push_str(&format!("\n    at <parse> (:{line})"));
+    if let Some((url, line)) = parse_frame {
+        header.push_str(&format!("\n    at <parse> ({url}:{line})"));
     }
     WtfString::from_utf8(format_stack_trace(&header, frames).as_bytes())
 }
