@@ -81,6 +81,7 @@ pub mod stmt;
 pub mod store;
 pub mod symbol;
 pub mod target;
+pub mod transpiler_cache;
 pub mod ts;
 pub mod use_directive;
 
@@ -117,6 +118,8 @@ pub use nodes::{
     NamedExport, NamedImport, Part, PartTag, PropertyUse, TlaCheck,
 };
 pub use ts::{TSNamespaceMember, TSNamespaceMemberMap, TSNamespaceScope};
+pub use transpiler_cache::RuntimeTranspilerCache;
+pub use flags as Flags;
 pub use use_directive::UseDirective;
 
 /// In range for every position in a source that passed [`Source::check_parseable_len`].

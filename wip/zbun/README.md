@@ -46,9 +46,9 @@ Estado do passo 1: feito (`import_record`, `ImportKind`, `part`, `runtime`, `ast
 `SlotCounts`). Medida do passo 2 (cópia de todo o `js_parser` restante, 2026-10-10): a primeira compilação para em
 169 erros de resolução antes de chegar aos tipos. O que falta, por grupo:
 
-- crates e módulos do upstream que o parser importa e o porte ainda não tem: `bun_crash_handler`, `bun_react_compiler`,
-  `bun_ast::{Flags, fold_string_addition, RuntimeTranspilerCache,
-  expr::{EFlags, Equality, LooseEql, StrictEql}}`;
+- crates e módulos do upstream que o parser importa e o porte ainda não tem: `bun_crash_handler` e
+  `bun_react_compiler` (ficam fora por decisão da coordenação), `bun_ast::fold_string_addition` (pede
+  `known_primitive` e `to_string_expr_without_side_effects` no `expr.rs`);
 - 48 trechos `unsafe` (25 em `p.rs`, 8 em `lower/`, 5 em `visit/mod.rs`, 4 em `parse_entry.rs`, 3 em `parser.rs`,
   e os `unsafe impl Send/Sync` de `defines_table.rs`);
 - as assinaturas com tempo de vida (`Ast<'a>`, `import_record::List<'a>`) e o `ToExprWrapper` genérico do porte;
@@ -127,7 +127,9 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_ast` | `nodes.rs` (`Part`, `DeclaredSymbolList`, `ExportsKind`, `TlaCheck`, `InlinedEnumValue`, `NamedImport`, `NamedExport`, `Dependency`, `PropertyUse`) | portado | `DeclaredSymbolList` troca o `MultiArrayList` por dois `Vec` (as mesmas colunas); `Part.scopes` é `Vec<StoreRef<Scope>>`; o `InlinedEnumValue` codifica o índice da `E::String` no lugar do endereço, com o mesmo NaN-boxing para números; os métodos de capacidade perdem o `Result` de alocação que nunca falha aqui |
 | `bun_ast` | `nodes.rs` (`StrictModeKind`) | portado | nada |
 | `bun_ast` | `e.rs` | portado, menos os nós de JSON | ver "e.rs" abaixo |
-| `bun_ast` | `expr.rs` | parcial: `Expr`, `Query`, `IntoExprData`, `init`, `Tag`, `PrimitiveType`, `Data`, os acessores, `can_be_const_value`, `can_be_moved`, `is_safe_to_string` | `init` recebe o `Store`; `allocate` (via bump) some, há um dono só; `Data` mantém 12 bytes e `Expr` 16. Pendentes: `deep_clone`, `write_to_hasher`, `known_primitive`, as dobras e o acesso por caminho |
+| `bun_ast` | `expr.rs` | parcial: `Expr`, `Query`, `IntoExprData`, `init`, `Tag`, `PrimitiveType`, `Data`, os acessores, `can_be_const_value`, `can_be_moved`, `is_safe_to_string`, `EFlags`, `Equality`, `LooseEql`/`StrictEql` e `Data::eql` (com teste) | `init` recebe o `Store`; `allocate` (via bump) some, há um dono só; `Data` mantém 12 bytes e `Expr` 16; o `EqlParser` dá o `Store` no lugar da arena, e achatar a corda de um `EString` é copiar o nó, achatar e gravar de volta no mesmo índice. Pendentes: `deep_clone`, `write_to_hasher`, `known_primitive`, as dobras e o acesso por caminho |
+| `bun_ast` | `transpiler_cache.rs` | parcial, com teste | sem o `bun_jsc` o despacho é o caso `r#impl == None` do upstream (cache desligado: `get` nunca acerta, `put` guarda a saída quando há `input_hash`); saem `entry` e `r#impl`, e o `get` perde as `parser_options` sem tipo que só o despacho lia |
+| `bun_ast` | `nodes.rs` (`Flags`) | portado | o `pub use crate::flags as Flags` do upstream |
 | `bun_ast` | `s.rs` | portado (cópia) | todos os tipos derivam `Clone` para o `clone_in` (inserido por ferramenta), `ExportDefault::can_be_moved` recebe o `Store` |
 | `bun_ast` | `stmt.rs` | portado | `alloc` recebe o `Store`; `allocate`/`allocate_expr` (bump) somem; `Data` tem 8 bytes e `Stmt` 12 (16 no upstream) |
 | `bun_ast` | `b.rs` | portado, menos `write_to_hasher` | `B` tem 8 bytes e `Binding` 12; os acessores de lista recebem o `Store` |

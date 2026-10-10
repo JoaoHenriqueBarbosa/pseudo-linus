@@ -608,3 +608,195 @@ impl Data {
         }
     }
 }
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EFlags {
+    None,
+    TsDecorator,
+    /// Between the `?` and `:` of a conditional, where an arrow return type is ambiguous.
+    AfterQuestionAndBeforeColon,
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Equality
+// ───────────────────────────────────────────────────────────────────────────
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Equality {
+    /// Nothing is known about the equality of the two operands.
+    Unknown,
+    Equal,
+    NotEqual,
+    /// `require.main === module` (or `!==`/`==`/`!=`, in either order); the
+    /// caller rewrites this to an import_meta_main node.
+    RequireMainAndModule,
+}
+
+impl From<bool> for Equality {
+    #[inline]
+    fn from(equal: bool) -> Self {
+        if equal { Equality::Equal } else { Equality::NotEqual }
+    }
+}
+
+// `adt_const_params` (enum const-generic) is nightly-only. Lower to a sealed
+// ZST trait; callers use `Data::eql::<P, LooseEql>(...)` / `<P, StrictEql>`.
+pub trait EqlKindT: Copy {
+    const STRICT: bool;
+}
+#[derive(Clone, Copy)]
+pub struct LooseEql;
+impl EqlKindT for LooseEql {
+    const STRICT: bool = false;
+}
+#[derive(Clone, Copy)]
+pub struct StrictEql;
+impl EqlKindT for StrictEql {
+    const STRICT: bool = true;
+}
+
+/// Minimal parser surface needed by `Data::eql`. No upstream é a arena e o `module_ref`; aqui o `Store` do
+/// arquivo, onde as cordas são achatadas.
+pub trait EqlParser {
+    fn store_mut(&mut self) -> &mut Store;
+    fn module_ref(&self) -> Ref;
+}
+// `impl EqlParser for P<...>` lives in `bun_js_parser` (next to `P`).
+
+/// Achata a corda do `EString` em `r` no próprio nó, como o `resolve_rope_if_needed` sobre o `StoreRef` do
+/// upstream.
+fn resolve_rope_in_store(store: &mut Store, r: StoreRef<E::EString>) {
+    let mut s = store[r];
+    s.resolve_rope_if_needed(store);
+    store[r] = s;
+}
+
+impl Data {
+    pub fn eql<P: EqlParser, K: EqlKindT>(left: &Data, right: &Data, p: &mut P) -> Equality {
+        // https://dorey.github.io/JavaScript-Equality-Table/
+        match *left {
+            Data::EInlinedEnum(inlined) => {
+                let value = p.store_mut()[inlined].value.data;
+                return Data::eql::<P, K>(&value, right, p);
+            }
+
+            Data::ENull(_) | Data::EUndefined(_) => {
+                let right_tag = right.tag();
+                if !matches!(right_tag, Tag::ENull | Tag::EUndefined) && !right_tag.is_primitive_literal() {
+                    return Equality::Unknown;
+                }
+                return Equality::from(if K::STRICT {
+                    right_tag == left.tag()
+                } else {
+                    matches!(right_tag, Tag::ENull | Tag::EUndefined)
+                });
+            }
+            Data::EBoolean(l) | Data::EBranchBoolean(l) => match *right {
+                Data::EBoolean(r) | Data::EBranchBoolean(r) => {
+                    return Equality::from(l.value == r.value);
+                }
+                Data::ENumber(num) => {
+                    if K::STRICT {
+                        // "true === 1" is false
+                        // "false === 0" is false
+                        return Equality::NotEqual;
+                    }
+                    return Equality::from(if l.value { num.value() == 1.0 } else { num.value() == 0.0 });
+                }
+                Data::ENull(_) | Data::EUndefined(_) => {
+                    return Equality::NotEqual;
+                }
+                _ => {}
+            },
+            Data::ENumber(l) => match *right {
+                Data::ENumber(r) => {
+                    return Equality::from(l.value() == r.value());
+                }
+                Data::EInlinedEnum(r) => {
+                    if let Data::ENumber(rn) = p.store_mut()[r].value.data {
+                        return Equality::from(l.value() == rn.value());
+                    }
+                }
+                Data::EBoolean(r) | Data::EBranchBoolean(r) => {
+                    if !K::STRICT {
+                        // "1 == true" is true
+                        // "0 == false" is true
+                        return Equality::from(if r.value { l.value() == 1.0 } else { l.value() == 0.0 });
+                    }
+                    // "1 === true" is false
+                    // "0 === false" is false
+                    return Equality::NotEqual;
+                }
+                Data::ENull(_) | Data::EUndefined(_) => {
+                    // "(not null or undefined) == undefined" is false
+                    return Equality::NotEqual;
+                }
+                _ => {}
+            },
+            Data::EBigInt(l) => {
+                return match *right {
+                    Data::EBigInt(r) => {
+                        let store = p.store_mut();
+                        match E::BigInt::check_equality(store.str(store[l].value), store.str(store[r].value)) {
+                            Some(equal) => Equality::from(equal),
+                            None => Equality::Unknown,
+                        }
+                    }
+                    Data::ENull(_) | Data::EUndefined(_) => Equality::NotEqual,
+                    _ => Equality::Unknown,
+                };
+            }
+            Data::EString(l) => match *right {
+                Data::EString(r) => {
+                    let store = p.store_mut();
+                    resolve_rope_in_store(store, r);
+                    resolve_rope_in_store(store, l);
+                    return Equality::from(store[r].eql_string(store, &store[l]));
+                }
+                Data::EInlinedEnum(inlined) => {
+                    let store = p.store_mut();
+                    if let Data::EString(r) = store[inlined].value.data {
+                        resolve_rope_in_store(store, r);
+                        resolve_rope_in_store(store, l);
+                        return Equality::from(store[r].eql_string(store, &store[l]));
+                    }
+                }
+                Data::ENull(_) | Data::EUndefined(_) => {
+                    return Equality::NotEqual;
+                }
+                Data::ENumber(r) => {
+                    if !K::STRICT {
+                        let store = p.store_mut();
+                        resolve_rope_in_store(store, l);
+                        let ls = &store[l];
+                        if r.value() == 0.0 && (ls.is_blank() || ls.eql_comptime(store, b"0")) {
+                            return Equality::Equal;
+                        }
+                        if r.value() == 1.0 && ls.eql_comptime(store, b"1") {
+                            return Equality::Equal;
+                        }
+                        // the string could still equal 0 or 1 but it could be hex, binary, octal, ...
+                        return Equality::Unknown;
+                    } else {
+                        return Equality::NotEqual;
+                    }
+                }
+                _ => {}
+            },
+
+            _ => {
+                // Do not need to check left because e_require_main is
+                // always re-ordered to the right side.
+                if matches!(right, Data::ERequireMain) {
+                    if let Some(id) = left.e_identifier() {
+                        if id.ref_.eql(p.module_ref()) {
+                            return Equality::RequireMainAndModule;
+                        }
+                    }
+                }
+            }
+        }
+
+        Equality::Unknown
+    }
+}
