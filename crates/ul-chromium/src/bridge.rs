@@ -37,8 +37,17 @@ pub struct Bridge {
     pub pending_styles: RefCell<Vec<(NodeId, String)>>,
 }
 
-/// As operações que leem atributos (e por isso sincronizam o `style` pendente do CSSOM).
-const READS_ATTRIBUTES: &[&str] = &["attrs", "getAttr", "clone", "query", "matches", "innerHTML", "outerHTML", "box", "byId"];
+/// As operações que leem o atributo `style` (e por isso o sincronizam): a lista inteira de atributos, a serialização,
+/// o clone, e a leitura ou o seletor que o nomeiam.
+fn reads_style_attribute(op: &str, args: &[DomArg]) -> bool {
+    let names_style = |i: usize| args.get(i).is_some_and(|a| matches!(a, DomArg::Str(s) if s.to_ascii_lowercase().contains("style")));
+    match op {
+        "attrs" | "clone" | "innerHTML" | "outerHTML" => true,
+        "getAttr" => names_style(1),
+        "query" | "matches" => names_style(1),
+        _ => false,
+    }
+}
 
 fn err(name: &str, message: impl Into<String>) -> DomError {
     DomError { name: name.to_owned(), message: message.into() }
@@ -268,7 +277,7 @@ pub fn origin_of(address: &str) -> Option<String> {
 
 impl DomHost for Bridge {
     fn call(&self, op: &str, args: &[DomArg]) -> Result<DomArg, DomError> {
-        if READS_ATTRIBUTES.contains(&op) && !self.pending_styles.borrow().is_empty() {
+        if !self.pending_styles.borrow().is_empty() && reads_style_attribute(op, args) {
             self.flush_styles();
         }
         // Escrever ou apagar o atributo `style` direto descarta o que o CSSOM tinha pendente.
