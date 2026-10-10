@@ -10,6 +10,7 @@ mod common;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use zjsc::api::eval::evaluate_named_script_running_timers_reporting_uncaught;
+use zjsc::runtime::process_time_zone::set_time_zone_spec_override;
 
 const GOLDEN: &str = include_str!("golden/buffer_bun.tsv");
 
@@ -41,6 +42,9 @@ fn in_scope(line: usize) -> bool {
 
 #[test]
 fn buffer_match_bun() {
+    // O golden saiu de um bun em America/Sao_Paulo (`Buffer.from(new Date(0))` é o texto da data em GMT-0300); fixar o
+    // fuso torna o resultado independente da máquina do teste.
+    set_time_zone_spec_override(Some("America/Sao_Paulo"));
     let scoped: String = GOLDEN.lines().enumerate().filter(|&(number, _)| in_scope(number)).map(|(_, line)| format!("{line}\n")).collect();
     let expected: usize = IN_SCOPE.iter().map(|&(first, last)| last - first + 1).sum();
     assert_eq!(scoped.lines().count(), expected, "faixa de IN_SCOPE fora do golden");
