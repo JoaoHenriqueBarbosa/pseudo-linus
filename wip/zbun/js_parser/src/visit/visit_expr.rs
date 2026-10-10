@@ -126,9 +126,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     fn e_yield(p: &mut Self, e: &mut Expr, _: ExprIn) {
         if let js_ast::ExprData::EYield(mut e_) = e.data {
-            if let Some(val) = p.store[e_].value.as_mut() {
+            let mut value = p.store[e_].value;
+            if let Some(val) = value.as_mut() {
                 p.visit_expr(val);
             }
+            p.store[e_].value = value;
         }
     }
 
@@ -1496,7 +1498,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.in_branch_condition = true;
         { let mut arg_a = p.store[e_].test; p.visit_expr( &mut arg_a); p.store[e_].test = arg_a; }
         p.in_branch_condition = prev_in_branch;
-        { let arg_a = &p.store[e_].test; p.ignore_namespace_local_test_use( arg_a) };
+        { let test = p.store[e_].test; p.ignore_namespace_local_test_use(&test) };
 
         p.store[e_].test = SideEffects::simplify_boolean(p, p.store[e_].test);
 
@@ -2752,11 +2754,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         if let Some(name) = p.store[e_].func.name {
-            final_expr = { let arg_b = // SAFETY: original_name is arena-owned, valid for 'a.
-                p.store.str(p.symbols[name.ref_.inner_index() as usize]
-                    .original_name); p.keep_expr_symbol_name(
-                final_expr, arg_b,
-            ) };
+            let symbol_name = p.store.str(p.symbols[name.ref_.inner_index() as usize].original_name).to_vec();
+            final_expr = p.keep_expr_symbol_name(final_expr, &symbol_name);
             replaced = true;
         }
 

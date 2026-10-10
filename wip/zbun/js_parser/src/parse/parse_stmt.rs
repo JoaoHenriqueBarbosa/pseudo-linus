@@ -1215,7 +1215,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     namespace_ref = p.store_name_in_ref(name_bytes);
                     alias = Some(G::ExportStarAlias {
                         loc: p.lexer.loc(),
-                        original_name: { let arg_a = p.store.str(name); p.store.alloc_str( arg_a) },
+                        original_name: name,
                     });
                     p.lexer.next()?;
                     p.lexer.expect_contextual_keyword(b"from")?;
@@ -1236,7 +1236,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     namespace_ref = p.store_name_in_ref(name);
                 }
 
-                let import_record_index = { let arg_c = p.store.str(path.text); p.add_import_record(
+                let import_record_index = { let arg_c = p.arena_str(path.text); p.add_import_record(
                     ImportKind::Stmt,
                     path.loc, arg_c,
                     // TODO: import assertions

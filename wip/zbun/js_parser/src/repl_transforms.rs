@@ -279,7 +279,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     let await_expr = self.new_expr(E::Await { value: import_expr }, stmt.loc);
 
                     // `items` is an arena-owned `StoreSlice<ClauseItem>` valid for 'a.
-                    let import_items: &[bun_ast::ClauseItem] = (&self.store[self.store[import_data].items]);
+                    let import_items: Vec<bun_ast::ClauseItem> = self.store[self.store[import_data].items].to_vec();
 
                     if !self.store[import_data].star_name_loc.is_empty() {
                         // import * as X from 'mod' -> var X = await import('mod')
@@ -331,7 +331,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                             // namespace_ref is synthesized by processImportStatement for all non-star imports.
                             self.repl_convert_named_imports(
                                 &self.store[import_data],
-                                import_items,
+                                &import_items,
                                 await_expr,
                                 &mut hoisted_stmts,
                                 &mut inner_stmts,
@@ -574,11 +574,9 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                 },
                 loc,
             );
-            // `alias` is an arena-owned `StoreStr` valid for 'a.
-            let alias_str: &'static [u8] = self.store.str(item.alias);
             let prop_access = { let arg_a = E::Dot {
                     target: ns_ref_expr,
-                    name: self.store.alloc_str(alias_str),
+                    name: item.alias,
                     name_loc: item.name.loc,
                     ..Default::default()
                 }; self.new_expr( arg_a,

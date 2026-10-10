@@ -5870,7 +5870,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // Exports are tracked separately, so this isn't necessary
                 js_ast::StmtData::SExportClause(_) | js_ast::StmtData::SExportFrom(_) => {}
 
-                js_ast::StmtData::SExportDefault(st) => match &self.store[*st].value {
+                js_ast::StmtData::SExportDefault(st) => match &self.store[*st].value.clone() {
                     js_ast::StmtOrExpr::Stmt(s2) => match &s2.data {
                         js_ast::StmtData::SExpr(s_expr) => {
                             let value = self.store[*s_expr].value;
@@ -6885,11 +6885,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         match binding.data {
             js_ast::b::B::BMissing(_) => {}
             js_ast::b::B::BIdentifier(ident) => {
-                self.is_exported_inside_namespace.insert(self.store[ident].r#ref, r#ref);
+                let ident_ref = self.store[ident].r#ref;
+                self.is_exported_inside_namespace.insert(ident_ref, r#ref);
             }
             js_ast::b::B::BArray(array) => {
-                for item in (&self.store[self.store[array].items]) {
-                    self.mark_exported_binding_inside_namespace(r#ref, item.binding);
+                let items = self.store[array].items;
+                for index in 0..items.len() {
+                    let binding = self.store[items][index].binding;
+                    self.mark_exported_binding_inside_namespace(r#ref, binding);
                 }
             }
             js_ast::b::B::BObject(obj) => {

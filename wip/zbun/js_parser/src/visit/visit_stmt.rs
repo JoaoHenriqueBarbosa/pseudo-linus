@@ -141,11 +141,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.record_declared_symbol(default_name.ref_);
         }
 
-        let items = (&p.store[data.items]);
-        if !items.is_empty() {
-            for item in items.iter() {
-                p.record_declared_symbol(item.name.ref_);
-            }
+        for index in 0..data.items.len() {
+            let item_ref = p.store[data.items][index].name.ref_;
+            p.record_declared_symbol(item_ref);
         }
 
         stmts.push(*stmt);
@@ -1104,14 +1102,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let class_name = data.class.class_name.expect("infallible: name checked");
             let class_name_ref = class_name.ref_;
             let original_name = p.store.str(p.symbols[class_name_ref.inner_index() as usize]
-                .original_name);
+                .original_name).to_vec();
             stmts.push({ let arg_b = { let arg_a = E::Dot {
                         target: Expr::init_identifier(
                             p.enclosing_namespace_arg_ref
                                 .expect("infallible: in namespace"),
                             stmt.loc,
                         ),
-                        name: p.store.alloc_str(original_name),
+                        name: p.store.alloc_str(&original_name),
                         name_loc: class_name.loc,
                         ..Default::default()
                     }; p.new_expr( arg_a,
@@ -2404,11 +2402,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // ahead of time before visiting any statements inside the namespace
         // because we may end up visiting the uses before the declarations.
         // We need to convert the uses into property accesses on the namespace.
-        let child_stmts: &[Stmt] = (&p.store[data.stmts]);
+        let child_stmts: Vec<Stmt> = p.store[data.stmts].to_vec();
         for child_stmt in child_stmts.iter() {
             if let StmtData::SLocal(local) = child_stmt.data {
                 if p.store[local].is_export {
-                    p.mark_exported_decls_inside_namespace(data.arg, (&p.store[p.store[local].decls]));
+                    let decls_copy = p.store[p.store[local].decls].to_vec();
+                    p.mark_exported_decls_inside_namespace(data.arg, &decls_copy);
                 }
             }
         }

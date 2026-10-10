@@ -694,9 +694,9 @@ fn lower_one_date_time_literal<'a>(
                 }
             };
             let (class, text) = {
-                let str = (&p.store[str]);
-                let kind = str.toml_datetime.expect("infallible: guard checked");
-                (kind.temporal_class(), str.slice8(&p.store))
+                let string = p.store[str].clone();
+                let kind = string.toml_datetime.expect("infallible: guard checked");
+                (kind.temporal_class(), string.slice8(&p.store).to_vec())
             };
             let loc = expr.loc;
             p.record_usage(ref_);
@@ -719,7 +719,8 @@ fn lower_one_date_time_literal<'a>(
                 }; p.new_expr( arg_a,
                 loc,
             ) };
-            let arg = { let arg_a = E::String::init(p.store.alloc_str(text)); p.new_expr( arg_a, loc) };
+            let text_str = p.store.alloc_str(&text);
+            let arg = p.new_expr(E::String::init(text_str), loc);
             let args = p.store.alloc_slice([arg]);
             *expr = p.new_expr(
                 E::Call {
