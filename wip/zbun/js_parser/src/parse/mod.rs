@@ -1084,14 +1084,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         is_single_line = false;
                     }
                     p.lexer.expect(T::TCloseBracket)?;
-                    return Ok(p.b(
-                        B::Array {
+                    return Ok({ let arg_a = B::Array {
                             items: p.store.alloc_slice(items),
                             has_spread,
                             is_single_line,
-                        },
+                        }; p.b( arg_a,
                         loc,
-                    ));
+                    ) });
                 }
             }
             T::TOpenBrace => {
@@ -1140,13 +1139,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                     p.lexer.expect(T::TCloseBrace)?;
 
-                    return Ok(p.b(
-                        B::Object {
+                    return Ok({ let arg_a = B::Object {
                             properties: p.store.alloc_slice(properties.into_vec()),
                             is_single_line,
-                        },
+                        }; p.b( arg_a,
                         loc,
-                    ));
+                    ) });
                 }
             }
             _ => {}
@@ -1187,12 +1185,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 key = p.parse_string_literal()?;
             }
             T::TBigIntegerLiteral => {
-                key = p.new_expr(
-                    E::BigInt {
+                key = { let arg_a = E::BigInt {
                         value: p.store.alloc_str(p.lexer.identifier),
-                    },
-                    p.lexer.loc(),
-                );
+                    }; let arg_b = p.lexer.loc(); p.new_expr( arg_a, arg_b,
+                ) };
                 // p.markSyntaxFeature(compat.BigInt, p.lexer.Range())
                 p.lexer.next()?;
             }
@@ -1212,13 +1208,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 p.lexer.next()?;
 
-                key = p.new_expr(
-                    E::String {
+                key = { let arg_a = E::String {
                         data: p.store.alloc_str(name),
                         ..Default::default()
-                    },
+                    }; p.new_expr( arg_a,
                     loc,
-                );
+                ) };
 
                 if p.lexer.token != T::TColon && p.lexer.token != T::TOpenParen {
                     let ref_ = p.store_name_in_ref(name);

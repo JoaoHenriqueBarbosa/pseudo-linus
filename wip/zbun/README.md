@@ -55,6 +55,14 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
     alcançável de dentro do corpo. Regra para o resto do passe: antes de usar `with_node!`, procure no corpo qualquer
     função que receba o `Stmt`/`StoreRef` do nó visitado e o releia; achando, `sync_node!`. O teste
     `with_node_tests.rs` fixa as duas vistas (a função que relê vê a cópia velha sem o `sync_node!`, e vê tudo com ele).
+- Mudança sistemática no parser copiado, empréstimos duplos de argumento (`scripts/hoist_args.py`): o upstream
+  escrevia `Stmt::assign(&mut p.store, p.new_expr(..), rhs)` e `p.new_expr(E::Dot { name: p.store.alloc_str(x) }, loc)`;
+  com o `Store` dentro do `p`, o primeiro empréstimo mutável ainda vive quando o argumento pede o segundo (E0499 e
+  E0502). O script lê o diagnóstico do rustc (rótulo "first borrow later used by call") e sobe cada argumento que usa
+  `p.` ou `self.` para um `let arg_a`, `arg_b`, dentro de um bloco que envolve a chamada; a ordem de avaliação se
+  mantém. O que não casa (nenhum argumento usa `p`, o empréstimo é uma faixa `items[i]` segurada) fica para a mão.
+  Regenerar o diagnóstico depois de qualquer edição, porque os deslocamentos de byte só valem para o arquivo que o
+  rustc viu.
 - Mudança sistemática no parser copiado (`js_parser/src`), por `sed`: o `VecExt::append(&mut X.generated, y);` e o
   `VecExt::append(&mut X.children, y);` de uma linha viram `X.generated.push(y);` e `X.children.push(y);` (os dois
   campos de `Scope` são `Vec`; o `VecExt::append` saiu do `bun_collections` por ser sinônimo do `push`). Os outros

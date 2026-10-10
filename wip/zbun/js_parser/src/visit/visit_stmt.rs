@@ -175,14 +175,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         data: &mut S::ExportClause,
     ) -> Result<(), Error> {
         // "export {foo}"
-        let items = (&mut p.store[data.items]);
-        let items_len = items.len();
+        // `items_ref` é a faixa no Store (Copy): cada acesso abre um empréstimo curto, sem segurar o Store entre as
+        // chamadas a `p` (no upstream era um `&mut [ClauseItem]` vivo durante o laço).
+        let items_ref = data.items;
+        let items_len = p.store[items_ref].len();
         let mut end: usize = 0;
         let mut any_replaced = false;
         if p.options.features.replace_exports.count() > 0 {
             for i in 0..items_len {
-                let name = p.load_name_from_ref(items[i].name.ref_);
-                let symbol = p.find_symbol(items[i].alias_loc, name)?;
+                let item = p.store[items_ref][i];
+                let name = p.load_name_from_ref(item.name.ref_);
+                let symbol = p.find_symbol(item.alias_loc, name)?;
                 let ref_ = symbol.r#ref;
 
                 // reshaped for borrowck: get_ptr borrows options; clone the
@@ -201,7 +204,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // those likely correspond to type-only exports. But report exports of
                     // non-local symbols as errors in JavaScript.
                     if !TYPESCRIPT {
-                        let r = js_lexer::range_of_identifier(p.source, items[i].name.loc);
+                        let r = js_lexer::range_of_identifier(p.source, item.name.loc);
                         p.log().add_range_error_fmt(
                             Some(p.source),
                             r,
@@ -214,16 +217,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     continue;
                 }
 
-                items[i].name.ref_ = ref_;
+                p.store[items_ref][i].name.ref_ = ref_;
                 // Compaction: items[..end] is the kept prefix; items[i] is dead
                 // after this iteration and the slice is truncated to `end` below.
-                items.swap(end, i);
+                p.store[items_ref].swap(end, i);
                 end += 1;
             }
         } else {
             for i in 0..items_len {
-                let name = p.load_name_from_ref(items[i].name.ref_);
-                let symbol = p.find_symbol(items[i].alias_loc, name)?;
+                let item = p.store[items_ref][i];
+                let name = p.load_name_from_ref(item.name.ref_);
+                let symbol = p.find_symbol(item.alias_loc, name)?;
                 let ref_ = symbol.r#ref;
 
                 if p.symbols[ref_.inner_index() as usize].kind == js_ast::symbol::Kind::Unbound {
@@ -231,7 +235,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // those likely correspond to type-only exports. But report exports of
                     // non-local symbols as errors in JavaScript.
                     if !TYPESCRIPT {
-                        let r = js_lexer::range_of_identifier(p.source, items[i].name.loc);
+                        let r = js_lexer::range_of_identifier(p.source, item.name.loc);
                         p.log().add_range_error_fmt(
                             Some(p.source),
                             r,
@@ -245,10 +249,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     continue;
                 }
 
-                items[i].name.ref_ = ref_;
+                p.store[items_ref][i].name.ref_ = ref_;
                 // Compaction: items[..end] is the kept prefix; items[i] is dead
                 // after this iteration and the slice is truncated to `end` below.
-                items.swap(end, i);
+                p.store[items_ref].swap(end, i);
                 end += 1;
             }
         }
@@ -279,16 +283,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.cur_scope().generated.push(data.namespace_ref);
         p.record_declared_symbol(data.namespace_ref);
 
-        let items = (&mut p.store[data.items]);
+        // Mesmo padrão do `s_export_clause`: a faixa no Store (Copy), um empréstimo curto por acesso.
+        let items_ref = data.items;
 
         if p.options.features.replace_exports.count() > 0 {
             let mut j: usize = 0;
             // This is a re-export and the symbols created here are used to reference
-            for i in 0..items.len() {
-                let old_ref = items[i].name.ref_;
+            for i in 0..p.store[items_ref].len() {
+                let old_ref = p.store[items_ref][i].name.ref_;
 
                 // alias is arena-owned (`ArenaStr`), valid for 'a.
-                let alias = p.store.str(items[i].alias);
+                let alias = p.store.str(p.store[items_ref][i].alias);
                 if let Some(entry) = p.options.features.replace_exports.get(alias).cloned() {
                     let _ =
                         p.inject_replacement_export(stmts, old_ref, bun_ast::Loc::EMPTY, &entry);
@@ -301,8 +306,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 p.record_declared_symbol(ref_);
                 // Compaction: items[..j] is the kept prefix; items[i] is dead
                 // after this iteration and the slice is truncated to `j` below.
-                items.swap(j, i);
-                items[j].name.ref_ = ref_;
+                p.store[items_ref].swap(j, i);
+                p.store[items_ref][j].name.ref_ = ref_;
                 j += 1;
             }
 
@@ -310,12 +315,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             data.items.truncate(j);
         } else {
             // This is a re-export and the symbols created here are used to reference
-            for item in items.iter_mut() {
-                let _name = p.load_name_from_ref(item.name.ref_);
+            for i in 0..p.store[items_ref].len() {
+                let _name = p.load_name_from_ref(p.store[items_ref][i].name.ref_);
                 let ref_ = p.new_symbol(js_ast::symbol::Kind::Import, _name);
                 p.cur_scope().generated.push(ref_);
                 p.record_declared_symbol(ref_);
-                item.name.ref_ = ref_;
+                p.store[items_ref][i].name.ref_ = ref_;
             }
         }
 
@@ -934,18 +939,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             stmts.reserve(3);
             stmts.push(*stmt);
             let func_name = data.func.name.expect("infallible: name checked");
-            stmts.push(Stmt::assign(&mut p.store, 
-                p.new_expr(
-                    E::Dot {
+            stmts.push({ let arg_b = { let arg_a = E::Dot {
                         target: Expr::init_identifier(enclosing_namespace_arg_ref, stmt.loc),
                         name: p.store.alloc_str(original_name),
                         name_loc: func_name.loc,
                         ..Default::default()
-                    },
+                    }; p.new_expr( arg_a,
                     stmt.loc,
-                ),
+                ) }; Stmt::assign(&mut p.store, arg_b,
                 Expr::init_identifier(func_name.ref_, func_name.loc),
-            ));
+            ) });
         } else if !mark_as_dead {
             if remove_overwritten {
                 // restore on early return.
@@ -1103,9 +1106,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let class_name_ref = class_name.ref_;
             let original_name = p.store.str(p.symbols[class_name_ref.inner_index() as usize]
                 .original_name);
-            stmts.push(Stmt::assign(&mut p.store, 
-                p.new_expr(
-                    E::Dot {
+            stmts.push({ let arg_b = { let arg_a = E::Dot {
                         target: Expr::init_identifier(
                             p.enclosing_namespace_arg_ref
                                 .expect("infallible: in namespace"),
@@ -1114,11 +1115,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         name: p.store.alloc_str(original_name),
                         name_loc: class_name.loc,
                         ..Default::default()
-                    },
+                    }; p.new_expr( arg_a,
                     stmt.loc,
-                ),
+                ) }; Stmt::assign(&mut p.store, arg_b,
                 Expr::init_identifier(class_name_ref, class_name.loc),
-            ));
+            ) });
         }
 
         if mark_as_dead {

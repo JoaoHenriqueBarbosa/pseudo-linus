@@ -454,11 +454,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // condition ? yes : no
         //             ^
-        p.parse_expr_with_flags(
+        { let arg_c = &mut p.store[e_if].yes; p.parse_expr_with_flags(
             Level::Comma,
-            EFlags::AfterQuestionAndBeforeColon,
-            &mut p.store[e_if].yes,
-        )?;
+            EFlags::AfterQuestionAndBeforeColon, arg_c,
+        ) }?;
 
         p.allow_in = old_allow_in;
 
@@ -474,7 +473,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         } else {
             EFlags::None
         };
-        p.parse_expr_with_flags(Level::Comma, no_flags, &mut p.store[e_if].no)?;
+        { let arg_c = &mut p.store[e_if].no; p.parse_expr_with_flags(Level::Comma, no_flags, arg_c) }?;
 
         // condition ? yes : no
         //                     ^

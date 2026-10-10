@@ -211,16 +211,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     /// recordUsage + Expr.assign.
     fn assign_to(&mut self, ref_: Ref, value: Expr, l: bun_ast::Loc) -> Expr {
         self.record_usage(ref_);
-        Expr::assign(&mut self.store, 
-            self.new_expr(
+        { let arg_b = self.new_expr(
                 E::Identifier {
                     ref_,
                     ..Default::default()
                 },
                 l,
-            ),
+            ); Expr::assign(&mut self.store, arg_b,
             value,
-        )
+        ) }
     }
 
     /// new WeakMap() expression.
@@ -233,15 +232,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             },
             l,
         );
-        self.new_expr(
-            E::New {
+        { let arg_a = E::New {
                 target,
                 args: self.store.alloc_slice(Vec::new()),
                 close_parens_loc: l,
                 ..Default::default()
-            },
+            }; self.new_expr( arg_a,
             l,
-        )
+        ) }
     }
 
     /// new WeakSet() expression.
@@ -254,15 +252,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             },
             l,
         );
-        self.new_expr(
-            E::New {
+        { let arg_a = E::New {
                 target,
                 args: self.store.alloc_slice(Vec::new()),
                 close_parens_loc: l,
                 ..Default::default()
-            },
+            }; self.new_expr( arg_a,
             l,
-        )
+        ) }
     }
 
     /// Create a static block property from a single expression.
@@ -533,7 +530,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                     self.store[*ret].value = slot;
                 }
-                js_ast::StmtData::SThrow(data) => self.rewrite_expr(&mut self.store[*data].value, kind),
+                js_ast::StmtData::SThrow(data) => { let arg_a = &mut self.store[*data].value; self.rewrite_expr( arg_a, kind) },
                 js_ast::StmtData::SIf(data) => {
                     let mut t = self.store[*data].test;
                     self.rewrite_expr(&mut t, kind);
@@ -951,7 +948,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         for stmt_item in stmts.iter_mut() {
             match &mut stmt_item.data {
                 js_ast::StmtData::SExpr(data) => {
-                    self.rewrite_private_accesses_in_expr(&mut self.store[*data].value, map)
+                    { let arg_a = &mut self.store[*data].value; self.rewrite_private_accesses_in_expr( arg_a, map) }
                 }
                 js_ast::StmtData::SReturn(data) => {
                     let mut slot = self.store[*data].value;
@@ -961,7 +958,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.store[*data].value = slot;
                 }
                 js_ast::StmtData::SThrow(data) => {
-                    self.rewrite_private_accesses_in_expr(&mut self.store[*data].value, map)
+                    { let arg_a = &mut self.store[*data].value; self.rewrite_private_accesses_in_expr( arg_a, map) }
                 }
                 js_ast::StmtData::SLocal(data) => {
                     for decl in (&mut self.store[self.store[*data].decls]) {
@@ -1102,7 +1099,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             js_ast::StmtData::SClass(c) => c,
             _ => unreachable!(),
         };
-        self.lower_impl(&mut self.store[s_class].class, stmt.loc, None, false, Some(stmt), out);
+        { let arg_a = &mut self.store[s_class].class; self.lower_impl( arg_a, stmt.loc, None, false, Some(stmt), out) };
     }
 
     pub(crate) fn lower_standard_decorators_expr(

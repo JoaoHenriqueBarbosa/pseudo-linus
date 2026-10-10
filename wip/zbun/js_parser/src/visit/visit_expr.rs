@@ -113,14 +113,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     fn e_spread(p: &mut Self, e: &mut Expr, _: ExprIn) {
         if let js_ast::ExprData::ESpread(mut exp) = e.data {
-            p.visit_expr(&mut p.store[exp].value);
+            { let arg_a = &mut p.store[exp].value; p.visit_expr( arg_a) };
         }
     }
 
     fn e_await(p: &mut Self, e: &mut Expr, _: ExprIn) {
         if let js_ast::ExprData::EAwait(mut e_) = e.data {
             p.await_target = Some(p.store[e_].value.data);
-            p.visit_expr(&mut p.store[e_].value);
+            { let arg_a = &mut p.store[e_].value; p.visit_expr( arg_a) };
         }
     }
 
@@ -843,7 +843,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // in that case that we don't want to miss (before the top-level "switch"
             // statement).
             if left_binary.is_none() || left_in.assign_target != js_ast::AssignTarget::None {
-                p.visit_expr_in_out(&mut p.store[v.e].left, left_in);
+                { let arg_a = &mut p.store[v.e].left; p.visit_expr_in_out( arg_a, left_in) };
                 current = BinaryExpressionVisitor::visit_right_and_finish(&mut v, p);
                 break;
             }
@@ -1495,25 +1495,25 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let prev_in_branch = p.in_branch_condition;
         p.in_branch_condition = true;
-        p.visit_expr(&mut p.store[e_].test);
+        { let arg_a = &mut p.store[e_].test; p.visit_expr( arg_a) };
         p.in_branch_condition = prev_in_branch;
         p.ignore_namespace_local_test_use(&p.store[e_].test);
 
         p.store[e_].test = SideEffects::simplify_boolean(p, p.store[e_].test);
 
         let Some(side_effects) = SideEffects::to_boolean(p, &p.store[e_].test.data) else {
-            p.visit_expr(&mut p.store[e_].yes);
-            p.visit_expr(&mut p.store[e_].no);
+            { let arg_a = &mut p.store[e_].yes; p.visit_expr( arg_a) };
+            { let arg_a = &mut p.store[e_].no; p.visit_expr( arg_a) };
             return;
         };
 
         // Mark the control flow as dead if the branch is never taken
         if side_effects.value {
             // "true ? live : dead"
-            p.visit_expr(&mut p.store[e_].yes);
+            { let arg_a = &mut p.store[e_].yes; p.visit_expr( arg_a) };
             let old = p.is_control_flow_dead;
             p.is_control_flow_dead = true;
-            p.visit_expr(&mut p.store[e_].no);
+            { let arg_a = &mut p.store[e_].no; p.visit_expr( arg_a) };
             p.is_control_flow_dead = old;
 
             if side_effects.side_effects == SideEffects::CouldHaveSideEffects {
@@ -1540,9 +1540,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // "false ? dead : live"
             let old = p.is_control_flow_dead;
             p.is_control_flow_dead = true;
-            p.visit_expr(&mut p.store[e_].yes);
+            { let arg_a = &mut p.store[e_].yes; p.visit_expr( arg_a) };
             p.is_control_flow_dead = old;
-            p.visit_expr(&mut p.store[e_].no);
+            { let arg_a = &mut p.store[e_].no; p.visit_expr( arg_a) };
 
             // "(a, false) ? b : c" => "a, c"
             if side_effects.side_effects == SideEffects::CouldHaveSideEffects {
@@ -2718,7 +2718,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // For function *expressions* the .function_args scope is pushed at the
         // `function` keyword loc, not at open_parens_loc. (s_function correctly
         // uses open_parens_loc.)
-        p.store[e_].func = p.visit_func(core::mem::take(&mut p.store[e_].func), expr.loc, true);
+        p.store[e_].func = { let arg_a = core::mem::take(&mut p.store[e_].func); p.visit_func( arg_a, expr.loc, true) };
 
         // Restore now so the stack-local pointer never escapes this frame.
         p.react_refresh.hook_ctx_storage = prev_hook_ctx;

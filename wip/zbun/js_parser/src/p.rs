@@ -1013,28 +1013,26 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     // visitor (PORTING.md §Forbidden).
     pub(crate) fn maybe_transpose_if_import(&mut self, arg: Expr, state: &TransposeState) -> Expr {
         match arg.data {
-            js_ast::ExprData::EIf(ex) => Expr::init(&mut self.store, 
-                E::If {
+            js_ast::ExprData::EIf(ex) => { let arg_b = E::If {
                     yes: self.maybe_transpose_if_import(self.store[ex].yes, state),
                     no: self.maybe_transpose_if_import(self.store[ex].no, state),
                     test: self.store[ex].test,
-                },
+                }; Expr::init(&mut self.store, arg_b,
                 arg.loc,
-            ),
+            ) },
             _ => self.transpose_import(arg, state),
         }
     }
 
     pub(crate) fn maybe_transpose_if_require(&mut self, arg: Expr, state: &TransposeState) -> Expr {
         match arg.data {
-            js_ast::ExprData::EIf(ex) => Expr::init(&mut self.store, 
-                E::If {
+            js_ast::ExprData::EIf(ex) => { let arg_b = E::If {
                     yes: self.maybe_transpose_if_require(self.store[ex].yes, state),
                     no: self.maybe_transpose_if_require(self.store[ex].no, state),
                     test: self.store[ex].test,
-                },
+                }; Expr::init(&mut self.store, arg_b,
                 arg.loc,
-            ),
+            ) },
             _ => self.transpose_require(arg, state),
         }
     }
@@ -1048,26 +1046,24 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let js_ast::ExprData::EIf(ex) = arg.data else {
             unreachable!()
         };
-        Expr::init(&mut self.store, 
-            E::If {
+        { let arg_b = E::If {
                 yes: self.maybe_transpose_if_require(self.store[ex].yes, state),
                 no: self.maybe_transpose_if_require(self.store[ex].no, state),
                 test: self.store[ex].test,
-            },
+            }; Expr::init(&mut self.store, arg_b,
             arg.loc,
-        )
+        ) }
     }
 
     pub(crate) fn maybe_transpose_if_require_resolve(&mut self, arg: Expr, state: Expr) -> Expr {
         match arg.data {
-            js_ast::ExprData::EIf(ex) => Expr::init(&mut self.store, 
-                E::If {
+            js_ast::ExprData::EIf(ex) => { let arg_b = E::If {
                     yes: self.maybe_transpose_if_require_resolve(self.store[ex].yes, state),
                     no: self.maybe_transpose_if_require_resolve(self.store[ex].no, state),
                     test: self.store[ex].test,
-                },
+                }; Expr::init(&mut self.store, arg_b,
                 arg.loc,
-            ),
+            ) },
             _ => self.transpose_require_resolve(arg, state),
         }
     }
@@ -1081,14 +1077,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let js_ast::ExprData::EIf(ex) = arg.data else {
             unreachable!()
         };
-        Expr::init(&mut self.store, 
-            E::If {
+        { let arg_b = E::If {
                 yes: self.maybe_transpose_if_require_resolve(self.store[ex].yes, state),
                 no: self.maybe_transpose_if_require_resolve(self.store[ex].no, state),
                 test: self.store[ex].test,
-            },
+            }; Expr::init(&mut self.store, arg_b,
             arg.loc,
-        )
+        ) }
     }
 
     /// Record the destructured property names of an `await import()` /
@@ -1593,14 +1588,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Vec::from_owned_slice wants Box<[T]>; init_one is the
         // single-element equivalent (matches transpose_require below).
-        self.new_expr(
-            E::Call {
+        { let arg_a = E::Call {
                 target: require_resolve_ref,
                 args: self.store.alloc_slice([arg]),
                 ..Default::default()
-            },
+            }; self.new_expr( arg_a,
             arg.loc,
-        )
+        ) }
     }
 
     #[inline]
@@ -5522,17 +5516,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             } else {
                 let is_import_property_use =
                     self.record_import_property_use(&value, part, IdentifierOpts::default());
-                value = self.new_expr(
-                    E::Dot {
+                value = { let arg_a = E::Dot {
                         target: value,
                         name: self.store.alloc_str((*part)),
                         name_loc: loc,
                         can_be_removed_if_unused: self.options.features.dead_code_elimination,
                         is_import_property_use,
                         ..Default::default()
-                    },
+                    }; self.new_expr( arg_a,
                     loc,
-                );
+                ) };
             }
         }
 
@@ -6734,10 +6727,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             crate::parser::Runtime::ReplaceableExport::Delete => false,
             crate::parser::Runtime::ReplaceableExport::Replace(value) => {
                 let count = stmts.len();
-                let decls = self.store.alloc_slice((&[G::Decl {
+                let decls = { let arg_a = (&[G::Decl {
                     binding: self.b(B::Identifier { r#ref: name_ref }, loc),
                     value: Some(*value),
-                }]).to_vec());
+                }]).to_vec(); self.store.alloc_slice( arg_a) };
                 let mut local = self.s(
                     S::Local {
                         is_export: true,
@@ -6758,10 +6751,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let inject_ref = self
                     .declare_symbol(js_ast::symbol::Kind::Other, loc, name)
                     .expect("unreachable");
-                let decls = self.store.alloc_slice((&[G::Decl {
+                let decls = { let arg_a = (&[G::Decl {
                     binding: self.b(B::Identifier { r#ref: inject_ref }, loc),
                     value: Some(*value),
-                }]).to_vec());
+                }]).to_vec(); self.store.alloc_slice( arg_a) };
                 let mut local = self.s(
                     S::Local {
                         is_export: true,
@@ -7076,13 +7069,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
         // Wrap with a comment
         let loc = value.loc;
-        self.new_expr(
-            E::InlinedEnum {
+        { let arg_a = E::InlinedEnum {
                 value,
                 comment: self.store.alloc_str(comment),
-            },
+            }; self.new_expr( arg_a,
             loc,
-        )
+        ) }
     }
 
     pub(crate) fn runtime_identifier_ref(&mut self, name: &'static [u8]) -> Ref {
@@ -8015,15 +8007,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let name: &'static [u8] = self.store.str(self.symbols[r#ref.inner_index() as usize]
             .original_name);
 
-        self.new_expr(
-            E::Dot {
+        { let arg_a = E::Dot {
                 target: Expr::init_identifier(enclosing_ref, loc),
                 name: self.store.alloc_str(name),
                 name_loc: loc,
                 ..Default::default()
-            },
+            }; self.new_expr( arg_a,
             loc,
-        )
+        ) }
     }
 
     pub(crate) fn wrap_identifier_hoisting(&mut self, loc: bun_ast::Loc, r#ref: Ref) -> Expr {
@@ -8154,15 +8145,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             },
             loc,
         );
-        self.new_expr(
-            E::Dot {
+        { let arg_a = E::Dot {
                 name: self.store.alloc_str(exports_string_name),
                 name_loc: loc,
                 target,
                 ..Default::default()
-            },
+            }; self.new_expr( arg_a,
             loc,
-        )
+        ) }
     }
 
     // This code is tricky.
@@ -8478,15 +8468,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 ReactRefreshExportKind::Default => b"default",
             },
         ]));
-        let label_expr = self.new_expr(E::String::init(self.store.alloc_str(label)), loc);
-        let call = self.new_expr(
-            E::Call {
+        let label_expr = { let arg_a = E::String::init(self.store.alloc_str(label)); self.new_expr( arg_a, loc) };
+        let call = { let arg_a = E::Call {
                 target: Expr::init_identifier(self.react_refresh.register_ref, loc),
                 args: self.store.alloc_slice((&[Expr::init_identifier(r#ref, loc), label_expr]).to_vec()),
                 ..Default::default()
-            },
+            }; self.new_expr( arg_a,
             loc,
-        );
+        ) };
         stmts.push(self.s(
             S::SExpr {
                 value: call,
@@ -8514,29 +8503,27 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             bun_core::todo_panic!("registerServerReference");
         }
 
-        let module_path = self.new_expr(
-            E::String::init(if self.options.jsx.development {
+        let module_path = { let arg_a = E::String::init(if self.options.jsx.development {
                 self.store.alloc_str(self.source.path.pretty)
             } else {
                 bun_core::todo_panic!("unique_key here")
-            }),
+            }); self.new_expr( arg_a,
             bun_ast::Loc::EMPTY,
-        );
+        ) };
 
         // registerClientReference(
         //   Comp,
         //   "src/filepath.tsx",
         //   "Comp"
         // );
-        let name_expr = self.new_expr(E::String::init(self.store.alloc_str(original_name)), bun_ast::Loc::EMPTY);
-        self.new_expr(
-            E::Call {
+        let name_expr = { let arg_a = E::String::init(self.store.alloc_str(original_name)); self.new_expr( arg_a, bun_ast::Loc::EMPTY) };
+        { let arg_a = E::Call {
                 target: Expr::init_identifier(self.server_components_wrap_ref, bun_ast::Loc::EMPTY),
                 args: self.store.alloc_slice((&[val, module_path, name_expr]).to_vec()),
                 ..Default::default()
-            },
+            }; self.new_expr( arg_a,
             bun_ast::Loc::EMPTY,
-        )
+        ) }
     }
 
     pub(crate) fn handle_react_refresh_hook_call(
