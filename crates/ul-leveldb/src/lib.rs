@@ -6,24 +6,41 @@
 //! abre o que ela escreve e ela abre o que o Chromium escreve.
 //!
 //! Módulos: [`coding`] (varints e strings prefixadas), [`log`] (o formato de log em blocos de 32 KiB com CRC-32C
-//! mascarado), [`batch`] (o `WriteBatch`) e [`version_edit`] (as mudanças de versão que o MANIFEST guarda).
+//! mascarado), [`batch`] (o `WriteBatch`), [`version_edit`] (as mudanças de versão que o MANIFEST guarda), [`snappy`],
+//! [`block`] e [`table`] (as tabelas `.ldb`), [`memtable`] (com a contabilidade de memória do arena, que decide
+//! quando a memtable vira tabela), [`version`] (o conjunto de versões e o MANIFEST), [`dbformat`] (chaves internas e
+//! nomes de arquivo), [`env`] (os arquivos, atrás de um trait) e [`db`] (o banco).
 
 pub mod batch;
+pub mod block;
 pub mod coding;
+pub mod db;
+pub mod dbformat;
+pub mod env;
 pub mod log;
+pub mod memtable;
+pub mod snappy;
+pub mod table;
+pub mod version;
 pub mod version_edit;
 
-/// Erro de um arquivo do banco que não segue o formato.
+pub use db::{Db, Options};
+
+/// Erro de um banco: arquivo fora do formato, argumento inválido ou falha do sistema de arquivos.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
     /// O arquivo está corrompido (CRC, tamanho ou tag inválida); o texto diz onde.
     Corruption(String),
+    InvalidArgument(String),
+    Io(String),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::Corruption(message) => write!(f, "Corruption: {message}"),
+            Error::InvalidArgument(message) => write!(f, "Invalid argument: {message}"),
+            Error::Io(message) => write!(f, "IO error: {message}"),
         }
     }
 }

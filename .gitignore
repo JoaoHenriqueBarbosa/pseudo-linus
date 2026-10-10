@@ -52,4 +52,6 @@ id_ed25519*
 credentials*.json
 .DS_Store
 *.log
+# Os logs do leveldb que o Chromium do oráculo escreveu são fixtures (binários, não são logs de texto).
+!crates/ul-leveldb/tests/fixtures/**/*.log
 # <<< offload jet-dev

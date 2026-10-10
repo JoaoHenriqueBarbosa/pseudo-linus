@@ -14,6 +14,16 @@ pub fn put_varint64(out: &mut Vec<u8>, mut value: u64) {
     out.push(value as u8);
 }
 
+/// Quantos bytes o varint de `value` ocupa (`VarintLength`).
+pub fn varint_length(mut value: u64) -> usize {
+    let mut length = 1;
+    while value >= 0x80 {
+        value >>= 7;
+        length += 1;
+    }
+    length
+}
+
 pub fn put_length_prefixed(out: &mut Vec<u8>, slice: &[u8]) {
     put_varint32(out, slice.len() as u32);
     out.extend_from_slice(slice);

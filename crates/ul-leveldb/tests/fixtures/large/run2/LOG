@@ -1,0 +1,5 @@
+2026/10/10-21:37:43.098 f5 Reusing MANIFEST /tmp/profile/Default/Local Storage/leveldb/MANIFEST-000001
+2026/10/10-21:37:43.101 f5 Recovering log #3
+2026/10/10-21:37:43.101 f5 Level-0 table #3: started
+2026/10/10-21:37:43.137 f5 Level-0 table #3: 156022 bytes OK
+2026/10/10-21:37:43.161 f5 Delete type=0 #3
