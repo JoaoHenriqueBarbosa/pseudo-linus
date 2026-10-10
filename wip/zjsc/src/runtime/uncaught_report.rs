@@ -348,7 +348,27 @@ fn error_block(global_object: &JSGlobalObject, source: &str, error: &ErrorInstan
     let (properties, code) = error_properties(global_object, error, colors);
     let own_source = error.source_text();
     let source = if source.is_empty() { own_source.as_deref().unwrap_or("") } else { source };
-    format_error(source, &rust_string(&error.message()), error.name(), &stack, position, cause, &properties, code.as_deref(), colors)
+    format_error(source, &rust_string(&error.message()), &report_name(global_object, error), &stack, position, cause, &properties, code.as_deref(), colors)
+}
+
+/// O nome do cabeçalho: a primeira propriedade de dados `name` na cadeia do erro (o acessor é pulado, sem chamar o
+/// getter), convertida em texto quando é string, número, booleano ou `null`; `undefined`, símbolo, objeto ou nenhuma
+/// deixam o nome vazio (o cabeçalho escreve `error`). Medido no bun 1.4.2: `e.name = 'Foo'` num `TypeError` sai `Foo: m`,
+/// `e.name = 5` sai `5: m`, um getter próprio cai no `TypeError.prototype.name` e `e.name = undefined` sai `error: m`.
+fn report_name(global_object: &JSGlobalObject, error: &ErrorInstanceRef) -> String {
+    let vm = global_object.vm();
+    let name = PropertyName::from_identifier(&vm.property_names.name);
+    let mut level = error.as_value();
+    while level.is_object() {
+        let object = level.as_object();
+        let mut descriptor = crate::runtime::property_descriptor::PropertyDescriptor::default();
+        if object.get_own_property_descriptor(vm, &name, &mut descriptor) && !descriptor.is_accessor_descriptor() {
+            let value = descriptor.value();
+            return if value.is_string() || value.is_number() || value.is_boolean() || value.is_null() { rust_string(&value.to_wtf_string()) } else { String::new() };
+        }
+        level = object.get_prototype_direct();
+    }
+    String::new()
 }
 
 /// As propriedades próprias enumeráveis do erro, como `print_error_instance_body` (VirtualMachine.rs) as escreve: cada
