@@ -48,6 +48,7 @@ use crate::runtime::node_error::{throw_coded_type_error, throw_plain_error};
 use crate::runtime::object_constructor::construct_empty_object;
 use crate::runtime::property_attribute::{ACCESSOR, DONT_DELETE, DONT_ENUM, READ_ONLY};
 use crate::runtime::property_name::PropertyName;
+use crate::runtime::string_prototype::code_units;
 use crate::runtime::waiter_list_manager;
 use crate::wtf::text::wtf_string::String as WtfString;
 
@@ -90,8 +91,11 @@ struct Entry {
     id: u32,
     callback: Callback,
     args: Vec<JSValue>,
-    /// `_idleTimeout`.
+    /// Intervalo com que o timer é armado de novo (intervalo, `refresh`): o do `setTimeout`, que gravar em
+    /// `_idleTimeout` não muda (medido no bun 1.4.2).
     delay: f64,
+    /// `_idleTimeout`: o número do armamento até o script gravar outro valor, que o getter devolve como veio.
+    idle_timeout: JSValue,
     /// `_idleStart`.
     start: f64,
     /// `_repeat`.
@@ -324,13 +328,13 @@ fn set_idle_start_body(global_object: &JSGlobalObject, call: &HostCall) -> HostR
 host_function!(idle_start_setter, set_idle_start_body);
 
 fn idle_timeout_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    Ok(with_entry(call.this_value(), |entry| JSValue::from_double(entry.delay)).unwrap_or_else(JSValue::undefined))
+    Ok(with_entry(call.this_value(), |entry| entry.idle_timeout).unwrap_or_else(JSValue::undefined))
 }
 host_function!(idle_timeout_getter, idle_timeout_body);
 
-fn set_idle_timeout_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let number = pending_or(global_object, call.argument(0).to_number())?;
-    with_entry(call.this_value(), |entry| entry.delay = number);
+fn set_idle_timeout_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let value = call.argument(0);
+    with_entry(call.this_value(), |entry| entry.idle_timeout = value);
     Ok(JSValue::undefined())
 }
 host_function!(idle_timeout_setter, set_idle_timeout_body);
@@ -537,6 +541,7 @@ fn register(global_object: &JSGlobalObject, kind: Kind, callback: Callback, args
                 callback,
                 args,
                 delay,
+                idle_timeout: JSValue::from_double(delay),
                 start: now,
                 repeat: if kind == Kind::Interval { JSValue::from_double(delay) } else { JSValue::null() },
                 fire_at: now + fire_delay,
@@ -592,28 +597,35 @@ fn set_immediate_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRe
 }
 host_function!(global_func_set_immediate, set_immediate_body);
 
-/// `clearTimeout`/`clearInterval`/`clearImmediate`: o argumento é o objeto devolvido ou o id (número, ou
-/// string numérica). `immediate` escolhe a família: timeout e interval se cancelam entre si, o immediate só
-/// pelo `clearImmediate`. Qualquer outro valor é ignorado.
+/// `clearTimeout`/`clearInterval`/`clearImmediate`. Medido no bun 1.4.2: o objeto devolvido só cancela na própria
+/// família (timeout e interval se cancelam entre si, o immediate só pelo `clearImmediate`); o id (número inteiro, ou
+/// a string que é exatamente o seu decimal, sem espaço, sinal, zero à esquerda ou fração) procura só entre timeouts e
+/// intervals, pelas três funções (`clearImmediate(+timeout)` cancela, `clearImmediate(+immediate)` não). Qualquer
+/// outro valor é ignorado.
 fn clear(call: &HostCall, immediate: bool) -> HostResult {
     let argument = call.argument(0);
+    let id = if argument.is_number() {
+        let number = argument.to_number();
+        (number >= 0.0 && number.fract() == 0.0 && number <= f64::from(u32::MAX)).then_some(number as u32)
+    } else if argument.is_string() {
+        let units = code_units(&argument.as_js_string().value()).into_owned();
+        let canonical = !units.is_empty() && units.iter().all(|&unit| (b'0' as u16..=b'9' as u16).contains(&unit)) && (units.len() == 1 || units[0] != b'0' as u16);
+        canonical.then(|| String::from_utf16_lossy(&units).parse::<u32>().ok()).flatten()
+    } else {
+        None
+    };
     STATE.with(|state| {
         let mut state = state.borrow_mut();
-        let cell = match argument {
-            JSValue::Cell(cell) if state.entries.contains_key(&cell) => Some(cell),
-            value if value.is_number() || value.is_string() => {
-                let number = value.to_number();
-                if number >= 0.0 && number.fract() == 0.0 && number <= f64::from(u32::MAX) {
-                    state.by_id.get(&(number as u32)).copied()
-                } else {
-                    None
-                }
-            }
+        let target = match (argument, id) {
+            (JSValue::Cell(cell), _) if state.entries.contains_key(&cell) => Some((cell, immediate)),
+            (_, Some(id)) => state.by_id.get(&id).map(|&cell| (cell, false)),
             _ => None,
         };
-        if let Some(entry) = cell.and_then(|cell| state.entries.get_mut(&cell)) {
-            if (entry.kind == Kind::Immediate) == immediate {
-                entry.destroyed = true;
+        if let Some((cell, family_is_immediate)) = target {
+            if let Some(entry) = state.entries.get_mut(&cell) {
+                if (entry.kind == Kind::Immediate) == family_is_immediate {
+                    entry.destroyed = true;
+                }
             }
         }
     });
@@ -791,8 +803,13 @@ fn run_immediates(global_object: &JSGlobalObject, budget: &mut usize) {
             });
             return;
         }
+        // O bun solta o `ref` do immediate antes de chamar o callback: dentro dele `hasRef()` já é `false`, com
+        // `_destroyed` ainda `false` (medido no bun 1.4.2).
         let call = STATE.with(|state| {
-            state.borrow().entries.get(cell).filter(|entry| !entry.destroyed).map(|entry| (entry.callback.clone(), entry.args.clone()))
+            state.borrow_mut().entries.get_mut(cell).filter(|entry| !entry.destroyed).map(|entry| {
+                entry.refed = false;
+                (entry.callback.clone(), entry.args.clone())
+            })
         });
         let Some((callback, args)) = call else {
             continue;
