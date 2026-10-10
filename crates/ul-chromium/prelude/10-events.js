@@ -77,14 +77,20 @@ const reportError = (error) => {
   }
 };
 
+// O `window.event` do Blink: o evento cujo ouvinte está rodando, `undefined` fora de despacho e quando o alvo está
+// numa árvore sombra.
+let currentEvent;
 const invoke = (target, event, entry) => {
   event[P.__passive] = entry.passive;
+  const previous = currentEvent;
+  currentEvent = isNode(target) && target.getRootNode() instanceof ShadowRoot ? undefined : event;
   try {
     if (typeof entry.callback === 'function') entry.callback.call(target, event);
     else if (entry.callback && typeof entry.callback.handleEvent === 'function') entry.callback.handleEvent(event);
   } catch (error) {
     reportError(error);
   }
+  currentEvent = previous;
   event[P.__passive] = false;
 };
 
@@ -239,7 +245,7 @@ const PromiseRejectionEvent = named('PromiseRejectionEvent', eventClass('Promise
 const SubmitEvent = named('SubmitEvent', eventClass('SubmitEvent', Event, { submitter: null }));
 
 // GlobalEventHandlers do Chromium 154: os `on<tipo>` de HTMLElement, SVGElement, MathMLElement, Document e Window.
-const GLOBAL_HANDLERS = ['abort', 'animationend', 'animationiteration', 'animationstart', 'auxclick', 'beforeinput', 'beforematch', 'beforetoggle', 'beforexrselect', 'blur', 'cancel', 'canplay', 'canplaythrough', 'change', 'click', 'close', 'contentvisibilityautostatechange', 'contextlost', 'contextmenu', 'contextrestored', 'copy', 'cuechange', 'cut', 'dblclick', 'drag', 'dragend', 'dragenter', 'dragleave', 'dragover', 'dragstart', 'drop', 'durationchange', 'emptied', 'ended', 'error', 'focus', 'formdata', 'gotpointercapture', 'input', 'invalid', 'keydown', 'keypress', 'keyup', 'load', 'loadeddata', 'loadedmetadata', 'loadstart', 'lostpointercapture', 'mousedown', 'mouseenter', 'mouseleave', 'mousemove', 'mouseout', 'mouseover', 'mouseup', 'mousewheel', 'paste', 'pause', 'play', 'playing', 'pointercancel', 'pointerdown', 'pointerenter', 'pointerleave', 'pointermove', 'pointerout', 'pointerover', 'pointerrawupdate', 'pointerup', 'progress', 'ratechange', 'reset', 'resize', 'scroll', 'scrollend', 'scrollsnapchange', 'scrollsnapchanging', 'securitypolicyviolation', 'seeked', 'seeking', 'select', 'selectionchange', 'selectstart', 'slotchange', 'stalled', 'submit', 'suspend', 'timeupdate', 'toggle', 'transitioncancel', 'transitionend', 'transitionrun', 'transitionstart', 'volumechange', 'waiting', 'webkitanimationend', 'webkitanimationiteration', 'webkitanimationstart', 'webkittransitionend', 'wheel'];
+const GLOBAL_HANDLERS = ['abort', 'animationcancel', 'animationend', 'animationiteration', 'animationstart', 'auxclick', 'beforeinput', 'beforematch', 'beforetoggle', 'beforexrselect', 'blur', 'cancel', 'canplay', 'canplaythrough', 'change', 'click', 'close', 'command', 'contentvisibilityautostatechange', 'contextlost', 'contextmenu', 'contextrestored', 'copy', 'cuechange', 'cut', 'dblclick', 'drag', 'dragend', 'dragenter', 'dragleave', 'dragover', 'dragstart', 'drop', 'durationchange', 'emptied', 'ended', 'error', 'focus', 'formdata', 'gotpointercapture', 'input', 'invalid', 'keydown', 'keypress', 'keyup', 'load', 'loadeddata', 'loadedmetadata', 'loadstart', 'lostpointercapture', 'mousedown', 'mouseenter', 'mouseleave', 'mousemove', 'mouseout', 'mouseover', 'mouseup', 'mousewheel', 'paste', 'pause', 'play', 'playing', 'pointercancel', 'pointerdown', 'pointerenter', 'pointerleave', 'pointermove', 'pointerout', 'pointerover', 'pointerrawupdate', 'pointerup', 'progress', 'ratechange', 'reset', 'resize', 'scroll', 'scrollend', 'scrollsnapchange', 'scrollsnapchanging', 'securitypolicyviolation', 'seeked', 'seeking', 'select', 'selectionchange', 'selectstart', 'slotchange', 'stalled', 'submit', 'suspend', 'timeupdate', 'toggle', 'transitioncancel', 'transitionend', 'transitionrun', 'transitionstart', 'volumechange', 'waiting', 'webkitanimationend', 'webkitanimationiteration', 'webkitanimationstart', 'webkittransitionend', 'wheel'];
 
 // Os `on<tipo>` das interfaces de evento: propriedade que guarda um único tratador por tipo.
 const defineHandlerProperties = (proto, types) => {

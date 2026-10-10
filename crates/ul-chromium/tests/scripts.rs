@@ -27,7 +27,35 @@ fn window_own_properties_match_the_oracle() {
     // nunca imitado pela metade). A catraca só desce: 34 interfaces faltando quando o teste entrou.
     let present: Vec<&(String, String)> = expected.iter().filter(|e| actual.contains(e)).collect();
     assert_eq!(actual.iter().collect::<Vec<_>>(), present);
-    assert!(missing.len() <= 34, "faltam {missing:?}");
+    assert!(missing.len() <= 5, "faltam {missing:?}");
+}
+
+/// As interfaces simples da janela, com os retornos e as mensagens que o oráculo deu (página em `http://127.0.0.1`).
+#[test]
+fn window_interfaces_as_the_oracle() {
+    let script = r#"const t = (f) => { try { return String(f()); } catch (e) { return e.name + ': ' + e.message; } };
+let inside; addEventListener('x', (e) => { inside = window.event === e; }); dispatchEvent(new Event('x'));
+console.log([inside, String(window.event), locationbar.visible, String(toolbar), t(() => new BarProp()), t(() => new External()),
+  String(external.AddSearchProvider()), String(styleMedia), styleMedia.type, styleMedia.matchMedium('screen'), styleMedia.matchMedium('print'),
+  clientInformation === navigator, frameElement, credentialless, fence, find('x'), String(captureEvents()),
+  t(() => webkitRequestAnimationFrame(5)), t(() => webkitCancelAnimationFrame()), t(() => requestResize()),
+  chrome.app.runningState(), String(chrome.app.getDetails()), String(chrome.loadTimes), chrome.loadTimes.name === '', Object.keys(chrome.csi()).join(),
+  t(() => chrome.app.installState(5)), Object.keys(chrome.loadTimes()).join(), oncommand, onanimationcancel, ongamepadconnected, outerWidth, outerHeight].join('\n'))"#;
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    let expected = [
+        "true", "undefined", "true", "[object BarProp]",
+        "TypeError: Failed to construct 'BarProp': Illegal constructor", "TypeError: Failed to construct 'External': Illegal constructor",
+        "undefined", "[object StyleMedia]", "screen", "true", "false",
+        "true", "", "false", "", "false", "undefined",
+        "TypeError: Failed to execute 'webkitRequestAnimationFrame' on 'Window': parameter 1 is not of type 'Function'.",
+        "TypeError: Failed to execute 'webkitCancelAnimationFrame' on 'Window': 1 argument required, but only 0 present.",
+        "NotAllowedError: Failed to execute 'requestResize' on 'Window': Requesting resize is allowed only from HTML documents with `responsive-embedded-sizing` meta tags.",
+        "cannot_run", "null", "function () { [native code] }", "true", "startE,onloadT,pageT,tran",
+        "TypeError: Error in invocation of app.installState(optional function callback): ",
+        "requestTime,startLoadTime,commitLoadTime,finishDocumentLoadTime,finishLoadTime,firstPaintTime,firstPaintAfterLoadTime,navigationType,wasFetchedViaSpdy,wasNpnNegotiated,npnNegotiatedProtocol,wasAlternateProtocolAvailable,connectionInfo",
+        "", "", "", "0", "0",
+    ];
+    assert_eq!(log, expected.join("\n") + "\n");
 }
 
 /// O `measureText` do canvas passa pelas fontes da VFS; os valores são os do Chromium do oráculo.
@@ -43,6 +71,60 @@ fn canvas_measure_text() {
 fn error_stack_in_v8_format() {
     let (_, log) = run(&[("/", "<script>\nfunction f() { return new Error('boom') }\nconsole.log(f().stack)</script>")]);
     assert!(log.contains("    at f ("), "{log}");
+}
+
+/// Fala, agendador, `crashReport`, `launchQueue` e `viewport` como o oráculo: a ordem das tarefas por prioridade, a
+/// fala recusada sem ativação do usuário e as mensagens dos bindings.
+#[test]
+fn window_apis_as_the_oracle() {
+    let script = r#"const t = (f) => { try { return String(f()); } catch (e) { return e.name + ': ' + e.message; } };
+const out = [];
+const order = [];
+scheduler.postTask(() => order.push('bg'), { priority: 'background' });
+scheduler.postTask(() => order.push('uv'));
+scheduler.postTask(() => order.push('ub'), { priority: 'user-blocking' });
+setTimeout(() => order.push('timeout0'), 0);
+scheduler.postTask(() => order.push('d5'), { delay: 5 });
+(async () => { order.push('y-before'); await scheduler.yield(); order.push('y-after'); })();
+const tc = new TaskController();
+tc.signal.addEventListener('prioritychange', (e) => out.push(e.previousPriority + '>' + tc.signal.priority));
+tc.setPriority('background');
+out.push(t(() => tc.setPriority('x')), t(() => new TaskSignal()), t(() => new TaskController({ priority: 'x' })), String(tc.signal), tc.signal instanceof AbortSignal);
+const aborted = new TaskController();
+scheduler.postTask(() => 1, { signal: aborted.signal }).catch((e) => out.push('abort ' + e.name));
+aborted.abort();
+scheduler.postTask(() => 1, { priority: 'x' }).catch((e) => out.push(e.message));
+const u = new SpeechSynthesisUtterance('hi');
+u.onerror = (e) => out.push([e.type, e.error, e.constructor.name, e.utterance === u, e.charIndex].join(' '));
+speechSynthesis.speak(u);
+out.push(t(() => speechSynthesis.speak()), speechSynthesis.getVoices().length, speechSynthesis.speaking, (u.volume = 5, u.volume), (u.rate = 20, u.rate), t(() => { u.volume = 'x'; }));
+out.push(t(() => crashReport.set('a', 'b')), t(() => crashReport.set('a')), t(() => launchQueue.setConsumer(5)), t(() => launchQueue.setConsumer(() => {})));
+crashReport.initialize(10).then(() => { out.push('init ' + crashReport.set('a', 'b')); return crashReport.initialize(10); }).catch((e) => out.push(e.name + ': ' + e.message));
+out.push(viewport.segments.length, String(viewport.segments[0]), viewport.segments[0].width, viewport.segments !== viewport.segments);
+setTimeout(() => { out.push(order.join()); console.log(out.join('\n')); }, 50);"#;
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    let expected = [
+        "user-visible>background",
+        "TypeError: Failed to execute 'setPriority' on 'TaskController': The provided value 'x' is not a valid enum value of type TaskPriority.",
+        "TypeError: Failed to construct 'TaskSignal': Illegal constructor",
+        "TypeError: Failed to construct 'TaskController': Failed to read the 'priority' property from 'TaskControllerInit': The provided value 'x' is not a valid enum value of type TaskPriority.",
+        "[object TaskSignal]", "true",
+        "error not-allowed SpeechSynthesisErrorEvent true 0",
+        "TypeError: Failed to execute 'speak' on 'SpeechSynthesis': 1 argument required, but only 0 present.", "0", "false", "1", "10",
+        "TypeError: Failed to set the 'volume' property on 'SpeechSynthesisUtterance': The provided float value is non-finite.",
+        "InvalidStateError: Failed to execute 'set' on 'CrashReportContext': CrashReportContext is not initialized. Call initialize() and wait for it to resolve.",
+        "TypeError: Failed to execute 'set' on 'CrashReportContext': 2 arguments required, but only 1 present.",
+        "TypeError: Failed to execute 'setConsumer' on 'LaunchQueue': parameter 1 is not of type 'Function'.", "undefined",
+        "1", "[object DOMRect]", "780", "true",
+        "abort AbortError",
+        "Failed to execute 'postTask' on 'Scheduler': Failed to read the 'priority' property from 'SchedulerPostTaskOptions': The provided value 'x' is not a valid enum value of type TaskPriority.",
+        "init undefined",
+        "InvalidStateError: Failed to execute 'initialize' on 'CrashReportContext': The initialize() method has already been called.",
+    ];
+    // A tarefa `background` e a de 5 ms trocaram de ordem entre execuções do oráculo; as duas ordens valem.
+    let (head, order) = log.trim_end().rsplit_once('\n').unwrap_or_else(|| panic!("log: {log:?}"));
+    assert_eq!(head, expected.join("\n"));
+    assert!(["y-before,ub,y-after,uv,timeout0,bg,d5", "y-before,ub,y-after,uv,timeout0,d5,bg"].contains(&order), "{order}");
 }
 
 #[test]

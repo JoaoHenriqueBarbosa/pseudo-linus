@@ -36,7 +36,7 @@ const afterNetwork = (fn, delaysLoad = false) => {
   }, NETWORK_LATENCY_MS);
 };
 // A janela do headless medida no oráculo (o WINDOW do hospedeiro): conteúdo 780x493, janela 780x580, tela 800x600.
-const VIEWPORT = Object.freeze({ width: 780, height: 493, outerWidth: 780, outerHeight: 580 });
+const VIEWPORT = Object.freeze({ width: 780, height: 493, outerWidth: 0, outerHeight: 0 });
 const pageState = { url: op('pageUrl') };
 
 class Location {
