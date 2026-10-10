@@ -2111,7 +2111,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if all_exprs {
                             for sb_stmt in stmts_slice.iter() {
                                 match &sb_stmt.data {
-                                    js_ast::StmtData::SExpr(s) => suffix_exprs.push(self.store[s].value),
+                                    js_ast::StmtData::SExpr(s) => suffix_exprs.push(self.store[*s].value),
                                     _ => unreachable!(),
                                 }
                             }

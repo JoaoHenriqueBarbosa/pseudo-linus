@@ -2021,7 +2021,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     .does_not_affect_tree_shaking
                                     && self.store[s_expr].does_not_affect_tree_shaking;
                                 self.store[prev_expr].value =
-                                    Expr::join_with_comma(self.store[prev_expr].value, self.store[s_expr].value);
+                                    Expr::join_with_comma(&mut self.store, self.store[prev_expr].value, self.store[s_expr].value);
                                 continue;
                             }
                         } else if let StmtData::SLocal(prev_local) = prev_stmt.data {
@@ -2073,7 +2073,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
                             if !prev_stmt.is_super_call(&self.store) {
                                 self.store[s_switch].test =
-                                    Expr::join_with_comma(self.store[prev_expr].value, self.store[s_switch].test);
+                                    Expr::join_with_comma(&mut self.store, self.store[prev_expr].value, self.store[s_switch].test);
                                 output.truncate(prev_idx);
                             }
                         }
@@ -2087,7 +2087,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
                             if !prev_stmt.is_super_call(&self.store) {
-                                self.store[s_if].test = Expr::join_with_comma(self.store[prev_expr].value, self.store[s_if].test);
+                                self.store[s_if].test = Expr::join_with_comma(&mut self.store, self.store[prev_expr].value, self.store[s_if].test);
                                 output.truncate(prev_idx);
                             }
                         }
@@ -2106,7 +2106,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
                             if !prev_stmt.is_super_call(&self.store) {
-                                self.store[ret].value = Some(Expr::join_with_comma(
+                                self.store[ret].value = Some(Expr::join_with_comma(&mut self.store, 
                                     self.store[prev_expr].value,
                                     self.store[ret].value.unwrap(),
                                 ));
@@ -2133,7 +2133,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             if !prev_stmt.is_super_call(&self.store) {
                                 output[prev_idx] = p.s(
                                     S::Throw {
-                                        value: Expr::join_with_comma(
+                                        value: Expr::join_with_comma(&mut self.store, 
                                             self.store[prev_expr].value,
                                             self.store[s_throw].value,
                                         ),

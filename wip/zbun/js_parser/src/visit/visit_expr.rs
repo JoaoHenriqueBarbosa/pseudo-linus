@@ -1069,8 +1069,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 {
                     // "foo"[2] -> "o"
                     if let Some(str_) = target.data.as_e_string() {
-                        if !str_.is_utf16 {
-                            let literal = str_.data;
+                        if !p.store[str_].is_utf16 {
+                            let literal = p.store[str_].data;
                             let num: usize = index
                                 .data
                                 .e_number()

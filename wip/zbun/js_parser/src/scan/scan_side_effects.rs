@@ -179,7 +179,7 @@ impl SideEffects {
 
                 // "foo() ? 1 : bar()" => "foo() || bar()"
                 if p.store[ternary].yes.is_empty() {
-                    return Some(Expr::join_with_left_associative_op(
+                    return Some(Expr::join_with_left_associative_op(&mut p.store, 
                         Op::Code::BinLogicalOr,
                         p.store[ternary].test,
                         p.store[ternary].no,
@@ -188,7 +188,7 @@ impl SideEffects {
 
                 // "foo() ? bar() : 2" => "foo() && bar()"
                 if p.store[ternary].no.is_empty() {
-                    return Some(Expr::join_with_left_associative_op(
+                    return Some(Expr::join_with_left_associative_op(&mut p.store, 
                         Op::Code::BinLogicalAnd,
                         p.store[ternary].test,
                         p.store[ternary].yes,
@@ -301,7 +301,7 @@ impl SideEffects {
                             }
 
                             // Otherwise, preserve at least the structure
-                            return Some(Expr::join_with_comma(
+                            return Some(Expr::join_with_comma(&mut p.store, 
                                 left_simplified.unwrap_or_else(|| left.to_empty()),
                                 right_simplified.unwrap_or_else(|| right.to_empty()),
                             ));
@@ -410,10 +410,10 @@ impl SideEffects {
                             },
                             key_expr.loc,
                         );
-                        result = Expr::join_with_comma(result, bin);
+                        result = Expr::join_with_comma(&mut p.store, result, bin);
                     }
                     let v = value.unwrap();
-                    result = Expr::join_with_comma(
+                    result = Expr::join_with_comma(&mut p.store, 
                         result,
                         Self::simplify_unused_expr(p, v).unwrap_or_else(|| v.to_empty()),
                     );
@@ -485,7 +485,7 @@ impl SideEffects {
                 data: ExprData::EMissing(E::Missing {}),
                 loc: item.loc,
             });
-            result = Expr::join_with_comma(result, simplified);
+            result = Expr::join_with_comma(&mut p.store, result, simplified);
         }
         if result.is_missing() {
             None
@@ -537,7 +537,7 @@ impl SideEffects {
             let top = p.binary_expression_simplify_stack[i];
             let right = p.store[top.bin].right;
             let visited_right = Self::simplify_unused_expr(p, right).unwrap_or(Expr::EMPTY);
-            result = Expr::join_with_comma(result, visited_right);
+            result = Expr::join_with_comma(&mut p.store, result, visited_right);
         }
         p.binary_expression_simplify_stack.truncate(stack_bottom);
 
@@ -936,8 +936,8 @@ impl SideEffects {
                     side_effects: SideEffects::CouldHaveSideEffects,
                 }),
                 Op::Code::BinGt => {
-                    if let Some(left_num) = p.store[*e].left.data.to_finite_number() {
-                        if let Some(right_num) = p.store[*e].right.data.to_finite_number() {
+                    if let Some(left_num) = p.store[*e].left.data.to_finite_number(&p.store) {
+                        if let Some(right_num) = p.store[*e].right.data.to_finite_number(&p.store) {
                             return Some(Known {
                                 value: left_num > right_num,
                                 side_effects: SideEffects::NoSideEffects,
@@ -947,8 +947,8 @@ impl SideEffects {
                     None
                 }
                 Op::Code::BinLt => {
-                    if let Some(left_num) = p.store[*e].left.data.to_finite_number() {
-                        if let Some(right_num) = p.store[*e].right.data.to_finite_number() {
+                    if let Some(left_num) = p.store[*e].left.data.to_finite_number(&p.store) {
+                        if let Some(right_num) = p.store[*e].right.data.to_finite_number(&p.store) {
                             return Some(Known {
                                 value: left_num < right_num,
                                 side_effects: SideEffects::NoSideEffects,
@@ -958,8 +958,8 @@ impl SideEffects {
                     None
                 }
                 Op::Code::BinLe => {
-                    if let Some(left_num) = p.store[*e].left.data.to_finite_number() {
-                        if let Some(right_num) = p.store[*e].right.data.to_finite_number() {
+                    if let Some(left_num) = p.store[*e].left.data.to_finite_number(&p.store) {
+                        if let Some(right_num) = p.store[*e].right.data.to_finite_number(&p.store) {
                             return Some(Known {
                                 value: left_num <= right_num,
                                 side_effects: SideEffects::NoSideEffects,
@@ -969,8 +969,8 @@ impl SideEffects {
                     None
                 }
                 Op::Code::BinGe => {
-                    if let Some(left_num) = p.store[*e].left.data.to_finite_number() {
-                        if let Some(right_num) = p.store[*e].right.data.to_finite_number() {
+                    if let Some(left_num) = p.store[*e].left.data.to_finite_number(&p.store) {
+                        if let Some(right_num) = p.store[*e].right.data.to_finite_number(&p.store) {
                             return Some(Known {
                                 value: left_num >= right_num,
                                 side_effects: SideEffects::NoSideEffects,

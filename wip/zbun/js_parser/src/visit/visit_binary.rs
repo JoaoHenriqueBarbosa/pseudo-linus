@@ -361,7 +361,7 @@ impl BinaryExpressionVisitor {
                         // "(null ?? this.fn)" => "this.fn"
                         // "(null ?? this.fn)()" => "(0, this.fn)()"
                         if is_call_target && e_.right.has_value_for_this_in_call() {
-                            return Expr::join_with_comma(
+                            return Expr::join_with_comma(&mut p.store, 
                                 Expr {
                                     data: ExprData::ENumber(E::Number::new(0.0)),
                                     loc: e_.left.loc,
@@ -383,7 +383,7 @@ impl BinaryExpressionVisitor {
                         // "(0 || this.fn)" => "this.fn"
                         // "(0 || this.fn)()" => "(0, this.fn)()"
                         if is_call_target && e_.right.has_value_for_this_in_call() {
-                            return Expr::join_with_comma(
+                            return Expr::join_with_comma(&mut p.store, 
                                 Expr {
                                     data: prefill::data::ZERO,
                                     loc: e_.left.loc,
@@ -405,7 +405,7 @@ impl BinaryExpressionVisitor {
                         // "(1 && this.fn)" => "this.fn"
                         // "(1 && this.fn)()" => "(0, this.fn)()"
                         if is_call_target && e_.right.has_value_for_this_in_call() {
-                            return Expr::join_with_comma(
+                            return Expr::join_with_comma(&mut p.store, 
                                 Expr {
                                     data: prefill::data::ZERO,
                                     loc: e_.left.loc,
@@ -420,7 +420,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinAdd => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(E::Number::new(vals[0] + vals[1]), v.loc);
                     }
@@ -459,7 +459,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinSub => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(E::Number::new(vals[0] - vals[1]), v.loc);
                     }
@@ -467,7 +467,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinMul => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(E::Number::new(vals[0] * vals[1]), v.loc);
                     }
@@ -475,7 +475,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinDiv => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(E::Number::new(vals[0] / vals[1]), v.loc);
                     }
@@ -483,7 +483,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinRem => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(
                             // Rust `%` on f64 has libc fmod semantics (LLVM frem),
@@ -497,7 +497,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinPow => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p
                             .new_expr(E::Number::new(bun_ast::math::pow(vals[0], vals[1])), v.loc);
@@ -506,7 +506,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinShl => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         let left = float_to_int32(vals[0]);
                         let right: u32 = (float_to_int32(vals[1]) as u32) % 32;
@@ -517,7 +517,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinShr => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         let left = float_to_int32(vals[0]);
                         let right: u32 = (float_to_int32(vals[1]) as u32) % 32;
@@ -529,7 +529,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinUShr => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         let left: u32 = float_to_int32(vals[0]) as u32;
                         let right: u32 = (float_to_int32(vals[1]) as u32) % 32;
@@ -540,7 +540,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinBitwiseAnd => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(
                             E::Number::new(
@@ -553,7 +553,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinBitwiseOr => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(
                             E::Number::new(
@@ -566,7 +566,7 @@ impl BinaryExpressionVisitor {
             }
             Op::Code::BinBitwiseXor => {
                 if p.should_fold_typescript_constant_expressions {
-                    if let Some(vals) = Expr::extract_numeric_values(&e_.left.data, &e_.right.data)
+                    if let Some(vals) = Expr::extract_numeric_values(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(
                             E::Number::new(
@@ -581,7 +581,7 @@ impl BinaryExpressionVisitor {
             Op::Code::BinLt => {
                 if p.should_fold_typescript_constant_expressions {
                     if let Some(vals) =
-                        Expr::extract_numeric_values_in_safe_range(&e_.left.data, &e_.right.data)
+                        Expr::extract_numeric_values_in_safe_range(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(
                             E::Boolean {
@@ -593,7 +593,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = vals[0].order(vals[1].get());
+                        let ord = vals[0].order((&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: ord == Ordering::Less,
@@ -606,7 +606,7 @@ impl BinaryExpressionVisitor {
             Op::Code::BinGt => {
                 if p.should_fold_typescript_constant_expressions {
                     if let Some(vals) =
-                        Expr::extract_numeric_values_in_safe_range(&e_.left.data, &e_.right.data)
+                        Expr::extract_numeric_values_in_safe_range(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(
                             E::Boolean {
@@ -618,7 +618,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = vals[0].order(vals[1].get());
+                        let ord = vals[0].order((&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: ord == Ordering::Greater,
@@ -631,7 +631,7 @@ impl BinaryExpressionVisitor {
             Op::Code::BinLe => {
                 if p.should_fold_typescript_constant_expressions {
                     if let Some(vals) =
-                        Expr::extract_numeric_values_in_safe_range(&e_.left.data, &e_.right.data)
+                        Expr::extract_numeric_values_in_safe_range(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(
                             E::Boolean {
@@ -643,7 +643,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = vals[0].order(vals[1].get());
+                        let ord = vals[0].order((&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: matches!(ord, Ordering::Equal | Ordering::Less),
@@ -656,7 +656,7 @@ impl BinaryExpressionVisitor {
             Op::Code::BinGe => {
                 if p.should_fold_typescript_constant_expressions {
                     if let Some(vals) =
-                        Expr::extract_numeric_values_in_safe_range(&e_.left.data, &e_.right.data)
+                        Expr::extract_numeric_values_in_safe_range(&p.store, &e_.left.data, &e_.right.data)
                     {
                         return p.new_expr(
                             E::Boolean {
@@ -668,7 +668,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = vals[0].order(vals[1].get());
+                        let ord = vals[0].order((&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: matches!(ord, Ordering::Equal | Ordering::Greater),
@@ -699,7 +699,7 @@ impl BinaryExpressionVisitor {
                 //    `import.meta.hot.data.etc ??= init()`
                 if let Some(dot) = e_.left.data.e_dot() {
                     if let Some(obj) = p.store[dot].target.data.e_object() {
-                        if obj.properties.len_u32() == 0 {
+                        if p.store[obj].properties.len_u32() == 0 {
                             if p.store[dot].name != b"__proto__" {
                                 return e_.right;
                             }

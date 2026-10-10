@@ -88,9 +88,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let ctx = core::ptr::addr_of_mut!(*p).cast::<core::ffi::c_void>();
             let binding = Binding::to_expr(&decl.binding, ctx, wrapper);
             if let Some(decl_value) = decl.value {
-                value = Expr::join_with_comma(value, Expr::assign(&mut self.store, binding, decl_value));
+                value = Expr::join_with_comma(&mut self.store, value, Expr::assign(&mut self.store, binding, decl_value));
             } else if mode == RelocateVarsMode::ForInOrForOf {
-                value = Expr::join_with_comma(value, binding);
+                value = Expr::join_with_comma(&mut self.store, value, binding);
             }
         }
 

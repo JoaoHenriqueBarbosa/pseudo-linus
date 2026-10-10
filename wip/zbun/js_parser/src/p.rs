@@ -3653,7 +3653,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
 
                         if let Some(member_in_scope) =
-                            _scope.get_member_with_hash(name, hash.unwrap())
+                            _scope.get_member_with_hash(&self.store, name, hash.unwrap())
                         {
                             let existing_idx = member_in_scope.ref_.inner_index() as usize;
                             let existing_kind = self.symbols[existing_idx].kind;
@@ -5012,7 +5012,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // SAFETY: arena-owned Scope pointer valid for parser 'a lifetime; shared
         // borrow only (`get_member_with_hash` takes `&self`), so the later
         // re-derivations at L4149/L4160 cannot overlap a stale unique tag.
-        let member = self.module_scope().get_member_with_hash(name, name_hash);
+        let member = self.module_scope().get_member_with_hash(&self.store, name, name_hash);
 
         // If the code declared this symbol using "var name", then this is actually
         // not a collision. For example, node will let you do this:

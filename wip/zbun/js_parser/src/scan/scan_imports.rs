@@ -341,7 +341,7 @@ impl<'a> ImportScanner<'a> {
                                 link = next;
                             }
                             // SAFETY: arena-owned slice valid for 'p.
-                            let name = symbol.original_name.slice();
+                            let name = p.store.str(symbol.original_name);
                             let member = p
                                 .module_scope()
                                 .get_member_with_hash(name, js_ast::scope::Members::hash(name));
@@ -504,7 +504,7 @@ impl<'a> ImportScanner<'a> {
                         // This keeps track of the `namespace_alias` incase, at printing time, we determine that we should print it with the namespace
                         for item in st_items.iter() {
                             // SAFETY: `item.alias` is an arena-owned slice valid for 'p.
-                            if strings::eql_comptime(item.alias.slice(), b"default") {
+                            if strings::eql_comptime(p.store.str(item.alias), b"default") {
                                 record!()
                                     .flags
                                     .insert(import_record::Flags::CONTAINS_DEFAULT_ALIAS);
@@ -535,7 +535,7 @@ impl<'a> ImportScanner<'a> {
                                 || !st.star_name_loc.is_empty()
                             {
                                 // SAFETY: arena-owned slice valid for 'p.
-                                let original_name = symbol.original_name.slice();
+                                let original_name = p.store.str(symbol.original_name);
                                 symbol.namespace_alias =
                                     Some(Box::new(G::NamespaceAlias {
                                         namespace_ref,
@@ -581,7 +581,7 @@ impl<'a> ImportScanner<'a> {
 
                     for item in st_items.iter() {
                         // SAFETY: arena-owned slice valid for 'p.
-                        let alias = item.alias.slice();
+                        let alias = p.store.str(item.alias);
                         if strings::eql_comptime(alias, b"default") {
                             record!()
                                 .flags

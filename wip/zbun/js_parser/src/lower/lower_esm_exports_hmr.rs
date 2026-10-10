@@ -77,11 +77,11 @@ impl<'a> ConvertESMExportsForHmr<'a> {
 
                             // if the symbol is not used, we don't need to preserve
                             // a binding in this scope. we can move it to the exports object.
-                            if symbol.use_count_estimate == 0 && value.can_be_moved() {
+                            if symbol.use_count_estimate == 0 && value.can_be_moved(&p.store) {
                                 self.export_props.push(G::Property {
                                     key: Some(Expr::init(
                                         // SAFETY: arena-owned name slice valid for the parse.
-                                        E::EString::init(p.store.str(symbol.original_name)),
+                                        E::EString::init(p.store.alloc_str(p.store.str(symbol.original_name))),
                                         binding.loc,
                                     )),
                                     value: Some(value),
@@ -262,8 +262,8 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                     key: Some(Expr::init(
                         // SAFETY: arena-owned name slice valid for the parse.
                         E::EString::init(
-                            p.store.str(p.symbols[class_name_ref.inner_index() as usize]
-                                .original_name),
+                            p.store.alloc_str(p.store.str(p.symbols[class_name_ref.inner_index() as usize]
+                                .original_name)),
                         ),
                         stmt.loc,
                     )),
@@ -353,7 +353,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                     self.export_props.push(G::Property {
                         // SAFETY: arena-owned name slice valid for the parse.
                         key: Some(Expr::init(
-                            E::EString::init(p.store.str(alias.original_name)),
+                            E::EString::init(p.store.alloc_str(p.store.str(alias.original_name))),
                             stmt.loc,
                         )),
                         value: Some(Expr::init_identifier(deduped.namespace_ref, stmt.loc)),
