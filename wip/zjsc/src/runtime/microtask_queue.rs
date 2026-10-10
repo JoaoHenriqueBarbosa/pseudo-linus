@@ -189,6 +189,7 @@ impl VM {
             let Some(JSScopeRef::GlobalObject(global_object)) = JSScope::from_cell_id(task.global_object) else {
                 panic!("QueuedTask de um global object que não está no registro de células");
             };
+            let _roots = crate::runtime::gc::RootScope::new(&task.arguments);
             global_object.run_internal_microtask(task.job, task.payload, task.arguments);
 
             if let Some(exception) = scope.exception() {

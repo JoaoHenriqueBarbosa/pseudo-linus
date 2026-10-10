@@ -60,6 +60,10 @@ impl std::ops::Deref for ProxyRevoke {
 }
 
 impl ProxyRevoke {
+    /// `visitChildren`: o proxy.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.proxy.get());
+    }
     /// `StructureFlags = Base::StructureFlags`.
     pub const STRUCTURE_FLAGS: u32 = InternalFunction::STRUCTURE_FLAGS;
 

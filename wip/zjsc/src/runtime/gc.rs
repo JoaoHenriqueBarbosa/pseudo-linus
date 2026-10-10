@@ -120,6 +120,8 @@ impl Marker {
 struct State {
     /// As raízes explícitas (`Root`), por id, com a contagem de quem as segura.
     roots: HashMap<usize, u32>,
+    /// A pilha dos `RootScope`s abertos.
+    scoped_roots: Vec<usize>,
     /// A contagem de alocações logo depois da última coleta (ou do início do programa).
     allocations_after_collection: usize,
     /// Quantas alocações disparam a próxima coleta automática.
@@ -141,9 +143,24 @@ thread_local! {
     static STATE: RefCell<State> = RefCell::new(State { threshold: initial_threshold(), ..State::default() });
 }
 
+thread_local! {
+    /// `set_stress_for_thread`: o estresse só desta thread, para os testes.
+    static STRESS_FOR_THREAD: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+
+/// Coleta a cada `allocations` alocações nesta thread (`None` volta ao normal), como `ZJSC_GC_STRESS`.
+pub fn set_stress_for_thread(allocations: Option<usize>) {
+    STRESS_FOR_THREAD.with(|stress| stress.set(allocations.filter(|&value| value > 0)));
+    let _ = STATE.try_with(|state| state.borrow_mut().threshold = initial_threshold());
+}
+
 /// `ZJSC_GC_STRESS=N` coleta a cada N alocações (teste de estresse das raízes e das arestas).
 fn stress_threshold() -> Option<usize> {
-    std::env::var("ZJSC_GC_STRESS").ok().and_then(|value| value.parse().ok()).filter(|&value| value > 0)
+    STRESS_FOR_THREAD
+        .try_with(std::cell::Cell::get)
+        .ok()
+        .flatten()
+        .or_else(|| std::env::var("ZJSC_GC_STRESS").ok().and_then(|value| value.parse().ok()).filter(|&value| value > 0))
 }
 
 fn initial_threshold() -> usize {
@@ -174,6 +191,28 @@ pub(crate) fn retain_prototype(prototype: JSValue) {
                 state.prototypes.insert(cell_id);
             }
         });
+    }
+}
+
+/// `MarkedArgumentBuffer` de um driver nativo da raiz (a microtarefa, o timer, o tick): os valores que ele segura
+/// em locais Rust enquanto chama JS em profundidade 1, onde o ponto seguro coleta. É uma pilha: o escopo mais
+/// novo cai primeiro.
+pub struct RootScope(usize);
+
+impl RootScope {
+    pub fn new(values: &[JSValue]) -> RootScope {
+        STATE.with(|state| {
+            let mut state = state.borrow_mut();
+            let base = state.scoped_roots.len();
+            state.scoped_roots.extend(values.iter().filter_map(|value| if let JSValue::Cell(cell_id) = value { Some(*cell_id) } else { None }));
+            RootScope(base)
+        })
+    }
+}
+
+impl Drop for RootScope {
+    fn drop(&mut self) {
+        let _ = STATE.try_with(|state| state.borrow_mut().scoped_roots.truncate(self.0));
     }
 }
 
@@ -271,6 +310,7 @@ pub fn collect(interpreter: Option<&crate::interpreter::interpreter::Interpreter
             crate::runtime::timers::schedule_native(
                 &global_object,
                 0.0,
+                Vec::new(),
                 std::rc::Rc::new(move |global: &crate::runtime::js_global_object::JSGlobalObject| registry.run_finalization_cleanup(global)),
             );
         }
@@ -308,7 +348,7 @@ fn mark_and_sweep(
     }
     STATE.with(|state| {
         let mut state = state.borrow_mut();
-        for &cell_id in state.roots.keys().chain(state.prototypes.iter()) {
+        for &cell_id in state.roots.keys().chain(state.prototypes.iter()).chain(state.scoped_roots.iter()) {
             marker.cell(cell_id);
         }
         state.unlinked_code_blocks.retain(|code_block| code_block.strong_count() > 0);
@@ -331,6 +371,7 @@ fn mark_and_sweep(
     };
     interpreter.visit_gc_roots(&mut marker);
     vm.visit_gc_roots(&mut marker);
+    crate::runtime::timers::visit_gc_roots(&mut marker);
     // A marcação forte e os efêmeros (`Heap::runFixpointPhase`): o valor de `WeakMap` cuja chave ficou marcada é
     // marcado, e o que ele alcança pode marcar outra chave; repete até nada mudar.
     loop {

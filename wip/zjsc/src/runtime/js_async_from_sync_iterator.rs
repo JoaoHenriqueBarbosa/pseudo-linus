@@ -58,6 +58,13 @@ impl std::ops::Deref for JSAsyncFromSyncIterator {
 }
 
 impl JSAsyncFromSyncIterator {
+    /// `visitChildren`: o iterador síncrono, o `next`, o alvo e o resultado guardado.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.values(&[self.sync_iterator, self.next_method, self.cached_result.get()]);
+        if let Some(target) = self.target.get() {
+            marker.cell(target);
+        }
+    }
     /// `create(vm, structure, syncIterator, nextMethod, iterationMode)`.
     pub fn create(
         vm: &VM,

@@ -90,6 +90,63 @@ fn weak_references_follow_the_collector() {
     assert_eq!(text, "fin a,fin b,fin wmvalue,fin wsitem,micro object,sync object,t1 undefined 7");
 }
 
+/// Coleta a cada alocação nesta thread enquanto roda `program` (com timers) e devolve `globalThis.R`. Cada caso
+/// abaixo é uma aresta ou raiz que o `ZJSC_GC_STRESS` acusou: sem ela, a lápide do build de depuração dá pânico.
+fn stressed(program: &str) -> String {
+    gc::set_stress_for_thread(Some(1));
+    let result = zjsc::api::eval::evaluate_named_script_running_timers_reporting_uncaught(program, "/app/main.js", "R");
+    gc::set_stress_for_thread(None);
+    let value = result.expect("sem exceção não capturada").unwrap_or_else(|_| panic!("o programa lançou exceção"));
+    String::from_utf8_lossy(&value.to_wtf_string().utf8(ConversionMode::LenientConversion)).into_owned()
+}
+
+const CHURN: &str = "function churn() { for (let i = 0; i < 50; i++) { const g = [i]; } }";
+
+#[test]
+fn pending_promise_reactions_survive() {
+    let program = format!("{CHURN} var R = ''; var resolve; var p = new Promise(r => resolve = r);
+        p.then(v => {{ R += 'a' + v; }}); (function () {{ p.then(function (v) {{ R += 'b' + v; }}); }})();
+        churn(); resolve(1); churn();");
+    assert_eq!(stressed(&program), "a1b1");
+}
+
+#[test]
+fn timer_callbacks_and_arguments_survive() {
+    let program = format!("{CHURN} var R = ''; (function () {{ setTimeout((x, y) => {{ churn(); R += x.v + y[0]; }}, 1, {{ v: 'x' }}, ['y']); }})(); churn();");
+    assert_eq!(stressed(&program), "xy");
+}
+
+#[test]
+fn async_functions_and_microtask_arguments_survive() {
+    let program = format!("{CHURN} var R = ''; async function f(o) {{ churn(); await null; churn(); await {{ then(r) {{ churn(); r(o.k); }} }}; R += o.k; }}
+        (function () {{ f({{ k: 'z' }}); }})(); churn();");
+    assert_eq!(stressed(&program), "z");
+}
+
+#[test]
+fn bound_functions_and_arguments_objects_survive() {
+    let program = format!("{CHURN} var R = '';
+        var b = (function () {{ return function (a, c) {{ return this.t + a + c; }}.bind({{ t: 'T' }}, 'A'); }})();
+        function args() {{ return arguments; }} var a = args({{ s: 'S' }}, ['Q']);
+        function sloppy(x) {{ return arguments; }} var s = sloppy({{ s: 'P' }});
+        churn(); R = b('C') + a[0].s + a[1][0] + s[0].s;");
+    assert_eq!(stressed(&program), "TACSQP");
+}
+
+#[test]
+fn wrappers_regexps_and_async_iterators_survive() {
+    let program = format!("{CHURN} var R = ''; var w = Object(Symbol('w')); var re = /a/g; re.lastIndex = {{ valueOf() {{ return 0; }} }};
+        async function go() {{ for await (const v of [Promise.resolve('i'), 'j']) {{ churn(); R += v; }} }}
+        churn(); go().then(() => {{ R += typeof w.valueOf() + re.test('a'); }});");
+    assert_eq!(stressed(&program), "ijsymboltrue");
+}
+
+#[test]
+fn abort_signal_timeout_survives() {
+    let program = format!("{CHURN} var R = ''; (function () {{ var s = AbortSignal.timeout(1); s.onabort = () => {{ R += s.reason.name; }}; }})(); setTimeout(churn, 10); churn();");
+    assert_eq!(stressed(&program), "TimeoutError");
+}
+
 /// Cada tipo de dono sozinho, para a lápide apontar a aresta que falta.
 fn survives(setup: &str, step: &str, check: &str, expected: &str) {
     let program = format!("{setup}; for (let i = 0; i < 250000; i++) {{ const g = {{ i: i }}; if (i % 1000 === 0) {{ {step}; }} }} String({check})");

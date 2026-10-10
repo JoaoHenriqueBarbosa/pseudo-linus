@@ -1061,6 +1061,7 @@ fn request_import_module(
             crate::runtime::timers::schedule_native_with_ref(
                 global_object,
                 latency,
+                Vec::new(),
                 Rc::new(move |global_object| {
                     if let Some(pending) = pending.borrow_mut().take() {
                         finish_pending_import(global_object, &promise, pending);

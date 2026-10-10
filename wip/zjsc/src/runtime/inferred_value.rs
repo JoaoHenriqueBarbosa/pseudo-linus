@@ -208,7 +208,8 @@ impl<T> InferredValue<T> {
                 self.data = Data::Thin { state: WatchpointState::IsWatched, value: Some(Rc::downgrade(value)) };
             }
             WatchpointState::IsWatched => {
-                debug_assert!(current.is_some());
+                // O valor morto já teria invalidado no `finalizeUnconditionally` do C++ (`!vm.heap.isMarked`): o
+                // `Weak` vazio invalida aqui, na primeira escrita depois da coleta, que é quando a diferença aparece.
                 if current.as_ref().is_some_and(|inferred| Rc::ptr_eq(inferred, value)) {
                     return;
                 }

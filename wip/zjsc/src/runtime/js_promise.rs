@@ -163,6 +163,13 @@ fn queue_internal_microtask(host: &dyn PromiseHost, task: InternalMicrotask, pay
 }
 
 impl JSPromise {
+    /// `JSPromise::visitChildren`: o payload (a cabeça das reações ou o resultado) e o `m_slot`.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        if let Some(payload) = self.payload.get() {
+            marker.cell(payload);
+        }
+        marker.value(self.slot.get());
+    }
     /// `create(vm, structure)`.
     pub fn create(vm: &VM, structure: &StructureRef) -> JSPromiseRef {
         let cell_id = cell_registry::reserve();

@@ -287,6 +287,14 @@ pub(crate) fn special_own_slot(vm: &VM, object: &JSObject, name: &PropertyName, 
 }
 
 impl DirectArguments {
+    /// `visitChildren`: os argumentos e o callee.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.callee);
+        match self.storage.try_borrow() {
+            Ok(storage) => marker.values(&storage),
+            Err(_) => marker.abort(),
+        }
+    }
     /// `DirectArguments::createByCopying(globalObject, callFrame)`: `arguments` são os `argumentCount()`
     /// argumentos do frame e `min_capacity` o `numParameters() - 1` do `CodeBlock`.
     pub fn create_by_copying(

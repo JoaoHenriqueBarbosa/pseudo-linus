@@ -314,6 +314,7 @@ fn signal_static_timeout_body(global_object: &JSGlobalObject, call: &HostCall) -
         global_object,
         // `-0` (de `-0.5`) vira `0`.
         milliseconds + 0.0,
+        vec![signal],
         Rc::new(move |global: &JSGlobalObject| {
             if let Ok(reason) = new_detached_dom_exception(global, "TimeoutError", "The operation timed out.") {
                 let _ = signal_abort(global, signal, reason);

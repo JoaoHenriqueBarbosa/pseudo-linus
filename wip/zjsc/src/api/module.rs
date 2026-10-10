@@ -300,7 +300,7 @@ fn take_log_and_halt() {
 fn entry_settled(global_object: &crate::runtime::js_global_object::JSGlobalObject) {
     match SETTLED_LOG.with(|slot| slot.borrow().1) {
         LogPoint::EntrySettled => take_log_and_halt(),
-        LogPoint::NextTimeout => crate::runtime::timers::schedule_native(global_object, 0.0, Rc::new(|_| take_log_and_halt())),
+        LogPoint::NextTimeout => crate::runtime::timers::schedule_native(global_object, 0.0, Vec::new(), Rc::new(|_| take_log_and_halt())),
     }
 }
 
