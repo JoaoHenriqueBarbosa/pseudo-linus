@@ -171,7 +171,14 @@ pub fn computed_value(doc: &mut BaseDocument, id: NodeId, name: &str) -> Option<
     use style::properties::{PropertyDeclarationId, PropertyId};
     doc.resolve(0.0);
     let node = doc.get_node(id)?;
-    let styles = node.primary_styles()?;
+    if !node.is_element() {
+        return None;
+    }
+    // Sob `display: none` a travessia não estiliza; o Chromium resolve o estilo do mesmo jeito.
+    let styles = match node.primary_styles() {
+        Some(styles) => styles.clone(),
+        None => doc.resolve_undisplayed_style(id)?,
+    };
     let property = PropertyId::parse_enabled_for_all_content(name).ok()?;
     match property.as_shorthand() {
         Err(declaration) => Some(styles.computed_value_to_string(declaration)),

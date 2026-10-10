@@ -182,6 +182,31 @@ impl crate::document::BaseDocument {
 
         style::thread_state::exit(ThreadState::LAYOUT);
     }
+
+    /// pseudo-linus: o estilo de um elemento que a travessia não estilizou (subárvore `display: none`), resolvido sob
+    /// demanda como o `getComputedStyle` do Chromium faz. O documento precisa estar resolvido.
+    pub fn resolve_undisplayed_style(&self, id: NodeId) -> Option<Arc<ComputedValues>> {
+        let element = TDocument::as_node(&&self.nodes[id]).as_element()?;
+        style::thread_state::enter(ThreadState::LAYOUT);
+        let guard = &self.guard;
+        let guards = StylesheetGuards { author: &guard.read(), ua_or_user: &guard.read() };
+        let shared = SharedStyleContext {
+            traversal_flags: TraversalFlags::empty(),
+            stylist: &self.stylist,
+            options: GLOBAL_STYLE_DATA.options.clone(),
+            guards,
+            visited_styles_enabled: false,
+            animations: self.animations.clone(),
+            current_time_for_animations: 0.0,
+            snapshot_map: &self.snapshots,
+            registered_speculative_painters: &RegisteredPaintersImpl,
+        };
+        let mut thread_local = style::context::ThreadLocalStyleContext::new();
+        let mut context = StyleContext { shared: &shared, thread_local: &mut thread_local };
+        let styles = style::traversal::resolve_style(&mut context, element, style::stylist::RuleInclusion::All, None, None);
+        style::thread_state::exit(ThreadState::LAYOUT);
+        Some(styles.primary().clone())
+    }
 }
 
 /// A handle to a node that Servo's style traits are implemented against
