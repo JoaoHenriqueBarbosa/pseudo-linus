@@ -436,6 +436,8 @@ impl CollectionConstructor {
         let vm = global_object.vm();
         let structure = derived_structure(global_object, call, self.create_structure)?;
         let cell = (self.create_cell)(vm, &structure);
+        // A coleção nova e o `adder` vivem só neste local Rust enquanto o iterável roda JS.
+        let _cell = crate::runtime::gc::RootScope::new(&[cell]);
 
         let iterable = call.argument(0);
         if iterable.is_undefined_or_null() {
@@ -444,6 +446,7 @@ impl CollectionConstructor {
 
         let adder_name = Identifier::from_span(vm, self.adder_name.as_bytes());
         let adder = get_value_property(global_object, cell, &PropertyName::from_identifier(&adder_name))?;
+        let _adder = crate::runtime::gc::RootScope::new(&[adder]);
         if !adder.is_callable() {
             return Err(Thrown::type_error(self.adder_not_callable_message));
         }
