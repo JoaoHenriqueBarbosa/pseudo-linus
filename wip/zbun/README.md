@@ -47,6 +47,7 @@ mil, `lower/` com 3,4 mil) e o `js_printer` 9,8 mil (`lib.rs` com 8,3 mil, `rena
 3. `visit/` e `fold.rs`; `lower/` só o que os oito casos pedem (decorators e namespaces).
 4. O teste de cada caso compara a AST do parser com a de `ast/tests/ast_cases.rs`.
 5. `js_printer` e o golden de `bun build --no-bundle` gerado na imagem do oráculo.
+6. `bun_react_compiler` (o `--react-compiler` do `bun build`), ligando a feature `react_compiler` do parser.
 
 Estado do passo 1: feito (`import_record`, `ImportKind`, `part`, `runtime`, `ast_result`, `char_freq`,
 `SlotCounts`). Medida do passo 2 (cópia de todo o `js_parser` restante, 2026-10-10): a primeira compilação para em
@@ -62,10 +63,10 @@ Estado do passo 1: feito (`import_record`, `ImportKind`, `part`, `runtime`, `ast
 Estado dos ganchos (commit `cca3d157`): o `Macro` tem as constantes reais (`NAMESPACE`, `is_macro_path`) e o
 `MacroContext` é um tipo sem valor, então `options.macro_context` é sempre `None` e os caminhos que chamariam a macro
 são inalcançáveis pelo tipo. O `bun_react_compiler` e o `bun_crash_handler` ficam atrás das features
-`react_compiler` e `crash_handler`, que só se ligam depois de portar a crate. Aviso para quando a CLI entrar: o
-`bun build` aceita `--react-compiler`, e sem a crate essa flag não pode chegar ao parser calada. A CLI tem de
-recusá-la com a mesma saída e o mesmo código de saída que o bun dá quando não reconhece uma flag, medidos no
-oráculo (o bun 1.4.2 de lá tem o compilador, então a medida é a de flag desconhecida, não a de flag aceita).
+`react_compiler` e `crash_handler`, que só se ligam depois de portar a crate. O `bun build` do oráculo aceita
+`--react-compiler`, então recusar a flag denunciaria a simulação: o destino fiel é portar o `bun_react_compiler`,
+que entra na fila do porte depois do printer e do golden. Se a CLI for ligada antes disso, a flag fica aceita e sem
+efeito até a crate entrar.
 
 Depois da resolução vem a troca sistemática do `Deref` do `StoreRef` por `p.store[r]` em todo `p.rs`, `parse/` e
 `visit/`, que é o grosso do trabalho. Os `Define` guardam `ExprData` com índices: como cada arquivo tem o seu
