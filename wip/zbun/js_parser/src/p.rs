@@ -8757,13 +8757,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let loc = bun_ast::Loc::EMPTY;
 
         let final_ = ctx.hasher.final_();
-        let hash_data =
-            self.arena
-                .alloc_slice_fill_default::<u8>(bun_base64::encode_len_from_size(
-                    core::mem::size_of_val(&final_),
-                ));
-        let _written = bun_base64::encode(hash_data, &final_.to_ne_bytes());
-        debug_assert!(_written == hash_data.len());
+        // `bun_base64::encode` é o base64 padrão com `=`, o mesmo do `ul_common::codec`; o texto vai para o `Store`.
+        let encoded = ul_common::codec::base64_encode(&final_.to_ne_bytes(), ul_common::codec::BASE64_STANDARD, true);
+        let hash_data = self.store.alloc_str(&encoded);
 
         let have_custom_hooks = ctx.user_hooks.count() > 0;
         let have_force_arg = have_custom_hooks || self.react_refresh.force_reset;
