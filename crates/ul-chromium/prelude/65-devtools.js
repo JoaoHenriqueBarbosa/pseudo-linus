@@ -1,0 +1,438 @@
+// ---- DevTools: o agente da página do protocolo (Runtime e o que depende dos objetos da página), como o
+// `V8InspectorSession` do Chromium. O hospedeiro entrega cada mensagem já validada pelo esquema do protocolo e recolhe
+// as respostas e os eventos na caixa de saída; resposta de comando assíncrono (`awaitPromise`) sai quando a promessa
+// assenta. Os intrínsecos ficam guardados aqui: o que a página trocar depois não muda o que o inspetor vê.
+
+const devtoolsAgent = (() => {
+  const jsonStringify = JSON.stringify;
+  const jsonParse = JSON.parse;
+  const ownKeys = Reflect.ownKeys;
+  const getOwnDescriptor = Object.getOwnPropertyDescriptor;
+  const getPrototypeOf = Object.getPrototypeOf;
+  const objectToString = Object.prototype.toString;
+  const functionToString = Function.prototype.toString;
+  const call = Function.prototype.call.bind(Function.prototype.call);
+  const isArray = Array.isArray;
+  const promiseThen = Promise.prototype.then;
+  const mapSize = getOwnDescriptor(Map.prototype, 'size').get;
+  const setSize = getOwnDescriptor(Set.prototype, 'size').get;
+  const symbolDescription = getOwnDescriptor(Symbol.prototype, 'description').get;
+  const symbolToString = Symbol.prototype.toString;
+  const bigintToString = BigInt.prototype.toString;
+  const dateToString = Date.prototype.toString;
+  const dateGetTime = Date.prototype.getTime;
+  const regexpToString = RegExp.prototype.toString;
+  const typedArrayLength = getOwnDescriptor(getPrototypeOf(Uint8Array.prototype), 'length').get;
+  const typedArrayTag = getOwnDescriptor(getPrototypeOf(Uint8Array.prototype), Symbol.toStringTag).get;
+  const arrayBufferLength = getOwnDescriptor(ArrayBuffer.prototype, 'byteLength').get;
+  const promiseState = new WeakMap();
+  const ObjectCtor = Object;
+
+  const state = {
+    // O id do isolate (um `int64` aleatório do V8) e o contexto corrente; cada navegação cria um contexto novo.
+    isolateId: '0',
+    contextId: 1,
+    uniqueId: '',
+    frameId: '',
+    origin: '://',
+    nextObject: 1,
+    exceptionId: 0,
+    // Os scripts que o V8 já compilou antes do primeiro `evaluate` do inspetor.
+    scriptId: 2,
+    scripts: new Map(),
+    objects: new Map(),
+    groups: new Map(),
+    enabled: new Set(),
+    outbox: [],
+  };
+
+  const brand = (getter, value) => {
+    try { call(getter, value); return true; } catch { return false; }
+  };
+
+  // O `GetConstructorName` do V8: o nome do construtor da cadeia de protótipos, ou o da marca interna.
+  const className = (value) => {
+    try {
+      for (let proto = value; proto !== null; proto = getPrototypeOf(proto)) {
+        const ctor = getOwnDescriptor(proto, 'constructor');
+        if (ctor && typeof ctor.value === 'function') {
+          const name = getOwnDescriptor(ctor.value, 'name');
+          if (name && typeof name.value === 'string' && name.value !== '') return name.value;
+        }
+      }
+    } catch { /* Proxy revogado ou armadilha que lança */ }
+    return call(objectToString, value).slice(8, -1);
+  };
+
+  const nodeDescription = (node) => {
+    switch (node.nodeType) {
+      case 1: {
+        let text = node.localName;
+        const id = node.getAttribute('id');
+        if (id) text += '#' + id;
+        const cls = node.getAttribute('class');
+        if (cls) for (const name of cls.trim().split(/\s+/)) if (name) text += '.' + name;
+        return text;
+      }
+      case 3: return '#text';
+      case 4: return '#cdata-section';
+      case 7: return node.nodeName;
+      case 8: return '#comment';
+      case 9: return '#document';
+      case 10: return '<!DOCTYPE ' + node.name + '>';
+      case 11: return '#document-fragment';
+      default: return node.nodeName;
+    }
+  };
+
+  // Subtipo e descrição do `ValueMirror` do V8 para um objeto.
+  const objectShape = (value) => {
+    const name = className(value);
+    if (isNode(value)) return { subtype: 'node', className: name, description: nodeDescription(value) };
+    if (isArray(value)) return { subtype: 'array', className: name, description: name + '(' + value.length + ')' };
+    if (brand(mapSize, value)) return { subtype: 'map', className: name, description: name + '(' + call(mapSize, value) + ')' };
+    if (brand(setSize, value)) return { subtype: 'set', className: name, description: name + '(' + call(setSize, value) + ')' };
+    if (value instanceof WeakMap) return { subtype: 'weakmap', className: name, description: name };
+    if (value instanceof WeakSet) return { subtype: 'weakset', className: name, description: name };
+    if (brand(dateGetTime, value)) return { subtype: 'date', className: name, description: call(dateToString, value) };
+    if (value instanceof RegExp) return { subtype: 'regexp', className: name, description: call(regexpToString, value) };
+    if (value instanceof Error) {
+      const stack = getOwnDescriptor(value, 'stack');
+      const description = stack && typeof stack.value === 'string' ? stack.value : String(value.name) + ': ' + String(value.message);
+      return { subtype: 'error', className: name, description };
+    }
+    if (value instanceof Promise) return { subtype: 'promise', className: name, description: 'Promise' };
+    if (brand(typedArrayLength, value)) return { subtype: 'typedarray', className: name, description: call(typedArrayTag, value) + '(' + call(typedArrayLength, value) + ')' };
+    if (brand(arrayBufferLength, value)) return { subtype: 'arraybuffer', className: name, description: name + '(' + call(arrayBufferLength, value) + ')' };
+    if (value instanceof DataView) return { subtype: 'dataview', className: name, description: name + '(' + value.byteLength + ')' };
+    return { className: name, description: name };
+  };
+
+  const register = (value, group) => {
+    const objectId = state.isolateId + '.' + state.contextId + '.' + state.nextObject++;
+    state.objects.set(objectId, value);
+    if (group !== undefined) {
+      if (!state.groups.has(group)) state.groups.set(group, []);
+      state.groups.get(group).push(objectId);
+    }
+    return objectId;
+  };
+
+  const unserializable = (n) => {
+    if (n !== n) return 'NaN';
+    if (n === Infinity) return 'Infinity';
+    if (n === -Infinity) return '-Infinity';
+    if (n === 0 && 1 / n < 0) return '-0';
+    return null;
+  };
+
+  // O valor por cópia (`returnByValue`): JSON com a profundidade e os ciclos que o V8 recusa.
+  class ChainTooLong extends Error {}
+  const byValue = (value, depth) => {
+    if (depth > 1000) throw new ChainTooLong();
+    if (value === null || typeof value !== 'object') {
+      if (typeof value === 'number') return unserializable(value) === null ? value : null;
+      return typeof value === 'function' || typeof value === 'symbol' ? undefined : value;
+    }
+    if (typeof value.toJSON === 'function' && brand(dateGetTime, value)) return value.toJSON();
+    if (isArray(value)) {
+      const out = [];
+      for (let i = 0; i < value.length; i++) {
+        const item = byValue(value[i], depth + 1);
+        out.push(item === undefined ? null : item);
+      }
+      return out;
+    }
+    const out = {};
+    for (const key of ObjectCtor.keys(value)) {
+      const item = byValue(value[key], depth + 1);
+      if (item !== undefined) out[key] = item;
+    }
+    return out;
+  };
+
+  const remoteObject = (value, options = {}) => {
+    switch (typeof value) {
+      case 'undefined': return { type: 'undefined' };
+      case 'boolean': return { type: 'boolean', value };
+      case 'string': return { type: 'string', value };
+      case 'number': {
+        const special = unserializable(value);
+        return special === null ? { type: 'number', value, description: String(value) } : { type: 'number', unserializableValue: special, description: special };
+      }
+      case 'bigint': {
+        const text = call(bigintToString, value) + 'n';
+        return { type: 'bigint', unserializableValue: text, description: text };
+      }
+      case 'symbol': {
+        const out = { type: 'symbol', description: call(symbolToString, value) };
+        if (!options.returnByValue) out.objectId = register(value, options.objectGroup);
+        return out;
+      }
+      default: break;
+    }
+    if (value === null) return { type: 'object', subtype: 'null', value: null };
+    if (options.returnByValue) {
+      const copy = byValue(value, 0);
+      return { type: typeof value === 'function' ? 'function' : 'object', value: copy === undefined ? {} : copy };
+    }
+    if (typeof value === 'function') {
+      return { type: 'function', className: 'Function', description: call(functionToString, value), objectId: register(value, options.objectGroup) };
+    }
+    const shape = objectShape(value);
+    const out = { type: 'object' };
+    if (shape.subtype) out.subtype = shape.subtype;
+    out.className = shape.className;
+    out.description = shape.description;
+    out.objectId = register(value, options.objectGroup);
+    return out;
+  };
+
+  // A posição de uma exceção: linha e coluna do `stack` do V8 (base 1) passadas a base 0.
+  const exceptionDetails = (exception, text, scriptId, mirror, extra = {}) => {
+    state.exceptionId++;
+    let lineNumber = 0;
+    let columnNumber = 0;
+    if (extra.position) [lineNumber, columnNumber] = extra.position;
+    const details = { exceptionId: state.exceptionId, text, lineNumber, columnNumber };
+    if (scriptId !== null) details.scriptId = String(scriptId);
+    details.exception = mirror;
+    return details;
+  };
+
+  const reply = (message, result) => {
+    const out = { id: message.id, result };
+    if (message.sessionId !== undefined) out.sessionId = message.sessionId;
+    state.outbox.push(out);
+  };
+  const fail = (message, code, text) => {
+    const out = { id: message.id, error: { code, message: text } };
+    if (message.sessionId !== undefined) out.sessionId = message.sessionId;
+    state.outbox.push(out);
+  };
+  const emit = (method, params) => {
+    for (const sessionId of state.enabled) {
+      const out = { method, params };
+      if (sessionId !== '') out.sessionId = sessionId;
+      state.outbox.push(out);
+    }
+  };
+
+  const contextDescription = () => ({
+    id: state.contextId,
+    origin: state.origin,
+    name: '',
+    uniqueId: state.uniqueId,
+    auxData: { isDefault: true, type: 'default', frameId: state.frameId },
+  });
+
+  // O resultado de um valor ou exceção já calculado, com a espera da promessa quando pedida.
+  const settle = (message, params, outcome) => {
+    const options = { returnByValue: params.returnByValue === true, objectGroup: params.objectGroup };
+    const send = (thrown, value, scriptId, position, inPromise) => {
+      let mirror;
+      try {
+        mirror = remoteObject(value, thrown ? { objectGroup: params.objectGroup } : options);
+      } catch (error) {
+        if (error instanceof ChainTooLong) { fail(message, -32000, 'Object reference chain is too long'); return; }
+        throw error;
+      }
+      if (!thrown) { reply(message, { result: mirror }); return; }
+      const text = inPromise ? 'Uncaught (in promise) ' + (mirror.description !== undefined && mirror.type === 'object' ? mirror.description.split('\n')[0] : remoteText(value)) : 'Uncaught';
+      const exception = remoteObject(value, { objectGroup: params.objectGroup });
+      reply(message, { result: mirror, exceptionDetails: exceptionDetails(value, text, inPromise ? null : scriptId, exception, { position }) });
+    };
+    if (outcome.thrown || params.awaitPromise !== true || !(outcome.value instanceof Promise)) {
+      send(outcome.thrown, outcome.value, outcome.scriptId, outcome.position, false);
+      return;
+    }
+    call(promiseThen, outcome.value, (value) => send(false, value, outcome.scriptId), (reason) => send(true, reason, outcome.scriptId, undefined, true));
+  };
+
+  const remoteText = (value) => {
+    try { return String(value); } catch { return 'Object'; }
+  };
+
+  // Linha e coluna (base 0) da primeira moldura do `stack`, a posição que o V8 dá à exceção.
+  const stackPosition = (error) => {
+    try {
+      const stack = getOwnDescriptor(error, 'stack');
+      if (!stack || typeof stack.value !== 'string') return undefined;
+      const found = /:(\d+):(\d+)\)?(?:\n|$)/.exec(stack.value);
+      return found ? [Number(found[1]) - 1, Number(found[2]) - 1] : undefined;
+    } catch { return undefined; }
+  };
+
+  // O id do script compilado para `source`: o cache de compilação do V8 devolve o mesmo script para o mesmo fonte.
+  const scriptFor = (source) => {
+    let id = state.scripts.get(source);
+    if (id === undefined) state.scripts.set(source, (id = ++state.scriptId));
+    return id;
+  };
+
+  // O contexto pedido (`contextId` ou `uniqueContextId`) existe nesta página; ausente vale o contexto padrão.
+  const contextMatches = (id, unique) => (id === undefined || id === state.contextId) && (unique === undefined || unique === state.uniqueId);
+
+  const evaluate = (message, params) => {
+    if (!contextMatches(params.contextId, params.uniqueContextId)) { fail(message, -32000, 'Cannot find context with specified id'); return; }
+    const scriptId = scriptFor(params.expression);
+    let outcome;
+    try {
+      outcome = { thrown: false, value: evalGlobal(params.expression, ''), scriptId };
+    } catch (error) {
+      outcome = { thrown: true, value: error, scriptId, position: error instanceof SyntaxError ? stackPosition(error) : [0, 0] };
+    }
+    settle(message, params, outcome);
+  };
+
+  const lookup = (message, objectId) => {
+    if (!state.objects.has(objectId)) {
+      fail(message, -32000, 'Could not find object with given id');
+      return { found: false };
+    }
+    return { found: true, value: state.objects.get(objectId) };
+  };
+
+  const callFunctionOn = (message, params) => {
+    let receiver;
+    if (params.objectId !== undefined) {
+      const found = lookup(message, params.objectId);
+      if (!found.found) return;
+      receiver = found.value;
+    } else if (params.executionContextId === undefined && params.uniqueContextId === undefined) {
+      fail(message, -32602, 'Either objectId or executionContextId or uniqueContextId must be specified');
+      return;
+    } else if (!contextMatches(params.executionContextId, params.uniqueContextId)) {
+      fail(message, -32000, 'Cannot find context with specified id');
+      return;
+    }
+    const args = [];
+    for (const argument of params.arguments || []) {
+      if (argument.objectId !== undefined) {
+        if (!state.objects.has(argument.objectId)) { fail(message, -32000, 'Could not find object with given id'); return; }
+        args.push(state.objects.get(argument.objectId));
+      } else if (argument.unserializableValue !== undefined) {
+        const text = argument.unserializableValue;
+        args.push(text === 'NaN' ? NaN : text === 'Infinity' ? Infinity : text === '-Infinity' ? -Infinity : text === '-0' ? -0 : BigInt(text.slice(0, -1)));
+      } else {
+        args.push(argument.value);
+      }
+    }
+    const scriptId = scriptFor('(' + params.functionDeclaration + '\n)');
+    let outcome;
+    try {
+      const fn = evalGlobal('(' + params.functionDeclaration + '\n)', '');
+      if (typeof fn !== 'function') { fail(message, -32000, 'Given expression does not evaluate to a function'); return; }
+      outcome = { thrown: false, value: call(fn, receiver, ...args), scriptId };
+    } catch (error) {
+      outcome = { thrown: true, value: error, scriptId, position: [0, 0] };
+    }
+    settle(message, params, outcome);
+  };
+
+  const getProperties = (message, params) => {
+    const found = lookup(message, params.objectId);
+    if (!found.found) return;
+    const target = found.value;
+    const options = { objectGroup: params.objectGroup };
+    const result = [];
+    const describe = (owner, own) => {
+      for (const key of ownKeys(owner)) {
+        const descriptor = getOwnDescriptor(owner, key);
+        if (params.ownProperties && !own) continue;
+        const entry = { name: typeof key === 'symbol' ? call(symbolToString, key) : key };
+        if ('value' in descriptor) {
+          let value;
+          try { value = remoteObject(descriptor.value, options); } catch { value = { type: 'undefined' }; }
+          entry.value = value;
+          entry.writable = descriptor.writable;
+        } else {
+          if (descriptor.get) entry.get = remoteObject(descriptor.get, options);
+          if (descriptor.set) entry.set = remoteObject(descriptor.set, options);
+        }
+        entry.configurable = descriptor.configurable;
+        entry.enumerable = descriptor.enumerable;
+        entry.isOwn = own;
+        if (typeof key === 'symbol') entry.symbol = remoteObject(key, options);
+        result.push(entry);
+      }
+    };
+    if (target !== null && (typeof target === 'object' || typeof target === 'function')) {
+      describe(target, true);
+      if (!params.ownProperties) for (let proto = getPrototypeOf(target); proto !== null; proto = getPrototypeOf(proto)) describe(proto, false);
+    }
+    const out = { result };
+    if (params.ownProperties && target !== null && typeof target === 'object') {
+      const proto = getPrototypeOf(target);
+      if (proto !== null) out.internalProperties = [{ name: '[[Prototype]]', value: remoteObject(proto, options) }];
+    }
+    reply(message, out);
+  };
+
+  const commands = {
+    'Runtime.enable': (message) => {
+      const sessionId = message.sessionId === undefined ? '' : message.sessionId;
+      if (!state.enabled.has(sessionId)) {
+        state.enabled.add(sessionId);
+        const out = { method: 'Runtime.executionContextCreated', params: { context: contextDescription() } };
+        if (sessionId !== '') out.sessionId = sessionId;
+        state.outbox.push(out);
+      }
+      reply(message, {});
+    },
+    'Runtime.disable': (message) => {
+      state.enabled.delete(message.sessionId === undefined ? '' : message.sessionId);
+      reply(message, {});
+    },
+    'Runtime.evaluate': evaluate,
+    'Runtime.callFunctionOn': callFunctionOn,
+    'Runtime.getProperties': getProperties,
+    'Runtime.releaseObject': (message, params) => {
+      state.objects.delete(params.objectId);
+      reply(message, {});
+    },
+    'Runtime.releaseObjectGroup': (message, params) => {
+      for (const id of state.groups.get(params.objectGroup) || []) state.objects.delete(id);
+      state.groups.delete(params.objectGroup);
+      reply(message, {});
+    },
+    'Runtime.runIfWaitingForDebugger': (message) => reply(message, {}),
+    'Runtime.getIsolateId': (message) => reply(message, { id: state.isolateId }),
+    'Runtime.discardConsoleEntries': (message) => reply(message, {}),
+  };
+
+  return {
+    // Um marco do carregamento (`DOMContentLoaded`, `load`) para os eventos de `Page`, com o título do documento e se
+    // ele tem o que pintar (os `first*Paint` do Chromium só saem com conteúdo).
+    lifecycle(name) {
+      const body = document.body;
+      const contentful = body !== null && (body.textContent.trim() !== '' || body.querySelector('img, canvas, svg, video, input, button, textarea, select, iframe') !== null);
+      state.outbox.push({ $lifecycle: name, title: document.title, contentful, images: document.images.length > 0 });
+    },
+    // `init`: o isolate, o contexto, a moldura e a origem da página nova (o hospedeiro sabe o que a navegação deu).
+    init(text) {
+      const config = jsonParse(text);
+      state.isolateId = config.isolateId;
+      state.contextId = config.contextId;
+      state.uniqueId = config.uniqueId;
+      state.frameId = config.frameId;
+      state.origin = config.origin;
+      for (const sessionId of config.enabled) state.enabled.add(sessionId);
+      emit('Runtime.executionContextCreated', { context: contextDescription() });
+    },
+    dispatch(text) {
+      const message = jsonParse(text);
+      const handler = commands[message.method];
+      if (handler === undefined) { fail(message, -32601, "'" + message.method + "' wasn't found"); return; }
+      handler(message, message.params || {});
+    },
+    drain() {
+      const out = state.outbox.map((item) => jsonStringify(item));
+      state.outbox.length = 0;
+      return out.join('\n');
+    },
+    enabledSessions() {
+      return jsonStringify([...state.enabled]);
+    },
+  };
+})();

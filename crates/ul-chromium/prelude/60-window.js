@@ -665,6 +665,7 @@ const hook = (name, a, b) => {
       hidden(document, '__readyState', 'interactive');
       document.dispatchEvent(new Event('readystatechange'));
       document.dispatchEvent(new Event('DOMContentLoaded', { bubbles: true }));
+      devtoolsAgent.lifecycle('DOMContentLoaded');
       break;
     }
     // Os `async` do documento e as folhas dele chegaram: o `load` só espera o que a página pôs em voo.
@@ -680,6 +681,7 @@ const hook = (name, a, b) => {
       hidden(load, '__targetOverride', document);
       window.dispatchEvent(load);
       window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }));
+      devtoolsAgent.lifecycle('load');
       // Logo depois do `load` o navegador busca o ícone declarado (`link rel=icon`; sem ele, nenhuma busca aparece no
       // resource timing do oráculo). A busca fica em voo por FAVICON_ROUND_TRIP_MS, e enquanto isso os quadros pedidos
       // ainda saem (medido na wikipedia: o rAF pedido pelo mw.loader depois do `load` roda e os módulos ficam prontos).
@@ -701,6 +703,10 @@ const hook = (name, a, b) => {
     }
     case 'currentScript': hidden(document, '__currentScript', a === null ? null : wrap(a)); break;
     case 'namedLookup': return namedValue;
+    // O agente do DevTools (`65-devtools.js`): configuração do contexto, uma mensagem, e a caixa de saída.
+    case 'cdpInit': devtoolsAgent.init(a); break;
+    case 'cdp': devtoolsAgent.dispatch(a); break;
+    case 'cdpDrain': return devtoolsAgent.drain();
     case 'url': pageState.url = a; break;
     // Rejeições sem tratador, do rastreador do motor. `handled` também chega para a promessa tratada no mesmo
     // checkpoint, que nunca foi relatada: só as relatadas ganham `rejectionhandled`.

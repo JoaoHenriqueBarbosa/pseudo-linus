@@ -9,8 +9,7 @@ pub const PRODUCT: &str = "Chrome/154.0.8037.92";
 pub const PROTOCOL_VERSION: &str = "1.3";
 pub const REVISION: &str = "@334b65d254ccc35df4fca82706d1753227b01039";
 pub const V8_VERSION: &str = "15.4.80.19";
-pub const USER_AGENT: &str =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36";
+pub use crate::bridge::USER_AGENT;
 
 /// O `/json/protocol`, o arquivo estático do Chromium do oráculo byte a byte.
 const PROTOCOL: &[u8] = include_bytes!("../../data/devtools/protocol.json");

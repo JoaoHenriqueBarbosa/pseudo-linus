@@ -9,7 +9,7 @@ use blitz_dom::{BaseDocument, NodeId};
 use sysabi::sys;
 use ul_net::net::client::RequestSpec;
 use ul_net::net::url;
-use zjsc::api::embed::{run_page, HostArg};
+use zjsc::api::embed::{run_page, HostArg, HostHandle, PageRunner};
 use zjsc::runtime::console_host::ConsoleHost;
 
 use crate::bridge::{Bridge, USER_AGENT};
@@ -18,7 +18,7 @@ use crate::{document, encoding};
 
 /// O prelúdio JavaScript: o DOM e as APIs de janela escritos sobre a ponte. O valor do `let` de topo é o gancho de
 /// ciclo de vida; não é propriedade do global, então a página não o enxerga por introspecção.
-const PRELUDE_PARTS: [&str; 22] = [
+const PRELUDE_PARTS: [&str; 23] = [
     include_str!("../prelude/00-core.js"),
     include_str!("../prelude/10-events.js"),
     include_str!("../prelude/20-nodes.js"),
@@ -41,6 +41,7 @@ const PRELUDE_PARTS: [&str; 22] = [
     include_str!("../prelude/50-document.js"),
     include_str!("../prelude/55-xpath.js"),
     include_str!("../prelude/60-window.js"),
+    include_str!("../prelude/65-devtools.js"),
 ];
 const PRELUDE_TAIL: &str = include_str!("../prelude/70-expose.js");
 
@@ -156,9 +157,16 @@ impl Page {
     /// Roda os scripts na ordem do navegador, dispara `DOMContentLoaded` e `load` e deixa o laço de eventos andar até
     /// o orçamento de tempo virtual.
     pub fn run(&self) {
+        let budget = self.budget_ms;
+        self.run_with(|_, _| {}, |runner, _| runner.run_event_loop_for(budget));
+    }
+
+    /// Como [`Page::run`], com `start` chamado quando o prelúdio fica pronto (antes do primeiro script da página) e
+    /// `after` no lugar do orçamento de tempo virtual: o programa e o gancho do prelúdio seguem vivos enquanto `after`
+    /// roda (o laço do DevTools). `None` quando o prelúdio falhou.
+    pub fn run_with<T>(&self, start: impl FnOnce(&PageRunner, &HostHandle), after: impl FnOnce(&PageRunner, &HostHandle) -> T) -> Option<T> {
         let scripts = self.collect_scripts();
         let bridge = self.bridge.clone();
-        let budget = self.budget_ms;
         let document_url = self.bridge.url.borrow().clone();
         let module_bridge = self.bridge.clone();
         let module_fetch: zjsc::api::browser_modules::ModuleFetch = Rc::new(move |address: &str| {
@@ -187,7 +195,7 @@ impl Page {
                 Err(error) => {
                     // O prelúdio é parte do navegador: falha dele é bug nosso e a página fica sem DOM de script.
                     eprintln!("chromium: prelúdio falhou: {error}");
-                    return;
+                    return None;
                 }
             };
             runner.set_rejection_hook(&hook);
@@ -199,6 +207,7 @@ impl Page {
             if let Some(seed) = self.random_seed {
                 runner.set_random_seed(seed);
             }
+            start(runner, &hook);
             if let Some(source) = &self.inspector {
                 if let Err(error) = runner.eval(source, "inspector.js") {
                     eprintln!("inspector: {error}");
@@ -271,8 +280,8 @@ impl Page {
                 call(&[HostArg::Str("fire"), HostArg::Num(node.as_u64() as f64), HostArg::Str(if ok { "load" } else { "error" })]);
             }
             call(&[HostArg::Str("subresourcesDone")]);
-            runner.run_event_loop_for(budget);
-        });
+            Some(after(runner, &hook))
+        })
     }
 
     /// Busca cada `<link rel=stylesheet href>` do documento e diz se chegou (status de sucesso).
@@ -406,10 +415,31 @@ fn potentially_trustworthy(address: &str) -> bool {
     parsed.scheme == "http" && (host == "localhost" || host.ends_with(".localhost") || host.starts_with("127.") || host == "[::1]")
 }
 
+/// As portas que o `IsPortAllowedForScheme` do Chromium recusa com `net::ERR_UNSAFE_PORT` (`kRestrictedPorts` de
+/// `net/base/port_util.cc`, a lista de portas ruins da especificação de Fetch).
+const BAD_PORTS: [u16; 82] = [
+    1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143,
+    161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723, 2049, 3659, 4045,
+    4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080,
+];
+
 fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, String> {
+    let local = |bytes: Vec<u8>, content_type: Option<String>| DocumentResponse { bytes, final_url: address.to_owned(), content_type, header_csp: false, cross_origin_isolated: false };
+    // A aba nova (`about:blank`) é um documento vazio sem rede; `data:` sai pelo processador de data: URL do Fetch.
+    if address == "about:blank" {
+        return Ok(local(Vec::new(), None));
+    }
+    if address.get(..5).is_some_and(|s| s.eq_ignore_ascii_case("data:")) {
+        let parsed = data_url::DataUrl::process(address).map_err(|_| "net::ERR_INVALID_URL".to_owned())?;
+        let (bytes, _) = parsed.decode_to_vec().map_err(|_| "net::ERR_INVALID_URL".to_owned())?;
+        return Ok(local(bytes, Some(parsed.mime_type().to_string())));
+    }
     if let Some(path) = address.strip_prefix("file://") {
         let bytes = sys::read_file(path.as_bytes()).map_err(|_| "net::ERR_FILE_NOT_FOUND".to_owned())?;
-        return Ok(DocumentResponse { bytes, final_url: address.to_owned(), content_type: None, header_csp: false, cross_origin_isolated: false });
+        return Ok(local(bytes, None));
+    }
+    if url::parse(address, false).is_ok_and(|u| BAD_PORTS.contains(&u.port_or_default())) {
+        return Err("net::ERR_UNSAFE_PORT".to_owned());
     }
     let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8".to_owned()), ("Accept-Language".to_owned(), "en-US,en;q=0.9".to_owned())];
     let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };

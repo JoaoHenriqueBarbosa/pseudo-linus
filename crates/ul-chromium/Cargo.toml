@@ -9,6 +9,7 @@ description = "chromium --headless do pseudo-linus: busca a página pelo cliente
 
 [dependencies]
 sysabi = { workspace = true }
+sysio = { workspace = true }
 ul-common = { workspace = true }
 ul-net = { path = "../ul-net" }
 # Parser de HTML conforme a especificação (o mesmo do Servo), na versão que o blitz-html usa.
@@ -51,6 +52,7 @@ serde_json = "1"
 zjsc = { path = "../../wip/zjsc" }
 sysabi = { workspace = true, features = ["testkit"] }
 pl-testing = { path = "../pl-testing" }
+kernel = { workspace = true }
 
 [lints]
 workspace = true
