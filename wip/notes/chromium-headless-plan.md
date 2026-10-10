@@ -46,12 +46,17 @@ vite.dev, htmx.org, solidjs.com).
 
 - 2026-10-10, commit 46711eb6: lab 6/6, spa 13/16 (vuejs-org, nextjs-org, vite-dev), static 18/20
   (wikipedia-linus, wikipedia-debian). Scripts 17/17.
+- 2026-10-10, commit 5425f906: lab 6/6, spa 14/16 (nextjs-org, vite-dev), static 20/20. Scripts 23/23.
 
 ## Modelo de quadros (medido no oráculo)
 
 - Sob `--virtual-time-budget` o relógio virtual para enquanto a página espera a rede, e os quadros saem nesse meio
   tempo. Fora disso, quadros numa grade de 16ms enquanto a página carrega, mais um depois do `load`, e nenhum depois:
   rAF pedido depois desse último não roda (sonda `frames2.html`: `raf t30` ausente).
+- Enquanto a rede não responde a página está ociosa: o quadro pedido e os idle callbacks pendentes saem antes da
+  resposta (wikipedia: o rIC pedido aos 94ms roda aos 106, antes dos scripts).
+- Depois do `load` o navegador busca o `link rel=icon` (sem ele, nada aparece no resource timing); essa busca fica
+  em voo e mantém os quadros saindo (round trip calibrado em 50ms, pela wikipedia).
 - Em cada quadro: rAF, depois ResizeObserver, depois IntersectionObserver; o idle callback espera o quadro seguinte.
 - Alvo sem caixa (`display: none`) não intersecta.
 - Sonda injetada na fita do oráculo (cópia em scratch, `<script>` no `<head>` que grava um `<meta name=plog>`): é a
@@ -59,19 +64,31 @@ vite.dev, htmx.org, solidjs.com).
 
 ## Divergências conhecidas
 
-- vite-dev: largura de canvas medida por ResizeObserver (293 no oráculo, 641 aqui): layout de grid/flex.
-- vuejs-org: os prefetch do VitePress dependem do `load` vir depois da montagem do Vue (no Chromium o `load` espera
-  imagens e fontes de rede real); aqui o `load` sai antes da montagem e o quadro final já passou quando o idle
-  callback observa os links.
-- nextjs-org: a hidratação nunca comita (nenhum `__reactFiber`), embora o stream do RSC seja lido até o fim e os
-  chunks registrem; no Chromium ela comita em ~170ms e insere `2g70aufap1-f8.js`. Causa ainda não achada.
-- wikipedia-*: o mw.loader (cheio de requestIdleCallback) não injeta parte dos `<style>` e a classe
-  `vector-feature-toc-pinned-clientpref-1` sai diferente.
+- vite-dev: o Rive (`@rive-app/webgl2`) só segue com `getContext('webgl2')`; aqui os três contextos voltam null e o
+  `onLoad` nunca roda, então o canvas fica com o atributo (641 em vez de 293). Com um contexto 2D falso ele nem o
+  usa; com um WebGL2 falso passa de `pixelStorei` e para. Precisa do WebGL2 de verdade (abaixo).
+- nextjs-org: a hidratação já comita; sobram `border-radius` do framer (0.233831 contra 0.132387) e `scale()` de SVG
+  (0.900135 contra 0.944158), que vêm de layout e métricas de fonte, e a ordem do meta `theme-color`.
 - Codificação sem declaração: o Chromium usa o detector CED, que erra em amostras minúsculas
   (`testbench/corpus/headless/s05`). Portar o CED, ou aproximar com o `chardetng`, é item próprio.
 - `<template>`, `DocumentFragment` e PI: o Blitz não tem esses tipos de nó; fragmento emulado por elemento marcado,
   `template.content` compartilha o nó do template.
 - `document.write` durante o parse insere depois do script corrente em vez de alimentar o tokenizador.
+
+## Canvas (decisão do coordenador, 2026-10-10: os dois de verdade)
+
+O oráculo (`--disable-gpu`) entrega WebGL e WebGL2 por ANGLE sobre SwiftShader, e o 2D por Skia. Tabela medida em
+`testbench/oracle/measured/webgl-swiftshader.json` (gerada por `webgl-swiftshader.html`): constantes, 102/167
+parâmetros, métodos, extensões, atributos de contexto, precisões de shader e o renderer desmascarado.
+
+1. WebGL/WebGL2 em estado: objetos (programa, shader, buffer, textura, framebuffer, renderbuffer, VAO, query,
+   sampler, sync, transform feedback), `getParameter` pela tabela medida mais o estado corrente, `getError` com as
+   regras de validação do Chromium, extensões com os próprios objetos. Compilação de GLSL com validação de sintaxe
+   e `getShaderInfoLog` como o ANGLE.
+2. Rasterização por software quando a página lê pixels (`readPixels`, `toDataURL`, `drawImage` do canvas).
+3. Canvas 2D: estado, caminhos e rasterização por vello_cpu; `measureText` com as fontes do oráculo
+   (`measureText('Hello')` em `10px sans-serif` = 22.7880859375); `toDataURL` com os bytes do codificador PNG do Skia
+   (canvas vazio 300x150: 2118 caracteres).
 
 ## Ordem
 
