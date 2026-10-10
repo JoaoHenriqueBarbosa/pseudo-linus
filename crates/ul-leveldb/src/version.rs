@@ -35,13 +35,19 @@ fn max_bytes_for_level(level: usize) -> f64 {
     result
 }
 
-fn total_file_size(files: &[FileMeta]) -> u64 {
+pub fn total_file_size(files: &[FileMeta]) -> u64 {
     files.iter().map(|file| file.file_size).sum()
 }
 
 impl Version {
     pub fn num_files(&self, level: usize) -> usize {
         self.files[level].len()
+    }
+
+    /// `VersionSet::LevelSummary`: `files[ 0 1 0 0 0 0 0 ]`, quantas tabelas há em cada nível.
+    pub fn level_summary(&self) -> String {
+        let counts: String = self.files.iter().map(|files| format!(" {}", files.len())).collect();
+        format!("files[{counts} ]")
     }
 
     /// `VersionSet::Finalize`: o nível que mais precisa de compactação e a nota dele.
@@ -68,9 +74,33 @@ impl Version {
         self.files[level].iter().any(|file| !(user_key(&file.largest) < smallest || user_key(&file.smallest) > largest))
     }
 
-    /// As tabelas do nível que cobrem parte de `[begin, end]` (chaves do usuário).
+    /// `Version::GetOverlappingInputs`: as tabelas do nível que cobrem parte de `[begin, end]` (chaves do usuário). No
+    /// nível 0 as tabelas se sobrepõem entre si, então uma tabela que alarga a faixa reinicia a busca.
     pub fn overlapping_inputs(&self, level: usize, begin: &[u8], end: &[u8]) -> Vec<FileMeta> {
-        self.files[level].iter().filter(|file| !(user_key(&file.largest) < begin || user_key(&file.smallest) > end)).cloned().collect()
+        let (mut begin, mut end) = (begin.to_vec(), end.to_vec());
+        let mut inputs: Vec<FileMeta> = Vec::new();
+        let mut index = 0;
+        while index < self.files[level].len() {
+            let file = &self.files[level][index];
+            index += 1;
+            let (file_start, file_limit) = (user_key(&file.smallest), user_key(&file.largest));
+            if file_limit < begin.as_slice() || file_start > end.as_slice() {
+                continue;
+            }
+            inputs.push(file.clone());
+            if level == 0 {
+                if file_start < begin.as_slice() {
+                    begin = file_start.to_vec();
+                } else if file_limit > end.as_slice() {
+                    end = file_limit.to_vec();
+                } else {
+                    continue;
+                }
+                inputs.clear();
+                index = 0;
+            }
+        }
+        inputs
     }
 
     /// `Version::PickLevelForMemTableOutput`: o nível em que a memtable vira tabela.
@@ -133,6 +163,10 @@ impl VersionSet {
 
     pub fn current(&self) -> &Version {
         &self.current
+    }
+
+    pub fn compact_pointers(&self) -> &[Vec<u8>; NUM_LEVELS] {
+        &self.compact_pointers
     }
 
     pub fn last_sequence(&self) -> u64 {

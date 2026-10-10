@@ -5,13 +5,14 @@
 //! Tudo roda na thread de quem chama: no leveldb a memtable cheia vira tabela numa thread de fundo, aqui logo depois
 //! da escrita que a encheu; os arquivos que restam no disco são os mesmos.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
 use ul_common::time::Civil;
 
 use crate::batch::{Op, WriteBatch};
+use crate::compaction::{self, Compaction};
 use crate::dbformat::*;
 use crate::env::Env;
 use crate::log::{read_records, Writer};
@@ -29,15 +30,25 @@ pub struct Options {
     pub max_file_size: usize,
     pub reuse_logs: bool,
     pub table: TableOptions,
-    /// O id da thread que aparece em cada linha do `LOG`.
+    /// O id da thread que aparece em cada linha do `LOG`, e o da thread de fundo, que escreve as linhas dos flushes
+    /// de memtable em execução e das compactações.
     pub thread_id: u64,
+    pub background_thread_id: u64,
 }
 
 impl Options {
     /// As do leveldb do Chromium para o `Local Storage` (medidas no oráculo): log e MANIFEST reaproveitados e
-    /// tabelas com snappy.
+    /// tabelas com snappy. A thread de fundo tem um id diferente da que abriu o banco (numa medição, `29a` e `29c`).
     pub fn chromium(thread_id: u64) -> Options {
-        Options { create_if_missing: true, write_buffer_size: 64 * 1024, max_file_size: 2 << 20, reuse_logs: true, table: TableOptions::default(), thread_id }
+        Options {
+            create_if_missing: true,
+            write_buffer_size: 64 * 1024,
+            max_file_size: 2 << 20,
+            reuse_logs: true,
+            table: TableOptions::default(),
+            thread_id,
+            background_thread_id: thread_id + 2,
+        }
     }
 }
 
@@ -56,7 +67,11 @@ pub struct Db {
     log: Option<LogFile>,
     logfile_number: u64,
     tables: RefCell<HashMap<u64, Rc<Table>>>,
+    /// Verdadeiro enquanto o trabalho que no leveldb roda na thread de fundo está em andamento: as linhas do `LOG`
+    /// saem com o id dela.
+    background: Cell<bool>,
 }
+
 
 fn corruption(message: impl Into<String>) -> Error {
     Error::Corruption(message.into())
@@ -78,6 +93,7 @@ impl Db {
             log: None,
             logfile_number: 0,
             tables: RefCell::new(HashMap::new()),
+            background: Cell::new(false),
         };
         db.recover_and_start()?;
         Ok(db)
@@ -87,6 +103,7 @@ impl Db {
     fn info(&self, message: &str) {
         let micros = self.env.now_micros();
         let civil = Civil::from_secs((micros / 1_000_000) as i64);
+        let thread = if self.background.get() { self.options.background_thread_id } else { self.options.thread_id };
         let line = format!(
             "{:04}/{:02}/{:02}-{:02}:{:02}:{:02}.{:03} {:x} {}",
             civil.year,
@@ -96,11 +113,19 @@ impl Db {
             civil.min,
             civil.sec,
             (micros % 1_000_000) / 1000,
-            self.options.thread_id,
+            thread,
             message
         );
         let line = if line.ends_with('\n') { line } else { line + "\n" };
         let _ = self.env.append_file(&info_log_file_name(&self.dir), line.as_bytes());
+    }
+
+    /// Roda `work` como o leveldb roda o trabalho de fundo: noutra thread, que é a que assina as linhas do `LOG`.
+    fn in_background<T>(&mut self, work: impl FnOnce(&mut Db) -> T) -> T {
+        self.background.set(true);
+        let result = work(self);
+        self.background.set(false);
+        result
     }
 
     fn recover_and_start(&mut self) -> Result<()> {
@@ -121,7 +146,7 @@ impl Db {
             self.versions.log_and_apply(self.env.as_ref(), &mut edit)?;
         }
         self.delete_obsolete_files();
-        Ok(())
+        self.in_background(Db::compact_if_needed)
     }
 
     /// `DBImpl::Recover`: o `CURRENT`, o MANIFEST e os logs que a versão ainda não cobre. Devolve se o MANIFEST precisa
@@ -304,13 +329,127 @@ impl Db {
         self.logfile_number = number;
         self.log = Some(LogFile { path, writer: Writer::new() });
         let imm = std::mem::take(&mut self.mem);
-        let mut edit = VersionEdit::default();
-        self.write_level0_table(&imm, &mut edit, true)?;
-        edit.prev_log_number = Some(0);
-        edit.log_number = Some(self.logfile_number);
-        self.versions.log_and_apply(self.env.as_ref(), &mut edit)?;
-        self.delete_obsolete_files();
+        self.in_background(|db| {
+            let mut edit = VersionEdit::default();
+            db.write_level0_table(&imm, &mut edit, true)?;
+            edit.prev_log_number = Some(0);
+            edit.log_number = Some(db.logfile_number);
+            db.versions.log_and_apply(db.env.as_ref(), &mut edit)?;
+            db.delete_obsolete_files();
+            db.compact_if_needed()
+        })
+    }
+
+    /// `DBImpl::MaybeScheduleCompaction` e `BackgroundCompaction`: enquanto algum nível passa de nota 1, compacta.
+    fn compact_if_needed(&mut self) -> Result<()> {
+        loop {
+            let mut messages = Vec::new();
+            let picked = compaction::pick(self.versions.current(), self.versions.compact_pointers(), self.options.max_file_size, &mut |message| messages.push(message.to_owned()));
+            for message in messages {
+                self.info(&message);
+            }
+            let Some(mut compaction) = picked else { return Ok(()) };
+            if compaction.is_trivial_move() {
+                self.move_to_next_level(&mut compaction)?;
+            } else {
+                self.do_compaction_work(&mut compaction)?;
+                self.delete_obsolete_files();
+            }
+        }
+    }
+
+    /// A compactação trivial: a tabela muda de nível sem ser reescrita.
+    fn move_to_next_level(&mut self, compaction: &mut Compaction) -> Result<()> {
+        let file = compaction.inputs[0][0].clone();
+        let level = compaction.level;
+        compaction.edit.deleted_files.push((level as u32, file.number));
+        compaction.edit.new_files.push(((level + 1) as u32, file.clone()));
+        self.versions.log_and_apply(self.env.as_ref(), &mut compaction.edit)?;
+        let summary = self.versions.current().level_summary();
+        self.info(&format!("Moved #{} to level-{} {} bytes OK: {summary}", file.number, level + 1, file.file_size));
         Ok(())
+    }
+
+    /// `DBImpl::DoCompactionWork`: junta as tabelas de entrada em ordem de chave interna, descarta as versões
+    /// encobertas (e as remoções que nada mais abaixo pode contradizer) e grava as tabelas de saída no nível seguinte.
+    fn do_compaction_work(&mut self, compaction: &mut Compaction) -> Result<()> {
+        let level = compaction.level;
+        self.info(&format!("Compacting {}@{level} + {}@{} files", compaction.inputs[0].len(), compaction.inputs[1].len(), level + 1));
+        // Sem snapshots, a menor sequência visível é a última.
+        let smallest_snapshot = self.versions.last_sequence();
+        let mut input = Vec::new();
+        for file in compaction.inputs.iter().flatten() {
+            input.extend(self.table(file)?.entries()?);
+        }
+        input.sort_by(|a, b| compare_internal(&a.0, &b.0));
+        let mut outputs: Vec<FileMeta> = Vec::new();
+        let mut open: Option<(FileMeta, TableBuilder)> = None;
+        let mut current_user_key: Option<Vec<u8>> = None;
+        let mut last_sequence_for_key = MAX_SEQUENCE_NUMBER;
+        for (key, value) in input {
+            if compaction.should_stop_before(&key) {
+                if let Some(output) = open.take() {
+                    outputs.push(self.finish_compaction_output(output, level)?);
+                }
+            }
+            let mut drop = false;
+            match parse_internal_key(&key) {
+                None => {
+                    current_user_key = None;
+                    last_sequence_for_key = MAX_SEQUENCE_NUMBER;
+                }
+                Some((user, sequence, value_type)) => {
+                    if current_user_key.as_deref() != Some(user) {
+                        current_user_key = Some(user.to_vec());
+                        last_sequence_for_key = MAX_SEQUENCE_NUMBER;
+                    }
+                    if last_sequence_for_key <= smallest_snapshot {
+                        // Encoberta por uma versão mais nova da mesma chave.
+                        drop = true;
+                    } else if value_type == ValueType::Deletion && sequence <= smallest_snapshot && compaction.is_base_level_for_key(user) {
+                        drop = true;
+                    }
+                    last_sequence_for_key = sequence;
+                }
+            }
+            if drop {
+                continue;
+            }
+            let (meta, builder) = open.get_or_insert_with(|| {
+                let number = self.versions.new_file_number();
+                (FileMeta { number, file_size: 0, smallest: key.clone(), largest: Vec::new() }, TableBuilder::new(self.options.table))
+            });
+            meta.largest = key.clone();
+            builder.add(&key, &value);
+            if builder.file_size() >= compaction.max_output_file_size() as u64 {
+                if let Some(output) = open.take() {
+                    outputs.push(self.finish_compaction_output(output, level)?);
+                }
+            }
+        }
+        if let Some(output) = open.take() {
+            outputs.push(self.finish_compaction_output(output, level)?);
+        }
+        let total: u64 = outputs.iter().map(|file| file.file_size).sum();
+        self.info(&format!("Compacted {}@{level} + {}@{} files => {total} bytes", compaction.inputs[0].len(), compaction.inputs[1].len(), level + 1));
+        compaction.add_input_deletions();
+        for file in outputs {
+            compaction.edit.new_files.push(((level + 1) as u32, file));
+        }
+        self.versions.log_and_apply(self.env.as_ref(), &mut compaction.edit)?;
+        let summary = self.versions.current().level_summary();
+        self.info(&format!("compacted to: {summary}"));
+        Ok(())
+    }
+
+    /// `FinishCompactionOutputFile`: grava a tabela de saída e anota no `LOG`.
+    fn finish_compaction_output(&mut self, (mut meta, builder): (FileMeta, TableBuilder), level: usize) -> Result<FileMeta> {
+        let entries = builder.num_entries();
+        let file = builder.finish();
+        meta.file_size = file.len() as u64;
+        self.env.write_file(&table_file_name(&self.dir, meta.number), &file)?;
+        self.info(&format!("Generated table #{}@{level}: {entries} keys, {} bytes", meta.number, meta.file_size));
+        Ok(meta)
     }
 
     fn table(&self, file: &FileMeta) -> Result<Rc<Table>> {

@@ -64,7 +64,11 @@ impl VersionEdit {
             put_varint32(&mut out, *level);
             put_length_prefixed(&mut out, key);
         }
-        for (level, number) in &self.deleted_files {
+        // As tabelas apagadas são um `std::set<pair<int, uint64>>` no leveldb: saem ordenadas por (nível, número).
+        let mut deleted = self.deleted_files.clone();
+        deleted.sort_unstable();
+        deleted.dedup();
+        for (level, number) in &deleted {
             put_varint32(&mut out, DELETED_FILE);
             put_varint32(&mut out, *level);
             put_varint64(&mut out, *number);

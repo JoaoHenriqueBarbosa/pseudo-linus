@@ -14,6 +14,7 @@
 pub mod batch;
 pub mod block;
 pub mod coding;
+pub mod compaction;
 pub mod db;
 pub mod dbformat;
 pub mod env;
