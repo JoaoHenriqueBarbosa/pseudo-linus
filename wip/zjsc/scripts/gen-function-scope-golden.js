@@ -430,10 +430,10 @@ for (const s of uniqSnip) {
 }
 
 // ---- Execução.
-const baseSources = [];
 const goldenDir = path.join(__dirname, "..", "tests", "golden");
-baseSources.push(...knownPrograms("function_scope_bun.tsv", (file) => !(!file.endsWith(".tsv") || file === "function_scope_bun.tsv")));
-const baseSet = new Set(baseSources);
+// O conjunto vem direto da lista: os vizinhos passam de centenas de milhares de programas, e `push(...lista)` estourava a
+// pilha de argumentos.
+const baseSet = new Set(knownPrograms("function_scope_bun.tsv", (file) => !(!file.endsWith(".tsv") || file === "function_scope_bun.tsv")));
 const seen = new Set();
 const unique = exprs.filter((e) => !seen.has(e) && seen.add(e));
 let dup = 0;
