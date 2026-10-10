@@ -20,7 +20,10 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
 - Chamada a biblioteca C (mimalloc, simdutf, highway) vira Rust puro com o mesmo resultado, num trecho comentado.
 - A fidelidade é medida contra o `bun build --no-bundle` do bun 1.4.2 do oráculo, byte a byte.
 - Mudança sistemática nos arquivos copiados: os travessões dos comentários do upstream viram dois-pontos ou hífen
-  (regra do repositório), por ferramenta, na hora da cópia. Nenhum outro texto muda.
+  (regra do repositório), por ferramenta, na hora da cópia.
+- Mudança sistemática nos arquivos de payload copiados (`s.rs`): toda struct ganha `#[derive(Clone)]` (ou `Clone` entra
+  no `derive` que já existe), por ferramenta (`awk`), porque o `clone_in` do `Store` pede `T: Clone`. Nenhum outro
+  texto muda.
 
 ## Arena tipada: o lugar do `StoreRef` e do `StoreSlice`
 
