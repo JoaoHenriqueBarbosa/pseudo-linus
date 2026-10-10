@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>idb drop</title>
+<script>
+// Versão 3 apaga o repositório `items`; depois apaga o banco db2 inteiro.
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 200 && !done; i++) await fetch('/idb-drop.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+const request = indexedDB.open('db1', 3);
+request.onupgradeneeded = (event) => { event.target.result.deleteObjectStore('items'); };
+request.onsuccess = () => {
+  request.result.close();
+  const removal = indexedDB.deleteDatabase('db2');
+  removal.onsuccess = () => setTimeout(() => { done = true; document.title = 'done'; }, 200);
+};
+</script>
+<body>idb drop</body>

@@ -12,7 +12,13 @@ sleep 1
 n=0
 for page in $PAGES; do
   n=$((n+1))
+  # O chromium compacta e troca o .log depois de apagar um banco: copia cada .log vivo (a maior versão fica) para
+  # que o lote de deleção não se perca.
+  mkdir -p /out/live$n
+  (while :; do for f in /tmp/profile/Default/IndexedDB/*/*.log; do [ -f "$f" ] && cp "$f" "/out/live$n/$(basename "$f").tmp" && { [ ! -f "/out/live$n/$(basename "$f")" ] || [ "$(stat -c %s "/out/live$n/$(basename "$f").tmp")" -ge "$(stat -c %s "/out/live$n/$(basename "$f")")" ]; } && mv "/out/live$n/$(basename "$f").tmp" "/out/live$n/$(basename "$f")"; done; sleep 0.02; done) 2>/dev/null &
+  watcher=$!
   chromium --headless --no-sandbox --disable-gpu --user-data-dir=/tmp/profile --virtual-time-budget=20000 --dump-dom "http://127.0.0.1:8000/$page" >/out/dom$n.txt 2>/dev/null
+  kill $watcher 2>/dev/null || true
   mkdir -p /out/run$n && cp -a /tmp/profile/Default/IndexedDB /out/run$n/
 done
 profile-tree.py /tmp/profile > /out/profile-tree.jsonl
