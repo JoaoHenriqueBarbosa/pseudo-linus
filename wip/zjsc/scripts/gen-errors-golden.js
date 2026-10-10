@@ -3404,8 +3404,11 @@ for (const source of unique) {
     stdout: "pipe",
     stderr: "pipe",
   });
-  const match = /^@@(.*)$/m.exec(child.stdout.toString());
+  // A linha é a que começa por `@@`, separada só por `\n`: com `/^@@(.*)$/m` o `.` e o `$` param nos separadores de
+  // linha U+2028 e U+2029, que o JSON da mensagem traz crus (o `JSON.parse` de um separador sozinho), e a linha saía
+  // cortada.
+  const line = child.stdout.toString().split("\n").find((text) => text.startsWith("@@"));
   // Filho que morre ou estoura o tempo (laço de finally recursivo, memória) não gera linha.
-  if (match) lines.push(source + "\t" + match[1]);
+  if (line !== undefined) lines.push(source + "\t" + line.slice(2));
 }
 process.stdout.write(require("./golden-prelude.js").assertPublicResult(lines.join("\n") + "\n"));
