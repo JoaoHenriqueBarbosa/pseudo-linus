@@ -62,7 +62,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
             ));
         }
         for part in parts.iter() {
-            for stmt in part.stmts.iter() {
+            for stmt in self.store[part.stmts].iter() {
                 all_stmts.push(*stmt);
             }
         }
@@ -111,7 +111,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
 
                     // Extract individual identifiers from binding patterns for hoisting
                     let mut hoisted_decl_list = BumpVec::<G::Decl>::new_in(bump);
-                    for decl in self.store[local].decls.slice() {
+                    for decl in (&self.store[self.store[local].decls]) {
                         self.repl_extract_identifiers_from_binding(
                             decl.binding,
                             &mut hoisted_decl_list,
@@ -131,7 +131,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     }
 
                     // Create assignment expressions for the inner statements
-                    for decl in self.store[local].decls.slice() {
+                    for decl in (&self.store[self.store[local].decls]) {
                         if let Some(value) = decl.value {
                             // Create assignment expression: binding = value
                             let assign_expr =
@@ -173,9 +173,8 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                         // `original_name` is an arena-owned `StoreStr` valid for 'a; `.slice()`
                         // detaches the borrow from `self.symbols` so the &mut self calls below
                         // don't conflict.
-                        let name_str: &[u8] = self.symbols[name_ref.inner_index() as usize]
-                            .original_name
-                            .slice();
+                        let name_str: &[u8] = self.store.str(self.symbols[name_ref.inner_index() as usize]
+                            .original_name);
                         let this_dot = self.new_expr(
                             E::Dot {
                                 target: this_expr,
@@ -293,7 +292,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     let await_expr = self.new_expr(E::Await { value: import_expr }, stmt.loc);
 
                     // `items` is an arena-owned `StoreSlice<ClauseItem>` valid for 'a.
-                    let import_items: &[bun_ast::ClauseItem] = self.store[import_data].items.slice();
+                    let import_items: &[bun_ast::ClauseItem] = (&self.store[self.store[import_data].items]);
 
                     if !self.store[import_data].star_name_loc.is_empty() {
                         // import * as X from 'mod' -> var X = await import('mod')
@@ -463,7 +462,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                 }
                 StmtData::SDirective(directive) => {
                     // In REPL mode, treat directives (string literals) as expressions.
-                    let value_str: &'static [u8] = self.store[directive].value.slice();
+                    let value_str: &'static [u8] = self.store.str(self.store[directive].value);
                     let str_expr = self.new_expr(
                         E::String {
                             data: value_str.into(),
@@ -620,7 +619,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                 loc,
             );
             // `alias` is an arena-owned `StoreStr` valid for 'a.
-            let alias_str: &'static [u8] = item.alias.slice();
+            let alias_str: &'static [u8] = self.store.str(item.alias);
             let prop_access = self.new_expr(
                 E::Dot {
                     target: ns_ref_expr,
@@ -822,7 +821,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                 binding.loc,
             ),
             B::B::BArray(arr) => {
-                let arr = arr.get();
+                let arr = (&self.store[arr]);
                 let arr_items = arr.items();
                 let mut items = BumpVec::with_capacity_in(arr_items.len(), bump);
                 for (i, item) in arr_items.iter().enumerate() {
@@ -854,7 +853,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                 )
             }
             B::B::BObject(obj) => {
-                let obj = obj.get();
+                let obj = (&self.store[obj]);
                 let obj_props = obj.properties();
                 let mut properties = BumpVec::with_capacity_in(obj_props.len(), bump);
                 for prop in obj_props.iter() {

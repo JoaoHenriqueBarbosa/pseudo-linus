@@ -140,7 +140,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.record_declared_symbol(default_name.ref_);
         }
 
-        let items = data.items.slice();
+        let items = (&p.store[data.items]);
         if !items.is_empty() {
             for item in items.iter() {
                 p.record_declared_symbol(item.name.ref_);
@@ -174,7 +174,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         data: &mut S::ExportClause,
     ) -> Result<(), Error> {
         // "export {foo}"
-        let items = data.items.slice_mut();
+        let items = (&mut p.store[data.items]);
         let items_len = items.len();
         let mut end: usize = 0;
         let mut any_replaced = false;
@@ -278,7 +278,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         VecExt::append(&mut p.cur_scope().generated, data.namespace_ref);
         p.record_declared_symbol(data.namespace_ref);
 
-        let items = data.items.slice_mut();
+        let items = (&mut p.store[data.items]);
 
         if p.options.features.replace_exports.count() > 0 {
             let mut j: usize = 0;
@@ -337,7 +337,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // "export * as ns from 'path'"
         if let Some(alias) = &data.alias {
             if p.options.features.replace_exports.count() > 0 {
-                let alias_name = alias.original_name.slice();
+                let alias_name = p.store.str(alias.original_name);
                 if let Some(entry) = p
                     .options
                     .features
@@ -406,10 +406,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let prev_decorator_class_name = p.decorator_class_name;
                 if was_anonymous_named_expr
                     && matches!(expr.data, js_ast::ExprData::EClass(_))
-                    && expr
+                    && p.store[expr
                         .data
                         .e_class()
-                        .expect("infallible: variant checked")
+                        .expect("infallible: variant checked")]
                         .should_lower_standard_decorators
                 {
                     p.decorator_class_name = Some(js_ast::ClauseItem::DEFAULT_ALIAS);
@@ -445,7 +445,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if !ident.ref_.is_source_contents_slice() {
                             let symbol = &p.symbols[ident.ref_.inner_index() as usize];
                             if symbol.kind == js_ast::symbol::Kind::Unbound {
-                                let original_name = symbol.original_name.slice();
+                                let original_name = p.store.str(symbol.original_name);
                                 if p.local_type_names.get(original_name).copied() == Some(true) {
                                     // the name points to a type: don't try to declare
                                     // this symbol, drop the statement.
@@ -921,7 +921,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.symbols[name_ref.inner_index() as usize].set_call_ignores_this(true);
         }
         let name_symbol = &p.symbols[name_ref.inner_index() as usize];
-        let original_name: &'a [u8] = name_symbol.original_name.slice();
+        let original_name: &'a [u8] = p.store.str(name_symbol.original_name);
         let remove_overwritten = name_symbol.remove_overwritten_function_declaration();
 
         // Handle exporting this function from a namespace
@@ -1100,9 +1100,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if was_export_inside_namespace {
             let class_name = data.class.class_name.expect("infallible: name checked");
             let class_name_ref = class_name.ref_;
-            let original_name = p.symbols[class_name_ref.inner_index() as usize]
-                .original_name
-                .slice();
+            let original_name = p.store.str(p.symbols[class_name_ref.inner_index() as usize]
+                .original_name);
             stmts.push(Stmt::assign(
                 p.new_expr(
                     E::Dot {
@@ -1142,9 +1141,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // visit_decls returns the surviving decl count; truncate `data.decls.len` to it.
         let new_len = if !(data.is_export && p.options.features.replace_exports.entries.len() > 0) {
-            p.visit_decls::<false>(data.decls.slice_mut(), data.kind, data.is_export)
+            p.visit_decls::<false>((&mut p.store[data.decls]), data.kind, data.is_export)
         } else {
-            p.visit_decls::<true>(data.decls.slice_mut(), data.kind, data.is_export)
+            p.visit_decls::<true>((&mut p.store[data.decls]), data.kind, data.is_export)
         };
         // Drop the whole statement when every decl was
         // eliminated; otherwise we'd emit an empty `var;`/`let;`/`const;`.
@@ -1155,7 +1154,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Handle being exported inside a namespace
         if data.is_export && p.enclosing_namespace_arg_ref.is_some() {
-            for d in data.decls.slice() {
+            for d in (&p.store[data.decls]) {
                 if let Some(val) = d.value {
                     p.record_usage(
                         p.enclosing_namespace_arg_ref
@@ -1186,7 +1185,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // "await using" still needs the "await", so we can't do it for those.
         if p.options.features.minify_syntax && data.kind == S::Kind::KUsing {
             data.kind = S::Kind::KLet;
-            for d in data.decls.slice() {
+            for d in (&p.store[data.decls]) {
                 if let Some(val) = d.value {
                     if !matches!(val.data, js_ast::ExprData::ENull(_))
                         && !matches!(val.data, js_ast::ExprData::EUndefined(_))
@@ -1204,7 +1203,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let kind = p.select_local_kind(data.kind);
         if kind == S::Kind::KVar && !data.is_export {
             let relocated =
-                p.maybe_relocate_vars_to_top_level(data.decls.slice(), RelocateVarsMode::Normal);
+                p.maybe_relocate_vars_to_top_level((&p.store[data.decls]), RelocateVarsMode::Normal);
             if relocated.ok {
                 if let Some(new_stmt) = relocated.stmt {
                     stmts.push(new_stmt);
@@ -1219,7 +1218,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         stmts.push(*stmt);
 
         if p.options.features.react_fast_refresh && p.current_scope == p.module_scope {
-            for decl in data.decls.slice() {
+            for decl in (&p.store[data.decls]) {
                 'try_register: {
                     let Some(val) = decl.value else {
                         break 'try_register;
@@ -1243,7 +1242,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         js_ast::binding::Data::BIdentifier(b) => p.store[b].r#ref,
                         _ => break 'try_register,
                     };
-                    let original_name = p.symbols[id.inner_index() as usize].original_name.slice();
+                    let original_name = p.store.str(p.symbols[id.inner_index() as usize].original_name);
                     p.handle_react_refresh_register(
                         stmts,
                         original_name,
@@ -1255,7 +1254,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         if data.is_export && p.options.features.server_components.wraps_exports() {
-            for decl in data.decls.slice_mut() {
+            for decl in (&mut p.store[data.decls]) {
                 'try_annotate: {
                     let Some(val) = decl.value else {
                         break 'try_annotate;
@@ -1264,7 +1263,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         js_ast::binding::Data::BIdentifier(b) => p.store[b].r#ref,
                         _ => break 'try_annotate,
                     };
-                    let original_name = p.symbols[id.inner_index() as usize].original_name.slice();
+                    let original_name = p.store.str(p.symbols[id.inner_index() as usize].original_name);
                     decl.value =
                         Some(p.wrap_value_for_server_component_reference(val, original_name));
                 }
@@ -1544,7 +1543,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     } else if p.commonjs_replacement_stmts.len() > 0 {
                         // `commonjs_replacement_stmts` is `StmtNodeList = StoreSlice<Stmt>`
                         // here, so copy then clear.
-                        let repl: &[Stmt] = p.commonjs_replacement_stmts.slice();
+                        let repl: &[Stmt] = (&p.store[p.commonjs_replacement_stmts]);
                         if stmts.is_empty() {
                             *stmts = bun_alloc::vec_from_iter_in(repl.iter().copied(), p.arena);
                         } else {
@@ -1649,7 +1648,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if p.options.features.minify_syntax {
             // // trim empty statements
-            let block_stmts: &[Stmt] = data.stmts.slice();
+            let block_stmts: &[Stmt] = (&p.store[data.stmts]);
             if block_stmts.is_empty() {
                 stmts.push(Stmt {
                     data: Stmt::empty().data,
@@ -1908,7 +1907,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // must be done inside the scope of the for loop or they won't be relocated.
                 if p.store[local].kind == S::Kind::KVar {
                     let relocate = p.maybe_relocate_vars_to_top_level(
-                        p.store[local].decls.slice(),
+                        (&p.store[p.store[local].decls]),
                         RelocateVarsMode::Normal,
                     );
                     if let Some(relocated) = relocate.stmt {
@@ -1988,7 +1987,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if let StmtData::SLocal(local) = data.init.data {
                 if p.store[local].kind == S::Kind::KVar {
                     let relocate = p.maybe_relocate_vars_to_top_level(
-                        p.store[local].decls.slice(),
+                        (&p.store[p.store[local].decls]),
                         RelocateVarsMode::ForInOrForOf,
                     );
                     if let Some(relocated_stmt) = relocate.stmt {
@@ -2011,9 +2010,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         js_ast::binding::Data::BIdentifier(b) => b,
                         _ => unreachable!("for-of using must bind an identifier"),
                     };
-                    let id_original_name = p.symbols[p.store[id].r#ref.inner_index() as usize]
-                        .original_name
-                        .slice();
+                    let id_original_name = p.store.str(p.symbols[p.store[id].r#ref.inner_index() as usize]
+                        .original_name);
                     let temp_ref = p.generate_temp_ref(Some(id_original_name));
 
                     let mut first_decls = G::DeclList::init_capacity(1);
@@ -2042,7 +2040,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         BumpVec::with_capacity_in(1 + length, p.arena);
                     statements.push(first);
                     if let StmtData::SBlock(b) = data.body.data {
-                        statements.extend_from_slice(p.store[b].stmts.slice());
+                        statements.extend_from_slice((&p.store[p.store[b].stmts]));
                     } else {
                         statements.push(data.body);
                     }
@@ -2145,7 +2143,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .expect("unreachable");
             let old_is_inside_switch = p.fn_or_arrow_data_visit.is_inside_switch;
             p.fn_or_arrow_data_visit.is_inside_switch = true;
-            let cases = data.cases.slice_mut();
+            let cases = (&mut p.store[data.cases]);
             for i in 0..cases.len() {
                 if let Some(val) = cases[i].value.as_mut() {
                     p.visit_expr(val);
@@ -2215,7 +2213,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // ahead of time before visiting any statements inside the namespace
         // because we may end up visiting the uses before the declarations.
         // We need to convert the uses into property accesses on the namespace.
-        let values = data.values.slice_mut();
+        let values = (&mut p.store[data.values]);
         for value in values.iter() {
             if value.ref_.is_valid() {
                 p.is_exported_inside_namespace.insert(value.ref_, data.arg);
@@ -2408,11 +2406,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // ahead of time before visiting any statements inside the namespace
         // because we may end up visiting the uses before the declarations.
         // We need to convert the uses into property accesses on the namespace.
-        let child_stmts: &[Stmt] = data.stmts.slice();
+        let child_stmts: &[Stmt] = (&p.store[data.stmts]);
         for child_stmt in child_stmts.iter() {
             if let StmtData::SLocal(local) = child_stmt.data {
                 if p.store[local].is_export {
-                    p.mark_exported_decls_inside_namespace(data.arg, p.store[local].decls.slice());
+                    p.mark_exported_decls_inside_namespace(data.arg, (&p.store[p.store[local].decls]));
                 }
             }
         }

@@ -863,7 +863,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         b"Cannot use \"declare\" with a \"using\" declaration",
                     );
                 } else if !opts.is_for_loop_init {
-                    p.require_initializers(js_ast::LocalKind::KUsing, decls.slice())?;
+                    p.require_initializers(js_ast::LocalKind::KUsing, (&self.store[decls]))?;
                 }
                 return Ok(ExprOrLetStmt {
                     stmt_or_expr: js_ast::StmtOrExpr::Stmt(p.s(
@@ -918,7 +918,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 b"Cannot use \"declare\" with an \"await using\" declaration",
                             );
                         } else if !opts.is_for_loop_init {
-                            p.require_initializers(js_ast::LocalKind::KAwaitUsing, decls.slice())?;
+                            p.require_initializers(js_ast::LocalKind::KAwaitUsing, (&self.store[decls]))?;
                         }
                         return Ok(ExprOrLetStmt {
                             stmt_or_expr: js_ast::StmtOrExpr::Stmt(p.s(
@@ -1491,7 +1491,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 is_directive_prologue = false;
                 if let js_ast::stmt::Data::SExpr(expr) = &stmt.data {
                     if let js_ast::expr::Data::EString(str_) = &self.store[*expr].value.data {
-                        if !self.store[str_].prefer_template {
+                        if !self.store[*str_].prefer_template {
                             is_directive_prologue = true;
 
                             if str_.eql_comptime(b"use strict") {

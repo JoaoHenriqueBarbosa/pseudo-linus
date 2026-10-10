@@ -413,7 +413,7 @@ impl<'a> ImportScanner<'a> {
                                 let symbol: &mut Symbol =
                                     &mut p.symbols[name_ref.inner_index() as usize];
                                 // SAFETY: `original_name` is an arena-owned slice valid for 'p.
-                                let original_name = symbol.original_name.slice();
+                                let original_name = p.store.str(symbol.original_name);
 
                                 symbol.namespace_alias =
                                     Some(Box::new(G::NamespaceAlias {
@@ -639,7 +639,7 @@ impl<'a> ImportScanner<'a> {
                 }
                 js_ast::StmtData::SLocal(st) => {
                     if p.store[st].is_export {
-                        for decl in p.store[st].decls.slice() {
+                        for decl in (&p.store[p.store[st].decls]) {
                             p.record_exported_binding(decl.binding);
                         }
                     }
@@ -647,7 +647,7 @@ impl<'a> ImportScanner<'a> {
                     // Remove unused import-equals statements, since those likely
                     // correspond to types instead of values
                     if p.store[st].origin.is_ts_import_equals() && !p.store[st].is_export && p.store[st].decls.len_u32() > 0 {
-                        let decl = &p.store[st].decls.slice()[0];
+                        let decl = &(&p.store[p.store[st].decls])[0];
 
                         // Skip to the underlying reference
                         let mut value: Option<Expr> = decl.value;
@@ -736,7 +736,7 @@ impl<'a> ImportScanner<'a> {
                 }
                 js_ast::StmtData::SExportClause(st) => {
                     // SAFETY: arena-owned slice valid for 'p.
-                    for item in p.store[st].items.slice().iter() {
+                    for item in (&p.store[p.store[st].items]).iter() {
                         // SAFETY: arena-owned alias slice valid for 'p.
                         let alias: &'p [u8] = item.alias.slice();
                         p.record_export(item.alias_loc, alias, item.name.ref_)?;
@@ -760,7 +760,7 @@ impl<'a> ImportScanner<'a> {
                                 local_parts_with_uses: Vec::new(),
                             },
                         )?;
-                        let original: &'p [u8] = alias.original_name.slice();
+                        let original: &'p [u8] = p.store.str(alias.original_name);
                         p.record_export(alias.loc, original, p.store[st].namespace_ref)?;
                         p.import_records.items_mut()[p.store[st].import_record_index as usize]
                             .flags
@@ -774,7 +774,7 @@ impl<'a> ImportScanner<'a> {
                     p.import_records_for_current_part
                         .push(p.store[st].import_record_index);
                     // SAFETY: arena-owned slice valid for 'p.
-                    let items = p.store[st].items.slice();
+                    let items = (&p.store[p.store[st].items]);
                     p.named_imports
                         .ensure_unused_capacity(items.len())
                         .expect("unreachable");

@@ -7,7 +7,7 @@ STORE é `self.store` ou `p.store`, conforme a assinatura da função que envolv
   E0609  campo em `StoreRef<T>`        `r.campo`           ->  `STORE[r].campo`
   E0277  `Store` indexado por `&Ref`   `STORE[r]`          ->  `STORE[*r]`
   E0599  `StoreStr::slice()`           `r.slice()`         ->  `STORE.str(r)`
-  E0599  `StoreSlice::slice()/_mut()`  `r.slice()`         ->  `STORE[r]`
+  E0599  `StoreSlice::slice()/_mut()`  `r.slice()`         ->  `(&STORE[r])` / `(&mut STORE[r])`
   E0599  `StoreSlice::iter()` e afins  `r.iter()`          ->  `STORE[r].iter()`
   E0599  `StoreRef::get()/get_mut()`   `r.get()`           ->  `(&STORE[r])` / `(&mut STORE[r])`
 
@@ -64,6 +64,9 @@ def recv_start(s, end):
     """Início da expressão de acesso (cadeia pós-fixa) que termina em `end` (exclusivo)."""
     i = end
     while True:
+        # cadeia quebrada em linhas pelo rustfmt: `x\n    .metodo()`
+        while i > 0 and s[i - 1] in b" \t\r\n":
+            i -= 1
         while i > 0 and s[i - 1] == ord("?"):
             i -= 1
         if i == 0:
@@ -181,6 +184,9 @@ def main():
                 continue
             dot = byte_start - 1
             begin = recv_start(data, dot)
+            recv_end = dot
+            while recv_end > 0 and data[recv_end - 1] in b" \t\r\n":
+                recv_end -= 1
             if begin is None or store is None:
                 skipped += 1
                 print(f"pulado: {name}:{line_index + 1} {member} (receptor={begin}, store={store})")
@@ -188,7 +194,7 @@ def main():
             star = "*" if ref else ""
             if kind == "field":
                 ops.append((begin, 0, f"{store}[{star}".encode(), 1))
-                ops.append((dot, 0, b"]", 0))
+                ops.append((recv_end, 0, b"]", 0))
             else:
                 # métodos: apaga `.nome()` (ou só o ponto, no `iter`) e reescreve em volta do receptor
                 call_end = byte_end
@@ -200,19 +206,20 @@ def main():
                     call_end = close + 1
                 if kind == "str":
                     ops.append((begin, 0, f"{store}.str({star}".encode(), 1))
-                    ops.append((dot, call_end - dot, b")", 0))
+                    ops.append((recv_end, call_end - recv_end, b")", 0))
                 elif kind == "slice":
-                    ops.append((begin, 0, f"{store}[{star}".encode(), 1))
-                    ops.append((dot, call_end - dot, b"]", 0))
+                    borrow = "&mut " if member == "slice_mut" else "&"
+                    ops.append((begin, 0, f"({borrow}{store}[{star}".encode(), 1))
+                    ops.append((recv_end, call_end - recv_end, b"])", 0))
                 elif kind == "iter":
                     ops.append((begin, 0, f"{store}[{star}".encode(), 1))
-                    ops.append((dot, 1, b"].", 0))
+                    ops.append((recv_end, dot + 1 - recv_end, b"].", 0))
                 elif kind == "get":
                     ops.append((begin, 0, f"(&{store}[{star}".encode(), 1))
-                    ops.append((dot, call_end - dot, b"])", 0))
+                    ops.append((recv_end, call_end - recv_end, b"])", 0))
                 elif kind == "get_mut":
                     ops.append((begin, 0, f"(&mut {store}[{star}".encode(), 1))
-                    ops.append((dot, call_end - dot, b"])", 0))
+                    ops.append((recv_end, call_end - recv_end, b"])", 0))
             totals[kind] += 1
         out = bytearray(data)
         for pos, delete, text, _ in sorted(ops, key=lambda x: (x[0], x[3]), reverse=True):

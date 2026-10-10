@@ -287,7 +287,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let ref_ = locref.ref_;
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
                         let fn_name: &[u8] =
-                            p.symbols[ref_.inner_index() as usize].original_name.slice();
+                            self.store.str(p.symbols[ref_.inner_index() as usize].original_name);
                         exported_members.put(
                             fn_name,
                             TSNamespaceMember {
@@ -305,7 +305,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let ref_ = locref.ref_;
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
                         let class_name: &[u8] =
-                            p.symbols[ref_.inner_index() as usize].original_name.slice();
+                            self.store.str(p.symbols[ref_.inner_index() as usize].original_name);
                         exported_members.put(
                             class_name,
                             TSNamespaceMember {
@@ -324,7 +324,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             let member_data = clone_ts_member_data(member_data);
                             // SAFETY: original_name is arena-owned, valid for 'a.
                             let ns_name: &[u8] =
-                                p.symbols[ref_.inner_index() as usize].original_name.slice();
+                                self.store.str(p.symbols[ref_.inner_index() as usize].original_name);
                             exported_members.put(
                                 ns_name,
                                 TSNamespaceMember {
@@ -343,7 +343,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             let member_data = clone_ts_member_data(member_data);
                             // SAFETY: original_name is arena-owned, valid for 'a.
                             let enum_name: &[u8] =
-                                p.symbols[ref_.inner_index() as usize].original_name.slice();
+                                self.store.str(p.symbols[ref_.inner_index() as usize].original_name);
                             exported_members.put(
                                 enum_name,
                                 TSNamespaceMember {
@@ -357,7 +357,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 StmtData::SLocal(local) => {
                     if self.store[*local].is_export {
-                        for decl in self.store[*local].decls.slice() {
+                        for decl in (&self.store[self.store[*local].decls]) {
                             p.define_exported_namespace_binding(
                                 &mut exported_members,
                                 decl.binding,
@@ -637,7 +637,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let estr = p.lexer.to_utf8_e_string()?;
                 debug_assert!(!estr.is_utf16);
                 value.name = estr.data;
-                js_lexer::is_identifier(value.name.slice())
+                js_lexer::is_identifier(self.store.str(value.name))
             } else if p.lexer.is_identifier_or_keyword() {
                 value.name = js_ast::StoreStr::new(p.lexer.identifier);
                 true
@@ -650,7 +650,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Identifiers can be referenced by other values
             if !opts.is_typescript_declare && needs_symbol {
-                value.ref_ = p.declare_symbol(SymbolKind::Other, value.loc, value.name.slice())?;
+                value.ref_ = p.declare_symbol(SymbolKind::Other, value.loc, self.store.str(value.name))?;
             }
 
             // Parse the initializer
@@ -664,7 +664,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             values.push(value);
 
             exported_members.put(
-                value_name.slice(),
+                self.store.str(value_name),
                 TSNamespaceMember {
                     loc: value_loc,
                     data: TSNamespaceMemberData::EnumProperty,

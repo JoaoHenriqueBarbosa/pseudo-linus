@@ -654,14 +654,14 @@ fn lower_date_time_literals<'a>(
     while let Some(container) = work.pop() {
         match container {
             DateTimeLowerContainer::Object(mut obj) => {
-                for property in p.store[obj].properties.slice_mut() {
+                for property in (&mut p.store[p.store[obj].properties]) {
                     if let Some(value) = &mut property.value {
                         lower_one_date_time_literal(p, value, temporal_ref, &mut work)?;
                     }
                 }
             }
             DateTimeLowerContainer::Array(mut arr) => {
-                for item in p.store[arr].items.slice_mut() {
+                for item in (&mut p.store[p.store[arr].items]) {
                     lower_one_date_time_literal(p, item, temporal_ref, &mut work)?;
                 }
             }
@@ -688,7 +688,7 @@ fn lower_one_date_time_literal<'a>(
                 }
             };
             let (class, text) = {
-                let str = str.get();
+                let str = (&p.store[str]);
                 let kind = str.toml_datetime.expect("infallible: guard checked");
                 (kind.temporal_class(), str.slice8())
             };

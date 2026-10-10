@@ -57,8 +57,8 @@ impl SideEffects {
                     if p.store[*e].op == Op::Code::UnNot {
                         // "!!a" => "a"
                         if let ExprData::EUnary(inner) = &p.store[*e].value.data {
-                            if p.store[inner].op == Op::Code::UnNot {
-                                *expr = p.store[inner].value;
+                            if p.store[*inner].op == Op::Code::UnNot {
+                                *expr = p.store[*inner].value;
                                 continue;
                             }
                         }
@@ -207,7 +207,7 @@ impl SideEffects {
                         // cause an exception to be thrown. Instead we can just remove it since
                         // "typeof x" is special-cased in the standard to never throw.
                         if matches!(p.store[un].value.data, ExprData::EIdentifier(_))
-                            && un
+                            && p.store[un]
                                 .flags
                                 .contains(E::UnaryFlags::WAS_ORIGINALLY_TYPEOF_IDENTIFIER)
                         {
@@ -362,7 +362,7 @@ impl SideEffects {
                         let kind = p.store[e_object].properties.at(j).kind;
                         if kind != G::PropertyKind::Spread {
                             let prev_value = p.store[e_object].properties.at(j).value.unwrap();
-                            let is_computed = e_object
+                            let is_computed = p.store[e_object]
                                 .properties
                                 .at(j)
                                 .flags
@@ -380,7 +380,7 @@ impl SideEffects {
 
                         // G::Property is not Copy (Vec ts_decorators field), so swap
                         // so the kept property lands at `end` without cloning.
-                        p.store[e_object].properties.slice_mut().swap(end, j);
+                        (&mut p.store[p.store[e_object].properties]).swap(end, j);
                         end += 1;
                     }
                     p.store[e_object].properties.shrink_retaining_capacity(end);
@@ -439,7 +439,7 @@ impl SideEffects {
                     }
                 }
                 if has_spread {
-                    let items = p.store[arr].items.slice_mut();
+                    let items = (&mut p.store[p.store[arr].items]);
                     let mut end: usize = 0;
                     for j in 0..len {
                         if !matches!(items[j].data, ExprData::EMissing(_)) {

@@ -320,9 +320,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 || identifier_opts.is_delete_target())
                                 && identifier_opts.assign_target() == js_ast::AssignTarget::Replace
                                 && matches!(p.stmt_expr_value, js_ast::ExprData::EBinary(_))
-                                && p.stmt_expr_value
+                                && self.store[p.stmt_expr_value
                                     .e_binary()
-                                    .expect("infallible: variant checked")
+                                    .expect("infallible: variant checked")]
                                     .op
                                     == js_ast::OpCode::BinAssign
                             {
@@ -343,12 +343,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     // anything which is not module.exports = {} is a de-opt.
                                     || !matches!(self.store[stmt_bin].right.data, js_ast::ExprData::EObject(_))
                                     || !matches!(self.store[stmt_bin].left.data, js_ast::ExprData::EDot(_))
-                                    || self.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked").name != b"exports"
+                                    || self.store[self.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked")].name != b"exports"
                                     || !matches!(
-                                        self.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked").target.data,
+                                        self.store[self.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked")].target.data,
                                         js_ast::ExprData::EIdentifier(_)
                                     )
-                                    || !stmt_bin
+                                    || !self.store[stmt_bin]
                                         .left
                                         .data
                                         .e_dot()
@@ -364,7 +364,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     return None;
                                 }
 
-                                let right_obj = stmt_bin
+                                let right_obj = self.store[stmt_bin]
                                     .right
                                     .data
                                     .e_object()
@@ -561,7 +561,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 && identifier_opts.assign_target() == js_ast::AssignTarget::None
                                 && !identifier_opts.is_call_target()
                             {
-                                let prop: &G::Property = &self.store[obj].properties.slice()[0];
+                                let prop: &G::Property = &(&self.store[self.store[obj].properties])[0];
                                 if let (Some(value), Some(key)) = (prop.value, prop.key) {
                                     if prop.flags.len() == 0
                                         && matches!(key.data, js_ast::ExprData::EString(_))

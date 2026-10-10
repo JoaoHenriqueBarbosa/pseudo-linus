@@ -577,14 +577,14 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             // mutate the field in the exports object. Re-exports can just be
             // encoded into the module format, propagated in `replaceModules`
             let key = Expr::init(
-                E::EString::init(export_symbol_name.unwrap_or(original_name).slice()),
+                E::EString::init(self.store.str(export_symbol_name.unwrap_or(original_name))),
                 loc,
             );
 
             // This is technically incorrect in that we've marked this as a
             // top level symbol. but all we care about is preventing name
             // collisions, not necessarily the best minificaiton (dev only)
-            let arg1 = p.generate_temp_ref(Some(original_name.slice()));
+            let arg1 = p.generate_temp_ref(Some(self.store.str(original_name)));
             self.last_part
                 .declared_symbols
                 .append(js_ast::DeclaredSymbol {
@@ -623,7 +623,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             // 'abc,'
             self.export_props.push(G::Property {
                 key: Some(Expr::init(
-                    E::EString::init(export_symbol_name.unwrap_or(original_name).slice()),
+                    E::EString::init(self.store.str(export_symbol_name.unwrap_or(original_name))),
                     loc,
                 )),
                 value: Some(id),

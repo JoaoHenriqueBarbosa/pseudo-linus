@@ -95,7 +95,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // that field is widened to `ExprNodeList` we copy into the arena (Expr is `Copy`) and
             // let `ts_decorators` drop normally: no `mem::forget` / `from_raw_parts` lifetime
             // laundering (forbidden per PORTING.md §Forbidden patterns).
-            let ts_decorators_slice: &'a [Expr] = p.arena.alloc_slice_copy(ts_decorators.slice());
+            let ts_decorators_slice: &'a [Expr] = p.arena.alloc_slice_copy((&p.store[ts_decorators]));
             opts.ts_decorators = Some(DeferredTsDecorators {
                 values: ts_decorators_slice,
                 scope_index,
@@ -182,7 +182,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.lexer.expect_or_insert_semicolon()?;
 
         if !opts.is_typescript_declare {
-            p.require_initializers(js_ast::s::Kind::KConst, decls.slice())?;
+            p.require_initializers(js_ast::s::Kind::KConst, (&p.store[decls]))?;
         }
 
         Ok(p.s(
@@ -555,7 +555,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut stmt_opts = ParseStatementOptions::default();
                     let decls =
                         p.parse_and_declare_decls(js_ast::symbol::Kind::Hoisted, &mut stmt_opts)?;
-                    decls_ptr = bun_ast::StoreSlice::new(decls.slice());
+                    decls_ptr = bun_ast::StoreSlice::new((&p.store[decls]));
                     init_ = Some(p.s(
                         S::Local {
                             kind: js_ast::s::Kind::KVar,
@@ -571,7 +571,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut stmt_opts = ParseStatementOptions::default();
                     let decls =
                         p.parse_and_declare_decls(js_ast::symbol::Kind::Constant, &mut stmt_opts)?;
-                    decls_ptr = bun_ast::StoreSlice::new(decls.slice());
+                    decls_ptr = bun_ast::StoreSlice::new((&p.store[decls]));
                     init_ = Some(p.s(
                         S::Local {
                             kind: js_ast::s::Kind::KConst,
@@ -652,7 +652,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
 
-                p.forbid_initializers(decls_ptr.slice(), "of", false)?;
+                p.forbid_initializers((&p.store[decls_ptr]), "of", false)?;
                 p.lexer.next()?;
                 let value = p.parse_expr(Level::Comma)?;
                 p.lexer.expect(T::TCloseParen)?;
@@ -671,7 +671,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Detect for-in loops
             if p.lexer.token == T::TIn {
-                p.forbid_initializers(decls_ptr.slice(), "in", is_var)?;
+                p.forbid_initializers((&p.store[decls_ptr]), "in", is_var)?;
                 p.lexer.next()?;
                 let value = p.parse_expr(Level::Lowest)?;
                 p.lexer.expect(T::TCloseParen)?;
@@ -692,7 +692,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 match &init_stmt.data {
                     js_ast::StmtData::SLocal(local) => {
                         if p.store[*local].kind == js_ast::s::Kind::KConst {
-                            p.require_initializers(js_ast::s::Kind::KConst, decls_ptr.slice())?;
+                            p.require_initializers(js_ast::s::Kind::KConst, (&p.store[decls_ptr]))?;
                         }
                     }
                     _ => {}
@@ -1948,7 +1948,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 p.store[*local].decls.len_u32() as usize,
                                 p.arena,
                             );
-                            for decl in p.store[*local].decls.slice() {
+                            for decl in (&p.store[p.store[*local].decls]) {
                                 Self::extract_decls_for_binding(decl.binding, &mut _decls)?;
                             }
                             decls = G::DeclList::from_bump_vec(_decls);

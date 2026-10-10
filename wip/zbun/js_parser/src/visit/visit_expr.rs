@@ -384,7 +384,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     break 'tagger p.jsx_import(JSXImport::Fragment, expr.loc);
                 };
 
-                for property in p.store[e_].properties.slice_mut() {
+                for property in (&mut p.store[p.store[e_].properties]) {
                     if property.kind != G::PropertyKind::Spread {
                         p.visit_expr(property.key.as_mut().expect("infallible: prop has key"));
                     }
@@ -431,7 +431,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         VecExt::append(&mut args, p.new_expr(E::Null {}, expr.loc));
                     }
 
-                    let children_elements = &p.store[e_].children.slice()[0..children_count as usize];
+                    let children_elements = &(&p.store[p.store[e_].children])[0..children_count as usize];
                     for child in children_elements {
                         let mut arg = *child;
                         p.visit_expr(&mut arg);
@@ -516,12 +516,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // Iterate by index to avoid a borrowck conflict on
                         // `e_.children` (writes alias the buffer being iterated).
                         for i in 0..children_count {
-                            let mut visited = p.store[e_].children.slice()[i as usize];
+                            let mut visited = (&p.store[p.store[e_].children])[i as usize];
                             p.visit_expr(&mut visited);
-                            p.store[e_].children.slice_mut()[last_child as usize] = visited;
+                            (&mut p.store[p.store[e_].children])[last_child as usize] = visited;
                             // if tree-shaking removes the element, we must also remove it here.
                             last_child += u32::from(!matches!(
-                                p.store[e_].children.slice()[last_child as usize].data,
+                                (&p.store[p.store[e_].children])[last_child as usize].data,
                                 Data::EMissing(..)
                             ));
                         }
@@ -570,7 +570,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // https://github.com/microsoft/TypeScript/blob/d4fbc9b57d9aa7d02faac9b1e9bb7b37c687f6e9/src/compiler/transformers/jsx.ts#L340
                     let is_static_jsx = p.store[e_].children.len_u32() > 1
                         || (p.store[e_].children.len_u32() == 1
-                            && matches!(p.store[e_].children.slice()[0].data, Data::ESpread(..)));
+                            && matches!((&p.store[p.store[e_].children])[0].data, Data::ESpread(..)));
 
                     if is_static_jsx {
                         // Capture before `mem::take` zeroes `e_.children.len` (struct-literal
@@ -591,7 +591,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     } else if p.store[e_].children.len_u32() == 1 {
                         props.push(G::Property {
                             key: Some(children_key),
-                            value: Some(p.store[e_].children.slice()[0]),
+                            value: Some((&p.store[p.store[e_].children])[0]),
                             ..Default::default()
                         });
                     }
@@ -708,7 +708,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if Self::ALLOW_MACROS {
                 let ref_ = match &p.store[e_].tag.unwrap().data {
                     Data::EImportIdentifier(ident) => Some(ident.ref_),
-                    Data::EDot(dot) => match &p.store[dot].target.data {
+                    Data::EDot(dot) => match &p.store[*dot].target.data {
                         Data::EIdentifier(id) => Some(id.ref_),
                         _ => None,
                     },
@@ -745,11 +745,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         p.macro_call_count += 1;
                         let name: &[u8] = macro_ref_data.name.unwrap_or_else(|| {
-                            p.store[e_].tag
+                            p.store[p.store[e_].tag
                                 .unwrap()
                                 .data
                                 .e_dot()
-                                .expect("infallible: variant checked")
+                                .expect("infallible: variant checked")]
                                 .name
                                 .slice()
                         });
@@ -1130,7 +1130,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if p.options.bundle
             && (in_.assign_target != js_ast::AssignTarget::None || is_delete_target)
             && matches!(p.store[e_].target.data.tag(), Tag::EIdentifier)
-            && p.symbols[e_
+            && p.symbols[p.store[e_]
                 .target
                 .data
                 .e_identifier()
@@ -1148,7 +1148,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     "Cannot assign to property on import \"{}\"",
                     // `original_name: StoreStr` has a safe `Deref<Target=[u8]>`.
                     BStr::new(
-                        &*p.symbols[e_
+                        &*p.symbols[p.store[e_]
                             .target
                             .data
                             .e_identifier()
@@ -1187,7 +1187,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // is unbound because that could suppress a ReferenceError from "x"
                 if !id_before
                     && id_after
-                    && p.symbols[e_
+                    && p.symbols[p.store[e_]
                         .value
                         .data
                         .e_identifier()
@@ -1325,14 +1325,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // "-(a, b)" => "a, -b"
                     if !matches!(p.store[e_].op, Op::UnDelete | Op::UnTypeof) {
                         if let Data::EBinary(comma) = &p.store[e_].value.data {
-                            if p.store[comma].op == Op::BinComma {
-                                *e = p.store[comma].left.join_with_comma(p.new_expr(
+                            if p.store[*comma].op == Op::BinComma {
+                                *e = p.store[*comma].left.join_with_comma(p.new_expr(
                                     E::Unary {
                                         op: p.store[e_].op,
-                                        value: p.store[comma].right,
+                                        value: p.store[*comma].right,
                                         flags: p.store[e_].flags,
                                     },
-                                    p.store[comma].right.loc,
+                                    p.store[*comma].right.loc,
                                 ));
                                 return;
                             }
@@ -1353,7 +1353,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // tied to `'a`, not `&*p`, and `&mut self` helpers below can be called
         // while iterating without laundering.
         let defines = p.define;
-        if let Some(parts) = defines.dots_for(p.store[e_].name.slice()) {
+        if let Some(parts) = defines.dots_for(p.store.str(p.store[e_].name)) {
             for define in parts.as_slice() {
                 if p.is_dot_define_match(expr, &define.parts) {
                     if in_.assign_target == js_ast::AssignTarget::None {
@@ -1447,7 +1447,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         {
             if let Some(map) = p.import_items_for_namespace.get_mut(&id.ref_) {
                 map.put(
-                    p.store[e_].name.slice(),
+                    p.store.str(p.store[e_].name),
                     js_ast::LocRef {
                         loc: p.store[e_].name_loc,
                         ref_: js_ast::Ref::NONE,
@@ -1467,7 +1467,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if let Some(_expr) = p.maybe_rewrite_property_access(
                 expr.loc,
                 p.store[e_].target,
-                p.store[e_].name.slice(),
+                p.store.str(p.store[e_].name),
                 p.store[e_].name_loc,
                 opts,
             ) {
@@ -1475,13 +1475,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 return;
             }
             p.store[e_].is_import_property_use =
-                p.record_import_property_use(&p.store[e_].target, p.store[e_].name.slice(), opts);
+                p.record_import_property_use(&p.store[e_].target, p.store.str(p.store[e_].name), opts);
 
             if Self::ALLOW_MACROS {
                 if !p.options.features.is_macro_runtime {
                     if p.macro_call_count > 0
                         && matches!(p.store[e_].target.data, Data::EObject(..))
-                        && e_
+                        && p.store[e_]
                             .target
                             .data
                             .e_object()
@@ -1579,7 +1579,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if in_.assign_target != js_ast::AssignTarget::None {
             p.maybe_comma_spread_error(p.store[e_].comma_after_spread);
         }
-        let items = p.store[e_].items.slice_mut();
+        let items = (&mut p.store[p.store[e_].items]);
         let mut spread_item_count: usize = 0;
         for item in items {
             match &mut item.data {
@@ -1594,7 +1594,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     );
 
                     spread_item_count += if let Data::EArray(arr) = &p.store[spread].value.data {
-                        p.store[arr].items.len_u32() as usize
+                        p.store[*arr].items.len_u32() as usize
                     } else {
                         0
                     };
@@ -1605,7 +1605,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // Propagate name for anonymous decorated class expressions
                         if was_anonymous_named_expr
                             && matches!(p.store[e2].right.data, Data::EClass(..))
-                            && e2
+                            && p.store[e2]
                                 .right
                                 .data
                                 .e_class()
@@ -1634,7 +1634,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         p.decorator_class_name = None;
 
                         if matches!(p.store[e2].left.data.tag(), Tag::EIdentifier) {
-                            let name = p.symbols[e2
+                            let name = p.symbols[p.store[e2]
                                 .left
                                 .data
                                 .e_identifier()
@@ -1691,7 +1691,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let mut has_spread = false;
         let mut has_proto = false;
-        for property in p.store[e_].properties.slice_mut() {
+        for property in (&mut p.store[p.store[e_].properties]) {
             if property.kind != G::PropertyKind::Spread {
                 p.visit_expr(
                     property
@@ -1930,9 +1930,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // https://github.com/tc39/ecma262/issues/2062.
                 if p.store[e_].optional_chain.is_none()
                     && target_was_identifier_before_visit
-                    && p.symbols[ident.ref_.inner_index() as usize]
-                        .original_name
-                        .slice()
+                    && p.store.str(p.symbols[ident.ref_.inner_index() as usize]
+                        .original_name)
                         == b"eval"
                 {
                     p.store[e_].is_direct_eval = true;
@@ -1975,7 +1974,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let Data::EDot(dot) = p.store[e_].target.data else {
                 break 'promise_all_then;
             };
-            if p.store[dot].name.slice() != b"then" || p.store[dot].optional_chain.is_some() {
+            if p.store.str(p.store[dot].name) != b"then" || p.store[dot].optional_chain.is_some() {
                 break 'promise_all_then;
             }
             let Data::ECall(inner) = p.store[dot].target.data else {
@@ -1984,7 +1983,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let Some(items) = p.promise_all_import_items(&inner) else {
                 break 'promise_all_then;
             };
-            let args = p.store[e_].args.slice();
+            let args = (&p.store[p.store[e_].args]);
             if args.is_empty() || args.len() > 2 {
                 break 'promise_all_then;
             }
@@ -1994,10 +1993,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if p.store[arrow].has_rest_arg {
                 break 'promise_all_then;
             }
-            let fn_args = p.store[arrow].args.slice();
+            let fn_args = (&p.store[p.store[arrow].args]);
             match fn_args.first() {
                 None => {
-                    for item in p.store[items].items.slice() {
+                    for item in (&p.store[p.store[items].items]) {
                         if let Data::EImport(im) = item.data {
                             if p.store[im].namespace_ref.is_valid() {
                                 p.note_tracked_namespace_use(p.store[im].namespace_ref);
@@ -2026,7 +2025,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let Data::EDot(dot) = p.store[e_].target.data else {
                 break 'dyn_import_then;
             };
-            if p.store[dot].name.slice() != b"then" {
+            if p.store.str(p.store[dot].name) != b"then" {
                 break 'dyn_import_then;
             }
             let Data::EImport(im) = p.store[dot].target.data else {
@@ -2035,7 +2034,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if !p.store[im].namespace_ref.is_valid() {
                 break 'dyn_import_then;
             }
-            let args = p.store[e_].args.slice();
+            let args = (&p.store[p.store[e_].args]);
             if args.is_empty() || args.len() > 2 {
                 break 'dyn_import_then;
             }
@@ -2048,7 +2047,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if p.store[arrow].has_rest_arg {
                 break 'dyn_import_then;
             }
-            match p.store[arrow].args.slice().first() {
+            match (&p.store[p.store[arrow].args]).first() {
                 None => {
                     // `.then(() => …)`: no exports observed.
                     p.note_tracked_namespace_use(p.store[im].namespace_ref);
@@ -2091,7 +2090,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let possible_macro_ref = match &p.store[e_].target.data {
                 Data::EImportIdentifier(ident) => Some(ident.ref_),
                 Data::EDot(dot) => {
-                    if let Data::EIdentifier(id) = &p.store[dot].target.data {
+                    if let Data::EIdentifier(id) = &p.store[*dot].target.data {
                         Some(id.ref_)
                     } else {
                         None
@@ -2148,7 +2147,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
 
-            for arg in p.store[e_].args.slice_mut() {
+            for arg in (&mut p.store[p.store[e_].args]) {
                 p.visit_expr(arg);
             }
 
@@ -2184,7 +2183,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // the try/catch statement is there to handle the potential run-time
             // error from the unbundled require() call failing.
             if p.store[e_].args.len_u32() == 1 {
-                let first = p.store[e_].args.slice()[0];
+                let first = (&p.store[p.store[e_].args])[0];
                 let state = TransposeState {
                     is_require_immediately_assigned_to_decl: in_.is_immediately_assigned_to_decl
                         && matches!(first.data, Data::EString(..)),
@@ -2225,7 +2224,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             if p.store[e_].args.len_u32() >= 1 {
-                p.check_dynamic_specifier(p.store[e_].args.slice()[0], p.store[e_].target.loc, "require()")
+                p.check_dynamic_specifier((&p.store[p.store[e_].args])[0], p.store[e_].target.loc, "require()")
                     .expect("unreachable");
             }
 
@@ -2244,7 +2243,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             if p.store[e_].args.len_u32() == 1 {
-                let first = p.store[e_].args.slice()[0];
+                let first = (&p.store[p.store[e_].args])[0];
                 match &first.data {
                     Data::EString(..) => {
                         // require.resolve(FOO) => require.resolve(FOO)
@@ -2265,7 +2264,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             if p.store[e_].args.len_u32() >= 1 {
-                p.check_dynamic_specifier(p.store[e_].args.slice()[0], p.store[e_].target.loc, "require.resolve()")
+                p.check_dynamic_specifier((&p.store[p.store[e_].args])[0], p.store[e_].target.loc, "require.resolve()")
                     .expect("unreachable");
             }
 
@@ -2294,7 +2293,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let ref_ = match &p.store[e_].target.data {
                     Data::EImportIdentifier(ident) => ident.ref_,
                     Data::EDot(dot) => {
-                        p.store[dot].target
+                        p.store[*dot].target
                             .data
                             .e_identifier()
                             .expect("infallible: variant checked")
@@ -2328,10 +2327,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 let name: &[u8] = macro_ref_data.name.unwrap_or_else(|| {
-                    p.store[e_].target
+                    p.store[p.store[e_].target
                         .data
                         .e_dot()
-                        .expect("infallible: variant checked")
+                        .expect("infallible: variant checked")]
                         .name
                         .slice()
                 });
@@ -2395,17 +2394,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         {
             'try_record_hook: {
                 let original_name: &[u8] = match &p.store[e_].target.data {
-                    Data::EIdentifier(id) => p.symbols[id.ref_.inner_index() as usize]
-                        .original_name
-                        .slice(),
-                    Data::EImportIdentifier(id) => p.symbols[id.ref_.inner_index() as usize]
-                        .original_name
-                        .slice(),
+                    Data::EIdentifier(id) => p.store.str(p.symbols[id.ref_.inner_index() as usize]
+                        .original_name),
+                    Data::EImportIdentifier(id) => p.store.str(p.symbols[id.ref_.inner_index() as usize]
+                        .original_name),
                     Data::ECommonjsExportIdentifier(id) => p.symbols
                         [id.ref_.inner_index() as usize]
                         .original_name
                         .slice(),
-                    Data::EDot(dot) => p.store[dot].name.slice(),
+                    Data::EDot(dot) => p.store[*dot].name.slice(),
                     _ => break 'try_record_hook,
                 };
                 if !ReactRefresh::is_hook_name(original_name) {
@@ -2430,10 +2427,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                     // Also check for `React.useState(...)`
                     if let Data::EDot(dot) = &p.store[e_].target.data {
-                        if let Data::EImportIdentifier(id) = &p.store[dot].target.data {
-                            let name = p.symbols[id.ref_.inner_index() as usize]
-                                .original_name
-                                .slice();
+                        if let Data::EImportIdentifier(id) = &p.store[*dot].target.data {
+                            let name = p.store.str(p.symbols[id.ref_.inner_index() as usize]
+                                .original_name);
                             break 'check_for_usestate name == b"React";
                         }
                     }
@@ -2457,8 +2453,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Implement constant folding for 'string'.charCodeAt(n)
         if p.store[e_].args.len_u32() == 1 {
             if let Some(dot) = p.store[e_].target.data.e_dot() {
-                if let Some(target_str) = dot.target.data.e_string() {
-                    if !target_str.is_utf16 && dot.name == b"charCodeAt" {
+                if let Some(target_str) = p.store[dot].target.data.e_string() {
+                    if !target_str.is_utf16 && p.store[dot].name == b"charCodeAt" {
                         let str_ = target_str.data;
                         let arg1 = p.store[e_].args.at(0).unwrap_inlined();
                         if let Data::ENumber(n) = &arg1.data {
@@ -2483,7 +2479,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut e_ = expr.data.e_new().expect("infallible: variant checked");
         p.visit_expr(&mut p.store[e_].target);
 
-        for arg in p.store[e_].args.slice_mut() {
+        for arg in (&mut p.store[p.store[e_].args]) {
             p.visit_expr(arg);
         }
 
@@ -2534,7 +2530,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return Some(p.new_expr(E::Boolean { value: false }, loc));
         }
 
-        let arg = e_.args.slice()[0];
+        let arg = (&p.store[e_.args])[0];
 
         // Validate: argument must be a string literal
         if !matches!(arg.data, Data::EString(..)) {
@@ -2598,9 +2594,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         p.push_scope_for_visit_pass(js_ast::scope::Kind::FunctionArgs, expr.loc)
             .expect("unreachable");
-        let dupe: &'a mut [Stmt] = p.arena.alloc_slice_copy(p.store[e_].body.stmts.slice());
+        let dupe: &'a mut [Stmt] = p.arena.alloc_slice_copy((&p.store[p.store[e_].body.stmts]));
 
-        let args_mut: &mut [G::Arg] = p.store[e_].args.slice_mut();
+        let args_mut: &mut [G::Arg] = (&mut p.store[p.store[e_].args]);
         p.visit_args(
             args_mut,
             &VisitArgsOpts {
@@ -2769,9 +2765,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             final_expr = p.keep_expr_symbol_name(
                 final_expr,
                 // SAFETY: original_name is arena-owned, valid for 'a.
-                p.symbols[name.ref_.inner_index() as usize]
-                    .original_name
-                    .slice(),
+                p.store.str(p.symbols[name.ref_.inner_index() as usize]
+                    .original_name),
             );
             replaced = true;
         }

@@ -888,9 +888,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         match r#ref.tag() {
             // SAFETY: original_name is an arena-owned slice valid for 'a (Symbol is created
             // from p.arena / source.contents in this same parse).
-            RefTag::Symbol => self.symbols[r#ref.inner_index() as usize]
-                .original_name
-                .slice(),
+            RefTag::Symbol => self.store.str(self.symbols[r#ref.inner_index() as usize]
+                .original_name),
             RefTag::SourceContentsSlice => {
                 let start = r#ref.source_index() as usize;
                 let end = start + r#ref.inner_index() as usize;
@@ -1148,7 +1147,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         for i in 0..self.dynamic_import_aliases.count() {
             let record = self.dynamic_import_aliases.keys()[i];
             let items = self.dynamic_import_aliases.values()[i].items;
-            for item in items.slice() {
+            for item in (&self.store[items]) {
                 if exported.contains_key(&item.local) {
                     continue;
                 }
@@ -1342,24 +1341,24 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let js_ast::ExprData::EDot(dot) = call.target.data else {
             return None;
         };
-        if self.store[dot].optional_chain.is_some() || self.store[dot].name.slice() != b"all" {
+        if self.store[dot].optional_chain.is_some() || self.store.str(self.store[dot].name) != b"all" {
             return None;
         }
         let js_ast::ExprData::EIdentifier(id) = self.store[dot].target.data else {
             return None;
         };
         let sym = &self.symbols[id.ref_.inner_index() as usize];
-        if sym.kind != js_ast::symbol::Kind::Unbound || sym.original_name.slice() != b"Promise" {
+        if sym.kind != js_ast::symbol::Kind::Unbound || self.store.str(sym.original_name) != b"Promise" {
             return None;
         }
-        let args = call.args.slice();
+        let args = (&self.store[call.args]);
         if args.len() != 1 {
             return None;
         }
         let js_ast::ExprData::EArray(arr) = args[0].data else {
             return None;
         };
-        let items = self.store[arr].items.slice();
+        let items = (&self.store[self.store[arr].items]);
         if items
             .iter()
             .any(|e| matches!(e.data, js_ast::ExprData::ESpread(_)))
@@ -1387,8 +1386,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if pattern.has_spread {
             return;
         }
-        let items = self.store[arr].items.slice();
-        let bindings = pattern.items.slice();
+        let items = (&self.store[self.store[arr].items]);
+        let bindings = (&self.store[pattern.items]);
         for (i, item) in items.iter().enumerate() {
             let js_ast::ExprData::EImport(im) = item.data else {
                 continue;
@@ -1952,7 +1951,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         match binding.data {
             js_ast::b::B::BMissing(_) => {}
             js_ast::b::B::BIdentifier(ident) => {
-                let ident = ident.get();
+                let ident = (&self.store[ident]);
                 // `Symbol.original_name` is an arena-owned `StoreStr` valid for 'a.
                 let name: &'a [u8] = self.symbols[ident.r#ref.inner_index() as usize]
                     .original_name
@@ -1961,12 +1960,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     .expect("unreachable");
             }
             js_ast::b::B::BArray(array) => {
-                for prop in self.store[array].items.slice() {
+                for prop in (&self.store[self.store[array].items]) {
                     self.record_exported_binding(prop.binding);
                 }
             }
             js_ast::b::B::BObject(obj) => {
-                for prop in self.store[obj].properties.slice() {
+                for prop in (&self.store[self.store[obj].properties]) {
                     self.record_exported_binding(prop.value);
                 }
             }
@@ -2203,9 +2202,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         {
             let r = js_lexer::range_of_identifier(self.source, loc);
             // SAFETY: original_name is an arena-owned slice valid for 'a.
-            let original = self.symbols[ref_.inner_index() as usize]
-                .original_name
-                .slice();
+            let original = self.store.str(self.symbols[ref_.inner_index() as usize]
+                .original_name);
             self.log().add_range_error_fmt(
                 Some(self.source),
                 r,
@@ -2222,7 +2220,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .as_ref()
                 .map(|a| (a.namespace_ref, a.alias));
             if let Some((ns_ref, alias_ptr)) = ns_alias_opt {
-                let alias: &'a [u8] = alias_ptr.slice();
+                let alias: &'a [u8] = self.store.str(alias_ptr);
                 if let Some(&js_ast::ts::Data::Namespace(ns)) =
                     self.ref_to_ts_namespace_member.get(&ns_ref)
                 {
@@ -2231,9 +2229,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         match member.data {
                             js_ast::ts::Data::EnumNumber(num) => {
                                 // SAFETY: arena-owned original_name slice.
-                                let name = self.symbols[ref_.inner_index() as usize]
-                                    .original_name
-                                    .slice();
+                                let name = self.store.str(self.symbols[ref_.inner_index() as usize]
+                                    .original_name);
                                 return self.wrap_inlined_enum(
                                     Expr {
                                         loc,
@@ -2244,9 +2241,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             }
                             js_ast::ts::Data::EnumString(str_ptr) => {
                                 // SAFETY: arena-owned original_name slice.
-                                let name = self.symbols[ref_.inner_index() as usize]
-                                    .original_name
-                                    .slice();
+                                let name = self.store.str(self.symbols[ref_.inner_index() as usize]
+                                    .original_name);
                                 let value = self.new_expr(&*str_ptr, loc);
                                 return self.wrap_inlined_enum(value, name);
                             }
@@ -2290,9 +2286,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     js_ast::ts::Data::EnumNumber(num) => {
                         let num = *num;
                         // SAFETY: arena-owned original_name slice.
-                        let name = self.symbols[ref_.inner_index() as usize]
-                            .original_name
-                            .slice();
+                        let name = self.store.str(self.symbols[ref_.inner_index() as usize]
+                            .original_name);
                         return self.wrap_inlined_enum(
                             Expr {
                                 loc,
@@ -2304,9 +2299,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     js_ast::ts::Data::EnumString(str_ptr) => {
                         let str_ptr = *str_ptr;
                         // SAFETY: arena-owned original_name slice.
-                        let name = self.symbols[ref_.inner_index() as usize]
-                            .original_name
-                            .slice();
+                        let name = self.store.str(self.symbols[ref_.inner_index() as usize]
+                            .original_name);
                         let value = self.new_expr(&*str_ptr, loc);
                         return self.wrap_inlined_enum(value, name);
                     }
@@ -2329,9 +2323,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // Substitute a namespace export reference now if appropriate
             if let Some(ns_ref) = self.is_exported_inside_namespace.get(&ref_).copied() {
                 // SAFETY: arena-owned original_name slice.
-                let name: &'a [u8] = self.symbols[ref_.inner_index() as usize]
-                    .original_name
-                    .slice();
+                let name: &'a [u8] = self.store.str(self.symbols[ref_.inner_index() as usize]
+                    .original_name);
 
                 self.record_usage(ns_ref);
                 let target = self.new_expr(E::Identifier::init(ns_ref), loc);
@@ -2794,7 +2787,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 js_ast::StmtData::SLocal(mut local) => {
                     if self.store[local].decls.len_u32() > 0 {
-                        let first = &mut self.store[local].decls.slice_mut()[0];
+                        let first = &mut (&mut self.store[self.store[local].decls])[0];
                         if matches!(first.binding.data, js_ast::b::B::BIdentifier(_)) {
                             if let Some(value) = first.value.as_mut() {
                                 break 'brk js_ast::StoreRef::from_bump(value);
@@ -2896,7 +2889,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
 
                     if replacement_can_be_removed {
-                        for arg in self.store[new].args.slice_mut() {
+                        for arg in (&mut self.store[self.store[new].args]) {
                             if let Some(done) = self.substitute_single_use_symbol_in_child(
                                 arg,
                                 expr,
@@ -3150,7 +3143,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // Do not substitute our unconditionally-executed value into a branch
                     // unless the value itself has no side effects
                     if replacement_can_be_removed || self.store[e].optional_chain.is_none() {
-                        for arg in self.store[e].args.slice_mut() {
+                        for arg in (&mut self.store[self.store[e].args]) {
                             if let Some(done) = self.substitute_single_use_symbol_in_child(
                                 arg,
                                 expr,
@@ -3164,7 +3157,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 js_ast::ExprData::EArray(mut e) => {
-                    for item in self.store[e].items.slice_mut() {
+                    for item in (&mut self.store[self.store[e].items]) {
                         if let Some(done) = self.substitute_single_use_symbol_in_child(
                             item,
                             expr,
@@ -3177,7 +3170,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 js_ast::ExprData::EObject(mut e) => {
-                    for property in self.store[e].properties.slice_mut() {
+                    for property in (&mut self.store[self.store[e].properties]) {
                         // Check the key
                         if property.flags.contains(Flags::Property::IsComputed) {
                             let key = property.key.as_mut().expect("infallible: prop has key");
@@ -3323,7 +3316,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if let Some(factory) = self.lexer.jsx_pragma.jsx() {
             // `Span.text` is a `StoreStr` into lexer-owned source; valid for 'a.
-            let text = factory.text.slice();
+            let text = self.store.str(factory.text);
             match options::JSX::Pragma::member_list_to_components_if_different(
                 &self.options.jsx.factory,
                 text,
@@ -3339,7 +3332,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if let Some(fragment) = self.lexer.jsx_pragma.jsx_frag() {
             // SAFETY: Span.text is `ArenaStr` valid for 'a.
-            let text = fragment.text.slice();
+            let text = self.store.str(fragment.text);
             match options::JSX::Pragma::member_list_to_components_if_different(
                 &self.options.jsx.fragment,
                 text,
@@ -3355,7 +3348,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if let Some(import_source) = self.lexer.jsx_pragma.jsx_import_source() {
             // SAFETY: Span.text is `ArenaStr` valid for 'a.
-            let text = import_source.text.slice();
+            let text = self.store.str(import_source.text);
             self.options.jsx.classic_import_source = text.to_vec().into();
             self.options.jsx.package_name = self.options.jsx.classic_import_source.clone();
             self.options.jsx.set_import_source();
@@ -3363,7 +3356,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if let Some(runtime) = self.lexer.jsx_pragma.jsx_runtime() {
             // SAFETY: Span.text is `ArenaStr` valid for 'a.
-            let text = runtime.text.slice();
+            let text = self.store.str(runtime.text);
             if let Some(jsx_runtime) = options::JSX::RUNTIME_MAP.get(text) {
                 self.options.jsx.runtime = jsx_runtime.runtime;
                 if let Some(dev) = jsx_runtime.development {
@@ -3970,7 +3963,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut items = BumpVec::with_capacity_in(self.store[ex].items.len_u32() as usize, self.arena);
                 let mut is_spread = false;
                 for i in 0..ex.items.len_u32() as usize {
-                    let mut item = self.store[ex].items.slice()[i];
+                    let mut item = (&self.store[self.store[ex].items])[i];
                     if matches!(item.data, js_ast::ExprData::ESpread(_)) {
                         is_spread = true;
                         item = item
@@ -4024,7 +4017,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 let mut properties =
                     BumpVec::with_capacity_in(self.store[ex].properties.len_u32() as usize, self.arena);
-                for item in self.store[ex].properties.slice_mut() {
+                for item in (&mut self.store[self.store[ex].properties]) {
                     if item.flags.contains(Flags::Property::IsMethod)
                         || item.kind == js_ast::g::PropertyKind::Get
                         || item.kind == js_ast::g::PropertyKind::Set
@@ -4170,7 +4163,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Truncate the scope order where we started to pretend we never saw this scope
         self.scopes_in_order.truncate(scope_index);
 
-        let children = &parent.children;
+        let children = &self.store[parent].children;
         // Remove the last child from the parent scope
         let last = children.len_u32() - 1;
         if children.slice()[last as usize] != to_discard {
@@ -4228,7 +4221,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             // arena-owned `StoreSlice<ClauseItem>` valid for parser 'a.
-            for item in stmt.items.iter() {
+            for item in self.store[stmt.items].iter() {
                 let name = self.load_name_from_ref(item.name.ref_);
                 let r#ref =
                     self.declare_symbol(js_ast::symbol::Kind::Other, item.name.loc, name)?;
@@ -4254,7 +4247,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // arena-owned `StoreSlice<ClauseItem>` valid for parser 'a;
             // loop body only reads from `item`, so a shared borrow suffices and
             // avoids holding a unique borrow across `&mut self` method calls.
-            for item in stmt.items.iter() {
+            for item in self.store[stmt.items].iter() {
                 // In ClauseItem from parseImportClause:
                 // - alias is the name from the source module ("feature")
                 // - original_name is the local binding name
@@ -4440,7 +4433,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
         let mut end: usize = 0;
 
-        let items_slice: &mut [js_ast::ClauseItem] = stmt.items.slice_mut();
+        let items_slice: &mut [js_ast::ClauseItem] = (&mut self.store[stmt.items]);
         for i in 0..items_slice.len() {
             // `ClauseItem` does not derive `Copy`; bit-copy via `ptr::read` -
             // all fields are POD (`StoreStr`/`Loc`/`LocRef`).
@@ -4568,7 +4561,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             if loader == options::Loader::Sqlite || loader == options::Loader::SqliteEmbedded {
                 // arena-owned `StoreSlice<ClauseItem>` valid for parser 'a.
-                for item in stmt.items.iter() {
+                for item in self.store[stmt.items].iter() {
                     // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
                     let alias: &[u8] = item.alias.slice();
                     if !(alias == b"default" || alias == b"db") {
@@ -4582,7 +4575,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             } else if loader == options::Loader::File || loader == options::Loader::Text {
                 // arena-owned `StoreSlice<ClauseItem>` valid for parser 'a.
-                for item in stmt.items.iter() {
+                for item in self.store[stmt.items].iter() {
                     // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
                     if item.alias.slice() != b"default" {
                         self.log().add_error(
@@ -4717,7 +4710,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         match binding.data {
             js_ast::b::B::BMissing(_) => {}
             js_ast::b::B::BIdentifier(id) => {
-                let id = id.get();
+                let id = (&self.store[id]);
                 // `Symbol.original_name` is an arena-owned `StoreStr` valid for 'a.
                 let name = self.symbols[id.r#ref.inner_index() as usize]
                     .original_name
@@ -4733,12 +4726,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     .insert(id.r#ref, js_ast::ts::Data::Property);
             }
             js_ast::b::B::BObject(obj) => {
-                for prop in self.store[obj].properties.slice() {
+                for prop in (&self.store[self.store[obj].properties]) {
                     self.define_exported_namespace_binding(exported_members, prop.value)?;
                 }
             }
             js_ast::b::B::BArray(obj) => {
-                for prop in self.store[obj].items.slice() {
+                for prop in (&self.store[self.store[obj].items]) {
                     self.define_exported_namespace_binding(exported_members, prop.binding)?;
                 }
             }
@@ -4801,9 +4794,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let r = js_lexer::range_of_identifier(self.source, decl.binding.loc);
                         let ident_ref = self.store[*ident].r#ref;
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
-                        let name = self.symbols[ident_ref.inner_index() as usize]
-                            .original_name
-                            .slice();
+                        let name = self.store.str(self.symbols[ident_ref.inner_index() as usize]
+                            .original_name);
                         self.log().add_range_error_fmt(
                             Some(self.source),
                             r,
@@ -5158,7 +5150,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // SAFETY: see key-lifetime note above: `name: &'a [u8]` outlives the
         // arena-owned `Scope` map.
         let entry = unsafe {
-            scope
+            self.store[scope]
                 .members
                 .get_or_put_hashed(js_ast::scope::Members::hash(name), name)
         };
@@ -5222,9 +5214,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn validate_function_name(&mut self, func: &G::Fn) {
         if let Some(name) = &func.name {
             // SAFETY: Symbol.original_name is an arena/source-contents slice valid for 'a.
-            let original_name: &[u8] = self.symbols[name.ref_.inner_index() as usize]
-                .original_name
-                .slice();
+            let original_name: &[u8] = self.store.str(self.symbols[name.ref_.inner_index() as usize]
+                .original_name);
 
             if func.flags.contains(Flags::Function::IsAsync) && original_name == b"await" {
                 self.log().add_range_error(
@@ -5700,7 +5691,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if !matches!(value.data, js_ast::ExprData::EArray(_)) {
                     return false;
                 }
-                for item in self.store[bi].items.slice() {
+                for item in (&self.store[self.store[bi].items]) {
                     if !matches!(
                         item.binding.data,
                         js_ast::b::B::BIdentifier(_) | js_ast::b::B::BMissing(_)
@@ -5724,7 +5715,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if !Self::object_literal_has_only_plain_keys(literal) {
                     return false;
                 }
-                for property in self.store[bo].properties.slice() {
+                for property in (&self.store[self.store[bo].properties]) {
                     if property.flags.contains(Flags::Property::IsSpread)
                         || property.flags.contains(Flags::Property::IsComputed)
                     {
@@ -5836,7 +5827,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         return false;
                     }
 
-                    for decl in self.store[*st].decls.slice() {
+                    for decl in (&self.store[self.store[*st].decls]) {
                         if !self.decl_binding_can_be_removed_if_unused_without_dce_check(decl) {
                             return false;
                         }
@@ -5858,10 +5849,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 js_ast::StmtData::STry(try_) => {
                     // arena-owned `StoreSlice<Stmt>` valid for parser 'a; no aliasing &mut outstanding
-                    if !self.stmts_can_be_removed_if_unused_without_dce_check(self.store[*try_].body.slice())
+                    if !self.stmts_can_be_removed_if_unused_without_dce_check((&self.store[self.store[*try_].body]))
                         || (self.store[*try_].finally.is_some()
                             && !self.stmts_can_be_removed_if_unused_without_dce_check(
-                                self.store[*try_].finally.as_ref().unwrap().stmts.slice(),
+                                (&self.store[self.store[*try_].finally.as_ref().unwrap().stmts]),
                             ))
                     {
                         return false;
@@ -6156,7 +6147,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         // arena-owned `StoreSlice<Property>` valid for parser 'a; no aliasing &mut outstanding
-        for property in class.properties.iter() {
+        for property in self.store[class.properties].iter() {
             if property.kind == js_ast::g::PropertyKind::ClassStaticBlock {
                 let csb = property.class_static_block_ref().unwrap();
                 if !self.stmts_can_be_removed_if_unused_without_dce_check(csb.stmts.slice()) {
@@ -6306,7 +6297,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         || self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].no));
             }
             js_ast::ExprData::EArray(ex) => {
-                for item in self.store[*ex].items.slice() {
+                for item in (&self.store[self.store[*ex].items]) {
                     if !self.expr_can_be_removed_if_unused_without_dce_check(item) {
                         return false;
                     }
@@ -6314,7 +6305,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 return true;
             }
             js_ast::ExprData::EObject(ex) => {
-                for property in self.store[*ex].properties.slice() {
+                for property in (&self.store[self.store[*ex].properties]) {
                     // The key must still be evaluated if it's computed or a spread.
                     // A computed key is side-effect free only if it's a primitive
                     // literal; unwrap inlined enum members (e.g. `[A.FOO]`) first so
@@ -6341,7 +6332,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // A call that has been marked "__PURE__" can be removed if all arguments
                 // can be removed. The annotation causes us to ignore the target.
                 if self.store[*ex].can_be_unwrapped_if_unused != js_ast::CanBeUnwrapped::Never {
-                    for arg in self.store[*ex].args.slice() {
+                    for arg in (&self.store[self.store[*ex].args]) {
                         if !(self.expr_can_be_removed_if_unused_without_dce_check(arg)
                             || (self.store[*ex].can_be_unwrapped_if_unused
                                 == js_ast::CanBeUnwrapped::IfUnusedAndToStringSafe
@@ -6357,7 +6348,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // A call that has been marked "__PURE__" can be removed if all arguments
                 // can be removed. The annotation causes us to ignore the target.
                 if self.store[*ex].can_be_unwrapped_if_unused != js_ast::CanBeUnwrapped::Never {
-                    for arg in self.store[*ex].args.slice() {
+                    for arg in (&self.store[self.store[*ex].args]) {
                         if !(self.expr_can_be_removed_if_unused_without_dce_check(arg)
                             || (self.store[*ex].can_be_unwrapped_if_unused
                                 == js_ast::CanBeUnwrapped::IfUnusedAndToStringSafe
@@ -6388,7 +6379,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // currently ignored.
                 js_ast::op::Code::UnTypeof => {
                     if matches!(self.store[*ex].value.data, js_ast::ExprData::EIdentifier(_))
-                        && ex
+                        && self.store[*ex]
                             .flags
                             .contains(E::UnaryFlags::WAS_ORIGINALLY_TYPEOF_IDENTIFIER)
                     {
@@ -6543,7 +6534,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     (typeof_, str_)
                 {
                     if self.store[unary].op == js_ast::op::Code::UnTypeof
-                        && unary
+                        && self.store[unary]
                             .flags
                             .contains(E::UnaryFlags::WAS_ORIGINALLY_TYPEOF_IDENTIFIER)
                         && s.eql_comptime(b"u")
@@ -6847,7 +6838,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     ) -> Result<(), crate::Error> {
         if let js_ast::StmtData::SBlock(block) = &body.data {
             // `S::Block.stmts` is `StoreSlice<Stmt>` arena-owned for parser 'a; no aliasing &mut.
-            let block_stmts: &[Stmt] = self.store[*block].stmts.slice();
+            let block_stmts: &[Stmt] = (&self.store[self.store[*block].stmts]);
             let mut keep_block = false;
             for stmt in block_stmts {
                 if statement_cares_about_scope(stmt) {
@@ -6886,12 +6877,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 self.is_exported_inside_namespace.insert(self.store[ident].r#ref, r#ref);
             }
             js_ast::b::B::BArray(array) => {
-                for item in self.store[array].items.slice() {
+                for item in (&self.store[self.store[array].items]) {
                     self.mark_exported_binding_inside_namespace(r#ref, item.binding);
                 }
             }
             js_ast::b::B::BObject(obj) => {
-                for item in self.store[obj].properties.slice() {
+                for item in (&self.store[self.store[obj].properties]) {
                     self.mark_exported_binding_inside_namespace(r#ref, item.value);
                 }
             }
@@ -7310,7 +7301,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut static_members = BumpVec::<Stmt>::new_in(self.arena);
                 let mut class_properties = BumpVec::<G::Property>::new_in(self.arena);
 
-                for prop in self.store[s_class].class.properties.slice_mut().iter_mut() {
+                for prop in (&mut self.store[self.store[s_class].class.properties]).iter_mut() {
                     // merge parameter decorators with method decorators
                     if prop.flags.contains(Flags::Property::IsMethod) {
                         if let Some(prop_value) = prop.value {
@@ -7323,7 +7314,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     }
 
                                     // arena-owned `StoreSlice<Arg>` valid for parser 'a.
-                                    for (i, arg) in self.store[func].func.args.iter().enumerate() {
+                                    for (i, arg) in self.store[self.store[func].func.args].iter().enumerate() {
                                         for arg_decorator in arg.ts_decorators.slice() {
                                             let arg0 = self.new_expr(
                                                 E::Number::new(i as f64),
@@ -7510,7 +7501,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if !instance_members.is_empty() {
                     if let Some(mut cf) = constructor_function {
                         // `body.stmts` is an arena-owned `StoreSlice<Stmt>`.
-                        let old_stmts: &[Stmt] = self.store[cf].func.body.stmts.slice();
+                        let old_stmts: &[Stmt] = (&self.store[self.store[cf].func.body.stmts]);
                         // statements coming from class body inserted after super call or beginning of constructor.
                         let mut super_index: Option<usize> = None;
                         for (index, item) in old_stmts.iter().enumerate() {
@@ -7603,7 +7594,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             value: Some(value_expr),
                             ..Default::default()
                         });
-                        for old in old_props.slice_mut().iter_mut() {
+                        for old in (&mut self.store[old_props]).iter_mut() {
                             properties.push(core::mem::take(old));
                         }
 
@@ -7631,7 +7622,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if self.options.features.emit_decorator_metadata {
                         if let Some(cf) = constructor_function {
                             // design:paramtypes
-                            let constructor_args: &[G::Arg] = self.store[cf].func.args.slice();
+                            let constructor_args: &[G::Arg] = (&self.store[self.store[cf].func.args]);
                             let args1 = if !constructor_args.is_empty() {
                                 let param_array = self
                                     .arena
@@ -7742,7 +7733,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .e_function()
                             .expect("infallible: variant checked");
                         // arena-owned `StoreSlice<Arg>` valid for parser 'a.
-                        let method_args: &[G::Arg] = self.store[func].func.args.slice();
+                        let method_args: &[G::Arg] = (&self.store[self.store[func].func.args]);
                         {
                             let args_array = self
                                 .arena
@@ -7809,7 +7800,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .e_function()
                             .expect("infallible: variant checked");
                         // arena-owned `StoreSlice<Arg>` valid for parser 'a.
-                        let method_args: &[G::Arg] = self.store[func].func.args.slice();
+                        let method_args: &[G::Arg] = (&self.store[self.store[func].func.args]);
                         {
                             let args_array = self
                                 .arena
@@ -7970,10 +7961,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 );
 
                 if i < refs.len() - 2 {
-                    current_dot = current_dot
+                    current_dot = self.store[current_dot
                         .data
                         .e_dot()
-                        .expect("infallible: variant checked")
+                        .expect("infallible: variant checked")]
                         .target;
                 }
                 current_expr = js_ast::StoreRef::from_bump(
@@ -8004,10 +7995,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     current_expr = next;
                     i += 1;
                     if i < refs.len() - 2 {
-                        current_dot = current_dot
+                        current_dot = self.store[current_dot
                             .data
                             .e_dot()
-                            .expect("infallible: variant checked")
+                            .expect("infallible: variant checked")]
                             .target;
                     }
                 }
@@ -8042,9 +8033,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // parser 'a, which outlives every Expr). Erase the lifetime to fit the
         // placeholder field type.
         // SAFETY: arena-owned slice valid for the AST lifetime.
-        let name: &'static [u8] = self.symbols[r#ref.inner_index() as usize]
-            .original_name
-            .slice();
+        let name: &'static [u8] = self.store.str(self.symbols[r#ref.inner_index() as usize]
+            .original_name);
 
         self.new_expr(
             E::Dot {
@@ -8114,7 +8104,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if let Some(label_ref) = self.store[scope].label_ref.to_nullable() {
                 if self.store[scope].kind == js_ast::scope::Kind::Label
                     // `Symbol.original_name` is an arena-owned `StoreStr` valid for 'a.
-                    && strings::eql(name, self.symbols[label_ref.inner_index() as usize].original_name.slice())
+                    && strings::eql(name, self.store.str(self.symbols[label_ref.inner_index() as usize].original_name))
                 {
                     // Track how many times we've referenced this symbol
                     self.record_usage(label_ref);
@@ -8227,14 +8217,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         // Remove the last child from the parent scope
-        let last = parent.children.len_u32() - 1;
-        debug_assert!(parent.children.slice()[last as usize] == to_flatten);
-        parent.children.truncate(last as usize);
+        let last = self.store[parent].children.len_u32() - 1;
+        debug_assert!(self.store[parent].children.slice()[last as usize] == to_flatten);
+        self.store[parent].children.truncate(last as usize);
 
         for item in self.store[to_flatten].children.slice() {
             let mut item = *item;
             item.parent = Some(parent);
-            VecExt::append(&mut parent.children, item);
+            VecExt::append(&mut self.store[parent].children, item);
         }
     }
 
@@ -8423,7 +8413,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 call.args.mut_(0).data = d;
             }
             js_ast::ExprData::EArray(mut arr) => {
-                for item in self.store[arr].items.slice_mut() {
+                for item in (&mut self.store[self.store[arr].items]) {
                     let js_ast::ExprData::EString(mut s) = item.data else {
                         let _ = self.log().add_error(
                             Some(self.source),
@@ -8638,7 +8628,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if (hook_call.args.len_u32() as usize) <= arg_index {
                     break 'hash_arg;
                 }
-                let arg = hook_call.args.slice()[arg_index];
+                let arg = (&self.store[hook_call.args])[arg_index];
                 arg.data
                     .write_to_hasher(&mut ctx.hasher, self.symbols.as_mut_slice());
             }
@@ -8873,7 +8863,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // Bake does not care about 'import =', as it handles it on it's own
                 let _ = ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, true>(
                     self,
-                    part.stmts.slice_mut(),
+                    (&mut self.store[part.stmts]),
                     wrap_mode != WrapMode::None,
                     Some(&mut hmr_transform_ctx),
                 )?;
@@ -8883,7 +8873,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let last_stmts = hmr_transform_ctx.last_part.stmts;
                 let _ = ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, true>(
                     self,
-                    last_stmts.slice_mut(),
+                    (&mut self.store[last_stmts]),
                     wrap_mode != WrapMode::None,
                     Some(&mut hmr_transform_ctx),
                 )?;
@@ -8919,7 +8909,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                     let result = match ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, false>(
                         self,
-                        part.stmts.slice_mut(),
+                        (&mut self.store[part.stmts]),
                         wrap_mode != WrapMode::None,
                         None,
                     ) {
@@ -9039,9 +9029,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // Do a second pass for exported items now that imported items are filled out.
             // This isn't done for HMR because it already deletes all `.s_export_clause`s
             for part in parts.iter() {
-                for stmt in part.stmts.iter() {
+                for stmt in self.store[part.stmts].iter() {
                     if let js_ast::StmtData::SExportClause(clause) = &stmt.data {
-                        for item in self.store[clause].items.iter() {
+                        for item in self.store[self.store[clause].items].iter() {
                             if let Some(import) = self.named_imports.get_ptr_mut(&item.name.ref_) {
                                 import.is_exported = true;
                             }
@@ -9175,7 +9165,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 for part in parts.iter() {
-                    let src = part.stmts.slice();
+                    let src = (&self.store[part.stmts]);
                     remaining_stmts[..src.len()].copy_from_slice(src);
                     remaining_stmts = &mut remaining_stmts[src.len()..];
                 }
@@ -9301,7 +9291,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let module_scope = self.module_scope_ref();
             renamer::assign_nested_scope_slots(
                 arena,
-                module_scope.get(),
+                (&self.store[module_scope]),
                 self.symbols.as_mut_slice(),
             )
         } else {
@@ -9500,7 +9490,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         debug_assert!(self.options.bundle);
         for part in parts {
             // Part.stmts is an arena-owned slice valid for 'a.
-            for stmt in part.stmts.iter() {
+            for stmt in self.store[part.stmts].iter() {
                 match &stmt.data {
                     js_ast::StmtData::SFunction(_) => {}
                     js_ast::StmtData::SClass(class) => {
@@ -9512,7 +9502,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if self.store[local].origin.is_commonjs_export()
                             || self.commonjs_named_exports.count() == 0
                         {
-                            for decl in self.store[local].decls.slice() {
+                            for decl in (&self.store[self.store[local].decls]) {
                                 if let Some(value) = &decl.value {
                                     // The linker keeps a pattern inside the wrapper.
                                     if !matches!(value.data, js_ast::ExprData::EMissing(_))
@@ -10033,7 +10023,7 @@ impl LowerUsingDeclarationsContext {
         }
 
         let is_top_level = scope == p.module_scope;
-        scope
+        self.store[scope]
             .generated
             .append_slice(&[self.stack_ref, caught_ref, err_ref, has_err_ref]);
         p.declared_symbols

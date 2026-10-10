@@ -129,7 +129,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // G::Fn is not Copy (FnBody/TS-metadata aren't), so mutate `func` in place.
         let mut func = func;
         func.flags.insert(flags::Function::IsUniqueFormalParameters);
-        let args = func.args.slice();
+        let args = (&self.store[func.args]);
         let value = p.new_expr(E::Function { func }, loc);
 
         // Enforce argument rules for accessors
