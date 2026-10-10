@@ -32,7 +32,13 @@ pub struct Bridge {
     pub url: RefCell<String>,
     /// Navegação pedida por `location.href = ...` (a página nova substitui a atual).
     pub navigation: RefCell<Option<String>>,
+    /// Estilo escrito pelo CSSOM em elemento ainda sem atributo `style`: como no Blink, o atributo só nasce (no fim
+    /// da lista de atributos) quando alguém o lê, serializa ou casa seletor.
+    pub pending_styles: RefCell<Vec<(NodeId, String)>>,
 }
+
+/// As operações que leem atributos (e por isso sincronizam o `style` pendente do CSSOM).
+const READS_ATTRIBUTES: &[&str] = &["attrs", "getAttr", "clone", "query", "matches", "innerHTML", "outerHTML", "box", "byId"];
 
 fn err(name: &str, message: impl Into<String>) -> DomError {
     DomError { name: name.to_owned(), message: message.into() }
@@ -85,6 +91,19 @@ fn attr_matches(name: &QualName, wanted: &str) -> bool {
 }
 
 impl Bridge {
+    /// Dá atributo `style` aos elementos com estilo pendente do CSSOM, na ordem em que o estilo foi escrito.
+    pub fn flush_styles(&self) {
+        let pending = std::mem::take(&mut *self.pending_styles.borrow_mut());
+        for (id, text) in pending {
+            self.mutate(|m| m.set_attribute(id, QualName::new(None, ns!(), LocalName::from("style")), &text));
+        }
+    }
+
+    fn has_style_attribute(&self, id: NodeId) -> bool {
+        let doc = self.doc.borrow();
+        doc.get_node(id).and_then(|n| n.element_data()).is_some_and(|e| e.attrs.iter().any(|a| attr_matches(&a.name, "style")))
+    }
+
     /// Tira da árvore tudo o que vem depois de `script` na ordem do documento (os irmãos seguintes dele e de cada
     /// ancestral), como se o parser ainda não tivesse chegado lá. Devolve o que tirou, por pai, para `restore_following`.
     pub fn detach_following(&self, script: NodeId) -> Vec<(NodeId, Vec<NodeId>)> {
@@ -249,7 +268,40 @@ pub fn origin_of(address: &str) -> Option<String> {
 
 impl DomHost for Bridge {
     fn call(&self, op: &str, args: &[DomArg]) -> Result<DomArg, DomError> {
+        if READS_ATTRIBUTES.contains(&op) && !self.pending_styles.borrow().is_empty() {
+            self.flush_styles();
+        }
+        // Escrever ou apagar o atributo `style` direto descarta o que o CSSOM tinha pendente.
+        if matches!(op, "setAttr" | "removeAttr") && args.get(1).is_some_and(|a| matches!(a, DomArg::Str(n) if n.eq_ignore_ascii_case("style"))) {
+            let id = id_arg(args, 0)?;
+            self.pending_styles.borrow_mut().retain(|(node, _)| *node != id);
+        }
         match op {
+            // A escrita do CSSOM: no atributo que já existe, no lugar; sem atributo, fica pendente até uma leitura.
+            "setStyle" => {
+                let id = id_arg(args, 0)?;
+                let text = str_arg(args, 1)?.to_owned();
+                if self.has_style_attribute(id) {
+                    self.mutate(|m| m.set_attribute(id, QualName::new(None, ns!(), LocalName::from("style")), &text));
+                } else {
+                    let mut pending = self.pending_styles.borrow_mut();
+                    match pending.iter_mut().find(|(node, _)| *node == id) {
+                        Some(entry) => entry.1 = text,
+                        None => pending.push((id, text)),
+                    }
+                }
+                Ok(DomArg::Undefined)
+            }
+            // O texto do estilo em linha, pendente ou no atributo, sem sincronizar.
+            "getStyle" => {
+                let id = id_arg(args, 0)?;
+                if let Some((_, text)) = self.pending_styles.borrow().iter().find(|(node, _)| *node == id) {
+                    return Ok(DomArg::Str(text.clone()));
+                }
+                let doc = self.doc.borrow();
+                let node = doc.get_node(id).ok_or_else(illegal)?;
+                Ok(node.element_data().and_then(|e| e.attrs.iter().find(|a| attr_matches(&a.name, "style")).map(|a| a.value.to_string())).map_or(DomArg::Null, DomArg::Str))
+            }
             "pageUrl" => Ok(DomArg::Str(self.url.borrow().clone())),
             "navigate" => {
                 *self.navigation.borrow_mut() = Some(str_arg(args, 0)?.to_owned());

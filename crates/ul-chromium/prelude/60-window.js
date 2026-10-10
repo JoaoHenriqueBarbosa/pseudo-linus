@@ -286,15 +286,18 @@ mutationHook.record = (rec) => {
     });
   }
 };
-// ---- ResizeObserver e IntersectionObserver: medidos na atualização de renderização (um quadro de 16ms), sobre o
-// layout do hospedeiro. A janela é a raiz do IntersectionObserver e não rola.
+// ---- ResizeObserver e IntersectionObserver: medidos na atualização de renderização, sobre o layout do hospedeiro. A
+// janela é a raiz do IntersectionObserver e não rola. Medido no oráculo: sob --virtual-time-budget o headless só
+// produz o primeiro quadro (o da primeira pintura); mudança de layout depois dele não gera entrega nova.
 const renderObservers = new Set();
 let renderPending = false;
+let firstFrameDone = false;
 const requestRender = () => {
-  if (renderPending) return;
+  if (renderPending || firstFrameDone) return;
   renderPending = true;
   setTimeout(() => {
     renderPending = false;
+    firstFrameDone = true;
     // Medido no oráculo: as entregas de ResizeObserver saem antes das de IntersectionObserver no mesmo quadro.
     const all = Array.from(renderObservers);
     for (const observer of all) if (observer instanceof ResizeObserver) observer[P.__measure]();

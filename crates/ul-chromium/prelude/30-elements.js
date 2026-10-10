@@ -142,15 +142,22 @@ const parseDeclarations = (text) => {
 class CSSStyleDeclaration {
   constructor() { throw new TypeError('Illegal constructor'); }
   // O bloco de declarações é o do motor de CSS: o atributo lido passa pela serialização canônica (a que o Chromium
-  // mostra em `cssText` e grava no atributo depois de uma escrita via CSSOM).
-  [P.__list]() { const raw = this[P.__element].getAttribute('style'); return raw ? parseDeclarations(op('normalizeStyle', raw)) : []; }
+  // mostra em `cssText` e grava no atributo depois de uma escrita via CSSOM). A escrita do CSSOM vai pela ponte
+  // (`setStyle`), que só cria o atributo quando alguém o lê, como o Blink.
+  [P.__list]() { const raw = op('getStyle', idOf(this[P.__element])); return raw ? parseDeclarations(op('normalizeStyle', raw)) : []; }
   [P.__save](list) {
-    if (list.length === 0 && this[P.__element].getAttribute('style') === null) return;
+    if (list.length === 0 && op('getStyle', idOf(this[P.__element])) === null) return;
     const text = list.map((d) => `${d.name}: ${d.value}${d.priority ? ' !important' : ''};`).join(' ');
-    this[P.__element].setAttribute('style', op('normalizeStyle', text));
+    this[P.__write](op('normalizeStyle', text));
   }
-  get cssText() { const raw = this[P.__element].getAttribute('style'); return raw ? op('normalizeStyle', raw) : ''; }
-  set cssText(v) { this[P.__element].setAttribute('style', op('normalizeStyle', String(v))); }
+  [P.__write](text) {
+    const element = this[P.__element];
+    const old = op('getStyle', idOf(element));
+    op('setStyle', idOf(element), text);
+    attributeChanged(element, 'style', old, text);
+  }
+  get cssText() { const raw = op('getStyle', idOf(this[P.__element])); return raw ? op('normalizeStyle', raw) : ''; }
+  set cssText(v) { this[P.__write](op('normalizeStyle', String(v))); }
   get length() { return this[P.__list]().length; }
   item(i) { const l = this[P.__list](); return i < l.length ? l[i].name : ''; }
   getPropertyValue(name) { const n = String(name); const d = this[P.__list]().find((x) => x.name === (n.startsWith('--') ? n : n.toLowerCase())); return d ? d.value : ''; }

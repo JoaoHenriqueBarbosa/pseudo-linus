@@ -93,6 +93,7 @@ impl Page {
             fetcher,
             url: RefCell::new(final_url),
             navigation: RefCell::new(None),
+            pending_styles: RefCell::new(Vec::new()),
         };
         Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, console: Rc::new(SilentConsole) })
     }
@@ -104,6 +105,7 @@ impl Page {
 
     /// O que `--dump-dom` imprime: o doctype, o `<html>` serializado e uma quebra de linha final.
     pub fn dump_dom(&self) -> String {
+        self.bridge.flush_styles();
         let doc = self.bridge.doc.borrow();
         let mut out = String::new();
         if let Some(doctype) = &self.bridge.doctype {
