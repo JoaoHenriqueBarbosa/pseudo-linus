@@ -101,6 +101,37 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
   que recebem só o nó passam a receber também `&Store` ou `&mut Store`; essa é a mudança sistemática do porte nos
   arquivos de `ast`, `js_parser` e `js_printer`.
 
+## `Define` com um `Store` por arquivo (passo 2, proposta)
+
+No upstream, `DefineData.value` é um `ExprData` cujos `StoreRef` apontam para nós de vida de processo (tabelas
+`'static`, o `bump` do bundler ou o `Store` de thread onde o `parse_env_json` monta objetos). O `Define` é montado
+uma vez, fica só leitura e é lido por todos os arquivos, inclusive em threads diferentes (os `unsafe impl
+Send/Sync` de `DefineData` e de `defines_table.rs` existem para isso). O `value_for_define` devolve o próprio
+`ExprData`: todos os usos de um define com objeto ou lista apontam para o mesmo nó; o caso `EString` já copia o nó
+(`new_expr(&*str_)`).
+
+No porte não há nó fora de um `Store`, e um índice só vale no `Store` em que nasceu. Duas formas fiéis:
+
+- **(A) Cópia no uso.** O `Define` é dono de um `Store` próprio (o `define_store`), e `DefineData.value` é um
+  `ExprData` com índices nele. O `value_for_define` copia o valor em profundidade do `define_store` para o `Store`
+  do arquivo a cada uso. Custo só onde o define aparece; cada uso ganha um nó próprio, então dois usos do mesmo
+  define com objeto deixam de compartilhar o nó (só observável se o visitante alterar um deles e o outro refletir a
+  alteração, o que no upstream seria um efeito colateral de compartilhamento).
+- **(B) Prefixo pré-carregado.** O `define_store` é montado a partir de `Store::new()` (com o `Prefill` nas
+  posições fixas), e o `Store` de cada arquivo nasce como cópia dele (`define.store.clone()`). Os índices de
+  `DefineData.value` valem em qualquer `Store` de arquivo sem conversão, o `value_for_define` fica igual ao do
+  upstream, e dentro de um arquivo os usos compartilham o nó como lá. É a mesma técnica das constantes
+  pré-carregadas acima. Custo: todo arquivo paga a cópia do `define_store` inteiro, usado ou não; com os defines
+  padrão (literais curtos e a tabela de globais puros, quase toda sem valor) são poucas centenas de bytes, mas um
+  `--define` com objeto JSON grande pesa em cada arquivo.
+
+Nas duas, o `Define` deixa de precisar de `unsafe impl Send/Sync`: um `Store` é `Send + Sync` por construção, e
+`OnceLock` guarda a tabela de globais puros sem o embrulho `SyncDefineData`. Os nomes e a estrutura do upstream
+(`DefineData`, `DotDefine`, `Define`, `Flags`) ficam; muda só a origem dos índices.
+
+Recomendação: (B), por manter o comportamento de compartilhamento e o `value_for_define` do upstream sem código
+novo; (A) só se defines grandes forem um caso de uso real.
+
 ## Estado por arquivo
 
 | Crate | Arquivo do upstream | Estado | O que mudou |
