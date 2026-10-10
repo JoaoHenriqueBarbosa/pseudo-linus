@@ -288,7 +288,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     fn pfx_t_template_head(p: &mut Self) -> PResult<Expr> {
         let loc = p.lexer.loc();
-        let head = p.lexer.to_e_string()?;
+        let head = p.lexer.to_e_string(&mut p.store)?;
 
         let (parts, _tail_loc) = p.parse_template_parts(false)?;
 

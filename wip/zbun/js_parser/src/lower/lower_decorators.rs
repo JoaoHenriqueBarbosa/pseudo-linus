@@ -76,7 +76,7 @@ fn prop_copy(p: &Property) -> Property {
         kind: p.kind,
         flags: p.flags,
         class_static_block: p.class_static_block,
-        ts_decorators: Vec::new(),
+        ts_decorators: p.store.alloc_slice(Vec::new()),
         key: p.key,
         value: p.value,
         // No upstream, `ptr::read` (cópia rasa que aliava o `Vec` do `MDot`, seguro só porque a arena nunca roda o
@@ -236,7 +236,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.new_expr(
             E::New {
                 target,
-                args: Vec::new(),
+                args: self.store.alloc_slice(Vec::new()),
                 close_parens_loc: l,
                 ..Default::default()
             },
@@ -257,7 +257,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.new_expr(
             E::New {
                 target,
-                args: Vec::new(),
+                args: self.store.alloc_slice(Vec::new()),
                 close_parens_loc: l,
                 ..Default::default()
             },
@@ -279,7 +279,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let stmts_list = <[Stmt]>::to_vec(stmts);
         let sb = bump.alloc(G::ClassStaticBlock {
             loc: l,
-            stmts: stmts_list,
+            stmts: self.store.alloc_slice(stmts_list),
         });
         Property {
             kind: PropertyKind::ClassStaticBlock,
@@ -605,7 +605,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if let Some(v) = &mut case.value {
                             self.rewrite_expr(v, kind);
                         }
-                        let body = case.body.slice_mut();
+                        let body = (&mut self.store[case.body]);
                         self.rewrite_stmts(body, kind);
                     }
                 }
@@ -1023,7 +1023,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if let Some(v) = &mut case.value {
                             self.rewrite_private_accesses_in_expr(v, map);
                         }
-                        let body = case.body.slice_mut();
+                        let body = (&mut self.store[case.body]);
                         self.rewrite_private_accesses_in_stmts(body, map);
                     }
                 }
@@ -1538,7 +1538,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             if let js_ast::ExprData::EString(s) = &k.data
                                 && s.is_utf8()
                             {
-                                break 'brk p.bump_name2(b"_", &self.store[s].data);
+                                break 'brk p.bump_name2(b"_", &self.store[*s].data);
                             }
                         }
                         let name =
@@ -1786,7 +1786,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if let js_ast::ExprData::EString(s) = &key_expr.data
                         && s.is_utf8()
                     {
-                        break 'brk p.bump_name2(b"_", &self.store[s].data);
+                        break 'brk p.bump_name2(b"_", &self.store[*s].data);
                     }
                     let name = p.bump_name(b"_accessor_storage", Some(accessor_storage_counter));
                     accessor_storage_counter += 1;
@@ -2019,9 +2019,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if class_decorators_len > 0 {
             p.record_usage(class_name_ref);
             let class_name_str: E::Str = if let Some(name) = original_class_name_for_decorator {
-                name.into()
+                self.store.alloc_str(name)
             } else if is_expr && expr_class_is_anonymous {
-                name_from_context.unwrap_or(b"").into()
+                self.store.alloc_str(name_from_context.unwrap_or(b""))
             } else {
                 // `original_name` is an arena-owned `StoreStr`.
                 E::Str::new(
@@ -2132,7 +2132,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             suffix_exprs.push(p.new_expr(
                                 E::Call {
                                     target: iife_body,
-                                    args: Vec::new(),
+                                    args: self.store.alloc_slice(Vec::new()),
                                     ..Default::default()
                                 },
                                 loc,

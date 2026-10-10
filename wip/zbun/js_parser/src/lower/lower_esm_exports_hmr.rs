@@ -134,7 +134,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                         if ReactRefresh::is_componentish_name(name.slice()) {
                             // Lower to a function statement, and reference the function in the export list.
                             self.export_props.push(G::Property {
-                                key: Some(Expr::init(E::EString::init(b"default"), stmt.loc)),
+                                key: Some(Expr::init(E::EString::init(self.store.alloc_str(b"default")), stmt.loc)),
                                 value: Some(Expr::init_identifier(symbol.ref_, stmt.loc)),
                                 ..Default::default()
                             });
@@ -167,7 +167,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                     },
                     js_ast::StmtOrExpr::Expr(e) => match e.data {
                         js_ast::ExprData::EIdentifier(_) => true,
-                        _ => e.can_be_moved(),
+                        _ => e.can_be_moved(&self.store),
                     },
                 };
                 if can_be_moved_to_inner_scope {
@@ -176,7 +176,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                     // SAFETY: StoreRef points into a live arena; value is POD-shaped.
                     let value = unsafe { core::ptr::read(&raw const self.store[st].value) }.to_expr();
                     self.export_props.push(G::Property {
-                        key: Some(Expr::init(E::EString::init(b"default"), stmt.loc)),
+                        key: Some(Expr::init(E::EString::init(self.store.alloc_str(b"default")), stmt.loc)),
                         value: Some(value),
                         ..Default::default()
                     });
@@ -201,7 +201,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                         VecExt::append(&mut p.current_scope_mut().generated, temp_id);
 
                         self.export_props.push(G::Property {
-                            key: Some(Expr::init(E::EString::init(b"default"), stmt.loc)),
+                            key: Some(Expr::init(E::EString::init(self.store.alloc_str(b"default")), stmt.loc)),
                             value: Some(Expr::init_identifier(temp_id, stmt.loc)),
                             ..Default::default()
                         });
@@ -223,7 +223,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                         break 'stmt Stmt::alloc(
                             S::Local {
                                 kind: js_ast::LocalKind::KConst,
-                                decls,
+                                self.store.alloc_slice(decls),
                                 ..Default::default()
                             },
                             stmt.loc,
@@ -242,7 +242,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                             _ => unreachable!(),
                         };
                         self.export_props.push(G::Property {
-                            key: Some(Expr::init(E::EString::init(b"default"), stmt.loc)),
+                            key: Some(Expr::init(E::EString::init(self.store.alloc_str(b"default")), stmt.loc)),
                             value: Some(Expr::init_identifier(ref_, stmt.loc)),
                             ..Default::default()
                         });
@@ -407,7 +407,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
         let path_text = p.import_records.items()[import_record_index as usize]
             .path
             .text;
-        let gop = self.imports_seen.get_or_put(path_text)?;
+        let gop = self.imports_seen.get_or_put(self.store.str(path_text))?;
         if gop.found_existing {
             let stmt_index = gop.value_ptr.stmt_index;
             // Disable this one since an older record is getting used.  It isn't
@@ -711,7 +711,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                                 },
                                 bun_ast::Loc::EMPTY,
                             ),
-                            args: Vec::new(),
+                            args: self.store.alloc_slice(Vec::new()),
                             ..Default::default()
                         },
                         bun_ast::Loc::EMPTY,

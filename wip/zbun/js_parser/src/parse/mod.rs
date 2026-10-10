@@ -299,9 +299,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.lexer.rescan_close_brace_as_template_token()?;
 
             let tail: E::TemplateContents = if !include_raw {
-                E::TemplateContents::Cooked(p.lexer.to_e_string()?)
+                E::TemplateContents::Cooked(p.lexer.to_e_string(&mut self.store)?)
             } else {
-                E::TemplateContents::Raw(p.lexer.raw_template_contents().into())
+                E::TemplateContents::Raw(self.store.alloc_str(p.lexer.raw_template_contents()))
             };
 
             parts.push(E::TemplatePart {
@@ -328,7 +328,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn parse_string_literal(&mut self) -> Result<Expr, Error> {
         let p = self;
         let loc = p.lexer.loc();
-        let mut str_ = p.lexer.to_e_string()?;
+        let mut str_ = p.lexer.to_e_string(&mut self.store)?;
         str_.prefer_template = p.lexer.token == T::TNoSubstitutionTemplateLiteral;
 
         let expr = p.new_expr(str_, loc);
@@ -388,7 +388,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .loc()
                 .start
                 .max(p.lexer.previous_backslash_quote_in_jsx.loc.start);
-            let estr = p.lexer.to_e_string()?;
+            let estr = p.lexer.to_e_string(&mut self.store)?;
             let expr = p.new_expr(estr, *previous_string_with_backslash_loc);
 
             p.lexer.next_inside_jsx_element()?;
@@ -1192,7 +1192,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             T::TBigIntegerLiteral => {
                 key = p.new_expr(
                     E::BigInt {
-                        value: p.lexer.identifier.into(),
+                        value: self.store.alloc_str(p.lexer.identifier),
                     },
                     p.lexer.loc(),
                 );
@@ -1217,7 +1217,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 key = p.new_expr(
                     E::String {
-                        data: name.into(),
+                        data: self.store.alloc_str(name),
                         ..Default::default()
                     },
                     loc,
@@ -1378,8 +1378,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             break 'brk Some(SupportedAttribute::BunBakeGraph);
                         }
                     } else if p.lexer.token == T::TStringLiteral {
-                        let estr = p.lexer.to_utf8_e_string()?;
-                        let string_literal_text = estr.slice8();
+                        let estr = p.lexer.to_utf8_e_string(&mut self.store)?;
+                        let string_literal_text = estr.slice8(&self.store);
                         if string_literal_text == b"type" {
                             break 'brk Some(SupportedAttribute::Type);
                         }
@@ -1400,8 +1400,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 p.lexer.expect(T::TColon)?;
 
                 p.lexer.expect(T::TStringLiteral)?;
-                let estr = p.lexer.to_utf8_e_string()?;
-                let string_literal_text = estr.slice8();
+                let estr = p.lexer.to_utf8_e_string(&mut self.store)?;
+                let string_literal_text = estr.slice8(&self.store);
                 if let Some(attr) = supported_attribute {
                     match attr {
                         SupportedAttribute::Type => {

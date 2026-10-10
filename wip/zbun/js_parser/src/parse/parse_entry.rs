@@ -591,7 +591,7 @@ impl<'a> Parser<'a> {
         if !runtime_api_call.is_empty() {
             let args_slice: &mut [Expr] = p.arena.alloc_slice_fill_with(1, |_| expr);
             let args = Vec::from_arena_slice(args_slice);
-            final_expr = p.call_runtime(expr.loc, runtime_api_call, args);
+            final_expr = p.call_runtime(expr.loc, runtime_api_call, self.store.alloc_slice(args));
         }
 
         let ns_export_part = js_ast::Part {
@@ -691,7 +691,7 @@ fn lower_one_date_time_literal<'a>(
             let (class, text) = {
                 let str = (&p.store[str]);
                 let kind = str.toml_datetime.expect("infallible: guard checked");
-                (kind.temporal_class(), str.slice8())
+                (kind.temporal_class(), str.slice8(&p.store))
             };
             let loc = expr.loc;
             p.record_usage(ref_);
@@ -716,12 +716,12 @@ fn lower_one_date_time_literal<'a>(
                 },
                 loc,
             );
-            let arg = p.new_expr(E::String::init(text), loc);
+            let arg = p.new_expr(E::String::init(p.store.alloc_str(text)), loc);
             let args_slice: &mut [Expr] = p.arena.alloc_slice_fill_with(1, |_| arg);
             *expr = p.new_expr(
                 E::Call {
                     target: from_dot,
-                    args: Vec::from_arena_slice(args_slice),
+                    args: p.store.alloc_slice(Vec::from_arena_slice(args_slice)),
                     can_be_unwrapped_if_unused: E::CallUnwrap::IfUnused,
                     ..Default::default()
                 },

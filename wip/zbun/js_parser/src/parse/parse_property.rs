@@ -271,7 +271,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 T::TBigIntegerLiteral => {
                     key = p.new_expr(
                         E::BigInt {
-                            value: p.lexer.identifier.into(),
+                            value: self.store.alloc_str(p.lexer.identifier),
                         },
                         p.lexer.loc(),
                     );
@@ -520,7 +520,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // TODO(perf): route ClassStaticBlock.stmts through arena slice directly.
                             let stmt_list = <[Stmt]>::to_vec(stmts.as_slice());
                             let block = p.arena.alloc(G::ClassStaticBlock {
-                                stmts: stmt_list,
+                                stmts: self.store.alloc_slice(stmt_list),
                                 loc,
                             });
 
@@ -543,7 +543,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         return Err(crate::Error::SyntaxError);
                     }
 
-                    key = p.new_expr(E::EString::init(name), name_range.loc);
+                    key = p.new_expr(E::EString::init(self.store.alloc_str(name)), name_range.loc);
 
                     // Parse a shorthand property
                     let is_shorthand_property = !opts.is_class

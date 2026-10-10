@@ -288,7 +288,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let old_ref = items[i].name.ref_;
 
                 // alias is arena-owned (`ArenaStr`), valid for 'a.
-                let alias = items[i].alias.slice();
+                let alias = p.store.str(items[i].alias);
                 if let Some(entry) = p.options.features.replace_exports.get_ptr(alias).cloned() {
                     let _ =
                         p.inject_replacement_export(stmts, old_ref, bun_ast::Loc::EMPTY, &entry);
@@ -401,7 +401,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         match &mut data.value {
             js_ast::StmtOrExpr::Expr(expr) => {
-                let was_anonymous_named_expr = expr.is_anonymous_named();
+                let was_anonymous_named_expr = expr.is_anonymous_named(&p.store);
                 // Propagate `"default"` as the class name for anonymous decorated
                 // class expressions so standard-decorator lowering sees it.
                 let prev_decorator_class_name = p.decorator_class_name;
@@ -941,7 +941,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 p.new_expr(
                     E::Dot {
                         target: Expr::init_identifier(enclosing_namespace_arg_ref, stmt.loc),
-                        name: original_name.into(),
+                        name: p.store.alloc_str(original_name),
                         name_loc: func_name.loc,
                         ..Default::default()
                     },
@@ -1111,7 +1111,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .expect("infallible: in namespace"),
                             stmt.loc,
                         ),
-                        name: original_name.into(),
+                        name: p.store.alloc_str(original_name),
                         name_loc: class_name.loc,
                         ..Default::default()
                     },
@@ -1461,10 +1461,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 // last entry's value: `keys()` borrows the map; wrap as
                                 // `StoreStr` so the borrow is detached before re-borrowing
                                 // `commonjs_named_exports` mutably below.
-                                let key: &'a [u8] = p.store.alloc_str(
+                                let key: &'a [u8] = p.store.str(p.store.alloc_str(
                                     &p.commonjs_named_exports.keys()[to_convert as usize][..],
-                                )
-                                .slice();
+                                ));
                                 let decl_value = match bin.right.data {
                                     js_ast::ExprData::EArrow(_)
                                     | js_ast::ExprData::EFunction(_)
@@ -1847,7 +1846,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 StmtData::SExpr(yes_expr) => {
                     if p.store[yes_expr].value.is_missing() {
                         if let Some(no) = data.no {
-                            if no.is_missing_expr() && can_remove_test {
+                            if no.is_missing_expr(&p.store) && can_remove_test {
                                 return Ok(());
                             }
                         } else if can_remove_test {
@@ -1857,7 +1856,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 StmtData::SEmpty(_) => {
                     if let Some(no) = data.no {
-                        if no.is_missing_expr() && can_remove_test {
+                        if no.is_missing_expr(&p.store) && can_remove_test {
                             return Ok(());
                         }
                     } else if can_remove_test {
@@ -2160,7 +2159,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.fn_or_arrow_data_visit.is_inside_switch = old_is_inside_switch;
 
             for i in 0..cases.len() {
-                if p.should_lower_using_declarations(cases[i].body.slice()) {
+                if p.should_lower_using_declarations((&p.store[cases[i].body])) {
                     lowered_using = true;
                     break;
                 }
@@ -2168,7 +2167,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if lowered_using {
                 let mut ctx = crate::p::LowerUsingDeclarationsContext::init(p)?;
                 for i in 0..cases.len() {
-                    ctx.scan_stmts(p, cases[i].body.slice_mut());
+                    ctx.scan_stmts(p, (&mut p.store[cases[i].body]));
                 }
                 let switch_stmt = p.arena.alloc_slice_copy(&[*stmt]);
                 stmts.extend_from_slice(&ctx.finalize(p, switch_stmt, false));
@@ -2244,7 +2243,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Create an assignment for each enum value
         for value in values.iter_mut() {
-            let name: &'a [u8] = value.name.slice();
+            let name: &'a [u8] = p.store.str(value.name);
 
             let mut has_string_value = false;
             if let Some(enum_value) = value.value {
@@ -2281,7 +2280,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .insert(value.ref_, js_ast::ts::Data::EnumString(str_));
                     }
                     _ => {
-                        if visited.known_primitive() == js_ast::expr::PrimitiveType::String {
+                        if visited.known_primitive(&p.store) == js_ast::expr::PrimitiveType::String {
                             has_string_value = true;
                         }
 

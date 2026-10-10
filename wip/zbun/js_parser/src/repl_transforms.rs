@@ -179,7 +179,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                         let this_dot = self.new_expr(
                             E::Dot {
                                 target: this_expr,
-                                name: name_str.into(),
+                                name: self.store.alloc_str(name_str),
                                 name_loc: name_loc.loc,
                                 ..Default::default()
                             },
@@ -270,13 +270,13 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     //   import { a, b } from 'mod' -> var {a, b} = await import('mod')
                     //   import * as X from 'mod'   -> var X = await import('mod')
                     //   import 'mod'              -> await import('mod')
-                    let path_str: &'static [u8] = self.import_records.items()
+                    let path_str: &'static [u8] = self.store.str(self.import_records.items()
                         [self.store[import_data].import_record_index as usize]
                         .path
-                        .text;
+                        .text);
                     let str_expr = self.new_expr(
                         E::String {
-                            data: path_str.into(),
+                            data: self.store.alloc_str(path_str),
                             ..Default::default()
                         },
                         stmt.loc,
@@ -466,7 +466,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     let value_str: &'static [u8] = self.store.str(self.store[directive].value);
                     let str_expr = self.new_expr(
                         E::String {
-                            data: value_str.into(),
+                            data: self.store.alloc_str(value_str),
                             ..Default::default()
                         },
                         stmt.loc,
@@ -505,7 +505,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         let iife = self.new_expr(
             E::Call {
                 target: arrow,
-                args: Vec::new(),
+                args: self.store.alloc_slice(Vec::new()),
                 ..Default::default()
             },
             bun_ast::Loc::EMPTY,
@@ -624,7 +624,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
             let prop_access = self.new_expr(
                 E::Dot {
                     target: ns_ref_expr,
-                    name: alias_str.into(),
+                    name: self.store.alloc_str(alias_str),
                     name_loc: item.name.loc,
                     ..Default::default()
                 },
@@ -823,7 +823,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
             ),
             B::B::BArray(arr) => {
                 let arr = (&self.store[arr]);
-                let arr_items = arr.items();
+                let arr_items = arr.items(&self.store);
                 let mut items = BumpVec::with_capacity_in(arr_items.len(), bump);
                 for (i, item) in arr_items.iter().enumerate() {
                     let expr = self.repl_convert_binding_to_expr(item.binding, bump);
@@ -855,7 +855,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
             }
             B::B::BObject(obj) => {
                 let obj = (&self.store[obj]);
-                let obj_props = obj.properties();
+                let obj_props = obj.properties(&self.store);
                 let mut properties = BumpVec::with_capacity_in(obj_props.len(), bump);
                 for prop in obj_props.iter() {
                     properties.push(G::Property {

@@ -36,7 +36,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn parse_type_script_decorators(&mut self) -> Result<ExprNodeList, Error> {
         let p = self;
         if !Self::IS_TYPESCRIPT_ENABLED && !p.options.features.standard_decorators {
-            return Ok(Vec::new());
+            return Ok(self.store.alloc_slice(Vec::new()));
         }
 
         let mut decorators: BumpVec<'_, ExprNodeIndex> = BumpVec::new_in(p.arena);
@@ -425,7 +425,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             //   })(foo || (foo = {}));
             //
             // SAFETY: current_scope is an arena-owned Scope pointer valid for 'a.
-            if p.current_scope().members.contains_key(name_text) {
+            if p.current_scope().members.contains_key(&self.store, name_text) {
                 // Add a "_" to make tests easier to read, since non-bundler tests don't
                 // run the renamer. Keep adding "_" until the argument does not collide
                 // with a symbol declared in the namespace body: paths that skip the
@@ -507,7 +507,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if name == b"require" && p.lexer.token == T::TOpenParen {
             // "import ns = require('x')"
             p.lexer.next()?;
-            let path_estr = p.lexer.to_e_string()?;
+            let path_estr = p.lexer.to_e_string(&mut self.store)?;
             let path_loc = p.lexer.loc();
             let path = p.new_expr(path_estr, path_loc);
             p.lexer.expect(T::TStringLiteral)?;
@@ -635,7 +635,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let needs_symbol: bool = if p.lexer.token == T::TStringLiteral {
                 // `slice8()` is currently duplicated in E.rs (two impl blocks);
                 // read `.data` directly: `to_utf8_e_string` guarantees `is_utf16 == false`.
-                let estr = p.lexer.to_utf8_e_string()?;
+                let estr = p.lexer.to_utf8_e_string(&mut self.store)?;
                 debug_assert!(!estr.is_utf16);
                 value.name = estr.data;
                 js_lexer::is_identifier(self.store.str(value.name))
@@ -711,7 +711,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             //     foo[foo["bar"] = foo] = "bar";
             //   })(foo || (foo = {}));
             // SAFETY: current_scope is an arena-owned Scope pointer valid for 'a.
-            if p.current_scope().members.contains_key(name_text) {
+            if p.current_scope().members.contains_key(&self.store, name_text) {
                 // Add a "_" to make tests easier to read, since non-bundler tests don't
                 // run the renamer. For external-facing things the renamer will avoid
                 // collisions automatically so this isn't important for correctness.

@@ -777,7 +777,7 @@ impl<'a> JSXTag<'a> {
             || (p.lexer().token != T::TDot && name[0] >= b'a' && name[0] <= b'z')
         {
             return Ok(JSXTag {
-                data: JSXTagData::Tag(p.new_expr(E::String::init(name), loc)),
+                data: JSXTagData::Tag(p.new_expr(E::String::init(p.store.alloc_str(name)), loc)),
                 range: tag_range,
                 name,
             });
@@ -827,7 +827,7 @@ impl<'a> JSXTag<'a> {
             tag = p.new_expr(
                 E::Dot {
                     target: tag,
-                    name: member.into(),
+                    name: p.store.alloc_str(member),
                     name_loc: member_range.loc,
                     ..Default::default()
                 },

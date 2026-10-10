@@ -231,7 +231,7 @@ impl SideEffects {
                                 == CallUnwrap::IfUnusedAndToStringSafe
                             {
                                 // For now, only support this for 1 argument.
-                                if j.data.is_safe_to_string() {
+                                if j.data.is_safe_to_string(&p.store) {
                                     return None;
                                 }
                             }
@@ -253,7 +253,7 @@ impl SideEffects {
                                 == CallUnwrap::IfUnusedAndToStringSafe
                             {
                                 // For now, only support this for 1 argument.
-                                if j.data.is_safe_to_string() {
+                                if j.data.is_safe_to_string(&p.store) {
                                     return None;
                                 }
                             }

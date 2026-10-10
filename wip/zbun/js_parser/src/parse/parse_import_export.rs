@@ -129,7 +129,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let alias = p.parse_clause_alias(b"import")?;
             let mut name = LocRef {
                 loc: alias_loc,
-                ref_: p.store_name_in_ref(alias),
+                ref_: p.store_name_in_ref(self.store.str(alias)),
             };
             let mut original_name = alias;
             p.lexer.next()?;
@@ -150,10 +150,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if p.lexer.is_contextual_keyword(b"as") {
                     p.lexer.next()?;
                     if p.lexer.is_contextual_keyword(b"as") {
-                        original_name = p.lexer.identifier;
+                        original_name = self.store.alloc_str(p.lexer.identifier);
                         name = LocRef {
                             loc: p.lexer.loc(),
-                            ref_: p.store_name_in_ref(original_name),
+                            ref_: p.store_name_in_ref(self.store.str(original_name)),
                         };
                         p.lexer.next()?;
 
@@ -176,14 +176,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         had_type_only_imports = true;
 
                         // "import { type as xxx } from 'mod'"
-                        original_name = p.lexer.identifier;
+                        original_name = self.store.alloc_str(p.lexer.identifier);
                         name = LocRef {
                             loc: p.lexer.loc(),
-                            ref_: p.store_name_in_ref(original_name),
+                            ref_: p.store_name_in_ref(self.store.str(original_name)),
                         };
                         p.lexer.expect(T::TIdentifier)?;
 
-                        if is_eval_or_arguments(original_name) {
+                        if is_eval_or_arguments(self.store.str(original_name)) {
                             let r = p.source.range_of_string(name.loc);
                             p.log().add_range_error_fmt(
                                 Some(p.source),
@@ -225,10 +225,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             } else {
                 if p.lexer.is_contextual_keyword(b"as") {
                     p.lexer.next()?;
-                    original_name = p.lexer.identifier;
+                    original_name = self.store.alloc_str(p.lexer.identifier);
                     name = LocRef {
                         loc: alias_loc,
-                        ref_: p.store_name_in_ref(original_name),
+                        ref_: p.store_name_in_ref(self.store.str(original_name)),
                     };
                     p.lexer.expect(T::TIdentifier)?;
                 } else if !is_identifier {
@@ -237,7 +237,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 // Reject forbidden names
-                if is_eval_or_arguments(original_name) {
+                if is_eval_or_arguments(self.store.str(original_name)) {
                     let r = js_lexer::range_of_identifier(p.source, name.loc);
                     p.log().add_range_error_fmt(
                         Some(p.source),
@@ -302,7 +302,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             let name = LocRef {
                 loc: alias_loc,
-                ref_: p.store_name_in_ref(alias),
+                ref_: p.store_name_in_ref(self.store.str(alias)),
             };
             let original_name = alias;
 
@@ -336,7 +336,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 // "export { type as as as }"
                                 // "export { type as as foo }"
                                 // "export { type as as 'foo' }"
-                                let _ = p.parse_clause_alias(b"export").unwrap_or(b"");
+                                let _ = p.parse_clause_alias(b"export").unwrap_or(self.store.alloc_str(b""));
                                 had_type_only_exports = true;
                                 p.lexer.next()?;
                             } else {
@@ -386,12 +386,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // "export { type default as if } from 'path'"
                         // "export { type xx as 'yy' }"
                         // "export { type 'xx' } from 'mod'"
-                        let _ = p.parse_clause_alias(b"export").unwrap_or(b"");
+                        let _ = p.parse_clause_alias(b"export").unwrap_or(self.store.alloc_str(b""));
                         p.lexer.next()?;
 
                         if p.lexer.is_contextual_keyword(b"as") {
                             p.lexer.next()?;
-                            let _ = p.parse_clause_alias(b"export").unwrap_or(b"");
+                            let _ = p.parse_clause_alias(b"export").unwrap_or(self.store.alloc_str(b""));
                             p.lexer.next()?;
                         }
 

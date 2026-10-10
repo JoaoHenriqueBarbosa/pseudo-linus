@@ -1891,7 +1891,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Subtract out all import paths
         for record in self.import_records.items() {
-            freq.scan(record.path.text, -1);
+            freq.scan(self.store.str(record.path.text), -1);
         }
 
         fn visit(
@@ -1954,9 +1954,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             js_ast::b::B::BIdentifier(ident) => {
                 let ident = (&self.store[ident]);
                 // `Symbol.original_name` is an arena-owned `StoreStr` valid for 'a.
-                let name: &'a [u8] = self.symbols[ident.r#ref.inner_index() as usize]
-                    .original_name
-                    .slice();
+                let name: &'a [u8] = self.store.str(self.symbols[ident.r#ref.inner_index() as usize]
+                    .original_name);
                 self.record_export(binding.loc, name, ident.r#ref)
                     .expect("unreachable");
             }
@@ -2252,7 +2251,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 let expr = self.new_expr(
                                     E::Dot {
                                         target,
-                                        name: alias.into(),
+                                        name: self.store.alloc_str(alias),
                                         name_loc: loc,
                                         ..Default::default()
                                     },
@@ -2332,7 +2331,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let prop = self.new_expr(
                     E::Dot {
                         target,
-                        name: name.into(),
+                        name: self.store.alloc_str(name),
                         name_loc: loc,
                         ..Default::default()
                     },
@@ -2667,7 +2666,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         for entry in clauses {
             if entry.enabled {
                 if HOT_MODULE_RELOADING {
-                    let key = self.new_expr(E::String::init(entry.name), bun_ast::Loc::EMPTY);
+                    let key = self.new_expr(E::String::init(self.store.alloc_str(entry.name)), bun_ast::Loc::EMPTY);
                     let value = self.b(B::Identifier { r#ref: entry.r#ref }, bun_ast::Loc::EMPTY);
                     items_hmr.push(B::Property {
                         flags: Default::default(),
@@ -3967,10 +3966,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut item = (&self.store[self.store[ex].items])[i];
                     if matches!(item.data, js_ast::ExprData::ESpread(_)) {
                         is_spread = true;
-                        item = item
+                        item = self.store[item
                             .data
                             .e_spread()
-                            .expect("infallible: variant checked")
+                            .expect("infallible: variant checked")]
                             .value;
                     }
                     let res = self.convert_expr_to_binding_and_initializer(
@@ -4186,10 +4185,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         was_originally_bare_import: bool,
     ) -> Result<Stmt, crate::Error> {
         let is_macro =
-            Self::ALLOW_MACROS && (path.is_macro || crate::Macro::is_macro_path(path.text));
+            Self::ALLOW_MACROS && (path.is_macro || crate::Macro::is_macro_path(self.store.str(path.text)));
         let mut stmt = stmt_;
         if is_macro {
-            let id = self.add_import_record(ImportKind::Stmt, path.loc, path.text);
+            let id = self.add_import_record(ImportKind::Stmt, path.loc, self.store.str(path.text));
             self.import_records.items_mut()[id as usize].path.namespace = crate::Macro::NAMESPACE;
             self.import_records.items_mut()[id as usize]
                 .flags
@@ -4232,7 +4231,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     r#ref,
                     crate::parser::MacroRefData {
                         import_record_id: id,
-                        name: Some(item.alias.slice()),
+                        name: Some(self.store.str(item.alias)),
                     },
                 )?;
             }
@@ -4254,7 +4253,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // - original_name is the local binding name
                 // - name.ref is the ref for the local binding
                 // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
-                let alias: &'a [u8] = item.alias.slice();
+                let alias: &'a [u8] = self.store.str(item.alias);
                 if alias == b"feature" {
                     // Check for duplicate imports of feature
                     if self.bundler_feature_flag_ref.is_valid() {
@@ -4289,7 +4288,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             self.options
                 .macro_context
                 .as_deref()
-                .and_then(|ctx| ctx.get_remap(path.text))
+                .and_then(|ctx| ctx.get_remap(self.store.str(path.text)))
         } else {
             None
         };
@@ -4306,7 +4305,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     && stmt.items.is_empty())
         );
 
-        stmt.import_record_index = self.add_import_record(ImportKind::Stmt, path.loc, path.text);
+        stmt.import_record_index = self.add_import_record(ImportKind::Stmt, path.loc, self.store.str(path.text));
         self.import_records.items_mut()[stmt.import_record_index as usize]
             .flags
             .set(
@@ -4336,7 +4335,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // TODO: not sure how to handle macro remappings for namespace imports
         } else {
-            let path_name = fs::PathName::init(path.text);
+            let path_name = fs::PathName::init(self.store.str(path.text));
             let name: &'a [u8] = bun_alloc::arena_format!(
                 in self.arena,
                 "import_{}",
@@ -4447,7 +4446,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             self.is_import_item.insert(r#ref, ());
             // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
-            let alias: &'a [u8] = item.alias.slice();
+            let alias: &'a [u8] = self.store.str(item.alias);
             self.check_for_non_bmp_code_point(item.alias_loc, alias);
 
             // ensure every e_import_identifier holds the namespace
@@ -4564,7 +4563,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // arena-owned `StoreSlice<ClauseItem>` valid for parser 'a.
                 for item in self.store[stmt.items].iter() {
                     // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
-                    let alias: &[u8] = item.alias.slice();
+                    let alias: &[u8] = self.store.str(item.alias);
                     if !(alias == b"default" || alias == b"db") {
                         self.log().add_error(
                             Some(self.source),
@@ -4578,7 +4577,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // arena-owned `StoreSlice<ClauseItem>` valid for parser 'a.
                 for item in self.store[stmt.items].iter() {
                     // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
-                    if item.alias.slice() != b"default" {
+                    if self.store.str(item.alias) != b"default" {
                         self.log().add_error(
                             Some(self.source),
                             item.name.loc,
@@ -4713,9 +4712,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             js_ast::b::B::BIdentifier(id) => {
                 let id = (&self.store[id]);
                 // `Symbol.original_name` is an arena-owned `StoreStr` valid for 'a.
-                let name = self.symbols[id.r#ref.inner_index() as usize]
-                    .original_name
-                    .slice();
+                let name = self.store.str(self.symbols[id.r#ref.inner_index() as usize]
+                    .original_name);
                 exported_members.put(
                     name,
                     js_ast::TSNamespaceMember {
@@ -4834,7 +4832,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     ) -> js_ast::StoreRef<js_ast::TSNamespaceScope> {
         let map: Option<js_ast::StoreRef<js_ast::TSNamespaceMemberMap>> = 'brk: {
             // Merge with a sibling namespace from the same scope
-            if let Some(existing_member) = self.current_scope().members.get(name) {
+            if let Some(existing_member) = self.current_scope().members.get(&self.store, name) {
                 if let Some(member_data) =
                     self.ref_to_ts_namespace_member.get(&existing_member.ref_)
                 {
@@ -5169,7 +5167,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 MR::Forbidden => {
                     // Entry already holds `existing`; leave it untouched.
                     // SAFETY: original_name is an arena-owned slice valid for 'a.
-                    let orig = self.symbols[symbol_idx].original_name.slice();
+                    let orig = self.store.str(self.symbols[symbol_idx].original_name);
                     self.log().add_symbol_already_declared_error(
                         self.source,
                         orig,
@@ -5348,7 +5346,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             tag: bun_ast::ImportRecordTag::None,
             loader: None,
             source_index: bun_ast::Index::INVALID,
-            original_path: b"",
+            original_path: self.store.alloc_str(b""),
             flags: bun_ast::ImportRecordFlags::empty(),
         });
         u32::try_from(index).expect("int cast")
@@ -5512,7 +5510,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 value = self.new_expr(
                     E::Dot {
                         target: value,
-                        name: (*part).into(),
+                        name: self.store.alloc_str((*part)),
                         name_loc: loc,
                         can_be_removed_if_unused: self.options.features.dead_code_elimination,
                         is_import_property_use,
@@ -5590,7 +5588,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     );
                     part_stmts.push(self.s(
                         S::Local {
-                            decls,
+                            self.store.alloc_slice(decls),
                             ..Default::default()
                         },
                         local.loc,
@@ -5611,7 +5609,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // shared), then decay it to a raw `*mut` for storage in `Part` so no
             // outstanding `&mut` aliases the stored pointer afterwards.
             let final_stmts = self.store.alloc_slice(part_stmts);
-            let can_be_removed_if_unused = self.stmts_can_be_removed_if_unused(final_stmts.slice());
+            let can_be_removed_if_unused = self.stmts_can_be_removed_if_unused((&self.store[final_stmts]));
 
             let symbol_uses = self.take_symbol_uses()?;
             parts.push(js_ast::Part {
@@ -6150,8 +6148,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // arena-owned `StoreSlice<Property>` valid for parser 'a; no aliasing &mut outstanding
         for property in self.store[class.properties].iter() {
             if property.kind == js_ast::g::PropertyKind::ClassStaticBlock {
-                let csb = property.class_static_block_ref().unwrap();
-                if !self.stmts_can_be_removed_if_unused_without_dce_check(csb.stmts.slice()) {
+                let csb = property.class_static_block_ref(&self.store).unwrap();
+                if !self.stmts_can_be_removed_if_unused_without_dce_check((&self.store[csb.stmts])) {
                     return false;
                 }
                 continue;
@@ -6167,7 +6165,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let Some(key) = property.key else {
                     return false;
                 };
-                let key = key.unwrap_inlined();
+                let key = key.unwrap_inlined(&self.store);
                 let is_reference = matches!(
                     key.data,
                     js_ast::ExprData::EIdentifier(_)
@@ -6315,7 +6313,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         || (property.flags.contains(Flags::Property::IsComputed)
                             && !property
                                 .key
-                                .map(|key| key.unwrap_inlined().is_primitive_literal())
+                                .map(|key| key.unwrap_inlined(&self.store).is_primitive_literal())
                                 .unwrap_or(false))
                         || property.flags.contains(Flags::Property::IsSpread)
                     {
@@ -6337,7 +6335,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if !(self.expr_can_be_removed_if_unused_without_dce_check(arg)
                             || (self.store[*ex].can_be_unwrapped_if_unused
                                 == js_ast::CanBeUnwrapped::IfUnusedAndToStringSafe
-                                && arg.data.is_safe_to_string()))
+                                && arg.data.is_safe_to_string(&self.store)))
                         {
                             return false;
                         }
@@ -6353,7 +6351,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if !(self.expr_can_be_removed_if_unused_without_dce_check(arg)
                             || (self.store[*ex].can_be_unwrapped_if_unused
                                 == js_ast::CanBeUnwrapped::IfUnusedAndToStringSafe
-                                && arg.data.is_safe_to_string()))
+                                && arg.data.is_safe_to_string(&self.store)))
                         {
                             return false;
                         }
@@ -6432,8 +6430,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 | js_ast::op::Code::BinGt
                 | js_ast::op::Code::BinLe
                 | js_ast::op::Code::BinGe => {
-                    let left = self.store[*ex].left.data.known_primitive();
-                    let right = self.store[*ex].right.data.known_primitive();
+                    let left = self.store[*ex].left.data.known_primitive(&self.store);
+                    let right = self.store[*ex].right.data.known_primitive(&self.store);
                     match left {
                         js_ast::KnownPrimitive::String
                         | js_ast::KnownPrimitive::Number
@@ -7083,7 +7081,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.new_expr(
             E::InlinedEnum {
                 value,
-                comment: comment.into(),
+                comment: self.store.alloc_str(comment),
             },
             loc,
         )
@@ -7316,7 +7314,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                                     // arena-owned `StoreSlice<Arg>` valid for parser 'a.
                                     for (i, arg) in self.store[self.store[func].func.args].iter().enumerate() {
-                                        for arg_decorator in arg.ts_decorators.slice() {
+                                        for arg_decorator in (&self.store[arg.ts_decorators]) {
                                             let arg0 = self.new_expr(
                                                 E::Number::new(i as f64),
                                                 arg_decorator.loc,
@@ -7391,7 +7389,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             prop.ts_decorators.len_u32() as usize + array.len(),
                             self.arena,
                         );
-                        full.extend_from_slice(prop.ts_decorators.slice());
+                        full.extend_from_slice((&self.store[prop.ts_decorators]));
                         full.extend_from_slice(&array);
                         let full_items = self.store.alloc_slice(full);
                         let array_expr = self.new_expr(
@@ -7464,7 +7462,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 self.new_expr(
                                     E::Dot {
                                         target,
-                                        name: self.store[s].data,
+                                        name: self.store[*s].data,
                                         name_loc: key.loc,
                                         ..Default::default()
                                     },
@@ -7644,7 +7642,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             } else {
                                 self.new_expr(
                                     E::Array {
-                                        items: Vec::new(),
+                                        items: self.store.alloc_slice(Vec::new()),
                                         ..Default::default()
                                     },
                                     bun_ast::Loc::EMPTY,
@@ -7780,7 +7778,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         {
                             let arr = self.new_expr(
                                 E::Array {
-                                    items: Vec::new(),
+                                    items: self.store.alloc_slice(Vec::new()),
                                     ..Default::default()
                                 },
                                 bun_ast::Loc::EMPTY,
@@ -7909,7 +7907,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut current_expr = js_ast::StoreRef::from_bump(
                     &mut dots
                         .data
-                        .e_dot_mut()
+                        .e_dot_mut(&mut self.store)
                         .expect("infallible: variant checked")
                         .target,
                 );
@@ -7971,7 +7969,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 current_expr = js_ast::StoreRef::from_bump(
                     &mut maybe_defined_dots
                         .data
-                        .e_binary_mut()
+                        .e_binary_mut(&mut self.store)
                         .expect("infallible: variant checked")
                         .left,
                 );
@@ -8040,7 +8038,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.new_expr(
             E::Dot {
                 target: Expr::init_identifier(enclosing_ref, loc),
-                name: name.into(),
+                name: self.store.alloc_str(name),
                 name_loc: loc,
                 ..Default::default()
             },
@@ -8177,7 +8175,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         );
         self.new_expr(
             E::Dot {
-                name: exports_string_name.into(),
+                name: self.store.alloc_str(exports_string_name),
                 name_loc: loc,
                 target,
                 ..Default::default()
@@ -8499,7 +8497,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 ReactRefreshExportKind::Default => b"default",
             },
         ]));
-        let label_expr = self.new_expr(E::String::init(label), loc);
+        let label_expr = self.new_expr(E::String::init(self.store.alloc_str(label)), loc);
         let call = self.new_expr(
             E::Call {
                 target: Expr::init_identifier(self.react_refresh.register_ref, loc),
@@ -8549,7 +8547,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         //   "src/filepath.tsx",
         //   "Comp"
         // );
-        let name_expr = self.new_expr(E::String::init(original_name), bun_ast::Loc::EMPTY);
+        let name_expr = self.new_expr(E::String::init(self.store.alloc_str(original_name)), bun_ast::Loc::EMPTY);
         self.new_expr(
             E::Call {
                 target: Expr::init_identifier(self.server_components_wrap_ref, bun_ast::Loc::EMPTY),
@@ -9032,7 +9030,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             for part in parts.iter() {
                 for stmt in self.store[part.stmts].iter() {
                     if let js_ast::StmtData::SExportClause(clause) = &stmt.data {
-                        for item in self.store[self.store[clause].items].iter() {
+                        for item in self.store[self.store[*clause].items].iter() {
                             if let Some(import) = self.named_imports.get_ptr_mut(&item.name.ref_) {
                                 import.is_exported = true;
                             }
@@ -9395,7 +9393,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             has_commonjs_export_names: self.has_commonjs_export_names,
             has_import_meta: self.has_import_meta,
 
-            hashbang: hashbang.into(),
+            hashbang: self.store.alloc_str(hashbang),
             export_default_alias_of_import: self.export_default_alias_of_import,
             // TODO: cross-module constant inlining
             // const_values: self.const_values,
@@ -9495,15 +9493,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 match &stmt.data {
                     js_ast::StmtData::SFunction(_) => {}
                     js_ast::StmtData::SClass(class) => {
-                        if !self.store[class].class.can_be_moved() {
+                        if !self.store[*class].class.can_be_moved() {
                             return true;
                         }
                     }
                     js_ast::StmtData::SLocal(local) => {
-                        if self.store[local].origin.is_commonjs_export()
+                        if self.store[*local].origin.is_commonjs_export()
                             || self.commonjs_named_exports.count() == 0
                         {
-                            for decl in (&self.store[self.store[local].decls]) {
+                            for decl in (&self.store[self.store[*local].decls]) {
                                 if let Some(value) = &decl.value {
                                     // The linker keeps a pattern inside the wrapper.
                                     if !matches!(value.data, js_ast::ExprData::EMissing(_))
@@ -9527,7 +9525,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
                     }
                     js_ast::StmtData::SExportEquals(e) => {
-                        if !self.store[e].value.can_be_moved() {
+                        if !self.store[*e].value.can_be_moved() {
                             return true;
                         }
                     }
@@ -10202,7 +10200,7 @@ impl LowerUsingDeclarationsContext {
             );
             let stmt0 = p.s(
                 S::Local {
-                    decls,
+                    self.store.alloc_slice(decls),
                     ..Default::default()
                 },
                 loc,

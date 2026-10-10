@@ -349,11 +349,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         self.store[self.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked")].target.data,
                                         js_ast::ExprData::EIdentifier(_)
                                     )
-                                    || !self.store[stmt_bin]
+                                    || !self.store[self.store[stmt_bin]
                                         .left
                                         .data
                                         .e_dot()
-                                        .unwrap()
+                                        .unwrap()]
                                         .target
                                         .data
                                         .e_identifier()
@@ -370,7 +370,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     .data
                                     .e_object()
                                     .expect("infallible: variant checked");
-                                let props: &[G::Property] = right_obj.properties.slice();
+                                let props: &[G::Property] = self.store[right_obj].properties.slice();
                                 for prop in props {
                                     // if it's not a trivial object literal, de-opt
                                     if prop.kind != G::PropertyKind::Normal
@@ -573,7 +573,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                             name,
                                         )
                                         && name != b"__proto__"
-                                        && value.can_be_inlined_from_property_access()
+                                        && value.can_be_inlined_from_property_access(&self.store)
                                     {
                                         return Some(value);
                                     }

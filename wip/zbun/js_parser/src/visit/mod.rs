@@ -293,7 +293,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             self.visit_binding(decl.binding, None);
 
             if let Some(mut val) = decl.value {
-                let was_anonymous_named_expr = val.is_anonymous_named();
+                let was_anonymous_named_expr = val.is_anonymous_named(&self.store);
 
                 let prev_require_to_convert_count = self.imports_to_convert_from_require.len();
                 let prev_macro_call_count = self.macro_call_count;
@@ -645,13 +645,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let bound_object = (&self.store[bound_object]);
                 if let ExprData::EObject(mut object) = expr.data {
                     if self.store[object].was_originally_macro {
-                        for property in bound_object.properties() {
+                        for property in bound_object.properties(&self.store) {
                             if property.flags.contains(flags::Property::IsSpread) {
                                 return;
                             }
                         }
                         let mut end: u32 = 0;
-                        for property in bound_object.properties() {
+                        for property in bound_object.properties(&self.store) {
                             if let Some(name) = property.key.as_string_literal(self.arena) {
                                 if let Some(query) = object.as_property(name) {
                                     match query.expr.data {
@@ -688,7 +688,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let bound_array = (&self.store[bound_array]);
                 if let ExprData::EArray(mut array) = expr.data {
                     if self.store[array].was_originally_macro && !bound_array.has_spread {
-                        let bound_items = bound_array.items();
+                        let bound_items = bound_array.items(&self.store);
                         let trunc_n = self.store[array].items.len().min(bound_items.len());
                         self.store[array].items.truncate(trunc_n);
                         let n = self.store[array].items.len_u32() as usize;
@@ -726,7 +726,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let id_ref = self.store[id].r#ref;
                 if could_be_const_value || (Self::ALLOW_MACROS && could_be_macro) {
                     if let Some(val) = decl.value {
-                        if val.can_be_const_value() {
+                        if val.can_be_const_value(&self.store) {
                             self.const_values.put(id_ref, val).expect("oom");
                         }
                     }
@@ -813,9 +813,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.record_scope_use(bind.r#ref);
                 }
                 // SAFETY: original_name is arena-owned, valid for 'a.
-                let name: &'a [u8] = self.symbols[bind.r#ref.inner_index() as usize]
-                    .original_name
-                    .slice();
+                let name: &'a [u8] = self.store.str(self.symbols[bind.r#ref.inner_index() as usize]
+                    .original_name);
                 if is_eval_or_arguments(name) {
                     self.mark_strict_mode_feature(
                         StrictModeFeature::EvalOrArguments,
@@ -860,9 +859,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         if let BData::BIdentifier(bind_) = item.binding.data {
                             let bind_ = (&self.store[bind_]);
-                            let name: &'a [u8] = self.symbols[bind_.r#ref.inner_index() as usize]
-                                .original_name
-                                .slice();
+                            let name: &'a [u8] = self.store.str(self.symbols[bind_.r#ref.inner_index() as usize]
+                                .original_name);
                             item.default_value = Some(self.maybe_keep_expr_symbol_name(
                                 item.default_value.expect("unreachable"),
                                 name,
@@ -899,9 +897,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         if let BData::BIdentifier(bind_) = property.value.data {
                             let bind_ = (&self.store[bind_]);
-                            let name: &'a [u8] = self.symbols[bind_.r#ref.inner_index() as usize]
-                                .original_name
-                                .slice();
+                            let name: &'a [u8] = self.store.str(self.symbols[bind_.r#ref.inner_index() as usize]
+                                .original_name);
                             property.default_value = Some(self.maybe_keep_expr_symbol_name(
                                 property.default_value.expect("unreachable"),
                                 name,
@@ -1154,11 +1151,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 if let Some(val) = property.value {
                     if let Some(name) = name_to_keep {
-                        let was_anon = val.is_anonymous_named();
+                        let was_anon = val.is_anonymous_named(&self.store);
                         let prev_dcn = self.decorator_class_name;
                         if let ExprData::EClass(e_class) = &val.data {
-                            if self.store[e_class].class_name.is_none()
-                                && self.store[e_class].should_lower_standard_decorators
+                            if self.store[*e_class].class_name.is_none()
+                                && self.store[*e_class].should_lower_standard_decorators
                             {
                                 self.decorator_class_name = Some(name);
                             }
@@ -1187,11 +1184,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let class_body = self.current_scope;
                     self.field_init_class_bodies.push(class_body);
                     if let Some(name) = name_to_keep {
-                        let was_anon = val.is_anonymous_named();
+                        let was_anon = val.is_anonymous_named(&self.store);
                         let prev_dcn2 = self.decorator_class_name;
                         if let ExprData::EClass(e_class) = &val.data {
-                            if self.store[e_class].class_name.is_none()
-                                && self.store[e_class].should_lower_standard_decorators
+                            if self.store[*e_class].class_name.is_none()
+                                && self.store[*e_class].should_lower_standard_decorators
                             {
                                 self.decorator_class_name = Some(name);
                             }
@@ -1286,7 +1283,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let dot = self.new_expr(
                             E::Dot {
                                 target: this_target,
-                                name: name.into(),
+                                name: self.store.alloc_str(name),
                                 name_loc: bind_loc,
                                 ..Default::default()
                             },
@@ -1363,7 +1360,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .iter()
                                 .position(|s| {
                                     matches!(&s.data, StmtData::SExpr(se)
-                                        if matches!(&self.store[se].value.data, ExprData::ECall(c)
+                                        if matches!(&self.store[*se].value.data, ExprData::ECall(c)
                                             if matches!(self.store[*c].target.data, ExprData::ESuper(_))))
                                 })
                                 .map_or(0, |i| i + 1)
@@ -1973,7 +1970,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             // don't merge super calls to ensure they are called before "this" is accessed
-            if stmt.is_super_call() {
+            if stmt.is_super_call(&self.store) {
                 output.push(stmt);
                 continue;
             }
@@ -2017,7 +2014,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_idx = output.len() - 1;
                         let prev_stmt = &mut output[prev_idx];
                         if let StmtData::SExpr(mut prev_expr) = prev_stmt.data {
-                            if !prev_stmt.is_super_call()
+                            if !prev_stmt.is_super_call(&self.store)
                                 && p.options.runtime_merge_adjacent_expression_statements()
                             {
                                 self.store[prev_expr].does_not_affect_tree_shaking = self.store[prev_expr]
@@ -2074,7 +2071,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_idx = output.len() - 1;
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
-                            if !prev_stmt.is_super_call() {
+                            if !prev_stmt.is_super_call(&self.store) {
                                 self.store[s_switch].test =
                                     Expr::join_with_comma(self.store[prev_expr].value, self.store[s_switch].test);
                                 output.truncate(prev_idx);
@@ -2089,7 +2086,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_idx = output.len() - 1;
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
-                            if !prev_stmt.is_super_call() {
+                            if !prev_stmt.is_super_call(&self.store) {
                                 self.store[s_if].test = Expr::join_with_comma(self.store[prev_expr].value, self.store[s_if].test);
                                 output.truncate(prev_idx);
                             }
@@ -2108,7 +2105,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_idx = output.len() - 1;
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
-                            if !prev_stmt.is_super_call() {
+                            if !prev_stmt.is_super_call(&self.store) {
                                 self.store[ret].value = Some(Expr::join_with_comma(
                                     self.store[prev_expr].value,
                                     self.store[ret].value.unwrap(),
@@ -2133,7 +2130,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_idx = output.len() - 1;
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
-                            if !prev_stmt.is_super_call() {
+                            if !prev_stmt.is_super_call(&self.store) {
                                 output[prev_idx] = p.s(
                                     S::Throw {
                                         value: Expr::join_with_comma(

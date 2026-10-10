@@ -746,13 +746,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         p.macro_call_count += 1;
                         let name: &[u8] = macro_ref_data.name.unwrap_or_else(|| {
-                            p.store[p.store[e_].tag
+                            p.store.str(p.store[p.store[e_].tag
                                 .unwrap()
                                 .data
                                 .e_dot()
                                 .expect("infallible: variant checked")]
-                                .name
-                                .slice()
+                                .name)
                         });
                         let (record_path_text, record_range) = {
                             let record =
@@ -771,7 +770,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .as_deref_mut()
                             .expect("macro_context")
                             .call(
-                                record_path_text,
+                                p.store.str(record_path_text),
                                 source.path.source_dir(),
                                 log,
                                 source,
@@ -1058,7 +1057,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
         }
 
-        let target = p.store[e_].target.unwrap_inlined();
+        let target = p.store[e_].target.unwrap_inlined(&p.store);
         let index = e_.index.unwrap_inlined();
 
         // `[x][0] = v` writes into the temporary, not `x`.
@@ -1220,7 +1219,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if let Some(typeof_) = SideEffects::typeof_(&p.store[e_].value.data) {
                     *e = p.new_expr(
                         E::String {
-                            data: typeof_.into(),
+                            data: p.store.alloc_str(typeof_),
                             ..Default::default()
                         },
                         expr.loc,
@@ -1482,11 +1481,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if !p.options.features.is_macro_runtime {
                     if p.macro_call_count > 0
                         && matches!(p.store[e_].target.data, Data::EObject(..))
-                        && p.store[e_]
+                        && p.store[p.store[e_]
                             .target
                             .data
                             .e_object()
-                            .expect("infallible: variant checked")
+                            .expect("infallible: variant checked")]
                             .was_originally_macro
                     {
                         if let Some(obj) = p.store[e_].target.get(&p.store[e_].name) {
@@ -1587,36 +1586,36 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 Data::EMissing(..) => {}
                 Data::ESpread(spread) => {
                     p.visit_expr_in_out(
-                        &mut p.store[spread].value,
+                        &mut p.store[*spread].value,
                         ExprIn {
                             assign_target: in_.assign_target,
                             ..Default::default()
                         },
                     );
 
-                    spread_item_count += if let Data::EArray(arr) = &p.store[spread].value.data {
+                    spread_item_count += if let Data::EArray(arr) = &p.store[*spread].value.data {
                         p.store[*arr].items.len_u32() as usize
                     } else {
                         0
                     };
                 }
                 Data::EBinary(e2) => {
-                    if in_.assign_target != js_ast::AssignTarget::None && p.store[e2].op == Op::BinAssign {
-                        let was_anonymous_named_expr = p.store[e2].right.is_anonymous_named();
+                    if in_.assign_target != js_ast::AssignTarget::None && p.store[*e2].op == Op::BinAssign {
+                        let was_anonymous_named_expr = p.store[*e2].right.is_anonymous_named();
                         // Propagate name for anonymous decorated class expressions
                         if was_anonymous_named_expr
-                            && matches!(p.store[e2].right.data, Data::EClass(..))
-                            && p.store[e2]
+                            && matches!(p.store[*e2].right.data, Data::EClass(..))
+                            && p.store[*e2]
                                 .right
                                 .data
                                 .e_class()
                                 .expect("infallible: variant checked")
                                 .should_lower_standard_decorators
-                            && matches!(p.store[e2].left.data.tag(), Tag::EIdentifier)
+                            && matches!(p.store[*e2].left.data.tag(), Tag::EIdentifier)
                         {
                             p.decorator_class_name = Some(
                                 p.load_name_from_ref(
-                                    p.store[e2].left
+                                    p.store[*e2].left
                                         .data
                                         .e_identifier()
                                         .expect("infallible: variant checked")
@@ -1625,17 +1624,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             );
                         }
                         p.visit_expr_in_out(
-                            &mut p.store[e2].left,
+                            &mut p.store[*e2].left,
                             ExprIn {
                                 assign_target: js_ast::AssignTarget::Replace,
                                 ..Default::default()
                             },
                         );
-                        p.visit_expr(&mut p.store[e2].right);
+                        p.visit_expr(&mut p.store[*e2].right);
                         p.decorator_class_name = None;
 
-                        if matches!(p.store[e2].left.data.tag(), Tag::EIdentifier) {
-                            let name = p.symbols[p.store[e2]
+                        if matches!(p.store[*e2].left.data.tag(), Tag::EIdentifier) {
+                            let name = p.symbols[p.store[*e2]
                                 .left
                                 .data
                                 .e_identifier()
@@ -1644,8 +1643,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .inner_index()
                                 as usize]
                                 .original_name;
-                            p.store[e2].right = p.maybe_keep_expr_symbol_name(
-                                p.store[e2].right,
+                            p.store[*e2].right = p.maybe_keep_expr_symbol_name(
+                                p.store[*e2].right,
                                 name.slice(),
                                 was_anonymous_named_expr,
                             );
@@ -1735,9 +1734,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if let Data::EBinary(bin) =
                     &property.value.expect("infallible: prop has value").data
                 {
-                    if p.store[bin].op == Op::BinAssign {
-                        property.initializer = Some(p.store[bin].right);
-                        property.value = Some(p.store[bin].left);
+                    if p.store[*bin].op == Op::BinAssign {
+                        property.initializer = Some(p.store[*bin].right);
+                        property.value = Some(p.store[*bin].left);
                     }
                 }
             }
@@ -1747,15 +1746,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // e.g., { Foo: @dec class {} } should give the class .name = "Foo"
                 if in_.assign_target == js_ast::AssignTarget::None
                     && matches!(value.data, Data::EClass(..))
-                    && value
+                    && p.store[value
                         .data
                         .e_class()
-                        .unwrap()
+                        .unwrap()]
                         .should_lower_standard_decorators
-                    && value
+                    && p.store[value
                         .data
                         .e_class()
-                        .expect("infallible: variant checked")
+                        .expect("infallible: variant checked")]
                         .class_name
                         .is_none()
                     && let Some(key) = property.key
@@ -1764,8 +1763,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let key_str = key.data.e_string().expect("infallible: variant checked");
                     // While E.rs has duplicate impls (E0034), reach the bytes directly
                     //: class-name keys are parser-produced (UTF-8, no rope).
-                    p.decorator_class_name = if !key_str.is_utf16 {
-                        Some(key_str.data.slice())
+                    p.decorator_class_name = if !p.store[key_str].is_utf16 {
+                        Some(p.store[key_str].data.slice())
                     } else {
                         None
                     };
@@ -1781,15 +1780,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             if property.initializer.is_some() {
-                let was_anonymous_named_expr = property.initializer.unwrap().is_anonymous_named();
+                let was_anonymous_named_expr = property.initializer.unwrap().is_anonymous_named(&p.store);
                 if was_anonymous_named_expr
                     && matches!(property.initializer.unwrap().data, Data::EClass(..))
-                    && property
+                    && p.store[property
                         .initializer
                         .unwrap()
                         .data
                         .e_class()
-                        .unwrap()
+                        .unwrap()]
                         .should_lower_standard_decorators
                 {
                     if let Some(val) = property.value {
@@ -1819,7 +1818,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .original_name;
                         property.initializer = Some(p.maybe_keep_expr_symbol_name(
                             property.initializer.expect("unreachable"),
-                            name.slice(),
+                            p.store.str(name),
                             was_anonymous_named_expr,
                         ));
                     }
@@ -2328,12 +2327,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 let name: &[u8] = macro_ref_data.name.unwrap_or_else(|| {
-                    p.store[p.store[e_].target
+                    p.store.str(p.store[p.store[e_].target
                         .data
                         .e_dot()
                         .expect("infallible: variant checked")]
-                        .name
-                        .slice()
+                        .name)
                 });
                 let (record_path_text, record_range) = {
                     let record =
@@ -2357,7 +2355,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     .as_deref_mut()
                     .expect("macro_context")
                     .call(
-                        record_path_text,
+                        p.store.str(record_path_text),
                         source.path.source_dir(),
                         log,
                         source,
@@ -2403,7 +2401,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         [id.ref_.inner_index() as usize]
                         .original_name
                         .slice(),
-                    Data::EDot(dot) => p.store[*dot].name.slice(),
+                    Data::EDot(dot) => p.store.str(p.store[*dot].name),
                     _ => break 'try_record_hook,
                 };
                 if !ReactRefresh::is_hook_name(original_name) {
@@ -2455,8 +2453,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if p.store[e_].args.len_u32() == 1 {
             if let Some(dot) = p.store[e_].target.data.e_dot() {
                 if let Some(target_str) = p.store[dot].target.data.e_string() {
-                    if !target_str.is_utf16 && p.store[dot].name == b"charCodeAt" {
-                        let str_ = target_str.data;
+                    if !p.store[target_str].is_utf16 && p.store[dot].name == b"charCodeAt" {
+                        let str_ = p.store[target_str].data;
                         let arg1 = p.store[e_].args.at(0).unwrap_inlined();
                         if let Data::ENumber(n) = &arg1.data {
                             let float = n.value();
@@ -2547,7 +2545,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Use the underlying string data directly without allocation.
         // Feature flag names should be ASCII identifiers, so UTF-16 is unexpected.
         let flag_string = arg.data.e_string().expect("infallible: variant checked");
-        if flag_string.is_utf16 {
+        if p.store[flag_string].is_utf16 {
             p.log().add_error(
                 Some(p.source),
                 arg.loc,
@@ -2572,7 +2570,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             .features
             .bundler_feature_flags
             .as_ref()
-            .is_some_and(|flags| flags.contains(&flag_string.data));
+            .is_some_and(|flags| flags.contains(&p.store[flag_string].data));
         Some(Expr {
             data: Data::EBranchBoolean(E::Boolean { value: is_enabled }),
             loc,

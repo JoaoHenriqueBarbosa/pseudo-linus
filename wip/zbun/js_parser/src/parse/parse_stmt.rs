@@ -1213,10 +1213,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // "export * as ns from 'path'"
                     p.lexer.next()?;
                     let name = p.parse_clause_alias(b"export")?;
-                    namespace_ref = p.store_name_in_ref(name);
+                    namespace_ref = p.store_name_in_ref(p.store.str(name));
                     alias = Some(G::ExportStarAlias {
                         loc: p.lexer.loc(),
-                        original_name: p.store.alloc_str(name),
+                        original_name: p.store.alloc_str(p.store.str(name)),
                     });
                     p.lexer.next()?;
                     p.lexer.expect_contextual_keyword(b"from")?;
@@ -1228,7 +1228,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // Sanitize the basename into an identifier and copy into the arena.
                     let name: &'a [u8] = {
                         use std::io::Write as _;
-                        let base = fs::PathName::init(path.text).non_unique_name_string_base();
+                        let base = fs::PathName::init(p.store.str(path.text)).non_unique_name_string_base();
                         let mut buf: Vec<u8> = Vec::new();
                         write!(&mut buf, "{}", bun_core::fmt::fmt_identifier(base))
                             .expect("unreachable");
@@ -1240,7 +1240,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let import_record_index = p.add_import_record(
                     ImportKind::Stmt,
                     path.loc,
-                    path.text,
+                    p.store.str(path.text),
                     // TODO: import assertions
                     // path.assertions
                 );
@@ -1315,8 +1315,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
 
                     let import_record_index =
-                        p.add_import_record(ImportKind::Stmt, parsed_path.loc, parsed_path.text);
-                    let path_name = fs::PathName::init(parsed_path.text);
+                        p.add_import_record(ImportKind::Stmt, parsed_path.loc, p.store.str(parsed_path.text));
+                    let path_name = fs::PathName::init(p.store.str(parsed_path.text));
                     let namespace_ref = {
                         use std::io::Write as _;
                         let mut buf: Vec<u8> = Vec::new();
@@ -1942,7 +1942,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // of the declared bindings. That "export var" statement will later
                 // cause identifiers to be transformed into property accesses.
                 if opts.scope.is_namespace() && opts.is_export {
-                    let mut decls: G::DeclList = Vec::new();
+                    let mut decls: G::DeclList = p.store.alloc_slice(Vec::new());
                     match &stmt.data {
                         js_ast::StmtData::SLocal(local) => {
                             let mut _decls = bun_alloc::ArenaVec::<G::Decl>::with_capacity_in(

@@ -147,6 +147,28 @@ def collect(diagnostics):
             }
             if (kind, method) in table:
                 rule = (table[(kind, method)], method, found.group(2) or "", "")
+        elif code == "E0308":
+            label = span.get("label") or ""
+            if re.match(r"expected `StoreStr`, found `&[^`]*\[u8[^`]*\]`$", label):
+                rule = ("wrap_str", "", "", "")
+            elif re.match(r"expected `&\[u8\]`, found `StoreStr`$", label):
+                rule = ("unwrap_str", "", "", "")
+            elif re.match(r"expected `StoreSlice<[^`]*>`, found `Vec<[^`]*>`$", label):
+                rule = ("wrap_slice", "", "", "")
+        elif code == "E0277" and text.startswith("the trait bound `StoreStr: From<") and span.get("label"):
+            rule = ("into_str", "into", "", "")
+        elif code == "E0061":
+            # a ajuda "provide the argument" traz a lista de argumentos inteira com o marcador do que falta
+            for child in message.get("children", []):
+                for help_span in child.get("spans", []):
+                    placeholder = help_span.get("suggested_replacement") or ""
+                    if child.get("message") == "provide the argument" and (
+                        placeholder.count("/* ") == 1 and re.search(r"/\* &(mut )?Store \*/", placeholder)
+                    ):
+                        wanted[help_span["file_name"]][help_span["byte_start"]] = (
+                            ("store_arg", placeholder, "", ""),
+                            help_span["byte_end"],
+                        )
         if rule:
             wanted[span["file_name"]][span["byte_start"]] = (rule, span["byte_end"])
     return wanted
@@ -173,9 +195,40 @@ def main():
             line_index = max(i for i, st in enumerate(starts) if st <= byte_start)
             store = store_name(lines, line_index)
             if kind == "index":
-                if store is None and False:
-                    pass
                 ops.append((byte_start, 0, b"*", 1))
+                totals[kind] += 1
+                continue
+            if kind in ("wrap_str", "unwrap_str", "wrap_slice", "store_arg"):
+                if store is None:
+                    skipped += 1
+                    print(f"pulado: {name}:{line_index + 1} {kind} (store=None)")
+                    continue
+                if kind == "store_arg":
+                    # `(/* &mut Store */, a, b)` -> `(&mut p.store, a, b)`. O rustc às vezes sugere também trocar a ordem
+                    # dos outros argumentos; essa sugestão não vale: só se aplica quando, sem o marcador, a lista é a
+                    # original.
+                    squeeze = lambda t: re.sub(rb"\s+", b"", t)
+                    marker = re.search(rb"/\* &(mut )?Store \*/", member.encode()).group(0)
+                    suggestion = squeeze(member.encode())
+                    marker = squeeze(marker)
+                    without = suggestion.replace(marker + b",", b"", 1) if marker + b"," in suggestion else (
+                        suggestion.replace(b"," + marker, b"", 1) if b"," + marker in suggestion else suggestion.replace(marker, b"", 1)
+                    )
+                    if without != squeeze(data[byte_start:byte_end]):
+                        skipped += 1
+                        print(f"pulado: {name}:{line_index + 1} store_arg com argumentos reordenados pelo rustc")
+                        continue
+                    text = member.replace("/* &mut Store */", f"&mut {store}").replace("/* &Store */", f"&{store}")
+                    ops.append((byte_start, byte_end - byte_start, text.encode(), 2))
+                else:
+                    before = data[:byte_start].rstrip()
+                    if kind == "wrap_str" and before.endswith((b"==", b"!=")):
+                        skipped += 1
+                        print(f"pulado: {name}:{line_index + 1} wrap_str em comparação (quem compara é o texto, não a faixa)")
+                        continue
+                    head = {"wrap_str": ".alloc_str(", "unwrap_str": ".str(", "wrap_slice": ".alloc_slice("}[kind]
+                    ops.append((byte_start, 0, f"{store}{head}".encode(), 1))
+                    ops.append((byte_end, 0, b")", 0))
                 totals[kind] += 1
                 continue
             if byte_start == 0 or data[byte_start - 1] != ord("."):
@@ -204,7 +257,10 @@ def main():
                         skipped += 1
                         continue
                     call_end = close + 1
-                if kind == "str":
+                if kind == "into_str":
+                    ops.append((begin, 0, f"{store}.alloc_str({star}".encode(), 1))
+                    ops.append((recv_end, call_end - recv_end, b")", 0))
+                elif kind == "str":
                     ops.append((begin, 0, f"{store}.str({star}".encode(), 1))
                     ops.append((recv_end, call_end - recv_end, b")", 0))
                 elif kind == "slice":
@@ -221,6 +277,12 @@ def main():
                     ops.append((begin, 0, f"(&mut {store}[{star}".encode(), 1))
                     ops.append((recv_end, call_end - recv_end, b"])", 0))
             totals[kind] += 1
+        # o argumento do Store troca a lista de argumentos inteira: se outra troca cai dentro dela, fica para a
+        # rodada seguinte (as trocas internas entram agora e a do argumento depois)
+        others = [op for op in ops if op[3] != 2]
+        ops = others + [
+            op for op in ops if op[3] == 2 and not any(op[0] < other[0] < op[0] + op[1] for other in others)
+        ]
         out = bytearray(data)
         for pos, delete, text, _ in sorted(ops, key=lambda x: (x[0], x[3]), reverse=True):
             out[pos : pos + delete] = text

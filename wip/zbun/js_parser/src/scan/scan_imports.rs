@@ -710,7 +710,7 @@ impl<'a> ImportScanner<'a> {
                     // But only if it's anonymous
                     // This monomorphization is the parser `P` only (see fn-level TODO).
                     if !HOT_MODULE_RELOADING_TRANSFORMATIONS && will_transform_to_common_js {
-                        let expr = core::mem::take(&mut p.store[st].value).to_expr();
+                        let expr = core::mem::take(&mut p.store[st].value).to_expr(&mut p.store);
                         // Arena allocation that persists in the AST.
                         let export_default_args = p.arena.alloc_slice_fill_default::<Expr>(2);
                         export_default_args[0] = p.module_exports(expr.loc);
@@ -739,7 +739,7 @@ impl<'a> ImportScanner<'a> {
                     // SAFETY: arena-owned slice valid for 'p.
                     for item in (&p.store[p.store[st].items]).iter() {
                         // SAFETY: arena-owned alias slice valid for 'p.
-                        let alias: &'p [u8] = item.alias.slice();
+                        let alias: &'p [u8] = p.store.str(item.alias);
                         p.record_export(item.alias_loc, alias, item.name.ref_)?;
                     }
                 }
@@ -797,13 +797,13 @@ impl<'a> ImportScanner<'a> {
                             },
                         )?;
                         // SAFETY: arena-owned alias slice valid for 'p.
-                        let alias: &'p [u8] = item.alias.slice();
+                        let alias: &'p [u8] = p.store.str(item.alias);
                         p.record_export(item.name.loc, alias, ref_)?;
 
                         let record =
                             &mut p.import_records.items_mut()[p.store[st].import_record_index as usize];
                         // SAFETY: arena-owned slice valid for 'p.
-                        let original = item.original_name.slice();
+                        let original = p.store.str(item.original_name);
                         if strings::eql_comptime(original, b"default") {
                             record
                                 .flags
