@@ -543,7 +543,7 @@ function loadLink(link) {
     const result = netFetch('GET', url, [], null);
     const ok = result !== null && result[0] >= 200 && result[0] < 300;
     link.dispatchEvent(new Event(ok ? 'load' : 'error'));
-  });
+  }, rel.includes('stylesheet'));
 }
 
 // A imagem cuja `src` a página define é buscada (conectada ou não, como no Chromium) e dispara `load` ou `error`
@@ -556,7 +556,7 @@ function loadImage(img, src) {
     const result = url === '' ? null : netFetch('GET', url, [], null);
     const ok = result !== null && result[0] >= 200 && result[0] < 300;
     img.dispatchEvent(new Event(ok ? 'load' : 'error'));
-  });
+  }, img.isConnected);
 }
 
 function attributeChanged(el, name, oldValue, newValue) {

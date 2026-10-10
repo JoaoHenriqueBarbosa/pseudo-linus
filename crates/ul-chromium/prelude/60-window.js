@@ -7,10 +7,24 @@ const NETWORK_LATENCY_MS = 2;
 // Buscas em voo. Sob --virtual-time-budget o relógio virtual para enquanto a página espera a rede, e os quadros
 // continuam saindo nesse meio tempo: com rede em voo, o quadro pedido sai sem esperar a grade.
 let networkInFlight = 0;
-const afterNetwork = (fn) => {
+// Buscas que seguram o `load` da janela (script inserido, folha de estilo, imagem), e se o `load` já espera por elas.
+let loadBlockers = 0;
+let loadWaiting = false;
+const completeWhenUnblocked = () => {
+  if (!loadWaiting || loadBlockers > 0) return;
+  loadWaiting = false;
+  setTimeout(() => hook('complete'), 0);
+};
+const afterNetwork = (fn, delaysLoad = false) => {
   networkInFlight++;
+  if (delaysLoad) loadBlockers++;
   // A tarefa da resposta ainda conta como rede: o quadro que ela pede sai antes da página ficar ociosa.
-  setTimeout(() => { try { fn(); } finally { networkInFlight--; } }, NETWORK_LATENCY_MS);
+  setTimeout(() => {
+    try { fn(); } finally {
+      networkInFlight--;
+      if (delaysLoad) { loadBlockers--; completeWhenUnblocked(); }
+    }
+  }, NETWORK_LATENCY_MS);
 };
 // A janela do headless medida no oráculo (o WINDOW do hospedeiro): conteúdo 780x493, janela 780x580, tela 800x600.
 const VIEWPORT = Object.freeze({ width: 780, height: 493, outerWidth: 780, outerHeight: 580 });
@@ -586,7 +600,7 @@ function runDynamicScript(el) {
       if (result === null || result[0] >= 400) { el.dispatchEvent(new Event('error')); return; }
       execScript(el, decodeBody(rawBytes(result[4]), result[5]), result[2]);
       el.dispatchEvent(new Event('load'));
-    });
+    }, true);
     return;
   }
   execScript(el, el.textContent, pageState.url);
@@ -600,7 +614,12 @@ const hook = (name, a, b) => {
       hidden(document, '__readyState', 'interactive');
       document.dispatchEvent(new Event('readystatechange'));
       document.dispatchEvent(new Event('DOMContentLoaded', { bubbles: true }));
-      setTimeout(() => hook('complete'), 0);
+      break;
+    }
+    // Os `async` do documento e as folhas dele chegaram: o `load` só espera o que a página pôs em voo.
+    case 'subresourcesDone': {
+      loadWaiting = true;
+      completeWhenUnblocked();
       break;
     }
     case 'complete': {

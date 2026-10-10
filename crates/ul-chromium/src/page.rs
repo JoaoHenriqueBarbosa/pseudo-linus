@@ -236,6 +236,7 @@ impl Page {
             for (node, ok) in self.stylesheet_results() {
                 call(&[HostArg::Str("fire"), HostArg::Num(node.as_u64() as f64), HostArg::Str(if ok { "load" } else { "error" })]);
             }
+            call(&[HostArg::Str("subresourcesDone")]);
             runner.run_event_loop_for(budget);
         });
     }
