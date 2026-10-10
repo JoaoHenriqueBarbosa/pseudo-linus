@@ -184,9 +184,11 @@ fn callee_back_offset(block: &CodeBlock, bytecode_index: BytecodeIndex) -> u32 {
     let Some(provider) = source.provider() else { return 0 };
     // O transpilador do `Bun` só roda sobre o arquivo carregado (fonte com URL própria); o fonte de `eval` e de
     // `new Function` não tem source map, então a coluna fica a crua do JSC (o `(` da chamada). O fonte deles
-    // leva como URL a string da origem do chamador (`file:///arq.js`), o que o arquivo carregado não tem.
+    // leva como URL a string da origem do chamador (`file:///arq.js`), o que o arquivo carregado não tem. O módulo ES
+    // carregado tem a chave como URL e como origem, e também passou pelo transpilador.
     let provider_url = to_rust_string(provider.source_url());
-    if provider.has_raw_columns() || provider_url.is_empty() || provider_url == to_rust_string(provider.source_origin().string()) {
+    let is_module = provider.source_type() == crate::parser::source_provider::SourceProviderSourceType::Module;
+    if provider.has_raw_columns() || provider_url.is_empty() || (!is_module && provider_url == to_rust_string(provider.source_origin().string())) {
         return 0;
     }
     let text = provider.source();
@@ -628,9 +630,12 @@ impl StackFrame {
             return location.source_url.clone();
         }
         // Medido no `bun` 1.4.2: o código de programa (`global code`) com fonte escreve só a posição
-        // (`at x.js:3:9`); o de `eval` e a função sem nome escrevem `<anonymous> (x.js:3:9)`.
-        if location.function_name == "global code" && !location.source_url.is_empty() && location.has_line_and_column_info {
-            return if column == 1 && omit_first_column {
+        // (`at x.js:3:9`); o de `eval` e a função sem nome escrevem `<anonymous> (x.js:3:9)`. O arquivo principal que o
+        // bun roda como módulo ES (`module code`) sai como o de programa.
+        let top_level = matches!(location.function_name.as_str(), "global code" | "module code");
+        if top_level && !location.source_url.is_empty() && location.has_line_and_column_info {
+            // A coluna 1 some só no de programa; no módulo principal o bun a escreve (`at /app/main.js:3:1`).
+            return if column == 1 && omit_first_column && location.function_name == "global code" {
                 format!("{}:{}", location.source_url, location.line)
             } else {
                 format!("{}:{}:{}", location.source_url, location.line, column)

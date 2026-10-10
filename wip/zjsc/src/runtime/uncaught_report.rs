@@ -101,6 +101,12 @@ pub fn append_exception_report(out: &mut Vec<u8>, global_object: &JSGlobalObject
                 let vm = global_object.vm();
                 let field = |identifier: &crate::runtime::identifier::Identifier| {
                     let value = object.get(global_object, &PropertyName::from_identifier(identifier));
+                    // O getter que lança (`name` de `DOMException.prototype` sobre objeto sem a marca) vale como campo
+                    // ausente: o cabeçalho sai só `error`, e a exceção não fica pendente para a leitura seguinte.
+                    if vm.exception().is_some() {
+                        vm.clear_exception();
+                        return String::new();
+                    }
                     if value.is_string() { rust_string(&value.as_js_string().value()) } else { String::new() }
                 };
                 let (name, message) = (field(&vm.property_names.name), field(&vm.property_names.message));

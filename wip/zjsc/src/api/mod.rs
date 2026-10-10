@@ -4,6 +4,7 @@ pub mod browser_modules;
 pub mod bun_options;
 pub mod eval;
 pub mod fs_module_host;
+pub mod main_module_kind;
 pub mod module;
 pub mod module_probe;
 pub mod package_exports;

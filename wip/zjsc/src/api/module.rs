@@ -122,6 +122,18 @@ impl ModuleHost for MemoryModuleHost {
     }
 }
 
+/// Começa a avaliar o arquivo principal `url` (fonte `source`) como módulo ES no global já montado, como o bun faz com
+/// `bun main.js` quando o arquivo não tem marcador de CommonJS. Os `import` resolvem pelo sistema de arquivos do global,
+/// quando há um. Devolve a promessa da avaliação; quem chama esvazia as microtarefas.
+pub(crate) fn start_main_module(global_object: &crate::runtime::js_global_object::JSGlobalObjectRef, source: &str, url: &str) -> crate::runtime::js_promise::JSPromiseRef {
+    let inner: Rc<dyn ModuleHost> = match global_object.module_fs() {
+        Some(fs) => Rc::new(FsModuleHost::new(fs)),
+        None => Rc::new(FileUrlHost { inner: MemoryModuleHost::new(Vec::<(String, String)>::new()) }),
+    };
+    install_module_loader(global_object, Rc::new(EntryHost { specifier: url.to_owned(), source: source.to_owned(), inner }));
+    load_and_evaluate_module(global_object, url)
+}
+
 /// Carrega, liga e avalia o módulo `specifier` (cujo fonte é `source`; os módulos que ele importa vêm de
 /// `host`), num `VM` e `JSGlobalObject` recém-criados. Devolve o namespace do módulo, ou a exceção como
 /// `Err` (`SyntaxError` de parser, de ligação, ou o que o corpo lançou, inclusive depois de um `await`
