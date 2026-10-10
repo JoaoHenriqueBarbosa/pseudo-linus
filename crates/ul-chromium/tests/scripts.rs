@@ -27,7 +27,7 @@ fn window_own_properties_match_the_oracle() {
     // nunca imitado pela metade). A catraca só desce: 34 interfaces faltando quando o teste entrou.
     let present: Vec<&(String, String)> = expected.iter().filter(|e| actual.contains(e)).collect();
     assert_eq!(actual.iter().collect::<Vec<_>>(), present);
-    assert!(missing.len() <= 3, "faltam {missing:?}");
+    assert!(missing.len() <= 2, "faltam {missing:?}");
 }
 
 /// As interfaces simples da janela, com os retornos e as mensagens que o oráculo deu (página em `http://127.0.0.1`).
@@ -162,6 +162,58 @@ setTimeout(() => console.log(out.join('\n')), 50);"#;
     let mut want = want.to_vec();
     want.sort_unstable();
     assert_eq!(got, want, "{log}");
+}
+
+/// Trusted Types como o oráculo: o roteiro e a saída esperada (`tests/fixtures`) vêm da execução no Chromium 154.
+#[test]
+fn trusted_types_as_the_oracle() {
+    let (_, log) = run(&[("/", &format!("<script>{}</script>", include_str!("fixtures/trusted-types.js")))]);
+    assert_eq!(log, include_str!("fixtures/trusted-types.expected"));
+}
+
+/// Trusted Types sob CSP como o oráculo: cada caso (`tests/fixtures/csp`) é um roteiro e a saída do Chromium 154 com
+/// o cabeçalho dado (ou o `<meta http-equiv>` do caso `meta`): sinks recusados, política padrão, diretiva
+/// `trusted-types`, modo só relatório e os eventos `securitypolicyviolation`, com a posição de cada chamada.
+#[test]
+fn trusted_types_csp_as_the_oracle() {
+    let origin = "http://127.0.0.1:8000";
+    let cases: [(&str, &[(&str, &str)], &str, &str); 9] = [
+        ("a", &[("Content-Security-Policy", "trusted-types a b 'allow-duplicates'; require-trusted-types-for 'script'")], include_str!("fixtures/csp/a.js"), include_str!("fixtures/csp/a.expected")),
+        ("b", &[("Content-Security-Policy", "trusted-types 'none'")], include_str!("fixtures/csp/b.js"), include_str!("fixtures/csp/b.expected")),
+        ("c", &[("Content-Security-Policy-Report-Only", "require-trusted-types-for 'script'")], include_str!("fixtures/csp/c.js"), include_str!("fixtures/csp/c.expected")),
+        ("d", &[("Content-Security-Policy", "require-trusted-types-for 'script'")], include_str!("fixtures/csp/d.js"), include_str!("fixtures/csp/d.expected")),
+        ("e", &[("Content-Security-Policy", "trusted-types *")], include_str!("fixtures/csp/e.js"), include_str!("fixtures/csp/e.expected")),
+        ("f", &[("Content-Security-Policy", "trusted-types default a; require-trusted-types-for 'script'")], include_str!("fixtures/csp/f.js"), include_str!("fixtures/csp/f.expected")),
+        ("g", &[("Content-Security-Policy", "trusted-types a")], include_str!("fixtures/csp/g.js"), include_str!("fixtures/csp/g.expected")),
+        ("h", &[("Content-Security-Policy", "require-trusted-types-for 'script'; trusted-types a"), ("Content-Security-Policy-Report-Only", "trusted-types b")], include_str!("fixtures/csp/h.js"), include_str!("fixtures/csp/h.expected")),
+        ("meta", &[], include_str!("fixtures/csp/meta.js"), include_str!("fixtures/csp/meta.expected")),
+    ];
+    for (name, headers, script, expected) in cases {
+        let meta = if name == "meta" { r#"<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">"# } else { "" };
+        let page = format!(r#"{meta}<pre id=o></pre><script src="/fx/csp-{name}.js"></script>"#);
+        let (_, log) = common::run_at(&format!("{origin}/{name}"), headers, &[(&format!("/{name}"), &page), (&format!("/fx/csp-{name}.js"), script)]);
+        assert_eq!(log.replace(origin, "O"), expected, "caso {name}");
+    }
+}
+
+/// Quando o CSP de um `<meta http-equiv>` passa a valer, medido no oráculo: o inserido por script vale na hora da
+/// inserção no `<head>` e não se desfaz ao remover; fora do `<head>` e o `Report-Only` não valem; o do documento só
+/// vale a partir do script que o segue na ordem do documento.
+#[test]
+fn trusted_types_meta_timing_as_the_oracle() {
+    let (_, log) = common::run_at(
+        "http://127.0.0.1:8000/m",
+        &[],
+        &[("/m", r#"<pre id=o></pre><script src="/fx/metadyn.js"></script>"#), ("/fx/metadyn.js", include_str!("fixtures/csp/metadyn.js"))],
+    );
+    assert_eq!(log, include_str!("fixtures/csp/metadyn.expected"), "meta inserido por script");
+    let page = r#"<head><script src="/fx/staticfirst.js"></script><meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'"><script src="/fx/staticsecond.js"></script></head><body><pre id=o></pre></body>"#;
+    let (_, log) = common::run_at(
+        "http://127.0.0.1:8000/s",
+        &[],
+        &[("/s", page), ("/fx/staticfirst.js", include_str!("fixtures/csp/staticfirst.js")), ("/fx/staticsecond.js", include_str!("fixtures/csp/staticsecond.js"))],
+    );
+    assert_eq!(log, include_str!("fixtures/csp/static.expected"), "meta do documento");
 }
 
 #[test]

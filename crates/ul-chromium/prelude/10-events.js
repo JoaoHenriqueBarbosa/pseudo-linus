@@ -108,7 +108,7 @@ const attributeHandler = (target, type) => {
   if (cached && cached.source === source) return cached.fn;
   let fn;
   try {
-    fn = new Function('event', source);
+    fn = internalCode(() => new Function('event', source));
   } catch (error) {
     fn = null;
     reportError(error);

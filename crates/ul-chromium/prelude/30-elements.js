@@ -224,6 +224,14 @@ const parseFragment = (context, html) => {
   return holder;
 };
 
+// Troca os filhos pelo que o parser faz do texto: o miolo de `innerHTML` e de `setHTMLUnsafe`.
+const replaceChildrenWithHtml = (element, html) => {
+  const removed = Array.from(element.childNodes);
+  op('setInnerHTML', idOf(element), toStr(html));
+  mutationHook.record({ type: 'childList', target: element, removedNodes: removed, addedNodes: Array.from(element.childNodes) });
+  for (const child of Array.from(element.childNodes)) afterInsert(child);
+};
+
 class Element extends Node {
   constructor() { super(ILLEGAL); }
   get namespaceURI() { return op('ns', idOf(this)); }
@@ -273,12 +281,7 @@ class Element extends Node {
     return has;
   }
   get innerHTML() { return op('innerHTML', idOf(this)); }
-  set innerHTML(html) {
-    const removed = Array.from(this.childNodes);
-    op('setInnerHTML', idOf(this), toStr(html === null ? '' : html));
-    mutationHook.record({ type: 'childList', target: this, removedNodes: removed, addedNodes: Array.from(this.childNodes) });
-    for (const child of Array.from(this.childNodes)) afterInsert(child);
-  }
+  set innerHTML(html) { replaceChildrenWithHtml(this, html === null ? '' : html); }
   get outerHTML() { return op('outerHTML', idOf(this)); }
   set outerHTML(html) {
     const parent = this.parentNode;

@@ -1,0 +1,2 @@
+["x","TypeError","Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': Policy \"x\" disallowed."]
+V ["trusted-types","trusted-types","trusted-types-policy","enforce","x","O/fx/csp-b.js",5,35,200,"trusted-types 'none'","O/b",true,true,true,""]

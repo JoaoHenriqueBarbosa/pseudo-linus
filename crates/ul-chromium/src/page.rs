@@ -18,7 +18,7 @@ use crate::{document, encoding};
 
 /// O prelúdio JavaScript: o DOM e as APIs de janela escritos sobre a ponte. O valor do `let` de topo é o gancho de
 /// ciclo de vida; não é propriedade do global, então a página não o enxerga por introspecção.
-const PRELUDE_PARTS: [&str; 28] = [
+const PRELUDE_PARTS: [&str; 33] = [
     include_str!("../prelude/00-core.js"),
     include_str!("../prelude/10-events.js"),
     include_str!("../prelude/20-nodes.js"),
@@ -43,6 +43,11 @@ const PRELUDE_PARTS: [&str; 28] = [
     include_str!("../prelude/60-window.js"),
     include_str!("../prelude/62-window-interfaces.js"),
     include_str!("../prelude/63-window-apis.js"),
+    "const TRUSTED_TYPES_MAPPING = ",
+    include_str!("../data/trusted-types-mapping.json"),
+    ";\n",
+    include_str!("../prelude/64-trusted-types.js"),
+    include_str!("../prelude/66-trusted-types-csp.js"),
     include_str!("../prelude/65-devtools.js"),
     "const WINDOW_KEYS = ",
     include_str!("../data/window-keys.json"),
@@ -105,6 +110,8 @@ pub struct Page {
     pub console: Rc<dyn ConsoleHost>,
     /// O tamanho do documento, cobrado como trabalho de parse.
     document_bytes: usize,
+    /// As políticas CSP dos cabeçalhos, em JSON (`[[texto, soRelatorio], ...]`), para o prelúdio.
+    csp_json: String,
 }
 
 /// A ida e volta de rede de uma busca em tempo virtual: o que já estava na fila de tarefas roda antes da resposta.
@@ -127,7 +134,7 @@ impl Page {
     /// `None` para código sem texto medido.
     pub fn error_page(url: &str, error: &str, fetcher: Fetcher) -> Option<Page> {
         let html = neterror_html(url, error)?;
-        let response = DocumentResponse { bytes: html.into_bytes(), final_url: "chrome-error://chromewebdata/".to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, cross_origin_isolated: false };
+        let response = DocumentResponse { bytes: html.into_bytes(), final_url: "chrome-error://chromewebdata/".to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, csp: Vec::new(), cross_origin_isolated: false };
         Some(Page::build(response, fetcher))
     }
 
@@ -150,7 +157,9 @@ impl Page {
             cross_origin_isolated: response.cross_origin_isolated,
             canvases: RefCell::new(Vec::new()),
         };
-        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len() }
+        use crate::devtools::json::Json;
+        let csp_json = Json::Array(response.csp.iter().map(|(text, report_only)| Json::Array(vec![Json::str(text), Json::Bool(*report_only)])).collect()).to_compact();
+        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), csp_json }
     }
 
     /// A navegação que a página pediu (`location.href = ...`) e ainda não aconteceu.
@@ -209,7 +218,7 @@ impl Page {
             let resolution = if self.bridge.cross_origin_isolated { zjsc::runtime::time_clamper::FINE_RESOLUTION_US } else { zjsc::runtime::time_clamper::COARSE_RESOLUTION_US };
             zjsc::runtime::time_clamper::set_time_clamper(clock_secret(), resolution, origin_ticks_us, unix_at_zero_us);
             // O valor do programa é a função gancho: o hospedeiro a guarda, sem binding global que a página veja.
-            let prelude = format!("(function () {{ 'use strict';\n{}{}\nreturn hook;\n}})();", PRELUDE_PARTS.concat(), PRELUDE_TAIL);
+            let prelude = format!("(function () {{ 'use strict';\nconst DOCUMENT_CSP = {};\n{}{}\nreturn hook;\n}})();", self.csp_json, PRELUDE_PARTS.concat(), PRELUDE_TAIL);
             let hook = match runner.eval_hidden_value(&prelude) {
                 Ok(hook) => hook,
                 Err(error) => {
@@ -419,6 +428,8 @@ struct DocumentResponse {
     content_type: Option<String>,
     /// Veio CSP por cabeçalho (o que liga o nonce hiding).
     header_csp: bool,
+    /// As políticas CSP dos cabeçalhos, cada uma com `true` se vem do `Content-Security-Policy-Report-Only`.
+    csp: Vec<(String, bool)>,
     /// `crossOriginIsolated`: `Cross-Origin-Opener-Policy: same-origin` com `Cross-Origin-Embedder-Policy`
     /// `require-corp` ou `credentialless`, num contexto seguro (medido no oráculo, em `http://127.0.0.1`).
     cross_origin_isolated: bool,
@@ -475,8 +486,30 @@ pub const WEBUI_DOCUMENTS: [(&str, &str); 2] = [
     ("chrome://omnibox-popup.top-chrome/", include_str!("../data/omnibox/omnibox_popup.html")),
 ];
 
+/// Cada política CSP dos cabeçalhos da resposta (um cabeçalho pode trazer várias, separadas por vírgula), com a marca
+/// de só relatório.
+fn csp_policies(response: &ul_net::net::client::Response) -> Vec<(String, bool)> {
+    let mut policies = Vec::new();
+    for (name, value) in &response.headers {
+        let report_only = if name.eq_ignore_ascii_case(b"content-security-policy") {
+            false
+        } else if name.eq_ignore_ascii_case(b"content-security-policy-report-only") {
+            true
+        } else {
+            continue;
+        };
+        for policy in String::from_utf8_lossy(value).split(',') {
+            let policy = policy.trim();
+            if !policy.is_empty() {
+                policies.push((policy.to_owned(), report_only));
+            }
+        }
+    }
+    policies
+}
+
 fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, String> {
-    let local = |bytes: Vec<u8>, content_type: Option<String>| DocumentResponse { bytes, final_url: address.to_owned(), content_type, header_csp: false, cross_origin_isolated: false };
+    let local = |bytes: Vec<u8>, content_type: Option<String>| DocumentResponse { bytes, final_url: address.to_owned(), content_type, header_csp: false, csp: Vec::new(), cross_origin_isolated: false };
     // A aba nova (`about:blank`) é um documento vazio sem rede; `data:` sai pelo processador de data: URL do Fetch.
     if address == "about:blank" {
         return Ok(local(Vec::new(), None));
@@ -506,6 +539,7 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
     Ok(DocumentResponse {
         content_type: response.header("Content-Type"),
         header_csp: response.header("Content-Security-Policy").is_some(),
+        csp: csp_policies(&response),
         bytes: response.body,
         final_url,
         cross_origin_isolated,

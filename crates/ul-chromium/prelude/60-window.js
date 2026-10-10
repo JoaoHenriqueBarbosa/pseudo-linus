@@ -43,7 +43,18 @@ class Location {
   constructor() { throw new TypeError('Illegal constructor'); }
   get [P.__u]() { return new URL(pageState.url); }
   get href() { return pageState.url; }
-  set href(v) { navigate(resolveUrl(v)); }
+  set href(v) {
+    // `javascript:` com `require-trusted-types-for`: a navegação é uma tarefa própria, que relata a violação depois do
+    // script em curso, na posição 1:0 do documento, e não acontece (medido).
+    const text = String(v);
+    if (/^\s*javascript:/i.test(text) && requiresTrustedScript().length > 0) {
+      setTimeout(() => {
+        try { enforceSink('Location href', 'TrustedScript', text.replace(/^\s*javascript:/i, ''), () => new Error(), undefined, [pageState.url, 1, 0]); } catch { /* sem navegação */ }
+      }, 0);
+      return;
+    }
+    navigate(resolveUrl(v));
+  }
   get origin() { return this[P.__u].origin; }
   get protocol() { return this[P.__u].protocol; }
   set protocol(v) { const u = this[P.__u]; u.protocol = v; navigate(u.href); }
@@ -630,6 +641,7 @@ const isClassic = (type) => type === '' || /^(text|application)\/(x-)?(java|ecma
 function execScript(el, code, url) {
   const previous = document[P.__currentScript];
   hidden(document, '__currentScript', el);
+  refreshPolicies();
   op('chargeSource', code.length);
   try { evalGlobal(code, url); } catch (error) { reportError(error); } finally { hidden(document, '__currentScript', previous || null); }
 }
@@ -701,7 +713,7 @@ const hook = (name, a, b) => {
       if (window.dispatchEvent(event)) devtoolsAgent.quietly(() => console.error('Uncaught ' + a));
       break;
     }
-    case 'currentScript': hidden(document, '__currentScript', a === null ? null : wrap(a)); break;
+    case 'currentScript': hidden(document, '__currentScript', a === null ? null : wrap(a)); if (a !== null) refreshPolicies(); break;
     case 'namedLookup': return namedValue;
     case 'consoleHook': return devtoolsAgent.console;
     // O agente do DevTools (`65-devtools.js`): configuração do contexto, uma mensagem, e a caixa de saída.

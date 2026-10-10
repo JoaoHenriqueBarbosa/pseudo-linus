@@ -1,0 +1,60 @@
+[object TrustedTypePolicyFactory]
+[object TrustedTypePolicy]
+a
+
+TypeError: Failed to construct 'TrustedHTML': Illegal constructor
+TypeError: Illegal constructor
+TypeError: Failed to construct 'TrustedTypePolicy': Illegal constructor
+0
+toJSON,toString,constructor
+[object TrustedHTML]"H:xy|z"
+"H:q"
+H:<b>!
+TypeError: Failed to execute 'createHTML' on 'TrustedTypePolicy': 1 argument required, but only 0 present.
+TypeError: Failed to execute 'createHTML' on 'TrustedTypePolicy': Cannot convert a Symbol value to a string
+false
+true
+true
+true
+TypeError: Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': 1 argument required, but only 0 present.
+TypeError: Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': The provided value is not of type 'TrustedTypePolicyOptions'.
+string:n2
+string:b c
+TypeError: Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': Failed to read the 'createHTML' property from 'TrustedTypePolicyOptions': The given value is not a function.
+TypeError: Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': Failed to read the 'createHTML' property from 'TrustedTypePolicyOptions': The given value is not a function.
+TypeError: Failed to execute 'createHTML' on 'TrustedTypePolicy': Policy r6's TrustedTypePolicyOptions did not specify a 'createHTML' member.
+[object TrustedHTML]"5"
+[object TrustedHTML]""
+RangeError: boom
+TypeError: Failed to execute 'invoke' on 'CreateURLCallback': Failed to execute 'createScriptURL' on 'TrustedTypePolicy': Cannot convert a Symbol value to a string
+string:default
+default
+TypeError: Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': Policy with name "default" already exists.
+true
+false
+false
+TypeError: Failed to execute 'isHTML' on 'TrustedTypePolicyFactory': 1 argument required, but only 0 present.
+false
+TrustedScript
+
+TrustedScriptURL
+
+TrustedScriptURL
+
+TrustedScript
+
+TrustedHTML
+TypeError: Failed to execute 'getAttributeType' on 'TrustedTypePolicyFactory': 2 arguments required, but only 1 present.
+TrustedHTML
+
+TrustedScript
+
+TrustedScriptURL
+
+false
+embed,iframe,object,script,*
+
+357
+{}
+
+H:<b>t</b>

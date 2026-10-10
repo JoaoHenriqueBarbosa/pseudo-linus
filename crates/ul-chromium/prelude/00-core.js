@@ -1,5 +1,14 @@
 const op = __pl_dom;
 const evalGlobal = __pl_eval;
+const setCodeGuard = __pl_set_code_guard;
+delete globalThis.__pl_set_code_guard;
+// O código que o próprio navegador compila de texto (`new Function` do tratador de atributo, expressões do GLSL) não
+// passa pela guarda do Trusted Types: só o que a página pede.
+let internalCodeDepth = 0;
+const internalCode = (body) => {
+  internalCodeDepth++;
+  try { return body(); } finally { internalCodeDepth--; }
+};
 const privateSymbol = __pl_private;
 delete globalThis.__pl_dom;
 delete globalThis.__pl_eval;

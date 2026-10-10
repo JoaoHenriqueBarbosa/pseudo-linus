@@ -349,3 +349,18 @@ Object.assign(globalThis, { webkitRequestFileSystem: requestFileSystem, webkitRe
 const windowApis = { Viewport, CrashReportContext, LaunchParams, LaunchQueue, SpeechSynthesis, SpeechSynthesisEvent, SpeechSynthesisErrorEvent, SpeechSynthesisVoice, SpeechSynthesisUtterance, Scheduler, TaskController, TaskSignal, TaskPriorityChangeEvent };
 Object.assign(globalThis, windowApis);
 for (const key of Object.keys(windowApis)) Object.defineProperty(globalThis, key, { enumerable: false });
+
+// `setHTMLUnsafe` (Element e ShadowRoot) e `Document.parseHTMLUnsafe`: o parse de HTML sem o sanitizador, que o
+// Chromium 154 expõe com `html` obrigatório e `options` opcional (a aridade medida é 1). Os sinks do Trusted Types
+// (`66-trusted-types-csp.js`) os envolvem depois.
+const unsafeHtmlOperation = (name, owner, run) => {
+  const method = { [name](html) {
+    if (arguments.length < 1) throw new TypeError(`Failed to execute '${name}' on '${owner}': 1 argument required, but only 0 present.`);
+    return run.call(this, toStr(html));
+  } }[name];
+  return method;
+};
+const defineEnumerable = (target, name, value) => Object.defineProperty(target, name, { value, writable: true, enumerable: true, configurable: true });
+defineEnumerable(Element.prototype, 'setHTMLUnsafe', unsafeHtmlOperation('setHTMLUnsafe', 'Element', function (html) { replaceChildrenWithHtml(this, html); }));
+defineEnumerable(ShadowRoot.prototype, 'setHTMLUnsafe', unsafeHtmlOperation('setHTMLUnsafe', 'ShadowRoot', function (html) { op('setInnerHTML', idOf(this), html); }));
+defineEnumerable(Document, 'parseHTMLUnsafe', unsafeHtmlOperation('parseHTMLUnsafe', 'Document', (html) => wrap(op('parseDocument', html, false))));

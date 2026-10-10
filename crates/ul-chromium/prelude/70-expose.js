@@ -71,7 +71,7 @@ defineHandlerProperties(Element.prototype, ['beforecopy', 'beforecut', 'beforepa
 const guarded = (handler) => {
   if (typeof handler !== 'function') {
     const code = String(handler);
-    return () => { try { evalGlobal(code, pageState.url); } catch (error) { reportError(error); } };
+    return () => { refreshPolicies(); try { evalGlobal(code, pageState.url); } catch (error) { reportError(error); } };
   }
   return function (...args) { try { return handler.apply(this, args); } catch (error) { reportError(error); } };
 };
@@ -84,6 +84,10 @@ const timerHandles = new Map();
 let nextTimerId = 1;
 const browserTimer = (engine) => function (handler, delay, ...args) {
   const id = nextTimerId++;
+  if (typeof handler !== 'function') {
+    const name = engine === engineSetTimeout ? 'setTimeout' : 'setInterval';
+    handler = enforceSink(`Window ${name}`, 'TrustedScript', handler, assignmentError('call', name, 'Window', 'TrustedScript'));
+  }
   const wrapped = guarded(handler);
   const once = engine === engineSetTimeout;
   const handle = engine(function () { if (once) timerHandles.delete(id); return wrapped.apply(window, arguments); }, Math.max(0, Number(delay) || 0), ...args);
@@ -164,6 +168,8 @@ Object.assign(globalThis, {
 for (const key of ['requestAnimationFrame', 'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback', 'alert', 'confirm', 'prompt', 'print', 'open', 'close', 'stop', 'focus', 'blur', 'scrollTo', 'scrollBy', 'scroll', 'moveTo', 'moveBy', 'resizeTo', 'resizeBy', 'getSelection', 'reportError', 'postMessage', 'Image', 'Option', 'visualViewport']) {
   Object.defineProperty(globalThis, key, { enumerable: false });
 }
+
+installTrustedTypesSinks();
 
 // As propriedades próprias enumeráveis da janela na ordem e na forma do Chromium (`data/window-keys.json`, medido no
 // oráculo): `v` é valor (`w` gravável), `a` é acessor (`s` com setter), `c` configurável. O resto fica não enumerável.

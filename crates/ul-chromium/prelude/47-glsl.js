@@ -89,7 +89,7 @@ const glslPreprocess = (source, defines) => {
   };
   const evalCond = (expr) => {
     const replaced = expand(expr.replace(/defined\s*\(\s*(\w+)\s*\)|defined\s+(\w+)/g, (_, a, b) => (macros.has(a || b) ? '1' : '0'))).replace(/[A-Za-z_]\w*/g, '0');
-    try { return Function('"use strict"; return (' + replaced + ');')() !== 0; } catch (error) { return false; }
+    try { return internalCode(() => Function('"use strict"; return (' + replaced + ');'))() !== 0; } catch (error) { return false; }
   };
   const lines = text.split('\n');
   const out = [];

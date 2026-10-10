@@ -1,0 +1,6 @@
+["a","ok","string:a"]
+["a2","TypeError","Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': Policy with name \"a\" already exists."]
+["b","TypeError","Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': Policy \"b\" disallowed."]
+["innerHTML","ok","string:<b>1</b>"]
+V ["trusted-types","trusted-types","trusted-types-policy","enforce","a","O/fx/csp-g.js",5,76,200,"trusted-types a","O/g",true,true,true,""]
+V ["trusted-types","trusted-types","trusted-types-policy","enforce","b","O/fx/csp-g.js",5,116,200,"trusted-types a","O/g",true,true,true,""]
