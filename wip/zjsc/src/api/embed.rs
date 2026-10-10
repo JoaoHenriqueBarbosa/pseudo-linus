@@ -30,24 +30,33 @@ thread_local! {
     static PAGE_GLOBAL: RefCell<Option<JSGlobalObjectRef>> = const { RefCell::new(None) };
 }
 
-/// `__pl_eval(fonte, url)`: avalia `fonte` como script clássico no global da página. A exceção do script segue
-/// pendente para o chamador JavaScript, que a relata como erro de página.
+/// `__pl_eval(fonte, url)`: avalia `fonte` como script clássico no global da página e devolve o valor de completude
+/// (o que o `Runtime.evaluate` do DevTools entrega). A exceção do script segue pendente para o chamador JavaScript,
+/// que a relata como erro de página.
 fn pl_eval_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let source = rust_string(&call.argument(0).to_wtf_string());
     let url = rust_string(&call.argument(1).to_wtf_string());
     let Some(global) = PAGE_GLOBAL.with(|slot| slot.borrow().clone()) else { return Ok(JSValue::undefined()) };
     let executable = ProgramExecutable::create(&global, &named_program_source(&source, &url));
     let vm = global_object.vm();
-    vm.interpreter().execute_program(&executable, &global);
+    let completion = vm.interpreter().execute_program(&executable, &global);
     if vm.exception().is_some() {
         return Err(Thrown::Pending);
     }
-    Ok(JSValue::undefined())
+    Ok(completion)
 }
 host_function!(pl_eval, pl_eval_body);
 
 /// Um valor do programa escondido que o hospedeiro guarda para chamar depois ([`PageRunner::call_hidden`]).
 pub struct HostHandle(JSValue);
+
+impl HostHandle {
+    /// O texto de um valor string (o que o gancho devolve ao hospedeiro, como a caixa de saída do DevTools); `None`
+    /// para outro tipo.
+    pub fn as_text(&self) -> Option<String> {
+        self.0.is_string().then(|| rust_string(&self.0.to_wtf_string()))
+    }
+}
 
 /// Argumento de [`PageRunner::call_hidden`].
 #[derive(Clone, Copy)]
