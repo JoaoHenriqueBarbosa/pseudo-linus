@@ -13,7 +13,10 @@ const PRELUDES: &str = include_str!("golden/function_scope.preludes.json");
 
 #[test]
 fn function_scope_matches_bun() {
-    // O golden saiu de um bun em America/Sao_Paulo; fixar o fuso torna o resultado independente da máquina do teste.
-    set_time_zone_spec_override(Some("America/Sao_Paulo"));
-    common::run_factored(GOLDEN, PRELUDES, 3000, |source| common::EvalMode::IndirectEval.evaluate(source, "function_scope_case.js", "R"));
+    // A recursão de milhares de níveis (`f(5000)`) que o bun aceita pede a thread de pilha grande, como os outros goldens
+    // de recursão funda. O golden saiu de um bun em America/Sao_Paulo; o fuso é por thread, então é fixado nela.
+    common::run_factored_big_stack(GOLDEN, PRELUDES, 3000, |source| {
+        set_time_zone_spec_override(Some("America/Sao_Paulo"));
+        common::EvalMode::IndirectEval.evaluate(source, "function_scope_case.js", "R")
+    });
 }
