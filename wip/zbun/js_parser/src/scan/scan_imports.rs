@@ -55,17 +55,11 @@ impl<'a> ImportScanner<'a> {
                     let st: &mut S::Import = &mut p.store[import_ptr];
 
                     let import_record_index = st.import_record_index;
-                    // We can't keep a long-lived `&mut ImportRecord` for the whole arm
-                    // alongside other `p.*` borrows. We take a raw pointer once and unsafe-deref
-                    // at each use site (no operation below grows `p.import_records`, so
-                    // the pointer stays valid for this iteration).
-                    let record: *mut ImportRecord =
-                        &raw mut p.import_records.items_mut()[import_record_index as usize];
+                    // O registro é relido pelo índice a cada uso: um `&mut ImportRecord` não convive com os outros
+                    // empréstimos de `p` no braço.
                     macro_rules! record {
                         () => {
-                            // SAFETY: `record` points into `p.import_records`' backing storage;
-                            // nothing in this match arm reallocates that list.
-                            unsafe { &mut *record }
+                            p.import_records.items_mut()[import_record_index as usize]
                         };
                     }
 
