@@ -78,12 +78,33 @@ defineHtml('HTMLImageElement', ['img'], (cls) => {
   for (const dim of ['width', 'height']) Object.defineProperty(cls.prototype, dim, { get() { const n = parseInt(this.getAttribute(dim), 10); if (Number.isFinite(n)) return n; const image = this[P.__image]; return image ? image[dim === 'width' ? 1 : 2] : 0; }, set(v) { this.setAttribute(dim, v); }, configurable: true, enumerable: true });
   Object.defineProperties(cls.prototype, {
     naturalWidth: { get() { const image = this[P.__image]; return image ? image[1] : 0; }, configurable: true }, naturalHeight: { get() { const image = this[P.__image]; return image ? image[2] : 0; }, configurable: true },
-    // Completa sem `src`, ou depois do `load`/`error`.
-    complete: { get() { return !this.hasAttribute('src') || this.getAttribute('src') === '' || this[P.__imageDone] === true; }, configurable: true },
-    currentSrc: { get() { return this.src; }, configurable: true },
+    // Completa sem fonte nenhuma (nem `src` nem `srcset`, ou só `src` vazio), ou depois do `load`/`error`. A imagem
+    // lazy que ainda espera o quadro não está completa.
+    complete: {
+      get() {
+        const srcset = this.hasAttribute('srcset');
+        if (!srcset && (!this.hasAttribute('src') || this.getAttribute('src') === '')) return true;
+        return this[P.__imageDone] === true;
+      },
+      configurable: true,
+    },
+    // A URL do pedido corrente (escolhida no `srcset` ou no `<picture>`), vazia antes do primeiro pedido.
+    currentSrc: { get() { return this[P.__imageUrl] || ''; }, configurable: true },
     x: { get() { return 0; }, configurable: true }, y: { get() { return 0; }, configurable: true },
   });
-  cls.prototype.decode = function () { return Promise.resolve(); };
+  // Resolve quando a imagem chega decodificada; imagem quebrada rejeita com EncodingError, como o Blink.
+  cls.prototype.decode = function () {
+    return new Promise((resolve, reject) => {
+      const settle = () => {
+        if (this[P.__image]) resolve();
+        else reject(domException('The source image cannot be decoded.', 'EncodingError'));
+      };
+      if (this[P.__imageDone] === true || this.complete) { settle(); return; }
+      const waiting = this[P.__decodeWaiting] || [];
+      waiting.push(settle);
+      hidden(this, '__decodeWaiting', waiting);
+    });
+  };
 });
 defineHtml('HTMLScriptElement', ['script'], (cls) => {
   reflect(cls, [['src', 'src', 'url'], ['type', 'type'], ['defer', 'defer', 'bool'], ['noModule', 'nomodule', 'bool'], ['crossOrigin', 'crossorigin', 'cors'], ['integrity', 'integrity'], ['charset', 'charset'], ['referrerPolicy', 'referrerpolicy'], ['fetchPriority', 'fetchpriority']]);
@@ -542,6 +563,9 @@ function afterInsert(node) {
     else if (def && el[P.__upgraded] && connected && typeof el.connectedCallback === 'function') invokeReaction(() => el.connectedCallback());
     if (connected && el.localName === 'script') runDynamicScript(el);
     if (connected && el.localName === 'link') loadLink(el);
+    // A imagem que o parser criou (documento, `innerHTML`) entra na árvore sem ter pedido a fonte ainda.
+    if (el.localName === 'img' && el.namespaceURI === HTML_NS && !el[P.__imageStarted]) updateImage(el);
+    else if (connected && el.localName === 'img' && lazyImages.has(el)) requestRender();
     for (const child of Array.from(el.children)) walk(child);
   };
   walk(node);
@@ -573,10 +597,9 @@ function loadLink(link) {
   }, rel.includes('stylesheet'));
 }
 
-// A imagem cuja `src` a página define é buscada (conectada ou não, como no Chromium) e dispara `load` ou `error`
-// quando a resposta chega; a última `src` vence.
-// A imagem busca e decodifica o `src` (rede da página ou `blob:` criada por URL.createObjectURL); `load` com as
-// dimensões naturais, `error` quando a busca falha ou os bytes não são imagem.
+// A imagem busca e decodifica a fonte escolhida (rede da página ou `blob:` criada por URL.createObjectURL); `load`
+// com as dimensões naturais, `error` quando a busca falha ou os bytes não são imagem. Conectada ou não, como no
+// Chromium; a última fonte vence.
 function loadImage(img, src) {
   const url = src === '' ? '' : resolveUrl(src);
   hidden(img, '__imageUrl', url);
@@ -587,7 +610,10 @@ function loadImage(img, src) {
     const decoded = bytes === null ? null : op('decodeImage', bytes);
     hidden(img, '__image', decoded);
     hidden(img, '__imageDone', true);
+    const waiting = img[P.__decodeWaiting];
+    hidden(img, '__decodeWaiting', undefined);
     img.dispatchEvent(new Event(decoded ? 'load' : 'error'));
+    if (waiting) for (const settle of waiting) settle();
   };
   const blob = url.startsWith('blob:') ? blobUrls.get(url.replace(/#.*$/, '')) : undefined;
   if (blob !== undefined) {
@@ -611,8 +637,173 @@ function loadImage(img, src) {
   }, img.isConnected);
 }
 
+// ---- Escolha da fonte da imagem (HTML "update the image data" e o HTMLSrcsetParser do Blink), com a janela do
+// headless (devicePixelRatio 1, largura do viewport).
+
+// "Parse a srcset attribute": os candidatos com URL e descritor (`x` de densidade ou `w` de largura). Candidato com
+// descritor inválido sai da lista.
+function parseSrcset(text) {
+  const candidates = [];
+  const isSpace = (c) => c === ' ' || c === '\t' || c === '\n' || c === '\f' || c === '\r';
+  let i = 0;
+  const n = text.length;
+  while (i < n) {
+    while (i < n && (isSpace(text[i]) || text[i] === ',')) i++;
+    if (i >= n) break;
+    let start = i;
+    while (i < n && !isSpace(text[i])) i++;
+    let url = text.slice(start, i);
+    const descriptors = [];
+    if (url.endsWith(',')) {
+      url = url.replace(/,+$/, '');
+    } else {
+      let current = '';
+      let inParens = false;
+      for (; i <= n; i++) {
+        const c = i < n ? text[i] : null;
+        if (c === null) { if (current) descriptors.push(current); break; }
+        if (inParens) { current += c; if (c === ')') inParens = false; continue; }
+        if (isSpace(c)) { if (current) { descriptors.push(current); current = ''; } continue; }
+        if (c === ',') { i++; if (current) descriptors.push(current); break; }
+        if (c === '(') inParens = true;
+        current += c;
+      }
+    }
+    let density = null, width = null, error = false;
+    for (const d of descriptors) {
+      const last = d[d.length - 1];
+      const value = d.slice(0, -1);
+      if (last === 'w' && /^[0-9]+$/.test(value) && density === null && width === null && Number(value) > 0) width = Number(value);
+      else if (last === 'x' && density === null && width === null && /^[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?$/.test(value) && Number(value) >= 0) density = Number(value);
+      else if (last === 'h' && /^[0-9]+$/.test(value)) continue;
+      else error = true;
+    }
+    if (!error && url !== '') candidates.push({ url, density, width });
+  }
+  return candidates;
+}
+
+// Um comprimento de `sizes` em pixels CSS (px, em e rem a 16px, vw e vh do viewport); `null` quando não é comprimento.
+function sizeLength(text) {
+  const m = /^([+-]?(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)(px|em|rem|vw|vh|vmin|vmax)?$/i.exec(text.trim());
+  if (!m) return null;
+  const value = Number(m[1]);
+  if (value < 0) return null;
+  const unit = lower(m[2] || '');
+  if (unit === '') return value === 0 ? 0 : null;
+  const width = windowMetrics.innerWidth, height = windowMetrics.innerHeight;
+  return value * ({ px: 1, em: 16, rem: 16, vw: width / 100, vh: height / 100, vmin: Math.min(width, height) / 100, vmax: Math.max(width, height) / 100 })[unit];
+}
+
+// "Parse a sizes attribute": o primeiro tamanho cuja condição de mídia vale; sem nenhum, 100vw.
+function imageSourceSize(text) {
+  if (text !== null) {
+    for (const part of text.split(',')) {
+      const trimmed = part.trim();
+      const space = trimmed.search(/\s[^\s]*$/);
+      const condition = space < 0 ? '' : trimmed.slice(0, space).trim();
+      const length = sizeLength(space < 0 ? trimmed : trimmed.slice(space + 1));
+      if (length === null) continue;
+      if (condition === '' || matchMedia(condition).matches) return length;
+    }
+  }
+  return windowMetrics.innerWidth;
+}
+
+const SUPPORTED_IMAGE_TYPES = new Set(['image/apng', 'image/avif', 'image/bmp', 'image/gif', 'image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/svg+xml', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/x-xbitmap']);
+
+// A fonte escolhida: o `srcset` do primeiro `<source>` do `<picture>` que serve (mídia e tipo), senão o da própria
+// imagem com o `src` como candidato 1x. `null` sem fonte nenhuma.
+function selectImageSource(img) {
+  let srcset = null, sizes = null, fromSource = false;
+  const parent = img.parentNode;
+  if (parent && parent.nodeType === 1 && parent.localName === 'picture' && parent.namespaceURI === HTML_NS) {
+    for (let node = parent.firstChild; node && node !== img; node = node.nextSibling) {
+      if (node.nodeType !== 1 || node.localName !== 'source' || node.namespaceURI !== HTML_NS) continue;
+      const set = node.getAttribute('srcset');
+      if (set === null || set === '') continue;
+      const media = node.getAttribute('media');
+      if (media !== null && media.trim() !== '' && !matchMedia(media).matches) continue;
+      const type = node.getAttribute('type');
+      if (type !== null && type.trim() !== '' && !SUPPORTED_IMAGE_TYPES.has(lower(type.split(';')[0].trim()))) continue;
+      const parsed = parseSrcset(set);
+      if (!parsed.length) continue;
+      srcset = set;
+      sizes = node.getAttribute('sizes');
+      fromSource = true;
+      break;
+    }
+  }
+  if (!fromSource) {
+    srcset = img.getAttribute('srcset');
+    sizes = img.getAttribute('sizes');
+  }
+  const candidates = srcset === null ? [] : parseSrcset(srcset);
+  const src = img.getAttribute('src');
+  if (!fromSource && src !== null && src !== '' && !candidates.some((c) => c.width !== null || (c.density ?? 1) === 1)) candidates.push({ url: src, density: 1, width: null });
+  if (!candidates.length) return src === null ? null : src;
+  const size = candidates.some((c) => c.width !== null) ? imageSourceSize(sizes) : 0;
+  const scored = candidates.map((c) => ({ url: c.url, density: c.width !== null ? c.width / size : c.density ?? 1 }));
+  // A ordem estável por densidade; densidades repetidas ficam com a primeira.
+  scored.sort((a, b) => a.density - b.density);
+  const unique = scored.filter((c, k) => k === 0 || c.density !== scored[k - 1].density);
+  const desired = windowMetrics.devicePixelRatio;
+  // O laço do PickBestImageCandidate do Blink: anda até o próximo candidato cobrir a tela e fica com ele quando a tela
+  // (até 1x) passa a densidade corrente ou alcança a média geométrica dos dois; senão, com o corrente.
+  let i = 0;
+  for (; i < unique.length - 1; i++) {
+    const next = unique[i + 1].density;
+    if (next < desired) continue;
+    const current = unique[i].density;
+    if ((desired <= 1 && desired > current) || desired >= Math.sqrt(current * next)) return unique[i + 1].url;
+    break;
+  }
+  return unique[i].url;
+}
+
+const isLazy = (img) => lower(img.getAttribute('loading') || '') === 'lazy';
+// As imagens lazy conectadas esperando o quadro. Medido no oráculo (headless sob --virtual-time-budget): a busca da
+// imagem lazy só começa na etapa de interseção do primeiro quadro, mas aí começa para todas, a qualquer distância da
+// dobra e mesmo com `display: none`.
+const lazyImages = new Set();
+
+// "Update the image data": escolhe a fonte e busca, ou deixa para o quadro quando a imagem é lazy.
+function updateImage(img) {
+  hidden(img, '__imageStarted', true);
+  const chosen = selectImageSource(img);
+  lazyImages.delete(img);
+  if (chosen === null) {
+    hidden(img, '__imageUrl', '');
+    hidden(img, '__image', null);
+    hidden(img, '__imageDone', true);
+    return;
+  }
+  // A imagem lazy desconectada não tem o que observar e busca na hora, como a eager (medido no oráculo).
+  if (chosen !== '' && isLazy(img) && img.isConnected) {
+    hidden(img, '__imageUrl', '');
+    hidden(img, '__image', null);
+    hidden(img, '__imageDone', false);
+    lazyImages.add(img);
+    requestRender();
+    return;
+  }
+  loadImage(img, chosen);
+}
+
+// Etapa de interseção do quadro: as imagens lazy conectadas começam a busca; a que saiu da árvore busca também.
+function startLazyImages() {
+  for (const img of Array.from(lazyImages)) {
+    lazyImages.delete(img);
+    const chosen = selectImageSource(img);
+    if (chosen !== null) loadImage(img, chosen);
+  }
+}
+
 function attributeChanged(el, name, oldValue, newValue) {
-  if (name === 'src' && el.localName === 'img' && el.namespaceURI === HTML_NS && newValue !== null) loadImage(el, newValue);
+  if (el.localName === 'img' && el.namespaceURI === HTML_NS) {
+    if (name === 'src' || name === 'srcset' || name === 'sizes') updateImage(el);
+    else if (name === 'loading' && lazyImages.has(el) && !isLazy(el)) { lazyImages.delete(el); updateImage(el); }
+  }
   mutationHook.record({ type: 'attributes', target: el, attributeName: name, oldValue });
   const def = customByCtor.get(el.constructor);
   if (def && def.observed.has(name) && typeof el.attributeChangedCallback === 'function') invokeReaction(() => el.attributeChangedCallback(name, oldValue, newValue));

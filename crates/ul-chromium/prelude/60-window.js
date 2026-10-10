@@ -348,6 +348,7 @@ const renderFrame = () => {
   const all = Array.from(renderObservers);
   for (const observer of all) if (observer instanceof ResizeObserver) observer[P.__measure]();
   for (const observer of all) if (!(observer instanceof ResizeObserver)) observer[P.__measure]();
+  startLazyImages();
   for (const id of Array.from(idleCallbacks.keys())) setTimeout(() => runIdle(id), 0);
   if (frameCallbacks.size) requestRender();
 };
@@ -649,6 +650,11 @@ function runDynamicScript(el) {
 const reportedRejections = new WeakSet();
 const hook = (name, a, b) => {
   switch (name) {
+    // As imagens do documento pedem a fonte quando o parser as cria (o preload scanner adianta as eager).
+    case 'parsedImages': {
+      for (const img of Array.from(document.getElementsByTagName('img'))) if (img.namespaceURI === HTML_NS && !img[P.__imageStarted]) updateImage(img);
+      break;
+    }
     case 'interactive': {
       hidden(document, '__readyState', 'interactive');
       document.dispatchEvent(new Event('readystatechange'));

@@ -222,6 +222,8 @@ impl Page {
                     call(&[HostArg::Str("fire"), node, HostArg::Str("load")]);
                 }
             };
+            // As imagens que o parser criou pedem a fonte já (as eager seguram o `load`; as lazy esperam o quadro).
+            call(&[HostArg::Str("parsedImages")]);
             for info in scripts.iter().filter(|s| s.kind == ScriptKind::Sync) {
                 // O parser só viu o que vem antes do script: o resto do documento fica fora até ele terminar.
                 let held = bridge.detach_following(info.node);
