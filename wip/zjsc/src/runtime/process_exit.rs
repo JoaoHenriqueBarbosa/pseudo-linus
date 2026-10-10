@@ -230,6 +230,22 @@ fn emit_or_report(global_object: &JSGlobalObject, event: &str, args: &[JSValue])
     }
 }
 
+/// `exit` e `beforeExit`: um ouvinte que lança vai a `uncaughtException` como qualquer erro do laço; sem tratamento o
+/// relato sai sem o rodapé e o código é 1 (medido no bun 1.4.2: `process.on('exit', () => { throw ... })` e o mesmo
+/// com `beforeExit` terminam com o trecho, a pilha e `exit 1`, sem `Bun v1.4.2 (Linux x64)`).
+fn emit_exit_event(global_object: &JSGlobalObject, event: &str, code: i32) {
+    if let Err(CallThrown::Value(error)) = emit_event(global_object, event, &[js_number(code)]) {
+        let handled = LISTENERS.with(|table| table.borrow().count("uncaughtException")) > 0 || EXIT.with(|state| state.borrow().capture.is_some());
+        if !handled && handler_failure_code().is_none() {
+            mark_handler_failed(EXIT_HANDLER_FAILURE_CODE);
+        }
+        global_object.vm().report_unhandled_error(global_object, error);
+    }
+}
+
+/// Código de saída quando um ouvinte de `exit` ou `beforeExit` lança.
+const EXIT_HANDLER_FAILURE_CODE: i32 = 1;
+
 /// O desfecho de uma exceção não capturada oferecida aos ouvintes do usuário.
 pub(crate) enum Dispatch {
     /// Um ouvinte (ou o callback de captura) tratou: o programa segue.
@@ -383,14 +399,14 @@ pub(crate) fn emit_exit_at_end(global_object: &JSGlobalObject) {
     let first = EXIT.with(|state| !std::mem::replace(&mut state.borrow_mut().exiting, true));
     if first {
         let code = handler_failure_code().unwrap_or_else(|| if EXIT.with(|state| state.borrow().fatal) { 1 } else { current_code() as i32 });
-        emit_or_report(global_object, "exit", &[js_number(code)]);
+        emit_exit_event(global_object, "exit", code);
     }
 }
 
 /// O laço de eventos ficou vazio: emite `beforeExit` e roda os ticks que os ouvintes agendaram (as microtarefas deles
 /// nunca rodam). Quem chama olha depois se o laço reviveu.
 pub(crate) fn emit_before_exit(global_object: &JSGlobalObject) {
-    emit_or_report(global_object, "beforeExit", &[js_number(current_code() as i32)]);
+    emit_exit_event(global_object, "beforeExit", current_code() as i32);
     let was_processing = set_processing_ticks(true);
     run_pending_ticks(global_object.vm());
     set_processing_ticks(was_processing);
