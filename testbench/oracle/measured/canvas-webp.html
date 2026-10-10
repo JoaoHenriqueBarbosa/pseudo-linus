@@ -1,0 +1,20 @@
+<!doctype html><body><script>
+// toDataURL('image/webp') no oráculo: o codificador e a qualidade padrão do Chromium (libwebp), em cenas lisas, com
+// alfa, com gradiente e com qualidade explícita (1 é sem perdas).
+const make = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; if (draw) draw(c.getContext('2d')); return c; };
+const flat = (c) => { c.fillStyle = 'orange'; c.fillRect(0, 0, 16, 8); c.fillStyle = 'teal'; c.fillRect(0, 8, 16, 8); };
+const alpha = (c) => { c.fillStyle = 'rgba(255, 0, 0, 0.5)'; c.fillRect(2, 2, 10, 10); };
+const gradient = (c) => { const g = c.createLinearGradient(0, 0, 32, 32); g.addColorStop(0, 'red'); g.addColorStop(1, 'blue'); c.fillStyle = g; c.fillRect(0, 0, 32, 32); };
+const out = {
+  blank: make(4, 4).toDataURL('image/webp'),
+  flat: make(16, 16, flat).toDataURL('image/webp'),
+  flatQ50: make(16, 16, flat).toDataURL('image/webp', 0.5),
+  flatLossless: make(16, 16, flat).toDataURL('image/webp', 1),
+  alpha: make(16, 16, alpha).toDataURL('image/webp'),
+  alphaLossless: make(16, 16, alpha).toDataURL('image/webp', 1),
+  gradient: make(32, 32, gradient).toDataURL('image/webp'),
+  gradientQ90: make(32, 32, gradient).toDataURL('image/webp', 0.9),
+  gradientBogusQ: make(32, 32, gradient).toDataURL('image/webp', 7),
+};
+document.body.setAttribute('data-out', JSON.stringify(out));
+</script></body>
