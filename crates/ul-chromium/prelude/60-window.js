@@ -4,6 +4,8 @@ const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
 // A ida e volta de rede em tempo virtual (o NETWORK_LATENCY_MS do hospedeiro): o que já está na fila roda antes.
 // Maior que o 1ms a que o setTimeout(0) é arredondado, para a resposta nunca empatar com uma tarefa já agendada.
 const NETWORK_LATENCY_MS = 2;
+// A ida e volta da busca do ícone da aba, que o navegador faz fora da página depois do `load`.
+const FAVICON_ROUND_TRIP_MS = 50;
 // Buscas em voo. Sob --virtual-time-budget o relógio virtual para enquanto a página espera a rede, e os quadros
 // continuam saindo nesse meio tempo: com rede em voo, o quadro pedido sai sem esperar a grade.
 let networkInFlight = 0;
@@ -18,12 +20,19 @@ const completeWhenUnblocked = () => {
 const afterNetwork = (fn, delaysLoad = false) => {
   networkInFlight++;
   if (delaysLoad) loadBlockers++;
-  // A tarefa da resposta ainda conta como rede: o quadro que ela pede sai antes da página ficar ociosa.
-  setTimeout(() => {
+  // A tarefa da resposta ainda conta como rede: o quadro que ela pede sai antes da página ficar ociosa. Enquanto a
+  // rede não responde, o relógio virtual está parado e a página está ociosa de verdade: o quadro pedido e os idle
+  // callbacks pendentes saem antes da resposta (medido na wikipedia: o rIC de 94ms roda aos 106, antes dos scripts).
+  const deliver = () => {
     try { fn(); } finally {
       networkInFlight--;
       if (delaysLoad) { loadBlockers--; completeWhenUnblocked(); }
     }
+  };
+  setTimeout(() => {
+    if (frameTimer === null && !idleCallbacks.size) { deliver(); return; }
+    if (frameTimer !== null) { clearTimeout(frameTimer); renderFrame(); }
+    setTimeout(deliver, 0);
   }, NETWORK_LATENCY_MS);
 };
 // A janela do headless medida no oráculo (o WINDOW do hospedeiro): conteúdo 780x493, janela 780x580, tela 800x600.
@@ -629,6 +638,15 @@ const hook = (name, a, b) => {
       hidden(load, '__targetOverride', document);
       window.dispatchEvent(load);
       window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }));
+      // Logo depois do `load` o navegador busca o ícone declarado (`link rel=icon`; sem ele, nenhuma busca aparece no
+      // resource timing do oráculo). A busca fica em voo por FAVICON_ROUND_TRIP_MS, e enquanto isso os quadros pedidos
+      // ainda saem (medido na wikipedia: o rAF pedido pelo mw.loader depois do `load` roda e os módulos ficam prontos).
+      const icon = document.querySelector('link[rel~="icon" i][href]');
+      if (icon) {
+        const iconUrl = resolveUrl(icon.getAttribute('href'));
+        networkInFlight++;
+        setTimeout(() => { networkInFlight--; afterNetwork(() => { netFetch('GET', iconUrl, [], null); }); }, FAVICON_ROUND_TRIP_MS);
+      }
       // O quadro que segue o `load` acontece mesmo sem pedido, e é o último.
       requestRender();
       break;

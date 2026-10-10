@@ -199,6 +199,17 @@ console.log(a.async, a.hasAttribute('async'), b.async, b.hasAttribute('async'), 
 }
 
 #[test]
+fn input_value_modes() {
+    // Medido no oráculo: radio e hidden guardam o valor no atributo, text guarda no valor sujo (wikipedia).
+    let html = "<body><input type=radio id=r><input type=text id=t><input type=hidden id=h><script>
+r.value = 'a'; t.value = 'b'; h.value = 'c';
+console.log([r.getAttribute('value'), t.getAttribute('value'), h.getAttribute('value'), r.value, t.value].join(' '));
+</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "a  c a b\n");
+}
+
+#[test]
 fn switch_with_many_numeric_cases() {
     // O getBumpedLaneForHydrationByLane do React 19.3 (nextjs.org): com o switch errado a hidratação nunca agenda.
     let script = "<script>function e$(e){switch(e){case 2:e=1;break;case 8:e=4;break;case 32:e=16;break;case 256:case 512:case 1024:case 2048:case 4096:case 8192:case 16384:case 32768:case 65536:case 131072:case 262144:case 524288:case 1048576:case 2097152:case 4194304:case 8388608:case 0x1000000:case 0x2000000:e=128;break;case 0x10000000:e=0x8000000;break;default:e=0}return e}
