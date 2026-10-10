@@ -290,9 +290,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let len = decls.len();
         let mut i: usize = 0;
         'outer: while i < len {
-            // SAFETY: i < len; we need disjoint borrows of decls[i] (read/mutate)
-            // and decls[j] (write at end). j <= i always holds.
-            let decl: &mut G::Decl = unsafe { &mut *decls.as_mut_ptr().add(i) };
+            // `Decl` é Copy: o laço trabalha numa cópia de `decls[i]` e a grava em `decls[j]` (j <= i) se ela fica.
+            let mut decl_copy = decls[i];
+            let decl: &mut G::Decl = &mut decl_copy;
             i += 1;
 
             self.visit_binding(decl.binding, None);
@@ -628,16 +628,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             // out_decls[j] = decl.*;
-            if j != i - 1 {
-                // SAFETY: j < i-1 < len; src/dst non-overlapping; Decl has no Drop.
-                // Derive both pointers from a single `as_mut_ptr()` so the src `*const`
-                // shares provenance with dst (Stacked Borrows: a separate `as_ptr()`
-                // SharedRO tag would be popped by the later `as_mut_ptr()` Unique).
-                unsafe {
-                    let base = decls.as_mut_ptr();
-                    core::ptr::copy_nonoverlapping(base.add(i - 1), base.add(j), 1);
-                }
-            }
+            decls[j] = decl_copy;
             j += 1;
         }
 
