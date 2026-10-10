@@ -55,6 +55,10 @@ pub struct JSPromiseReaction {
 }
 
 impl JSPromiseReaction {
+    /// `JSPromiseReaction::visitChildren`: a promessa (a próxima reação é `Rc`, já raiz).
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.promise.get());
+    }
     /// `JSPromiseReaction(vm, structure, promise, next, payload)`.
     fn new(promise: JSValue, next: Option<JSPromiseReactionRef>, payload: u8) -> JSPromiseReaction {
         JSPromiseReaction {
@@ -156,6 +160,11 @@ impl std::ops::Deref for JSSlimPromiseReaction {
 }
 
 impl JSSlimPromiseReaction {
+    /// `visitChildren`.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        self.base.visit_children(marker);
+        marker.value(self.handler_or_context.get());
+    }
     /// O construtor privado e o `allocateCell`: cria a célula e a registra.
     fn allocate(
         promise: JSValue,
@@ -264,6 +273,11 @@ impl std::ops::Deref for JSFullPromiseReaction {
 }
 
 impl JSFullPromiseReaction {
+    /// `visitChildren`.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        self.base.visit_children(marker);
+        marker.values(&[self.on_fulfilled.get(), self.on_rejected.get(), self.context.get()]);
+    }
     /// O construtor privado e o `allocateCell`: cria a célula e a registra.
     fn allocate(
         promise: JSValue,

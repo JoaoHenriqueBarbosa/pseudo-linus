@@ -24,6 +24,11 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): nenhum reino em execução.
+/// As raízes do coletor: o global corrente.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.cell(CURRENT_REALM.with(Cell::get));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = CURRENT_REALM.try_with(|current| current.set(0));
 }

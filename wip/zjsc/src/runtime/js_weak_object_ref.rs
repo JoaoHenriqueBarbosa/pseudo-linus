@@ -2,10 +2,8 @@
 //! (`JSNonFinalObject` com o alvo, objeto ou símbolo não registrado).
 //!
 //! DIVERGÊNCIAS:
-//! - Sem GC não há `m_lastAccessVersion`, `vm.currentWeakRefVersion()`, `writeBarrier`, `visitChildren`
-//!   nem `reconcileWeakReferencesAtGCEnd`: a referência "fraca" é o próprio `JSValue` do alvo, que nunca é
-//!   coletado, e `deref` o devolve sempre. A regra de manter o alvo vivo até o fim do turno (que o
-//!   `currentWeakRefVersion` garante) vale por construção.
+//! - Sem `writeBarrier` (o coletor para o mundo). O `visitChildren` e o `finalizeUnconditionally` são
+//!   `visit_children` e `finalize`, que o coletor chama.
 //! - O `TypeInfo` é `ObjectType` (o C++ não tem um `JSType` próprio para `WeakRef`), então o tipo da célula
 //!   sai do `TypeInfo` da `Structure`, como em `CellEntry::Object`.
 
@@ -31,6 +29,8 @@ pub struct JSWeakObjectRef {
     base: JSNonFinalObject,
     /// `m_value`: o alvo.
     value: Cell<JSValue>,
+    /// `m_lastAccessVersion`.
+    last_access_version: Cell<u64>,
 }
 
 /// A referência à célula, o `*` do C++.
@@ -59,7 +59,11 @@ impl JSWeakObjectRef {
     /// `create(vm, structure, target)`: o `finishCreation(vm, target)` grava o alvo.
     pub fn create(vm: &VM, structure: &StructureRef, target: JSValue) -> JSWeakObjectRefRef {
         let cell_id = cell_registry::reserve();
-        let cell = Rc::new(JSWeakObjectRef { base: JSNonFinalObject::new(vm, Rc::clone(structure)), value: Cell::new(target) });
+        let cell = Rc::new(JSWeakObjectRef {
+            base: JSNonFinalObject::new(vm, Rc::clone(structure)),
+            value: Cell::new(target),
+            last_access_version: Cell::new(vm.current_weak_ref_version()),
+        });
         cell.set_cell_id(cell_id);
         cell_registry::set(cell_id, CellEntry::WeakObjectRef(Rc::clone(&cell)));
         cell
@@ -76,13 +80,31 @@ impl JSWeakObjectRef {
         }
     }
 
-    /// `deref(vm)`: o alvo, ou `undefined` se foi coletado (`m_value` nulo; sem GC, nunca).
-    pub fn deref_target(&self) -> JSValue {
+    /// `deref(vm)`: o alvo, ou `undefined` se foi coletado (`m_value` nulo). Ler segura o alvo até o fim da
+    /// tarefa (`m_lastAccessVersion = vm.currentWeakRefVersion()`).
+    pub fn deref_target(&self, vm: &VM) -> JSValue {
         let value = self.value.get();
         if value.is_empty() {
             JSValue::Undefined
         } else {
+            self.last_access_version.set(vm.current_weak_ref_version());
             value
+        }
+    }
+
+    /// `visitChildren`: o alvo só é forte se foi criado ou lido na versão corrente.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        if self.last_access_version.get() == marker.weak_ref_version() {
+            marker.value(self.value.get());
+        }
+    }
+
+    /// `finalizeUnconditionally`: o alvo que a varredura vai soltar sai da referência.
+    pub(crate) fn finalize(&self, marker: &crate::runtime::gc::Marker) {
+        if let JSValue::Cell(cell_id) = self.value.get() {
+            if marker.is_doomed(cell_id) {
+                self.value.set(JSValue::empty());
+            }
         }
     }
 }
@@ -97,7 +119,7 @@ mod tests {
         let structure = JSWeakObjectRef::create_structure(&vm, None, JSValue::Null);
         let target = JSWeakObjectRef::create(&vm, &structure, JSValue::Int32(0));
         let reference = JSWeakObjectRef::create(&vm, &structure, target.as_value());
-        assert_eq!(reference.deref_target(), target.as_value());
+        assert_eq!(reference.deref_target(&vm), target.as_value());
         assert!(JSWeakObjectRef::from_value(&reference.as_value()).is_some());
         assert!(JSWeakObjectRef::from_value(&JSValue::Undefined).is_none());
     }

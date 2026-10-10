@@ -74,6 +74,11 @@ pub(crate) fn inspect_max_bytes() -> f64 {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): a estrutura e o protótipo guardados são do programa.
+/// As raízes do coletor: o protótipo do `Buffer`.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.value(BUFFER_PROTOTYPE.with(|prototype| *prototype.borrow()));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = INSPECT_MAX_BYTES.try_with(|max| max.set(DEFAULT_INSPECT_MAX_BYTES));
     let _ = BUFFER_STRUCTURE.try_with(|structure| structure.borrow_mut().take());
@@ -279,7 +284,7 @@ fn validate_integer(global_object: &JSGlobalObject, value: JSValue, name: &str, 
 /// Os bytes de um `Buffer`/`Uint8Array` passado como argumento `name`; outra coisa lança `ERR_INVALID_ARG_TYPE`.
 fn uint8_bytes_argument(global_object: &JSGlobalObject, value: JSValue, name: &str) -> Result<Vec<u8>, Thrown> {
     match JSGenericTypedArrayView::from_value(&value).filter(|view| view.typed_array_type() == TypedArrayType::Uint8) {
-        Some(view) => Ok(view.with_vector(|bytes| bytes.to_vec())),
+        Some(view) => Ok(view.with_view_bytes(|bytes| bytes.to_vec())),
         None => Err(invalid_argument_type(global_object, name, "an instance of Buffer or Uint8Array", value)),
     }
 }
@@ -378,7 +383,7 @@ fn buffer_from_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResu
     }
     if let Some(view) = JSGenericTypedArrayView::from_value(&value) {
         if view.typed_array_type() == TypedArrayType::Uint8 {
-            let bytes = view.with_vector(|source| source.to_vec());
+            let bytes = view.with_view_bytes(|source| source.to_vec());
             return buffer_from_bytes(global_object, &bytes);
         }
     }
@@ -447,7 +452,7 @@ fn fill_pattern(global_object: &JSGlobalObject, fill: JSValue, encoding_value: J
         return Ok(pattern);
     }
     if let Some(view) = JSGenericTypedArrayView::from_value(&fill).filter(|view| view.typed_array_type() == TypedArrayType::Uint8) {
-        let pattern = view.with_vector(|source| source.to_vec());
+        let pattern = view.with_view_bytes(|source| source.to_vec());
         if pattern.is_empty() {
             let description = if is_buffer_value(global_object, fill)? { "<Buffer >" } else { "Uint8Array(0) []" };
             return Err(invalid(description.to_string()));
@@ -656,7 +661,7 @@ fn buffer_to_string_body(global_object: &JSGlobalObject, call: &HostCall) -> Hos
     // `toLocaleString` é a mesma função e também acusa `Buffer.toString` (medido no bun 1.4.2).
     let view = named_buffer_view(global_object, call, "toString")?;
     let encoding = encoding_argument(global_object, call.argument(0))?;
-    let text = view.with_vector(|bytes| {
+    let text = view.with_view_bytes(|bytes| {
         let start = clamp_index(call.argument(1), bytes.len(), 0);
         let end = clamp_index(call.argument(2), bytes.len(), bytes.len());
         if start >= end {
@@ -670,14 +675,14 @@ fn buffer_to_string_body(global_object: &JSGlobalObject, call: &HostCall) -> Hos
 
 /// `buffer.equals(other)`.
 fn buffer_equals_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let this_bytes = named_buffer_view(global_object, call, "equals")?.with_vector(|bytes| bytes.to_vec());
+    let this_bytes = named_buffer_view(global_object, call, "equals")?.with_view_bytes(|bytes| bytes.to_vec());
     let other = uint8_bytes_argument(global_object, call.argument(0), "otherBuffer")?;
     Ok(js_boolean(this_bytes == other))
 }
 
 /// `buffer.compare(target, targetStart, targetEnd, sourceStart, sourceEnd)`.
 fn buffer_compare_method_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let source = named_buffer_view(global_object, call, "compare")?.with_vector(|bytes| bytes.to_vec());
+    let source = named_buffer_view(global_object, call, "compare")?.with_view_bytes(|bytes| bytes.to_vec());
     let target = uint8_bytes_argument(global_object, call.argument(0), "target")?;
     let bound = |index: usize, default: usize, name: &str, max: usize| -> Result<usize, Thrown> {
         let value = call.argument(index);
@@ -843,7 +848,7 @@ fn find_bytes(haystack: &[u8], needle: &[u8], start: usize, forward: bool, step:
 /// `indexOf`/`lastIndexOf`/`includes`: `bidirectionalIndexOf` do Node (`byteOffset` string é a codificação, negativo
 /// conta do fim, NaN vale o começo ou o fim; agulha vazia devolve o deslocamento limitado ao tamanho).
 fn buffer_search(global_object: &JSGlobalObject, call: &HostCall, forward: bool, name: &str) -> Result<Option<usize>, Thrown> {
-    let haystack = named_buffer_view(global_object, call, name)?.with_vector(|bytes| bytes.to_vec());
+    let haystack = named_buffer_view(global_object, call, name)?.with_view_bytes(|bytes| bytes.to_vec());
     let needle_value = call.argument(0);
     let mut offset_argument = call.argument(1);
     let mut encoding_value = call.argument(2);

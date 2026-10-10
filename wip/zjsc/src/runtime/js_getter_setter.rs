@@ -47,6 +47,12 @@ pub struct GetterSetter {
 pub type GetterSetterRef = Rc<GetterSetter>;
 
 impl GetterSetter {
+    /// `visitChildren`: o getter e o setter.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.getter);
+        marker.value(self.setter);
+    }
+
     /// `create(vm, globalObject, JSObject* getter, JSObject* setter)`.
     pub fn create(vm: &VM, getter: Option<ObjectRef>, setter: Option<ObjectRef>) -> GetterSetterRef {
         GetterSetter::create_from_values(

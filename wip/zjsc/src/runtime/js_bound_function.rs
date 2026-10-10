@@ -65,6 +65,12 @@ pub struct JSBoundFunction {
 }
 
 impl JSBoundFunction {
+    /// `visitChildren`: o alvo, o `this` e os argumentos ligados.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.target_function);
+        marker.value(self.bound_this);
+        marker.values(&self.bound_args);
+    }
     /// `StructureFlags = Base::StructureFlags & ~ImplementsDefaultHasInstance`.
     pub const STRUCTURE_FLAGS: u32 = JSFunction::STRUCTURE_FLAGS & !IMPLEMENTS_DEFAULT_HAS_INSTANCE;
 

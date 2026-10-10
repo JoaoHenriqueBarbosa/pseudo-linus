@@ -147,6 +147,29 @@ impl JSScope {
 }
 
 impl JSScopeRef {
+    /// `Rc::strong_count` da subclasse (ver `CellEntry::strong_count`).
+    pub(crate) fn strong_count(&self) -> usize {
+        match self {
+            JSScopeRef::LexicalEnvironment(scope) => Rc::strong_count(scope),
+            JSScopeRef::ModuleEnvironment(scope) => Rc::strong_count(scope),
+            JSScopeRef::GlobalLexicalEnvironment(scope) => Rc::strong_count(scope),
+            JSScopeRef::GlobalObject(scope) => Rc::strong_count(scope),
+            JSScopeRef::WithScope(scope) => Rc::strong_count(scope),
+        }
+    }
+
+    /// `visitChildren` de cada escopo: as variáveis, o objeto do `with` e o estado do objeto global (a base
+    /// `JSObject` e o `next` por `Rc` o coletor já cobre).
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        match self {
+            JSScopeRef::LexicalEnvironment(scope) => scope.visit_variables(marker),
+            JSScopeRef::ModuleEnvironment(scope) => scope.visit_variables(marker),
+            JSScopeRef::GlobalLexicalEnvironment(scope) => scope.visit_variables(marker),
+            JSScopeRef::GlobalObject(global_object) => global_object.visit_children(marker),
+            JSScopeRef::WithScope(scope) => scope.visit_children(marker),
+        }
+    }
+
     /// Acesso à base `JSScope` da subclasse.
     pub fn scope(&self) -> &JSScope {
         match self {

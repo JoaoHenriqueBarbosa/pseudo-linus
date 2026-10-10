@@ -1,0 +1,219 @@
+keys resolve,normalize,isAbsolute,join,relative,toNamespacedPath,dirname,basename,extname,format,parse,sep,delimiter,win32,posix,_makeLong,matchesGlob
+names resolve,normalize,isAbsolute,join,relative,toNamespacedPath,dirname,basename,extname,format,parse,sep,delimiter,win32,posix,_makeLong,matchesGlob
+identity true true true true true
+cross true true true true true
+sep / : \ ;
+descriptor {"value":"/","writable":true,"enumerable":true,"configurable":true} true function
+shape resolve bound resolve 1 function resolve() { [native code] } length,name
+shape normalize bound normalize 1 function normalize() { [native code] } length,name
+shape isAbsolute bound isAbsolute 1 function isAbsolute() { [native code] } length,name
+shape join bound join 1 function join() { [native code] } length,name
+shape relative bound relative 1 function relative() { [native code] } length,name
+shape toNamespacedPath bound toNamespacedPath 1 function toNamespacedPath() { [native code] } length,name
+shape dirname bound dirname 1 function dirname() { [native code] } length,name
+shape basename bound basename 1 function basename() { [native code] } length,name
+shape extname bound extname 1 function extname() { [native code] } length,name
+shape format bound format 1 function format() { [native code] } length,name
+shape parse bound parse 1 function parse() { [native code] } length,name
+posix case  . false .    {"root":"","dir":"","base":"","ext":"","name":""} 
+posix format 
+posix case . . false . . .  {"root":"","dir":"","base":".","ext":"","name":"."} .
+posix format .
+posix case .. .. false . .. ..  {"root":"","dir":"","base":"..","ext":"","name":".."} ..
+posix format ..
+posix case / / true /    {"root":"/","dir":"/","base":"","ext":"","name":""} /
+posix format /
+posix case // / true /    {"root":"/","dir":"/","base":"","ext":"","name":""} //
+posix format /
+posix case a a false . a a  {"root":"","dir":"","base":"a","ext":"","name":"a"} a
+posix format a
+posix case a/ a/ false . a a  {"root":"","dir":"","base":"a","ext":"","name":"a"} a/
+posix format a
+posix case a//b a/b false a/ b b  {"root":"","dir":"a/","base":"b","ext":"","name":"b"} a//b
+posix format a//b
+posix case /a/b/c /a/b/c true /a/b c c  {"root":"/","dir":"/a/b","base":"c","ext":"","name":"c"} /a/b/c
+posix format /a/b/c
+posix case /a/b/../c /a/c true /a/b/.. c c  {"root":"/","dir":"/a/b/..","base":"c","ext":"","name":"c"} /a/b/../c
+posix format /a/b/../c
+posix case ./a/./b a/b false ./a/. b b  {"root":"","dir":"./a/.","base":"b","ext":"","name":"b"} ./a/./b
+posix format ./a/./b
+posix case ../a ../a false .. a a  {"root":"","dir":"..","base":"a","ext":"","name":"a"} ../a
+posix format ../a
+posix case a/.. . false a .. ..  {"root":"","dir":"a","base":"..","ext":"","name":".."} a/..
+posix format a/..
+posix case /a/b/c/ /a/b/c/ true /a/b c c  {"root":"/","dir":"/a/b","base":"c","ext":"","name":"c"} /a/b/c/
+posix format /a/b/c
+posix case /a/b.txt /a/b.txt true /a b.txt b .txt {"root":"/","dir":"/a","base":"b.txt","ext":".txt","name":"b"} /a/b.txt
+posix format /a/b.txt
+posix case a.b.c a.b.c false . a.b.c a.b.c .c {"root":"","dir":"","base":"a.b.c","ext":".c","name":"a.b"} a.b.c
+posix format a.b.c
+posix case .bashrc .bashrc false . .bashrc .bashrc  {"root":"","dir":"","base":".bashrc","ext":"","name":".bashrc"} .bashrc
+posix format .bashrc
+posix case .. .. false . .. ..  {"root":"","dir":"","base":"..","ext":"","name":".."} ..
+posix format ..
+posix case ... ... false . ... ... . {"root":"","dir":"","base":"...","ext":".","name":".."} ...
+posix format ...
+posix case a/.b a/.b false a .b .b  {"root":"","dir":"a","base":".b","ext":"","name":".b"} a/.b
+posix format a/.b
+posix case /x/y.tar.gz /x/y.tar.gz true /x y.tar.gz y.tar.gz .gz {"root":"/","dir":"/x","base":"y.tar.gz","ext":".gz","name":"y.tar"} /x/y.tar.gz
+posix format /x/y.tar.gz
+posix case é/ü.txt é/ü.txt false é ü.txt ü .txt {"root":"","dir":"é","base":"ü.txt","ext":".txt","name":"ü"} é/ü.txt
+posix format é/ü.txt
+posix case a\b a\b false . a\b a\b  {"root":"","dir":"","base":"a\\b","ext":"","name":"a\\b"} a\b
+posix format a\b
+win32 case  . false .    {"root":"","dir":"","base":"","ext":"","name":""} 
+win32 format 
+win32 case . . false . . .  {"root":"","dir":"","base":".","ext":"","name":"."} CWD
+win32 format .
+win32 case C: C:. false C:    {"root":"C:","dir":"C:","base":"","ext":"","name":""} \\?\C:CWD
+win32 format C:
+win32 case C:\ C:\ true C:\    {"root":"C:\\","dir":"C:\\","base":"","ext":"","name":""} \\?\C:\
+win32 format C:\
+win32 case C:\a\b C:\a\b true C:\a b b  {"root":"C:\\","dir":"C:\\a","base":"b","ext":"","name":"b"} \\?\C:\a\b
+win32 format C:\a\b
+win32 case C:/a/b C:\a\b true C:/a b b  {"root":"C:/","dir":"C:/a","base":"b","ext":"","name":"b"} \\?\C:\a\b
+win32 format C:/a\b
+win32 case C:a C:a false C: a a  {"root":"C:","dir":"C:","base":"a","ext":"","name":"a"} \\?\C:CWD\a
+win32 format C:a
+win32 case \\srv\sh\x \\srv\sh\x true \\srv\sh\ x x  {"root":"\\\\srv\\sh\\","dir":"\\\\srv\\sh\\","base":"x","ext":"","name":"x"} \\?\UNC\srv\sh\x
+win32 format \\srv\sh\x
+win32 case \\?\C:\a \\?\C:\a true \\?\C:\ a a  {"root":"\\\\?\\C:\\","dir":"\\\\?\\C:\\","base":"a","ext":"","name":"a"} \\?\C:\a
+win32 format \\?\C:\a
+win32 case \a \a true \ a a  {"root":"\\","dir":"\\","base":"a","ext":"","name":"a"} \a
+win32 format \a
+win32 case a\b\ a\b\ false a b b  {"root":"","dir":"a","base":"b","ext":"","name":"b"} CWD\a\b
+win32 format a\b
+win32 case a/b a\b false a b b  {"root":"","dir":"a","base":"b","ext":"","name":"b"} CWD\a\b
+win32 format a\b
+win32 case C:\a\..\b C:\b true C:\a\.. b b  {"root":"C:\\","dir":"C:\\a\\..","base":"b","ext":"","name":"b"} \\?\C:\b
+win32 format C:\a\..\b
+win32 case c:\x.txt c:\x.txt true c:\ x.txt x .txt {"root":"c:\\","dir":"c:\\","base":"x.txt","ext":".txt","name":"x"} \\?\c:\x.txt
+win32 format c:\x.txt
+win32 case \\srv\sh \\srv\sh\ true \\srv\sh sh sh  {"root":"\\\\srv\\sh","dir":"\\\\srv\\sh","base":"","ext":"","name":""} \\?\UNC\srv\sh\
+win32 format \\srv\sh
+win32 case a:b\c a:b\c false a:b c c  {"root":"a:","dir":"a:b","base":"c","ext":"","name":"c"} \\?\a:CWD\b\c
+win32 format a:b\c
+join . . a/c / ../a .. /a a/b
+join-win C:\b \\srv\sh\x a\b C:\a .
+resolve-abs /a/c /b/c / /a/b/d /a
+resolve-win C:\a\b D:\b \\srv\sh\y
+resolve-cwd true true true
+relative /a/b/c /a/d ../../d
+relative /a /a 
+relative /a/b /a/b/c/d c/d
+relative / /x x
+relative /x / ..
+relative /a/b/c /a/b/c 
+relative /data/orandea/test/aaa /data/orandea/impl/bbb ../../impl/bbb
+relative-win ..\c D:\b x ..\b
+basename-suffix b.txt b b. b b.txt 
+format /a/b.txt /b n.e n.e /x  C:\a\b
+join-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got number true
+normalize-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got number true
+isAbsolute-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got number true
+dirname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got number true
+basename-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got number true
+basename-ext-bad threw TypeError ERR_INVALID_ARG_TYPE The "ext" property must be of type string, got number true
+extname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got number true
+parse-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got number true
+relative-bad-from threw TypeError ERR_INVALID_ARG_TYPE The "from" property must be of type string, got number true
+relative-bad-to threw TypeError ERR_INVALID_ARG_TYPE The "to" property must be of type string, got number true
+resolve-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got number true
+format-bad threw TypeError ERR_INVALID_ARG_TYPE The "pathObject" property must be of type object, got number true
+namespaced-bad 1
+join-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got object true
+normalize-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+isAbsolute-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+dirname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+basename-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+basename-ext-bad threw TypeError ERR_INVALID_ARG_TYPE The "ext" property must be of type string, got object true
+extname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+parse-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+relative-bad-from threw TypeError ERR_INVALID_ARG_TYPE The "from" property must be of type string, got object true
+relative-bad-to threw TypeError ERR_INVALID_ARG_TYPE The "to" property must be of type string, got object true
+resolve-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got object true
+format-bad threw TypeError ERR_INVALID_ARG_TYPE The "pathObject" property must be of type object, got object true
+namespaced-bad null
+join-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got undefined true
+normalize-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got undefined true
+isAbsolute-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got undefined true
+dirname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got undefined true
+basename-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got undefined true
+basename-ext-bad a
+extname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got undefined true
+parse-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got undefined true
+relative-bad-from threw TypeError ERR_INVALID_ARG_TYPE The "from" property must be of type string, got undefined true
+relative-bad-to threw TypeError ERR_INVALID_ARG_TYPE The "to" property must be of type string, got undefined true
+resolve-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got undefined true
+format-bad threw TypeError ERR_INVALID_ARG_TYPE The "pathObject" property must be of type object, got undefined true
+namespaced-bad 
+join-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got object true
+normalize-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+isAbsolute-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+dirname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+basename-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+basename-ext-bad threw TypeError ERR_INVALID_ARG_TYPE The "ext" property must be of type string, got object true
+extname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+parse-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got object true
+relative-bad-from threw TypeError ERR_INVALID_ARG_TYPE The "from" property must be of type string, got object true
+relative-bad-to threw TypeError ERR_INVALID_ARG_TYPE The "to" property must be of type string, got object true
+resolve-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got object true
+format-bad 
+namespaced-bad {}
+join-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got array true
+normalize-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got array true
+isAbsolute-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got array true
+dirname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got array true
+basename-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got array true
+basename-ext-bad threw TypeError ERR_INVALID_ARG_TYPE The "ext" property must be of type string, got array true
+extname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got array true
+parse-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got array true
+relative-bad-from threw TypeError ERR_INVALID_ARG_TYPE The "from" property must be of type string, got array true
+relative-bad-to threw TypeError ERR_INVALID_ARG_TYPE The "to" property must be of type string, got array true
+resolve-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got array true
+format-bad threw TypeError ERR_INVALID_ARG_TYPE The "pathObject" property must be of type object, got array true
+namespaced-bad []
+join-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got boolean true
+normalize-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got boolean true
+isAbsolute-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got boolean true
+dirname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got boolean true
+basename-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got boolean true
+basename-ext-bad threw TypeError ERR_INVALID_ARG_TYPE The "ext" property must be of type string, got boolean true
+extname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got boolean true
+parse-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got boolean true
+relative-bad-from threw TypeError ERR_INVALID_ARG_TYPE The "from" property must be of type string, got boolean true
+relative-bad-to threw TypeError ERR_INVALID_ARG_TYPE The "to" property must be of type string, got boolean true
+resolve-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got boolean true
+format-bad threw TypeError ERR_INVALID_ARG_TYPE The "pathObject" property must be of type object, got boolean true
+namespaced-bad true
+join-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got symbol true
+normalize-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got symbol true
+isAbsolute-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got symbol true
+dirname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got symbol true
+basename-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got symbol true
+basename-ext-bad threw TypeError ERR_INVALID_ARG_TYPE The "ext" property must be of type string, got symbol true
+extname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got symbol true
+parse-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got symbol true
+relative-bad-from threw TypeError ERR_INVALID_ARG_TYPE The "from" property must be of type string, got symbol true
+relative-bad-to threw TypeError ERR_INVALID_ARG_TYPE The "to" property must be of type string, got symbol true
+resolve-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got symbol true
+format-bad threw TypeError ERR_INVALID_ARG_TYPE The "pathObject" property must be of type object, got symbol true
+namespaced-bad 
+join-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got bigint true
+normalize-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got bigint true
+isAbsolute-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got bigint true
+dirname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got bigint true
+basename-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got bigint true
+basename-ext-bad threw TypeError ERR_INVALID_ARG_TYPE The "ext" property must be of type string, got bigint true
+extname-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got bigint true
+parse-bad threw TypeError ERR_INVALID_ARG_TYPE The "path" property must be of type string, got bigint true
+relative-bad-from threw TypeError ERR_INVALID_ARG_TYPE The "from" property must be of type string, got bigint true
+relative-bad-to threw TypeError ERR_INVALID_ARG_TYPE The "to" property must be of type string, got bigint true
+resolve-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[1]" property must be of type string, got bigint true
+format-bad threw TypeError ERR_INVALID_ARG_TYPE The "pathObject" property must be of type object, got bigint true
+namespaced-bad threw TypeError  JSON.stringify cannot serialize BigInt. true
+win32-join-bad threw TypeError ERR_INVALID_ARG_TYPE The "paths[0]" property must be of type string, got number true
+win32-format-bad threw TypeError ERR_INVALID_ARG_TYPE The "pathObject" property must be of type object, got string true
+format-fn 
+surrogate a/�/b 5 2 /a/b
+tostring [object Object] 17 true

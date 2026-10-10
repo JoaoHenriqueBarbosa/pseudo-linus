@@ -169,6 +169,11 @@ thread_local! {
 
 /// Fim do programa (`cell_registry::reset_program_state`): os `callee` pendentes são funções do programa
 /// (o `ClonedArguments` do C++ os guarda no próprio objeto) e os `cell_id` voltam a ser reaproveitados.
+/// As raízes do coletor: os objetos `arguments` à espera das funções especiais clonadas (as funções são `Rc`).
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    PENDING_CLONED_SPECIALS.with(|pending| pending.borrow().keys().for_each(|cell_id| marker.cell(*cell_id)));
+}
+
 pub(crate) fn reset_for_program() {
     let taken = PENDING_CLONED_SPECIALS.try_with(|pending| std::mem::take(&mut *pending.borrow_mut()));
     drop(taken);
@@ -287,6 +292,14 @@ pub(crate) fn special_own_slot(vm: &VM, object: &JSObject, name: &PropertyName, 
 }
 
 impl DirectArguments {
+    /// `visitChildren`: os argumentos e o callee.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.callee);
+        match self.storage.try_borrow() {
+            Ok(storage) => marker.values(&storage),
+            Err(_) => marker.abort(),
+        }
+    }
     /// `DirectArguments::createByCopying(globalObject, callFrame)`: `arguments` são os `argumentCount()`
     /// argumentos do frame e `min_capacity` o `numParameters() - 1` do `CodeBlock`.
     pub fn create_by_copying(

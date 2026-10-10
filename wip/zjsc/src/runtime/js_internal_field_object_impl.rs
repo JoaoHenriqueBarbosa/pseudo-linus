@@ -70,6 +70,9 @@ impl<const N: usize> JSInternalFieldObjectImpl<N> {
 /// via `jsCast<JSInternalFieldObjectImpl<>*>` e que `CellEntry::internal_fields` devolve para qualquer
 /// célula com campos internos.
 pub trait InternalFields {
+    /// `numberOfInternalFields()`.
+    fn field_count(&self) -> u32;
+
     /// `internalField(index).get()`.
     fn field(&self, index: u32) -> JSValue;
 
@@ -78,6 +81,10 @@ pub trait InternalFields {
 }
 
 impl<const N: usize> InternalFields for JSInternalFieldObjectImpl<N> {
+    fn field_count(&self) -> u32 {
+        N as u32
+    }
+
     fn field(&self, index: u32) -> JSValue {
         self.internal_field(index)
     }
@@ -93,6 +100,10 @@ impl<const N: usize> InternalFields for JSInternalFieldObjectImpl<N> {
 macro_rules! impl_internal_fields_for_ref_cell {
     ($name:ty) => {
         impl $crate::runtime::js_internal_field_object_impl::InternalFields for $name {
+            fn field_count(&self) -> u32 {
+                self.fields.borrow().len() as u32
+            }
+
             fn field(&self, index: u32) -> $crate::runtime::js_value::JSValue {
                 self.fields.borrow()[index as usize]
             }

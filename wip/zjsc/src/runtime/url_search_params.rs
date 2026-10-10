@@ -114,6 +114,11 @@ fn encode_component(units: &[u16], out: &mut String) {
     }
 }
 
+/// As raízes do coletor: o protótipo.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.value(PROTOTYPE.with(|prototype| *prototype.borrow()));
+}
+
 thread_local! {
     /// O protótipo de `URLSearchParams`, guardado na instalação, para o `URL` criar o `searchParams`.
     static PROTOTYPE: std::cell::RefCell<Option<JSValue>> = const { std::cell::RefCell::new(None) };

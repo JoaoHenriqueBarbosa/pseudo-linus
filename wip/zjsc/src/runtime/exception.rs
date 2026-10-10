@@ -47,6 +47,10 @@ pub struct Exception {
 pub type ExceptionRef = Rc<Exception>;
 
 impl Exception {
+    /// `visitChildren`: o valor lançado.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.value.get());
+    }
     /// `Exception::create(VM&, JSValue thrownValue, StackCaptureAction)`.
     pub fn create(_vm: &VM, thrown_value: JSValue) -> ExceptionRef {
         let cell_id = cell_registry::reserve();

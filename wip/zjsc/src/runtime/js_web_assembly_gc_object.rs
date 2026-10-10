@@ -51,6 +51,11 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): a estrutura e os objetos são células do programa.
+/// As raízes do coletor: os objetos GC do wasm expostos ao JS.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    OBJECTS.with(|objects| objects.borrow().values().for_each(|value| marker.value(*value)));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = STRUCTURE.try_with(|structure| *structure.borrow_mut() = None);
     let _ = OBJECTS.try_with(|objects| objects.borrow_mut().clear());

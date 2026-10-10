@@ -65,6 +65,10 @@ pub struct JSRemoteFunction {
 }
 
 impl JSRemoteFunction {
+    /// `visitChildren`: a função alvo.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.target_function);
+    }
     /// `StructureFlags = Base::StructureFlags`.
     pub const STRUCTURE_FLAGS: u32 = JSFunction::STRUCTURE_FLAGS;
 

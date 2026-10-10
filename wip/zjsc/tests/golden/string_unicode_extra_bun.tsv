@@ -2527,7 +2527,7 @@
 "globalThis.R = T(() => ('\\u{e0020}' + 'x' + '\\u{e0020}').trimLeft === String.prototype.trimStart);"	"boolean:true"
 "globalThis.R = T(() => parseFloat('\\u{e0020}' + '-.5e1x'));"	"nNaN"
 "globalThis.R = T(() => Number('\\u{e0020}' + 'Infinity'));"	"nNaN"
-"globalThis.R = T(() => JSON.parse('\\u{e0020}' + '1'));"	"throw SyntaxError: JSON Parse error: Unrecognized token '�'"
+"globalThis.R = T(() => JSON.parse('\\u{e0020}' + '1'));"	"throw SyntaxError: JSON Parse error: Unrecognized token '\udb40'"
 "globalThis.R = T(() => /[\\s]/.test('\\u{e0020}'));"	"boolean:false"
 "globalThis.R = T(() => ('x' + '\\u180b').trim().length);"	"n2"
 "globalThis.R = T(() => Number('\\u180b'));"	"nNaN"

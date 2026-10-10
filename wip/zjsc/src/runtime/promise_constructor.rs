@@ -228,9 +228,9 @@ impl PromiseHost for JSGlobalObject {
         }
     }
 
-    /// `AsyncContextSwapScope::current(vm, globalObject)`: o contexto assíncrono do Bun não existe.
+    /// `AsyncContextSwapScope::current(vm, globalObject)`.
     fn async_context(&self) -> JSValue {
-        JSValue::undefined()
+        self.vm().async_context()
     }
 
     fn is_callable(&self, value: JSValue) -> bool {
@@ -635,6 +635,8 @@ struct Combinator<'a> {
     /// `resolve` e `onRejected`, criados na primeira vez que o caminho rápido os precisa.
     first_resolve: Option<JSValue>,
     first_reject: Option<JSValue>,
+    /// Tudo acima vive só neste local Rust enquanto o iterável roda JS (a pilha C++ do JSC).
+    marked: crate::runtime::gc::RootScope,
 }
 
 impl Combinator<'_> {
@@ -654,13 +656,23 @@ impl Combinator<'_> {
     fn first_resolve(&mut self) -> JSValue {
         let promise = promise_of(&self.promise);
         let global_object = self.global_object;
-        *self.first_resolve.get_or_insert_with(|| promise.create_first_resolve_function(global_object))
+        let marked = &self.marked;
+        *self.first_resolve.get_or_insert_with(|| {
+            let function = promise.create_first_resolve_function(global_object);
+            marked.append(function);
+            function
+        })
     }
 
     fn first_reject(&mut self) -> JSValue {
         let promise = promise_of(&self.promise);
         let global_object = self.global_object;
-        *self.first_reject.get_or_insert_with(|| promise.create_first_reject_function(global_object))
+        let marked = &self.marked;
+        *self.first_reject.get_or_insert_with(|| {
+            let function = promise.create_first_reject_function(global_object);
+            marked.append(function);
+            function
+        })
     }
 
     /// Um elemento do iterável (o corpo da lambda de `forEachInIterable`).
@@ -898,14 +910,19 @@ fn promise_combinator(global_object: &JSGlobalObject, call: &HostCall, kind: Com
         index: 0,
         first_resolve: None,
         first_reject: None,
+        marked: crate::runtime::gc::RootScope::new(&[]),
     };
 
     // O `promise` (e, no caminho lento, `resolve`, `reject` e `this.resolve`).
     if is_fast_promise_constructor(global_object, this_value) {
         combinator.promise = JSPromise::create(vm, &global_object.promise_structure()).as_value();
+        combinator.marked.append(combinator.promise);
     } else {
         let PromiseCapability { promise, resolve, reject } =
             host_result(global_object, JSPromise::new_promise_capability(global_object, this_value))?;
+        combinator.marked.append(promise);
+        combinator.marked.append(resolve);
+        combinator.marked.append(reject);
         combinator.promise = promise;
         combinator.slow = Some(SlowTarget { resolve, reject, promise_resolve: JSValue::empty() });
 
@@ -913,6 +930,7 @@ fn promise_combinator(global_object: &JSGlobalObject, call: &HostCall, kind: Com
             Ok(promise_resolve) => promise_resolve,
             Err(thrown) => return combinator.reject_with(thrown),
         };
+        combinator.marked.append(promise_resolve);
         if !promise_resolve.is_callable() {
             return combinator.reject_with(PromiseThrown::Value(global_object.create_type_error("Promise resolve is not a function")));
         }
@@ -932,6 +950,7 @@ fn promise_combinator(global_object: &JSGlobalObject, call: &HostCall, kind: Com
             _ => combinator.promise,
         };
         combinator.context = Some(JSPromiseCombinatorsGlobalContext::create(promise_slot, values.as_value(), 1));
+        combinator.marked.append(combinator.context.as_ref().expect("acabou de ser criado").as_value());
     }
 
     if let Err(thrown) = for_each_in_iterable(global_object, iterable, |value| combinator.element(value)) {

@@ -86,6 +86,11 @@ fn usv(global_object: &JSGlobalObject, value: JSValue) -> Result<Units, Thrown> 
     Ok(String::from_utf16_lossy(&usv_units_of(global_object, value)?).encode_utf16().collect())
 }
 
+/// As raízes do coletor: o protótipo.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.value(FORM_DATA_PROTOTYPE.with(|prototype| *prototype.borrow()));
+}
+
 thread_local! {
     /// O protótipo de `FormData`, guardado na instalação para os `FormData` que `Blob.formData()` cria.
     static FORM_DATA_PROTOTYPE: RefCell<Option<JSValue>> = const { RefCell::new(None) };

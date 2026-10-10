@@ -66,6 +66,18 @@ pub struct MicrotaskQueue {
 }
 
 impl MicrotaskQueue {
+    /// `MicrotaskQueue::visitAggregate`: o global e os argumentos de cada tarefa enfileirada.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        let Ok(queue) = self.queue.try_borrow() else {
+            marker.abort();
+            return;
+        };
+        for task in queue.iter() {
+            marker.cell(task.global_object);
+            marker.values(&task.arguments);
+        }
+    }
+
     /// `enqueue(QueuedTask&&)`.
     pub fn enqueue(&self, task: QueuedTask) {
         self.queue.borrow_mut().push_back(task);
@@ -110,6 +122,12 @@ impl VM {
     /// por uma microtarefa roda logo depois DELA (`perform_microtask_checkpoint`). Uma drenagem iniciada de dentro de
     /// um tick (`is_processing_ticks`) é só de microtarefas.
     pub fn drain_microtasks(&self) {
+        self.drain_microtasks_and_ticks();
+        self.finalize_synchronous_js_execution();
+    }
+
+    /// O laço de `drainMicrotasks`: os ticks do `process.nextTick` e as microtarefas até as duas filas esvaziarem.
+    fn drain_microtasks_and_ticks(&self) {
         use crate::runtime::process_object as ticks;
         if ticks::is_processing_ticks() {
             self.drain_microtasks_only();
@@ -171,6 +189,7 @@ impl VM {
             let Some(JSScopeRef::GlobalObject(global_object)) = JSScope::from_cell_id(task.global_object) else {
                 panic!("QueuedTask de um global object que não está no registro de células");
             };
+            let _roots = crate::runtime::gc::RootScope::new(&task.arguments);
             global_object.run_internal_microtask(task.job, task.payload, task.arguments);
 
             if let Some(exception) = scope.exception() {

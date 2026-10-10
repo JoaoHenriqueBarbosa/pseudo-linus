@@ -6,6 +6,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::api::bun_options::apply_bun_options;
+use crate::api::main_module_kind::{main_module_kind, MainModuleKind};
+use crate::runtime::js_promise::Status as PromiseStatus;
 use crate::api::module_probe::{resolve_require, ModuleFs};
 use crate::api::module_probe::file_url_path;
 use crate::host_function;
@@ -380,7 +382,7 @@ pub fn evaluate_main_script_reporting_signal(
             crate::runtime::process_exit::report_from_event_loop(global, exception.value(), &*exception_fatal)
         })));
         let mut held = false;
-        let script_ran = match evaluate(&global_object, &named_program_source(source, url)) {
+        let script_ran = match run_main_program(&global_object, source, url) {
             // `process.exit()` no script principal termina o programa: a exceção de terminação não é um erro.
             Err(_) if crate::runtime::process_exit::exit_requested() => false,
             // O módulo principal roda como promessa: a origem que os ouvintes veem é `unhandledRejection`.
@@ -398,7 +400,8 @@ pub fn evaluate_main_script_reporting_signal(
                     false
                 }
             },
-            Ok(_) => true,
+            // O módulo ES já esvaziou as microtarefas na avaliação: um `process.exit()` num tick termina ali.
+            Ok(_) => !crate::runtime::process_exit::exit_requested(),
         };
         if script_ran {
             vm.drain_microtasks();
@@ -425,6 +428,44 @@ pub fn evaluate_main_script_reporting_signal(
     })
 }
 
+
+/// Roda o arquivo principal `url` no modo que o bun escolhe para ele ([`main_module_kind`]): módulo ES pelo carregador
+/// de módulos, ou CommonJS no wrapper. `Err` é a exceção (ou a rejeição da avaliação do módulo) que escapou do topo; um
+/// módulo com `await` no topo ainda pendente segue no laço de eventos, e uma rejeição tardia dele chega ao relato como
+/// rejeição sem tratador, como no bun.
+fn run_main_program(global_object: &JSGlobalObjectRef, source: &str, url: &str) -> Result<(), JSValue> {
+    match main_module_kind(source) {
+        MainModuleKind::Esm => {
+            let promise = crate::api::module::start_main_module(global_object, source, url);
+            // `process.exit()` no corpo do módulo termina o programa ali: nem tick nem microtarefa pendente roda.
+            if crate::runtime::process_exit::exit_requested() {
+                return Ok(());
+            }
+            global_object.vm().drain_microtasks();
+            match promise.status() {
+                PromiseStatus::Rejected => {
+                    promise.mark_as_handled();
+                    Err(promise.result())
+                }
+                _ => Ok(()),
+            }
+        }
+        _ => {
+            // O cabeçalho do wrapper ocupa a linha 1 e o arquivo começa na 2: o mapa desloca uma linha. A diretiva do topo
+            // continua no corpo e torna a função estrita, como no bun.
+            let mut body = utf16_units(source);
+            if !source.ends_with(['\n', '\r', '\u{2028}', '\u{2029}']) {
+                body.push(u16::from(b'\n'));
+            }
+            let dirname = match url.rfind('/') {
+                Some(0) => "/",
+                Some(slash) => &url[..slash],
+                None => ".",
+            };
+            run_commonjs_wrapper(global_object, &body, url, false, &[], dirname)
+        }
+    }
+}
 
 fn evaluate_named_script_inner(
     source: &str,
@@ -542,124 +583,132 @@ fn evaluate_cjs_program_inner(
             Some(rest) => (true, rest),
             None => (false, canonical),
         };
-        CJS_FILENAME.with(|name| *name.borrow_mut() = url.to_owned());
-        let identifier = |name: &str| Identifier::from_span(&vm, name.as_bytes());
-        let natives = construct_empty_object(&global_object);
-        let getters = construct_empty_object(&global_object);
-        let setters = construct_empty_object(&global_object);
-        let fns = construct_empty_object(&global_object);
-        let proto_fns = construct_empty_object(&global_object);
-        let public = ImplementationVisibility::Public;
-        let hidden = ImplementationVisibility::Private;
-        let require_native = define_native(&vm, &global_object, &natives, "require", 1, cjs_require as NativeFunction, public);
-        let resolve_native = define_native(&vm, &global_object, &natives, "resolve", 1, cjs_require_resolve as NativeFunction, public);
-        define_native(&vm, &global_object, &proto_fns, "resolve", 1, cjs_require_resolve as NativeFunction, public);
-        // `require` e `resolve` dos módulos carregados: o JavaScript do ajudante os amarra (`bind`) ao arquivo e ao módulo.
-        let require_from = define_native(&vm, &global_object, &natives, "requireFrom", 3, cjs_require_from as NativeFunction, public);
-        let resolve_from = define_native(&vm, &global_object, &natives, "resolveFrom", 3, cjs_resolve_from as NativeFunction, public);
-        define_native(&vm, &global_object, &fns, "_compile", 2, cjs_compile as NativeFunction, public);
-        define_native(&vm, &global_object, &fns, "paths", 0, cjs_noop as NativeFunction, public);
-        // As funções de `require.extensions` são anônimas (nome vazio, `toString` `function () { [native code] }`,
-        // `length` 2): cada uma nasce num suporte próprio, porque a chave do suporte é o nome da função.
-        let anonymous = |function: NativeFunction| {
-            let holder = construct_empty_object(&global_object);
-            define_native(&vm, &global_object, &holder, "", 2, function, public).as_value()
-        };
-        let extension_js = anonymous(cjs_extension_js as NativeFunction);
-        let extension_node = anonymous(cjs_extension_node as NativeFunction);
-        // No bun `.ts`, `.cts` e `.mts` são a mesma função (`.js` e `.mjs` já são uma só no boot); `.json` é outra.
-        let extension_ts = anonymous(cjs_extension_js as NativeFunction);
-        for (key, value) in [
-            ("js", extension_js),
-            ("json", anonymous(cjs_extension_js as NativeFunction)),
-            ("node", extension_node),
-            ("ts", extension_ts.clone()),
-            ("cts", extension_ts.clone()),
-            ("mts", extension_ts),
-        ] {
-            fns.put_direct(&vm, &PropertyName::from_identifier(&identifier(key)), value, 0);
-        }
-        for (name, getter, setter) in CJS_ACCESSORS {
-            // O acessor de `main` nasce nomeado "get main" (getter e setter, sem o redefine do boot) e a chave é esse nome.
-            let key = if *name == "main" { "get main" } else { *name };
-            define_native(&vm, &global_object, &getters, key, 0, *getter, hidden);
-            // O setter de `main` tem `length` 0, como o getter (no bun os dois são o mesmo acessor "get main").
-            define_native(&vm, &global_object, &setters, key, if *name == "main" { 0 } else { 1 }, *setter, hidden);
-        }
-
-        let boot = evaluate(&global_object, &program_source(CJS_BOOT)).expect("bootstrap do wrapper CJS lançou");
-        let boot_data = get_call_data(boot.clone());
-        let filename_arg = JSValue::from_js_string(js_string(&vm, &WtfString::from_utf8(url.as_bytes())));
-        let args = [
-            require_native.as_value(),
-            resolve_native.as_value(),
-            getters.as_value(),
-            setters.as_value(),
-            fns.as_value(),
-            proto_fns.as_value(),
-            filename_arg,
-        ];
-        let triple = match call_returning_exception(&global_object, boot, &boot_data, JSValue::undefined(), &args) {
-            Ok(Ok(triple)) => triple,
-            Ok(Err(_)) => panic!("bootstrap do wrapper CJS lançou"),
-            Err(unported) => panic!("interpretador: {unported:?} ainda não portado"),
-        };
-        let triple = JSObject::from_value(&triple).expect("bootstrap do wrapper CJS não devolveu o array");
-        let state = JSObject::from_value(&triple.get_by_index(&vm, 3)).expect("bootstrap do wrapper CJS sem os slots");
-        let slots: Vec<JSValue> = (0..CJS_ACCESSORS.len() as u32).map(|index| state.get_by_index(&vm, index)).collect();
-        let exports = triple.get_by_index(&vm, 0);
-        let require = triple.get_by_index(&vm, 1);
-        let module = triple.get_by_index(&vm, 2);
-        CJS_STATE.with(|cell| {
-            *cell.borrow_mut() = Some(CjsState {
-                modules: vec![ModuleState { module: module.clone(), require: require.clone(), slots: slots.clone(), parent_unset: true }],
-                slots,
-                require: require.clone(),
-                global_object: global_object.clone(),
-                require_from: require_from.as_value(),
-                resolve_from: resolve_from.as_value(),
-                helper: None,
-            })
-        });
-        let mut text = utf16_units(&format!(
-            "{}(function(exports, require, module, __filename, __dirname) {{\n",
-            if strict { CJS_STRICT_DIRECTIVE.trim_end() } else { "" }
-        ));
-        text.extend_from_slice(body);
-        text.extend(utf16_units("})"));
-        let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{url}").as_bytes())));
-        // Sem mapa de posições, o bun embrulha o módulo sem mudar linha nem coluna: o corpo está na linha 1. O cabeçalho
-        // do porte ocupa a linha 1 e o corpo a 2; o mapa identidade com deslocamento de uma linha acerta tanto as
-        // linhas de `stack` quanto as dos executáveis de função (o `SourceCode` de função prende a primeira linha em 1,
-        // então um `start_position` negativo não chega a elas).
-        let named = transpiled_source(&wtf_from_units(&text), &origin, WtfString::from_latin1(url.as_bytes()));
-        if position_runs.is_empty() && !strict {
-            let map = PositionMap::new(&[1, 1, 0, 0], 1).expect("mapa de posições");
-            named.provider().expect("SourceCode sem provedor").set_position_map(Rc::new(map));
-        } else if !position_runs.is_empty() {
-            // Golden: diretiva na linha 1, corpo a partir da 2. Porte: cabeçalho na 1, corpo a partir da 2.
-            // Sem diretiva o corpo começa na linha 1 do golden e na 2 do porte.
-            let line_shift = if strict { 0 } else { 1 };
-            let map = PositionMap::new(position_runs, line_shift).expect("mapa de posições com tamanho múltiplo de quatro");
-            named.provider().expect("SourceCode sem provedor").set_position_map(Rc::new(map));
-        }
         // Como o bun ao rodar o arquivo: o SyntaxError ou a exceção não capturada não impede a leitura de `result_name`.
-        if let Ok(wrapper) = evaluate(&global_object, &named) {
-            let filename = JSValue::from_js_string(js_string(&vm, &WtfString::from_utf8(url.as_bytes())));
-            let dirname = JSValue::from_js_string(js_string(&vm, &WtfString::from_utf8(b".")));
-            let call_data = get_call_data(wrapper.clone());
-            if let Err(unported) =
-                call_returning_exception(&global_object, wrapper, &call_data, exports.clone(), &[exports, require, module, filename, dirname])
-            {
-                panic!("interpretador: {unported:?} ainda não portado");
-            }
-        }
+        let _ = run_commonjs_wrapper(&global_object, body, url, strict, position_runs, ".");
         vm.drain_microtasks();
         if run_loop {
             crate::runtime::timers::run_event_loop(&global_object);
         }
         read_global_result(&global_object, result_name)
     })
+}
+
+/// Monta o carregador de CJS do bun no global (`exports`, `require` e `module` do arquivo `url`), embrulha `body` em
+/// `function(exports, require, module, __filename, __dirname)` e chama o wrapper com `this` = `exports`. `Err` é o
+/// `SyntaxError` do corpo ou a exceção que ele lançou.
+fn run_commonjs_wrapper(global_object: &JSGlobalObjectRef, body: &[u16], url: &str, strict: bool, position_runs: &[i64], dirname: &str) -> Result<(), JSValue> {
+    let vm = global_object.vm();
+    let global_object = global_object.clone();
+    CJS_FILENAME.with(|name| *name.borrow_mut() = url.to_owned());
+    let identifier = |name: &str| Identifier::from_span(&vm, name.as_bytes());
+    let natives = construct_empty_object(&global_object);
+    let getters = construct_empty_object(&global_object);
+    let setters = construct_empty_object(&global_object);
+    let fns = construct_empty_object(&global_object);
+    let proto_fns = construct_empty_object(&global_object);
+    let public = ImplementationVisibility::Public;
+    let hidden = ImplementationVisibility::Private;
+    let require_native = define_native(&vm, &global_object, &natives, "require", 1, cjs_require as NativeFunction, public);
+    let resolve_native = define_native(&vm, &global_object, &natives, "resolve", 1, cjs_require_resolve as NativeFunction, public);
+    define_native(&vm, &global_object, &proto_fns, "resolve", 1, cjs_require_resolve as NativeFunction, public);
+    // `require` e `resolve` dos módulos carregados: o JavaScript do ajudante os amarra (`bind`) ao arquivo e ao módulo.
+    let require_from = define_native(&vm, &global_object, &natives, "requireFrom", 3, cjs_require_from as NativeFunction, public);
+    let resolve_from = define_native(&vm, &global_object, &natives, "resolveFrom", 3, cjs_resolve_from as NativeFunction, public);
+    define_native(&vm, &global_object, &fns, "_compile", 2, cjs_compile as NativeFunction, public);
+    define_native(&vm, &global_object, &fns, "paths", 0, cjs_noop as NativeFunction, public);
+    // As funções de `require.extensions` são anônimas (nome vazio, `toString` `function () { [native code] }`,
+    // `length` 2): cada uma nasce num suporte próprio, porque a chave do suporte é o nome da função.
+    let anonymous = |function: NativeFunction| {
+        let holder = construct_empty_object(&global_object);
+        define_native(&vm, &global_object, &holder, "", 2, function, public).as_value()
+    };
+    let extension_js = anonymous(cjs_extension_js as NativeFunction);
+    let extension_node = anonymous(cjs_extension_node as NativeFunction);
+    // No bun `.ts`, `.cts` e `.mts` são a mesma função (`.js` e `.mjs` já são uma só no boot); `.json` é outra.
+    let extension_ts = anonymous(cjs_extension_js as NativeFunction);
+    for (key, value) in [
+        ("js", extension_js),
+        ("json", anonymous(cjs_extension_js as NativeFunction)),
+        ("node", extension_node),
+        ("ts", extension_ts.clone()),
+        ("cts", extension_ts.clone()),
+        ("mts", extension_ts),
+    ] {
+        fns.put_direct(&vm, &PropertyName::from_identifier(&identifier(key)), value, 0);
+    }
+    for (name, getter, setter) in CJS_ACCESSORS {
+        // O acessor de `main` nasce nomeado "get main" (getter e setter, sem o redefine do boot) e a chave é esse nome.
+        let key = if *name == "main" { "get main" } else { *name };
+        define_native(&vm, &global_object, &getters, key, 0, *getter, hidden);
+        // O setter de `main` tem `length` 0, como o getter (no bun os dois são o mesmo acessor "get main").
+        define_native(&vm, &global_object, &setters, key, if *name == "main" { 0 } else { 1 }, *setter, hidden);
+    }
+
+    let boot = evaluate(&global_object, &program_source(CJS_BOOT)).expect("bootstrap do wrapper CJS lançou");
+    let boot_data = get_call_data(boot.clone());
+    let filename_arg = JSValue::from_js_string(js_string(&vm, &WtfString::from_utf8(url.as_bytes())));
+    let args = [
+        require_native.as_value(),
+        resolve_native.as_value(),
+        getters.as_value(),
+        setters.as_value(),
+        fns.as_value(),
+        proto_fns.as_value(),
+        filename_arg,
+    ];
+    let triple = match call_returning_exception(&global_object, boot, &boot_data, JSValue::undefined(), &args) {
+        Ok(Ok(triple)) => triple,
+        Ok(Err(_)) => panic!("bootstrap do wrapper CJS lançou"),
+        Err(unported) => panic!("interpretador: {unported:?} ainda não portado"),
+    };
+    let triple = JSObject::from_value(&triple).expect("bootstrap do wrapper CJS não devolveu o array");
+    let state = JSObject::from_value(&triple.get_by_index(&vm, 3)).expect("bootstrap do wrapper CJS sem os slots");
+    let slots: Vec<JSValue> = (0..CJS_ACCESSORS.len() as u32).map(|index| state.get_by_index(&vm, index)).collect();
+    let exports = triple.get_by_index(&vm, 0);
+    let require = triple.get_by_index(&vm, 1);
+    let module = triple.get_by_index(&vm, 2);
+    CJS_STATE.with(|cell| {
+        *cell.borrow_mut() = Some(CjsState {
+            modules: vec![ModuleState { module: module.clone(), require: require.clone(), slots: slots.clone(), parent_unset: true }],
+            slots,
+            require: require.clone(),
+            global_object: global_object.clone(),
+            require_from: require_from.as_value(),
+            resolve_from: resolve_from.as_value(),
+            helper: None,
+        })
+    });
+    let mut text = utf16_units(&format!(
+        "{}(function(exports, require, module, __filename, __dirname) {{\n",
+        if strict { CJS_STRICT_DIRECTIVE.trim_end() } else { "" }
+    ));
+    text.extend_from_slice(body);
+    text.extend(utf16_units("})"));
+    let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{url}").as_bytes())));
+    // Sem mapa de posições, o bun embrulha o módulo sem mudar linha nem coluna: o corpo está na linha 1. O cabeçalho
+    // do porte ocupa a linha 1 e o corpo a 2; o mapa identidade com deslocamento de uma linha acerta tanto as
+    // linhas de `stack` quanto as dos executáveis de função (o `SourceCode` de função prende a primeira linha em 1,
+    // então um `start_position` negativo não chega a elas).
+    let named = transpiled_source(&wtf_from_units(&text), &origin, WtfString::from_latin1(url.as_bytes()));
+    if position_runs.is_empty() && !strict {
+        let map = PositionMap::new(&[1, 1, 0, 0], 1).expect("mapa de posições");
+        named.provider().expect("SourceCode sem provedor").set_position_map(Rc::new(map));
+    } else if !position_runs.is_empty() {
+        // Golden: diretiva na linha 1, corpo a partir da 2. Porte: cabeçalho na 1, corpo a partir da 2.
+        // Sem diretiva o corpo começa na linha 1 do golden e na 2 do porte.
+        let line_shift = if strict { 0 } else { 1 };
+        let map = PositionMap::new(position_runs, line_shift).expect("mapa de posições com tamanho múltiplo de quatro");
+        named.provider().expect("SourceCode sem provedor").set_position_map(Rc::new(map));
+    }
+    let wrapper = evaluate(&global_object, &named)?;
+    let filename = JSValue::from_js_string(js_string(&vm, &WtfString::from_utf8(url.as_bytes())));
+    let dirname = JSValue::from_js_string(js_string(&vm, &WtfString::from_utf8(dirname.as_bytes())));
+    let call_data = get_call_data(wrapper.clone());
+    match call_returning_exception(&global_object, wrapper, &call_data, exports.clone(), &[exports, require, module, filename, dirname]) {
+        Ok(Ok(_)) => Ok(()),
+        Ok(Err(thrown)) => Err(thrown.value()),
+        Err(unported) => panic!("interpretador: {unported:?} ainda não portado"),
+    }
 }
 
 /// A diretiva que `canonicalSource` preserva no começo do programa CJS estrito.
@@ -758,6 +807,25 @@ thread_local! {
     static CJS_FILENAME: RefCell<String> = const { RefCell::new(String::new()) };
     /// O estado de `module` e `require` (`None` fora de um programa CJS).
     static CJS_STATE: RefCell<Option<CjsState>> = const { RefCell::new(None) };
+}
+
+/// As raízes do coletor: tudo o que o estado de `module` e `require` guarda (o `CjsState` é a parte do objeto
+/// `Module` do bun que aqui mora em Rust).
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    CJS_STATE.with(|state| {
+        let Ok(state) = state.try_borrow() else {
+            marker.abort();
+            return;
+        };
+        let Some(state) = state.as_ref() else { return };
+        marker.values(&state.slots);
+        marker.values(&[state.require, state.require_from, state.resolve_from]);
+        marker.value(state.helper);
+        for module in &state.modules {
+            marker.values(&[module.module, module.require]);
+            marker.values(&module.slots);
+        }
+    });
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o nome do arquivo e os valores guardados são do programa.

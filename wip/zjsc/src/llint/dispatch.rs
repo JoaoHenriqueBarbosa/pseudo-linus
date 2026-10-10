@@ -386,7 +386,12 @@ impl Interpreter {
                         Step::Return(f.get(op.value))
                     }
                     // Sem traps (watchdog, `VMTraps`) e sem tiering: `loop_hint` e `check_traps` não fazem nada.
-                    OpcodeID::op_loop_hint | OpcodeID::op_check_traps | OpcodeID::op_nop => Step::Next,
+                    // `op_loop_hint` é onde o laço do C++ passa pelo `checkTraps` e o heap pode coletar.
+                    OpcodeID::op_loop_hint => {
+                        crate::runtime::gc::safe_point(self, &vm);
+                        Step::Next
+                    }
+                    OpcodeID::op_check_traps | OpcodeID::op_nop => Step::Next,
                     OpcodeID::op_resolve_scope => {
                         let op: OpResolveScope = instruction.as_op();
                         slow_path_resolve_scope(&mut f, &op)?;

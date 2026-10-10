@@ -298,6 +298,57 @@ impl std::ops::Deref for JSGlobalObject {
 }
 
 impl JSGlobalObject {
+    /// `JSGlobalObject::visitChildren`: as variáveis globais e os `JSValue` que o global guarda por id (os
+    /// guardados por `Rc` o coletor já trata como raiz; os protótipos das estruturas, `gc::retain_prototype`).
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        self.visit_variables(marker);
+        match self.link_time_constants.try_borrow() {
+            Ok(constants) => marker.values(&constants),
+            Err(_) => marker.abort(),
+        }
+        if let Some(eval_function) = self.eval_function.get() {
+            marker.cell(eval_function);
+        }
+        for field in [
+            &self.parse_int_function,
+            &self.parse_float_function,
+            &self.object_proto_to_string_function,
+            &self.error_constructor,
+            &self.array_iterator_proto_next,
+        ] {
+            match field.try_borrow() {
+                Ok(value) => marker.value(*value),
+                Err(_) => marker.abort(),
+            }
+        }
+        let (Ok(regexp_globals), Ok(promise_data), Ok(function_kind_data), Ok(iteration_protocol)) = (
+            self.string_regexp_globals.try_borrow(),
+            self.promise_data.try_borrow(),
+            self.function_kind_data.try_borrow(),
+            self.iteration_protocol.try_borrow(),
+        ) else {
+            marker.abort();
+            return;
+        };
+        for value in [
+            regexp_globals.reg_exp_constructor,
+            promise_data.prototype,
+            promise_data.constructor,
+            promise_data.then_function,
+            promise_data.resolve_function,
+            promise_data.species_getter_setter,
+            promise_data.unhandled_rejection_callback,
+            function_kind_data.async_from_sync_iterator_proto_next_function,
+            iteration_protocol.map_iterator_next,
+            iteration_protocol.set_iterator_next,
+            iteration_protocol.string_iterator_next,
+            iteration_protocol.iterator_proto_symbol_iterator_function,
+            iteration_protocol.string_proto_symbol_iterator_function,
+        ] {
+            marker.value(value);
+        }
+    }
+
     /// `StructureFlags = Base::StructureFlags | HasStaticPropertyTable | OverridesGetOwnPropertySlot | OverridesPut`.
     /// O JSC puro também liga `IsImmutablePrototypeExoticObject`, mas o oráculo (o global do bun) não liga:
     /// `Object.setPrototypeOf(globalThis, Function.prototype)` funciona nele, então o flag fica de fora.

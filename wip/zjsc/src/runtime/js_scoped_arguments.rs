@@ -73,6 +73,14 @@ impl std::ops::Deref for ScopedArguments {
 }
 
 impl ScopedArguments {
+    /// `visitChildren`: os argumentos fora do escopo e o callee (o escopo é `Rc`, já raiz).
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.callee);
+        match self.storage.try_borrow() {
+            Ok(storage) => storage.iter().for_each(|value| marker.value(*value)),
+            Err(_) => marker.abort(),
+        }
+    }
     /// `ScopedArguments::createByCopying(globalObject, callFrame, table, scope)`: `arguments` são os
     /// `argumentCount()` argumentos do frame, `callee` o `jsCallee()` e a tabela vem do
     /// `scope->symbolTable()->arguments()`.

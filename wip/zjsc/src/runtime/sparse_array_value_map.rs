@@ -99,6 +99,13 @@ pub struct SparseArrayValueMap {
 }
 
 impl SparseArrayValueMap {
+    /// `SparseArrayValueMap::visitChildren`: os valores (e os `GetterSetter` dos acessores).
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        for entry in self.entries.values() {
+            marker.value(entry.value);
+        }
+    }
+
     /// `sparseMode()`.
     pub fn sparse_mode(&self) -> bool {
         self.sparse_mode

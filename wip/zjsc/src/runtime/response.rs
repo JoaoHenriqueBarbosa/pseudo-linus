@@ -94,6 +94,12 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o que foi guardado é do programa.
+/// As raízes do coletor: o protótipo; o estado das respostas guarda valores e adia a coleta enquanto existir.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.value(RESPONSE_PROTOTYPE.with(|prototype| *prototype.borrow()));
+    marker.defer_while(INSTANCES.with(|instances| !instances.borrow().is_empty()));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = INSTANCES.try_with(|instances| instances.borrow_mut().clear());
 }

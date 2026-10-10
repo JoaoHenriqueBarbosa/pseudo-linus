@@ -237,6 +237,9 @@ pub fn for_each_in_iteration_record(
     record: IterationRecord,
     mut callback: impl FnMut(JSValue) -> Result<(), Thrown>,
 ) -> Result<(), Thrown> {
+    // O iterador e o `next` só existem neste local Rust enquanto o JS do laço roda (a pilha C++ do JSC, que o
+    // coletor varre de modo conservador).
+    let _record = crate::runtime::gc::RootScope::new(&[record.iterator, record.next_method]);
     loop {
         let Some(next) = iterator_step(global_object, record)? else {
             return Ok(());

@@ -114,6 +114,19 @@ impl std::ops::Deref for JSFunction {
 }
 
 impl JSFunction {
+    /// `visitChildren` de `JSFunction` e das subclasses que o porte guarda nela (`JSBoundFunction`,
+    /// `JSRemoteFunction`, `JSFunctionWithFields`). O escopo é `Rc`, já raiz.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        if let Some(bound) = self.bound.get() {
+            bound.visit_children(marker);
+        }
+        if let Some(remote) = self.remote.get() {
+            remote.visit_children(marker);
+        }
+        if let Some(fields) = self.fields.get() {
+            marker.values(&[fields[0].get(), fields[1].get()]);
+        }
+    }
     /// `StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot | OverridesGetOwnSpecialPropertyNames | OverridesGetCallData | OverridesPut`.
     pub const STRUCTURE_FLAGS: u32 = JSCallee::STRUCTURE_FLAGS
         | OVERRIDES_GET_OWN_PROPERTY_SLOT

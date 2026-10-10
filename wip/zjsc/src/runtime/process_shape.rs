@@ -43,6 +43,12 @@ use crate::wtf::text::wtf_string::String as WtfString;
 /// O caminho do executável que o sandbox mostra em `execPath` e `argv[0]`.
 pub(crate) const EXEC_PATH: &str = "/usr/local/bin/bun";
 
+/// A versão do bun (`process.versions.bun`, `Bun.version`).
+pub(crate) const BUN_VERSION: &str = "1.4.2";
+
+/// O commit do bun 1.4.2 (`process.revision`, `Bun.revision`; o uWebSockets e o uSockets mostram o mesmo).
+pub(crate) const BUN_REVISION: &str = "744846f844374847c902b5e7fd59b4342a51ef99";
+
 /// Um valor de dados do `process`, descrito em tabela e construído na instalação.
 enum Value {
     Str(&'static str),
@@ -146,14 +152,14 @@ const REPORT: Value = Value::Object(&[
 
 const VERSIONS: Value = Value::Object(&[
     ("node", Value::Str("26.3.0")),
-    ("bun", Value::Str("1.4.2")),
+    ("bun", Value::Str(BUN_VERSION)),
     ("boringssl", Value::Str("41bf9b59c2ebf277a7aa427e1ecad5cc80dd4d4f")),
     ("openssl", Value::Str("1.1.0")),
     ("llhttp", Value::Str("9.3.0")),
     ("libarchive", Value::Str("ded82291ab41d5e355831b96b0e1ff49e24d8939")),
     ("mimalloc", Value::Str("6a64e1ba7f5b2130d4efccb67ec87fd0003f0f6a")),
     ("picohttpparser", Value::Str("066d2b1e9ab820703db0837a7255d92d30f0c9f5")),
-    ("uwebsockets", Value::Str("744846f844374847c902b5e7fd59b4342a51ef99")),
+    ("uwebsockets", Value::Str(BUN_REVISION)),
     ("webkit", Value::Str("2e2aa2290fac856d6f451ceacb58f7f5b44dd057")),
     ("zig", Value::Str("04e7f6ac1e009525bc00934f20199c68f04e0a24")),
     ("zlib", Value::Str("12731092979c6d07f42da27da673a9f6c7b13586")),
@@ -161,7 +167,7 @@ const VERSIONS: Value = Value::Object(&[
     ("lolhtml", Value::Str("725ce499aa9b71e38b7a2d0a9fbb6d7294a4079e")),
     ("ares", Value::Str("c7a3138dcfe3bb0eaaf10c0c24c36dc66dc790ab")),
     ("libdeflate", Value::Str("c8c56a20f8f621e6a966b716b31f1dedab6a41e3")),
-    ("usockets", Value::Str("744846f844374847c902b5e7fd59b4342a51ef99")),
+    ("usockets", Value::Str(BUN_REVISION)),
     ("lshpack", Value::Str("8905c024b6d052f083a3d11d0a169b3c2735c8a1")),
     ("zstd", Value::Str("f8745da6ff1ad1e7bab384bd1f9d742439278e99")),
     ("v8", Value::Str("14.6.202.34-node.20")),
@@ -233,7 +239,7 @@ const MEMBERS: &[Member] = &[
     Data("release", RELEASE),
     Data("report", REPORT),
     Function("resourceUsage", 0),
-    Data("revision", Value::Str("744846f844374847c902b5e7fd59b4342a51ef99")),
+    Data("revision", Value::Str(BUN_REVISION)),
     Data("send", Value::Undefined),
     Function("setSourceMapsEnabled", 1),
     Own("setUncaughtExceptionCaptureCallback"),
@@ -315,6 +321,11 @@ fn undefined_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostResu
 host_function!(pub undefined_function, undefined_body);
 
 /// Fim do programa (`cell_registry::reset_program_state`): os valores gravados são células do programa.
+/// As raízes do coletor: os valores guardados do `process`.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    SLOTS.with(|slots| slots.borrow().values().for_each(|value| marker.value(*value)));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = SLOTS.try_with(|slots| slots.borrow_mut().clear());
     crate::runtime::process_env::reset_for_program();
@@ -394,11 +405,11 @@ fn function_property(name: &str) -> Option<(&'static str, NativeFunction)> {
 
 /// O valor do acessor `name`: o gravado pelo setter ou o padrão, que passa a ser o gravado (identidade estável).
 fn slot_value(global_object: &JSGlobalObject, name: &'static str, default: fn(&JSGlobalObject) -> JSValue) -> JSValue {
-    if let Some(value) = SLOTS.with(|slots| slots.borrow().get(name).copied()) {
+    if let Some(value) = read_slot(name) {
         return value;
     }
     let value = default(global_object);
-    SLOTS.with(|slots| slots.borrow_mut().insert(name, value));
+    write_slot(name, value);
     value
 }
 
@@ -410,6 +421,21 @@ fn default_argv(global_object: &JSGlobalObject) -> JSValue {
     let vm = global_object.vm();
     let values: Vec<JSValue> = script_argv().iter().map(|argument| text_value(vm, argument)).collect();
     array_value(global_object, &values)
+}
+
+/// O array de `process.argv` (o mesmo que `Bun.argv` entrega).
+pub(crate) fn process_argv(global_object: &JSGlobalObject) -> JSValue {
+    slot_value(global_object, "argv", default_argv)
+}
+
+/// O valor gravado no acessor `name`, se houve (o `overridden_main` do `Bun.main` mora aqui, sob `"Bun.main"`).
+pub(crate) fn read_slot(name: &'static str) -> Option<JSValue> {
+    SLOTS.with(|slots| slots.borrow().get(name).copied())
+}
+
+/// Grava `value` no acessor `name`; some no fim do programa, com os demais.
+pub(crate) fn write_slot(name: &'static str, value: JSValue) {
+    SLOTS.with(|slots| slots.borrow_mut().insert(name, value));
 }
 
 fn default_false(_global_object: &JSGlobalObject) -> JSValue {
@@ -440,7 +466,7 @@ macro_rules! slot_accessor {
         }
         host_function!($getter, $getter_body);
         fn $setter_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-            SLOTS.with(|slots| slots.borrow_mut().insert($name, call.argument(0)));
+            write_slot($name, call.argument(0));
             Ok(JSValue::undefined())
         }
         host_function!($setter, $setter_body);

@@ -82,6 +82,19 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o que foi guardado é do programa.
+/// As raízes do coletor: o protótipo e os donos dos `searchParams`; o estado das URLs guarda valores e adia a coleta
+/// enquanto existir.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.value(PROTOTYPE.with(|prototype| *prototype.borrow()));
+    PARAM_OWNERS.with(|owners| {
+        for (params, owner) in owners.borrow().iter() {
+            marker.encoded(*params);
+            marker.value(*owner);
+        }
+    });
+    marker.defer_while(URLS.with(|urls| !urls.borrow().is_empty()));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = OBJECT_URLS.try_with(|registry| registry.borrow_mut().clear());
     let _ = URLS.try_with(|urls| urls.borrow_mut().clear());
@@ -192,9 +205,19 @@ fn can_parse_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult
 fn parse_static_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let (input, base) = url_arguments(global_object, call)?;
     let Some(url) = parse_with_base(&input, base.as_deref()) else { return Ok(JSValue::null()) };
+    Ok(create_url_object(global_object, url))
+}
+
+/// Uma instância de `URL` com o protótipo original, como o `DOMURL::create` do C++ (`URL.parse`, `Bun.pathToFileURL`).
+pub(crate) fn create_url_object(global_object: &JSGlobalObject, url: URL) -> JSValue {
     let prototype = PROTOTYPE.with(|slot| *slot.borrow()).expect("URL não instalado");
     let structure = instance_structure(global_object.vm(), Some(global_object), prototype);
-    Ok(new_instance(global_object, &structure, url))
+    new_instance(global_object, &structure, url)
+}
+
+/// A URL de uma instância de `URL` (o `WebCoreCast<JSDOMURL>` do C++), ou nada para outro valor.
+pub(crate) fn url_of(value: JSValue) -> Option<URL> {
+    with_url(value, |state| state.url.clone())
 }
 
 /// Um UUID v4 em minúsculas (`WTF::UUID::createVersion4`), dos bytes de `cryptographicallyRandomNumber`.

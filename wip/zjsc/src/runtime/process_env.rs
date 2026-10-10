@@ -56,6 +56,13 @@ thread_local! {
 }
 
 /// Fim do programa (`process_shape::reset_for_program`).
+/// As raízes do coletor: o objeto `process.env`.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    if let Some(cell_id) = ENV_CELL.with(Cell::get) {
+        marker.cell(cell_id);
+    }
+}
+
 pub(crate) fn reset_for_program() {
     let _ = ENV_CELL.try_with(|cell| cell.set(None));
     // `ENVIRONMENT` é configuração do embedder (`set_environment`), feita antes de `run_program`: sobrevive ao reset.
@@ -92,6 +99,11 @@ pub(crate) fn create(global_object: &JSGlobalObject) -> JSValue {
 /// `object` é o `process.env` do programa?
 pub(crate) fn is_env(object: &JSObject) -> bool {
     ENV_CELL.with(|cell| cell.get()) == Some(object.cell_id())
+}
+
+/// O `process.env` do programa (o mesmo objeto que o `Bun.env` entrega), criado aqui se ainda não existir.
+pub(crate) fn env_value(global_object: &JSGlobalObject) -> JSValue {
+    ENV_CELL.with(|cell| cell.get()).map_or_else(|| create(global_object), JSValue::from_cell)
 }
 
 fn pending(_: Thrown) -> PutError {
