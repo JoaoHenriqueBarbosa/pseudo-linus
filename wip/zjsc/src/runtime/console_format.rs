@@ -923,7 +923,10 @@ impl Formatter {
         let latin1 = |bytes: &[u8]| -> Vec<u16> { bytes.iter().map(|&byte| u16::from(byte)).collect() };
         let body_parts = |body: &Option<Body>| -> (usize, Option<(usize, Vec<u8>)>) {
             match body {
-                Some(body) if !body.used => (body.bytes.len(), (!body.bytes.is_empty()).then(|| (body.bytes.len(), body.blob_type.clone()))),
+                Some(body) if !body.used => {
+                    let shown_type = if body.implied_type { Vec::new() } else { body.blob_type.clone() };
+                    (body.bytes.len(), (!body.bytes.is_empty()).then(|| (body.bytes.len(), shown_type)))
+                }
                 _ => (0, None),
             }
         };
