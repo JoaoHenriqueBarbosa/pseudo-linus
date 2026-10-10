@@ -707,6 +707,11 @@ impl JSGlobalObject {
         self.weak_random.borrow_mut().get()
     }
 
+    /// O `Math.random` do realm passa a ser o do V8 semeado com `seed` (o navegador com `--random-seed`).
+    pub fn set_v8_random_seed(&self, seed: u64) {
+        *self.weak_random.borrow_mut() = crate::wtf::weak_random::WeakRandom::v8_seeded(seed);
+    }
+
     /// `stringPrototype()`.
     pub fn string_prototype(&self) -> crate::runtime::string_object::StringObjectRef {
         self.string_prototype.borrow().clone().expect("JSGlobalObject sem stringPrototype")
