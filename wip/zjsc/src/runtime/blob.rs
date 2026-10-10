@@ -119,20 +119,40 @@ fn latin1_value(global_object: &JSGlobalObject, bytes: &[u8]) -> JSValue {
     JSValue::from_js_string(js_string(global_object.vm(), &WtfString::from_latin1(bytes)))
 }
 
-/// O `type` aceito: só ASCII imprimível (0x20..0x7e), em minúsculas; senão vazio.
+/// Os tipos que o bun troca pela constante canônica do `MimeType` (medido no bun 1.4.2 contra todos os tipos da tabela
+/// MIME): a busca é no texto como veio, então `Text/plain` só vira `text/plain`.
+const CANONICAL_TYPES: &[(&[u8], &[u8])] = &[
+    (b"text/plain", b"text/plain;charset=utf-8"),
+    (b"text/html", b"text/html;charset=utf-8"),
+    (b"application/json", b"application/json;charset=utf-8"),
+    (b"text/javascript", b"text/javascript;charset=utf-8"),
+    (b"application/javascript", b"text/javascript;charset=utf-8"),
+    (b"text/css", b"text/css;charset=utf-8"),
+    (b"text/jsx", b"text/javascript;charset=utf-8"),
+    (b"application/x-www-form-urlencoded", b"application/x-www-form-urlencoded;charset=UTF-8"),
+];
+
+/// O `type` aceito: só ASCII imprimível (0x20..0x7e), em minúsculas, ou a constante canônica; senão vazio.
 pub(crate) fn normalized_type(value: JSValue) -> Vec<u8> {
     if !value.is_string() {
         return Vec::new();
     }
     let text = value.to_wtf_string();
     let mut out = Vec::with_capacity(text.length() as usize);
+    let mut lowered = false;
     for index in 0..text.length() {
         match u8::try_from(text.code_unit_at(index)) {
-            Ok(byte) if (0x20..=0x7e).contains(&byte) => out.push(byte.to_ascii_lowercase()),
+            Ok(byte) if (0x20..=0x7e).contains(&byte) => {
+                lowered |= byte.is_ascii_uppercase();
+                out.push(byte.to_ascii_lowercase());
+            }
             _ => return Vec::new(),
         }
     }
-    out
+    match CANONICAL_TYPES.iter().find(|(key, _)| !lowered && *key == out.as_slice()) {
+        Some((_, canonical)) => canonical.to_vec(),
+        None => out,
+    }
 }
 
 fn call_body(global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {

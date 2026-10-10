@@ -1571,7 +1571,9 @@ pub(crate) mod value_wire {
                     "var bl = new Blob(['abc'], {type: 'text/plain'}); var A = {a: bl, b: bl, f: new File(['xy'], 'n.txt', {type: 'text/x', lastModified: 5})};",
                     "[B.a === B.b, B.a.size, B.a.type, B.a instanceof Blob, B.f instanceof File, B.f.name, B.f.size, B.f.lastModified].join()",
                 ),
-                "true,3,text/plain,true,true,n.txt,2,5"
+                // O tipo é a constante canônica (medido no bun 1.4.2: `structuredClone` do Blob `text/plain` dá
+                // `text/plain;charset=utf-8`).
+                "true,3,text/plain;charset=utf-8,true,true,n.txt,2,5"
             );
         }
 
