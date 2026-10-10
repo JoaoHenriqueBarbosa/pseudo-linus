@@ -5140,33 +5140,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Allocate a new symbol
         let mut ref_ = self.new_symbol(kind, name);
 
-        // Single-probe `getOrPut`. The previous two-probe shape
-        // (`members.get` then `members.put_borrowed`) existed only because the
-        // merge decision read `self.current_scope()` while the entry borrow was
-        // live, which under Stacked Borrows invalidated the entry's `&mut`.
-        // That coupling is gone: `can_merge_symbol_kinds` is an associated fn
-        // taking the scope `Kind` by value, so we copy `scope.kind` out before
-        // taking the entry, and every other read inside the match
-        // (`self.symbols`, `self.log()`, `self.source`) touches `P` fields
-        // disjoint from the arena `Scope` the entry borrows. Copying the
-        // `StoreRef` out (instead of going through `current_scope_mut`, which
-        // would tie the borrow to `&mut self`) is what lets borrowck see that
-        // disjointness: `StoreRef` is `Copy` and does not borrow `self`, so
-        // the entry below can coexist with `self.symbols` / `self.log()` reads.
-        // SAFETY (key lifetime): `name: &'a [u8]` points into source text or
-        // the lexer string-table, both of which outlive the arena-owned
-        // `Scope`: see `Scope::get_or_put_member_with_hash`.
-        let mut scope: js_ast::StoreRef<js_ast::Scope> = self.current_scope;
+        // O `getOrPut` do upstream em duas sondas: a tabela de membros mora no `Store` e lê os nomes dele, então a
+        // consulta e a gravação (no fim, por `put_member_with_hash`) não seguram empréstimo nenhum entre elas. O
+        // nome gravado é o `original_name` do símbolo novo, já no `Store`.
+        let scope: js_ast::StoreRef<js_ast::Scope> = self.current_scope;
         let scope_kind = self.store[scope].kind;
-        // SAFETY: see key-lifetime note above: `name: &'a [u8]` outlives the
-        // arena-owned `Scope` map.
-        let entry = unsafe {
-            self.store[scope]
-                .members
-                .get_or_put_hashed(&self.store, js_ast::scope::Members::hash(name), name)
-        };
-        if entry.found_existing {
-            let existing: js_ast::scope::Member = *entry.value_ptr;
+        let name_hash = js_ast::scope::Members::hash(name);
+        let existing_member = self.store[scope].get_member_with_hash(&self.store, name, name_hash);
+        if let Some(existing) = existing_member {
             let symbol_idx = existing.ref_.inner_index() as usize;
 
             use js_ast::scope::SymbolMergeResult as MR;
@@ -5218,7 +5199,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 MR::OverwriteWithNew => {}
             }
         }
-        *entry.value_ptr = js_ast::scope::Member { ref_, loc };
+        let key = self.symbols[ref_.inner_index() as usize].original_name;
+        js_ast::Scope::put_member_with_hash(&mut self.store, scope, key, name_hash, js_ast::scope::Member { ref_, loc });
         Ok(ref_)
     }
 
