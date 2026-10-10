@@ -36,6 +36,8 @@ struct Tick {
     global_object: usize,
     callback: JSValue,
     args: Vec<JSValue>,
+    /// O contexto assíncrono do agendamento (`AsyncContextFrame::withAsyncContextIfNeeded`), vazio sem rastreamento.
+    async_context: JSValue,
 }
 
 #[derive(Default)]
@@ -60,6 +62,22 @@ pub(crate) fn has_pending_ticks() -> bool {
     TICKS.with(|state| !state.borrow().queue.is_empty())
 }
 
+/// As raízes da fila de `process.nextTick` para o coletor: o callback, os argumentos e o contexto assíncrono de cada
+/// tick pendente (o `TickObject` do node segura os três até rodar).
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    let _ = TICKS.try_with(|state| {
+        let Ok(state) = state.try_borrow() else {
+            marker.abort();
+            return;
+        };
+        for tick in &state.queue {
+            marker.value(tick.callback);
+            marker.values(&tick.args);
+            marker.value(tick.async_context);
+        }
+    });
+}
+
 /// Estamos dentro da drenagem dirigida pelos ticks?
 pub(crate) fn is_processing_ticks() -> bool {
     TICKS.with(|state| state.borrow().processing)
@@ -76,6 +94,7 @@ pub(crate) fn run_pending_ticks(vm: &VM) {
         let Some(JSScopeRef::GlobalObject(global_object)) = JSScope::from_cell_id(tick.global_object) else {
             panic!("tick de um global object que não está no registro de células");
         };
+        let _async_context_scope = crate::runtime::js_microtask::AsyncContextSwapScope::new(vm, tick.async_context);
         match call_microtask(&global_object, tick.callback, JSValue::undefined(), &tick.args, "callback is not a function") {
             Err(CallThrown::Value(error)) => vm.report_unhandled_error(&global_object, error),
             Err(CallThrown::Termination) => {
@@ -104,7 +123,8 @@ fn next_tick_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult
 
 /// Agenda `callback(...args)` no fim da fila de ticks (o que `process.nextTick` faz depois de validar).
 pub(crate) fn queue_tick(global_object: &JSGlobalObject, callback: JSValue, args: Vec<JSValue>) {
-    TICKS.with(|state| state.borrow_mut().queue.push_back(Tick { global_object: global_object.cell_id(), callback, args }));
+    let async_context = global_object.vm().captured_async_context();
+    TICKS.with(|state| state.borrow_mut().queue.push_back(Tick { global_object: global_object.cell_id(), callback, args, async_context }));
 }
 host_function!(pub process_next_tick, next_tick_body);
 

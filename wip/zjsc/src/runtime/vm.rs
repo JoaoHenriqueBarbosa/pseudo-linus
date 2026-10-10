@@ -67,6 +67,12 @@ pub struct VM {
     soft_stack_limit: Cell<usize>,
     /// `m_executingRegExp`: identidade do `RegExp*` em execução (0 é o `nullptr`).
     executing_reg_exp: Cell<usize>,
+    /// O primeiro campo do `$asyncContext` do JSC do bun (`AsyncContextData`, a cabeça da lista de `Frame`s do
+    /// `AsyncLocalStorage`); `undefined` quando não há contexto.
+    async_context: Cell<JSValue>,
+    /// `vm.isAsyncContextTrackingEnabled()`: ligado pelo primeiro `AsyncLocalStorage` ou `AsyncResource`
+    /// (`setAsyncHooksEnabled(true)`); desligado, a captura e a reinstalação do contexto não acontecem.
+    async_context_tracking: Cell<bool>,
     /// `m_bytecodeIntrinsicRegistry`: criado no primeiro uso, porque precisa dos `BuiltinNames`.
     bytecode_intrinsic_registry: std::cell::OnceCell<BytecodeIntrinsicRegistry>,
     /// `sourceProviderCacheMap`: a chave é a identidade do `SourceProvider` (o `RefPtr` guarda o objeto vivo).
@@ -356,6 +362,8 @@ impl VM {
             property_names: PropertyNames::default(),
             soft_stack_limit: Cell::new(hard_stack_limit.saturating_add(VM::SOFT_STACK_MARGIN)),
             executing_reg_exp: Cell::new(0),
+            async_context: Cell::new(JSValue::undefined()),
+            async_context_tracking: Cell::new(false),
             bytecode_intrinsic_registry: std::cell::OnceCell::new(),
             source_provider_cache_map: RefCell::new(std::collections::HashMap::new()),
             symbol_table_structure: OnceCell::new(),
@@ -529,6 +537,8 @@ impl VM {
             ]);
         }
         self.default_microtask_queue.visit_children(marker);
+        // `m_asyncContextData`: o contexto assíncrono corrente (a cabeça da lista de `Frame`s do `AsyncLocalStorage`).
+        marker.value(self.async_context.get());
     }
 
     /// `currentWeakRefVersion()`.
@@ -910,6 +920,41 @@ impl VM {
     /// `m_executingRegExp`, como identidade (0 é `nullptr`).
     pub fn executing_reg_exp(&self) -> usize {
         self.executing_reg_exp.get()
+    }
+
+    /// `AsyncContextSwapScope::current(vm, globalObject)`: o contexto assíncrono corrente, `undefined` quando o
+    /// rastreamento está desligado ou não há contexto.
+    pub fn async_context(&self) -> JSValue {
+        if self.async_context_tracking.get() {
+            self.async_context.get()
+        } else {
+            JSValue::undefined()
+        }
+    }
+
+    /// `AsyncContextFrame::withAsyncContextIfNeeded`: o contexto que um callback agendado agora deve reinstalar ao
+    /// rodar, ou `empty` quando o rastreamento está desligado (o callback roda sob o contexto de quem o chama).
+    pub fn captured_async_context(&self) -> JSValue {
+        if self.async_context_tracking.get() {
+            self.async_context.get()
+        } else {
+            JSValue::empty()
+        }
+    }
+
+    /// `$putInternalField($asyncContext, 0, context)`.
+    pub fn set_async_context(&self, context: JSValue) {
+        self.async_context.set(context);
+    }
+
+    /// `vm.isAsyncContextTrackingEnabled()`.
+    pub fn async_context_tracking_enabled(&self) -> bool {
+        self.async_context_tracking.get()
+    }
+
+    /// `vm.setAsyncContextTrackingEnabled(enabled)` (`jsSetAsyncHooksEnabled`).
+    pub fn set_async_context_tracking(&self, enabled: bool) {
+        self.async_context_tracking.set(enabled);
     }
 
     /// `m_executingRegExp = regExp`.

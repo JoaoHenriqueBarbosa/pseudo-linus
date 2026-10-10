@@ -228,9 +228,9 @@ impl PromiseHost for JSGlobalObject {
         }
     }
 
-    /// `AsyncContextSwapScope::current(vm, globalObject)`: o contexto assíncrono do Bun não existe.
+    /// `AsyncContextSwapScope::current(vm, globalObject)`.
     fn async_context(&self) -> JSValue {
-        JSValue::undefined()
+        self.vm().async_context()
     }
 
     fn is_callable(&self, value: JSValue) -> bool {

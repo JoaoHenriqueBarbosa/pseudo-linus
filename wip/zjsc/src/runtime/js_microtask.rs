@@ -28,12 +28,11 @@
 //! DIVERGÊNCIAS:
 //! - `MicrotaskCallCache` (cache de chamada do laço de drenagem) não existe: `callMicrotask` é
 //!   `call_with_error_message` (o caminho lento do C++, que é o que o cache só acelera).
-//! - `AsyncContextSwapScope` (o contexto assíncrono do Bun, `AsyncLocalStorage`): o C++ só faz algo com
-//!   `vm.isAsyncContextTrackingEnabled()`, e o porte nunca o liga (não há `m_asyncContextData`). Sem o
-//!   rastreamento ligado o escopo se reduz a "o contexto assíncrono é sempre `undefined`"
-//!   (`PromiseHost::async_context`), e o construtor com `contextArg` apenas afirma que ele não é um
-//!   `InternalFieldTuple`; então `arguments[3]` de `PromiseReactionJob` é o contexto do usuário quando o
-//!   bit de contexto assíncrono do payload está apagado, e `AsyncFunctionResume` ignora `arguments[3]`.
+//! - `AsyncContextSwapScope` (o contexto assíncrono do Bun, `AsyncLocalStorage`): o `m_asyncContextData` é o campo
+//!   `async_context` do `VM`, ligado por `vm.set_async_context_tracking` (o `node:async_hooks`). O escopo instala o
+//!   contexto capturado (`arguments[3]` de `PromiseReactionJob` com o bit do payload, de `AsyncFunctionResume` e do
+//!   driver de async function; `arguments[1]` das tarefas de chamada de função) e devolve o anterior ao sair; sem
+//!   rastreamento, ou com o argumento vazio, não faz nada.
 //! - `Bun__reportUnhandledError` (relatório de exceção de `BunPerformMicrotaskJob`) é o gancho
 //!   `unhandled_error_reporter` do `VM` (`vm.set_unhandled_error_reporter`); sem gancho a exceção
 //!   comum é descartada.
@@ -300,6 +299,33 @@ pub fn promise_any_resolve_job(global_object: &JSGlobalObject, payload: u8, argu
     Ok(())
 }
 
+/// `AsyncContextSwapScope` (`JSMicrotask.cpp`): instala o contexto assíncrono capturado na criação da reação
+/// enquanto o tratador roda e devolve o anterior ao sair. Sem rastreamento ligado, ou sem contexto capturado
+/// (`empty`), não faz nada.
+pub(crate) struct AsyncContextSwapScope<'a> {
+    vm: &'a crate::runtime::vm::VM,
+    previous: Option<JSValue>,
+}
+
+impl<'a> AsyncContextSwapScope<'a> {
+    pub(crate) fn new(vm: &'a crate::runtime::vm::VM, context: JSValue) -> Self {
+        if !vm.async_context_tracking_enabled() || context.is_empty() {
+            return AsyncContextSwapScope { vm, previous: None };
+        }
+        let previous = vm.async_context();
+        vm.set_async_context(context);
+        AsyncContextSwapScope { vm, previous: Some(previous) }
+    }
+}
+
+impl Drop for AsyncContextSwapScope<'_> {
+    fn drop(&mut self) {
+        if let Some(previous) = self.previous {
+            self.vm.set_async_context(previous);
+        }
+    }
+}
+
 /// `InternalMicrotask::PromiseReactionJob`.
 pub fn promise_reaction_job(global_object: &JSGlobalObject, payload: u8, arguments: [JSValue; 4]) -> MicrotaskResult {
     let promise_or_capability = arguments[0];
@@ -307,7 +333,9 @@ pub fn promise_reaction_job(global_object: &JSGlobalObject, payload: u8, argumen
 
     // arguments[3] is the async context captured by performPromiseThen when the payload says so;
     // otherwise it is performPromiseThenWithContext's handler context (ver o cabeçalho do módulo).
-    let user_context = if payload & PROMISE_REACTION_JOB_ASYNC_CONTEXT_FLAG != 0 { JSValue::empty() } else { arguments[3] };
+    let has_async_context = payload & PROMISE_REACTION_JOB_ASYNC_CONTEXT_FLAG != 0;
+    let user_context = if has_async_context { JSValue::empty() } else { arguments[3] };
+    let _async_context_scope = AsyncContextSwapScope::new(global_object.vm(), if has_async_context { arguments[3] } else { JSValue::empty() });
 
     // When userContext is defined (not empty, undefined, or null), pass 2 arguments; otherwise 1.
     let outcome = if user_context.is_empty() || user_context.is_undefined_or_null() {
@@ -431,18 +459,21 @@ pub fn promise_finally_reaction_job(global_object: &JSGlobalObject, payload: u8,
     promise_resolve_thenable_job(global_object, result, then, resolve, reject)
 }
 
-/// `InternalMicrotask::InvokeFunctionJob`.
+/// `InternalMicrotask::InvokeFunctionJob`: `arguments[1]` é o contexto assíncrono capturado no agendamento (o
+/// `queueMicrotask`), vazio quando não há.
 pub fn invoke_function_job(global_object: &JSGlobalObject, arguments: [JSValue; 4]) -> MicrotaskResult {
+    let _async_context_scope = AsyncContextSwapScope::new(global_object.vm(), arguments[1]);
     call_microtask(global_object, arguments[0], JSValue::undefined(), &[], "handler is not a function").map(|_| ())
 }
 
-/// `InternalMicrotask::BunPerformMicrotaskJob`: `arguments[0]` é a função, `arguments[2]` e
-/// `arguments[3]` os argumentos opcionais (`arguments[1]` é o contexto assíncrono, que o porte não tem).
+/// `InternalMicrotask::BunPerformMicrotaskJob`: `arguments[0]` é a função, `arguments[1]` o contexto assíncrono e
+/// `arguments[2]` e `arguments[3]` os argumentos opcionais.
 pub fn bun_perform_microtask_job(global_object: &JSGlobalObject, arguments: [JSValue; 4]) -> MicrotaskResult {
     let job = arguments[0];
     if job.is_empty() || job.is_undefined_or_null() || !job.is_callable() {
         return Ok(());
     }
+    let _async_context_scope = AsyncContextSwapScope::new(global_object.vm(), arguments[1]);
 
     let extra: &[JSValue] = if !arguments[3].is_empty() {
         &arguments[2..4]
@@ -530,11 +561,12 @@ fn async_function_generator_body_call(
 }
 
 /// `InternalMicrotask::AsyncFunctionResume`: `arguments[1]` é a resolução do `await`, `arguments[2]` o
-/// gerador e o payload o `JSPromise::Status` dela (ver a DIVERGÊNCIA de `AsyncContextSwapScope`).
+/// gerador, `arguments[3]` o contexto assíncrono do `await` e o payload o `JSPromise::Status` dela.
 pub fn async_function_resume(payload: u8, arguments: [JSValue; 4]) -> MicrotaskResult {
     let generator = async_function_generator_of(&arguments[2]);
     let generator_global_object = generator_realm(&generator);
     let resume_mode = resume_mode_for_status(Status::from_flags(u16::from(payload)));
+    let _async_context_scope = AsyncContextSwapScope::new(generator_global_object.vm(), arguments[3]);
     // `VMEntryRecord::m_context` do C++: de onde `getStackTrace` tira os frames `async`.
     let _origin = crate::interpreter::unwind::enter_async_origin(&generator);
     async_function_generator_body_call(&generator_global_object, &generator, arguments[1], resume_mode)
@@ -547,6 +579,7 @@ pub fn async_generator_driver_resume(payload: u8, arguments: [JSValue; 4]) -> Mi
     let resume_mode = resume_mode_for_status(Status::from_flags(u16::from(payload)));
     if let Some(generator) = JSAsyncFunctionGenerator::from_value(&arguments[2]) {
         let generator_global_object = generator_realm(&generator);
+        let _async_context_scope = AsyncContextSwapScope::new(generator_global_object.vm(), arguments[3]);
         let _origin = crate::interpreter::unwind::enter_async_origin(&generator);
         return async_function_generator_body_call(&generator_global_object, &generator, arguments[1], resume_mode);
     }
