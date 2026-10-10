@@ -1,0 +1,3 @@
+genexp_range ['str', 'str', 'function', 'code', 'range_iterator']
+genexp_unstarted ['str', 'str', 'function', 'code', 'tuple_iterator']
+genexp_started ['str', 'str', 'function', 'code', 'tuple_iterator', 'int', 'tuple_iterator']

@@ -3321,7 +3321,7 @@ impl Vm {
         let env = self.bind_params(f, args, kwargs)?;
         let code = f.code.clone();
         if code.is_generator || code.is_async {
-            return Ok(Entered::Done(crate::generator::new_generator(self.clone(), code, env)));
+            return Ok(Entered::Done(crate::generator::new_generator(self.clone(), f.clone(), env)));
         }
         // O quadro do módulo também gasta uma unidade do limite no CPython (`py_recursion_remaining`),
         // mas aqui ele não entra em `depth`: os demais podem ir até `limit - 1`.

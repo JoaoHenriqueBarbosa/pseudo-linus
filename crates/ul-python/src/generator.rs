@@ -4,9 +4,9 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use crate::compile::{Code, Op};
+use crate::compile::Op;
 use crate::frameobj::FrameLink;
-use crate::object::{Env, ExcObj, ExtImage, ExtObject, Kw, Value};
+use crate::object::{Env, ExcObj, ExtImage, ExtObject, FuncObj, Kw, Value};
 use crate::vm::{exc, type_error, Exit, Frame, PyException, PyResult, Slot, Vm};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -20,8 +20,12 @@ struct GenState {
     /// O quadro suspenso: pilha, blocos, `pc` e as exceções em tratamento (o CPython guarda o
     /// `exc_info` no próprio gerador).
     frame: Frame,
+    /// A função que o criou (o `f_funcobj` do quadro do CPython).
+    func: Option<Rc<FuncObj>>,
     started: bool,
     done: bool,
+    /// O corpo correu até o fim (retorno ou exceção) e o quadro foi solto; o `close()` sem o que desfazer só põe `done`.
+    cleared: bool,
     running: bool,
     /// O valor do `return` que terminou o gerador, guardado só com o rastreio ligado, para o `for`
     /// que o consumiu gerar o evento `exception` do `StopIteration(valor)` (ver [`take_stop_value`]).
@@ -34,12 +38,14 @@ pub enum Resumed {
     Return(Value),
 }
 
-/// Os sinalizadores de um gerador: se já começou, se terminou e se está em execução.
+/// Os sinalizadores de um gerador: se já começou, se terminou e se está em execução, e se o corpo correu até o fim
+/// (o `FRAME_CLEARED` do CPython, que solta o quadro; o `close()` de um gerador parado só o marca `FRAME_COMPLETED`).
 #[derive(Clone, Copy)]
 pub struct GenFlags {
     pub started: bool,
     pub done: bool,
     pub running: bool,
+    pub cleared: bool,
 }
 
 /// O estado compartilhado de um gerador, de uma corrente ou de um gerador assíncrono: o gerador, o
@@ -77,7 +83,7 @@ impl Drop for GenCore {
         crate::finalize::enqueue_generator(Rc::new(GenCore {
             vm: self.vm.clone(),
             kind: self.kind,
-            state: RefCell::new(GenState { frame, started: true, done: false, running: false, returned: None }),
+            state: RefCell::new(GenState { frame, func: st.func.clone(), started: true, done: false, cleared: false, running: false, returned: None }),
             resurrected: true,
         }));
     }
@@ -108,10 +114,20 @@ impl GenCore {
         self.vm.globals.clone()
     }
 
+    /// A função que criou o gerador, para a imagem do heap.
+    pub(crate) fn function(&self) -> Option<Rc<FuncObj>> {
+        self.state.borrow().func.clone()
+    }
+
+    /// Põe a função do gerador (a reconstrução da imagem do heap).
+    pub(crate) fn set_function(&self, func: Option<Rc<FuncObj>>) {
+        self.state.borrow_mut().func = func;
+    }
+
     /// Lê o quadro suspenso, os sinalizadores e o valor de retorno guardado.
     pub(crate) fn inspect<R>(&self, f: impl FnOnce(&Frame, GenFlags, Option<&Value>) -> R) -> R {
         let st = self.state.borrow();
-        f(&st.frame, GenFlags { started: st.started, done: st.done, running: st.running }, st.returned.as_ref())
+        f(&st.frame, GenFlags { started: st.started, done: st.done, running: st.running, cleared: st.cleared }, st.returned.as_ref())
     }
 
     /// Altera o quadro suspenso e o valor de retorno guardado (a reconstrução da imagem do heap).
@@ -136,9 +152,11 @@ impl GenCore {
             kind,
             state: RefCell::new(GenState {
                 frame,
+                func: None,
                 started: flags.started,
                 done: flags.done,
                 running: flags.running,
+                cleared: flags.cleared,
                 returned: None,
             }),
             resurrected: false,
@@ -191,7 +209,8 @@ pub struct GenObj {
 
 /// Cria o objeto de uma chamada de função com `yield` ou `async def`; o corpo só roda na primeira
 /// retomada.
-pub fn new_generator(vm: Vm, code: Rc<Code>, env: Rc<Env>) -> Value {
+pub fn new_generator(vm: Vm, func: Rc<FuncObj>, env: Rc<Env>) -> Value {
+    let code = func.code.clone();
     let kind = match (code.is_async, code.is_generator) {
         (true, true) => Kind::AsyncGenerator,
         (true, false) => Kind::Coroutine,
@@ -200,7 +219,7 @@ pub fn new_generator(vm: Vm, code: Rc<Code>, env: Rc<Env>) -> Value {
     let core = Rc::new(GenCore {
         vm,
         kind,
-        state: RefCell::new(GenState { frame: Frame::new(code, env), started: false, done: false, running: false, returned: None }),
+        state: RefCell::new(GenState { frame: Frame::new(code, env), func: Some(func), started: false, done: false, cleared: false, running: false, returned: None }),
         resurrected: false,
     });
     if kind != Kind::AsyncGenerator {
@@ -498,6 +517,7 @@ impl GenCore {
         if !st.started {
             if let Some(e) = inject {
                 st.done = true;
+                st.cleared = true;
                 return Err(e);
             }
             if sent.is_some_and(|v| !matches!(v, Value::None)) {
@@ -607,6 +627,7 @@ impl GenCore {
             }
             Ok(Exit::Return(v)) => {
                 st.done = true;
+                st.cleared = true;
                 if crate::tracing::active() && !matches!(v, Value::None) {
                     st.returned = Some(v.clone());
                 }
@@ -614,6 +635,7 @@ impl GenCore {
             }
             Err(e) => {
                 st.done = true;
+                st.cleared = true;
                 Err(e)
             }
         };
@@ -672,6 +694,44 @@ impl ExtObject for GenObj {
     }
     fn image(&self) -> Option<ExtImage> {
         Some(ExtImage::Generator { core: self.core.clone(), role: GenRole::Object })
+    }
+    /// `gen_traverse`: o nome e o qualname, e, enquanto o quadro não foi solto (`cleared`: o corpo correu até o fim),
+    /// o que `_PyFrame_Traverse` visita: a função, o código, os locais não nulos (parâmetros, locais, células e livres,
+    /// na ordem de `co_localsplus`) e a pilha de valores.
+    fn referents(&self) -> Vec<Value> {
+        let st = self.core.state.borrow();
+        let code = &st.frame.code;
+        let mut out = vec![Value::str(code.name.clone()), Value::str(code.qual())];
+        if st.cleared {
+            return out;
+        }
+        out.extend(st.func.clone().map(Value::Function));
+        let file = if code.filename.is_empty() { self.core.vm.script_name() } else { code.filename.clone() };
+        out.push(crate::tbobj::function_code(code, &file));
+        // `close()` de um gerador parado só marca o quadro como terminado e solta os locais e a pilha.
+        if st.done && st.started {
+            return out;
+        }
+        let env = &st.frame.env;
+        let vars = env.vars.borrow();
+        let layout = crate::cpybc::layout(code);
+        // Uma variável que função de dentro fecha, ou que este código fecha, é uma `cell` no quadro do CPython.
+        let is_cell = |name: &Rc<str>| layout.cellvars.contains(name) || layout.freevars.contains(name);
+        let names = layout
+            .varnames
+            .iter()
+            .chain(layout.cellvars.iter().filter(|c| !layout.varnames.contains(c)))
+            .chain(layout.freevars.iter());
+        out.extend(names.filter_map(|name| {
+            if is_cell(name) { Some(crate::classes::frame_cell(env, name)) } else { vars.get(name).cloned() }
+        }));
+        for slot in &st.frame.stack {
+            out.push(match slot {
+                Slot::Val(v) => v.clone(),
+                Slot::Iter(it) => crate::lazy::iterator_object(it),
+            });
+        }
+        out
     }
     fn type_name(&self) -> &'static str {
         self.type_str()

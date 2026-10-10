@@ -135,12 +135,36 @@ fn gl_context_scene_matches_the_oracle() {
 /// `gc.get_referents` como o `tp_traverse` do CPython nos tipos básicos: ordem e conteúdo (valor antes da chave no
 /// dict de chaves não `str`, os campos de `__slots__` antes do `__dict__` e do tipo, o quadro de uma função...).
 #[test]
-#[ignore = "WIP: faltam len (NativeFn) e os iteradores (list_iterator, enumerate, zip, map) e o gerador"]
 fn gc_referents_scene_matches_the_oracle() {
     scene_matches(
         "gc_referents",
         include_str!("../../../testbench/oracle/automation/cases/gc_referents.py"),
         include_str!("../../../testbench/oracle/automation/golden/gc_referents.out"),
+    );
+}
+
+/// `gc.get_referents` de geradores (a função, o código, os locais e a pilha enquanto o quadro vive; só o nome depois
+/// de o corpo correr até o fim; o `close()` de um gerador parado), dos iteradores (com a origem, e sem ela depois de
+/// esgotados), de `map`, `zip`, `enumerate`, `filter` e `iter(f, s)`, e das funções de módulo.
+#[test]
+fn gc_referents_generators_and_iterators_scene_matches_the_oracle() {
+    scene_matches(
+        "gc_referents_gen",
+        include_str!("../../../testbench/oracle/automation/cases/gc_referents_gen.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gc_referents_gen.out"),
+    );
+}
+
+/// `gc.get_referents` de uma expressão geradora. Divergência aberta: o `.0` do nosso gerador é o iterável, e o
+/// CPython guarda o iterador que quem a criou obteve (`GET_ITER` fora do corpo); e a lista literal de constantes do
+/// `for` vira tupla na compilação do CPython. Os dois são mudanças de compilação (`comprehension_function`).
+#[test]
+#[ignore = "o .0 da expressão geradora é o iterável (falta o GET_ITER do lado de fora) e falta a lista literal virar tupla"]
+fn gc_referents_generator_expression_scene_matches_the_oracle() {
+    scene_matches(
+        "gc_referents_genexp",
+        include_str!("../../../testbench/oracle/automation/cases/gc_referents_genexp.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gc_referents_genexp.out"),
     );
 }
 

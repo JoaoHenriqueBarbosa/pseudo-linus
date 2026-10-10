@@ -257,6 +257,11 @@ pub trait ExtObject {
     fn image(&self) -> Option<ExtImage> {
         None
     }
+    /// O que o `tp_traverse` do tipo visita, na ordem do CPython (`gc.get_referents`, ver `referents`); vazio para o
+    /// tipo que não guarda referência nenhuma.
+    fn referents(&self) -> Vec<Value> {
+        Vec::new()
+    }
 }
 
 /// Módulo: nome e atributos (preenchidos pelo construtor do módulo em `modules`).
