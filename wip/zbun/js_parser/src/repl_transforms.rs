@@ -360,7 +360,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                             // Share a single await import() between default and named imports.
                             // namespace_ref is synthesized by processImportStatement for all non-star imports.
                             self.repl_convert_named_imports(
-                                &*import_data,
+                                &self.store[import_data],
                                 import_items,
                                 await_expr,
                                 &mut hoisted_stmts,
@@ -442,7 +442,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     } else if !import_items.is_empty() {
                         // import { a, b } from 'mod' -> destructure from await import('mod')
                         self.repl_convert_named_imports(
-                            &*import_data,
+                            &self.store[import_data],
                             import_items,
                             await_expr,
                             &mut hoisted_stmts,

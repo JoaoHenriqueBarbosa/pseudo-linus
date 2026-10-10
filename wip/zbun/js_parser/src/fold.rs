@@ -370,7 +370,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     .data
                                     .e_object()
                                     .expect("infallible: variant checked");
-                                let props: &[G::Property] = self.store[right_obj].properties.slice();
+                                let props: &[G::Property] = (&self.store[self.store[right_obj].properties]);
                                 for prop in props {
                                     // if it's not a trivial object literal, de-opt
                                     if prop.kind != G::PropertyKind::Normal
@@ -841,7 +841,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 js_ast::ts::Data::EnumString(str_ptr) => {
                     p.ignore_usage_of_identifier_in_dot_chain(*target);
-                    let value = p.new_expr(&*str_ptr, loc);
+                    let value = p.new_expr(&self.store[str_ptr], loc);
                     return Some(p.wrap_inlined_enum(value, name));
                 }
 

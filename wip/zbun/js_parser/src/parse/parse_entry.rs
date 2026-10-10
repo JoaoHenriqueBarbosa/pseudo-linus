@@ -591,7 +591,7 @@ impl<'a> Parser<'a> {
         if !runtime_api_call.is_empty() {
             let args_slice: &mut [Expr] = p.arena.alloc_slice_fill_with(1, |_| expr);
             let args = Vec::from_arena_slice(args_slice);
-            final_expr = p.call_runtime(expr.loc, runtime_api_call, self.store.alloc_slice(args));
+            final_expr = p.call_runtime(expr.loc, runtime_api_call, p.store.alloc_slice(args));
         }
 
         let ns_export_part = js_ast::Part {
@@ -599,7 +599,7 @@ impl<'a> Parser<'a> {
             ..Default::default()
         };
 
-        let lazy_data = self.store.alloc(final_expr.data);
+        let lazy_data = p.store.alloc(final_expr.data);
         let stmts: &mut [Stmt] = p.arena.alloc_slice_fill_with(1, |_| Stmt {
             data: js_ast::StmtData::SLazyExport(lazy_data),
             loc: expr.loc,

@@ -45,21 +45,21 @@ impl<'a> ConvertESMExportsForHmr<'a> {
     ) -> Result<(), AllocError> {
         let new_stmt: Stmt = match stmt.data {
             js_ast::StmtData::SLocal(mut st) => 'stmt: {
-                if !self.store[st].is_export {
+                if !p.store[st].is_export {
                     break 'stmt stmt;
                 }
 
-                self.store[st].is_export = false;
+                p.store[st].is_export = false;
 
                 let mut new_len: usize = 0;
                 // Note: reshaped for borrowck: index loop instead of `|*decl_ptr|`.
-                let decls_len = self.store[st].decls.len_u32() as usize;
+                let decls_len = p.store[st].decls.len_u32() as usize;
                 for i in 0..decls_len {
                     // explicit field copies (G::Decl is not `Copy`) to avoid aliasing
-                    let binding = self.store[st].decls.slice()[i].binding;
-                    let value = self.store[st].decls.slice()[i].value;
+                    let binding = p.store[st].decls.slice()[i].binding;
+                    let value = p.store[st].decls.slice()[i].value;
                     let Some(value) = value else {
-                        self.store[st].decls[new_len] = G::Decl {
+                        p.store[st].decls[new_len] = G::Decl {
                             binding,
                             value: None,
                         };
@@ -72,7 +72,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                         B::B::BMissing(_) => {}
 
                         B::B::BIdentifier(id) => {
-                            let id_ref = self.store[id].r#ref;
+                            let id_ref = p.store[id].r#ref;
                             let symbol = &p.symbols[id_ref.inner_index() as usize];
 
                             // if the symbol is not used, we don't need to preserve
@@ -88,7 +88,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                                     ..Default::default()
                                 });
                             } else {
-                                self.store[st].decls[new_len] = G::Decl {
+                                p.store[st].decls[new_len] = G::Decl {
                                     binding,
                                     value: Some(value),
                                 };
@@ -98,7 +98,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                         }
 
                         _ => {
-                            self.store[st].decls[new_len] = G::Decl {
+                            p.store[st].decls[new_len] = G::Decl {
                                 binding,
                                 value: Some(value),
                             };
@@ -110,7 +110,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                 if new_len == 0 {
                     return Ok(());
                 }
-                self.store[st].decls.truncate(new_len);
+                p.store[st].decls.truncate(new_len);
 
                 break 'stmt stmt;
             }
@@ -118,23 +118,23 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                 // When React Fast Refresh needs to tag the default export, the statement
                 // cannot be moved, since a local reference is required.
                 if p.options.features.react_fast_refresh
-                    && matches!(self.store[st].value, js_ast::StmtOrExpr::Stmt(s) if matches!(s.data, js_ast::StmtData::SFunction(_)))
+                    && matches!(p.store[st].value, js_ast::StmtOrExpr::Stmt(s) if matches!(s.data, js_ast::StmtData::SFunction(_)))
                 {
                     'fast_refresh_edge_case: {
-                        let js_ast::StmtOrExpr::Stmt(s) = &self.store[st].value else {
+                        let js_ast::StmtOrExpr::Stmt(s) = &p.store[st].value else {
                             unreachable!()
                         };
                         let js_ast::StmtData::SFunction(f) = s.data else {
                             unreachable!()
                         };
-                        let Some(symbol) = self.store[f].func.name else {
+                        let Some(symbol) = p.store[f].func.name else {
                             break 'fast_refresh_edge_case;
                         };
                         let name = p.symbols[symbol.ref_.inner_index() as usize].original_name;
                         if ReactRefresh::is_componentish_name(name.slice()) {
                             // Lower to a function statement, and reference the function in the export list.
                             self.export_props.push(G::Property {
-                                key: Some(Expr::init(E::EString::init(self.store.alloc_str(b"default")), stmt.loc)),
+                                key: Some(Expr::init(E::EString::init(p.store.alloc_str(b"default")), stmt.loc)),
                                 value: Some(Expr::init_identifier(symbol.ref_, stmt.loc)),
                                 ..Default::default()
                             });
@@ -145,11 +145,11 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                 }
 
                 // Try to move the export default expression to the end.
-                let can_be_moved_to_inner_scope = match &self.store[st].value {
+                let can_be_moved_to_inner_scope = match &p.store[st].value {
                     js_ast::StmtOrExpr::Stmt(s) => match s.data {
                         js_ast::StmtData::SClass(c) => {
-                            self.store[c].class.can_be_moved()
-                                && (if let Some(name) = self.store[c].class.class_name {
+                            p.store[c].class.can_be_moved()
+                                && (if let Some(name) = p.store[c].class.class_name {
                                     p.symbols[name.ref_.inner_index() as usize].use_count_estimate
                                         == 0
                                 } else {
@@ -157,7 +157,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                                 })
                         }
                         js_ast::StmtData::SFunction(f) => {
-                            if let Some(name) = self.store[f].func.name {
+                            if let Some(name) = p.store[f].func.name {
                                 p.symbols[name.ref_.inner_index() as usize].use_count_estimate == 0
                             } else {
                                 true
@@ -167,16 +167,16 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                     },
                     js_ast::StmtOrExpr::Expr(e) => match e.data {
                         js_ast::ExprData::EIdentifier(_) => true,
-                        _ => e.can_be_moved(&self.store),
+                        _ => e.can_be_moved(&p.store),
                     },
                 };
                 if can_be_moved_to_inner_scope {
                     // Note: `StmtOrExpr` is not `Copy`; read by ptr to avoid moving
                     // out of the StoreRef deref.
                     // SAFETY: StoreRef points into a live arena; value is POD-shaped.
-                    let value = unsafe { core::ptr::read(&raw const self.store[st].value) }.to_expr();
+                    let value = unsafe { core::ptr::read(&raw const p.store[st].value) }.to_expr();
                     self.export_props.push(G::Property {
-                        key: Some(Expr::init(E::EString::init(self.store.alloc_str(b"default")), stmt.loc)),
+                        key: Some(Expr::init(E::EString::init(p.store.alloc_str(b"default")), stmt.loc)),
                         value: Some(value),
                         ..Default::default()
                     });
@@ -185,7 +185,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                 }
 
                 // Otherwise, an identifier must be exported
-                match &self.store[st].value {
+                match &p.store[st].value {
                     js_ast::StmtOrExpr::Expr(_) => {
                         let temp_id = p.generate_temp_ref(Some(b"default_export"));
                         self.last_part
@@ -201,13 +201,13 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                         VecExt::append(&mut p.current_scope_mut().generated, temp_id);
 
                         self.export_props.push(G::Property {
-                            key: Some(Expr::init(E::EString::init(self.store.alloc_str(b"default")), stmt.loc)),
+                            key: Some(Expr::init(E::EString::init(p.store.alloc_str(b"default")), stmt.loc)),
                             value: Some(Expr::init_identifier(temp_id, stmt.loc)),
                             ..Default::default()
                         });
 
                         // SAFETY: as above: POD-shaped read out of arena.
-                        let value = unsafe { core::ptr::read(&raw const self.store[st].value) }.to_expr();
+                        let value = unsafe { core::ptr::read(&raw const p.store[st].value) }.to_expr();
                         let mut decls = Vec::new();
                         VecExt::append(
                             &mut decls,
@@ -236,13 +236,13 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                                 // but leaves an anonymous default class unnamed. A
                                 // class statement needs a binding, so use the
                                 // statement's default name like convertStmtsForChunk.
-                                self.store[class].class.class_name.get_or_insert(self.store[st].default_name).ref_
+                                p.store[class].class.class_name.get_or_insert(p.store[st].default_name).ref_
                             }
-                            js_ast::StmtData::SFunction(func) => self.store[func].func.name.unwrap().ref_,
+                            js_ast::StmtData::SFunction(func) => p.store[func].func.name.unwrap().ref_,
                             _ => unreachable!(),
                         };
                         self.export_props.push(G::Property {
-                            key: Some(Expr::init(E::EString::init(self.store.alloc_str(b"default")), stmt.loc)),
+                            key: Some(Expr::init(E::EString::init(p.store.alloc_str(b"default")), stmt.loc)),
                             value: Some(Expr::init_identifier(ref_, stmt.loc)),
                             ..Default::default()
                         });
@@ -252,11 +252,11 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             }
             js_ast::StmtData::SClass(mut st) => 'stmt: {
                 // Strip the "export" keyword
-                if !self.store[st].is_export {
+                if !p.store[st].is_export {
                     break 'stmt stmt;
                 }
 
-                let class_name_ref = self.store[st].class.class_name.unwrap().ref_;
+                let class_name_ref = p.store[st].class.class_name.unwrap().ref_;
                 // Export as CommonJS
                 self.export_props.push(G::Property {
                     key: Some(Expr::init(
@@ -272,24 +272,24 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                     ..Default::default()
                 });
 
-                self.store[st].is_export = false;
+                p.store[st].is_export = false;
 
                 break 'stmt stmt;
             }
             js_ast::StmtData::SFunction(mut st) => 'stmt: {
                 // Strip the "export" keyword
-                if !self.store[st].func.flags.contains(bun_ast::flags::Function::IsExport) {
+                if !p.store[st].func.flags.contains(bun_ast::flags::Function::IsExport) {
                     break 'stmt stmt;
                 }
 
-                self.store[st].func.flags.remove(bun_ast::flags::Function::IsExport);
+                p.store[st].func.flags.remove(bun_ast::flags::Function::IsExport);
 
-                self.visit_ref_to_export(p, self.store[st].func.name.unwrap().ref_, None, stmt.loc, false)?;
+                self.visit_ref_to_export(p, p.store[st].func.name.unwrap().ref_, None, stmt.loc, false)?;
 
                 break 'stmt stmt;
             }
             js_ast::StmtData::SExportClause(st) => {
-                for item in self.store[st].items.iter() {
+                for item in p.store[st].items.iter() {
                     let ref_ = item.name.ref_;
                     self.visit_ref_to_export(p, ref_, Some(item.alias), item.name.loc, false)?;
                 }
@@ -299,14 +299,14 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             js_ast::StmtData::SExportFrom(st) => {
                 let deduped = self.deduplicated_import(
                     p,
-                    self.store[st].import_record_index,
-                    self.store[st].namespace_ref,
-                    self.store[st].items,
+                    p.store[st].import_record_index,
+                    p.store[st].namespace_ref,
+                    p.store[st].items,
                     stmt.loc,
                     None,
                     stmt.loc,
                 )?;
-                for item in self.store[st].items.slice_mut().iter_mut() {
+                for item in p.store[st].items.slice_mut().iter_mut() {
                     let ref_ = item.name.ref_;
                     let symbol = &mut p.symbols[ref_.inner_index() as usize];
                     // Always set the namespace alias using the deduplicated import
@@ -341,15 +341,15 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             js_ast::StmtData::SExportStar(st) => {
                 let deduped = self.deduplicated_import(
                     p,
-                    self.store[st].import_record_index,
-                    self.store[st].namespace_ref,
+                    p.store[st].import_record_index,
+                    p.store[st].namespace_ref,
                     bun_ast::StoreSlice::EMPTY,
                     stmt.loc,
                     None,
                     stmt.loc,
                 )?;
 
-                if let Some(alias) = &self.store[st].alias {
+                if let Some(alias) = &p.store[st].alias {
                     // 'export * as ns from' creates one named property.
                     self.export_props.push(G::Property {
                         // SAFETY: arena-owned name slice valid for the parse.
@@ -376,11 +376,11 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             js_ast::StmtData::SImport(st) => {
                 let _ = self.deduplicated_import(
                     p,
-                    self.store[st].import_record_index,
-                    self.store[st].namespace_ref,
-                    self.store[st].items,
-                    self.store[st].star_name_loc,
-                    self.store[st].default_name,
+                    p.store[st].import_record_index,
+                    p.store[st].namespace_ref,
+                    p.store[st].items,
+                    p.store[st].star_name_loc,
+                    p.store[st].default_name,
                     stmt.loc,
                 )?;
                 return Ok(());
@@ -407,7 +407,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
         let path_text = p.import_records.items()[import_record_index as usize]
             .path
             .text;
-        let gop = self.imports_seen.get_or_put(self.store.str(path_text))?;
+        let gop = self.imports_seen.get_or_put(p.store.str(path_text))?;
         if gop.found_existing {
             let stmt_index = gop.value_ptr.stmt_index;
             // Disable this one since an older record is getting used.  It isn't
@@ -424,18 +424,18 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             // optimization (when the first export-from statement's exports
             // were all deferred). Since we are merging new items into it,
             // clear is_unused so the import is actually emitted.
-            p.import_records.items_mut()[self.store[stmt].import_record_index as usize]
+            p.import_records.items_mut()[p.store[stmt].import_record_index as usize]
                 .flags
                 .remove(import_record::Flags::IS_UNUSED);
 
             let items_len = items.len();
             if items_len > 0 {
-                if self.store[stmt].items.is_empty() {
-                    self.store[stmt].items = items;
+                if p.store[stmt].items.is_empty() {
+                    p.store[stmt].items = items;
                 } else {
                     // Allocate the concatenated slice in the arena.
                     // ClauseItem fields are all bitwise-copyable; copy raw to avoid Clone bound.
-                    let prev_len = self.store[stmt].items.len();
+                    let prev_len = p.store[stmt].items.len();
                     let concat = p.arena.alloc_slice_fill_with(prev_len + items_len, |_| {
                         js_ast::ClauseItem::default()
                     });
@@ -443,7 +443,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                     // ClauseItem is POD-shaped.
                     unsafe {
                         core::ptr::copy_nonoverlapping(
-                            self.store[stmt].items.as_ptr(),
+                            p.store[stmt].items.as_ptr(),
                             concat.as_mut_ptr(),
                             prev_len,
                         );
@@ -453,41 +453,41 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                             items_len,
                         );
                     }
-                    self.store[stmt].items = self.store.alloc_slice(concat);
+                    p.store[stmt].items = p.store.alloc_slice(concat);
                 }
             }
             if namespace_ref.is_valid() {
-                if !self.store[stmt].namespace_ref.is_valid() {
-                    self.store[stmt].namespace_ref = namespace_ref;
+                if !p.store[stmt].namespace_ref.is_valid() {
+                    p.store[stmt].namespace_ref = namespace_ref;
                     return Ok(DeduplicatedImportResult {
                         namespace_ref,
-                        import_record_index: self.store[stmt].import_record_index,
+                        import_record_index: p.store[stmt].import_record_index,
                     });
                 } else {
                     // Erase this namespace ref, but since it may be used in
                     // existing AST trees, a link must be established.
                     let symbol = &mut p.symbols[namespace_ref.inner_index() as usize];
                     symbol.use_count_estimate = 0;
-                    symbol.link.set(self.store[stmt].namespace_ref);
+                    symbol.link.set(p.store[stmt].namespace_ref);
                     // Note: the concrete `P` always carries `symbol_uses`;
                     // once a `ParserLike` trait is introduced for
                     // AstBuilder, that variant should override this to a no-op.
                     p.forget_part_use(namespace_ref);
                 }
             }
-            if self.store[stmt].star_name_loc.is_empty() {
+            if p.store[stmt].star_name_loc.is_empty() {
                 if let Some(stl) = star_name_loc.to_nullable() {
-                    self.store[stmt].star_name_loc = stl;
+                    p.store[stmt].star_name_loc = stl;
                 }
             }
-            if self.store[stmt].default_name.is_none() {
+            if p.store[stmt].default_name.is_none() {
                 if let Some(dn) = default_name {
-                    self.store[stmt].default_name = Some(dn);
+                    p.store[stmt].default_name = Some(dn);
                 }
             }
             return Ok(DeduplicatedImportResult {
-                namespace_ref: self.store[stmt].namespace_ref,
-                import_record_index: self.store[stmt].import_record_index,
+                namespace_ref: p.store[stmt].namespace_ref,
+                import_record_index: p.store[stmt].import_record_index,
             });
         }
 
@@ -521,15 +521,15 @@ impl<'a> ConvertESMExportsForHmr<'a> {
         match binding.data {
             B::B::BMissing(_) => {}
             B::B::BIdentifier(id) => {
-                self.visit_ref_to_export(p, self.store[id].r#ref, None, binding.loc, false)?;
+                self.visit_ref_to_export(p, p.store[id].r#ref, None, binding.loc, false)?;
             }
             B::B::BArray(array) => {
-                for item in self.store[array].items.iter() {
+                for item in p.store[array].items.iter() {
                     self.visit_binding_to_export(p, item.binding)?;
                 }
             }
             B::B::BObject(object) => {
-                for item in self.store[object].properties.iter() {
+                for item in p.store[object].properties.iter() {
                     self.visit_binding_to_export(p, item.value)?;
                 }
             }
@@ -578,14 +578,14 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             // mutate the field in the exports object. Re-exports can just be
             // encoded into the module format, propagated in `replaceModules`
             let key = Expr::init(
-                E::EString::init(self.store.str(export_symbol_name.unwrap_or(original_name))),
+                E::EString::init(p.store.str(export_symbol_name.unwrap_or(original_name))),
                 loc,
             );
 
             // This is technically incorrect in that we've marked this as a
             // top level symbol. but all we care about is preventing name
             // collisions, not necessarily the best minificaiton (dev only)
-            let arg1 = p.generate_temp_ref(Some(self.store.str(original_name)));
+            let arg1 = p.generate_temp_ref(Some(p.store.str(original_name)));
             self.last_part
                 .declared_symbols
                 .append(js_ast::DeclaredSymbol {
@@ -609,7 +609,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                     E::Function {
                         func: G::Fn {
                             body: G::FnBody {
-                                stmts: self.store.alloc_slice(body_stmts),
+                                stmts: p.store.alloc_slice(body_stmts),
                                 loc,
                             },
                             ..Default::default()
@@ -624,7 +624,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             // 'abc,'
             self.export_props.push(G::Property {
                 key: Some(Expr::init(
-                    E::EString::init(self.store.str(export_symbol_name.unwrap_or(original_name))),
+                    E::EString::init(p.store.str(export_symbol_name.unwrap_or(original_name))),
                     loc,
                 )),
                 value: Some(id),
@@ -654,7 +654,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
         if !self.export_props.is_empty() {
             let obj = Expr::init(
                 E::Object {
-                    properties: self.store.alloc_slice(core::mem::take(
+                    properties: p.store.alloc_slice(core::mem::take(
                         &mut self.export_props,
                     )),
                     ..Default::default()
@@ -711,7 +711,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                                 },
                                 bun_ast::Loc::EMPTY,
                             ),
-                            args: self.store.alloc_slice(Vec::new()),
+                            args: p.store.alloc_slice(Vec::new()),
                             ..Default::default()
                         },
                         bun_ast::Loc::EMPTY,
@@ -763,7 +763,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
         // Note: `Stmt` is `Copy`;
         // copy into the parser arena so the `StoreSlice<Stmt>` outlives this struct.
         let stmts = core::mem::take(&mut self.stmts);
-        self.last_part.stmts = self.store.alloc_slice(p.arena.alloc_slice_copy(&stmts));
+        self.last_part.stmts = p.store.alloc_slice(p.arena.alloc_slice_copy(&stmts));
         self.last_part.tag = bun_ast::PartTag::None;
         Ok(())
     }

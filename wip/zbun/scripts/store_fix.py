@@ -105,10 +105,10 @@ def store_name(lines, line_index):
                 signature += lines[j]
                 if b"{" in lines[j] or b";" in lines[j]:
                     break
-            if re.search(rb"(&\s*(mut\s+)?|\bmut\s+)self\b|\bself\s*:", signature):
-                return "self.store"
             if re.search(rb"\bp\s*:", signature):
                 return "p.store"
+            if re.search(rb"(&\s*(mut\s+)?|\bmut\s+)self\b|\bself\s*:", signature):
+                return "self.store"
             return None
     return None
 
@@ -129,7 +129,11 @@ def collect(diagnostics):
         if span is None or span["file_name"].startswith("/"):
             continue
         rule = None
-        if code == "E0609" and (found := FIELD_RE.match(text)):
+        if code == "E0609" and re.match(r"^no field `store` on type `&mut (?!P\b)", text):
+            rule = ("self_to_p", "", "", "")
+        elif code == "E0614" and re.match(r"^type `StoreRef<[^`]*>` cannot be dereferenced", text):
+            rule = ("deref", "", "", "")
+        elif code == "E0609" and (found := FIELD_RE.match(text)):
             rule = ("field", found.group(1), found.group(2) or "", "")
         elif code == "E0277" and INDEX_RE.match(text):
             rule = ("index", "", "", "")
@@ -194,6 +198,25 @@ def main():
             kind, member, ref, _ = rule
             line_index = max(i for i, st in enumerate(starts) if st <= byte_start)
             store = store_name(lines, line_index)
+            if kind == "self_to_p":
+                # método de um auxiliar (não o P) que recebe `p`: o Store é o do `p`
+                if data[byte_start - 5 : byte_start] == b"self.":
+                    ops.append((byte_start - 5, 4, b"p", 1))
+                    totals[kind] += 1
+                else:
+                    skipped += 1
+                    print(f"pulado: {name}:{line_index + 1} self_to_p sem self.")
+                continue
+            if kind == "deref":
+                # `*r` (r: StoreRef) -> `STORE[r]`, em inserções para não colidir com trocas dentro do operando
+                if store is None or data[byte_start : byte_start + 1] != b"*":
+                    skipped += 1
+                    print(f"pulado: {name}:{line_index + 1} deref (store={store})")
+                    continue
+                ops.append((byte_start, 1, f"{store}[".encode(), 1))
+                ops.append((byte_end, 0, b"]", 0))
+                totals[kind] += 1
+                continue
             if kind == "index":
                 ops.append((byte_start, 0, b"*", 1))
                 totals[kind] += 1

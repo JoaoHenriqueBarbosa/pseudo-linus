@@ -59,7 +59,7 @@ impl<'a> ImportScanner<'a> {
             let mut stmt = stmts[i]; // copy
             match stmt.data {
                 js_ast::StmtData::SImport(mut import_ptr) => {
-                    let st: &mut S::Import = &mut *import_ptr;
+                    let st: &mut S::Import = &mut p.store[import_ptr];
 
                     let import_record_index = st.import_record_index;
                     // We can't keep a long-lived `&mut ImportRecord` for the whole arm

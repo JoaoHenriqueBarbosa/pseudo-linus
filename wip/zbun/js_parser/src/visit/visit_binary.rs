@@ -114,7 +114,7 @@ impl BinaryExpressionVisitor {
         // only, so `v.loc` reads below split-borrow cleanly.
         let e_handle: StoreRef<E::Binary> = v.e;
         let e_ptr: *mut E::Binary = e_handle.as_ptr();
-        let e_ = &mut *v.e;
+        let e_ = &mut p.store[v.e];
 
         let is_call_target =
             matches!(p.call_target, ExprData::EBinary(ptr) if core::ptr::eq(ptr.as_ptr(), e_ptr));
@@ -725,7 +725,7 @@ impl BinaryExpressionVisitor {
         // via `StoreRef::DerefMut`, so the early-return re-wrap below does not
         // overlap `e_`'s borrow of `v.e`.
         let e_handle: StoreRef<E::Binary> = v.e;
-        let e_: &mut E::Binary = &mut *v.e;
+        let e_: &mut E::Binary = &mut p.store[v.e];
         match e_.left.data {
             // Special-case private identifiers
             ExprData::EPrivateIdentifier(mut private) => {

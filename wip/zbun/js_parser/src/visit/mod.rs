@@ -367,7 +367,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // When hooks are immediately assigned to something, we need to hash the binding.
                     if let Some(last_hook) = self.react_refresh.last_hook_seen {
                         if let Some(call) = decl.value.unwrap().data.e_call() {
-                            if core::ptr::eq(last_hook, &raw const *call) {
+                            if core::ptr::eq(last_hook, &raw const self.store[call]) {
                                 // disjoint field borrows: `react_refresh.hook_ctx_storage`
                                 // points at caller-frame stack storage (detached lifetime via
                                 // `hook_ctx_mut`), and `symbols` is an independent field of `P`.

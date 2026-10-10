@@ -740,7 +740,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> Drop for P<'a, TYPESCRIP
             drop(core::mem::take(&mut self.store[scope].property_accesses));
         }
         for mut map in self.ts_namespace_member_maps.drain(..) {
-            drop(core::mem::take(&mut *map));
+            drop(core::mem::take(&mut self.store[map]));
         }
     }
 }
@@ -2243,7 +2243,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 // SAFETY: arena-owned original_name slice.
                                 let name = self.store.str(self.symbols[ref_.inner_index() as usize]
                                     .original_name);
-                                let value = self.new_expr(&*str_ptr, loc);
+                                let value = self.new_expr(&self.store[str_ptr], loc);
                                 return self.wrap_inlined_enum(value, name);
                             }
                             js_ast::ts::Data::Namespace(map) => {
@@ -2301,7 +2301,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // SAFETY: arena-owned original_name slice.
                         let name = self.store.str(self.symbols[ref_.inner_index() as usize]
                             .original_name);
-                        let value = self.new_expr(&*str_ptr, loc);
+                        let value = self.new_expr(&self.store[str_ptr], loc);
                         return self.wrap_inlined_enum(value, name);
                     }
                     js_ast::ts::Data::Namespace(map) => {
@@ -3520,7 +3520,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // immutable bits (kind/parent/strict_mode/members snapshot) up front; the
         // only later access is the `scope.generated` push (DerefMut, after the
         // shared borrow is dropped) and the post-loop `children` walk.
-        let scope_ref = &*scope;
+        let scope_ref = &self.store[scope];
         if !scope_ref.kind_stops_hoisting() {
             let arena = self.arena;
             // Re-borrow `self.symbols` after each `new_symbol` call.
@@ -3626,7 +3626,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     while let Some(mut _scope_ptr) = __scope {
                         // `_scope_ptr` walks the parent chain so it never aliases `scope`
                         // (whose only live borrow is the by-value members snapshot above).
-                        let _scope = &mut *_scope_ptr;
+                        let _scope = &mut self.store[_scope_ptr];
                         let scope_kind = _scope.kind;
 
                         // Variable declarations hoisted past a "with" statement may actually end
@@ -6234,7 +6234,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             js_ast::ExprData::EDot(ex) => return self.store[*ex].can_be_removed_if_unused,
-            js_ast::ExprData::EClass(ex) => return self.class_can_be_removed_if_unused(&**ex),
+            js_ast::ExprData::EClass(ex) => return self.class_can_be_removed_if_unused(&self.store[*ex]),
             js_ast::ExprData::EIdentifier(ex) => {
                 debug_assert!(!ex.ref_.is_source_contents_slice()); // was not visited
 
@@ -7154,7 +7154,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 );
             }
             js_ast::ExprData::EString(str_) => {
-                return self.new_expr(&*str_, loc);
+                return self.new_expr(&self.store[str_], loc);
             }
             _ => {}
         }
@@ -9493,7 +9493,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 match &stmt.data {
                     js_ast::StmtData::SFunction(_) => {}
                     js_ast::StmtData::SClass(class) => {
-                        if !self.store[*class].class.can_be_moved() {
+                        if !self.store[*class].class.can_be_moved(&self.store) {
                             return true;
                         }
                     }
@@ -9505,7 +9505,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 if let Some(value) = &decl.value {
                                     // The linker keeps a pattern inside the wrapper.
                                     if !matches!(value.data, js_ast::ExprData::EMissing(_))
-                                        && (!value.can_be_moved()
+                                        && (!value.can_be_moved(&self.store)
                                             || !matches!(
                                                 decl.binding.data,
                                                 js_ast::b::B::BIdentifier(_)
@@ -9525,7 +9525,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
                     }
                     js_ast::StmtData::SExportEquals(e) => {
-                        if !self.store[*e].value.can_be_moved() {
+                        if !self.store[*e].value.can_be_moved(&self.store) {
                             return true;
                         }
                     }
@@ -9867,18 +9867,18 @@ impl LowerUsingDeclarationsContext {
             let js_ast::StmtData::SLocal(mut local) = stmt.data else {
                 continue;
             };
-            if !self.store[local].kind.is_using() {
+            if !p.store[local].kind.is_using() {
                 continue;
             }
 
             if self.first_using_loc.is_empty() {
                 self.first_using_loc = stmt_loc;
             }
-            if self.store[local].kind == js_ast::s::Kind::KAwaitUsing {
+            if p.store[local].kind == js_ast::s::Kind::KAwaitUsing {
                 self.has_await_using = true;
             }
-            let local_kind = self.store[local].kind;
-            for decl in self.store[local].decls.slice_mut() {
+            let local_kind = p.store[local].kind;
+            for decl in p.store[local].decls.slice_mut() {
                 if let Some(decl_value) = &mut decl.value {
                     let value_loc = decl_value.loc;
                     p.record_usage(self.stack_ref);
@@ -9905,7 +9905,7 @@ impl LowerUsingDeclarationsContext {
                     decl.value = Some(p.call_runtime(
                         value_loc,
                         b"__using",
-                        self.store.alloc_slice((args).to_vec()),
+                        p.store.alloc_slice((args).to_vec()),
                     ));
                 }
             }
@@ -9913,9 +9913,9 @@ impl LowerUsingDeclarationsContext {
             if p.will_wrap_module_in_try_catch_for_using
                 && p.current_scope().kind == js_ast::scope::Kind::Entry
             {
-                self.store[local].kind = js_ast::s::Kind::KVar;
+                p.store[local].kind = js_ast::s::Kind::KVar;
             } else {
-                self.store[local].kind = js_ast::s::Kind::KConst;
+                p.store[local].kind = js_ast::s::Kind::KConst;
             }
         }
     }
@@ -9941,7 +9941,7 @@ impl LowerUsingDeclarationsContext {
                     continue;
                 }
                 js_ast::StmtData::SClass(c) => {
-                    if self.store[c].is_export {
+                    if p.store[c].is_export {
                         // can't go in try/catch; hoist out
                         result.push(stmt);
                         continue;
@@ -9957,7 +9957,7 @@ impl LowerUsingDeclarationsContext {
                     // arena-owned `StoreSlice<ClauseItem>` valid for 'a; the source
                     // slot is never read again (this whole stmt is dropped via the
                     // `continue` below): safe to `ptr::read` each item.
-                    let items = self.store[data].items.slice();
+                    let items = p.store[data].items.slice();
                     exports.reserve(items.len());
                     for item in items {
                         // SAFETY: arena-owned slot never read again (stmt dropped
@@ -9975,14 +9975,14 @@ impl LowerUsingDeclarationsContext {
                 }
                 js_ast::StmtData::SLocal(mut local) => {
                     // If any of these are exported, turn it into a "var" and add export clauses
-                    if self.store[local].is_export {
-                        self.store[local].is_export = false;
+                    if p.store[local].is_export {
+                        p.store[local].is_export = false;
                         // Writing `local.kind` inside the decls loop would alias through
                         // StoreRef DerefMut; hoist the kind write below.
                         let mut any_ident = false;
-                        for decl in self.store[local].decls.slice() {
+                        for decl in p.store[local].decls.slice() {
                             if let js_ast::b::B::BIdentifier(identifier) = decl.binding.data {
-                                let id_ref = self.store[identifier].r#ref;
+                                let id_ref = p.store[identifier].r#ref;
                                 exports.push(js_ast::ClauseItem {
                                     name: LocRef {
                                         loc: decl.binding.loc,
@@ -9996,7 +9996,7 @@ impl LowerUsingDeclarationsContext {
                             }
                         }
                         if any_ident {
-                            self.store[local].kind = js_ast::s::Kind::KVar;
+                            p.store[local].kind = js_ast::s::Kind::KVar;
                         }
                     }
                 }
@@ -10007,7 +10007,7 @@ impl LowerUsingDeclarationsContext {
             end += 1;
         }
 
-        let non_exported_statements = self.store.alloc_slice(&mut stmts[..end as usize]);
+        let non_exported_statements = p.store.alloc_slice(&mut stmts[..end as usize]);
 
         let caught_ref = p.generate_temp_ref(Some(b"_catch"));
         let err_ref = p.generate_temp_ref(Some(b"_err"));
@@ -10018,11 +10018,11 @@ impl LowerUsingDeclarationsContext {
         // raw-pointer `unsafe`, and does not borrow `p`.
         let mut scope: js_ast::StoreRef<Scope> = p.current_scope_ref();
         while !scope.kind_stops_hoisting() {
-            scope = self.store[scope].parent.unwrap();
+            scope = p.store[scope].parent.unwrap();
         }
 
         let is_top_level = scope == p.module_scope;
-        self.store[scope]
+        p.store[scope]
             .generated
             .append_slice(&[self.stack_ref, caught_ref, err_ref, has_err_ref]);
         p.declared_symbols
@@ -10076,12 +10076,12 @@ impl LowerUsingDeclarationsContext {
                     loc,
                 ),
             ]);
-            p.call_runtime(loc, b"__callDispose", self.store.alloc_slice((args).to_vec()))
+            p.call_runtime(loc, b"__callDispose", p.store.alloc_slice((args).to_vec()))
         };
 
         let finally_stmts: &'a mut [Stmt] = if self.has_await_using {
             let promise_ref = p.generate_temp_ref(Some(b"_promise"));
-            VecExt::append(&mut self.store[scope].generated, promise_ref);
+            VecExt::append(&mut p.store[scope].generated, promise_ref);
             p.declared_symbols.append_assume_capacity(DeclaredSymbol {
                 is_top_level,
                 ref_: promise_ref,
@@ -10107,7 +10107,7 @@ impl LowerUsingDeclarationsContext {
             let promise_binding = p.b(B::Identifier { r#ref: promise_ref }, loc);
             let stmt0 = p.s(
                 S::Local {
-                    decls: self.store.alloc_slice([Decl {
+                    decls: p.store.alloc_slice([Decl {
                         binding: promise_binding,
                         value: Some(call_dispose),
                     }]),
@@ -10162,7 +10162,7 @@ impl LowerUsingDeclarationsContext {
         let stack_init = p.new_expr(E::Array::default(), loc);
         result.push(p.s(
             S::Local {
-                decls: self.store.alloc_slice([Decl {
+                decls: p.store.alloc_slice([Decl {
                     binding: stack_binding,
                     value: Some(stack_init),
                 }]),
@@ -10205,7 +10205,7 @@ impl LowerUsingDeclarationsContext {
                 },
                 loc,
             );
-            self.store.alloc_slice(p.arena.alloc_slice_copy(&[stmt0]))
+            p.store.alloc_slice(p.arena.alloc_slice_copy(&[stmt0]))
         };
         result.push(p.s(
             S::Try {
@@ -10219,7 +10219,7 @@ impl LowerUsingDeclarationsContext {
                 }),
                 finally: Some(js_ast::Finally {
                     loc,
-                    stmts: self.store.alloc_slice(finally_stmts),
+                    stmts: p.store.alloc_slice(finally_stmts),
                 }),
             },
             loc,
@@ -10228,7 +10228,7 @@ impl LowerUsingDeclarationsContext {
         if !exports.is_empty() {
             result.push(p.s(
                 S::ExportClause {
-                    items: self.store.alloc_slice(exports),
+                    items: p.store.alloc_slice(exports),
                     is_single_line: false,
                 },
                 loc,

@@ -1984,7 +1984,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             for sb_ptr in extracted_static_blocks.iter_mut() {
                 // `StoreRef::DerefMut`: arena-owned, safe under the StoreRef invariant.
-                let sb = &mut **sb_ptr;
+                let sb = &mut self.store[*sb_ptr];
                 p.rewrite_private_accesses_in_stmts(sb.stmts.slice_mut(), &private_lowered_map);
             }
             for elem in static_non_field_elements.iter_mut() {
@@ -2094,7 +2094,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 match elem.kind {
                     StaticElementKind::Block => {
                         // `StoreRef::DerefMut`: arena-owned, safe under the StoreRef invariant.
-                        let sb = &mut *extracted_static_blocks[elem.index];
+                        let sb = &mut self.store[extracted_static_blocks[elem.index]];
                         let stmts_slice = sb.stmts.slice_mut();
                         p.rewrite_stmts(
                             stmts_slice,
@@ -2296,7 +2296,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     continue;
                 }
                 let func = match &mut nprop.value.as_mut().unwrap().data {
-                    js_ast::ExprData::EFunction(f) => &mut **f,
+                    js_ast::ExprData::EFunction(f) => &mut self.store[*f],
                     _ => unreachable!(),
                 };
                 let body_slice: &[Stmt] = func.func.body.stmts.slice();

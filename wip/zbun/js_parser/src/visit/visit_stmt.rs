@@ -89,37 +89,37 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             StmtData::SEnum(mut sr) => {
-                Self::s_enum(p, stmts, stmt, &mut *sr, was_after_after_const_local_prefix)
+                Self::s_enum(p, stmts, stmt, &mut self.store[sr], was_after_after_const_local_prefix)
             }
             StmtData::SLocal(mut sr) => {
-                Self::s_local(p, stmts, stmt, &mut *sr, was_after_after_const_local_prefix)
+                Self::s_local(p, stmts, stmt, &mut self.store[sr], was_after_after_const_local_prefix)
             }
 
-            StmtData::SImport(mut sr) => Self::s_import(p, stmts, stmt, &mut *sr),
-            StmtData::SExportClause(mut sr) => Self::s_export_clause(p, stmts, stmt, &mut *sr),
-            StmtData::SExportFrom(mut sr) => Self::s_export_from(p, stmts, stmt, &mut *sr),
-            StmtData::SExportStar(mut sr) => Self::s_export_star(p, stmts, stmt, &mut *sr),
-            StmtData::SExportDefault(mut sr) => Self::s_export_default(p, stmts, stmt, &mut *sr),
-            StmtData::SFunction(mut sr) => Self::s_function(p, stmts, stmt, &mut *sr),
-            StmtData::SClass(mut sr) => Self::s_class(p, stmts, stmt, &mut *sr),
-            StmtData::SExportEquals(mut sr) => Self::s_export_equals(p, stmts, stmt, &mut *sr),
-            StmtData::SBreak(mut sr) => Self::s_break(p, stmts, stmt, &mut *sr),
-            StmtData::SContinue(mut sr) => Self::s_continue(p, stmts, stmt, &mut *sr),
-            StmtData::SLabel(mut sr) => Self::s_label(p, stmts, stmt, &mut *sr),
-            StmtData::SExpr(mut sr) => Self::s_expr(p, stmts, stmt, &mut *sr),
-            StmtData::SThrow(mut sr) => Self::s_throw(p, stmts, stmt, &mut *sr),
-            StmtData::SReturn(mut sr) => Self::s_return(p, stmts, stmt, &mut *sr),
-            StmtData::SBlock(mut sr) => Self::s_block(p, stmts, stmt, &mut *sr),
-            StmtData::SWith(mut sr) => Self::s_with(p, stmts, stmt, &mut *sr),
-            StmtData::SWhile(mut sr) => Self::s_while(p, stmts, stmt, &mut *sr),
-            StmtData::SDoWhile(mut sr) => Self::s_do_while(p, stmts, stmt, &mut *sr),
-            StmtData::SIf(mut sr) => Self::s_if(p, stmts, stmt, &mut *sr),
-            StmtData::SFor(mut sr) => Self::s_for(p, stmts, stmt, &mut *sr),
-            StmtData::SForIn(mut sr) => Self::s_for_in(p, stmts, stmt, &mut *sr),
-            StmtData::SForOf(mut sr) => Self::s_for_of(p, stmts, stmt, &mut *sr),
-            StmtData::STry(mut sr) => Self::s_try(p, stmts, stmt, &mut *sr),
-            StmtData::SSwitch(mut sr) => Self::s_switch(p, stmts, stmt, &mut *sr),
-            StmtData::SNamespace(mut sr) => Self::s_namespace(p, stmts, stmt, &mut *sr),
+            StmtData::SImport(mut sr) => Self::s_import(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SExportClause(mut sr) => Self::s_export_clause(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SExportFrom(mut sr) => Self::s_export_from(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SExportStar(mut sr) => Self::s_export_star(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SExportDefault(mut sr) => Self::s_export_default(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SFunction(mut sr) => Self::s_function(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SClass(mut sr) => Self::s_class(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SExportEquals(mut sr) => Self::s_export_equals(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SBreak(mut sr) => Self::s_break(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SContinue(mut sr) => Self::s_continue(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SLabel(mut sr) => Self::s_label(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SExpr(mut sr) => Self::s_expr(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SThrow(mut sr) => Self::s_throw(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SReturn(mut sr) => Self::s_return(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SBlock(mut sr) => Self::s_block(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SWith(mut sr) => Self::s_with(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SWhile(mut sr) => Self::s_while(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SDoWhile(mut sr) => Self::s_do_while(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SIf(mut sr) => Self::s_if(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SFor(mut sr) => Self::s_for(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SForIn(mut sr) => Self::s_for_in(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SForOf(mut sr) => Self::s_for_of(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::STry(mut sr) => Self::s_try(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SSwitch(mut sr) => Self::s_switch(p, stmts, stmt, &mut self.store[sr]),
+            StmtData::SNamespace(mut sr) => Self::s_namespace(p, stmts, stmt, &mut self.store[sr]),
 
             // Only used by the bundler for lazy export ASTs.
             StmtData::SLazyExport(_) => unreachable!(),
@@ -583,7 +583,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let s2_copy = *s2;
                 match s2_data {
                     StmtData::SFunction(mut func_ref) => {
-                        let func: &mut S::Function = &mut *func_ref;
+                        let func: &mut S::Function = &mut p.store[func_ref];
                         let name: &'a [u8] = if let Some(func_loc) = func.func.name {
                             p.load_name_from_ref(func_loc.ref_)
                         } else {
@@ -777,7 +777,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         return Ok(());
                     }
                     StmtData::SClass(mut class_ref) => {
-                        let class: &mut S::Class = &mut *class_ref;
+                        let class: &mut S::Class = &mut p.store[class_ref];
                         let _ =
                             p.visit_class(s2_loc, &mut class.class, data.default_name.ref_, false);
 
@@ -1451,7 +1451,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             let js_ast::ExprData::EBinary(mut bin_ref) = data.value.data else {
                                 break 'convert;
                             };
-                            let bin: &mut E::Binary = &mut *bin_ref;
+                            let bin: &mut E::Binary = &mut p.store[bin_ref];
                             if bin.op == js_ast::OpCode::BinAssign
                                 && matches!(
                                     bin.left.data,
@@ -1632,7 +1632,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 == core::mem::discriminant(&stmt.data)
                 && match (p.loop_body, stmt.data) {
                     (StmtData::SBlock(a), StmtData::SBlock(b)) => {
-                        core::ptr::eq(&raw const *a, &raw const *b)
+                        core::ptr::eq(&raw const p.store[a], &raw const p.store[b])
                     }
                     _ => false,
                 } {
@@ -1938,7 +1938,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Check for a variable initializer
             if let StmtData::SLocal(mut local_ref) = data.init.data {
-                let local: &mut S::Local = &mut *local_ref;
+                let local: &mut S::Local = &mut p.store[local_ref];
                 if local.kind == S::Kind::KVar {
                     // Lower for-in variable initializers in case the output is used in strict mode
                     if local.decls.len_u32() == 1 {
@@ -1998,7 +1998,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Handle "for (using x of y)" and "for (await using x of y)"
             if let StmtData::SLocal(mut init2_ref) = data.init.data {
-                let init2: &mut S::Local = &mut *init2_ref;
+                let init2: &mut S::Local = &mut p.store[init2_ref];
                 if init2.kind.is_using() && p.options.features.lower_using {
                     // fn lowerUsingDeclarationInForOf()
                     let loc = data.init.loc;
@@ -2318,7 +2318,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     p.new_expr(
                         E::Dot {
                             target: Expr::init_identifier(data.arg, value.loc),
-                            name: name.into(),
+                            name: p.store.alloc_str(name),
                             name_loc: value.loc,
                             ..Default::default()
                         },

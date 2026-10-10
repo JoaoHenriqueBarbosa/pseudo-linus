@@ -880,9 +880,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     fn e_index(p: &mut Self, e: &mut Expr, in_: ExprIn) {
         let expr = *e;
         let mut e_ = expr.data.e_index().expect("infallible: variant checked");
-        let is_call_target = matches!(p.call_target, Data::EIndex(ct) if core::ptr::eq(&raw const *e_, &raw const *ct));
-        let is_template_tag = matches!(p.template_tag, Data::EIndex(tag) if core::ptr::eq(&raw const *e_, &raw const *tag));
-        let is_delete_target = matches!(p.delete_target, Data::EIndex(dt) if core::ptr::eq(&raw const *e_, &raw const *dt));
+        let is_call_target = matches!(p.call_target, Data::EIndex(ct) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[ct]));
+        let is_template_tag = matches!(p.template_tag, Data::EIndex(tag) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[tag]));
+        let is_delete_target = matches!(p.delete_target, Data::EIndex(dt) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[dt]));
 
         // "a['b']" => "a.b"
         if p.options.features.minify_syntax {
@@ -1345,9 +1345,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     fn e_dot(p: &mut Self, e: &mut Expr, in_: ExprIn) {
         let expr = *e;
         let mut e_ = expr.data.e_dot().expect("infallible: variant checked");
-        let is_delete_target = matches!(p.delete_target, Data::EDot(dt) if core::ptr::eq(&raw const *e_, &raw const *dt));
-        let is_call_target = matches!(p.call_target, Data::EDot(ct) if core::ptr::eq(&raw const *e_, &raw const *ct));
-        let is_template_tag = matches!(p.template_tag, Data::EDot(tag) if core::ptr::eq(&raw const *e_, &raw const *tag));
+        let is_delete_target = matches!(p.delete_target, Data::EDot(dt) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[dt]));
+        let is_call_target = matches!(p.call_target, Data::EDot(ct) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[ct]));
+        let is_template_tag = matches!(p.template_tag, Data::EDot(tag) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[tag]));
 
         // `p.define: &'a Define` is `Copy`; hoist so the `dots.get` borrow is
         // tied to `'a`, not `&*p`, and `&mut self` helpers below can be called
@@ -1395,7 +1395,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Track ".then().catch()" chains
         if is_call_target
-            && matches!(p.then_catch_chain.next_target, Data::EDot(nt) if core::ptr::eq(&raw const *e_, &raw const *nt))
+            && matches!(p.then_catch_chain.next_target, Data::EDot(nt) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[nt]))
         {
             if p.store[e_].name == b"catch" {
                 p.then_catch_chain = ThenCatchChain {
@@ -1501,7 +1501,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     fn e_if(p: &mut Self, e: &mut Expr, _: ExprIn) {
         let mut e_ = e.data.e_if().expect("infallible: variant checked");
         let is_call_target =
-            matches!(p.call_target, Data::EIf(ct) if core::ptr::eq(&raw const *e_, &raw const *ct));
+            matches!(p.call_target, Data::EIf(ct) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[ct]));
 
         let prev_in_branch = p.in_branch_condition;
         p.in_branch_condition = true;
@@ -1601,15 +1601,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 Data::EBinary(e2) => {
                     if in_.assign_target != js_ast::AssignTarget::None && p.store[*e2].op == Op::BinAssign {
-                        let was_anonymous_named_expr = p.store[*e2].right.is_anonymous_named();
+                        let was_anonymous_named_expr = p.store[*e2].right.is_anonymous_named(&p.store);
                         // Propagate name for anonymous decorated class expressions
                         if was_anonymous_named_expr
                             && matches!(p.store[*e2].right.data, Data::EClass(..))
-                            && p.store[*e2]
+                            && p.store[p.store[*e2]
                                 .right
                                 .data
                                 .e_class()
-                                .expect("infallible: variant checked")
+                                .expect("infallible: variant checked")]
                                 .should_lower_standard_decorators
                             && matches!(p.store[*e2].left.data.tag(), Tag::EIdentifier)
                         {
@@ -1645,7 +1645,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .original_name;
                             p.store[*e2].right = p.maybe_keep_expr_symbol_name(
                                 p.store[*e2].right,
-                                name.slice(),
+                                p.store.str(name),
                                 was_anonymous_named_expr,
                             );
                         }
@@ -1764,7 +1764,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // While E.rs has duplicate impls (E0034), reach the bytes directly
                     //: class-name keys are parser-produced (UTF-8, no rope).
                     p.decorator_class_name = if !p.store[key_str].is_utf16 {
-                        Some(p.store[key_str].data.slice())
+                        Some(p.store.str(p.store[key_str].data))
                     } else {
                         None
                     };
@@ -1865,12 +1865,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let state = TransposeState {
                 is_await_target: matches!(
                     p.await_target,
-                    Some(Data::EImport(at)) if core::ptr::eq(&raw const *e_, &raw const *at)
+                    Some(Data::EImport(at)) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[at])
                 ),
                 is_then_catch_target: p.then_catch_chain.has_catch
                     && matches!(
                         p.then_catch_chain.next_target,
-                        Data::EImport(nt) if core::ptr::eq(&raw const *e_, &raw const *nt)
+                        Data::EImport(nt) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[nt])
                     ),
                 import_options: p.store[e_].options,
                 loc: p.store[e_].expr.loc,
@@ -1896,7 +1896,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             has_multiple_args: p.store[e_].args.len_u32() >= 2,
             has_catch: matches!(
                 p.then_catch_chain.next_target,
-                Data::ECall(nt) if core::ptr::eq(&raw const *e_, &raw const *nt)
+                Data::ECall(nt) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[nt])
             ) && p.then_catch_chain.has_catch,
         };
 
@@ -2170,7 +2170,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Check if the bundler_feature_flag_ref is set before calling the function
         // to avoid stack memory usage from copying values back and forth.
         if p.bundler_feature_flag_ref.is_valid() {
-            if let Some(result) = Self::maybe_replace_bundler_feature_call(p, &mut *e_, expr.loc) {
+            if let Some(result) = Self::maybe_replace_bundler_feature_call(p, &mut p.store[e_], expr.loc) {
                 *e = result;
                 return;
             }
@@ -2272,7 +2272,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         } else if let Some(special) = p.store[e_].target.data.e_special() {
             match special {
                 E::Special::HotAccept => {
-                    p.handle_import_meta_hot_accept_call(&mut *e_);
+                    p.handle_import_meta_hot_accept_call(&mut p.store[e_]);
                     // After validating that the import.meta.hot
                     // code is correct, discard the entire
                     // expression in production.
@@ -2408,7 +2408,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     break 'try_record_hook;
                 }
                 if p.options.features.react_fast_refresh {
-                    p.handle_react_refresh_hook_call(&mut *e_, original_name);
+                    p.handle_react_refresh_hook_call(&mut p.store[e_], original_name);
                 } else if
                 // If we're here it means we're in server component.
                 // Error if the user is using the `useState` hook as it
@@ -2485,7 +2485,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if p.options.features.minify_syntax {
             if let Some(minified) = js_ast::known_global::KnownGlobal::minify_global_constructor(
                 p.arena,
-                &mut *e_,
+                &mut p.store[e_],
                 &p.symbols,
                 expr.loc,
                 p.options.features.minify_whitespace,
