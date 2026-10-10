@@ -144,6 +144,17 @@
       return makeError("TypeError", "ERR_MISSING_ARGS", `${message} must be specified`);
     },
     ILLEGAL_CONSTRUCTOR: () => makeError("TypeError", "ERR_ILLEGAL_CONSTRUCTOR", "Illegal constructor"),
+    // Os de URL do bun: a mensagem é o argumento como veio (`$ERR_INVALID_URL_SCHEME("file")` dá a mensagem "file").
+    INVALID_URI: () => makeError("URIError", "ERR_INVALID_URI", "URI malformed"),
+    INVALID_URL_SCHEME: message => makeError("TypeError", "ERR_INVALID_URL_SCHEME", message),
+    INVALID_FILE_URL_HOST: message => makeError("TypeError", "ERR_INVALID_FILE_URL_HOST", message),
+    INVALID_FILE_URL_PATH: message => makeError("TypeError", "ERR_INVALID_FILE_URL_PATH", message),
+    INVALID_URL(input, base) {
+      const error = makeError("TypeError", "ERR_INVALID_URL", "Invalid URL");
+      error.input = input;
+      if (base !== undefined && base !== null) error.base = base;
+      return error;
+    },
     UNKNOWN_ENCODING: encoding => makeError("TypeError", "ERR_UNKNOWN_ENCODING", `Unknown encoding: ${encoding}`),
     STREAM_DESTROYED: name => makeError("Error", "ERR_STREAM_DESTROYED", `Cannot call ${name} after a stream was destroyed`),
     STREAM_ALREADY_FINISHED: name => makeError("Error", "ERR_STREAM_ALREADY_FINISHED", `Cannot call ${name} after a stream was finished`),
@@ -339,6 +350,45 @@
     }
   }
 
+  const nodeModulesRE = /[\\/]node_modules[\\/]/;
+  const ErrorCaptureStackTrace = Error.captureStackTrace;
+  function returnStackFrames(_err, frames) {
+    return frames;
+  }
+
+  // O `IsInsideNodeModules` do node: o primeiro frame de usuário está dentro de `node_modules`? Protegido para que um
+  // `Error.*` adulterado nunca escape para quem chama (o `url.parse`).
+  function isInsideNodeModules(frameLimit) {
+    let prevLimit, prevPrepare;
+    let frames;
+    try {
+      prevLimit = Error.stackTraceLimit;
+      prevPrepare = Error.prepareStackTrace;
+      Error.stackTraceLimit = frameLimit;
+      Error.prepareStackTrace = returnStackFrames;
+      const target = {};
+      ErrorCaptureStackTrace(target, isInsideNodeModules);
+      frames = target.stack;
+    } catch {
+    } finally {
+      try {
+        Error.stackTraceLimit = prevLimit;
+        Error.prepareStackTrace = prevPrepare;
+      } catch {}
+    }
+    if (!ArrayIsArray(frames)) return false;
+    try {
+      for (const frame of frames) {
+        const filename = frame.getFileName();
+        if (!filename || filename.startsWith("node:") || filename.startsWith("internal:") || filename === "native") {
+          continue;
+        }
+        return nodeModulesRE.test(filename);
+      }
+    } catch {}
+    return false;
+  }
+
   function once(callback, { preserveReturnValue = false } = kEmptyObject) {
     let called = false;
     let returnValue;
@@ -397,6 +447,7 @@
     kResistStopPropagation,
     resistStopPropagation,
     throwNotImplemented,
+    isInsideNodeModules,
     once,
     addAbortListener,
     toClass,

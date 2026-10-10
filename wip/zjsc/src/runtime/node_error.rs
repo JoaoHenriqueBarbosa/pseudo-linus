@@ -44,7 +44,7 @@ use crate::runtime::throw_scope::{throw_exception, ThrowScope};
 use crate::wtf::text::string_concatenate::make_string_dyn;
 use crate::wtf::text::wtf_string::String as WtfString;
 
-/// O único código cujo erro leva `code` próprio e o protótipo comum (o caminho "argumentos faltando" do WebCore).
+/// O único código que pode levar `code` próprio e o protótipo comum (o caminho "argumentos faltando" do WebCore).
 const OWN_CODE: &str = "ERR_MISSING_ARGS";
 
 thread_local! {
@@ -212,8 +212,12 @@ fn throw_coded_message_in_frame(
     include_top_native: bool,
 ) -> Thrown {
     let vm = global_object.vm();
+    // Só o `createNotEnoughArgumentsError` do WebCore põe `code` próprio, e a mensagem dele é exatamente esta; o
+    // `ERR_MISSING_ARGS` do bun (`domainToASCII()`, `Bun.sleepSync()`, `URL.createObjectURL()`) tem o código no
+    // protótipo (medido no bun 1.4.2 com `Object.hasOwn(erro, "code")`).
+    let own_code = code == Some(OWN_CODE) && crate::runtime::js_module_loader::rust_string(&message) == "Not enough arguments";
     let structure = match code {
-        Some(code) if code != OWN_CODE => coded_structure(global_object, kind, code),
+        Some(code) if !own_code => coded_structure(global_object, kind, code),
         _ => global_object.error_structure_for(kind),
     };
     let instance = ErrorInstance::create(vm, structure, message.clone(), kind);
@@ -224,7 +228,7 @@ fn throw_coded_message_in_frame(
         let value = network_property_value(global_object, value);
         instance.as_object().put_direct(vm, &property_key(vm, name), value, attributes(name));
     }
-    if code == Some(OWN_CODE) {
+    if own_code {
         instance.as_object().put_direct(vm, &property_key(vm, "code"), text_value(global_object, OWN_CODE), 0);
     }
     let top = vm.top_call_frame();

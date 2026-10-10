@@ -104,7 +104,7 @@ pub(crate) fn reset_for_program() {
 static PROTOTYPE_S_INFO: ClassInfo = ClassInfo { class_name: "URL", parent_class: Some(&JS_NON_FINAL_OBJECT_S_INFO), static_prop_hash_table: None, inherits_js_type_range: None };
 static CONSTRUCTOR_S_INFO: ClassInfo = ClassInfo { class_name: "Function", parent_class: Some(&INTERNAL_FUNCTION_S_INFO), static_prop_hash_table: None, inherits_js_type_range: None };
 
-fn wtf_units(text: &WtfString) -> Units {
+pub(crate) fn wtf_units(text: &WtfString) -> Units {
     (0..text.length()).map(|index| text.code_unit_at(index)).collect()
 }
 

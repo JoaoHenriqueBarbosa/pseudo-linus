@@ -1,9 +1,9 @@
 // `node:querystring` do bun 1.4.2: o `src/js/node/querystring.ts` com os intrínsecos trocados (`.$call` por `.call`,
-// `$ERR_INVALID_URI` pelo erro com código do `host`) e a anotação de tipo do `__commonJS` removida.
+// `$ERR_INVALID_URI` por `codes.INVALID_URI`) e a anotação de tipo do `__commonJS` removida.
 (function (host) {
   "use strict";
 
-  const { makeError } = host.internal;
+  const { codes } = host.internal;
   const Buffer = host.requireBuiltin("node:buffer").Buffer;
 
   const ArrayIsArray = Array.isArray;
@@ -69,7 +69,7 @@
         // This branch should never happen because all URLSearchParams entries
         // should already be converted to USVString. But, included for
         // completion's sake anyway.
-        if (i >= len) throw makeError("URIError", "ERR_INVALID_URI", "URI malformed");
+        if (i >= len) throw codes.INVALID_URI();
 
         const c2 = StringPrototypeCharCodeAt.call(str, i) & 0x3ff;
 

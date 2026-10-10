@@ -11,5 +11,6 @@ pub mod node_async_hooks;
 pub mod node_events;
 pub mod node_js_host;
 pub mod node_stream;
+pub mod node_url;
 pub mod package_exports;
 pub mod package_json;

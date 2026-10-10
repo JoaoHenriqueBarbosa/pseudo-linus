@@ -1,0 +1,109 @@
+true parse,resolve,resolveObject,format,Url,URLSearchParams,URL,URLPattern,pathToFileURL,fileURLToPath,fileURLToPathBuffer,urlToHttpOptions,domainToASCII,domainToUnicode
+true true function urlParse urlFormat urlResolve
+true protocol,slashes,auth,host,port,hostname,hash,search,query,pathname,path,href
+{"protocol":"https:","slashes":true,"auth":"user:pw","host":"sub.example.com:8080","port":"8080","hostname":"sub.example.com","hash":"#hash","search":"?query=string&a=1","query":"query=string&a=1","pathname":"/p/a/t/h","path":"/p/a/t/h?query=string&a=1","href":"https://user:pw@sub.example.com:8080/p/a/t/h?query=string&a=1#hash"}
+{"protocol":null,"slashes":null,"auth":null,"host":null,"port":null,"hostname":null,"hash":null,"search":"?x=1&x=2","query":{"x":["1","2"]},"pathname":"/a/b","path":"/a/b?x=1&x=2","href":"/a/b?x=1&x=2"}
+{"protocol":null,"slashes":true,"auth":null,"host":"host","port":null,"hostname":"host","hash":null,"search":null,"query":null,"pathname":"/path","path":"/path","href":"//host/path"}
+{"protocol":"mailto:","slashes":null,"auth":"a","host":"b.c","port":null,"hostname":"b.c","hash":null,"search":null,"query":null,"pathname":null,"path":null,"href":"mailto:a@b.c"}
+{"protocol":"javascript:","slashes":null,"auth":null,"host":null,"port":null,"hostname":null,"hash":null,"search":null,"query":null,"pathname":"alert(1)","path":"alert(1)","href":"javascript:alert(1)"}
+{"protocol":"http:","slashes":true,"auth":null,"host":"ex","port":null,"hostname":"ex","hash":null,"search":null,"query":null,"pathname":"%20ample.com/a%20b%3Cc%3E","path":"%20ample.com/a%20b%3Cc%3E","href":"http://ex/%20ample.com/a%20b%3Cc%3E"}
+{"protocol":"http:","slashes":true,"auth":null,"host":"xn--mller-kva.de","port":null,"hostname":"xn--mller-kva.de","hash":null,"search":null,"query":null,"pathname":"/ä","path":"/ä","href":"http://xn--mller-kva.de/ä"}
+{"protocol":"http:","slashes":true,"auth":null,"host":"[::1]:3000","port":"3000","hostname":"::1","hash":null,"search":null,"query":null,"pathname":"/x","path":"/x","href":"http://[::1]:3000/x"}
+{"protocol":"http:","slashes":true,"auth":null,"host":"x.com","port":null,"hostname":"x.com","hash":null,"search":null,"query":null,"pathname":"/","path":"/","href":"http://x.com/"}
+{"protocol":"http:","slashes":true,"auth":null,"host":"a","port":null,"hostname":"a","hash":null,"search":null,"query":null,"pathname":"/b/c/d","path":"/b/c/d","href":"http://a/b/c/d"}
+parse num throws TypeError TypeError ERR_INVALID_ARG_TYPE "The \"url\" argument must be of type string. Received type number (5)" input 5
+parse bad {
+  protocol: "http:",
+  slashes: true,
+  auth: null,
+  host: "a",
+  port: null,
+  hostname: "a",
+  hash: null,
+  search: null,
+  query: null,
+  pathname: "%zz.com",
+  path: "%zz.com",
+  href: "http://a/%zz.com",
+  parse: [Function: parse],
+  format: [Function: format],
+  resolve: [Function: resolve],
+  resolveObject: [Function: resolveObject],
+  parseHost: [Function: parseHost],
+}
+parse port {
+  protocol: "http:",
+  slashes: true,
+  auth: null,
+  host: "a.com:99999999999",
+  port: "99999999999",
+  hostname: "a.com",
+  hash: null,
+  search: null,
+  query: null,
+  pathname: "/",
+  path: "/",
+  href: "http://a.com:99999999999/",
+  parse: [Function: parse],
+  format: [Function: format],
+  resolve: [Function: resolve],
+  resolveObject: [Function: resolveObject],
+  parseHost: [Function: parseHost],
+}
+https://user:pw@sub.example.com:8080/p/a/t/h?query=string&a=1#hash
+http://a.com/x y?a=1&b=2%2C3
+file:///etc/passwd
+http://a.com/b?c#d
+http://a.com/x
+format bad throws TypeError TypeError ERR_INVALID_ARG_TYPE "The \"urlObject\" argument must be one of type object or string. Received type number (5)"  
+resolve /one/two/four
+resolve http://example.com/one
+resolve http://example.com/two
+resolve http://a/g
+resolve http://x/y
+resolve mailto:a@c
+{"protocol":"http:","slashes":true,"auth":null,"host":"a","port":null,"hostname":"a","hash":null,"search":"?e","query":"e","pathname":"/d","path":"/d?e","href":"http://a/d?e"}
+domain "español.com" "xn--espaol-zwa.com" "español.com"
+domain "中文.com" "xn--fiq228c.com" "中文.com"
+domain "xn--iñvalid.com" "" ""
+domain "EXAMPLE.com" "example.com" "example.com"
+domain "a:b" "" ""
+domain "1.2.3" "1.2.0.3" "1.2.0.3"
+domain "[::1]" "[::1]" "[::1]"
+domain "x@y" "" ""
+domain "" "" ""
+domain "xn--a" "" ""
+domainToASCII() throws TypeError TypeError ERR_MISSING_ARGS "The \"domain\" argument must be specified"  
+domainToAscii 1 domainToUnicode
+p2f "file:///tmp/a%20b%23c%3Fd%25e"
+p2f dir "file:///tmp/x/"
+p2f rel true
+p2f win "file:///C:/a/b"
+p2f unc "file://server/share/f"
+p2f unc bad throws TypeError TypeError ERR_INVALID_ARG_VALUE "The argument 'path' Missing UNC resource path. Received '\\\\\\\\server'"  
+p2f unc empty throws TypeError TypeError ERR_INVALID_ARG_VALUE "The argument 'path' Empty UNC servername. Received '\\\\\\\\\\\\share'"  
+p2f num throws TypeError TypeError ERR_INVALID_ARG_TYPE "The \"path\" argument must be of type string. Received type number (5)"  
+f2p "/tmp/a b"
+f2p url "/x/y"
+f2p http throws TypeError TypeError ERR_INVALID_URL_SCHEME "The URL must be of scheme file"  
+f2p host throws TypeError TypeError ERR_INVALID_FILE_URL_HOST "File URL host must be \"localhost\" or empty on linux"  
+f2p enc throws TypeError TypeError ERR_INVALID_FILE_URL_PATH "File URL path must not include encoded / characters" input file:///a%2fb
+f2p num throws TypeError TypeError ERR_INVALID_ARG_TYPE "The \"url\" argument must be of type string. Received type number (5)"  
+f2p w "C:\\a b"
+f2p w host "\\\\srv\\share\\x"
+f2p w rel throws TypeError TypeError ERR_INVALID_FILE_URL_PATH "File URL path must be absolute"  
+f2p w enc throws TypeError TypeError ERR_INVALID_FILE_URL_PATH "File URL path must not include encoded \\ or / characters"  
+f2p p http throws TypeError TypeError ERR_INVALID_URL_SCHEME "file"  
+f2p p host throws TypeError TypeError ERR_INVALID_FILE_URL_HOST "File URL host must be \"localhost\" or empty on linux"  
+f2p p num throws TypeError TypeError ERR_INVALID_ARG_TYPE "The \"path\" argument must be of type string or an instance of URL. Received type number (5)"  
+true 2f746d702fe282ac257a7a
+f2pb http throws TypeError TypeError ERR_INVALID_URL_SCHEME "The URL must be of scheme file"  
+f2pb host throws TypeError TypeError ERR_INVALID_FILE_URL_HOST "File URL host must be \"localhost\" or empty on linux"  
+f2pb num throws TypeError TypeError ERR_INVALID_ARG_TYPE "The \"path\" argument must be of type string or an instance of URL. Received type number (5)"  
+f2pb w "C:\\x"
+{"protocol":"https:","hostname":"::1","hash":"#h","search":"?q","pathname":"/p","path":"/p?q","href":"https://a%20b:c@[::1]:8443/p?q#h","port":8443,"auth":"a b:c"}
+{"protocol":"http:","hostname":"x.com","hash":"","search":"","pathname":"/","path":"/","href":"http://x.com/"}
+ERR_MISSING_ARGS "The \"domain\" argument must be specified" false 
+ERR_MISSING_ARGS "Not enough arguments to 'createObjectURL'. Expected 1, got 0." false 
+ERR_MISSING_ARGS "Not enough arguments to 'sleepSync'. Expected 1, got 0." false 
+ERR_MISSING_ARGS "Not enough arguments" true code
