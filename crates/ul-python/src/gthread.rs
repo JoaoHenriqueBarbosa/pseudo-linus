@@ -84,6 +84,8 @@ thread_local! {
     /// Espelho de `!SCHED.entries.is_empty()`: há outra thread verde (nova ou suspensa). O laço de instruções
     /// o lê a cada instrução, então o caso comum (nenhuma outra thread) custa uma leitura de `Cell`.
     static OTHERS: Cell<bool> = const { Cell::new(false) };
+    /// Há pedido de `_gsched.at_safe_point` esperando: a próxima olhada da fatia vence na hora (`_gt_urge`).
+    static URGED: Cell<bool> = const { Cell::new(false) };
 }
 
 /// Reflete em `OTHERS` o estado de `entries`; toda mutação de `Sched::entries` termina chamando isto.
@@ -307,6 +309,9 @@ fn restart_slice() {
 /// Entre instruções: a fatia da thread que roda venceu e há outra thread para quem passar a vez. Quando vence,
 /// a fatia recomeça (sem ninguém pronto, a thread segue e só volta a perguntar no fim da próxima).
 pub(crate) fn slice_expired() -> bool {
+    if URGED.with(|u| u.replace(false)) {
+        return true;
+    }
     if !OTHERS.with(Cell::get) {
         return false;
     }
@@ -339,6 +344,13 @@ fn interval(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::None)
 }
 
+/// `_gt_urge()`: o `_gsched.preempt` roda no próximo ponto seguro do laço mais externo, mesmo sem a fatia vencer
+/// e sem outra thread (o caminho do `_gsched.at_safe_point`).
+fn urge(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    URGED.with(|u| u.set(true));
+    Ok(Value::None)
+}
+
 /// Registra as nativas no módulo `_sys`.
 pub(crate) fn register(builder: ModuleBuilder) -> ModuleBuilder {
     builder
@@ -348,4 +360,5 @@ pub(crate) fn register(builder: ModuleBuilder) -> ModuleBuilder {
         .func("_gt_current", current)
         .func("_gt_can_switch", can_switch)
         .func("_gt_interval", interval)
+        .func("_gt_urge", urge)
 }

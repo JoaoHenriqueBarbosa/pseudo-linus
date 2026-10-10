@@ -142,7 +142,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
 pub(crate) const INTERNAL: &[&str] = &[
     "_os", "_sys", "_mt", "_net", "_archive", "_archivefile", "_prof", "_csvimpl", "_re", "_base64",
     "_zlib", "_ast_native", "_match", "_memoryview", "_complex", "_excgroup", "_mappingproxy", "_json_native", "_anext",
-    "_yaml_core", "_yaml_impl", "_tls_crypto", "_utf7", "_idna", "_unraisable", "_select", "_gsched", "_wref", "_pickle_impl", "_hashimpl", "_hashbase", "_capsule", "_sqlite_engine",
+    "_yaml_core", "_yaml_impl", "_tls_crypto", "_utf7", "_idna", "_unraisable", "_select", "_gsched", "_greenlet_impl", "_wref", "_pickle_impl", "_hashimpl", "_hashbase", "_capsule", "_sqlite_engine",
 ];
 
 /// Os módulos de apoio não existem para o `import` de código do programa.

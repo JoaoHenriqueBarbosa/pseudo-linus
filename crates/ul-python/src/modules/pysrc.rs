@@ -96,6 +96,8 @@ const SOURCES: &[(&str, &str)] = &[
     ("concurrent.futures", include_str!("py/concurrent_futures.py")),
     ("_thread", include_str!("py/_thread.py")),
     ("_gsched", include_str!("py/_gsched.py")),
+    // A camada do `greenlet._greenlet` (o greenlet 3.5.6 sobre as threads verdes), entregue com esse nome.
+    ("_greenlet_impl", include_str!("py/_greenlet_impl.py")),
     ("colorsys", include_str!("../../../kernel/image/usr/lib/python3.13/colorsys.py")),
     ("keyword", include_str!("../../../kernel/image/usr/lib/python3.13/keyword.py")),
     // O `dis` e o `opcode` do Debian rodam sobre o `_opcode` nativo e o `co_code` que o compilador emite.

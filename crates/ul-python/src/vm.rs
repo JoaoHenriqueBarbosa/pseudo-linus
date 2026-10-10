@@ -101,6 +101,7 @@ fn native_in_cpython(filename: &str, qual: &str) -> bool {
             | "_random.py"
             | "_thread.py"
             | "_gsched.py"
+            | "_greenlet_impl.py"
             | "_string.py"
             | "_memoryview.py"
             | "_complex.py"
