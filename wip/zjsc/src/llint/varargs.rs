@@ -469,8 +469,14 @@ impl Interpreter {
                 Some(&private_name_environment),
             )
         };
-        // `EXCEPTION_ASSERT(!!scope.exception() == !eval)`.
-        let eval = eval.ok_or(LLIntFailure::Thrown)?;
+        // `EXCEPTION_ASSERT(!!scope.exception() == !eval)`. O `SyntaxError` da análise nasce dentro do `eval`
+        // nativo: a pilha dele começa pelo frame do callee (`at eval (unknown)` entre o `<parse>` e o chamador).
+        let Some(eval) = eval else {
+            if let Some(exception) = global_object.vm().exception() {
+                self.capture_stack_for_exception(global_object, &exception, callee_frame, true);
+            }
+            return Err(LLIntFailure::Thrown);
+        };
         // O texto é sempre `Untainted` aqui, então o cache vale (o C++ pula o cache de texto suspeito).
         caller_code_block.borrow_mut().direct_eval_code_cache().set(&program_source, bytecode_index, &eval);
         self.try_execute_eval(&eval, this_value, caller_scope_chain)

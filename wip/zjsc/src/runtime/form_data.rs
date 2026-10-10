@@ -44,7 +44,7 @@ use crate::runtime::native_function::NativeFunction;
 use crate::runtime::property_attribute::{DONT_DELETE, DONT_ENUM, READ_ONLY};
 use crate::runtime::property_name::PropertyName;
 use crate::runtime::web_iterable::{
-    install_iteration, pairs_to_json_object, put_enumerable_methods, put_iterator_alias, register_instance, require_arguments, string_value, units_of, with_entries, with_instance, Units,
+    install_iteration, pairs_to_json_object, put_enumerable_methods, put_iterator_alias, register_instance, require_arguments, string_value, usv_units_of, with_entries, with_instance, Units,
     WebIterable,
 };
 use crate::web_iterable_functions;
@@ -61,6 +61,7 @@ pub(crate) enum FormValue {
 
 impl WebIterable for FormData {
     const NAME: &'static str = "FormData";
+    const USV_STRINGS: bool = true;
     type Value = FormValue;
 
     fn text(units: Units) -> FormValue {
@@ -82,7 +83,7 @@ static CONSTRUCTOR_S_INFO: ClassInfo = ClassInfo { class_name: "Function", paren
 
 /// `USVString`: a conversão para cadeia e a troca de unidade substituta solta por U+FFFD.
 fn usv(global_object: &JSGlobalObject, value: JSValue) -> Result<Units, Thrown> {
-    Ok(String::from_utf16_lossy(&units_of(global_object, value)?).encode_utf16().collect())
+    Ok(String::from_utf16_lossy(&usv_units_of(global_object, value)?).encode_utf16().collect())
 }
 
 thread_local! {
@@ -133,10 +134,7 @@ fn file_state(global_object: &JSGlobalObject, call: &HostCall, mut state: BlobSt
         state.last_modified = Some(0.0);
         let file_name = call.argument(2);
         if call.argument_count() >= 3 && !file_name.is_undefined() {
-            if file_name.is_symbol() {
-                return Err(Thrown::type_error("Cannot convert a Symbol value to a string"));
-            }
-            let name = units_of(global_object, file_name)?;
+            let name = usv_units_of(global_object, file_name)?;
             state.name = if name.is_empty() { None } else { Some(name) };
         }
         state.is_file = true;

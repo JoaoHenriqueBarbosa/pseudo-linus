@@ -175,10 +175,14 @@ impl ModuleHost for FileUrlHost {
     }
 
     /// Como o Bun: `node:x` e `file:` ficam como estão, e caminho (`./`, `../`, `/`) vira URL sem conferir
-    /// a existência do arquivo; `resolveSync` confere (e devolve o caminho absoluto).
+    /// a existência do arquivo; `resolveSync` confere (e devolve o caminho absoluto), e devolve o módulo embutido que
+    /// o resolvedor do bun conhece (`known_builtin_specifier`).
     fn import_meta_resolve(&self, specifier: &str, referrer: &str, sync: bool) -> Result<String, String> {
         if !sync && (specifier.starts_with("node:") || specifier.starts_with("file:")) {
             return Ok(specifier.to_owned());
+        }
+        if let Some(resolved) = crate::api::builtin_modules::known_builtin_specifier(specifier).filter(|_| sync) {
+            return Ok(resolved);
         }
         // `//x/p`: o bun lê `x` como host. `resolve` dá `file://x/p` (o caminho normalizado como absoluto, sem
         // `..` que consuma o host); `resolveSync` devolve o especificador como veio, sem conferir existência.
@@ -320,7 +324,7 @@ fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str, log_p
             PromiseStatus::Fulfilled => None,
             PromiseStatus::Rejected => {
                 promise.mark_as_handled();
-                Some(describe_exception(&promise.result()))
+                Some(describe_rejection(&global_object, promise.result()))
             }
             PromiseStatus::Pending => Some("pending".to_owned()),
         };

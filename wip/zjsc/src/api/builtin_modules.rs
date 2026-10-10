@@ -72,6 +72,20 @@ pub(crate) static BUILTIN_MODULE_NAMES: &[&str] = &[
     "worker_threads", "ws", "zlib",
 ];
 
+/// O que `import.meta.resolveSync` devolve a um módulo que o resolvedor do bun conhece, qualquer que seja o
+/// `parent` (medido no bun 1.4.2): `node:x` como veio, o nome nu com o prefixo (`fs` dá `node:fs`) e os `bun*`
+/// sem prefixo. `None` para o resto.
+pub(crate) fn known_builtin_specifier(specifier: &str) -> Option<String> {
+    let known = |name: &str| BUILTIN_MODULE_NAMES.iter().any(|entry| *entry == name);
+    if let Some(name) = specifier.strip_prefix("node:") {
+        return (known(name) || known(specifier)).then(|| specifier.to_owned());
+    }
+    if !known(specifier) {
+        return None;
+    }
+    Some(if specifier == "bun" || specifier.starts_with("bun:") { specifier.to_owned() } else { format!("node:{specifier}") })
+}
+
 /// Instalador de `node:module`: por ora só `builtinModules`, o array da tabela `BUILTIN_MODULE_NAMES`.
 fn install_module_module(global_object: &JSGlobalObject) -> HostResult {
     let vm = global_object.vm();

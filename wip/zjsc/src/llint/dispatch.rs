@@ -38,7 +38,8 @@ use crate::bytecode::bytecode_ops::{
     OpSuperConstruct, OpSuperConstructVarargs, OpTailCall, OpTailCallVarargs,
 };
 use crate::bytecode::bytecode_index::BytecodeIndex;
-use crate::bytecode::code_block::CodeBlockRef;
+use crate::bytecode::code_block::{CallLinkInfoMode, CodeBlockRef};
+use crate::bytecode::op_metadata::{DataOnlyCallLinkInfo, OpTailCallMetadata, OpTailCallVarargsMetadata};
 use crate::bytecode::opcode::OpcodeID;
 use crate::bytecode::virtual_register::{virtual_register_for_local, VirtualRegister};
 use crate::llint::dispatch_ext::{check_exception, run_ext};
@@ -79,6 +80,44 @@ fn callee_scope_value(call_frame: CallFrame, stack: &CLoopStack) -> JSValue {
     callee.scope().map_or_else(JSValue::empty, |scope| scope.into_js_value())
 }
 
+/// O `CallLinkInfo` do `op_tail_call`/`op_tail_call_varargs` em `pc`, como o `linkFor` o liga: a primeira chamada
+/// fixa o callee (`Monomorphic`), um callee diferente depois o torna `Polymorphic` para sempre. Devolve se o sítio
+/// continua ligado a este callee só, a condição para o desembrulho da bound function em cauda. Outros opcodes de
+/// cauda (sem `CallLinkInfo` no porte) seguem desembrulhando.
+fn link_tail_call_site(code_block: &CodeBlockRef, pc: u32, callee: JSValue) -> bool {
+    let block = code_block.borrow();
+    let instruction = block.instruction_at(BytecodeIndex::from_offset(pc));
+    let metadata_id = instruction.metadata_id();
+    let callee_id = match callee {
+        JSValue::Cell(_) => u32::try_from(callee.as_cell()).ok(),
+        _ => None,
+    };
+    let link = |info: &mut DataOnlyCallLinkInfo| -> bool {
+        match (CallLinkInfoMode::from_u8(info.mode), callee_id) {
+            (CallLinkInfoMode::Init, Some(id)) => {
+                info.callee = id;
+                info.mode = CallLinkInfoMode::Monomorphic as u8;
+                true
+            }
+            (CallLinkInfoMode::Monomorphic, Some(id)) if info.callee == id => true,
+            (CallLinkInfoMode::Init | CallLinkInfoMode::Monomorphic, _) => {
+                info.callee = 0;
+                info.has_seen_closure = true;
+                info.mode = CallLinkInfoMode::Polymorphic as u8;
+                false
+            }
+            (CallLinkInfoMode::Polymorphic | CallLinkInfoMode::Virtual, _) => false,
+        }
+    };
+    match instruction.opcode_id_enum() {
+        OpcodeID::op_tail_call => block.with_metadata::<OpTailCallMetadata, _>(metadata_id, |metadata| link(&mut metadata.call_link_info)),
+        OpcodeID::op_tail_call_varargs => {
+            block.with_metadata::<OpTailCallVarargsMetadata, _>(metadata_id, |metadata| link(&mut metadata.call_link_info))
+        }
+        _ => true,
+    }
+}
+
 /// `commonCallOp`: os operandos que `op_call`, `op_construct`, `op_super_construct`, `op_call_ignore_result` e
 /// `op_tail_call` têm em comum. `dst` é `None` em `op_call_ignore_result`; `tail` é `op_tail_call`
 /// (`prepareForTailCall` em vez de `prepareForRegularCall`).
@@ -103,10 +142,13 @@ impl CallInfo {
 
 /// O que uma chamada devolve ao laço: o valor do callee, ou, em `op_tail_call`/`op_tail_call_varargs` para um
 /// callee de script, o frame do callee já posto no lugar do frame do chamador (o laço o executa sem crescer a
-/// pilha nativa).
+/// pilha nativa). Em cauda para um nativo, o frame do chamador já foi trocado pelo do nativo no C++, então o valor
+/// dele volta direto a quem chamou o chamador (`TailReturn`): o bytecode depois do `op_tail_call` nunca roda (o
+/// `await` que o `return` de um async generator emite depois da chamada, por exemplo).
 pub(super) enum CallOutcome {
     Value(JSValue),
     TailCall { frame: CallFrame, entry: LLIntEntry },
+    TailReturn(JSValue),
 }
 
 /// Como `dispatch_loop_from` termina sem exceção: `op_ret`, ou a troca de frame de uma chamada em cauda.
@@ -446,6 +488,7 @@ impl Interpreter {
             let value = match value {
                 CallOutcome::Value(value) => value,
                 CallOutcome::TailCall { frame, entry } => return Ok(LoopExit::TailCall { frame, entry }),
+                CallOutcome::TailReturn(value) => return Ok(LoopExit::Return(value)),
             };
             if let Some(dst) = dst {
                 call_frame.set_unchecked_r(&mut self.stack, dst, Register::from(value));
@@ -509,11 +552,14 @@ impl Interpreter {
         let vm = global_object.vm();
         // O DFG (`BoundFunctionTailCall`) desembrulha o `bind` em posição de cauda; o porte faz o mesmo antes de
         // montar o frame, para a recursão por bound function não aninhar `executeCall` (medido no bun: 1e6 níveis).
-        let (callee_frame, callee_value) = if tail && kind == CodeSpecializationKind::CodeForCall {
-            self.unwrap_bound_function_for_tail_call(callee_frame, callee_value, global_object)?
-        } else {
-            (callee_frame, callee_value)
-        };
+        // Só no sítio monomórfico (o `CallLinkInfo` ligado a uma bound function só): medido no bun 1.4.2, o sítio que
+        // vê uma bound function nova a cada chamada (`return f.bind(null)(n - 1)`) cresce a pilha e dá `RangeError`.
+        let (callee_frame, callee_value) =
+            if tail && kind == CodeSpecializationKind::CodeForCall && link_tail_call_site(code_block, pc, callee_value) {
+                self.unwrap_bound_function_for_tail_call(callee_frame, callee_value, global_object)?
+            } else {
+                (callee_frame, callee_value)
+            };
         call_frame.set_current_vpc(&mut self.stack, BytecodeIndex::from_offset(pc));
         callee_frame.set_caller_frame(&mut self.stack, Some(call_frame));
         let site = ErrorSite { code_block, bytecode_index: BytecodeIndex::from_offset(pc), vm, call_frame };
@@ -522,7 +568,10 @@ impl Interpreter {
             Some(function) if !function.is_host_function() => function,
             // handleHostCall (`getJSFunction` nulo, `InternalFunction`, `NativeExecutable`): o `CallData` do
             // valor decide entre a função nativa e o `TypeError`.
-            _ => return self.handle_host_call(callee_frame, callee_value, kind, global_object, &site, tail).map(CallOutcome::Value),
+            _ => {
+                let value = self.handle_host_call(callee_frame, callee_value, kind, global_object, &site, tail)?;
+                return Ok(if tail { CallOutcome::TailReturn(value) } else { CallOutcome::Value(value) });
+            }
         };
         // setUpCall: `createNotAConstructorError` quando `kind` é construct e o executável não constrói.
         if kind == CodeSpecializationKind::CodeForConstruct

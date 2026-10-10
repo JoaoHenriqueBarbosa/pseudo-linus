@@ -683,6 +683,12 @@ fn unscale_digits(integer: &str, fraction: &str, exponent: u8) -> (String, Strin
 
 /// `unumf_formatDouble`/`unumf_formatDecimal` com os campos: as partes do número formatado.
 pub fn format_parts(settings: &NumberSettings, input: &NumericInput) -> Vec<Part> {
+    format_parts_with_exponent(settings, input).0
+}
+
+/// Como [`format_parts`], devolvendo também o expoente de dez que a notação mostra (o da científica ou o do compacto,
+/// já com a subida de ordem do arredondamento, `999999` em `1M`): o operando `e` das regras de plural do ICU4C.
+pub fn format_parts_with_exponent(settings: &NumberSettings, input: &NumericInput) -> (Vec<Part>, i32) {
     let (mut negative, mut digits, special) = match input {
         NumericInput::Double(value) => {
             if value.is_nan() {
@@ -795,10 +801,14 @@ pub fn format_parts(settings: &NumberSettings, input: &NumericInput) -> Vec<Part
     };
     if special.is_none() && matches!(settings.notation, Notation::Scientific | Notation::Engineering) {
         number.push(("exponentSeparator".to_string(), "E".to_string()));
+        // Medido no bun: o expoente usa os dígitos e o sinal de menos do locale (`ne`: `E५`, `eu`: `E−4`).
+        let local_exponent = decimal_format.as_ref().and_then(|format| format.number(&exponent.unsigned_abs().to_string(), ""));
+        let local_minus = decimal_format.as_ref().and_then(|format| format.sign(true).0.into_iter().find(|(kind, _)| kind == "minusSign"));
         if exponent < 0 {
-            number.push(("exponentMinusSign".to_string(), "-".to_string()));
+            number.push(("exponentMinusSign".to_string(), local_minus.map_or_else(|| "-".to_string(), |(_, text)| text)));
         }
-        number.push(("exponentInteger".to_string(), exponent.unsigned_abs().to_string()));
+        let digits = local_exponent.map(|parts| parts.into_iter().map(|(_, text)| text).collect::<String>());
+        number.push(("exponentInteger".to_string(), digits.unwrap_or_else(|| exponent.unsigned_abs().to_string())));
     }
     // Os operandos de plural do número formatado (as casas visíveis contam). No compacto o ICU escolhe a forma
     // pelo número na ordem original, não pelo significando: `1 trillion euros` e `1 M euros`, no plural
@@ -812,7 +822,7 @@ pub fn format_parts(settings: &NumberSettings, input: &NumericInput) -> Vec<Part
 
     // Moeda e unidade das línguas medidas no bun (`icu_number_data`): o padrão inteiro vem da tabela.
     if let Some(parts) = localized_parts(settings, decimal_format.as_ref(), sign_part, accounting, category.unwrap_or("other"), &number) {
-        return with_currency_spacing(settings, parts);
+        return (with_currency_spacing(settings, parts), exponent + i32::from(compact_exponent));
     }
 
     // O sinal do locale (o `ar` põe a marca bidirecional junto do menos); o contábil troca o menos pelo parêntese.
@@ -878,7 +888,7 @@ pub fn format_parts(settings: &NumberSettings, input: &NumericInput) -> Vec<Part
     } else {
         parts.extend(sign_suffix);
     }
-    with_currency_spacing(settings, parts)
+    (with_currency_spacing(settings, parts), exponent + i32::from(compact_exponent))
 }
 
 /// Com `∞` e `NaN` o ICU não insere o espaço entre a moeda (símbolo ou código) e o número, porque o

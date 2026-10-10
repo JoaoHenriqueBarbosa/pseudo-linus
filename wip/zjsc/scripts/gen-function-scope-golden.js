@@ -7,10 +7,13 @@
 // Cada programa roda num bun filho novo (a ordem de reificação de propriedades estáticas depende do processo), os
 // filhos rodam em paralelo e a saída segue a ordem de geração. Programas cuja expressão já aparece em algum golden
 // existente são descartados.
-// Colunas: a fonte do programa (JSON) e o valor da variável global `R` (JSON), igual a gen-object-edge-golden.js.
-// Uso: bun scripts/gen-function-scope-golden.js > tests/golden/function_scope_bun.tsv
+// Colunas: a fonte do programa (JSON) e o valor da variável global `R` (JSON), igual a gen-object-edge-golden.js. Cada
+// programa roda quatro vezes (`measureVarying`, duas no relógio real e duas com a libfaketime): onde a saída varia só em
+// números e palavras (`Date()`, `Math.random`), a quarta coluna leva os índices de token que variam.
+// Uso: LIBFAKETIME=<libfaketimeMT.so.1> bun scripts/gen-function-scope-golden.js > tests/golden/function_scope_bun.tsv
 const fs = require("fs");
-const { knownPrograms, emitFactoredLines, sampleByHash } = require("./golden-prelude.js");
+const { knownPrograms, emitFactored, sampleByHash } = require("./golden-prelude.js");
+const { measureVarying } = require("./golden-alternatives.js");
 const os = require("os");
 const path = require("path");
 const { spawn } = require("child_process");
@@ -430,10 +433,10 @@ for (const s of uniqSnip) {
 }
 
 // ---- Execução.
-const baseSources = [];
 const goldenDir = path.join(__dirname, "..", "tests", "golden");
-baseSources.push(...knownPrograms("function_scope_bun.tsv", (file) => !(!file.endsWith(".tsv") || file === "function_scope_bun.tsv")));
-const baseSet = new Set(baseSources);
+// O conjunto vem direto da lista: os vizinhos passam de centenas de milhares de programas, e `push(...lista)` estourava a
+// pilha de argumentos.
+const baseSet = new Set(knownPrograms("function_scope_bun.tsv", (file) => !(!file.endsWith(".tsv") || file === "function_scope_bun.tsv")));
 const seen = new Set();
 const unique = exprs.filter((e) => !seen.has(e) && seen.add(e));
 let dup = 0;
@@ -454,14 +457,14 @@ if (stride > 1) {
 }
 process.stderr.write(`jobs ${jobs.length}\n`);
 
-function runChild(source) {
+function runChild(source, env) {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [__filename, "--child"], { stdio: ["pipe", "pipe", "pipe"], timeout: 5000, killSignal: "SIGKILL", env: { ...process.env, TZ: "America/Sao_Paulo" } });
+    const child = spawn(process.execPath, [__filename, "--child"], { stdio: ["pipe", "pipe", "pipe"], timeout: 5000, killSignal: "SIGKILL", env });
     let out = "";
     let err = "";
     child.stdout.on("data", (d) => (out += d));
     child.stderr.on("data", (d) => (err += d));
-    child.on("close", (code) => resolve({ code, out, err }));
+    child.on("close", (code) => resolve({ ok: code === 0, code, out, err }));
     child.stdin.on("error", () => {});
     child.stdin.end(source);
   });
@@ -470,20 +473,21 @@ function runChild(source) {
 async function main() {
   const results = new Array(jobs.length);
   let next = 0;
+  const env = { ...process.env, TZ: "America/Sao_Paulo" };
   const workers = Array.from({ length: Math.min(8, Math.max(4, os.cpus().length)) }, async () => {
     while (next < jobs.length) {
       const i = next++;
-      results[i] = await runChild(jobs[i].source);
+      results[i] = await measureVarying((runEnv) => runChild(jobs[i].source, runEnv), env);
     }
   });
   await Promise.all(workers);
   let kept = 0;
   let dropped = 0;
-  const lines = [];
+  const rows = [];
   for (let i = 0; i < jobs.length; i++) {
     const { expr, source } = jobs[i];
     const r = results[i];
-    if (r.code !== 0) {
+    if (!r.ok) {
       dropped++;
       process.stderr.write("erro de programa: " + J(expr).slice(0, 160) + " " + r.err.split("\n")[0] + "\n");
       continue;
@@ -494,9 +498,9 @@ async function main() {
       continue;
     }
     kept++;
-    lines.push(J(source) + "\t" + J(r.out));
+    rows.push({ source, result: r.out, alternatives: r.varying ? [...r.alternatives, r.varying] : r.alternatives });
   }
-  process.stdout.write(emitFactoredLines("function_scope", lines)); // grava também tests/golden/function_scope.preludes.json
+  process.stdout.write(emitFactored("function_scope", rows)); // grava também tests/golden/function_scope.preludes.json
   process.stderr.write(`mantidos ${kept}, descartados ${dropped}, repetidos dos goldens existentes ${dup}\n`);
 }
 main();

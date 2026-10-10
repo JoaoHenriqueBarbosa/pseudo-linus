@@ -283,6 +283,12 @@ pub fn collection_constructor_structure(
     prototype: JSValue,
     info: &'static ClassInfo,
 ) -> StructureRef {
+    internal_function_structure(vm, global_object, prototype, info, InternalFunction::STRUCTURE_FLAGS)
+}
+
+/// A estrutura `InternalFunctionType` com as `flags` da classe (as de `InternalFunction`, ou elas sem
+/// `ImplementsDefaultHasInstance` num construtor com `instanceof` próprio, como o `File` do bun).
+pub fn internal_function_structure(vm: &VM, global_object: &JSGlobalObject, prototype: JSValue, info: &'static ClassInfo, flags: u32) -> StructureRef {
     Structure::create(
         vm,
         Some(global_object),
@@ -290,8 +296,7 @@ pub fn collection_constructor_structure(
         // `StructureFlags = Base::StructureFlags | HasStaticPropertyTable` nas classes com `staticPropHashTable`.
         TypeInfo::new(
             JSType::InternalFunctionType,
-            InternalFunction::STRUCTURE_FLAGS
-                | if info.static_prop_hash_table.is_some() { crate::runtime::js_type_info::HAS_STATIC_PROPERTY_TABLE } else { 0 },
+            flags | if info.static_prop_hash_table.is_some() { crate::runtime::js_type_info::HAS_STATIC_PROPERTY_TABLE } else { 0 },
         ),
         info,
     )

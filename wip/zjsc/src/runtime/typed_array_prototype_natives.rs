@@ -428,25 +428,28 @@ fn sort_impl(global_object: &JSGlobalObject, this_object: &View, comparator_valu
 }
 
 fn typed_array_view_proto_func_sort_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    // O `switch` sobre o tipo do `this` (`typedArrayViewProtoFuncSort`) vem antes do comparador; o limite, depois.
+    let this_object = this_view(call)?;
     let comparator_value = call.argument(0);
     if !comparator_value.is_undefined() && !comparator_value.is_callable() {
         return Err(Thrown::type_error("TypedArray.prototype.sort requires the comparator argument to be a function or undefined"));
     }
 
     // https://tc39.es/ecma262/#sec-%typedarray%.prototype.sort
-    let this_object = validated_this(call)?;
+    check_typed_array_in_bounds(&this_object)?;
 
     sort_impl(global_object, &this_object, comparator_value)
 }
 
 fn typed_array_view_proto_func_to_sorted_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     // https://tc39.es/proposal-change-array-by-copy/#sec-%typedarray%.prototype.toSorted
+    let this_object = this_view(call)?;
     let comparator_value = call.argument(0);
     if !comparator_value.is_undefined() && !comparator_value.is_callable() {
         return Err(Thrown::type_error("TypedArray.prototype.toSorted requires the comparator argument to be a function or undefined"));
     }
 
-    let this_object = validated_this(call)?;
+    check_typed_array_in_bounds(&this_object)?;
 
     // Snapshot the span at this time, as SABs may grow (but never shrink) in parallel.
     let original: Vec<NativeElement> = (0..this_object.length()).map(|index| this_object.get_element(index)).collect();

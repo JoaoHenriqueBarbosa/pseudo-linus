@@ -1198,7 +1198,7 @@ JSON.parse("[NaN]")	error	SyntaxError	"JSON Parse error: Unexpected identifier \
 JSON.parse("[undefined]")	error	SyntaxError	"JSON Parse error: Unexpected identifier \"undefined\""	SyntaxError	true
 JSON.parse("{\"a\":'b'}")	error	SyntaxError	"JSON Parse error: Single quotes (') are not allowed in JSON"	SyntaxError	true
 JSON.parse("99999x")	error	SyntaxError	"JSON Parse error: Unable to parse JSON string"	SyntaxError	true
-JSON.parse(" ")	error	SyntaxError	"JSON Parse error: Unrecognized token '
+JSON.parse(" ")	error	SyntaxError	"JSON Parse error: Unrecognized token ' '"	SyntaxError	true
 JSON.parse("\" \"")	nothrow
 JSON.parse("[\"\u0000\"]")	error	SyntaxError	"JSON Parse error: Unterminated string"	SyntaxError	true
 JSON.parse()	error	SyntaxError	"JSON Parse error: Unexpected identifier \"undefined\""	SyntaxError	true
@@ -4203,7 +4203,7 @@ Math.imul(1n, 1)	error	TypeError	"Conversion from 'BigInt' to 'number' is not al
 Math.clz32(Symbol())	error	TypeError	"Cannot convert a symbol to a number"	TypeError	true
 Math.fround(1n)	error	TypeError	"Conversion from 'BigInt' to 'number' is not allowed."	TypeError	true
 Math.atan2(1n, 1)	error	TypeError	"Conversion from 'BigInt' to 'number' is not allowed."	TypeError	true
-Math.random(1n)(1)	error	TypeError	"Math.random(1n) is not a function. (In 'Math.random(1n)(1)', 'Math.random(1n)' is 0.4168227451584908)"	TypeError	true
+Math.random(1n)(1)	error	TypeError	"Math.random(1n) is not a function. (In 'Math.random(1n)(1)', 'Math.random(1n)' is 0.6988715320715716)"	TypeError	true	[51]
 Math.f16round(1n)	error	TypeError	"Conversion from 'BigInt' to 'number' is not allowed."	TypeError	true
 Math.sumPrecise(1)	error	TypeError	"Type error"	TypeError	true
 Math.sumPrecise([1n])	error	TypeError	"Math.sumPrecise was passed a non-number"	TypeError	true

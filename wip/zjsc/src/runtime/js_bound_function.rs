@@ -342,10 +342,6 @@ pub fn object_has_instance_with_value(
 
     let type_info = object.structure().type_info();
     if type_info.implements_default_has_instance() {
-        // `File` divide o protótipo com `Blob`: o `instanceof` dele olha o estado, não a cadeia.
-        if let Some(result) = crate::runtime::file::file_has_instance(target, value) {
-            return Some(result);
-        }
         let prototype = object.get(global_object, &PropertyName::from_identifier(&vm.property_names.prototype));
         if vm.exception().is_some() {
             return None;
@@ -353,7 +349,11 @@ pub fn object_has_instance_with_value(
         return default_has_instance(global_object, value, prototype);
     }
     if type_info.implements_has_instance() {
-        let function = target.as_js_function().expect("ImplementsHasInstance sem default só existe em JSBoundFunction");
+        // `File` divide o protótipo com `Blob`: o `customHasInstance` dele olha o estado, não a cadeia.
+        if let Some(result) = crate::runtime::file::file_has_instance(target, value) {
+            return Some(result);
+        }
+        let function = target.as_js_function().expect("ImplementsHasInstance sem default só existe em JSBoundFunction e File");
         let bound = function.as_bound_function().expect("customHasInstance de função que não é JSBoundFunction");
         return bound.custom_has_instance(global_object, value);
     }

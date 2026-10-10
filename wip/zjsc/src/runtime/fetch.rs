@@ -252,7 +252,7 @@ fn fetch_data(global_object: &JSGlobalObject, text: &str, units: Vec<u16>) -> Ho
     let Some((bytes, content_type)) = parse_data_url(text) else {
         return Err(throw_plain_error(global_object, "failed to fetch the data URL"));
     };
-    let body = Body { bytes, blob_type: content_type.clone(), used: false, lazy_path: None, stream: None, from_stream: false, file: None };
+    let body = Body { bytes, blob_type: content_type.clone(), used: false, lazy_path: None, stream: None, from_stream: false, file: None, implied_type: false };
     make_fetched_response(global_object, "OK", units, &content_type, body)
 }
 
@@ -266,7 +266,7 @@ fn fetch_blob(global_object: &JSGlobalObject, call: &HostCall, text: &str, units
     };
     let content_type = if state.content_type.is_empty() { Vec::new() } else { with_charset(&state.content_type) };
     let file = FileIdentity::of(&state);
-    let body = Body { bytes: state.bytes, blob_type: content_type.clone(), used: false, lazy_path: None, stream: None, from_stream: false, file };
+    let body = Body { bytes: state.bytes, blob_type: content_type.clone(), used: false, lazy_path: None, stream: None, from_stream: false, file, implied_type: false };
 make_fetched_response(global_object, "", units, &content_type, body)
 }
 
@@ -283,7 +283,7 @@ fn fetch_file(global_object: &JSGlobalObject, units: &[u16]) -> HostResult {
     let path = String::from_utf8_lossy(opened).into_owned();
     let content_type = file_mime(&path).map_or_else(Vec::new, |mime| with_charset(mime.as_bytes()));
     let response_url: Vec<u16> = format!("file://{}", encode_path(&decoded)).encode_utf16().collect();
-    let body = Body { bytes: Vec::new(), blob_type: content_type.clone(), used: false, lazy_path: Some(path), stream: None, from_stream: false, file: None };
+    let body = Body { bytes: Vec::new(), blob_type: content_type.clone(), used: false, lazy_path: Some(path), stream: None, from_stream: false, file: None, implied_type: false };
     make_fetched_response(global_object, "", response_url, &content_type, body)
 }
 
@@ -378,7 +378,7 @@ host_function!(preconnect_fn, preconnect_body);
 /// Instala `fetch` no global (propriedade de dados comum, como as demais funções web do bun).
 pub fn install_fetch(global_object: &JSGlobalObject) {
     let vm = global_object.vm();
-    let function = JSFunction::create_native(
+    let function = JSFunction::create_native_with_own_structure(
         vm,
         global_object,
         1,

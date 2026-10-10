@@ -205,7 +205,7 @@
 {"main.mjs":"const ns = await import('./' + 'a' + '.mjs'); L(ns.x);","a.mjs":"export const x = 'concat';"}	{"log":["concat"],"error":null}
 {"main.mjs":"L(typeof import('./a.mjs').then);","a.mjs":""}	{"log":["function"],"error":null}
 {"main.mjs":"await import('./a.mjs'); L('main');","a.mjs":"L('a'); await null; L('a2');"}	{"log":["a","a2","main"],"error":null}
-{"main.mjs":"import('./a.mjs'); L('main');","a.mjs":"L('a');"}	{"log":["main","a"],"error":null}
+{"main.mjs":"import('./a.mjs'); L('main');","a.mjs":"L('a');"}	{"log":["main","a"],"error":null}	["{\"log\":[\"main\"],\"error\":null}"]
 {"main.mjs":"function f() { return import('./a.mjs'); } const ns = await f(); L(ns.x);","a.mjs":"export const x = 'inFn';"}	{"log":["inFn"],"error":null}
 {"main.mjs":"import { l } from './a.mjs'; L(await l());","a.mjs":"export const l = async () => (await import('./sub/b.mjs')).x;","sub/b.mjs":"export const x = 'rel-to-a';"}	{"log":["rel-to-a"],"error":null}
 {"main.mjs":"import { l } from './sub/a.mjs'; L(await l());","sub/a.mjs":"export const l = async () => (await import('./b.mjs')).x;","sub/b.mjs":"export const x = 'sub-b';"}	{"log":["sub-b"],"error":null}

@@ -209,6 +209,9 @@ fn error_body(global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
 fn json_static_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let bytes = if call.argument_count() == 0 {
         Vec::new()
+    } else if call.argument(0).is_big_int() {
+        // Medido no bun 1.4.2: só o BigInt de topo tem esta mensagem; dentro de objeto é a do `JSON.stringify`.
+        return Err(Thrown::type_error("Do not know how to serialize a BigInt"));
     } else {
         match json_stringify(global_object, call.argument(0), JSValue::undefined(), JSValue::undefined()) {
             Ok(Some(text)) => {

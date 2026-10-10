@@ -203,7 +203,11 @@ fn error_constructor_capture_stack_trace(global_object: &JSGlobalObject, call_fr
     let caller_argument = call_frame.argument(1);
     // Medido no `bun` 1.4.2: qualquer objeto vale como `constructorOpt` (`dyn_cast<JSObject*>`); um que não é
     // função nunca aparece na pilha, então todos os frames são descartados (`Error.captureStackTrace(o, {})`).
-    let caller = caller_argument.is_object().then(|| caller_argument.as_cell());
+    // A função ligada por um `bind` casa com o frame do alvo dela; dois `bind` seguidos não casam com nada.
+    let caller = caller_argument.is_object().then(|| {
+        let target = caller_argument.as_js_function().and_then(|function| function.as_bound_function().map(|bound| bound.target_function()));
+        target.filter(JSValue::is_cell).unwrap_or(caller_argument).as_cell()
+    });
     let frames = capture_frames_for_capture_stack_trace(global_object, call_frame.call_frame(), caller);
 
     // Medido no `bun` 1.4.2: num `ErrorInstance` o cabeçalho `name: message` é montado na leitura de `stack`

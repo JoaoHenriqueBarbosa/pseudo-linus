@@ -15,9 +15,11 @@
 //!   cookies na ordem de chegada; o iterador e `forEach` releem essa lista a cada passo;
 //! - construtor: `undefined` vazio; outro `Headers` copia; objeto com `Symbol.iterator` é sequência de pares (item não
 //!   objeto `Value is not a sequence`, par que não tem dois elementos `Header sub-sequence must contain exactly two
-//!   items`); objeto sem iterador é registro; o resto é `Type error`;
-//! - `getAll` só aceita `set-cookie` (`Only "set-cookie" is supported.`, sem argumento `Missing argument`); `toJSON`
-//!   põe `set-cookie` (array) primeiro e o resto na ordem de inserção; `count` é o número de entradas da iteração.
+//!   items`); objeto sem iterador (função inclusive) é registro; o resto é `Type error`;
+//! - `getAll` só aceita `set-cookie` (`Only "set-cookie" is supported.`, sem argumento `Missing argument`), e num
+//!   `this` que não é `Headers` devolve `undefined`; `toJSON`
+//!   põe `set-cookie` (array) primeiro e o resto na ordem de inserção; `count` (acessor enumerável e não configurável)
+//!   é o número de entradas da iteração.
 //! O estado das instâncias fica em `thread_local` (zerado em `reset_for_program`), como `URLSearchParams`.
 
 use std::borrow::Cow;
@@ -37,7 +39,7 @@ use crate::runtime::js_object::{JSFinalObject, JS_NON_FINAL_OBJECT_S_INFO};
 use crate::runtime::js_value::{js_number, JSValue};
 use crate::runtime::native_class_support::{create_native_class_with_length, install_global_with_attributes, instance_structure, throw_coded_type_error};
 use crate::runtime::native_function::NativeFunction;
-use crate::runtime::property_attribute::DONT_ENUM;
+use crate::runtime::property_attribute::{DONT_DELETE, DONT_ENUM};
 use crate::runtime::property_descriptor::PropertyDescriptor;
 use crate::runtime::property_name::PropertyName;
 use crate::runtime::web_iterable::{
@@ -170,7 +172,7 @@ fn initial_entries(global_object: &JSGlobalObject, init: JSValue) -> Result<Entr
     if init.is_undefined() {
         return Ok(Vec::new());
     }
-    if !init.is_object() || init.is_callable() {
+    if !init.is_object() {
         return Err(Thrown::type_error("Type error"));
     }
     pairs_of_object::<Headers>(global_object, init)
@@ -285,14 +287,16 @@ fn cookies_array(global_object: &JSGlobalObject, entries: &Entries) -> JSValue {
 }
 
 fn get_all_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    with_entries::<Headers, _>(global_object, call, "getAll", |_| ())?;
+    // Medido no bun 1.4.2: num `this` que não é `Headers` o `getAll` devolve `undefined`, sem conferir os argumentos.
+    let Some(entries) = with_instance::<Headers, Entries>(call.this_value(), |entries| entries.clone()) else {
+        return Ok(JSValue::undefined());
+    };
     if call.argument_count() < 1 {
         return Err(Thrown::type_error("Missing argument"));
     }
     if !is_set_cookie(&lowercase(&units_of(global_object, call.argument(0))?)) {
         return Err(Thrown::type_error("Only \"set-cookie\" is supported."));
     }
-    let entries = with_entries::<Headers, _>(global_object, call, "getAll", |entries| entries.clone())?;
     Ok(cookies_array(global_object, &entries))
 }
 
@@ -371,7 +375,7 @@ pub fn install_headers(global_object: &JSGlobalObject) {
         ("toJSON", 0, to_json_fn),
     ];
     put_enumerable_methods(global_object, &prototype, &methods);
-    put_native_getter(vm, global_object, &prototype, "count", count_fn, Intrinsic::NoIntrinsic, 0);
+    put_native_getter(vm, global_object, &prototype, "count", count_fn, Intrinsic::NoIntrinsic, DONT_DELETE);
     let set_cookie_methods: [(&str, u32, NativeFunction); 1] = [("getSetCookie", 0, get_set_cookie_fn)];
     put_enumerable_methods(global_object, &prototype, &set_cookie_methods);
     put_iterator_alias(global_object, &prototype);

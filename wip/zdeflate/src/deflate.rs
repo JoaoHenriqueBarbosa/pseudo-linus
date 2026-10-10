@@ -203,6 +203,7 @@ impl Deflate {
                 match self.strategy {
                     Strategy::HuffmanOnly => self.deflate_huff(strm, flush),
                     Strategy::Rle => self.deflate_rle(strm, flush),
+                    _ if self.medium() => self.deflate_medium(strm, flush),
                     _ if self.level <= 3 => self.deflate_fast(strm, flush),
                     _ => self.deflate_slow(strm, flush),
                 }
@@ -301,7 +302,7 @@ impl Deflate {
     }
 
     /// `MAX_DIST`: a maior distância aceita, para que a janela nunca leia o que já saiu dela.
-    fn max_dist(&self) -> u32 {
+    pub(crate) fn max_dist(&self) -> u32 {
         (self.w_size - MIN_LOOKAHEAD) as u32
     }
 
@@ -331,7 +332,7 @@ impl Deflate {
     /// `fill_window`: lê entrada até ter `MIN_LOOKAHEAD` bytes à frente (ou a entrada acabar),
     /// deslizando a janela quando necessário, e zera até `WIN_INIT` bytes depois dos dados para
     /// que a busca de correspondências nunca compare memória não inicializada.
-    fn fill_window(&mut self, strm: &mut Stream<'_, '_>) {
+    pub(crate) fn fill_window(&mut self, strm: &mut Stream<'_, '_>) {
         let wsize = self.w_size;
         loop {
             let mut more = self.window_size - self.lookahead as usize - self.strstart as usize;
@@ -356,7 +357,23 @@ impl Deflate {
             self.lookahead += n as u32;
 
             // Põe na tabela os bytes que esperavam o que vem depois deles.
-            if self.lookahead + self.insert >= MIN_MATCH as u32 {
+            if self.medium() {
+                if self.lookahead + self.insert >= MIN_MATCH as u32 {
+                    let str = self.strstart - self.insert;
+                    // `max_chain_length` nunca passa de 1024 nos níveis do `deflate_medium`.
+                    if str >= 1 {
+                        self.ng_quick_insert_string(str + 2 - MIN_MATCH as u32);
+                    }
+                    let mut count = self.insert;
+                    if self.lookahead == 1 {
+                        count -= 1;
+                    }
+                    if count > 0 {
+                        self.ng_insert_string(str, count);
+                        self.insert -= count;
+                    }
+                }
+            } else if self.lookahead + self.insert >= MIN_MATCH as u32 {
                 let mut s = (self.strstart - self.insert) as usize;
                 self.ins_h = self.window[s] as u32;
                 self.update_hash(self.window[s + 1]);
@@ -446,7 +463,7 @@ impl Deflate {
     }
 
     /// `FLUSH_BLOCK_ONLY`: fecha o bloco corrente e manda o que der para a saída.
-    fn flush_block_only(&mut self, strm: &mut Stream<'_, '_>, last: bool) {
+    pub(crate) fn flush_block_only(&mut self, strm: &mut Stream<'_, '_>, last: bool) {
         let stored_len = (self.strstart as i64 - self.block_start) as u64;
         let buf = if self.block_start >= 0 { Some(&self.window[self.block_start as usize..]) } else { None };
         self.t.flush_block(&mut self.p, buf, stored_len, last, self.level, self.strategy, &mut self.data_type);
@@ -455,7 +472,7 @@ impl Deflate {
     }
 
     /// O fim comum das funções de compressão depois que a entrada acabou.
-    fn finish_blocks(&mut self, strm: &mut Stream<'_, '_>, flush: Flush) -> BlockState {
+    pub(crate) fn finish_blocks(&mut self, strm: &mut Stream<'_, '_>, flush: Flush) -> BlockState {
         if flush == Flush::Finish {
             self.flush_block_only(strm, true);
             if strm.avail_out() == 0 {

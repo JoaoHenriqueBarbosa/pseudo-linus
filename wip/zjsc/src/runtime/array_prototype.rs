@@ -682,15 +682,20 @@ fn join_with_separator(
     if length == 0 {
         return Ok(JSValue::from_js_string(js_empty_string(vm)));
     }
-    // Corridas `(pedaço, repetições)`: os buracos e os `undefined`/`null` seguidos viram uma entrada só.
-    let mut parts: Vec<(WtfString, u64)> = values_with_capacity(length)?;
-    // O `StringBuilder` do C++ marca overflow acima de `MaxLength` (OutOfMemoryError): os separadores sozinhos
-    // já podem estourar com `length` enorme, e a soma dos pedaços é conferida a cada elemento.
+    // Corridas `(pedaço, repetições)`: os buracos e os `undefined`/`null` seguidos viram uma entrada só, então a
+    // lista cresce sob demanda.
+    let mut parts: Vec<(WtfString, u64)> = values_with_capacity(length.min(4096))?;
+    // O `StringBuilder` do C++ marca overflow acima de `MaxLength` (OutOfMemoryError) ao juntar. Quando ler os
+    // elementos não é observável, os separadores sozinhos já decidem o estouro antes do laço (o C++ chega ao mesmo
+    // erro depois de percorrer os buracos); num `Proxy` cada leitura é um trap, e o C++ lê os elementos até o
+    // estouro de verdade (medido no bun 1.4.2: `length` 2^32 lê `0`, `1`, ... até o trap lançar).
     let max_length = u64::from(MAX_STRING_LENGTH);
     let mut total = u64::from(separator.length()).saturating_mul(length - 1);
-    if total > max_length {
+    if total > max_length && !is_proxy(object) {
         return Err(ArrayError::Put(PutError::OutOfMemory));
     }
+    let separators = total;
+    total = 0;
     // Um elemento objeto roda `toString` do usuário, que pode esvaziar ou mudar o array no meio do laço: os
     // seguintes têm de ser lidos na hora (o `fastJoin` do C++ relê o índice a cada volta), não de uma cópia.
     let snapshot = dense_snapshot(object, length).filter(|values| !values.iter().any(|value| value.is_object()));
@@ -709,10 +714,13 @@ fn join_with_separator(
         }
         let part = element_string(call, element)?;
         total += u64::from(part.length());
-        if total > max_length {
+        if total + u64::from(separator.length()) * index > max_length {
             return Err(ArrayError::Put(PutError::OutOfMemory));
         }
         parts.push((part, 1));
+    }
+    if total + separators > max_length {
+        return Err(ArrayError::Put(PutError::OutOfMemory));
     }
     Ok(JSValue::from_js_string(js_string(vm, &join_runs_with_separator(&parts, separator))))
 }
@@ -991,6 +999,11 @@ pub fn array_proto_func_splice(call: &ArrayCall) -> ArrayResult {
         move_elements(call, &object, start + delete_count, start + item_count, length)?;
         delete_tail(call, &object, new_length, length)?;
     } else if item_count > delete_count {
+        // O `unshift<ShiftCountForSplice>` do C++: um `JSArray` não passa de 2^32 - 1 elementos, e o `splice` lança
+        // antes de mover (como no `unshift`).
+        if JSArray::from_cell_id(object.cell_id()).is_some() && new_length > u64::from(u32::MAX) {
+            return Err(ArrayError::Put(PutError::RangeError(crate::runtime::js_array::LENGTH_EXCEEDED_THE_MAXIMUM_ARRAY_LENGTH_ERROR)));
+        }
         move_elements(call, &object, start + delete_count, start + item_count, length)?;
     }
     for k in 0..item_count {

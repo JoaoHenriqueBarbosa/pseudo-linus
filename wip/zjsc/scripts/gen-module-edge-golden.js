@@ -7,9 +7,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { spawnSync } = require("child_process");
 
-const BUN = process.env.BUN || "bun";
 const cases = [];
 const seen = new Set();
 const add = (files) => {
@@ -416,31 +414,6 @@ const attrBodies = [
 for (const body of attrBodies) main(body, attrFiles);
 
 // Execução.
-const lines = [];
-const failures = [];
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "zjsc-module-edge-golden-"));
-const runner = path.join(tmp, "runner.mjs");
-fs.writeFileSync(runner, RUNNER);
 const { usesHostApi } = require("./host-api.js");
 // O porte é só o motor: nada de programa que dependa de API de host do bun (ver host-api.js).
-cases.splice(0, cases.length, ...cases.filter((p) => !usesHostApi(p)));
-cases.forEach((files, i) => {
-  const dir = path.join(tmp, "case" + i);
-  for (const [name, source] of Object.entries(files)) {
-    const file = path.join(dir, name);
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, source);
-  }
-  const r = spawnSync(BUN, [runner, dir], { encoding: "utf8", timeout: 10000, cwd: tmp });
-  let out = (r.stdout || "").trim().split("\n").pop() || "";
-  if (r.error || r.status === null) out = JSON.stringify({ log: [], error: "timeout" });
-  else if (!out.startsWith("{")) out = JSON.stringify({ log: [], error: "exit " + r.status });
-  const clean = JSON.stringify(files);
-  if (/[\t\n\r]/.test(clean) || /[\t\n\r]/.test(out)) throw new Error("tab ou quebra de linha no caso " + i);
-  if (out.includes(tmp)) failures.push(i);
-  lines.push(clean + "\t" + out);
-});
-fs.rmSync(tmp, { recursive: true, force: true });
-if (failures.length) throw new Error("caminho da máquina na saída dos casos " + failures.join(","));
-process.stdout.write(require("./golden-prelude.js").assertPublicResult(lines.join("\n") + "\n"));
-process.stderr.write(`casos: ${lines.length}\n`);
+require("./module-golden-run.js").runModuleGolden("module-edge-golden", RUNNER, cases.filter((p) => !usesHostApi(p)));

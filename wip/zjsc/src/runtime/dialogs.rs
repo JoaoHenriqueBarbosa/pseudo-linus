@@ -20,7 +20,9 @@
 //! - a linha acaba em `\n`; um `\r` imediatamente antes é descartado. EOF, inclusive no meio de uma linha, vale
 //!   como "sem resposta": `confirm` `false`, `prompt` `null`. `alert` ignora a linha.
 //! - `confirm` devolve `true` só para `y` ou `Y` exatos.
-//! - `prompt` com linha vazia devolve o padrão (qualquer valor, até `""`) quando há segundo argumento, senão `null`.
+//! - `prompt` com linha vazia devolve o próprio segundo argumento (o valor, não o `ToString` dele: `5` volta número,
+//!   o objeto volta o objeto) quando há segundo argumento, senão `null`. A mensagem e o espaço saem antes da conversão
+//!   do padrão: um `toString` que lança deixa `mensagem ` no stdout.
 
 use crate::host_function;
 use crate::runtime::host_call::{pending_or, HostCall, HostResult, Thrown};
@@ -65,16 +67,17 @@ fn confirm_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 
 fn prompt_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let message = text_argument(global_object, call, 0, "Prompt")?;
-    let default = if call.argument_count() >= 2 { Some(string_argument(global_object, call, 1)?) } else { None };
-    let invitation = match &default {
-        Some(default) => format!("{message} [{}] ", rust_string(default)),
-        None => format!("{message} "),
-    };
-    let Some(answer) = ask(global_object, &invitation) else { return Ok(JSValue::null()) };
-    match (answer.is_empty(), default) {
-        (true, None) => Ok(JSValue::null()),
-        // O padrão volta como o JS o entregou, com o surrogate solto, não com o U+FFFD do convite.
-        (true, Some(default)) => Ok(JSValue::from_js_string(js_string(global_object.vm(), &default))),
+    // Medido no bun 1.4.2: `mensagem ` sai antes da conversão do padrão (que pode lançar), e `[padrão] ` depois.
+    if let Some(host) = global_object.console_host() {
+        host.write_stdout(format!("{message} ").as_bytes());
+    }
+    let default = call.argument(1);
+    let shown = if call.argument_count() >= 2 { format!("[{}] ", rust_string(&string_argument(global_object, call, 1)?)) } else { String::new() };
+    let Some(answer) = ask(global_object, &shown) else { return Ok(JSValue::null()) };
+    match (answer.is_empty(), call.argument_count() >= 2) {
+        (true, false) => Ok(JSValue::null()),
+        // Linha vazia: o padrão volta como o JS o entregou (o próprio valor, não o texto dele).
+        (true, true) => Ok(default),
         (false, _) => Ok(JSValue::from_js_string(js_string(global_object.vm(), &WtfString::from_utf8(answer.as_bytes())))),
     }
 }

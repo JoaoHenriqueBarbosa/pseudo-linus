@@ -51,6 +51,8 @@ use crate::runtime::abstract_module_record::AbstractModuleRecordRef;
 use crate::runtime::constructor_kind::ConstructorKind;
 use crate::runtime::enumeration_mode::{DontEnumPropertiesMode, PrivateSymbolMode, PropertyNameMode};
 use crate::runtime::error::{create_error, create_syntax_error, create_type_error};
+use crate::runtime::error_instance::ErrorInstance;
+use crate::runtime::error_natives::capture_frames;
 use crate::runtime::node_error::throw_native_type_error;
 use crate::runtime::error_type::ErrorType;
 use crate::runtime::host_call::Thrown;
@@ -79,7 +81,7 @@ use crate::runtime::js_string::js_string;
 use crate::runtime::js_value::{js_null, EncodedJSValue, JSValue};
 use crate::runtime::microtask::InternalMicrotask;
 use crate::runtime::module_analyzer::ModuleAnalyzer;
-use crate::runtime::own_property_names::get_own_property_names;
+use crate::runtime::proxy_object::object_get_own_property_names;
 use crate::runtime::property_attribute::{CUSTOM_ACCESSOR, DONT_ENUM};
 use crate::runtime::property_name::PropertyName;
 use crate::runtime::property_name_array::PropertyNameArrayBuilder;
@@ -478,7 +480,7 @@ pub fn install_message_classes(global_object: &JSGlobalObject) {
 
     let vm = global_object.vm();
     let native = |name: &str, length: u32, function: NativeFn, construct: NativeFn| {
-        JSFunction::create_native(
+        JSFunction::create_native_with_own_structure(
             vm,
             global_object,
             length,
@@ -550,14 +552,26 @@ fn referrer_path(referrer: Option<&str>) -> String {
 }
 
 /// A mensagem e o código que o resolvedor do bun dá a `specifier` que não resolve: `node:` desconhecido é
-/// `ERR_UNKNOWN_BUILTIN_MODULE`, caminho (relativo, absoluto ou `file:`) é `Cannot find module`, o resto
-/// (especificador "nu") é `Cannot find package`.
+/// `ERR_UNKNOWN_BUILTIN_MODULE`, caminho (relativo, absoluto, `file:` ou com letra de unidade, `C:\x`) é `Cannot find
+/// module`, o resto (especificador "nu") é `Cannot find package`. Sem referrer (o `parent` vazio de
+/// `import.meta.resolve`) é sempre `Cannot find module '<especificador>' from ''` (medido no bun 1.4.2).
 fn unresolved_specifier_message(specifier: &str, referrer: &str) -> (String, &'static str, String) {
     if specifier.starts_with("node:") {
         return (format!("No such built-in module: {specifier}"), "ERR_UNKNOWN_BUILTIN_MODULE", specifier.to_owned());
     }
     let shown = specifier.strip_prefix("file://").unwrap_or(specifier);
-    let is_path = shown.starts_with("./") || shown.starts_with("../") || shown.starts_with('/') || shown.starts_with('\\') || shown.is_empty() || shown == "." || shown == "..";
+    if referrer.is_empty() {
+        return (format!("Cannot find module '{shown}' from ''"), "ERR_MODULE_NOT_FOUND", shown.to_owned());
+    }
+    let drive = shown.as_bytes().get(..3).is_some_and(|head| head[0].is_ascii_alphabetic() && head[1] == b':' && matches!(head[2], b'\\' | b'/'));
+    let is_path = drive
+        || shown.starts_with("./")
+        || shown.starts_with("../")
+        || shown.starts_with('/')
+        || shown.starts_with('\\')
+        || shown.is_empty()
+        || shown == "."
+        || shown == "..";
     if is_path {
         return (format!("Cannot find module '{shown}' imported from {referrer}"), "ERR_MODULE_NOT_FOUND", shown.to_owned());
     }
@@ -583,6 +597,20 @@ fn throw_message(global_object: &JSGlobalObject, state: MessageState) -> Thrown 
 }
 
 /// Lança um `ResolveMessage` do bun (`message`, `code`).
+/// A falha de `ModuleHost::resolve` de `specifier` (pedido por `referrer`), igual no `import` estático e no `import()`:
+/// o `TypeError` do host de navegador, o `BuildMessage` do especificador que o transpilador do bun recusa, ou o
+/// `ResolveMessage` com o `code` do Node.
+fn throw_unresolved(host: &dyn ModuleHost, global_object: &JSGlobalObject, specifier: &str, referrer: Option<&str>, message: &str) -> Thrown {
+    if host.failures_are_type_errors() {
+        return throw_type_error(global_object, message);
+    }
+    if let Some(text) = build_message_text(specifier) {
+        return throw_build_message(global_object, text);
+    }
+    let code = if message.starts_with("No such built-in module") { "ERR_UNKNOWN_BUILTIN_MODULE" } else { "ERR_MODULE_NOT_FOUND" };
+    throw_resolve_message(global_object, message, code, specifier, &referrer_path(referrer))
+}
+
 fn throw_resolve_message(global_object: &JSGlobalObject, message: &str, code: &str, specifier: &str, referrer: &str) -> Thrown {
     let state = MessageState {
         kind: RESOLVE,
@@ -827,10 +855,7 @@ impl ModuleLoader {
                 Ok(imported_key) => imported_key,
                 Err(message) => {
                     self.registry.borrow_mut().remove(&registry_key);
-                    if self.host.failures_are_type_errors() {
-                        return Err(throw_type_error(global_object, &message));
-                    }
-                    return Err(throw_error(global_object, &message));
+                    return Err(throw_unresolved(self.host.as_ref(), global_object, &specifier, Some(key), &message));
                 }
             };
             match self.load_module(global_object, &imported_key, request.attributes.as_ref()) {
@@ -953,7 +978,8 @@ fn retrieve_fetch_parameters(global_object: &JSGlobalObject, options: JSValue) -
     }
 
     let mut properties = PropertyNameArrayBuilder::new(vm, PropertyNameMode::Strings, PrivateSymbolMode::Exclude);
-    get_own_property_names(vm, &attributes.as_object(), &mut properties, DontEnumPropertiesMode::Exclude)?;
+    // `attributesObject->getOwnPropertyNames(...)` passa pela tabela de métodos: o `Proxy` roda o trap `ownKeys`.
+    object_get_own_property_names(global_object, &attributes.as_object(), &mut properties, DontEnumPropertiesMode::Exclude)?;
     let type_name = Identifier::from_span(vm, b"type");
     let mut type_value: Option<WtfString> = None;
     let mut any_attribute = false;
@@ -1008,14 +1034,7 @@ fn request_import_module(
     let resolved = if dynamic { loader.host.resolve_dynamic(specifier, referrer) } else { loader.host.resolve(specifier, referrer) };
     let key = match resolved {
         Ok(key) => key,
-        Err(message) if loader.host.failures_are_type_errors() => return Err(throw_type_error(global_object, &message)),
-        Err(message) => {
-            if let Some(text) = build_message_text(specifier) {
-                return Err(throw_build_message(global_object, text));
-            }
-            let code = if message.starts_with("No such built-in module") { "ERR_UNKNOWN_BUILTIN_MODULE" } else { "ERR_MODULE_NOT_FOUND" };
-            return Err(throw_resolve_message(global_object, &message, code, specifier, &referrer_path(referrer)));
-        }
+        Err(message) => return Err(throw_unresolved(loader.host.as_ref(), global_object, specifier, referrer, &message)),
     };
 
     // O `referrerAsyncOrder`: a ordem de avaliação assíncrona do módulo que faz o `import()`.
@@ -1391,12 +1410,15 @@ fn resolve_for_import_meta(global_object: &JSGlobalObject, call_frame: &mut Nati
             cited = Some("undefined".to_owned());
         }
     } else if parent.is_string() {
-        // O segundo argumento: string troca o chamador como origem da resolução de `resolve` e, em
-        // `resolveSync`, só quando é caminho absoluto (o relativo é ignorado). O texto citado na mensagem de
-        // falha é a string como veio.
+        // O segundo argumento: string troca o chamador como origem da resolução de `resolve`. Em `resolveSync` o
+        // caminho absoluto vale como origem; o relativo (e o vazio) o bun resolve contra o diretório de trabalho, que
+        // o sandbox não tem: só o módulo embutido resolve (medido: `resolveSync('./a.mjs', 'q')` lança citando `q`,
+        // `resolveSync('node:path', './q')` dá `node:path`). O texto citado na mensagem de falha é a string como veio.
         let text = rust_string(&parent.as_js_string().value());
         if !sync || text.starts_with('/') {
             referrer = parent_referrer(&text);
+        } else if crate::api::builtin_modules::known_builtin_specifier(&specifier).is_none() {
+            search = false;
         }
         cited = Some(text);
     } else if sync && call_frame.argument_count() > 1 {
@@ -1413,12 +1435,7 @@ fn resolve_for_import_meta(global_object: &JSGlobalObject, call_frame: &mut Nati
                 let url = loader.host.import_meta_url(&caller);
                 referrer_path(Some(url.as_str()))
             });
-            let (mut message, code, shown) = unresolved_specifier_message(&specifier, &shown_referrer);
-            if shown_referrer.is_empty() {
-                if let Some(head) = message.strip_suffix(" imported from ") {
-                    message = format!("{head} from ''");
-                }
-            }
+            let (message, code, shown) = unresolved_specifier_message(&specifier, &shown_referrer);
             let _ = throw_resolve_message(global_object, &message, code, &shown, &shown_referrer);
             JSValue::undefined().encode()
         }
@@ -1429,13 +1446,25 @@ fn resolve_for_import_meta(global_object: &JSGlobalObject, call_frame: &mut Nati
 fn global_func_import_module(global_object: &JSGlobalObject, call_frame: &mut NativeCallFrame<'_>) -> EncodedJSValue {
     let vm = global_object.vm();
 
-    // `rejectWithCaughtException`: a promessa já rejeitada com a exceção pendente.
+    // `rejectWithCaughtException`: a promessa já rejeitada com a exceção pendente. O erro que o próprio `importModule`
+    // cria (opções inválidas, specifier sem `toString`) nunca chega ao desempilhamento do interpretador, onde o porte
+    // guarda a pilha do erro lançado: guarda aqui, a partir do frame de quem chamou, como o `finishCreation` do C++
+    // (medido no bun 1.4.2: `stack`, `line`, `column` e `sourceURL` próprios, com os frames do chamador).
     let reject_with_caught_exception = |message: Option<&str>| -> EncodedJSValue {
         let promise = JSPromise::create(vm, &global_object.promise_structure());
-        match message {
-            Some(message) => promise.reject(global_object, create_type_error(global_object, &WtfString::from_utf8(message.as_bytes())).as_value()),
-            None => promise.reject(global_object, take_pending_exception(global_object)),
+        let reason = match message {
+            Some(message) => create_type_error(global_object, &WtfString::from_utf8(message.as_bytes())).as_value(),
+            None => take_pending_exception(global_object),
+        };
+        let error = if matches!(reason, JSValue::Cell(_)) { ErrorInstance::from_cell_id(reason.as_cell()) } else { None };
+        if let Some(error) = error {
+            if !error.has_stack_info() {
+                if let Some(frames) = capture_frames(global_object, call_frame.call_frame(), None, false) {
+                    error.set_pending_stack(frames);
+                }
+            }
         }
+        promise.reject(global_object, reason);
         promise.as_value().encode()
     };
 
@@ -1453,7 +1482,11 @@ fn global_func_import_module(global_object: &JSGlobalObject, call_frame: &mut Na
     let parameters = match retrieve_fetch_parameters(global_object, call_frame.argument(1)) {
         Ok(parameters) => parameters,
         Err(Thrown::Unported(what)) => panic!("módulos: {what} ainda não portado"),
-        Err(_) => return reject_with_caught_exception(None),
+        Err(thrown) => {
+            // O `ownKeys` do `Proxy` em `options.with` devolve a violação de invariante sem lançar: lança agora.
+            crate::runtime::host_call::throw_thrown(global_object, thrown);
+            return reject_with_caught_exception(None);
+        }
     };
     let deferred = call_frame.argument(2).is_true();
     let referrer = (!source_origin.is_null()).then(|| rust_string(source_origin.string()));

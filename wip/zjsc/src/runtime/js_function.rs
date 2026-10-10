@@ -32,6 +32,7 @@ use crate::runtime::identifier::Identifier;
 use crate::runtime::js_object::JSObject;
 use crate::runtime::property_name::PropertyName;
 use crate::runtime::intrinsic::Intrinsic;
+use crate::runtime::internal_function::PropertyAdditionMode;
 use crate::runtime::native_function::NativeFunction;
 use crate::wtf::text::wtf_string::String as WtfString;
 use crate::interpreter::call_frame::NativeCallFrame;
@@ -194,6 +195,36 @@ impl JSFunction {
         native_constructor: NativeFunction,
     ) -> JSFunctionRef {
         let structure = global_object.host_function_structure();
+        JSFunction::create_native_with_structure(
+            vm,
+            global_object,
+            structure,
+            length,
+            name,
+            native_function,
+            implementation_visibility,
+            intrinsic,
+            native_constructor,
+        )
+    }
+
+    /// `create_native` numa `Structure` própria, irmã da `hostFunctionStructure()`: a função que ganha propriedades na
+    /// instalação (o `prototype` de um construtor, um método pendurado, um `name` reificado) não pode transitar da
+    /// estrutura compartilhada das funções de host. No C++ esses objetos são `InternalFunction` ou subclasses com
+    /// estrutura própria, e a `hostFunctionStructure()` segue folha (`Leaf` no dump do bytecode, medido no bun 1.4.2).
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_native_with_own_structure(
+        vm: &VM,
+        global_object: &JSGlobalObject,
+        length: u32,
+        name: &WtfString,
+        native_function: NativeFunction,
+        implementation_visibility: ImplementationVisibility,
+        intrinsic: Intrinsic,
+        native_constructor: NativeFunction,
+    ) -> JSFunctionRef {
+        let prototype = global_object.host_function_structure().stored_prototype();
+        let structure = JSFunction::create_structure(vm, global_object, prototype);
         JSFunction::create_native_with_structure(
             vm,
             global_object,
@@ -451,8 +482,8 @@ impl JSArrowFunction {
 
 /// `JSObject::putDirectNativeFunctionWithoutTransition(vm, globalObject, name, length, function,
 /// implementationVisibility, intrinsic, attributes)` (`JSC_NATIVE_INTRINSIC_FUNCTION_WITHOUT_TRANSITION`):
-/// cria a função nativa e a grava em `object`. `JSObject` do porte não tem `putDirectWithoutTransition`;
-/// `put_direct` grava a mesma propriedade (só a `Structure` resultante deixa de ser compartilhada).
+/// cria a função nativa e a grava em `object` sem transição de `Structure` (`putDirectWithoutTransition`), como o
+/// `finishCreation` dos construtores e protótipos: a estrutura do `Array` segue `Unknown`, não `PropertyAddition`.
 #[allow(clippy::too_many_arguments)]
 pub fn put_direct_native_function_without_transition(
     vm: &VM,
@@ -465,7 +496,7 @@ pub fn put_direct_native_function_without_transition(
     intrinsic: Intrinsic,
     attributes: u32,
 ) -> JSFunctionRef {
-    put_direct_native_function_with_display_name(
+    put_native_function(
         vm,
         global_object,
         object,
@@ -476,11 +507,12 @@ pub fn put_direct_native_function_without_transition(
         implementation_visibility,
         intrinsic,
         attributes,
+        PropertyAdditionMode::WithoutStructureTransition,
     )
 }
 
-/// [`put_direct_native_function_without_transition`] com o `name` da função (o que `fn.name` devolve) diferente da
-/// chave: `Buffer.from` tem `name` vazio e `toLocaleString` tem `name` "toString".
+/// A função nativa gravada com `putDirect` (com transição) e com o `name` da função (o que `fn.name` devolve)
+/// diferente da chave: `Buffer.from` tem `name` vazio e `toLocaleString` tem `name` "toString".
 #[allow(clippy::too_many_arguments)]
 pub fn put_direct_native_function_with_display_name(
     vm: &VM,
@@ -494,6 +526,36 @@ pub fn put_direct_native_function_with_display_name(
     intrinsic: Intrinsic,
     attributes: u32,
 ) -> JSFunctionRef {
+    put_native_function(
+        vm,
+        global_object,
+        object,
+        key,
+        display_name,
+        length,
+        function,
+        implementation_visibility,
+        intrinsic,
+        attributes,
+        PropertyAdditionMode::WithStructureTransition,
+    )
+}
+
+/// Cria a função nativa e a grava em `object` na chave `key`, com ou sem transição de `Structure` (`mode`).
+#[allow(clippy::too_many_arguments)]
+fn put_native_function(
+    vm: &VM,
+    global_object: &JSGlobalObject,
+    object: &JSObject,
+    key: &Identifier,
+    display_name: &WtfString,
+    length: u32,
+    function: NativeFunction,
+    implementation_visibility: ImplementationVisibility,
+    intrinsic: Intrinsic,
+    attributes: u32,
+    mode: PropertyAdditionMode,
+) -> JSFunctionRef {
     let native_function = JSFunction::create_native(
         vm,
         global_object,
@@ -504,7 +566,13 @@ pub fn put_direct_native_function_with_display_name(
         intrinsic,
         call_host_function_as_constructor,
     );
-    object.put_direct(vm, &PropertyName::from_identifier(key), native_function.as_value(), attributes);
+    let key = PropertyName::from_identifier(key);
+    match mode {
+        PropertyAdditionMode::WithoutStructureTransition => object.put_direct_without_transition(vm, &key, native_function.as_value(), attributes),
+        PropertyAdditionMode::WithStructureTransition => {
+            object.put_direct(vm, &key, native_function.as_value(), attributes);
+        }
+    }
     native_function
 }
 

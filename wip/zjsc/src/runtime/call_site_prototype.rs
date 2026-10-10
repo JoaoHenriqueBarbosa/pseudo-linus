@@ -57,9 +57,15 @@ fn function_name_value(vm: &VM, site: &JSCallSite) -> JSValue {
 
 /// `CallSite.isToplevel`: sem receptor, ou o receptor é o objeto global (ou o proxy dele).
 fn is_top_level(site: &JSCallSite) -> bool {
-    // Medido no `bun` 1.4.2: em código estrito `isToplevel` é sempre `true` (o `this` fica oculto).
-    // O frame de função nativa (`map`, `forEach`, `_compile`) também: o receptor não aparece (medido).
-    if site.frame().is_strict || site.frame().is_native_function() {
+    // Medido no `bun` 1.4.2: no frame estrito (ou abaixo de um, ver `call_hook`) `isToplevel` é sempre `true` (o
+    // `this` fica oculto). A função nativa fora disso segue o receptor (`[].reduce` dá `false`).
+    if site.frame().is_strict {
+        return true;
+    }
+    // Medido no `bun` 1.4.2 em CommonJS sloppy: a função de host em C++ (`[native code]`: `JSON.parse`, `sort`,
+    // `module._compile`) é sempre toplevel, porque o frame dela não guarda o receptor; o builtin em JS (`[unknown]`:
+    // `reduce`, `forEach`) segue o receptor.
+    if !site.frame().has_line_and_column_info() {
         return true;
     }
     // Medido no `bun` 1.4.2: o frame de função JS em código sloppy nunca é toplevel, qualquer que seja o `this`.

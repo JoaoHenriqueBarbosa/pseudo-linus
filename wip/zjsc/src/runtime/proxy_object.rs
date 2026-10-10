@@ -230,13 +230,66 @@ fn complete_property_descriptor(desc: &mut PropertyDescriptor) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// A pilha das operações que recursam no alvo.
+// ---------------------------------------------------------------------------------------------
+
+/// O custo em bytes lógicos (ver `VM::enter_logical_frame`) de uma operação do `Proxy` que recursa no alvo: o do
+/// primeiro `Proxy` da cadeia (que inclui o que a operação gasta antes dele) e o de cada `Proxy` seguinte. Medidos no
+/// bun 1.4.2 com cadeias de `Proxy` sem trap: com `n` o maior número de `Proxy` que passa, `level` é
+/// `5177344 / (n + 1)` e `first` fecha a conta em `5177344`, então `n` passa e `n + 1` dá `RangeError`.
+#[derive(Clone, Copy)]
+struct FrameCost {
+    first: usize,
+    level: usize,
+}
+
+/// `'x' in p`, `p.x` e `getOwnPropertyDescriptor`/`hasOwnProperty`: 12278.
+const GET_COST: FrameCost = FrameCost { first: 8727, level: 421 };
+/// `p.x = 1`: 8185. No fim da cadeia o `set` comum lê o descritor no receptor (o `Proxy` de fora), o que percorre a
+/// cadeia de novo com `GET_COST`: por nível são 211 + 421 = 632.
+const PUT_COST: FrameCost = FrameCost { first: 4635, level: 211 };
+/// `Object.keys`, `Reflect.ownKeys`, `for in`: 11401.
+const OWN_KEYS_COST: FrameCost = FrameCost { first: 1744, level: 454 };
+/// `Object.getPrototypeOf` e `Object.isExtensible`: 39907.
+const GET_PROTOTYPE_COST: FrameCost = FrameCost { first: 29470, level: 129 };
+/// `Object.setPrototypeOf`: 31925.
+const SET_PROTOTYPE_COST: FrameCost = FrameCost { first: 5656, level: 162 };
+/// `Object.defineProperty`: 16802.
+const DEFINE_COST: FrameCost = FrameCost { first: 2636, level: 308 };
+/// `delete p.x`: 18779.
+const DELETE_COST: FrameCost = FrameCost { first: 13394, level: 275 };
+/// `Object.preventExtensions`: 39906.
+const PREVENT_EXTENSIONS_COST: FrameCost = FrameCost { first: 29599, level: 129 };
+/// `p()`: 7786. A função alvo, chamada no fim, gasta sua parte do primeiro custo.
+const CALL_COST: FrameCost = FrameCost { first: 7440, level: 664 };
+/// `new p()`: 5600. No fim da cadeia o `prototype` do `new.target` (o `Proxy` de fora) é lido, o que percorre a
+/// cadeia de novo com `GET_COST`: por nível são 503 + 421 = 924.
+const CONSTRUCT_COST: FrameCost = FrameCost { first: 3447, level: 503 };
+
+thread_local! {
+    /// Quantos frames de `Proxy` estão abertos: o primeiro paga `FrameCost::first`.
+    static PROXY_DEPTH: Cell<usize> = const { Cell::new(0) };
+}
+
+/// Um frame aberto por [`ProxyObject::enter_frame`].
+struct ProxyFrame {
+    _stack: crate::runtime::vm::LogicalStackFrame,
+}
+
+impl Drop for ProxyFrame {
+    fn drop(&mut self) {
+        PROXY_DEPTH.with(|cell| cell.set(cell.get() - 1));
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
 // [[Call]] e [[Construct]].
 // ---------------------------------------------------------------------------------------------
 
 /// `performProxyCall`.
 fn perform_proxy_call_body(global_object: &JSGlobalObject, call_frame: &HostCall) -> HostResult {
     let vm = global_object.vm();
-    ProxyObject::check_recursion(vm)?;
+    let _frame = ProxyObject::enter_frame(vm, CALL_COST)?;
     let proxy = ProxyObject::from_cell_id(call_frame.callee()).expect("jsCallee de performProxyCall não é um ProxyObject");
     let handler = proxy.handler_object()?;
     let apply_method = get_method(global_object, &handler, "apply")?;
@@ -256,7 +309,7 @@ fn perform_proxy_call_body(global_object: &JSGlobalObject, call_frame: &HostCall
 /// cabeçalho do módulo).
 fn perform_proxy_construct_body(global_object: &JSGlobalObject, call_frame: &HostCall) -> HostResult {
     let vm = global_object.vm();
-    ProxyObject::check_recursion(vm)?;
+    let _frame = ProxyObject::enter_frame(vm, CONSTRUCT_COST)?;
     let proxy = ProxyObject::from_cell_id(call_frame.callee()).expect("jsCallee de performProxyConstruct não é um ProxyObject");
     let handler = proxy.handler_object()?;
     let construct_method = get_method(global_object, &handler, "construct")?;
@@ -502,6 +555,16 @@ impl ProxyObject {
         }
     }
 
+    /// O `isSafeToRecurseSoft()` de uma operação que recursa no alvo: entra num frame lógico com o custo dela (ver
+    /// [`FrameCost`]), que sai da conta quando o [`ProxyFrame`] morre.
+    fn enter_frame(vm: &VM, cost: FrameCost) -> Result<ProxyFrame, Thrown> {
+        let depth = PROXY_DEPTH.with(Cell::get);
+        let bytes = if depth == 0 { cost.first } else { cost.level };
+        let stack = vm.enter_logical_frame(bytes).ok_or(Thrown::StackOverflow)?;
+        PROXY_DEPTH.with(|cell| cell.set(depth + 1));
+        Ok(ProxyFrame { _stack: stack })
+    }
+
     /// `getOwnPropertySlotCommon(globalObject, propertyName, slot)`: `getOwnPropertySlot` e
     /// `getOwnPropertySlotByIndex` do C++.
     pub fn get_own_property_slot(&self, global_object: &JSGlobalObject, property_name: &PropertyName, slot: &mut PropertySlot) -> Result<bool, Thrown> {
@@ -536,7 +599,7 @@ impl ProxyObject {
     /// `performProxyGet(globalObject, proxyObject, receiver, propertyName)`.
     pub fn perform_get(&self, global_object: &JSGlobalObject, property_name: &PropertyName, receiver: JSValue) -> Result<JSValue, Thrown> {
         let vm = global_object.vm();
-        ProxyObject::check_recursion(vm)?;
+        let _frame = ProxyObject::enter_frame(vm, GET_COST)?;
         let target = self.target_object();
 
         // O nome privado mora no armazenamento do próprio `Proxy` (como os campos `#privados`), sem trap.
@@ -590,7 +653,7 @@ impl ProxyObject {
         slot: &mut PropertySlot,
     ) -> Result<bool, Thrown> {
         let vm = global_object.vm();
-        ProxyObject::check_recursion(vm)?;
+        let _frame = ProxyObject::enter_frame(vm, GET_COST)?;
         let target = self.target_object();
 
         if property_name.is_private_name() {
@@ -682,7 +745,7 @@ impl ProxyObject {
     /// qualquer; ninguém lê o que o alvo escreveria nele).
     pub fn perform_has_property(&self, global_object: &JSGlobalObject, property_name: &PropertyName) -> Result<bool, Thrown> {
         let vm = global_object.vm();
-        ProxyObject::check_recursion(vm)?;
+        let _frame = ProxyObject::enter_frame(vm, GET_COST)?;
         let target = self.target_object();
 
         if property_name.is_private_name() {
@@ -760,7 +823,7 @@ impl ProxyObject {
         should_throw: bool,
     ) -> Result<bool, Thrown> {
         let vm = global_object.vm();
-        ProxyObject::check_recursion(vm)?;
+        let _frame = ProxyObject::enter_frame(vm, PUT_COST)?;
 
         if property_name.is_private_name() {
             self.put_direct(vm, property_name, put_value, 0);
@@ -824,7 +887,7 @@ impl ProxyObject {
     /// `deletePropertyByIndex` do C++.
     pub fn perform_delete(&self, global_object: &JSGlobalObject, property_name: &PropertyName) -> Result<bool, Thrown> {
         let vm = global_object.vm();
-        ProxyObject::check_recursion(vm)?;
+        let _frame = ProxyObject::enter_frame(vm, DELETE_COST)?;
 
         // O nome privado sai do armazenamento do próprio `Proxy` (o `JSObject::delete_property` não despacha ao trap
         // para ele).
@@ -871,7 +934,7 @@ impl ProxyObject {
     /// `performPreventExtensions(globalObject)`.
     pub fn perform_prevent_extensions(&self, global_object: &JSGlobalObject) -> Result<bool, Thrown> {
         let vm = global_object.vm();
-        ProxyObject::check_recursion(vm)?;
+        let _frame = ProxyObject::enter_frame(vm, PREVENT_EXTENSIONS_COST)?;
 
         let handler = self.handler_object()?;
         let prevent_extensions_method = get_method(global_object, &handler, "preventExtensions")?;
@@ -895,7 +958,7 @@ impl ProxyObject {
     /// `performIsExtensible(globalObject)`.
     pub fn perform_is_extensible(&self, global_object: &JSGlobalObject) -> Result<bool, Thrown> {
         let vm = global_object.vm();
-        ProxyObject::check_recursion(vm)?;
+        let _frame = ProxyObject::enter_frame(vm, GET_PROTOTYPE_COST)?;
 
         let handler = self.handler_object()?;
         let is_extensible_method = get_method(global_object, &handler, "isExtensible")?;
@@ -931,7 +994,7 @@ impl ProxyObject {
         should_throw: bool,
     ) -> Result<bool, Thrown> {
         let vm = global_object.vm();
-        ProxyObject::check_recursion(vm)?;
+        let _frame = ProxyObject::enter_frame(vm, DEFINE_COST)?;
 
         let target = self.target_object();
 
@@ -1022,7 +1085,7 @@ impl ProxyObject {
     /// `performGetOwnPropertyNames(globalObject, propertyNames)`: o `[[OwnPropertyKeys]]` do `Proxy`.
     pub fn perform_get_own_property_names(&self, global_object: &JSGlobalObject, property_names: &mut PropertyNameArrayBuilder<'_>) -> Result<(), Thrown> {
         let vm = global_object.vm();
-        ProxyObject::check_recursion(vm)?;
+        let _frame = ProxyObject::enter_frame(vm, OWN_KEYS_COST)?;
 
         let handler = self.handler_object()?;
         let own_keys_method = self.get_handler_trap(global_object, &handler, &ProxyObject::trap_name(vm, "ownKeys"))?;
@@ -1132,7 +1195,7 @@ impl ProxyObject {
         debug_assert!(prototype.is_object() || prototype.is_null());
 
         let vm = global_object.vm();
-        ProxyObject::check_recursion(vm)?;
+        let _frame = ProxyObject::enter_frame(vm, SET_PROTOTYPE_COST)?;
 
         let handler = self.handler_object()?;
         let set_prototype_of_method = get_method(global_object, &handler, "setPrototypeOf")?;
@@ -1170,7 +1233,7 @@ impl ProxyObject {
     /// `performGetPrototype(globalObject)`.
     pub fn perform_get_prototype(&self, global_object: &JSGlobalObject) -> Result<JSValue, Thrown> {
         let vm = global_object.vm();
-        ProxyObject::check_recursion(vm)?;
+        let _frame = ProxyObject::enter_frame(vm, GET_PROTOTYPE_COST)?;
 
         let handler = self.handler_object()?;
         let get_prototype_of_method = get_method(global_object, &handler, "getPrototypeOf")?;

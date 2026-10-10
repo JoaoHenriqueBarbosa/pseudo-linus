@@ -384,10 +384,13 @@ for (const wrapper of callerWrappers.slice(1)) {
   }
 }
 
+const { usesHostApi } = require("./host-api.js");
 const seen = new Set();
 const programs = [];
+// O porte é só o motor: nada de programa que dependa de API de host do bun (ver host-api.js). O filtro vem antes do
+// corte em TARGET, para o golden ter os 500 programas que o teste confere.
 for (const body of [...priority, ...bulk]) {
-  if (seen.has(body)) continue;
+  if (seen.has(body) || usesHostApi(body)) continue;
   seen.add(body);
   programs.push(body);
   if (programs.length === TARGET) break;
@@ -404,9 +407,6 @@ fs.writeFileSync(
   "process.on('exit', () => { process.stdout.write('\\u0001' + JSON.stringify(globalThis.R === undefined ? '<undefined>' : String(globalThis.R)) + '\\n') })\n",
 );
 const prefix = dir + "/";
-const { usesHostApi } = require("./host-api.js");
-// O porte é só o motor: nada de programa que dependa de API de host do bun (ver host-api.js).
-programs.splice(0, programs.length, ...programs.filter((p) => !usesHostApi(p)));
 // O bun transpila o arquivo antes do JSC: o golden grava o texto canônico (`prepareProgram`) e o bun executa `executable`,
 // de modo que as posições do stack saem do fonte original.
 const rows = [];

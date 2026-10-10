@@ -11,7 +11,8 @@
 //!   do host (a do `BroadcastChannel`, em `broadcast_channel.rs`): depois das microtasks e antes de `setImmediate` e dos
 //!   timers. A mensagem para uma porta sem ouvinte de `message` espera até ela ter um (`onmessage` ou
 //!   `addEventListener`; `start()` não é necessário e não muda nada). Fechar a porta que enviou não cancela o que já saiu;
-//!   fechar a que recebe descarta; `postMessage`, `start` e `close` numa porta fechada não fazem nada;
+//!   fechar a que recebe descarta; `postMessage`, `start` e `close` numa porta fechada não fazem nada. A porta entrega em
+//!   lote tudo o que está na fila dela (`m1, n2, m3` sai `m1, m3, n2`), e fechá-la dentro do lote não corta o resto;
 //! - `postMessage(valor, transfer)`: `transfer` é uma lista (iterável) ou `{ transfer }`; aceita `MessagePort` (a porta
 //!   original fica destacada e muda, `hasRef()` falso; a nova chega em `event.ports`, ligada ao mesmo par, e herda as
 //!   mensagens que já estavam a caminho) e `ArrayBuffer` (destacado no remetente); erros em `DataCloneError`;
@@ -285,7 +286,14 @@ fn start_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 fn close_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let this = port_this(global_object, call, "close")?;
     // Só a primeira chamada dispara o evento `close`; uma porta já transferida (destacada) não tem par nem evento.
-    let first_close = with_channel(this, |channel| !std::mem::replace(&mut channel.closed, true)).unwrap_or(false);
+    // Fechar a própria porta solta o `ref()` dela (regra B do cabeçalho); o fechamento que vem do par não solta.
+    let first_close = with_channel(this, |channel| {
+        if let Route::Port { activated, .. } = &mut channel.route {
+            *activated = false;
+        }
+        !std::mem::replace(&mut channel.closed, true)
+    })
+    .unwrap_or(false);
     if first_close {
         crate::runtime::broadcast_channel::enqueue_port_close(this.encode());
     }
@@ -296,8 +304,10 @@ fn ref_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let this = port_this(global_object, call, "ref")?;
     with_channel(this, |channel| {
         channel.refed = true;
+        let open = !channel.closed;
         if let Route::Port { activated, unrefed, .. } = &mut channel.route {
-            *activated = true;
+            // Numa porta já fechada, o `ref()` não volta a segurar o laço.
+            *activated = open;
             *unrefed = false;
         }
     });
@@ -322,22 +332,22 @@ fn has_ref_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 
 /// `true` quando algum par de portas abertas segura o processo vivo (ver o cabeçalho do módulo).
 pub(crate) fn holds_event_loop() -> bool {
-    let mut candidates: Vec<(EncodedJSValue, Option<EncodedJSValue>, bool)> = Vec::new();
+    let mut candidates: Vec<(EncodedJSValue, Option<EncodedJSValue>, bool, bool)> = Vec::new();
     for_each_channel(|key, channel| {
         if let Route::Port { peer, activated, unrefed: false } = &channel.route {
-            if !channel.closed {
-                candidates.push((key, *peer, *activated));
-            }
+            candidates.push((key, *peer, *activated, channel.closed));
         }
     });
-    candidates.into_iter().any(|(key, peer, ref_called)| {
+    candidates.into_iter().any(|(key, peer, ref_called, closed)| {
         let has_listener = target_has_listener(JSValue::decode(key), "message");
-        // Regra B: `ref()` explícito numa porta aberta sem ouvinte próprio a segura.
+        // Regra B: `ref()` explícito sem ouvinte próprio a segura, mesmo depois que o par fechou e o fechamento chegou
+        // a ela (medido no bun 1.4.2: `b.ref(); a.close();` não termina); o `close()` da própria porta já soltou o `ref`.
         if ref_called && !has_listener {
             return true;
         }
-        // Regra A: porta com ouvinte cujo par está aberto e também tem ouvinte.
-        has_listener
+        // Regra A: porta aberta com ouvinte cujo par está aberto e também tem ouvinte.
+        !closed
+            && has_listener
             && peer.is_some_and(|peer| {
                 with_channel(JSValue::decode(peer), |channel| !channel.closed).unwrap_or(false) && target_has_listener(JSValue::decode(peer), "message")
             })

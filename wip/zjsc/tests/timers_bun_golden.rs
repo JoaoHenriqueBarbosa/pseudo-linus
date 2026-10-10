@@ -11,9 +11,40 @@ use zjsc::api::eval::evaluate_script_sequence_result_running_timers;
 const GOLDEN: &str = include_str!("golden/timers_bun.tsv");
 const PRELUDES: &str = include_str!("golden/microtask_order.preludes.json");
 
+/// O gerador avalia o prelúdio e o programa em dois `(0, eval)` separados: o programa não herda o `"use strict"` do
+/// prelúdio, e a exceção síncrona dele vira `sync-throw:<nome>;` no log. Aqui é o mesmo par de scripts.
 #[test]
 fn timers_match_bun() {
-    common::run_factored_big_stack(GOLDEN, PRELUDES, 25, |source| {
-        evaluate_script_sequence_result_running_timers(&[source], "timers_case.js", "globalThis.R").1
+    let preludes = common::preludes_from_json(PRELUDES);
+    common::run_factored_big_stack(GOLDEN, PRELUDES, 25, move |source| {
+        let prelude = preludes.iter().filter(|prelude| source.starts_with(prelude.as_str())).max_by_key(|prelude| prelude.len()).expect("prelúdio do programa");
+        let program = format!(
+            "try {{ (0, eval)({}) }} catch (e) {{ globalThis.R += \"sync-throw:\" + e.name + \";\" }}",
+            common::json_quote(&source[prelude.len()..])
+        );
+        evaluate_script_sequence_result_running_timers(&[prelude, &program], "timers_case.js", "globalThis.R").1
     });
+}
+
+/// A volta que rodou immediates fecha com a fase de timers da volta seguinte antes de o laço sair: o timer sem `ref` do
+/// `AbortSignal.timeout(0)` vence ali e aborta; o de 5 ms não, e sem immediate nenhum o de 0 também não (medido no bun
+/// 1.4.2, sem sentinela que mantenha o laço vivo).
+#[test]
+fn unref_timer_due_after_an_immediate_pass_still_fires() {
+    let cases = [
+        ("0", "setImmediate(() => log.push('imm'));", r#"["imm","abort"]"#),
+        ("0", "setImmediate(() => { log.push('imm'); setImmediate(() => log.push('imm2')) });", r#"["imm","abort","imm2"]"#),
+        ("0", "setTimeout(() => log.push('to0'), 0);", r#"["abort","to0"]"#),
+        ("5", "setImmediate(() => log.push('imm'));", r#"["imm"]"#),
+        ("0", "", "[]"),
+    ];
+    for (milliseconds, rest, expected) in cases {
+        let source = format!(
+            "var log = []; Object.defineProperty(globalThis, 'R', {{ get() {{ return JSON.stringify(log) }} }}); \
+             AbortSignal.timeout({milliseconds}).addEventListener('abort', () => log.push('abort')); {rest}"
+        );
+        let result = evaluate_script_sequence_result_running_timers(&[&source], "timers_case.js", "globalThis.R").1;
+        let text = result.map(|value| String::from_utf8_lossy(&value.to_wtf_string().utf8(zjsc::wtf::text::conversion_mode::ConversionMode::LenientConversion)).into_owned());
+        assert_eq!(text.as_deref().ok(), Some(expected), "{source}");
+    }
 }

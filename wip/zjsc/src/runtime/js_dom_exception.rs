@@ -37,14 +37,12 @@ use std::cell::RefCell;
 use crate::host_function;
 use crate::interpreter::call_frame::CallFrame;
 use crate::interpreter::stack_visitor::{IterationStatus, StackVisitor};
-use crate::runtime::array_buffer_prototype::put_native_getter;
 use crate::runtime::class_info::ClassInfo;
 use crate::runtime::collection_support::{collection_constructor_structure, create_collection_constructor, derived_structure, put_to_string_tag};
 use crate::runtime::error_type::ErrorType;
 use crate::runtime::host_call::{pending_or, HostCall, HostResult, Thrown};
 use crate::runtime::host_function_support::ObjectRef;
-use crate::runtime::native_class_support::{property_key as key, throw_coded_type_error, throw_native_type_error};
-use crate::runtime::intrinsic::Intrinsic;
+use crate::runtime::native_class_support::{property_key as key, put_native_accessor, throw_coded_type_error, throw_native_type_error};
 use crate::runtime::internal_function::INTERNAL_FUNCTION_S_INFO;
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_internal_field_object_impl::define_internal_field_cell;
@@ -402,9 +400,10 @@ pub fn install_dom_exception(global_object: &JSGlobalObject) {
     put_legacy_constants(vm, &constructor);
 
     prototype.put_direct(vm, &PropertyName::from_identifier(&vm.property_names.constructor), constructor.as_value(), DONT_ENUM);
-    put_native_getter(vm, global_object, &prototype, "code", dom_exception_code, Intrinsic::NoIntrinsic, 0);
-    put_native_getter(vm, global_object, &prototype, "name", dom_exception_name, Intrinsic::NoIntrinsic, 0);
-    put_native_getter(vm, global_object, &prototype, "message", dom_exception_message, Intrinsic::NoIntrinsic, 0);
+    // Acessores do WebCore: nome `get code`, mas `toString()` com o nome puro (`function code() ...`).
+    put_native_accessor(vm, global_object, &prototype, "code", dom_exception_code, None, 0);
+    put_native_accessor(vm, global_object, &prototype, "name", dom_exception_name, None, 0);
+    put_native_accessor(vm, global_object, &prototype, "message", dom_exception_message, None, 0);
     put_legacy_constants(vm, &prototype);
     put_to_string_tag(vm, &prototype, "DOMException");
 

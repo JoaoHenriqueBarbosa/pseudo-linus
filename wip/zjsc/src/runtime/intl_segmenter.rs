@@ -54,10 +54,10 @@ fn segment_boundaries(units: &[u16], granularity: Granularity) -> (Vec<usize>, V
         Granularity::Grapheme => boundaries.extend(GraphemeClusterSegmenter::new().segment_utf16(units)),
         Granularity::Sentence => boundaries.extend(SentenceSegmenter::new(SentenceBreakInvariantOptions::default()).segment_utf16(units)),
         Granularity::Word => {
-            // O `WordSegmenter` automático escolhe dicionário (chinês, japonês) ou LSTM (tailandês e
-            // outros) pelo script, como o `ubrk_open(UBRK_WORD)` do ICU; `word_type` do limite descreve o
-            // segmento que o precede (o primeiro limite, 0, não tem segmento).
-            let mut iterator = WordSegmenter::new_auto(WordBreakInvariantOptions::default()).segment_utf16(units);
+            // O ICU4C do bun segmenta chinês, japonês, tailandês e os demais por dicionário (medido: `สวัสดี` é uma
+            // palavra só; o LSTM do `new_auto` a parte); `word_type` do limite descreve o segmento que o precede
+            // (o primeiro limite, 0, não tem segmento).
+            let mut iterator = WordSegmenter::new_dictionary(WordBreakInvariantOptions::default()).segment_utf16(units);
             while let Some(boundary) = iterator.next() {
                 if boundaries.last().is_some() {
                     word_like.push(iterator.is_word_like());
@@ -74,6 +74,14 @@ fn segment_boundaries(units: &[u16], granularity: Granularity) -> (Vec<usize>, V
     }
     boundaries.dedup();
     word_like.resize(boundaries.len() - 1, false);
+    // Medido no bun 1.4.2: um segmento que abre com letra ou dígito é palavra mesmo seguido de marca combinante (`é`
+    // decomposto: o ICU4X marca `false`, o ICU4C `true`).
+    if granularity == Granularity::Word {
+        for (index, like) in word_like.iter_mut().enumerate() {
+            let first = char::decode_utf16(units[boundaries[index]..boundaries[index + 1]].iter().copied()).next();
+            *like = *like || first.is_some_and(|scalar| scalar.is_ok_and(char::is_alphanumeric));
+        }
+    }
     (boundaries, word_like)
 }
 
@@ -106,10 +114,11 @@ struct SegmentIteratorState {
     next: Cell<usize>,
 }
 
-/// `createSegmentDataObject`: `{ segment, index, input }` e `isWordLike` nas palavras.
-fn segment_data_object(global_object: &JSGlobalObject, data: &SegmentsData, segment: usize) -> JSValue {
+/// `createSegmentDataObject`: `{ segment, index, input }` e `isWordLike` nas palavras. O texto vai do início do segmento
+/// `first` ao fim do segmento `segment` (iguais, salvo na quirk de `containing`); `isWordLike` é o de `segment`.
+fn segment_data_object(global_object: &JSGlobalObject, data: &SegmentsData, first: usize, segment: usize) -> JSValue {
     let vm = global_object.vm();
-    let (start, end) = (data.boundaries[segment], data.boundaries[segment + 1]);
+    let (start, end) = (data.boundaries[first], data.boundaries[segment + 1]);
     let object = new_object(global_object);
     let text = WtfString::from_utf16(&data.units[start..end]);
     put(global_object, &object, "segment", JSValue::from_js_string(crate::runtime::js_string::js_string(vm, &text)));
@@ -195,7 +204,13 @@ fn containing_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResul
             }
             let index = index as usize;
             let segment = data.boundaries.partition_point(|&boundary| boundary <= index) - 1;
-            Ok(segment_data_object(global_object, data, segment))
+            // Medido no bun 1.4.2: um `index` que abre um segmento iniciado por caractere suplementar (par substituto)
+            // devolve o texto desde o início do segmento anterior (`ubrk_preceding` parte do meio do par).
+            let opens_pair = data.boundaries[segment] == index
+                && segment > 0
+                && (0xD800..0xDC00).contains(&data.units[index])
+                && data.units.get(index + 1).is_some_and(|unit| (0xDC00..0xE000).contains(unit));
+            Ok(segment_data_object(global_object, data, if opens_pair { segment - 1 } else { segment }, segment))
         },
     )
 }
@@ -225,7 +240,7 @@ fn iterator_next_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRe
                 return Ok(create_iterator_result_object(global_object, JSValue::undefined(), true));
             }
             state.next.set(segment + 1);
-            Ok(create_iterator_result_object(global_object, segment_data_object(global_object, &state.data, segment), false))
+            Ok(create_iterator_result_object(global_object, segment_data_object(global_object, &state.data, segment, segment), false))
         },
     )
 }

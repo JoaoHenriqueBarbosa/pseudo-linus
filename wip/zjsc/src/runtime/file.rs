@@ -17,7 +17,7 @@ use std::cell::Cell;
 use crate::host_function;
 use crate::runtime::blob::{blob_prototype, normalized_type, parts_bytes, register_instance, state_of, BlobState};
 use crate::runtime::class_info::ClassInfo;
-use crate::runtime::collection_support::{collection_constructor_structure, create_collection_constructor, derived_structure};
+use crate::runtime::collection_support::{create_collection_constructor, derived_structure, internal_function_structure};
 use crate::runtime::host_call::{pending_or, HostCall, HostResult, Thrown};
 use crate::runtime::identifier::Identifier;
 use crate::runtime::internal_function::INTERNAL_FUNCTION_S_INFO;
@@ -92,7 +92,10 @@ pub(crate) fn file_has_instance(target: JSValue, value: JSValue) -> Option<bool>
 pub fn install_file(global_object: &JSGlobalObject) {
     let vm = global_object.vm();
     let prototype = blob_prototype().as_object();
-    let structure = collection_constructor_structure(vm, global_object, global_object.function_prototype().as_value(), &CONSTRUCTOR_S_INFO);
+    // Sem `ImplementsDefaultHasInstance`: o `instanceof File` não olha a cadeia (o protótipo é o de `Blob`), e o
+    // `JSObject::hasInstance` cai no `customHasInstance` (`file_has_instance`).
+    let flags = crate::runtime::internal_function::InternalFunction::STRUCTURE_FLAGS & !crate::runtime::js_type_info::IMPLEMENTS_DEFAULT_HAS_INSTANCE;
+    let structure = internal_function_structure(vm, global_object, global_object.function_prototype().as_value(), &CONSTRUCTOR_S_INFO, flags);
     let constructor = create_collection_constructor(vm, global_object, structure, &prototype, "File", 2, call_fn, construct_fn, false);
     FILE_CONSTRUCTOR.with(|slot| slot.set(constructor.as_value().encode()));
     // Enumerável, como `FormData` (medido).

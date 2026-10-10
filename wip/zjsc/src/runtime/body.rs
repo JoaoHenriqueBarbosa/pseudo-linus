@@ -71,9 +71,10 @@ pub(crate) struct Body {
     /// A identidade de `File` (nome e `lastModified`) da fonte: `blob()` devolve um `File` quando o corpo veio de um
     /// (`new Response(file)`, `fetch(URL.createObjectURL(file))`), medido no bun 1.4.2.
     pub(crate) file: Option<FileIdentity>,
+    /// `blob_type` só vem da leitura (string e array dão `text/plain`, sem `Content-Type`): o armazenamento do corpo não
+    /// tem tipo, e o console do bun escreve `Blob (N bytes)` sem o campo `type` (medido no bun 1.4.2).
+    pub(crate) implied_type: bool,
 }
-
-/// Nome e `lastModified` de um `File` que alimentou um corpo.
 #[derive(Clone)]
 pub(crate) struct FileIdentity {
     pub(crate) name: Option<Vec<u16>>,
@@ -134,7 +135,8 @@ pub(crate) struct Extracted {
 
 impl Extracted {
     pub(crate) fn into_body(self) -> Body {
-        Body { bytes: self.bytes, blob_type: self.blob_type, used: false, lazy_path: None, from_stream: self.stream.is_some(), stream: self.stream, file: self.file }
+        let implied_type = self.header_type.is_empty() && !self.blob_type.is_empty();
+        Body { bytes: self.bytes, blob_type: self.blob_type, used: false, lazy_path: None, from_stream: self.stream.is_some(), stream: self.stream, file: self.file, implied_type }
     }
 }
 
@@ -229,6 +231,11 @@ pub(crate) fn extract(global_object: &JSGlobalObject, value: JSValue) -> Result<
     }
     if let Some(bytes) = input_bytes(value) {
         return Ok(Some(Extracted { bytes, ..Extracted::default() }));
+    }
+    // Um array de verdade são as partes de um `Blob` (medido no bun 1.4.2: `new Response([1, 2])` lê "12", sem
+    // `Content-Type`; `Set`, iterável e objeto com `length` viram texto).
+    if crate::runtime::js_array::JSArray::from_value(&value).is_some() {
+        return Ok(Some(Extracted { bytes: crate::runtime::blob::parts_bytes(global_object, value)?, blob_type: TEXT_TYPE.to_vec(), ..Extracted::default() }));
     }
     Ok(Some(Extracted { bytes: string_bytes(global_object, value)?, blob_type: TEXT_TYPE.to_vec(), ..Extracted::default() }))
 }
@@ -341,7 +348,8 @@ pub(crate) fn consume_kind(global_object: &JSGlobalObject, kind: ReadKind, heade
         ReadKind::ArrayBuffer => Read::ArrayBuffer,
         ReadKind::Bytes => Read::Bytes,
         ReadKind::Blob => {
-            let header = header_value(headers, "content-type").map(|value| value.to_ascii_lowercase());
+            // O `Content-Type` do cabeçalho vai ao `Blob` como está (medido: `Text/HTML;Charset=UTF-8` não muda).
+            let header = header_value(headers, "content-type");
             // Medido: o `Blob` de um corpo stream tem `type` vazio, mesmo com `Content-Type` nos cabeçalhos.
             let from_stream = body.as_ref().is_some_and(|body| body.from_stream);
             let file = body.as_ref().and_then(|body| body.file.clone());

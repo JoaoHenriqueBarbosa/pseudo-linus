@@ -52,6 +52,10 @@ for (const n of ["alert", "confirm", "prompt"]) {
   expr(`${n}(function () {})`);
   expr(`${n}.call(5, 'a')`);
   expr(`${n}.call(undefined, 'a')`);
+  expr(`${n}.apply(null, ['a', 'b'])`);
+  expr(`${n}.bind(null, 'a')()`);
+  expr(`Object.isExtensible(${n})`);
+  expr(`[${n}.hasOwnProperty('prototype'), ${n}.hasOwnProperty('caller'), ${n}.hasOwnProperty('arguments')]`);
   stmts(`var log = []; ${n}({ toString() { log.push('t'); return 'q' } }); R = S(log)`);
   stmts(`var log = []; ${n}('a', { toString() { log.push('t'); return 'q' } }); R = S(log)`);
   stmts(`var log = []; ${n}({ toString() { log.push('a'); return 'q' } }, { toString() { log.push('b'); return 'q' } }); R = S(log)`);

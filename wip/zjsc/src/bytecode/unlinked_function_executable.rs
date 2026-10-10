@@ -625,7 +625,7 @@ impl UnlinkedFunctionExecutable {
         if error.is_valid() {
             *exception = error.to_error_object_override_line(global_object, source, override_line_number).map(|instance| {
                 // O bun mostra a linha do erro no fonte embrulhado em `    at <parse> (:N)` (só `new Function`).
-                instance.set_parse_frame_line(instance.line());
+                instance.set_parse_frame("", instance.line());
                 instance.as_object()
             });
             return None;

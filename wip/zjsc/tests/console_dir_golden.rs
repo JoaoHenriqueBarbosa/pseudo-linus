@@ -16,6 +16,17 @@ fn hex(text: &str) -> String {
     text.bytes().map(|byte| format!("{byte:02x}")).collect()
 }
 
+/// O frame sem fonte (inicializador de campo de classe) sai no `console.trace` sem URL, `new A (1:17)`, enquanto a linha de
+/// `stack` escreve `unknown:1:17` (medido no bun 1.4.2).
+#[test]
+fn trace_frame_without_source_has_no_url() {
+    let console = Rc::new(MemoryConsole::new(b""));
+    let source = "class A { x = console.trace('field') }\nnew A";
+    let _ = evaluate_named_script_with_console(source, "console_dir_case.js", "R", Some(console.clone()));
+    let stdout = String::from_utf8_lossy(&console.stdout_bytes()).into_owned();
+    assert!(stdout.lines().any(|line| line == "      at new A (1:17)"), "{stdout}");
+}
+
 #[test]
 fn console_dir_match_bun() {
     let mut failures = Vec::new();

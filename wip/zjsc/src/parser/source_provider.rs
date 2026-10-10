@@ -78,6 +78,9 @@ pub struct SourceProviderBase {
     /// Fonte do próprio hospedeiro que a página não pode enxergar (o DOM do navegador escrito em JavaScript): toda
     /// função dele nasce `ImplementationVisibility::Private`, como as builtins do JSC.
     hidden: Cell<bool>,
+    /// O fonte passou pelo transpilador do bun, que tira os comentários: as diretivas `//# sourceURL=` e
+    /// `//# sourceMappingURL=` não chegam ao motor (medido no bun 1.4.2, o arquivo principal não se renomeia).
+    comments_stripped: Cell<bool>,
 }
 
 impl SourceProviderBase {
@@ -106,12 +109,22 @@ impl SourceProviderBase {
             position_map: RefCell::new(None),
             raw_columns: Cell::new(false),
             hidden: Cell::new(false),
+            comments_stripped: Cell::new(false),
         }
     }
 }
 
-/// `std::atomic<SourceID> nextProviderID = nullID` de `SourceProvider::getID`.
-static NEXT_PROVIDER_ID: AtomicIsize = AtomicIsize::new(NULL_ID);
+thread_local! {
+    /// `std::atomic<SourceID> nextProviderID = nullID` de `SourceProvider::getID`. Um contador por thread (o motor é
+    /// de uma thread), que recomeça a cada programa: o primeiro script é o 2, como no processo novo do bun 1.4.2
+    /// (`CallSite.getScriptId`).
+    static NEXT_PROVIDER_ID: Cell<SourceID> = const { Cell::new(NULL_ID) };
+}
+
+/// Fim do programa (`cell_registry::reset_program_state`): o próximo programa numera os scripts de novo.
+pub(crate) fn reset_for_program() {
+    let _ = NEXT_PROVIDER_ID.try_with(|next| next.set(NULL_ID));
+}
 
 /// `class SourceProvider`.
 pub trait SourceProvider: std::fmt::Debug {
@@ -241,7 +254,10 @@ pub trait SourceProvider: std::fmt::Debug {
         let base = self.base();
         if base.id.get() == 0 {
             // getID()
-            let id = NEXT_PROVIDER_ID.fetch_add(1, Ordering::SeqCst) + 1;
+            let id = NEXT_PROVIDER_ID.with(|next| {
+                next.set(next.get() + 1);
+                next.get()
+            });
             base.id.set(id);
             assert!(id != 0);
         }
@@ -250,12 +266,21 @@ pub trait SourceProvider: std::fmt::Debug {
 
     /// `setSourceURLDirective(const String&)`.
     fn set_source_url_directive(&self, source_url_directive: &WtfString) {
-        *self.base().source_url_directive.borrow_mut() = source_url_directive.clone();
+        if !self.base().comments_stripped.get() {
+            *self.base().source_url_directive.borrow_mut() = source_url_directive.clone();
+        }
     }
 
     /// `setSourceMappingURLDirective(const String&)`.
     fn set_source_mapping_url_directive(&self, source_mapping_url_directive: &WtfString) {
-        *self.base().source_mapping_url_directive.borrow_mut() = source_mapping_url_directive.clone();
+        if !self.base().comments_stripped.get() {
+            *self.base().source_mapping_url_directive.borrow_mut() = source_mapping_url_directive.clone();
+        }
+    }
+
+    /// O fonte veio do transpilador do bun (ver `comments_stripped`): as diretivas de comentário são ignoradas.
+    fn set_comments_stripped(&self) {
+        self.base().comments_stripped.set(true);
     }
 
     /// `setSourceTaintedOrigin(SourceTaintedOrigin)`.

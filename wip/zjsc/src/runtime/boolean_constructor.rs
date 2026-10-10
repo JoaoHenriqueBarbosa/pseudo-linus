@@ -2,8 +2,9 @@
 //! construtor `Boolean` (no C++ um `JSFunction` sobre um `NativeExecutable` com `call` e `construct`
 //! próprios) e `constructBooleanFromImmediateBoolean` (em `boolean_object.rs`).
 //!
-//! DIVERGÊNCIA: a estrutura é a `hostFunctionStructure` do global, que `JSFunction::create_native` usa
-//! (o `BooleanConstructor::createStructure` só troca o `ClassInfo`, que o porte nem distingue).
+//! A estrutura é própria (`JSFunction::create_native_with_own_structure`), como a do
+//! `BooleanConstructor::createStructure`: o `put_direct` do `prototype` não transita a `hostFunctionStructure`
+//! compartilhada, que no bun segue folha.
 
 use crate::runtime::host_call::{HostCall, HostResult};
 use crate::runtime::implementation_visibility::ImplementationVisibility;
@@ -46,7 +47,7 @@ impl BooleanConstructor {
     /// `create(vm, structure, booleanPrototype)`: o `NativeExecutable` com `callBooleanConstructor` e
     /// `constructWithBooleanConstructor` (comprimento 1, nome `Boolean`) e o `finishCreation`.
     pub fn create(vm: &VM, global_object: &JSGlobalObject, boolean_prototype: &JSWrapperObject) -> JSFunctionRef {
-        let constructor = JSFunction::create_native(
+        let constructor = JSFunction::create_native_with_own_structure(
             vm,
             global_object,
             1,

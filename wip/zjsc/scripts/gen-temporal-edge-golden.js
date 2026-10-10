@@ -155,8 +155,9 @@ add(`${PD}.from({era: "reiwa", eraYear: 1, month: 5, day: 1, calendar: "japanese
   `${PD}.from({year: 2019, month: 5, day: 1, calendar: "japanese"}).era`, `${PD}.from({year: 2019, month: 4, day: 30, calendar: "japanese"}).eraYear`, `${PD}.from({era: "nope", eraYear: 1, month: 1, day: 1, calendar: "japanese"})`,
   `Temporal.Calendar`, `${PD}.from("2024-01-01[u-ca=bogus]")`, `${PD}.from("2024-01-01[u-ca=HEBREW]").calendarId`, `${PD}.from("2024-01-01[u-ca=islamic-civil]").calendarId`, `${PD}.from("2024-01-01[!u-ca=hebrew]").calendarId`);
 
-// ---------- Amostragem determinística (sampleByHash) até o LIMIT, antes de descontar os goldens vizinhos ----------
-const chosen = sampleByHash(programs, LIMIT).filter((source) => !known.has(source));
+// ---------- Amostragem determinística (sampleByHash) até o LIMIT, depois de descontar os goldens vizinhos ----------
+// Descontar antes de amostrar mantém o golden com os LIMIT programas que o teste confere.
+const chosen = sampleByHash(programs.filter((source) => !known.has(source)), LIMIT);
 const lines = [];
 for (const source of chosen) {
   if (/[\t\n\r]/.test(source)) throw new Error("fonte com tab ou quebra de linha: " + source);

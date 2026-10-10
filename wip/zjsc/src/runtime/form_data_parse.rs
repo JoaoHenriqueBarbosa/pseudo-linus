@@ -257,15 +257,17 @@ pub(crate) fn has_form_encoding(content_type: &[u8]) -> bool {
     encoding_of(content_type).is_some()
 }
 
-/// As entradas do corpo de um Blob com este `type`; `Err(mensagem)` já é o texto do erro do bun.
+/// As entradas do corpo de um Blob com este `type`; `Err(mensagem)` já é o texto do erro do bun (o multipart com o
+/// prefixo `FormData encoding failed: `).
 pub(crate) fn parse_body(bytes: &[u8], content_type: &[u8]) -> Result<Vec<Entry>, String> {
     if bytes.is_empty() {
         return Ok(Vec::new());
     }
-    parse_encoded(bytes, encoding_of(content_type).ok_or("Invalid encoding")?)
+    parse_encoded(bytes, encoding_of(content_type).ok_or("Invalid encoding")?).map_err(|message| format!("FormData encoding failed: {message}"))
 }
 
-/// As entradas de `bytes` com a fronteira dada (`FormData.from`): sem fronteira, o corpo é `urlencoded`.
+/// As entradas de `bytes` com a fronteira dada (`FormData.from`): sem fronteira, o corpo é `urlencoded`. O erro é o
+/// motivo cru (medido no bun 1.4.2: `missing final boundary while parsing FormData`, sem o prefixo do `Blob`).
 pub(crate) fn parse_with_boundary(bytes: &[u8], boundary: Option<Vec<u8>>) -> Result<Vec<Entry>, String> {
     if bytes.is_empty() {
         return Ok(Vec::new());
@@ -273,9 +275,10 @@ pub(crate) fn parse_with_boundary(bytes: &[u8], boundary: Option<Vec<u8>>) -> Re
     parse_encoded(bytes, boundary.map_or(Encoding::UrlEncoded, Encoding::Multipart))
 }
 
+/// O urlencoded nunca falha; o erro é o motivo do multipart, sem prefixo.
 fn parse_encoded(bytes: &[u8], encoding: Encoding) -> Result<Vec<Entry>, String> {
     match encoding {
         Encoding::UrlEncoded => Ok(parse_query(&utf16(without_bom(bytes))).into_iter().map(|(name, value)| Entry::Text(name, value)).collect()),
-        Encoding::Multipart(boundary) => multipart_entries(bytes, &boundary).map_err(|message| format!("FormData encoding failed: {message}")),
+        Encoding::Multipart(boundary) => multipart_entries(bytes, &boundary),
     }
 }

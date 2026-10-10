@@ -52,7 +52,7 @@ use crate::runtime::symbol::Symbol;
 use crate::runtime::url_search_params::{create_search_params, inspect_text, pairs_of_instance, parse_query, quote_units, replace_pairs, serialize};
 use crate::runtime::exception_helpers::calculated_class_name;
 use crate::runtime::proxy_object::object_get;
-use crate::runtime::web_iterable::{put_enumerable_methods, require_arguments, string_value, units_of};
+use crate::runtime::web_iterable::{put_enumerable_methods, require_arguments, string_value, units_of, usv_units_of};
 use crate::wtf::text::string_impl::StringImpl;
 use crate::wtf::text::wtf_string::String as WtfString;
 use crate::wtf::url_parser::{URLParser, URL};
@@ -159,10 +159,10 @@ pub(crate) fn parse_with_base(input: &[u16], base: Option<&[u16]>) -> Option<URL
 /// `(input, base)` dos argumentos 0 e 1, convertidos em texto na ordem; `base` `undefined` conta como ausente.
 fn url_arguments(global_object: &JSGlobalObject, call: &HostCall) -> Result<(Units, Option<Units>), Thrown> {
     require_arguments(global_object, call, 1)?;
-    let input = units_of(global_object, call.argument(0))?;
+    let input = usv_units_of(global_object, call.argument(0))?;
     let base = match call.argument(1) {
         base if base.is_undefined() => None,
-        base => Some(units_of(global_object, base)?),
+        base => Some(usv_units_of(global_object, base)?),
     };
     Ok((input, base))
 }
@@ -375,7 +375,7 @@ fn this_state_check(call: &HostCall, name: &str) -> Result<(), Thrown> {
 fn href_set_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     this_state_check(call, "href")?;
     require_arguments(global_object, call, 1)?;
-    let input = units_of(global_object, call.argument(0))?;
+    let input = usv_units_of(global_object, call.argument(0))?;
     let url = parse_with_base(&input, None).ok_or_else(|| invalid_url(global_object))?;
     commit_url(call.this_value(), url);
     Ok(JSValue::undefined())
@@ -401,7 +401,7 @@ fn commit_url(this_value: JSValue, url: URL) {
 fn decomposition_setter(global_object: &JSGlobalObject, call: &HostCall, name: &str, change: fn(&URL, &[u16]) -> Option<URL>) -> HostResult {
     this_state_check(call, name)?;
     require_arguments(global_object, call, 1)?;
-    let value = units_of(global_object, call.argument(0))?;
+    let value = usv_units_of(global_object, call.argument(0))?;
     let current = with_url(call.this_value(), |state| state.url.clone()).expect("brand check feito");
     if let Some(updated) = change(&current, &value) {
         if let Some(url) = parse_with_base(&wtf_units(updated.string()), None) {

@@ -1761,7 +1761,9 @@ fn rsa_hash(global_object: &JSGlobalObject, call: &HostCall, algorithm: JSValue,
 
 /// O `publicExponent` do `RsaHashedKeyGenParams`: só `Uint8Array` (inclui `Buffer`); qualquer outro tipo é `Type error`.
 fn uint8_array_bytes(global_object: &JSGlobalObject, value: JSValue) -> Result<Vec<u8>, Thrown> {
-    let is_uint8 = JSGenericTypedArrayView::from_value(&value).is_some_and(|view| matches!(view.typed_array_type(), TypedArrayType::Uint8));
+    // Medido no bun 1.4.2: o `Uint8Array` sobre `SharedArrayBuffer` não serve (`TypeError`).
+    let is_uint8 = JSGenericTypedArrayView::from_value(&value)
+        .is_some_and(|view| matches!(view.typed_array_type(), TypedArrayType::Uint8) && !view.is_shared());
     input_bytes(value).filter(|_| is_uint8).ok_or_else(|| throw_native_type_error(global_object, "Type error"))
 }
 

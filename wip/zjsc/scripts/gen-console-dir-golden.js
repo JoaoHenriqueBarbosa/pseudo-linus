@@ -236,7 +236,10 @@ for (const code of programs) {
   if (result.status !== 0 && result.status !== 1) throw new Error("bun falhou em: " + code + "\n" + result.stderr);
   const at = result.stderr.lastIndexOf(Buffer.from("\u0000R"));
   if (at < 0) throw new Error("sem marcador em: " + code + "\n" + result.stderr);
-  const normalize = (buffer) => Buffer.from(buffer.toString("latin1").split(file).join("console_dir_case.js"), "latin1");
+  // A URL `file://` do caminho absoluto (o `eval` e o `Function`) vira `file:///console_dir_case.js`, como nos outros
+  // goldens de pilha: o teste em Rust dá ao programa a origem `file:///console_dir_case.js`.
+  const normalize = (buffer) =>
+    Buffer.from(buffer.toString("latin1").split("file://" + file).join("file:///console_dir_case.js").split(file).join("console_dir_case.js"), "latin1");
   emitRow(
     [
       JSON.stringify(code),

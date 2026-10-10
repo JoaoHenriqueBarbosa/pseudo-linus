@@ -172,6 +172,11 @@ pub fn str_value(vm: &VM, text: &str) -> JSValue {
     JSValue::from_js_string(js_string(vm, &WtfString::from_utf8(text.as_bytes())))
 }
 
+/// `jsString(vm, units)`: o texto em UTF-16, com surrogate solto preservado.
+pub fn units_value(vm: &VM, units: &[u16]) -> JSValue {
+    JSValue::from_js_string(js_string(vm, &crate::runtime::string_prototype::string_from_units(units)))
+}
+
 /// O `PropertyName` de um nome literal.
 pub fn prop(vm: &VM, name: &str) -> PropertyName {
     PropertyName::from_identifier(&Identifier::from_span(vm, name.as_bytes()))

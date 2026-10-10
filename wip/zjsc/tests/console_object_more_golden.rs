@@ -95,6 +95,49 @@ fn console_error_main_matches_bun() {
     });
 }
 
+/// Um `Error` cujo array próprio o contém (linha 282 do TSV): o bun imprime o erro aninhado uma vez e o array dele como
+/// `[Circular]`, porque o relato do erro usa o mesmo mapa de visitados do valor de fora. Antes estourava a pilha nativa.
+#[test]
+fn error_inside_its_own_property_is_circular() {
+    let console = Rc::new(MemoryConsole::new(b""));
+    let source = "var e = new Error('m'); e.list = [e]; console.log(e)";
+    let _ = evaluate_named_script_with_console(source, "console_object_more_case.js", "R", Some(console.clone()));
+    let stdout = String::from_utf8_lossy(&console.stdout_bytes()).into_owned();
+    assert_eq!(stdout.matches("list: [\n").count(), 1, "{stdout}");
+    assert_eq!(stdout.matches("list: [Circular],").count(), 1, "{stdout}");
+}
+
+/// O nome do cabeçalho do relato é a primeira propriedade de dados `name` da cadeia (medido no bun 1.4.2): o acessor é
+/// pulado sem rodar, número, booleano e `null` viram texto, e `undefined`, símbolo ou objeto deixam `error`.
+#[test]
+fn error_report_header_reads_the_data_name_of_the_chain() {
+    let cases = [
+        ("var e = new TypeError('m'); e.name = 'Foo'; console.log(e)", "Foo: m"),
+        ("var e = new Error('m'); e.name = 5; console.log(e)", "5: m"),
+        ("var e = new TypeError('m'); e.name = null; console.log(e)", "null: m"),
+        ("var e = new TypeError('m'); e.name = undefined; console.log(e)", "error: m"),
+        ("var e = new TypeError('m'); e.name = Symbol('s'); console.log(e)", "error: m"),
+        ("var e = new TypeError('m'); Object.defineProperty(e, 'name', {get() { return 'G' }}); console.log(e)", "TypeError: m"),
+        ("class A extends Error {}; A.prototype.name = 'P'; console.log(new A('m'))", "P: m"),
+    ];
+    for (source, header) in cases {
+        let console = Rc::new(MemoryConsole::new(b""));
+        let _ = evaluate_named_script_with_console(source, "console_object_more_case.js", "R", Some(console.clone()));
+        let stdout = String::from_utf8_lossy(&console.stdout_bytes()).into_owned();
+        assert!(stdout.lines().any(|line| line == header), "{source}\n{stdout}");
+    }
+}
+
+/// O caminho rápido do bun percorre a estrutura do protótipo na ordem de inserção, com o símbolo onde foi criado.
+#[test]
+fn fast_prototype_keys_keep_the_structure_order() {
+    let console = Rc::new(MemoryConsole::new(b""));
+    let source = "console.log(Object.create({ [Symbol('s')]: 1, a: 2, [Symbol('t')]: 3, b: 4 }))";
+    let _ = evaluate_named_script_with_console(source, "console_object_more_case.js", "R", Some(console.clone()));
+    let stdout = String::from_utf8_lossy(&console.stdout_bytes()).into_owned();
+    assert_eq!(stdout, "{\n  [Symbol(s)]: 1,\n  a: 2,\n  [Symbol(t)]: 3,\n  b: 4,\n}\n");
+}
+
 #[test]
 fn console_object_more_match_bun() {
     let mut failures = Vec::new();
@@ -134,5 +177,5 @@ fn console_object_more_match_bun() {
     eprintln!("console_object_more: {checked} em escopo, {xfail} xfail ({xfail_passing} já batem), {total} no total");
     assert!(total >= 900, "poucos casos: {total}");
     assert_eq!(checked + xfail, total);
-    assert!(failures.is_empty(), "{} de {checked} em escopo divergem:\n{}", failures.len(), failures.iter().take(10).cloned().collect::<Vec<_>>().join("\n"));
+    assert!(failures.is_empty(), "{} de {checked} em escopo divergem:\n{}", failures.len(), failures.iter().take(100).cloned().collect::<Vec<_>>().join("\n"));
 }

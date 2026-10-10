@@ -68,3 +68,38 @@ fn module_descriptor_matches_table_attributes() {
                    [typeof d.value, d.writable, d.enumerable, d.configurable, d.value.length, WebAssembly.Module.imports.length, WebAssembly.Module.exports.name].join(',')";
     assert_eq!(run(program), "function,true,true,true,2,1,exports");
 }
+
+/// A mensagem de `Module.exports`, `imports` e `customSections` com argumento que não é módulo, medida no bun 1.4.2.
+#[test]
+fn module_statics_reject_non_modules_with_the_jsc_message() {
+    let program = "['exports', 'imports'].map(function (m) { return [[], [1], [{}]].map(function (a) { \
+                   try { WebAssembly.Module[m].apply(null, a); return 'ok' } catch (e) { return e.message } }).join(';') }).join('|')";
+    let expected = ["exports", "imports"]
+        .map(|member| vec![format!("WebAssembly.Module.{member} called with non WebAssembly.Module argument"); 3].join(";"))
+        .join("|");
+    assert_eq!(run(program), expected);
+}
+
+/// O getter `Instance.prototype.exports` com `this` que não é instância, medido no bun 1.4.2.
+#[test]
+fn instance_exports_getter_rejects_non_instances_with_the_jsc_message() {
+    let program = "var g = Object.getOwnPropertyDescriptor(WebAssembly.Instance.prototype, 'exports').get; \
+                   [undefined, 1, {}, WebAssembly.Instance.prototype].map(function (t) { try { g.call(t); return 'ok' } catch (e) { return e.message } }).join('|')";
+    assert_eq!(run(program), vec!["expected |this| value to be an instance of WebAssembly.Instance"; 4].join("|"));
+}
+
+/// Os acessores dos protótipos, medidos no bun 1.4.2: `Instance.exports` e `Global.value` são `JSC_NATIVE_GETTER` (o
+/// `toString` traz o `get `), `Memory.buffer` e `Table.length` são `CustomAccessor` (o `toString` traz o nome puro).
+#[test]
+fn prototype_accessors_have_the_jsc_kind() {
+    let program = "[[WebAssembly.Instance, 'exports'], [WebAssembly.Memory, 'buffer'], [WebAssembly.Table, 'length'], [WebAssembly.Global, 'value']]\
+                   .map(function (p) { var d = Object.getOwnPropertyDescriptor(p[0].prototype, p[1]); \
+                   return [String(d.get), d.get.name, d.enumerable, d.configurable, typeof d.set].join(','); }).join('|')";
+    assert_eq!(
+        run(program),
+        "function get exports() { [native code] },get exports,true,true,undefined|\
+         function buffer() { [native code] },get buffer,true,true,undefined|\
+         function length() { [native code] },get length,true,true,undefined|\
+         function get value() { [native code] },get value,true,true,function"
+    );
+}

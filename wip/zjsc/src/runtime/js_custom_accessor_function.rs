@@ -38,6 +38,9 @@ use crate::wtf::text::wtf_string::{empty_string, make_string_by_joining, String 
 pub enum CustomFunctionPointer {
     Getter(GetValueFunc),
     Setter(PutValueFunc),
+    /// O acessor cujo ponteiro é uma `NativeFunction` própria (`create_host_custom_accessor_getter_function`): a função
+    /// chama o ponteiro direto, e a marca só diz que ela é um `CustomAccessor` (o console do bun imprime o valor).
+    Host,
 }
 
 /// `m_propertyName` e `m_getter`/`m_setter` de `JSCustomGetterFunction`/`JSCustomSetterFunction`.
@@ -57,7 +60,7 @@ impl CustomAccessorFunction {
     pub fn getter(&self) -> Option<GetValueFunc> {
         match self.pointer {
             CustomFunctionPointer::Getter(getter) => Some(getter),
-            CustomFunctionPointer::Setter(_) => None,
+            CustomFunctionPointer::Setter(_) | CustomFunctionPointer::Host => None,
         }
     }
 
@@ -65,7 +68,7 @@ impl CustomAccessorFunction {
     pub fn setter(&self) -> Option<PutValueFunc> {
         match self.pointer {
             CustomFunctionPointer::Setter(setter) => Some(setter),
-            CustomFunctionPointer::Getter(_) => None,
+            CustomFunctionPointer::Getter(_) | CustomFunctionPointer::Host => None,
         }
     }
 }
@@ -130,7 +133,7 @@ pub fn create_host_custom_accessor_getter_function(
     getter: NativeFunction,
 ) -> JSFunctionRef {
     let public_name = WtfString::from_utf8(name.as_bytes());
-    let created = JSFunction::create_native(
+    let created = JSFunction::create_native_with_own_structure(
         vm,
         global_object,
         0,
@@ -141,6 +144,10 @@ pub fn create_host_custom_accessor_getter_function(
         call_host_function_as_constructor,
     );
     put_prefixed_name(vm, &created, "get ", &public_name);
+    let _ = created.custom_accessor.set(CustomAccessorFunction {
+        property_name: Identifier::from_string(vm, &public_name),
+        pointer: CustomFunctionPointer::Host,
+    });
     created
 }
 
@@ -148,7 +155,7 @@ pub fn create_host_custom_accessor_getter_function(
 /// com `set <name>` em `name` e `length` 1.
 pub fn create_host_custom_accessor_setter_function(vm: &VM, global_object: &JSGlobalObject, name: &str, setter: NativeFunction) -> JSFunctionRef {
     let public_name = WtfString::from_utf8(name.as_bytes());
-    let created = JSFunction::create_native(
+    let created = JSFunction::create_native_with_own_structure(
         vm,
         global_object,
         1,
@@ -201,7 +208,7 @@ fn create(
     pointer: CustomFunctionPointer,
 ) -> JSFunctionRef {
     let public_name = property_name.public_name().map_or_else(empty_string, |uid| WtfString::from(std::rc::Rc::clone(&uid.0)));
-    let created = JSFunction::create_native(
+    let created = JSFunction::create_native_with_own_structure(
         vm,
         global_object,
         length,

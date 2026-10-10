@@ -1099,6 +1099,27 @@ fn plain_range(state: &DateTimeFormatState, level: Level, first: &Moment, second
     if state.iso_calendar && !era_text_month && !state.fields.has_time() {
         return iso_date_range(state, first, second);
     }
+    // Medido no bun 1.4.2 (en e pt-BR): `dateStyle` com `timeStyle` e a data diferente é o fallback com as duas pontas
+    // inteiras (`1/5/24, 3:04 PM \u{2013} 1/9/24, 3:30 AM`), em todo `timeStyle`.
+    if state.date_style.is_some() && state.time_style.is_some() && level < Level::DayPeriod && !state.native.is_native() {
+        return pair(full_parts(state, first), PATTERN_SEPARATOR, full_parts(state, second));
+    }
+    // O ano que difere sem estar no padrão (`month` com `day`): o ICU acrescenta o ano às duas pontas
+    // (`January 5, 2024 \u{2013} December 31, 2025`, `1/5/2024 \u{2013} 12/31/2025`).
+    let fields = &state.fields;
+    if level == Level::Year
+        && fields.year.is_none()
+        && (fields.month.is_some() || fields.day.is_some())
+        && !fields.has_time()
+        && state.date_style.is_none()
+        && !state.native.is_native()
+    {
+        let mut with_year = state.clone();
+        for fields in [&mut with_year.fields, &mut with_year.user_fields] {
+            fields.year = Some(Digits2::Numeric);
+        }
+        return pair(full_parts(&with_year, first), PATTERN_SEPARATOR, full_parts(&with_year, second));
+    }
     if let Some(parts) = data_range(state, level, first, second) {
         return parts;
     }

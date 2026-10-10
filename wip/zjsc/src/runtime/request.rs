@@ -160,11 +160,11 @@ fn canonical_url(global_object: &JSGlobalObject, units: &[u16]) -> Result<Vec<u1
     if units.is_empty() {
         return Err(construct_error(global_object, "url is required."));
     }
-    let parsed = URL::from_string(&WtfString::from_utf16(units));
-    if !parsed.is_valid() {
+    // O parser WHATWG do `new URL` (medido: esquema e host minúsculos, porta padrão some).
+    let Some(parsed) = crate::runtime::url::parse_with_base(units, None) else {
         let message = format!("Failed to construct 'Request': Invalid URL \"{}\"", String::from_utf16_lossy(units));
         return Err(throw_coded_type_error(global_object, &message, "ERR_INVALID_URL"));
-    }
+    };
     let text = parsed.string();
     Ok((0..text.length()).map(|index| text.code_unit_at(index)).collect())
 }

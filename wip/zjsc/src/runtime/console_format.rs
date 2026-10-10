@@ -26,8 +26,14 @@
 //! objeto comum e as não enumeráveis próprias ainda saem como o bun não os imprime (como objeto comum). Aninhamento acima de
 //! 512 níveis vira `[Array]` para não estourar a pilha do host. A estimativa de um `bigint` de nível superior conta o `n`.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+
+thread_local! {
+    /// Os objetos que os formatadores de fora estão imprimindo quando um `Error` aninhado é relatado (ver
+    /// `Formatter::inside_error_report`).
+    static ENCLOSING_SEEN: RefCell<Vec<usize>> = const { RefCell::new(Vec::new()) };
+}
 
 use crate::host_function;
 use crate::runtime::call_data::{call, get_call_data, get_construct_data, CallData};
@@ -235,6 +241,8 @@ fn native_class_label(value: JSValue) -> Option<&'static str> {
 fn prints_prototype_members(id: usize) -> bool {
     match cell_registry::get(id) {
         None => true,
+        // O objeto comum registrado (`Object.create`, instância de classe do usuário) é o mesmo caso do não registrado.
+        Some(CellEntry::Object(_)) => true,
         // `DOMException`: `code`, `name`, `message`, as constantes `*_ERR` e `toString` vêm do protótipo.
         Some(CellEntry::DOMException(_)) => true,
         Some(CellEntry::WrapperObject(wrapper)) => wrapper.type_() == JSType::ObjectType,
@@ -363,6 +371,13 @@ impl Formatter {
         Formatter { depth, max_depth, ..Formatter::new() }
     }
 
+    /// O formatador das propriedades de um `Error` dentro de outro valor: o bun usa o mesmo `Formatter` (um só mapa de
+    /// visitados), então os objetos que os níveis de fora estão imprimindo continuam valendo como `[Circular]`.
+    pub(crate) fn inside_error_report(mut self) -> Formatter {
+        self.seen = ENCLOSING_SEEN.with(|seen| seen.borrow().clone());
+        self
+    }
+
     /// Soma à estimativa o texto que quem chama escreveu (outros argumentos e o espaço entre eles).
     pub fn note(&mut self, count: usize) {
         self.est += count;
@@ -484,7 +499,9 @@ impl Formatter {
             // `Tag::Error` (`print_error` do ConsoleObject.rs): `print_errorlike_object`, o mesmo relato do erro não capturado
             // (trecho do fonte, `^`, cabeçalho, propriedades, frames), sem o rodapé.
             let mut report = Vec::new();
+            let outer = ENCLOSING_SEEN.with(|seen| std::mem::replace(&mut *seen.borrow_mut(), self.seen.clone()));
             append_error_report(&mut report, global_object, "", error, self.colors);
+            ENCLOSING_SEEN.with(|seen| *seen.borrow_mut() = outer);
             out.extend(String::from_utf8_lossy(&report).encode_utf16());
             return !has_exception(global_object);
         }
@@ -537,26 +554,40 @@ impl Formatter {
         Some(self.format(global_object, out, result))
     }
 
-    /// As chaves próprias enumeráveis: índices (só para objeto), nomes na ordem de criação e depois símbolos.
+    /// As chaves próprias: índices enumeráveis (só para objeto), nomes na ordem de criação e depois símbolos. Os nomes e
+    /// os símbolos incluem os não enumeráveis: o `forEachPropertyImpl` percorre a estrutura inteira (medido no bun 1.4.2,
+    /// `Object.defineProperty({}, 'x', {value: 1})` sai `{ x: 1 }`).
     fn keys(global_object: &JSGlobalObject, value: JSValue, is_array: bool) -> Option<Vec<Key>> {
         let vm = global_object.vm();
         let mut keys = Vec::new();
         for key in global_object.own_enumerable_string_keys(value).ok()? {
-            match key {
-                JsonKey::Index(index) => {
-                    if !is_array {
-                        let mut text = Vec::new();
-                        push_quoted(&mut text, &index.to_string().bytes().map(u16::from).collect::<Vec<u16>>());
-                        keys.push(Key { text, est: index.to_string().len() + 2, name: PropertyName::from_identifier(&Identifier::from_u32(vm, index)), is_tag: false, bare: false, symbol: false });
-                    }
+            if let JsonKey::Index(index) = key {
+                if !is_array {
+                    let mut text = Vec::new();
+                    push_quoted(&mut text, &index.to_string().bytes().map(u16::from).collect::<Vec<u16>>());
+                    keys.push(Key { text, est: index.to_string().len() + 2, name: PropertyName::from_identifier(&Identifier::from_u32(vm, index)), is_tag: false, bare: false, symbol: false });
                 }
-                JsonKey::Name(name) => keys.push(name_key(global_object, &name)),
             }
         }
         let object = value.as_object();
-        let symbols = own_property_keys(global_object, &object, PropertyNameMode::Symbols, DontEnumPropertiesMode::Exclude).ok()?;
+        let names = own_property_keys(global_object, &object, PropertyNameMode::Strings, DontEnumPropertiesMode::Include).ok()?;
+        for index in 0..names.length() {
+            let name = names.get_by_index(vm, index).to_wtf_string();
+            // O `length` do array não está na estrutura.
+            if name.impl_().is_some_and(|text| crate::runtime::identifier::parse_index_impl(text).is_some()) || (is_array && same_text(&wtf_string_to_units(&name), "length")) {
+                continue;
+            }
+            keys.push(name_key(global_object, &name));
+        }
+        let symbols = own_property_keys(global_object, &object, PropertyNameMode::Symbols, DontEnumPropertiesMode::Include).ok()?;
         for index in 0..symbols.length() {
-            keys.push(symbol_key(global_object, symbols.get_by_index(vm, index))?);
+            let key = symbol_key(global_object, symbols.get_by_index(vm, index))?;
+            // O `@@toStringTag` não enumerável fica de fora (ele só dá o nome antes do `{`).
+            let mut descriptor = crate::runtime::property_descriptor::PropertyDescriptor::default();
+            if key.is_tag && !(object.get_own_property_descriptor(vm, &key.name, &mut descriptor) && descriptor.enumerable()) {
+                continue;
+            }
+            keys.push(key);
         }
         Some(keys)
     }
@@ -614,7 +645,7 @@ impl Formatter {
     /// typed array) e sem a chave `__proto__`.
     fn level_is_fast(global_object: &JSGlobalObject, level: JSValue) -> Option<bool> {
         let vm = global_object.vm();
-        if global_object.is_array(level).ok()? || cell_registry::get(level.as_cell()).is_some_and(|entry| !matches!(entry, CellEntry::WrapperObject(_))) {
+        if global_object.is_array(level).ok()? || cell_registry::get(level.as_cell()).is_some_and(|entry| !matches!(entry, CellEntry::WrapperObject(_) | CellEntry::Object(_))) {
             return Some(false);
         }
         let object = level.as_object();
@@ -646,10 +677,20 @@ impl Formatter {
         let vm = global_object.vm();
         let object = level.as_object();
         let names = own_property_keys(global_object, &object, PropertyNameMode::StringsAndSymbols, DontEnumPropertiesMode::Include).ok()?;
-        let mut hits = false;
+        let mut level_keys = Vec::with_capacity(names.length() as usize);
         for index in 0..names.length() {
             let name = names.get_by_index(vm, index);
-            let key = if name.is_symbol() { symbol_key(global_object, name)? } else { name_key(global_object, &name.to_wtf_string()) };
+            level_keys.push(if name.is_symbol() { symbol_key(global_object, name)? } else { name_key(global_object, &name.to_wtf_string()) });
+        }
+        // O caminho rápido percorre a estrutura (`structure->forEachProperty`) na ordem de inserção, com os símbolos
+        // intercalados; o `ownPropertyKeys` põe os símbolos no fim (medido no bun 1.4.2: o protótipo `{[Symbol('s')]: 1, a: 2}`
+        // sai com o símbolo primeiro).
+        if fast {
+            let order: Vec<_> = object.structure().properties_with_privacy().into_iter().filter(|entry| !entry.3).map(|entry| entry.0).collect();
+            level_keys.sort_by_key(|key| key.name.uid().and_then(|uid| order.iter().position(|known| known == uid)).unwrap_or(usize::MAX));
+        }
+        let mut hits = false;
+        for key in level_keys {
             let filtered = same_text(&key.text, "constructor") || same_text(&key.text, "__proto__") || (!is_own && same_text(&key.text, "__esModule"));
             if filtered || (fast && key.is_tag) || (!is_own && keys.iter().any(|known| known.text == key.text)) {
                 continue;
@@ -699,6 +740,9 @@ impl Formatter {
         if prints_prototype_members(value.as_cell()) && Formatter::prototype_keys(global_object, value, &mut keys).is_none() {
             return false;
         }
+        // O `forEachPropertyImpl` pula a chave `constructor` também quando ela é própria (medido no bun 1.4.2: `{constructor: 5}`
+        // sai `{}`, com getter, com protótipo nulo e dentro de array).
+        keys.retain(|key| key.symbol || !same_text(&key.text, "constructor"));
         // O caminho rápido do bun descarta `@@toStringTag`; ele só aparece se for a única chave do objeto.
         if keys.iter().any(|key| !key.is_tag) {
             keys.retain(|key| !key.is_tag);
@@ -889,7 +933,10 @@ impl Formatter {
         let latin1 = |bytes: &[u8]| -> Vec<u16> { bytes.iter().map(|&byte| u16::from(byte)).collect() };
         let body_parts = |body: &Option<Body>| -> (usize, Option<(usize, Vec<u8>)>) {
             match body {
-                Some(body) if !body.used => (body.bytes.len(), (!body.bytes.is_empty()).then(|| (body.bytes.len(), body.blob_type.clone()))),
+                Some(body) if !body.used => {
+                    let shown_type = if body.implied_type { Vec::new() } else { body.blob_type.clone() };
+                    (body.bytes.len(), (!body.bytes.is_empty()).then(|| (body.bytes.len(), shown_type)))
+                }
                 _ => (0, None),
             }
         };
@@ -958,7 +1005,8 @@ impl Formatter {
         ascii(out, " {\n");
         self.est = self.indent * 2 + 1;
         self.seen.push(id);
-        self.depth += 1;
+        // Os campos saem na profundidade do próprio objeto (medido no bun 1.4.2: `console.dir(response, {depth: 0})`
+        // imprime os `Headers` por inteiro, e `{k: response}` com `depth: 0` os resume como `Headers [Object ...]`).
         self.indent += 1;
         let count = fields.len();
         for (position, (name, field)) in fields.into_iter().enumerate() {
@@ -1028,7 +1076,6 @@ impl Formatter {
             }
         }
         self.indent -= 1;
-        self.depth -= 1;
         self.seen.pop();
         ascii(out, "\n");
         self.pad(out);
@@ -1609,7 +1656,8 @@ fn is_primitive_tag(value: JSValue) -> bool {
         return false;
     }
     match cell_registry::get(value.as_cell()) {
-        Some(CellEntry::StringObject(_)) => true,
+        // O `RegExp` sai como `Tag::String` (ver `format_builtin`), primitivo: `[ /a/ ]` numa linha (medido no bun 1.4.2).
+        Some(CellEntry::StringObject(_) | CellEntry::RegExpObject(_)) => true,
         Some(CellEntry::WrapperObject(wrapper)) => matches!(wrapper.type_(), JSType::NumberObjectType | JSType::BooleanObjectType),
         _ => false,
     }

@@ -142,6 +142,19 @@ pub enum CallLinkInfoMode {
     Virtual = 3,
 }
 
+impl CallLinkInfoMode {
+    /// O `mode` gravado no `DataOnlyCallLinkInfo` (um byte, como o bitfield do C++).
+    pub fn from_u8(mode: u8) -> CallLinkInfoMode {
+        match mode {
+            0 => CallLinkInfoMode::Init,
+            1 => CallLinkInfoMode::Monomorphic,
+            2 => CallLinkInfoMode::Polymorphic,
+            3 => CallLinkInfoMode::Virtual,
+            other => unreachable!("CallLinkInfo::Mode inválido: {other}"),
+        }
+    }
+}
+
 /// `CallLinkInfo::callTypeFor(OpcodeID)`.
 pub fn call_type_for(opcode_id: OpcodeID) -> CallType {
     match opcode_id {

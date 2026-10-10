@@ -6,6 +6,8 @@
 // Saída não determinística no bun (ordem de HashSet de ponteiros, por exemplo): `scripts/golden-alternatives.js` mede o
 // programa várias vezes e, se as saídas diferem, a linha ganha uma quarta coluna `JSON([outras saídas aceitas])`, com a
 // terceira coluna (índice) sempre presente. O teste passa se o porte devolve a segunda coluna ou qualquer alternativa.
+// Saída que nunca se repete (`Math.random`, `Date()`): o último elemento da quarta coluna é um array de inteiros, os
+// índices de token que variam no bun (`measureVarying`), e o teste aceita ali qualquer token da mesma classe.
 // Quinta coluna (meta `[modo, índiceDaCauda, ...corridasDoSufixo]`): as corridas do mapa de posições que caem no prelúdio
 // vivem no `*.preludes.json` (entradas `{text, runs, tails}`), ver `factorMeta`; `readRows` devolve o meta completo.
 // Quem lê o tsv (testes em tests/common/mod.rs e geradores que deduplicam contra goldens vizinhos) só depende de a
@@ -288,6 +290,12 @@ const NOT_PROGRAM = {
   "duration_format_bun.tsv": "locale, estilo e duração do Intl.DurationFormat",
   "locale_getters_bun.tsv": "tag de locale e listas de getters",
   "math_bun.tsv": "nome da função e operandos em hex",
+  // Grafo de módulos: a coluna 0 é um objeto JSON (arquivo para fonte), não um programa; a terceira coluna, quando há, são
+  // os resultados alternativos (ordem de avaliação que o bun varia), não índice de prelúdio.
+  "module_bun.tsv": "grafo de módulos (arquivo para fonte) e resultados alternativos",
+  "module_edge_bun.tsv": "grafo de módulos (arquivo para fonte) e resultados alternativos",
+  "module_more_bun.tsv": "grafo de módulos (arquivo para fonte)",
+  "module_meta_resolve_bun.tsv": "grafo de módulos (arquivo para fonte)",
   "node_modules_resolve_bun.tsv": "importador, especificador e caminho resolvido",
   "package_exports_bun.tsv": "campo exports, subcaminho e alvo resolvido",
   "number_to_string.tsv": "bits em hex e saídas de formatação",

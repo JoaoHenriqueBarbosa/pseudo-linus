@@ -12,6 +12,7 @@
 //! `deflateCopy`, `deflatePending` e `deflatePrime`, que nenhum programa portado usa.
 
 mod deflate;
+mod medium;
 mod trees;
 
 pub use deflate::compress;
@@ -203,6 +204,8 @@ pub struct Deflate {
     insert: u32,
     /// Até onde a janela já foi escrita ou zerada.
     high_water: usize,
+    /// O sabor zlib-ng 2.2.4 (o do bun): nos níveis 3 a 6 o `deflate_medium` com o hash de 4 bytes.
+    ng: bool,
 }
 
 impl std::fmt::Debug for Deflate {
@@ -237,6 +240,10 @@ fn crc32(crc: u32, data: &[u8]) -> u32 {
 /// (good_length, max_lazy, nice_length, max_chain) por nível: `configuration_table`.
 const CONFIG: [(u32, u32, u32, u32); 10] =
     [(0, 0, 0, 0), (4, 4, 8, 4), (4, 5, 16, 8), (4, 6, 32, 32), (4, 4, 16, 16), (8, 16, 32, 32), (8, 16, 128, 128), (8, 32, 128, 256), (32, 128, 258, 1024), (32, 258, 258, 4096)];
+
+/// A `configuration_table` do zlib-ng 2.2.4 com o `deflate_medium` (só os níveis 3 e 4 mudam).
+const CONFIG_NG: [(u32, u32, u32, u32); 10] =
+    [(0, 0, 0, 0), (0, 0, 0, 0), (4, 4, 8, 4), (4, 6, 16, 6), (4, 12, 32, 24), (8, 16, 32, 32), (8, 16, 128, 128), (8, 32, 128, 256), (32, 128, 258, 1024), (32, 258, 258, 4096)];
 
 impl Deflate {
     /// `deflateInit2`: `window_bits` de 8 a 15 dá o invólucro zlib, negativo dá deflate cru e
@@ -306,9 +313,28 @@ impl Deflate {
             t: trees::Trees::new(lit_bufsize),
             insert: 0,
             high_water: 0,
+            ng: false,
         };
         d.reset();
         Ok(d)
+    }
+
+    /// O `deflateInit2` do zlib-ng 2.2.4 (o compressor do bun, que o `CompressionStream` reproduz): nos níveis
+    /// 3 a 6, fora de `Z_HUFFMAN_ONLY` e `Z_RLE`, comprime com o `deflate_medium`. Os outros níveis seguem o
+    /// zlib (o `deflate_quick` do nível 1 e o `deflate_slow` com o hash do zlib-ng não foram portados).
+    pub fn new_zlib_ng(level: i32, window_bits: i32, mem_level: i32, strategy: Strategy) -> Result<Deflate, Error> {
+        let mut d = Deflate::new(level, window_bits, mem_level, strategy)?;
+        d.ng = true;
+        if d.medium() {
+            d.head = vec![0; medium::NG_HASH_SIZE];
+        }
+        d.lm_init();
+        Ok(d)
+    }
+
+    /// Se este fluxo comprime com o `deflate_medium` do zlib-ng.
+    fn medium(&self) -> bool {
+        self.ng && (3..=6).contains(&self.level) && !matches!(self.strategy, Strategy::HuffmanOnly | Strategy::Rle)
     }
 
     /// `deflateInit`: invólucro zlib com os parâmetros padrão.
@@ -338,7 +364,7 @@ impl Deflate {
 
     fn lm_init(&mut self) {
         self.head.fill(NIL as u16);
-        let (good, lazy, nice, chain) = CONFIG[self.level as usize];
+        let (good, lazy, nice, chain) = if self.medium() { CONFIG_NG[self.level as usize] } else { CONFIG[self.level as usize] };
         self.max_lazy_match = lazy;
         self.good_match = good;
         self.nice_match = nice;
@@ -348,7 +374,8 @@ impl Deflate {
         self.lookahead = 0;
         self.insert = 0;
         self.match_length = (MIN_MATCH - 1) as u32;
-        self.prev_length = (MIN_MATCH - 1) as u32;
+        // O zlib-ng começa o `prev_length` em zero; o `longest_match` dele lê isso como `STD_MIN_MATCH - 1`.
+        self.prev_length = if self.medium() { 0 } else { (MIN_MATCH - 1) as u32 };
         self.match_available = false;
         self.ins_h = 0;
     }

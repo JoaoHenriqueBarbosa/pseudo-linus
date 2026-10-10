@@ -85,3 +85,69 @@ fn import_meta_is_the_bun_import_meta_object() {
         )
     );
 }
+
+/// `import.meta.resolveSync` com `parent` relativo ou vazio não acha caminho (o bun o resolve contra o diretório de
+/// trabalho) mas acha o módulo embutido; sem referrer a mensagem é `Cannot find module '<x>' from ''`; `C:\x` é
+/// caminho.
+#[test]
+fn resolve_sync_parent_builtins_and_messages() {
+    let (log, error) = run(&[
+        (
+            "main.mjs",
+            "const t = (f) => { try { L(JSON.stringify(f())); } catch (e) { L(e.message); } }; \
+             t(() => import.meta.resolveSync('./a.mjs', './s/')); t(() => import.meta.resolveSync('./a.mjs', '')); \
+             t(() => import.meta.resolveSync('node:path')); t(() => import.meta.resolveSync('node:fs/promises', './q')); \
+             t(() => import.meta.resolveSync('node:nope')); t(() => import.meta.resolveSync('fs', 'q')); \
+             t(() => import.meta.resolve('nopkg/x', '')); t(() => import.meta.resolve('C:\\\\x'));",
+        ),
+        ("a.mjs", "export {};"),
+    ]);
+    assert_eq!(error, None);
+    assert_eq!(
+        log,
+        concat!(
+            r#"["Cannot find module './a.mjs' imported from ./s/","Cannot find module './a.mjs' from ''","\"node:path\"","#,
+            r#""\"node:fs/promises\"","No such built-in module: node:nope","\"node:fs\"","Cannot find module 'nopkg/x' from ''","#,
+            r#""Cannot find module 'C:\\x' imported from /main.mjs"]"#
+        )
+    );
+}
+
+/// O erro que o próprio `import()` cria (opções que não são objeto, specifier símbolo) rejeita a promessa com a pilha
+/// do chamador, como o `finishCreation` do C++: `stack`, `line`, `column` e `sourceURL` próprios (medido no bun 1.4.2).
+#[test]
+fn dynamic_import_own_errors_carry_the_caller_stack() {
+    let (log, error) = run(&[(
+        "main.mjs",
+        "const IO = (s, o) => import(s, o); \
+         await IO('./a.mjs', 1).catch((e) => { L(Object.getOwnPropertyNames(e).join()); L(typeof e.stack); L(e.stack.split('\\n').length); }); \
+         await import(Symbol()).catch((e) => { L(Object.getOwnPropertyNames(e).join()); L(e.stack.split('\\n').length); });",
+    )]);
+    assert_eq!(error, None);
+    assert_eq!(
+        log,
+        concat!(
+            r#"["message,originalLine,originalColumn,line,column,sourceURL,stack","string","3","#,
+            r#""message,originalLine,originalColumn,line,column,sourceURL,stack","2"]"#
+        )
+    );
+}
+
+/// As chaves de `options.with` passam pela tabela de métodos: o trap `ownKeys` de um `Proxy` roda, e o que ele lança
+/// (ou a violação de invariante) rejeita o `import()` (medido no bun 1.4.2).
+#[test]
+fn dynamic_import_options_with_proxy_runs_own_keys() {
+    let (log, error) = run(&[(
+        "main.mjs",
+        "const t = (h) => import('./a.mjs', { with: new Proxy({}, h) }).then(() => L('ok'), (e) => L(e.name + ': ' + e.message)); \
+         await t({ ownKeys() { throw new RangeError('trap'); } }); await t({ ownKeys() { return [1]; } });",
+    )]);
+    assert_eq!(error, None);
+    assert_eq!(
+        log,
+        concat!(
+            r#"["RangeError: trap","#,
+            r#""TypeError: Proxy handler's 'ownKeys' method must return an array-like object containing only Strings and Symbols"]"#
+        )
+    );
+}

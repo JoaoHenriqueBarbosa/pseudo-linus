@@ -23,3 +23,14 @@ fn blob_matches_bun() {
         }
     });
 }
+
+/// A constante canônica do tipo (medido no bun 1.4.2): `text/plain` ganha `;charset=utf-8` em `Blob`, `File` e `slice`;
+/// a busca é no texto como veio, então `Text/plain` só vira `text/plain`; `text/csv` não muda.
+#[test]
+fn blob_type_takes_the_canonical_mime_constant() {
+    let source = "var R = [new Blob(['x'], {type: 'text/plain'}).type, new File(['x'], 'a', {type: 'application/javascript'}).type, \
+                  new Blob(['x']).slice(0, 1, 'text/jsx').type, new Blob(['x'], {type: 'Text/plain'}).type, new Blob(['x'], {type: 'text/csv'}).type].join('|')";
+    let value = zjsc::api::eval::evaluate_named_script_result(source, "blob_case.js", "R").expect("R");
+    let text = String::from_utf8_lossy(&value.to_wtf_string().utf8(zjsc::wtf::text::conversion_mode::ConversionMode::LenientConversion)).into_owned();
+    assert_eq!(text, "text/plain;charset=utf-8|text/javascript;charset=utf-8|text/javascript;charset=utf-8|text/plain|text/csv");
+}

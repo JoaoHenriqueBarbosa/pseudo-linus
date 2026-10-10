@@ -14,10 +14,9 @@
 //!   `TypedArrayType::to_index`): o `callConstructor()` e o `constructConstructor()` do C++ escolhem, por
 //!   `switch`, uma função por tipo.
 //! - O atalho de `constructGenericTypedArrayViewFromFastArray` (`JSArray` com
-//!   `isIteratorProtocolFastAndNonObservable`) e o `PropertySlot` `VMInquiry` do `length` não existem (sem
-//!   watchpoints): todo objeto que tem `@@iterator` é percorrido pelo protocolo de iteração e o que não tem
-//!   é lido como array-like. O que o atalho evita é o que o protocolo, com o iterador original, faz sem
-//!   efeito observável.
+//!   `isIteratorProtocolFastAndNonObservable`) não existe (sem watchpoints): todo objeto que tem `@@iterator` é
+//!   percorrido pelo protocolo de iteração e o que não tem é lido como array-like. O que o atalho evita é o que o
+//!   protocolo, com o iterador original, faz sem efeito observável.
 //! - O `Uint8Array.fromBase64` e `fromHex` estão em `uint8_array_base64.rs`.
 
 use crate::host_function;
@@ -27,6 +26,8 @@ use crate::runtime::collection_support::{
     constructor_cannot_be_called_as_function, create_native_collection_constructor, native_constructor_structure,
 };
 use crate::runtime::host_call::{HostCall, HostResult, Thrown};
+use crate::runtime::host_function_support::ObjectRef;
+use crate::runtime::property_slot::{InternalMethodType, PropertySlot};
 use crate::runtime::internal_function::get_derived_structure_in_realm;
 use crate::runtime::js_function::{JSFunction, JSFunctionRef, JS_FUNCTION_S_INFO};
 use crate::runtime::iterator_operations::for_each_in_iterable_with_method;
@@ -185,6 +186,16 @@ fn construct_with_arguments(
             return Ok(result);
         }
 
+        // "This getPropertySlot operation should not be observed by the Proxy. So we use VMInquiry": o `length` é
+        // procurado sem trap antes do `@@iterator`; um `Proxy` (objeto opaco) na cadeia o deixa ausente, e então o
+        // comprimento é 0. O getter achado só roda depois, na leitura.
+        let length_name = PropertyName::from_identifier(&vm.property_names.length);
+        let has_length = {
+            let object = ObjectRef::from_value(&first_value).expect("o argumento objeto é objeto");
+            let mut length_slot = PropertySlot::new(first_value, InternalMethodType::VMInquiry);
+            object.get_property_slot(global_object, &length_name, &mut length_slot)
+        };
+
         let iterator_function =
             crate::runtime::iterator_operations::get_value_property(
                 global_object,
@@ -196,8 +207,11 @@ fn construct_with_arguments(
             return construct_from_iterator(global_object, structure, first_value, iterator_function);
         }
 
-        let length_value = get_object_property(global_object, first_value, &vm.property_names.length)?;
-        let length = length_value.to_length_checked()? as usize;
+        let length = if has_length {
+            get_object_property(global_object, first_value, &vm.property_names.length)?.to_length_checked()? as usize
+        } else {
+            0
+        };
 
         let result = JSGenericTypedArrayView::create_uninitialized(global_object, structure, length)?;
 

@@ -41,7 +41,7 @@ use crate::runtime::property_attribute::DONT_ENUM;
 use crate::runtime::property_name::PropertyName;
 use crate::runtime::symbol::Symbol;
 use crate::runtime::web_iterable::{
-    install_iteration, pairs_of_object, pairs_to_json_object, put_enumerable_methods, put_iterator_alias, register_instance, require_arguments, string_value, units_of, with_entries,
+    install_iteration, pairs_of_object, pairs_to_json_object, put_enumerable_methods, put_iterator_alias, register_instance, require_arguments, string_value, usv_units_of, with_entries,
     with_instance, Pairs, Units, WebIterable,
 };
 use crate::web_iterable_functions;
@@ -53,6 +53,7 @@ struct UrlSearchParams;
 
 impl WebIterable for UrlSearchParams {
     const NAME: &'static str = "URLSearchParams";
+    const USV_STRINGS: bool = true;
 
     crate::text_web_iterable_values!();
 }
@@ -164,7 +165,7 @@ fn initial_pairs(global_object: &JSGlobalObject, init: JSValue) -> Result<Pairs,
         return Ok(Vec::new());
     }
     if !init.is_object() {
-        return Ok(parse(&units_of(global_object, init)?));
+        return Ok(parse(&usv_units_of(global_object, init)?));
     }
     pairs_of_object::<UrlSearchParams>(global_object, init)
 }
@@ -180,7 +181,7 @@ fn construct_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult
 fn append_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     with_entries::<UrlSearchParams, _>(global_object, call, "append", |_| ())?;
     require_arguments(global_object, call, 2)?;
-    let (name, value) = (units_of(global_object, call.argument(0))?, units_of(global_object, call.argument(1))?);
+    let (name, value) = (usv_units_of(global_object, call.argument(0))?, usv_units_of(global_object, call.argument(1))?);
     with_entries::<UrlSearchParams, _>(global_object, call, "append", |pairs| pairs.push((name, value)))?;
     crate::runtime::url::search_params_changed(call.this_value());
     Ok(JSValue::undefined())
@@ -189,7 +190,7 @@ fn append_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 fn set_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     with_entries::<UrlSearchParams, _>(global_object, call, "set", |_| ())?;
     require_arguments(global_object, call, 2)?;
-    let (name, value) = (units_of(global_object, call.argument(0))?, units_of(global_object, call.argument(1))?);
+    let (name, value) = (usv_units_of(global_object, call.argument(0))?, usv_units_of(global_object, call.argument(1))?);
     with_entries::<UrlSearchParams, _>(global_object, call, "set", |pairs| match pairs.iter().position(|pair| pair.0 == name) {
         Some(first) => {
             pairs[first].1 = value;
@@ -206,14 +207,14 @@ fn set_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 fn optional_value(global_object: &JSGlobalObject, call: &HostCall) -> Result<Option<Units>, Thrown> {
     match call.argument(1) {
         value if call.argument_count() < 2 || value.is_undefined() => Ok(None),
-        value => units_of(global_object, value).map(Some),
+        value => usv_units_of(global_object, value).map(Some),
     }
 }
 
 fn delete_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     with_entries::<UrlSearchParams, _>(global_object, call, "delete", |_| ())?;
     require_arguments(global_object, call, 1)?;
-    let name = units_of(global_object, call.argument(0))?;
+    let name = usv_units_of(global_object, call.argument(0))?;
     let value = optional_value(global_object, call)?;
     with_entries::<UrlSearchParams, _>(global_object, call, "delete", |pairs| pairs.retain(|pair| pair.0 != name || value.as_ref().is_some_and(|value| pair.1 != *value)))?;
     crate::runtime::url::search_params_changed(call.this_value());
@@ -223,7 +224,7 @@ fn delete_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 fn get_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     with_entries::<UrlSearchParams, _>(global_object, call, "get", |_| ())?;
     require_arguments(global_object, call, 1)?;
-    let name = units_of(global_object, call.argument(0))?;
+    let name = usv_units_of(global_object, call.argument(0))?;
     let found = with_entries::<UrlSearchParams, _>(global_object, call, "get", |pairs| pairs.iter().find(|pair| pair.0 == name).map(|pair| pair.1.clone()))?;
     Ok(found.map_or(JSValue::null(), |value| string_value(global_object, &value)))
 }
@@ -231,7 +232,7 @@ fn get_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 fn get_all_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     with_entries::<UrlSearchParams, _>(global_object, call, "getAll", |_| ())?;
     require_arguments(global_object, call, 1)?;
-    let name = units_of(global_object, call.argument(0))?;
+    let name = usv_units_of(global_object, call.argument(0))?;
     let values = with_entries::<UrlSearchParams, _>(global_object, call, "getAll", |pairs| pairs.iter().filter(|pair| pair.0 == name).map(|pair| pair.1.clone()).collect::<Vec<_>>())?;
     let values: Vec<JSValue> = values.iter().map(|value| string_value(global_object, value)).collect();
     Ok(construct_array(global_object.vm(), &global_object.array_structure(), &values).as_value())
@@ -240,7 +241,7 @@ fn get_all_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 fn has_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     with_entries::<UrlSearchParams, _>(global_object, call, "has", |_| ())?;
     require_arguments(global_object, call, 1)?;
-    let name = units_of(global_object, call.argument(0))?;
+    let name = usv_units_of(global_object, call.argument(0))?;
     let value = optional_value(global_object, call)?;
     let found = with_entries::<UrlSearchParams, _>(global_object, call, "has", |pairs| pairs.iter().any(|pair| pair.0 == name && value.as_ref().is_none_or(|value| pair.1 == *value)))?;
     Ok(JSValue::Bool(found))

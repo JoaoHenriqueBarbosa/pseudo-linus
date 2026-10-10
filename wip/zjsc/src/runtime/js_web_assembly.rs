@@ -36,7 +36,7 @@ use crate::runtime::intrinsic::Intrinsic;
 use crate::runtime::iterator_operations::get_value_property;
 use crate::runtime::js_array_buffer::JSArrayBuffer;
 use crate::runtime::js_big_int_ops::{make_big_int_from_i64, to_big_int, to_big_int64_value};
-use crate::runtime::js_function::{call_host_function_as_constructor, put_direct_native_function_without_transition, JSFunction};
+use crate::runtime::js_function::{call_host_function_as_constructor, put_direct_native_function_without_transition, JSFunction, JSFunctionRef};
 use crate::runtime::identifier::Identifier;
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_object::JSObject;
@@ -180,9 +180,10 @@ fn kind_name(kind: ExternalKind) -> &'static str {
     }
 }
 
-/// O `ModuleState` do argumento 0 (`dynamicDowncast<JSWebAssemblyModule>`), com a mensagem do C++.
+/// O `ModuleState` do argumento 0 (`dynamicDowncast<JSWebAssemblyModule>`), com a mensagem do C++ (medida no bun 1.4.2,
+/// igual sem argumento, com primitivo e com objeto comum).
 fn module_argument<R>(call: &HostCall, member: &str, body: impl FnOnce(&ModuleState) -> R) -> Result<R, Thrown> {
-    let message = format!("WebAssembly.Module.{member}(): Argument 0 must be a WebAssembly.Module");
+    let message = format!("WebAssembly.Module.{member} called with non WebAssembly.Module argument");
     with_instance::<ModuleState, _>(call.argument(0), &message, |state, _| Ok(body(state)))
 }
 
@@ -228,11 +229,7 @@ fn module_custom_sections_body(global_object: &JSGlobalObject, call: &HostCall) 
     if call.argument_count() < 2 {
         return Err(Thrown::type_error("Not enough arguments"));
     }
-    let info = with_instance::<ModuleState, _>(
-        call.argument(0),
-        "WebAssembly.Module.customSections called with non WebAssembly.Module argument",
-        |state, _| Ok(Rc::clone(&state.info)),
-    )?;
+    let info = module_argument(call, "customSections", |state| Rc::clone(&state.info))?;
     let name = to_rust_string(global_object, call.argument(1))?;
     let items: Vec<JSValue> = info
         .custom_sections
@@ -309,7 +306,7 @@ fn instantiate_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResu
 fn instantiate_value(global_object: &JSGlobalObject, source: JSValue, imports: JSValue) -> HostResult {
     let module_info = IntlInstance::from_value(&source).and_then(|cell| cell.state::<ModuleState>().map(|state| Rc::clone(&state.info)));
     match module_info {
-        Some(info) => link_instance(global_object, &info, imports).map(|state| create_class_instance(global_object, "Instance", Box::new(state))),
+        Some(info) => link_instance_in_call(global_object, &info, imports).map(|state| create_class_instance(global_object, "Instance", Box::new(state))),
         None => bytes_from_value(global_object, source)
             .and_then(|bytes| compile_bytes(&bytes))
             .and_then(|state| {
@@ -1008,14 +1005,18 @@ fn global_import(import: &Import, info: &ModuleInformation, value: JSValue) -> R
     Ok(ImportValue::Global(Rc::new(RefCell::new(Global::new(ty, Mutability::Immutable, bits)))))
 }
 
-/// A leitura das importações na ordem do módulo (`WebAssemblyModuleRecord::link`, modo `FromJS`).
-fn read_imports(global_object: &JSGlobalObject, info: &ModuleInformation, import_object: JSValue) -> Result<Vec<ImportValue>, Thrown> {
+/// A leitura das importações na ordem do módulo (`WebAssemblyModuleRecord::link`, modo `FromJS`). `wasm_imports`
+/// recebe, por índice no espaço de funções, o wrapper de cada função importada que já é wasm exportada.
+fn read_imports(
+    global_object: &JSGlobalObject,
+    info: &ModuleInformation,
+    import_object: JSValue,
+    wasm_imports: &mut Vec<(u32, JSValue)>,
+) -> Result<Vec<ImportValue>, Thrown> {
     let vm = global_object.vm();
     if import_object.is_undefined() {
         if !info.imports.is_empty() {
-            return Err(Thrown::type_error(
-                "can't make WebAssembly.Instance because there is no imports Object and the WebAssembly.Module requires imports",
-            ));
+            return Err(Thrown::type_error(NO_IMPORTS_OBJECT_MESSAGE));
         }
         return Ok(Vec::new());
     }
@@ -1040,6 +1041,11 @@ fn read_imports(global_object: &JSGlobalObject, info: &ModuleInformation, import
                     if let Some(target) = EXPORTED_FUNCTIONS.with(|table| table.borrow().get(&cell_id).cloned()) {
                         if target.arguments != arguments || target.returns != returns {
                             return Err(link("imported function", "signature doesn't match the provided WebAssembly function's signature"));
+                        }
+                        // Só a função própria do módulo dona é compartilhada: o wrapper de um import do JS, reexportado
+                        // por outra instância, é novo a cada instância (medido no bun: `inst(i.r).r !== i.r`).
+                        if (target.index as usize) >= target.instance.info().import_function_type_signature_indices.len() {
+                            wasm_imports.push((import.kind_index, value));
                         }
                     }
                 }
@@ -1096,27 +1102,52 @@ fn construct_instance_body(global_object: &JSGlobalObject, call: &HostCall) -> H
         let info = IntlInstance::from_value(&call.argument(0))
             .and_then(|cell| cell.state::<ModuleState>().map(|state| Rc::clone(&state.info)))
             .ok_or_else(|| throw_type_error_with_source(global_object, "first argument to WebAssembly.Instance must be a WebAssembly.Module"))?;
-        Ok(Box::new(link_instance(global_object, &info, call.argument(1))?))
+        Ok(Box::new(link_instance_in_call(global_object, &info, call.argument(1))?))
     })
 }
 
 /// `WebAssemblyModuleRecord::link` + `evaluate`: lê as importações, instancia e monta o `exports`.
 fn link_instance(global_object: &JSGlobalObject, info: &Rc<ModuleInformation>, import_object: JSValue) -> Result<InstanceState, Thrown> {
-    let imports = read_imports(global_object, info, import_object)?;
+    let mut wasm_imports = Vec::new();
+    let imports = read_imports(global_object, info, import_object, &mut wasm_imports)?;
     let instance = match Instance::instantiate(Rc::clone(info), imports) {
         Ok(instance) => Rc::new(instance),
         Err(error) => return Err(wasm_error_to_thrown(global_object, error, None)),
     };
     crate::wasm::wasm_instance::register_instance(&instance);
+    // A função wasm importada é a da dona: reexportada ou lida pela tabela, é o mesmo wrapper (`i.r === a.f`).
+    for (index, wrapper) in wasm_imports {
+        set_function_wrapper(func_ref(instance.id(), index), wrapper.encode() as u64);
+    }
     let exports = create_exports_object(global_object, &instance, info)?;
     Ok(InstanceState { exports })
 }
 
-/// O getter `WebAssembly.Instance.prototype.exports`.
+/// `link_instance` dentro da chamada nativa (`new WebAssembly.Instance`, `WebAssembly.instantiate(Module)`): os
+/// erros do link ganham o ` (evaluating '...')` da chamada, como no C++, que os cria com `defaultSourceAppender`
+/// ainda no quadro dela. Só o `instantiate(bytes)` liga depois da compilação assíncrona, sem quadro (medido no bun).
+/// O módulo pede importações e não veio objeto de importações. No JSC é o único erro do link criado sem o appender
+/// de fonte: nunca leva o `(evaluating '...')` (medido no bun 1.4.2).
+const NO_IMPORTS_OBJECT_MESSAGE: &str =
+    "can't make WebAssembly.Instance because there is no imports Object and the WebAssembly.Module requires imports";
+
+fn link_instance_in_call(global_object: &JSGlobalObject, info: &Rc<ModuleInformation>, import_object: JSValue) -> Result<InstanceState, Thrown> {
+    link_instance(global_object, info, import_object).map_err(|thrown| {
+        let with_source = |message: &str| wtf_to_rust(&append_default_source_to_native_message(global_object, message));
+        match thrown {
+            Thrown::WebAssembly(kind, message) => Thrown::WebAssembly(kind, with_source(&message)),
+            Thrown::TypeError(message) if message != NO_IMPORTS_OBJECT_MESSAGE => Thrown::TypeError(with_source(&message)),
+            other => other,
+        }
+    })
+}
+
+/// O getter `WebAssembly.Instance.prototype.exports` (`webAssemblyInstanceProtoGetterExports`: a mensagem do
+/// `getInstance`, medida no bun 1.4.2 com `undefined`, primitivo, objeto comum e o próprio protótipo).
 fn instance_exports_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     with_instance::<InstanceState, _>(
         call.this_value(),
-        "WebAssembly.Instance.exports getter called with non WebAssembly.Instance |this|",
+        "expected |this| value to be an instance of WebAssembly.Instance",
         |state, _| Ok(state.exports),
     )
 }
@@ -1438,9 +1469,11 @@ fn construct_table_body(global_object: &JSGlobalObject, call: &HostCall) -> Host
         maximum = Some(size);
     }
     let argument = call.argument(1);
+    // Medido no bun 1.4.2: só o argumento ausente vale o padrão; `undefined` explícito numa tabela de funções é recusado
+    // como qualquer valor que não é função wasm (na `externref` ele é o próprio valor de preenchimento).
     let fill = if argument.is_null() {
         null_ref()
-    } else if argument.is_undefined() {
+    } else if call.argument_count() < 2 {
         default_reference(wasm_type)
     } else if element_type == TableElementType::Funcref && exported_target(argument).is_none() {
         return Err(Thrown::type_error("WebAssembly.Table.prototype.constructor expects the second argument to be null or an instance of WebAssembly.Function"));
@@ -1647,22 +1680,25 @@ fn install_memory_table_global(global_object: &JSGlobalObject, namespace: &JSObj
 }
 
 /// `value` de `Global.prototype`: acessor com `get value` e `set value` (`PropertyAttribute::Accessor`).
+/// A função de um acessor `JSC_NATIVE_GETTER`/setter: uma `JSFunction` nativa comum cujo nome já leva o `get `/`set `
+/// (o `toString` mostra `function get value()`, ao contrário do `CustomAccessor`, que mostra o nome puro).
+fn native_accessor_function(global_object: &JSGlobalObject, length: u32, name: &str, function: NativeFunction) -> JSFunctionRef {
+    JSFunction::create_native(
+        global_object.vm(),
+        global_object,
+        length,
+        &WtfString::from_utf8(name.as_bytes()),
+        function,
+        ImplementationVisibility::Public,
+        Intrinsic::NoIntrinsic,
+        call_host_function_as_constructor,
+    )
+}
+
 fn put_value_accessor(global_object: &JSGlobalObject, prototype: &JSObject) {
     let vm = global_object.vm();
-    let make = |length: u32, name: &str, function: NativeFunction| {
-        JSFunction::create_native(
-            vm,
-            global_object,
-            length,
-            &WtfString::from_utf8(name.as_bytes()),
-            function,
-            ImplementationVisibility::Public,
-            Intrinsic::NoIntrinsic,
-            call_host_function_as_constructor,
-        )
-    };
-    let getter = make(0, "get value", web_assembly_global_value);
-    let setter = make(1, "set value", web_assembly_global_set_value);
+    let getter = native_accessor_function(global_object, 0, "get value", web_assembly_global_value);
+    let setter = native_accessor_function(global_object, 1, "set value", web_assembly_global_set_value);
     let accessor = GetterSetter::create_from_values(vm, getter.as_value(), setter.as_value());
     prototype.put_direct_non_index_accessor_without_transition(vm, &prop(vm, "value"), &accessor, ACCESSOR);
 }
@@ -1854,8 +1890,12 @@ fn install_instance_class(global_object: &JSGlobalObject, namespace: &JSObject) 
         call: call_web_assembly_instance,
         construct: construct_web_assembly_instance,
     };
+    // `exports` é `JSC_NATIVE_GETTER` no C++ (medido no bun 1.4.2: `String(get)` é `function get exports()`), não
+    // `CustomAccessor` como `Memory.buffer` e `Table.length`.
     let instance_prototype = instance_class.install_with(global_object, &namespace, |prototype| {
-        put_enumerable_getter(global_object, prototype, "exports", web_assembly_instance_exports);
+        let getter = native_accessor_function(global_object, 0, "get exports", web_assembly_instance_exports);
+        let accessor = GetterSetter::create_from_values(vm, getter.as_value(), JSValue::undefined());
+        prototype.put_direct_non_index_accessor_without_transition(vm, &prop(vm, "exports"), &accessor, ACCESSOR);
     });
     put_to_string_tag(vm, &instance_prototype, "WebAssembly.Instance");
     let instance_structure = IntlInstance::create_structure(vm, Some(global_object), instance_prototype.as_value());
@@ -1878,6 +1918,27 @@ mod streaming_tests {
             let value = evaluate(&global_object, &program_source("JSON.stringify(log)")).expect("log");
             String::from_utf8_lossy(&value.as_js_string().value().utf8(ConversionMode::LenientConversion)).into_owned()
         })
+    }
+
+    /// Medido no bun 1.4.2: o erro do link feito na chamada nativa (`new Instance`, `instantiate(Module)`) tem o
+    /// ` (evaluating '...')` da chamada; o do `instantiate(bytes)`, que liga depois da compilação, não tem. (O bun
+    /// mostra o trecho reimpresso pelo transpilador, com aspas duplas; aqui é o fonte como foi escrito.)
+    #[test]
+    fn link_errors_carry_the_call_site_only_inside_the_call() {
+        let log = run(
+            "const b = new Uint8Array([0,97,115,109,1,0,0,0, 2,8,1,1,109,1,103,3,127,0]); const m = new WebAssembly.Module(b); \
+             try { new WebAssembly.Instance(m, { m: { g: 'x' } }); } catch (e) { log.push(e.name + ': ' + e.message); } \
+             WebAssembly.instantiate(m, { m: { g: 'x' } }).catch(e => log.push('module: ' + e.message)); \
+             WebAssembly.instantiate(b, { m: { g: 'x' } }).catch(e => log.push('bytes: ' + e.message));",
+        );
+        assert_eq!(
+            log,
+            concat!(
+                r#"["LinkError: imported global m:g must be a number (evaluating 'new WebAssembly.Instance(m, { m: { g: 'x' } })')","#,
+                r#""module: imported global m:g must be a number (evaluating 'WebAssembly.instantiate(m, { m: { g: 'x' } })')","#,
+                r#""bytes: imported global m:g must be a number"]"#
+            )
+        );
     }
 
     /// Medido no bun 1.4.2.
@@ -1918,5 +1979,58 @@ mod streaming_tests {
              log.push(e.r.name, e.r.length, e.own.name, e.r());",
         );
         assert_eq!(log, r#"["",0,"1",1]"#);
+    }
+
+    /// Medido no bun 1.4.2: a função wasm importada de outra instância é a da dona, reexportada ou por `ref.func`
+    /// (`i.r === a.f`, nome "0"); só o import vindo do JS ganha wrapper novo de nome vazio.
+    #[test]
+    fn imported_wasm_function_is_the_owner_wrapper() {
+        let log = run(
+            "const prov = new Uint8Array([0,97,115,109,1,0,0,0, 1,5,1,0x60,0,1,0x7f, 3,2,1,0, 7,5,1,1,102,0,0, 10,6,1,4,0,0x41,10,0x0b]); \
+             const imp = new Uint8Array([0,97,115,109,1,0,0,0, 1,9,2,0x60,0,1,0x7f,0x60,0,1,0x70, 2,9,1,3,101,110,118,1,102,0,0, \
+               3,2,1,1, 7,10,2,1,114,0,0,2,114,102,0,1, 9,5,1,3,0,1,0, 10,6,1,4,0,0xd2,0,0x0b]); \
+             const a = new WebAssembly.Instance(new WebAssembly.Module(prov)).exports; \
+             const i = new WebAssembly.Instance(new WebAssembly.Module(imp), { env: { f: a.f } }).exports; \
+             const j = new WebAssembly.Instance(new WebAssembly.Module(imp), { env: { f: () => 3 } }).exports; \
+             log.push(i.r === a.f, i.rf() === a.f, i.r.name, j.r.name, j.r === j.rf(), j.r());",
+        );
+        assert_eq!(log, r#"[true,true,"0","",true,3]"#);
+    }
+
+    /// Medido no bun 1.4.2: o wrapper de um import do JS reexportado por uma instância não é o de quem o importa
+    /// depois (`inst(i.r).r !== i.r`), mas dentro de cada instância `r === rf()`.
+    #[test]
+    fn reexported_js_import_wrapper_is_per_instance() {
+        let log = run(
+            "const imp = new Uint8Array([0,97,115,109,1,0,0,0, 1,9,2,0x60,0,1,0x7f,0x60,0,1,0x70, 2,9,1,3,101,110,118,1,102,0,0, \
+               3,2,1,1, 7,10,2,1,114,0,0,2,114,102,0,1, 9,5,1,3,0,1,0, 10,6,1,4,0,0xd2,0,0x0b]); \
+             const inst = (f) => new WebAssembly.Instance(new WebAssembly.Module(imp), { env: { f } }).exports; \
+             const j = () => 7; const i = inst(j), k = inst(i.r), l = inst(k.r); \
+             log.push(l.r === i.r, l.r === j, l.rf() === i.rf(), i.rf() === i.r, k.rf() === k.r, l.r.name);",
+        );
+        assert_eq!(log, r#"[false,false,false,true,true,""]"#);
+    }
+
+    /// Medido no bun 1.4.2: o "sem objeto de importações" não leva `(evaluating ...)`, os outros erros do link na
+    /// chamada levam; o `undefined` explícito numa tabela de funções é recusado, o ausente é o padrão.
+    #[test]
+    fn link_message_suffix_and_explicit_undefined_table_fill() {
+        let log = run(
+            "const imp = new WebAssembly.Module(new Uint8Array([0,97,115,109,1,0,0,0, 1,5,1,0x60,0,1,0x7f, 2,9,1,3,101,110,118,1,102,0,0])); \
+             const T = (f) => { try { f(); return 'ok'; } catch (e) { return e.message; } }; \
+             log.push(T(() => new WebAssembly.Instance(imp)), T(() => new WebAssembly.Instance(imp, {}))); \
+             log.push(T(() => new WebAssembly.Table({ element: 'anyfunc', initial: 2 }, undefined)), \
+               T(() => new WebAssembly.Table({ element: 'anyfunc', initial: 2 })), \
+               String(new WebAssembly.Table({ element: 'externref', initial: 1 }, undefined).get(0)));",
+        );
+        assert_eq!(
+            log,
+            concat!(
+                r#"["can't make WebAssembly.Instance because there is no imports Object and the WebAssembly.Module requires imports","#,
+                r#""import env:f must be an object (evaluating 'new WebAssembly.Instance(imp, {})')","#,
+                r#""WebAssembly.Table.prototype.constructor expects the second argument to be null or an instance of WebAssembly.Function","#,
+                r#""ok","undefined"]"#
+            )
+        );
     }
 }

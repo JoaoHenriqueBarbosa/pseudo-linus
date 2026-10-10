@@ -155,7 +155,19 @@ fn call_hook(global_object: &JSGlobalObject, hook: JSValue, error: JSValue, fram
         .borrow()
         .clone()
         .expect("init_error_classes cria a estrutura do CallSite antes de qualquer erro");
-    let call_sites: Vec<JSValue> = frames.iter().map(|frame| JSCallSite::create(vm, &structure, frame.clone()).as_value()).collect();
+    // Medido no `bun` 1.4.2 (o `encounteredStrictFrame` do CallSite do Bun): do frame mais recente para o mais
+    // antigo, depois do primeiro frame estrito todos são estritos (`getFunction` e `getThis` escondidos). A função
+    // nativa (builtin estrito do JSC incluso) não conta como estrita por si.
+    let mut encountered_strict = false;
+    let call_sites: Vec<JSValue> = frames
+        .iter()
+        .map(|frame| {
+            encountered_strict |= frame.is_strict && !frame.is_native_function();
+            let mut frame = frame.clone();
+            frame.is_strict = encountered_strict;
+            JSCallSite::create(vm, &structure, frame).as_value()
+        })
+        .collect();
     let array = construct_array(vm, &global_object.array_structure(), &call_sites).as_value();
     let this_value = (*global_object.error_constructor.borrow()).unwrap_or_else(JSValue::undefined);
     call_with_error_message(global_object, hook, this_value, &[error, array], PREPARE_STACK_TRACE_NOT_CALLABLE)
