@@ -3,5 +3,6 @@
 //! o trecho medido (`testbench/oracle/measure-idb.sh`, `leveldb-hex.py`, fixtures em `tests/fixtures/idb`).
 
 pub mod coding;
+pub mod comparator;
 pub mod js_value;
 pub mod v8;

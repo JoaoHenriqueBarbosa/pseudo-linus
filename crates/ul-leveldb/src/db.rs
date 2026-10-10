@@ -6,6 +6,7 @@
 //! da escrita que a encheu; os arquivos que restam no disco são os mesmos.
 
 use std::cell::Cell;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
@@ -13,12 +14,13 @@ use ul_common::time::Civil;
 
 use crate::batch::{Op, WriteBatch};
 use crate::compaction::{self, Compaction};
+use crate::comparator;
 use crate::dbformat::*;
 use crate::env::Env;
 use crate::log::{read_records, Writer};
 use crate::memtable::{Lookup, MemTable};
 use crate::table::{Table, TableBuilder, TableOptions};
-use crate::version::{set_current_file, VersionSet, COMPARATOR_NAME};
+use crate::version::{set_current_file, VersionSet};
 use crate::version_edit::{FileMeta, VersionEdit};
 use crate::{Error, Result};
 
@@ -30,6 +32,8 @@ pub struct Options {
     pub max_file_size: usize,
     pub reuse_logs: bool,
     pub table: TableOptions,
+    /// A ordem das chaves de usuário: o bytewise, ou o do formato que o banco guarda (`idb_cmp1` no IndexedDB).
+    pub comparator: comparator::Shared,
     /// O id da thread que aparece em cada linha do `LOG`, e o da thread de fundo, que escreve as linhas dos flushes
     /// de memtable em execução e das compactações.
     pub thread_id: u64,
@@ -46,6 +50,7 @@ impl Options {
             max_file_size: 2 << 20,
             reuse_logs: true,
             table: TableOptions::default(),
+            comparator: comparator::bytewise(),
             thread_id,
             background_thread_id: thread_id + 2,
         }
@@ -79,6 +84,7 @@ fn corruption(message: impl Into<String>) -> Error {
 
 impl Db {
     pub fn open(env: Arc<dyn Env>, dir: &str, options: Options) -> Result<Db> {
+        let _scope = comparator::scoped(&options.comparator);
         env.create_dir_all(dir)?;
         let info_log = info_log_file_name(dir);
         let _ = env.rename(&info_log, &old_info_log_file_name(dir));
@@ -192,7 +198,7 @@ impl Db {
     }
 
     fn new_db(&mut self) -> Result<()> {
-        let edit = VersionEdit { comparator: Some(COMPARATOR_NAME.to_vec()), log_number: Some(0), next_file_number: Some(2), last_sequence: Some(0), ..VersionEdit::default() };
+        let edit = VersionEdit { comparator: Some(comparator::name().to_vec()), log_number: Some(0), next_file_number: Some(2), last_sequence: Some(0), ..VersionEdit::default() };
         let manifest = descriptor_file_name(&self.dir, 1);
         self.env.write_file(&manifest, &Writer::new().add_record(&edit.encode()))?;
         if let Err(error) = set_current_file(self.env.as_ref(), &self.dir, 1) {
@@ -305,6 +311,7 @@ impl Db {
 
     /// `DB::Write`: o lote vai para o log, depois para a memtable; antes, `MakeRoomForWrite`.
     pub fn write(&mut self, mut batch: WriteBatch) -> Result<()> {
+        let _scope = comparator::scoped(&self.options.comparator);
         self.make_room_for_write()?;
         let mut last_sequence = self.versions.last_sequence();
         batch.set_sequence(last_sequence + 1);
@@ -399,7 +406,7 @@ impl Db {
                     last_sequence_for_key = MAX_SEQUENCE_NUMBER;
                 }
                 Some((user, sequence, value_type)) => {
-                    if current_user_key.as_deref() != Some(user) {
+                    if current_user_key.as_deref().is_none_or(|current| comparator::compare(current, user) != Ordering::Equal) {
                         current_user_key = Some(user.to_vec());
                         last_sequence_for_key = MAX_SEQUENCE_NUMBER;
                     }
@@ -468,6 +475,7 @@ impl Db {
 
     /// `DB::Get`: a memtable e depois as tabelas, do nível 0 (a mais nova primeiro) ao último.
     pub fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        let _scope = comparator::scoped(&self.options.comparator);
         let sequence = self.versions.last_sequence();
         match self.mem.get(key, sequence) {
             Lookup::Found(value) => return Ok(Some(value)),
@@ -477,7 +485,7 @@ impl Db {
         let version = self.versions.current();
         let target = internal_key(key, sequence, VALUE_TYPE_FOR_SEEK);
         for level in 0..NUM_LEVELS {
-            let mut candidates: Vec<&FileMeta> = version.files[level].iter().filter(|file| user_key(&file.smallest) <= key && key <= user_key(&file.largest)).collect();
+            let mut candidates: Vec<&FileMeta> = version.files[level].iter().filter(|file| comparator::compare(user_key(&file.smallest), key) != Ordering::Greater && comparator::compare(key, user_key(&file.largest)) != Ordering::Greater).collect();
             if level == 0 {
                 candidates.sort_by(|a, b| b.number.cmp(&a.number));
             }
@@ -496,6 +504,7 @@ impl Db {
 
     /// Todas as chaves vivas com os valores, em ordem (o que um iterador do leveldb percorre).
     pub fn entries(&self) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
+        let _scope = comparator::scoped(&self.options.comparator);
         let mut all: Vec<(Vec<u8>, Vec<u8>)> = self.mem.iter().map(|(key, value)| (key.to_vec(), value.to_vec())).collect();
         for files in &self.versions.current().files {
             for file in files {
@@ -507,7 +516,7 @@ impl Db {
         let mut previous: Option<Vec<u8>> = None;
         for (key, value) in all {
             let Some((user, _, value_type)) = parse_internal_key(&key) else { continue };
-            if previous.as_deref() == Some(user) {
+            if previous.as_deref().is_some_and(|previous| comparator::compare(previous, user) == Ordering::Equal) {
                 continue;
             }
             previous = Some(user.to_vec());
