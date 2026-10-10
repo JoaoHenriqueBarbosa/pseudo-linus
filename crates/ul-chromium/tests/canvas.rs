@@ -186,6 +186,14 @@ fn webgl_stencil_and_offset_match_oracle() {
     assert_scenes_exact(include_str!("../../../testbench/oracle/measured/webgl-stencil.html"), include_str!("webgl-stencil.json"));
 }
 
+/// Pontos (tamanhos fracionários, recorte só por w e z, gl_PointCoord) e linhas Bresenham (eixos, diagonais, faixa,
+/// laço, recorte, profundidade, interpolação pela projeção no segmento) contra `testbench/oracle/measured/webgl-prims.html`,
+/// pixel a pixel.
+#[test]
+fn webgl_points_and_lines_match_oracle() {
+    assert_scenes_exact(include_str!("../../../testbench/oracle/measured/webgl-prims.html"), include_str!("webgl-prims.json"));
+}
+
 /// Roda a sonda e exige cada cena (readPixels em base64) igual à do oráculo em todos os pixels.
 fn assert_scenes_exact(probe: &str, oracle: &str) {
     let ours = probe_output(probe);
@@ -197,8 +205,13 @@ fn assert_scenes_exact(probe: &str, oracle: &str) {
         .iter()
         .filter_map(|(name, want)| {
             let (a, b) = (decode(want), decode(&ours[name]));
-            let bad = if a.len() == b.len() { (0..a.len()).step_by(4).filter(|&i| a[i..i + 4] != b[i..i + 4]).count() } else { a.len() / 4 };
-            (bad > 0).then(|| format!("{name}: {bad} pixels"))
+            if a.len() != b.len() {
+                return Some(format!("{name}: {} bytes no oráculo, {} aqui", a.len(), b.len()));
+            }
+            let bad: Vec<usize> = (0..a.len()).step_by(4).filter(|&i| a[i..i + 4] != b[i..i + 4]).collect();
+            // Os primeiros pixels divergentes: índice do pixel (de baixo para cima), oráculo / nosso.
+            let shown: Vec<String> = bad.iter().take(8).map(|&i| format!("#{} {:?} / {:?}", i / 4, &a[i..i + 4], &b[i..i + 4])).collect();
+            (!bad.is_empty()).then(|| format!("{name}: {} pixels; {}", bad.len(), shown.join(" ")))
         })
         .collect();
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));

@@ -203,7 +203,7 @@ const glRunDraw = (s, t, entry) => {
   const fsGlobals = glStageGlobals(fs, entry);
   const vsMain = vs.functions.get('main')[0], fsMain = fs.functions.get('main')[0];
   const inputs = entry.program.attribs.map((a) => ({ slot: vs.globals.get(a.name)?.slot, location: a.location, t: vs.globals.get(a.name)?.t })).filter((a) => a.slot !== undefined);
-  const posSlot = vs.globals.get('gl_Position').slot, idSlot = vs.globals.get('gl_VertexID').slot, instSlot = vs.globals.get('gl_InstanceID').slot;
+  const posSlot = vs.globals.get('gl_Position').slot, idSlot = vs.globals.get('gl_VertexID').slot, instSlot = vs.globals.get('gl_InstanceID').slot, sizeSlot = vs.globals.get('gl_PointSize').slot;
   const rt = glRuntime(entry, 'fragment'), vrt = glRuntime(entry, 'vertex');
   const indices = glIndices(entry);
   for (let instance = 0; instance < entry.instances; instance++) {
@@ -220,12 +220,14 @@ const glRunDraw = (s, t, entry) => {
       }
       g[idSlot] = index; g[instSlot] = instance;
       vsMain.body({ g, l: new Array(vsMain.count), rt: vrt });
-      v = { pos: g[posSlot].slice(), vary: varyings.map((x) => glslClone(g[x.vs])) };
+      v = { pos: g[posSlot].slice(), vary: varyings.map((x) => glslClone(g[x.vs])), size: g[sizeSlot] };
       cache.set(index, v);
       return v;
     };
     for (const prim of glPrimitives(entry.mode, indices)) {
       if (prim.length === 3) glTriangle(s, t, entry, stages, fsGlobals, fsMain, prim.map(shade), rt, prim.provoking);
+      else if (prim.length === 2) glLine(s, t, entry, stages, fsGlobals, fsMain, prim.map(shade), shade(prim[1]), rt);
+      else glPoint(s, t, entry, stages, fsGlobals, fsMain, shade(prim[0]), rt);
     }
   }
 };
@@ -239,13 +241,18 @@ const glIndices = (entry) => {
 };
 
 // Triângulos de cada modo na ordem do Vulkan (faixa ímpar: i, i + 2, i + 1; leque: i, i + 1, 0), com o índice do vértice
-// provocador do GL (o último do triângulo no GL).
+// provocador do GL (o último do triângulo no GL); linhas como pares (o provocador é o segundo) e pontos sozinhos.
 const glPrimitives = (mode, idx) => {
   const out = [];
   const tri = (a, b, c, provoking) => out.push(Object.assign([a, b, c], { provoking }));
   if (mode === GL.TRIANGLES) for (let i = 0; i + 2 < idx.length; i += 3) tri(idx[i], idx[i + 1], idx[i + 2], 2);
   else if (mode === GL.TRIANGLE_STRIP) for (let i = 0; i + 2 < idx.length; i++) { if (i % 2) tri(idx[i], idx[i + 2], idx[i + 1], 1); else tri(idx[i], idx[i + 1], idx[i + 2], 2); }
   else if (mode === GL.TRIANGLE_FAN) for (let i = 1; i + 1 < idx.length; i++) tri(idx[i], idx[i + 1], idx[0], 1);
+  else if (mode === GL.LINES) for (let i = 0; i + 1 < idx.length; i += 2) out.push([idx[i], idx[i + 1]]);
+  else if (mode === GL.LINE_STRIP || mode === GL.LINE_LOOP) {
+    for (let i = 0; i + 1 < idx.length; i++) out.push([idx[i], idx[i + 1]]);
+    if (mode === GL.LINE_LOOP && idx.length > 1) out.push([idx[idx.length - 1], idx[0]]);
+  } else if (mode === GL.POINTS) for (const i of idx) out.push([i]);
   return out;
 };
 
@@ -273,23 +280,110 @@ const glClip = (verts) => {
 const glLerp = (a, b, k) => (Array.isArray(a) ? a.map((x, i) => glLerp(x, b[i], k)) : typeof a === 'number' ? fr(a + (b - a) * k) : a);
 
 const SUBPIXEL = 16;
+// A janela como o SetupRoutine do SwiftShader: X = RoundInt(X0xF + x * rhw * WxF), em 1/16 de pixel e binário32.
+const glWindow = (p) => {
+  const vp = p.get('VIEWPORT'), range = p.get('DEPTH_RANGE');
+  const halfW = fr(vp[2] / 2), halfH = fr(vp[3] / 2);
+  const X0xF = fr(fr(vp[0] + halfW) * SUBPIXEL), Y0xF = fr(fr(vp[1] + halfH) * SUBPIXEL), WxF = fr(halfW * SUBPIXEL), HxF = fr(halfH * SUBPIXEL);
+  const zScale = fr((range[1] - range[0]) / 2), zBias = fr((range[1] + range[0]) / 2);
+  return (v) => {
+    const w = v.pos[3];
+    const rhw = w !== 0 ? fr(1 / w) : 1;
+    const X = Math.round(fr(X0xF + fr(fr(v.pos[0] * rhw) * WxF))), Y = Math.round(fr(Y0xF + fr(fr(v.pos[1] * rhw) * HxF)));
+    return { X, Y, x: X / SUBPIXEL, y: Y / SUBPIXEL, w, rhw, cy: v.pos[1], z: fr(fr(fr(v.pos[2] * rhw) * zScale) + zBias), vary: v.vary };
+  };
+};
 const glTriangle = (s, t, entry, stages, fsGlobals, fsMain, verts, rt, provokingIndex) => {
   const p = entry.params;
   const provoking = verts[provokingIndex];
   const tagged = verts.map((v, i) => ({ pos: v.pos, vary: v.vary, weights: [i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0] }));
   const poly = glClip(tagged);
   if (poly.length < 3) return;
-  const vp = p.get('VIEWPORT'), range = p.get('DEPTH_RANGE');
-  // A janela como o SetupRoutine do SwiftShader: X = RoundInt(X0xF + x * rhw * WxF), em 1/16 de pixel e binário32.
-  const halfW = fr(vp[2] / 2), halfH = fr(vp[3] / 2);
-  const X0xF = fr(fr(vp[0] + halfW) * SUBPIXEL), Y0xF = fr(fr(vp[1] + halfH) * SUBPIXEL), WxF = fr(halfW * SUBPIXEL), HxF = fr(halfH * SUBPIXEL);
-  const win = poly.map((v) => {
-    const w = v.pos[3];
-    const rhw = w !== 0 ? fr(1 / w) : 1;
-    const X = Math.round(fr(X0xF + fr(fr(v.pos[0] * rhw) * WxF))), Y = Math.round(fr(Y0xF + fr(fr(v.pos[1] * rhw) * HxF)));
-    return { X, Y, x: X / SUBPIXEL, y: Y / SUBPIXEL, w, rhw, cy: v.pos[1], z: fr(fr(fr(v.pos[2] * rhw) * fr((range[1] - range[0]) / 2)) + fr((range[1] + range[0]) / 2)), vary: v.vary };
-  });
+  const win = poly.map(glWindow(p));
   for (let i = 1; i + 1 < win.length; i++) glRasterTriangle(s, t, entry, stages, fsGlobals, fsMain, [win[0], win[i], win[i + 1]], provoking, rt);
+};
+
+// Um vértice de janela deslocado de (dx, dy) em 1/16 de pixel.
+const glShifted = (v, dx, dy) => ({ ...v, X: v.X + dx, Y: v.Y + dy, x: (v.X + dx) / SUBPIXEL, y: (v.Y + dy) / SUBPIXEL });
+// Um retângulo de janela (quatro cantos em ordem) como dois triângulos, com os atributos de `prim`.
+const glRasterQuad = (s, t, entry, stages, fsGlobals, fsMain, [c0, c1, c2, c3], provoking, rt, prim) => {
+  glRasterTriangle(s, t, entry, stages, fsGlobals, fsMain, [c0, c1, c2], provoking, rt, prim);
+  glRasterTriangle(s, t, entry, stages, fsGlobals, fsMain, [c0, c2, c3], provoking, rt, prim);
+};
+// O ponto do SwiftShader: um quadrado de lado gl_PointSize em volta do centro, recortado só por w e z (o centro fora
+// da janela ainda desenha a parte que cai nela). Os atributos são os do vértice; gl_PointCoord tem a origem em cima.
+const glPoint = (s, t, entry, stages, fsGlobals, fsMain, v, rt) => {
+  const p = entry.params;
+  if (!(v.pos[3] > 0) || v.pos[2] < -v.pos[3] || v.pos[2] > v.pos[3]) return;
+  const range = p.get('ALIASED_POINT_SIZE_RANGE');
+  const size = Math.min(Math.max(v.size ?? 1, range[0]), range[1]);
+  const c = glWindow(p)(v), half = Math.round(fr(size * SUBPIXEL) / 2);
+  const x0 = fr(c.x - fr(size / 2)), y1 = fr(c.y + fr(size / 2));
+  const prim = {
+    z: () => c.z, rhw: () => c.rhw, vary: (i) => glslClone(c.vary[i]),
+    coord: (x, y) => [fr(fr(fr(x + 0.5) - x0) / size), fr(fr(y1 - fr(y + 0.5)) / size)],
+  };
+  glRasterQuad(s, t, entry, stages, fsGlobals, fsMain, [glShifted(c, -half, -half), glShifted(c, half, -half), glShifted(c, half, half), glShifted(c, -half, half)], v, rt, prim);
+};
+// A linha Bresenham do SwiftShader (o modo que o ANGLE pede): um paralelogramo esticado meio pixel para cada lado no
+// eixo menor, montado no espaço de recorte, recortado como polígono contra os seis planos e rasterizado com a regra de
+// arestas dos triângulos (os vértices recortados, arredondados a 1/16, deslocam os empates). Atributos, z e 1/w vêm
+// dos planos do setup de triângulo sobre as pontas originais (P1, P2, P0), com P2 = P0 mais a perpendicular ao segmento
+// e os valores de P0: a projeção do centro no segmento da especificação do Vulkan, com o arredondamento do SwiftShader
+// (medido nos empates de t = 5/6).
+const glLine = (s, t, entry, stages, fsGlobals, fsMain, [P0, P1], provoking, rt) => {
+  const p = entry.params;
+  if (!(P0.pos[3] > 0) || !(P1.pos[3] > 0)) { glLineBehind(s, t, entry, stages, fsGlobals, fsMain, [P0, P1], provoking, rt); return; }
+  const toWindow = glWindow(p);
+  const [a, b] = [P0, P1].map(toWindow);
+  const dX = b.X - a.X, dY = b.Y - a.Y;
+  if (dX === 0 && dY === 0) return;
+  const vp = p.get('VIEWPORT'), halfW = fr(vp[2] / 2), halfH = fr(vp[3] / 2);
+  const dx = fr(halfW * fr(fr(P1.pos[0] / P1.pos[3]) - fr(P0.pos[0] / P0.pos[3]))), dy = fr(halfH * fr(fr(P1.pos[1] / P1.pos[3]) - fr(P0.pos[1] / P0.pos[3])));
+  const horizontal = Math.abs(dx) >= Math.abs(dy);
+  // Meio pixel em unidades de recorte do vértice: no eixo menor (Bresenham) ou, com várias amostras, onde o Vulkan não
+  // aceita Bresenham, na perpendicular ao segmento (linha retangular de largura 1).
+  const len = Math.hypot(dx, dy);
+  const [nx, ny] = t.samples.length > 1 ? [fr(fr(-dy / len) * 0.5), fr(fr(dx / len) * 0.5)] : horizontal ? [0, 0.5] : [0.5, 0];
+  const offset = (v, sign) => {
+    const pos = v.pos.slice();
+    pos[0] = fr(pos[0] + sign * fr(fr(nx * pos[3]) / halfW));
+    pos[1] = fr(pos[1] + sign * fr(fr(ny * pos[3]) / halfH));
+    return { pos, vary: v.vary };
+  };
+  const poly = glClipPolygon([offset(P0, -1), offset(P1, -1), offset(P1, 1), offset(P0, 1)]);
+  if (poly.length < 3) return;
+  const win = poly.map(toWindow);
+  const prim = { planes: [b, glShifted(a, dY, -dX), a], coord: () => [0, 0] };
+  for (let i = 1; i + 1 < win.length; i++) glRasterTriangle(s, t, entry, stages, fsGlobals, fsMain, [win[0], win[i], win[i + 1]], provoking, rt, prim);
+};
+// Uma ponta atrás do olho: recorta o segmento em w antes (o plano próximo resolve o resto no polígono).
+const glLineBehind = (s, t, entry, stages, fsGlobals, fsMain, [a, b], provoking, rt) => {
+  const da = fr(a.pos[2] + a.pos[3]), db = fr(b.pos[2] + b.pos[3]);
+  if (da < 0 && db < 0) return;
+  const D = fr(1 / fr(db - da)), cut = { pos: a.pos.map((x, j) => fr(fr(fr(db * x) - fr(da * b.pos[j])) * D)), vary: a.vary.map((x, j) => glLerp(x, b.vary[j], fr(-da * D))) };
+  const seg = da < 0 ? [cut, b] : [a, cut];
+  if (seg[0].pos[3] > 0 && seg[1].pos[3] > 0) glLine(s, t, entry, stages, fsGlobals, fsMain, seg, provoking, rt);
+};
+// O Clipper do SwiftShader: próximo, distante, esquerda, direita, cima e baixo, cada aresta cortada em binário32 por
+// Vo = (dj * Vi - di * Vj) / (dj - di).
+const GL_CLIP_PLANES = [(v) => v[2] + v[3], (v) => v[3] - v[2], (v) => v[3] + v[0], (v) => v[3] - v[0], (v) => v[3] - v[1], (v) => v[3] + v[1]];
+const glClipPolygon = (verts) => {
+  let poly = verts;
+  for (const plane of GL_CLIP_PLANES) {
+    const d = poly.map((v) => fr(plane(v.pos)));
+    if (d.every((x) => x >= 0)) continue;
+    const next = [];
+    const edge = (vi, vj, di, dj) => { const D = fr(1 / fr(dj - di)); return { pos: vi.pos.map((x, k) => fr(fr(fr(dj * x) - fr(di * vj.pos[k])) * D)), vary: vi.vary }; };
+    for (let i = 0; i < poly.length; i++) {
+      const j = (i + 1) % poly.length;
+      if (d[i] >= 0) { next.push(poly[i]); if (d[j] < 0) next.push(edge(poly[i], poly[j], d[i], d[j])); }
+      else if (d[j] > 0) next.push(edge(poly[j], poly[i], d[j], d[i]));
+    }
+    poly = next;
+    if (poly.length < 3) return [];
+  }
+  return poly;
 };
 
 const BLEND_FACTORS = {
@@ -320,13 +414,17 @@ const glStencilState = (t, p, front) => {
 };
 const glStencilApply = (t, st, si, op) => { const v = t.stencil[si]; t.stencil[si] = (v & ~st.write) | (op(v, st.ref) & st.write); };
 
-const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], provoking, rt) => {
+// `prim`, nos pontos e nas linhas, dá z, 1/w, atributos e gl_PointCoord por posição de janela: sem descarte de face,
+// sempre de frente e sem polygon offset (só vale para preenchimento).
+const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], provoking, rt, prim) => {
   const p = entry.params;
   const area = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
   if (area === 0) return;
   const ccw = area > 0;
-  const front = (p.get('FRONT_FACE') === GL.CCW) === ccw;
-  if (p.get('CULL_FACE')) { const mode = p.get('CULL_FACE_MODE'); if (mode === GL.FRONT_AND_BACK || (mode === GL.FRONT) === front) return; }
+  const front = prim ? true : (p.get('FRONT_FACE') === GL.CCW) === ccw;
+  // O avaliador direto do ponto; a linha usa os planos.
+  const direct = prim && prim.vary ? prim : null;
+  if (!prim && p.get('CULL_FACE')) { const mode = p.get('CULL_FACE_MODE'); if (mode === GL.FRONT_AND_BACK || (mode === GL.FRONT) === front) return; }
   // As arestas no espaço do Vulkan, que o ANGLE usa com a mesma origem da janela do GL (a inversão fica na leitura),
   // orientadas com o interior do lado positivo. A regra do canto superior esquerdo (y crescendo para baixo, como no
   // Vulkan) aceita a amostra exatamente sobre uma aresta esquerda (o interior à direita) ou de cima (horizontal, com o
@@ -356,8 +454,11 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
   const flipped = (v) => ({ ...v, YV: t.height * SUBPIXEL - v.Y });
   let [pa, pb, pc] = [flipped(c), flipped(a), flipped(b)];
   const rotate = (cond1, cond2) => { if (cond1) [pa, pb, pc] = [pb, pc, pa]; if (cond2) [pa, pb, pc] = [pc, pa, pb]; };
-  { const yMin = Math.min(pa.cy, pb.cy, pc.cy); rotate(yMin === pb.cy, yMin === pc.cy); }
-  { const [w1, w2] = [pb.w, pc.w], wMax = Math.max(pa.w, w1, w2); rotate(wMax === w1, wMax === w2); }
+  if (prim && prim.planes) [pa, pb, pc] = prim.planes.map(flipped);
+  else {
+    { const yMin = Math.min(pa.cy, pb.cy, pc.cy); rotate(yMin === pb.cy, yMin === pc.cy); }
+    { const [w1, w2] = [pb.w, pc.w], wMax = Math.max(pa.w, w1, w2); rotate(wMax === w1, wMax === w2); }
+  }
   const x1 = fr(fr(pb.w * (1 / SUBPIXEL)) * (pb.X - pa.X)), y1 = fr(fr(pb.w * (1 / SUBPIXEL)) * (pb.YV - pa.YV));
   const x2 = fr(fr(pc.w * (1 / SUBPIXEL)) * (pc.X - pa.X)), y2 = fr(fr(pc.w * (1 / SUBPIXEL)) * (pc.YV - pa.YV));
   const det = fr(fr(x1 * y2) - fr(x2 * y1));
@@ -379,14 +480,14 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
     const A = fr(fr(fr(v2 * z1) - fr(v1 * z2)) * Dz), B = fr(fr(fr(u1 * z2) - fr(u2 * z1)) * Dz);
     // O polygon offset soma ao termo constante o declive vezes o fator e as unidades vezes 2^-24: o ANGLE emula o D24
     // do GL e a resolução mínima fica a do D24 em qualquer profundidade (medido em 0,1, 0,5 e 0,95).
-    if (!p.get('POLYGON_OFFSET_FILL')) return [A, B, pa.z];
+    if (prim || !p.get('POLYGON_OFFSET_FILL')) return [A, B, pa.z];
     const slope = fr(Math.max(Math.abs(A), Math.abs(B)) * p.get('POLYGON_OFFSET_FACTOR'));
     return [A, B, fr(fr(pa.z + slope) + fr(p.get('POLYGON_OFFSET_UNITS') * 2 ** -24))];
   })();
   const evalPlane = (P, dx, dy) => fr(fr(dx * P[0]) + fr(P[2] + fr(dy * P[1])));
   const varyings = stages.varyings;
   const fragSlot = stages.fragOut.slot;
-  const coordSlot = stages.fs.globals.get('gl_FragCoord').slot, facingSlot = stages.fs.globals.get('gl_FrontFacing').slot;
+  const coordSlot = stages.fs.globals.get('gl_FragCoord').slot, facingSlot = stages.fs.globals.get('gl_FrontFacing').slot, pointCoordSlot = stages.fs.globals.get('gl_PointCoord').slot;
   const depthTest = t.depth && p.get('DEPTH_TEST'), depthWrite = depthTest && p.get('DEPTH_WRITEMASK'), depthFn = DEPTH_FUNCS[p.get('DEPTH_FUNC')];
   const stencil = glStencilState(t, p, front);
   const mask = p.get('COLOR_WRITEMASK');
@@ -401,15 +502,17 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
   // trocados ficarem estáveis.
   const fragment = (x, y) => {
     const dx = fr(x - ax), dy = fr(rowV(y) - ay);
-    const rhwPix = evalPlane(W, dx, dy);
+    const cx = fr(x + 0.5), cyw = fr(y + 0.5);
+    const rhwPix = direct ? direct.rhw(cx, cyw) : evalPlane(W, dx, dy);
     const wPix = fr(1 / rhwPix);
-    const z = evalPlane(zPlane, dx, dy);
+    const z = direct ? direct.z(cx, cyw) : evalPlane(zPlane, dx, dy);
     const g = fsGlobals.map(glslClone);
     varyings.forEach((v, i) => {
-      g[v.fs] = v.flat ? glslClone(provoking.vary[i]) : glslMapPlane(planes[i], (P) => fr(evalPlane(P, dx, dy) * wPix));
+      g[v.fs] = v.flat ? glslClone(provoking.vary[i]) : direct ? direct.vary(i, cx, cyw) : glslMapPlane(planes[i], (P) => fr(evalPlane(P, dx, dy) * wPix));
     });
-    g[coordSlot] = [fr(x + 0.5), fr(y + 0.5), z, rhwPix];
+    g[coordSlot] = [cx, cyw, z, rhwPix];
     g[facingSlot] = front;
+    if (prim) g[pointCoordSlot] = prim.coord(x, y);
     rt.discarded = false;
     fsMain.body({ g, l: new Array(fsMain.count), rt });
     if (rt.discarded) return null;
@@ -425,7 +528,7 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
       if (stencil && !stencil.test(stencil.ref & stencil.mask, t.stencil[si] & stencil.mask)) { glStencilApply(t, stencil, si, stencil.fail); continue; }
       if (depthTest) {
         const [sx, sy] = t.samples[k];
-        const zs = Math.min(1, Math.max(0, evalPlane(zPlane, fr(fr(x + sx - 0.5) - ax), fr(sampleRowV(y, sy) - ay))));
+        const zs = Math.min(1, Math.max(0, direct ? direct.z() : evalPlane(zPlane, fr(fr(x + sx - 0.5) - ax), fr(sampleRowV(y, sy) - ay))));
         if (!depthFn(zs, t.depth[si])) { if (stencil) glStencilApply(t, stencil, si, stencil.zfail); continue; }
         if (depthWrite) t.depth[si] = zs;
       }
