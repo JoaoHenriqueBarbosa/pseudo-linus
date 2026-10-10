@@ -14,9 +14,8 @@ use core::hash::Hash;
 use std::collections::HashMap;
 
 /// O erro de alocação que o upstream devolve por `Result`; aqui nunca acontece (a biblioteca padrão aborta), e o
-/// tipo existe para as assinaturas ficarem as do upstream.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AllocError;
+/// tipo existe para as assinaturas ficarem as do upstream. É o mesmo do `bun_alloc`.
+pub use bun_alloc::AllocError;
 
 /// Como a chave guardada nasce da chave de busca: `Box<[u8]>` copia os bytes de `[u8]`; uma chave `Copy` (o `Ref`)
 /// implementa para si mesma.
@@ -202,6 +201,136 @@ impl<K: Hash + Eq + Clone, V: Default> ArrayHashMap<K, V> {
     }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// StringHashMap<V>: unordered `[]const u8`-keyed map
+// ──────────────────────────────────────────────────────────────────────────
+
+/// Newtype over `hashbrown::HashMap` that adds the `get_or_put` / `put` entry points while keeping the
+/// `hashbrown` surface reachable via `Deref`. Hashed with seed-0 wyhash.
+///
+/// No upstream a chave é o `StringHashMapKey` (ponteiro e comprimento empacotados, dono ou emprestado
+/// `'static`) e o alocador é genérico. Aqui a chave é um `Box<[u8]>`: o `Hash` dela é o de `[u8]`, o mesmo que a
+/// do upstream usa, e o `hashbrown` é a mesma versão, então a ordem de iteração é a dele. O `put_static_key`, que
+/// só evita a cópia da chave, fica fora.
+pub struct StringHashMap<V> {
+    inner: hashbrown::HashMap<Box<[u8]>, V, bun_wyhash::BuildHasher>,
+}
+
+impl<V> Default for StringHashMap<V> {
+    fn default() -> Self {
+        Self { inner: hashbrown::HashMap::default() }
+    }
+}
+
+impl<V: Clone> Clone for StringHashMap<V> {
+    fn clone(&self) -> Self {
+        Self { inner: self.inner.clone() }
+    }
+}
+
+impl<V> core::ops::Deref for StringHashMap<V> {
+    type Target = hashbrown::HashMap<Box<[u8]>, V, bun_wyhash::BuildHasher>;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<V> core::ops::DerefMut for StringHashMap<V> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
+impl<V> StringHashMap<V> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn count(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn ensure_total_capacity(&mut self, n: usize) -> Result<(), AllocError> {
+        let need = n.saturating_sub(self.inner.len());
+        self.inner.reserve(need);
+        Ok(())
+    }
+
+    /// Copia a chave só quando ela falta.
+    pub fn put(&mut self, key: &[u8], value: V) -> Result<(), AllocError> {
+        self.inner.entry_ref(key).insert(value);
+        Ok(())
+    }
+
+    pub fn get_or_put_value(&mut self, key: &[u8], value: V) -> Result<&mut V, AllocError> {
+        Ok(self.inner.entry_ref(key).or_insert(value))
+    }
+}
+
+/// `StringHashMap::get_or_put` result: `hashbrown` cannot hand out `&mut K`, so this result omits `key_ptr`.
+pub use crate::hash_map::GetOrPutResult as StringHashMapGetOrPut;
+
+impl<V: Default> StringHashMap<V> {
+    pub fn get_or_put(&mut self, key: &[u8]) -> Result<StringHashMapGetOrPut<'_, V>, AllocError> {
+        Ok(match self.inner.entry_ref(key) {
+            hashbrown::hash_map::EntryRef::Occupied(o) => {
+                StringHashMapGetOrPut { found_existing: true, value_ptr: o.into_mut() }
+            }
+            hashbrown::hash_map::EntryRef::Vacant(v) => {
+                StringHashMapGetOrPut { found_existing: false, value_ptr: v.insert(V::default()) }
+            }
+        })
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// StringSet: `StringArrayHashMap<()>` with key-duping insert
+// ──────────────────────────────────────────────────────────────────────────
+
+/// `bun.StringSet`: insertion-ordered set of owned byte-string keys.
+#[derive(Default)]
+pub struct StringSet {
+    pub map: StringArrayHashMap<()>,
+}
+
+impl StringSet {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn clone(&self) -> Result<Self, AllocError> {
+        Ok(Self { map: self.map.clone()? })
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.map.count() == 0
+    }
+
+    #[inline]
+    pub fn keys(&self) -> &[Box<[u8]>] {
+        self.map.keys()
+    }
+
+    /// Insert `key`, duping it on miss. Returns `Ok(())` whether or not the key
+    /// was already present.
+    pub fn insert(&mut self, key: &[u8]) -> Result<(), AllocError> {
+        let _ = self.map.get_or_put(key)?;
+        Ok(())
+    }
+
+    #[inline]
+    pub fn contains(&self, key: &[u8]) -> bool {
+        self.map.contains(key)
+    }
+
+    #[inline]
+    pub fn swap_remove(&mut self, key: &[u8]) -> bool {
+        self.map.swap_remove(key)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::StringArrayHashMap;
@@ -224,5 +353,24 @@ mod tests {
         *gop.value_ptr = 5;
         assert_eq!(map.count(), 4);
         assert!(map.get_or_put(&b"e"[..]).unwrap().found_existing);
+    }
+
+    #[test]
+    fn string_hash_map_and_set() {
+        let mut map = super::StringHashMap::<u32>::new();
+        map.put(b"x", 1).unwrap();
+        map.put(b"x", 2).unwrap();
+        assert_eq!(map.get(&b"x"[..]), Some(&2));
+        let gop = map.get_or_put(b"y").unwrap();
+        assert!(!gop.found_existing);
+        *gop.value_ptr = 9;
+        assert_eq!(*map.get_or_put_value(b"y", 0).unwrap(), 9);
+        assert_eq!(map.count(), 2);
+        let mut set = super::StringSet::new();
+        set.insert(b"b").unwrap();
+        set.insert(b"a").unwrap();
+        set.insert(b"b").unwrap();
+        assert_eq!(set.keys(), [Box::from(&b"b"[..]), Box::from(&b"a"[..])]);
+        assert!(set.contains(b"a") && !set.is_empty());
     }
 }

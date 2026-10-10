@@ -47,8 +47,7 @@ Estado do passo 1: feito (`import_record`, `ImportKind`, `part`, `runtime`, `ast
 169 erros de resolução antes de chegar aos tipos. O que falta, por grupo:
 
 - crates e módulos do upstream que o parser importa e o porte ainda não tem: `bun_crash_handler`, `bun_react_compiler`,
-  `bun_collections::{VecExt, HashMap,
-  StringHashMap, StringSet, object_pool}`, `bun_ast::{Flags, fold_string_addition, RuntimeTranspilerCache,
+  `bun_ast::{Flags, fold_string_addition, RuntimeTranspilerCache,
   expr::{EFlags, Equality, LooseEql, StrictEql}}`;
 - 48 trechos `unsafe` (25 em `p.rs`, 8 em `lower/`, 5 em `visit/mod.rs`, 4 em `parse_entry.rs`, 3 em `parser.rs`,
   e os `unsafe impl Send/Sync` de `defines_table.rs`);
@@ -148,6 +147,10 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_core` | `util.rs`, `result.rs` e `lib.rs` | parcial: `GenericIndex`, `GenericIndexOptional`, `trim`, `impl_tag_error!`, os reexports `parse_int`, `ParseIntError` e `wtf::parse_double` | nada (cópia); `Environment` só com `IS_NATIVE = true` (o porte roda nativo) |
 | `bun_core_macros` | `lib.rs` | parcial: só os dois proc-macros do mapa | `pretty_fmt!` e os derives de contagem de referência entram quando pedidos |
 | `bun_collections` | `bit_set.rs` | parcial: `IntegerBitSet` | nada (cópia do subconjunto que o lexer usa) |
+| `bun_collections` | `array_hash_map.rs` (`StringHashMap`, `StringSet`) | parcial, com teste | `StringHashMap` com chave `Box<[u8]>` (o `Hash` é o de `[u8]`, igual ao do `StringHashMapKey`, e o `hashbrown` é o 0.15.5, então a ordem de iteração é a do upstream) e `entry_ref` no lugar do `raw_entry_mut`; sem alocador genérico nem `put_static_key`. O `AllocError` passa a ser o do `bun_alloc` |
+| `bun_collections` | `zig_hash_map.rs`, `identity_context.rs` | portado (cópia por Bash, travessões trocados por ferramenta), com teste | sai o `get_or_put_context` (repasse) e, do `identity_context`, os `ArrayIdentityContext*` (o `ArrayHashMap` do porte não tem contexto); o corte foi feito com um script Python, não com Edit |
+| `bun_collections` | `vec_ext.rs` | parcial, com teste | só os métodos que fazem algo além de renomear um método do `Vec`; os sinônimos de uma linha (`append`, `slice`, `init_capacity` e afins) saem pela regra de repasse, e os chamadores passam ao nome do `Vec` no passo 3; os de ponteiro cru ficam fora |
+| `bun_collections` | `pool.rs` (`object_pool!`, `ObjectPoolType`, `PoolGuard`) | parcial, com teste | a lista ligada de nós em ponteiro cru vira um `Vec<T>` por thread usado como pilha, com o mesmo `MAX_COUNT`; `INIT` é obrigatório e devolve `Self` (o upstream devolve `Result<Self, bun_core::Error>`; o único `INIT` do parser não falha) |
 | `bun_alloc` | `lib.rs` | parcial: `Arena`, `ArenaVec`, `ArenaVecExt`, `ArenaString`, `arena_format!`, `vec_from_iter_in`, `AllocError`, com teste | o bump do mimalloc vira um `typed_arena` para bytes e outro para `u16`, sem `unsafe`; `ArenaVec` guarda um `Vec` comum e a arena (só tempo de vida e `bump()`); `into_bump_slice` só para `u8`/`u16`, as listas de nós vão ao `Store` por `into_vec` + `store.alloc_slice` |
 | `bun_ast` | `lexer_log.rs` | portado (cópia) | nada |
 | `bun_ast` | `lib.rs` (o `logger`) | parcial: `Kind`, `Level`, `Location`, `Data`, `Msg`, `Log`, `Path`, `Source`, `range_data`, `alloc_print` e as posições de erro | `Msg` sem `metadata`; o `Log` não tem o `LineColumnTracker` (só acelera a conta de linha, o resultado é o mesmo) nem o `tracked_range_data`, que virou a chamada direta de `range_data` (era repasse); `Span` entra em `nodes.rs` |
