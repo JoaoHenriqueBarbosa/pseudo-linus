@@ -63,6 +63,19 @@ pub(crate) fn begin_main_script(path: &str) {
     PROGRAM.with(|state| state.borrow_mut().script = Some(path.to_string()));
 }
 
+/// O `vm.main()` do bun: o caminho do script principal, ou `<cwd>/[eval]` sem script (`bun -e`).
+pub(crate) fn main_path() -> String {
+    if let Some(script) = PROGRAM.with(|state| state.borrow().script.clone()) {
+        return script;
+    }
+    resolve_in_current_directory("[eval]")
+}
+
+/// `target` resolvido no diretório corrente do programa, com `.` e `..` normalizados (o `joinAbsString` do bun).
+pub(crate) fn resolve_in_current_directory(target: &str) -> String {
+    resolve_path(&current_directory(), target).to_string_lossy().into_owned()
+}
+
 /// O `argv` inicial: o executável, o script (quando há) e os argumentos.
 pub(crate) fn script_argv() -> Vec<String> {
     PROGRAM.with(|state| {

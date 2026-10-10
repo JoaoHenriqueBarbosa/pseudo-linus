@@ -101,6 +101,11 @@ pub(crate) fn is_env(object: &JSObject) -> bool {
     ENV_CELL.with(|cell| cell.get()) == Some(object.cell_id())
 }
 
+/// O `process.env` do programa (o mesmo objeto que o `Bun.env` entrega), criado aqui se ainda não existir.
+pub(crate) fn env_value(global_object: &JSGlobalObject) -> JSValue {
+    ENV_CELL.with(|cell| cell.get()).map_or_else(|| create(global_object), JSValue::from_cell)
+}
+
 fn pending(_: Thrown) -> PutError {
     PutError::Pending
 }

@@ -131,9 +131,15 @@ pub const fn custom_getter_entry(key: &'static str, getter: GetValueFunc) -> Has
 
 /// Entrada `DontEnum|CustomAccessor` com getter e setter.
 pub const fn custom_accessor_entry(key: &'static str, getter: GetValueFunc, setter: PutValueFunc) -> HashTableValue {
+    custom_accessor_entry_with_attributes(key, DONT_ENUM, getter, setter)
+}
+
+/// Entrada `CustomAccessor` com getter, setter e os atributos de tabela dados (`main  bunObjectMain
+/// DontDelete|CustomAccessor` do objeto `Bun`).
+pub const fn custom_accessor_entry_with_attributes(key: &'static str, attributes: u32, getter: GetValueFunc, setter: PutValueFunc) -> HashTableValue {
     HashTableValue {
         key,
-        attributes: DONT_ENUM | CUSTOM_ACCESSOR,
+        attributes: attributes | CUSTOM_ACCESSOR,
         intrinsic: Intrinsic::NoIntrinsic,
         kind: Kind::CustomAccessor { getter, setter: Some(setter) },
     }
@@ -141,7 +147,12 @@ pub const fn custom_accessor_entry(key: &'static str, getter: GetValueFunc, sett
 
 /// Entrada `DontEnum|PropertyCallback` (`LazyProperty`).
 pub const fn lazy_entry(key: &'static str, callback: LazyPropertyCallback) -> HashTableValue {
-    HashTableValue { key, attributes: DONT_ENUM | PROPERTY_CALLBACK, intrinsic: Intrinsic::NoIntrinsic, kind: Kind::LazyProperty(callback) }
+    lazy_entry_with_attributes(key, DONT_ENUM, callback)
+}
+
+/// Entrada `PropertyCallback` (`LazyProperty`) com os atributos de tabela dados (`argv  ...  DontDelete|PropertyCallback`).
+pub const fn lazy_entry_with_attributes(key: &'static str, attributes: u32, callback: LazyPropertyCallback) -> HashTableValue {
+    HashTableValue { key, attributes: attributes | PROPERTY_CALLBACK, intrinsic: Intrinsic::NoIntrinsic, kind: Kind::LazyProperty(callback) }
 }
 
 /// `struct HashTable`.
