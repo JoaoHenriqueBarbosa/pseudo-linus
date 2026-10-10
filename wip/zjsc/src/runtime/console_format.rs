@@ -995,7 +995,8 @@ impl Formatter {
         ascii(out, " {\n");
         self.est = self.indent * 2 + 1;
         self.seen.push(id);
-        self.depth += 1;
+        // Os campos saem na profundidade do próprio objeto (medido no bun 1.4.2: `console.dir(response, {depth: 0})`
+        // imprime os `Headers` por inteiro, e `{k: response}` com `depth: 0` os resume como `Headers [Object ...]`).
         self.indent += 1;
         let count = fields.len();
         for (position, (name, field)) in fields.into_iter().enumerate() {
@@ -1065,7 +1066,6 @@ impl Formatter {
             }
         }
         self.indent -= 1;
-        self.depth -= 1;
         self.seen.pop();
         ascii(out, "\n");
         self.pad(out);
