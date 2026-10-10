@@ -539,11 +539,11 @@ function loadLink(link) {
   if (href === null || href === '' || !rel.some((r) => r === 'stylesheet' || r === 'preload' || r === 'modulepreload')) return;
   hidden(link, '__linkStarted', true);
   const url = resolveUrl(href);
-  setTimeout(() => {
+  afterNetwork(() => {
     const result = netFetch('GET', url, [], null);
     const ok = result !== null && result[0] >= 200 && result[0] < 300;
     link.dispatchEvent(new Event(ok ? 'load' : 'error'));
-  }, NETWORK_LATENCY_MS);
+  });
 }
 
 // A imagem cuja `src` a página define é buscada (conectada ou não, como no Chromium) e dispara `load` ou `error`
@@ -551,12 +551,12 @@ function loadLink(link) {
 function loadImage(img, src) {
   const url = src === '' ? '' : resolveUrl(src);
   hidden(img, '__imageUrl', url);
-  setTimeout(() => {
+  afterNetwork(() => {
     if (img[P.__imageUrl] !== url) return;
     const result = url === '' ? null : netFetch('GET', url, [], null);
     const ok = result !== null && result[0] >= 200 && result[0] < 300;
     img.dispatchEvent(new Event(ok ? 'load' : 'error'));
-  }, NETWORK_LATENCY_MS);
+  });
 }
 
 function attributeChanged(el, name, oldValue, newValue) {

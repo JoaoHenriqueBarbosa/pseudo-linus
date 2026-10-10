@@ -146,9 +146,12 @@ class CSSStyleDeclaration {
   // (`setStyle`), que só cria o atributo quando alguém o lê, como o Blink.
   [P.__list]() { const raw = op('getStyle', idOf(this[P.__element])); return raw ? parseDeclarations(op('normalizeStyle', raw)) : []; }
   [P.__save](list) {
-    if (list.length === 0 && op('getStyle', idOf(this[P.__element])) === null) return;
-    const text = list.map((d) => `${d.name}: ${d.value}${d.priority ? ' !important' : ''};`).join(' ');
-    this[P.__write](op('normalizeStyle', text));
+    const raw = op('getStyle', idOf(this[P.__element]));
+    if (list.length === 0 && raw === null) return;
+    const text = op('normalizeStyle', list.map((d) => `${d.name}: ${d.value}${d.priority ? ' !important' : ''};`).join(' '));
+    // O Blink só regrava o atributo quando o bloco muda: a mesma declaração de novo deixa o texto original intacto.
+    if (raw !== null && op('normalizeStyle', raw) === text) return;
+    this[P.__write](text);
   }
   [P.__write](text) {
     const element = this[P.__element];

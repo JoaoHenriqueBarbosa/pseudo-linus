@@ -131,6 +131,9 @@ impl Page {
         run_page(self.console.clone(), bridge.clone(), &document_url, module_fetch, |runner| {
             // `Number.prototype.toString(radix)` arredonda a cauda como o V8.
             zjsc::runtime::number_prototype::set_v8_radix_strings(true);
+            // Sob `--virtual-time-budget`, `Date` e `performance.now` andam com o tempo virtual dos timers, a partir
+            // do relógio do sistema no início da página.
+            zjsc::wtf::date_math::set_virtual_clock(zjsc::wtf::date_math::current_time_in_nanoseconds() as f64 / 1_000_000.0);
             // O valor do programa é a função gancho: o hospedeiro a guarda, sem binding global que a página veja.
             let prelude = format!("(function () {{ 'use strict';\n{}{}\nreturn hook;\n}})();", PRELUDE_PARTS.concat(), PRELUDE_TAIL);
             let hook = match runner.eval_hidden_value(&prelude) {

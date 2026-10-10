@@ -163,6 +163,29 @@ setTimeout(() => { log('t30'); watch('t30'); requestAnimationFrame(() => log('ra
 }
 
 #[test]
+fn unchanged_style_keeps_attribute_text() {
+    // Medido no oráculo: a escrita via CSSOM que não muda o bloco deixa o atributo como veio.
+    let html = r#"<body><div id=a style="--a:80;color:red"></div><div id=b style="--a:80;color:red"></div><div id=c style="color:red"></div><script>
+const [a, b, c] = ['a', 'b', 'c'].map((id) => document.getElementById(id));
+a.style.setProperty('--a', '80'); b.style.setProperty('--a', '81'); c.style.color = 'red'; c.style.removeProperty('width');
+for (const el of [a, b, c]) console.log(el.getAttribute('style'));
+</script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "--a:80;color:red\n--a: 81; color: red;\ncolor:red\n");
+}
+
+#[test]
+fn window_named_access() {
+    // Medido no oráculo: id e nome de form acham o elemento; homônimos viram HTMLCollection; declaração vence.
+    let html = r#"<body><div id=h></div><form name=f></form><p id=two></p><p id=two></p><div id=v></div><script>
+var v = 1;
+console.log(h.localName, window.f.localName, two.length, String(two), v, 'h' in window, typeof missing, window.missing);
+</script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "div form 2 [object HTMLCollection] 1 true undefined undefined\n");
+}
+
+#[test]
 fn push_apply_in_timer() {
     let script = "<script>setTimeout(function () { for (var n of [10, 1000, 70000, 200000]) { var a = []; var b = new Array(n).fill(1); a.push.apply(a, b); console.log(n, a.length) } }, 0)</script>";
     let (_, log) = run(&[("/", script)]);

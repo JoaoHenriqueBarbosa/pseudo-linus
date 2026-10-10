@@ -4,6 +4,13 @@ const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
 // A ida e volta de rede em tempo virtual (o NETWORK_LATENCY_MS do hospedeiro): o que já está na fila roda antes.
 // Maior que o 1ms a que o setTimeout(0) é arredondado, para a resposta nunca empatar com uma tarefa já agendada.
 const NETWORK_LATENCY_MS = 2;
+// Buscas em voo. Sob --virtual-time-budget o relógio virtual para enquanto a página espera a rede, e os quadros
+// continuam saindo nesse meio tempo: com rede em voo, o quadro pedido sai sem esperar a grade.
+let networkInFlight = 0;
+const afterNetwork = (fn) => {
+  networkInFlight++;
+  setTimeout(() => { networkInFlight--; fn(); }, NETWORK_LATENCY_MS);
+};
 // A janela do headless medida no oráculo (o WINDOW do hospedeiro): conteúdo 780x493, janela 780x580, tela 800x600.
 const VIEWPORT = Object.freeze({ width: 780, height: 493, outerWidth: 780, outerHeight: 580 });
 const pageState = { url: op('pageUrl') };
@@ -298,14 +305,14 @@ let nextFrameCallback = 1;
 const idleCallbacks = new Map();
 let frameTimer = null;
 let framesOver = false;
-// Os quadros caem numa grade de 16ms do tempo virtual.
+// Os quadros caem numa grade de 16ms do tempo virtual; com rede em voo, saem já (o relógio virtual está parado).
 const requestRender = () => {
-  if (framesOver || frameTimer !== null) return;
-  frameTimer = setTimeout(renderFrame, 16 - (performance.now() % 16));
+  if (frameTimer !== null || (framesOver && !networkInFlight)) return;
+  frameTimer = setTimeout(renderFrame, networkInFlight ? 0 : 16 - (performance.now() % 16));
 };
 const renderFrame = () => {
   frameTimer = null;
-  if (framesOver) return;
+  if (framesOver && !networkInFlight) return;
   if (document.readyState === 'complete') framesOver = true;
   const now = performance.now();
   const callbacks = Array.from(frameCallbacks.values());
@@ -319,7 +326,6 @@ const renderFrame = () => {
 };
 const requestAnimationFrame = (cb) => {
   const id = nextFrameCallback++;
-  if (framesOver) return id;
   frameCallbacks.set(id, cb);
   requestRender();
   return id;
@@ -328,7 +334,7 @@ const cancelAnimationFrame = (id) => { frameCallbacks.delete(id); };
 const requestIdleCallback = (cb) => {
   const id = nextFrameCallback++;
   idleCallbacks.set(id, cb);
-  if (framesOver) setTimeout(() => runIdle(id), 1); else requestRender();
+  if (framesOver && !networkInFlight) setTimeout(() => runIdle(id), 1); else requestRender();
   return id;
 };
 const cancelIdleCallback = (id) => { idleCallbacks.delete(id); };
@@ -517,7 +523,7 @@ class XMLHttpRequest extends EventTarget {
       this.dispatchEvent(new ProgressEvent('load', { lengthComputable: true, loaded: bytes.length, total: bytes.length }));
       this.dispatchEvent(new ProgressEvent('loadend', { lengthComputable: true, loaded: bytes.length, total: bytes.length }));
     };
-    if (s.async) setTimeout(run, NETWORK_LATENCY_MS); else run();
+    if (s.async) afterNetwork(run); else run();
   }
 }
 tag(XMLHttpRequest, 'XMLHttpRequest');
@@ -542,7 +548,7 @@ const realFetch = (input, init = {}) => new Promise((resolve, reject) => {
   addHeaders(init.headers);
   const body = init.body === undefined || init.body === null ? null : String(init.body);
   if (init.signal && init.signal.aborted) return reject(domException('The user aborted a request.', 'AbortError'));
-  setTimeout(() => {
+  afterNetwork(() => {
     if (init.signal && init.signal.aborted) return reject(domException('The user aborted a request.', 'AbortError'));
     const result = netFetch(method, url, headers, body);
     if (result === null) return reject(new TypeError('Failed to fetch'));
@@ -552,7 +558,7 @@ const realFetch = (input, init = {}) => new Promise((resolve, reject) => {
     Object.defineProperty(response, 'type', { value: new URL(result[2]).origin === new URL(pageState.url).origin ? 'basic' : 'cors', configurable: true });
     Object.defineProperty(response, 'redirected', { value: result[2] !== url.replace(/#.*$/, ''), configurable: true });
     resolve(response);
-  }, NETWORK_LATENCY_MS);
+  });
 });
 
 // ---- Scripts inseridos pela página.
@@ -570,12 +576,12 @@ function runDynamicScript(el) {
   const src = el.getAttribute('src');
   if (src !== null && src !== '') {
     const url = resolveUrl(src);
-    setTimeout(() => {
+    afterNetwork(() => {
       const result = netFetch('GET', url, [], null);
       if (result === null || result[0] >= 400) { el.dispatchEvent(new Event('error')); return; }
       execScript(el, decodeBody(rawBytes(result[4]), result[5]), result[2]);
       el.dispatchEvent(new Event('load'));
-    }, NETWORK_LATENCY_MS);
+    });
     return;
   }
   execScript(el, el.textContent, pageState.url);
