@@ -68,7 +68,7 @@ defineHtml('HTMLAnchorElement', ['a'], (cls) => {
   cls.prototype.toString = function () { return this.href; };
 });
 defineHtml('HTMLImageElement', ['img'], (cls) => {
-  reflect(cls, [['src', 'src', 'url'], ['alt', 'alt'], ['srcset', 'srcset'], ['sizes', 'sizes'], ['useMap', 'usemap'], ['isMap', 'ismap', 'bool'], ['loading', 'loading'], ['decoding', 'decoding'], ['crossOrigin', 'crossorigin'], ['referrerPolicy', 'referrerpolicy'], ['fetchPriority', 'fetchpriority']]);
+  reflect(cls, [['src', 'src', 'url'], ['alt', 'alt'], ['srcset', 'srcset'], ['sizes', 'sizes'], ['useMap', 'usemap'], ['isMap', 'ismap', 'bool'], ['loading', 'loading'], ['decoding', 'decoding'], ['crossOrigin', 'crossorigin', 'cors'], ['referrerPolicy', 'referrerpolicy'], ['fetchPriority', 'fetchpriority']]);
   for (const dim of ['width', 'height']) Object.defineProperty(cls.prototype, dim, { get() { return parseInt(this.getAttribute(dim), 10) || 0; }, set(v) { this.setAttribute(dim, v); }, configurable: true, enumerable: true });
   Object.defineProperties(cls.prototype, {
     naturalWidth: { get() { return 0; }, configurable: true }, naturalHeight: { get() { return 0; }, configurable: true },
@@ -79,12 +79,12 @@ defineHtml('HTMLImageElement', ['img'], (cls) => {
   cls.prototype.decode = function () { return Promise.resolve(); };
 });
 defineHtml('HTMLScriptElement', ['script'], (cls) => {
-  reflect(cls, [['src', 'src', 'url'], ['type', 'type'], ['async', 'async', 'bool'], ['defer', 'defer', 'bool'], ['noModule', 'nomodule', 'bool'], ['crossOrigin', 'crossorigin'], ['integrity', 'integrity'], ['charset', 'charset'], ['referrerPolicy', 'referrerpolicy'], ['fetchPriority', 'fetchpriority']]);
+  reflect(cls, [['src', 'src', 'url'], ['type', 'type'], ['async', 'async', 'bool'], ['defer', 'defer', 'bool'], ['noModule', 'nomodule', 'bool'], ['crossOrigin', 'crossorigin', 'cors'], ['integrity', 'integrity'], ['charset', 'charset'], ['referrerPolicy', 'referrerpolicy'], ['fetchPriority', 'fetchpriority']]);
   Object.defineProperty(cls.prototype, 'text', { get() { return this.textContent; }, set(v) { this.textContent = v; }, configurable: true, enumerable: true });
   cls.supports = (type) => ['classic', 'module', 'importmap'].includes(type);
 });
 defineHtml('HTMLLinkElement', ['link'], (cls) => {
-  reflect(cls, [['href', 'href', 'url'], ['rel', 'rel'], ['as', 'as'], ['type', 'type'], ['media', 'media'], ['hreflang', 'hreflang'], ['crossOrigin', 'crossorigin'], ['integrity', 'integrity'], ['disabled', 'disabled', 'bool'], ['referrerPolicy', 'referrerpolicy'], ['imageSrcset', 'imagesrcset'], ['imageSizes', 'imagesizes']]);
+  reflect(cls, [['href', 'href', 'url'], ['rel', 'rel'], ['as', 'as'], ['type', 'type'], ['media', 'media'], ['hreflang', 'hreflang'], ['crossOrigin', 'crossorigin', 'cors'], ['integrity', 'integrity'], ['disabled', 'disabled', 'bool'], ['referrerPolicy', 'referrerpolicy'], ['imageSrcset', 'imagesrcset'], ['imageSizes', 'imagesizes']]);
   Object.defineProperty(cls.prototype, 'relList', { get() { return tokenList(this, 'rel'); }, configurable: true });
   Object.defineProperty(cls.prototype, 'sheet', { get() { return lower(this.getAttribute('rel') || '').split(/\s+/).includes('stylesheet') ? sheetFor(this) : null; }, configurable: true });
 });
@@ -221,7 +221,7 @@ defineHtml('HTMLCanvasElement', ['canvas'], (cls) => {
 });
 for (const [name, tags] of [['HTMLVideoElement', ['video']], ['HTMLAudioElement', ['audio']]]) {
   defineHtml(name, tags, (cls) => {
-    reflect(cls, [['src', 'src', 'url'], ['autoplay', 'autoplay', 'bool'], ['loop', 'loop', 'bool'], ['defaultMuted', 'muted', 'bool'], ['controls', 'controls', 'bool'], ['preload', 'preload'], ['poster', 'poster', 'url'], ['crossOrigin', 'crossorigin']]);
+    reflect(cls, [['src', 'src', 'url'], ['autoplay', 'autoplay', 'bool'], ['loop', 'loop', 'bool'], ['defaultMuted', 'muted', 'bool'], ['controls', 'controls', 'bool'], ['preload', 'preload'], ['poster', 'poster', 'url'], ['crossOrigin', 'crossorigin', 'cors']]);
     // `muted` é estado da mídia, não reflete o atributo (esse é o `defaultMuted`); começa com a presença dele.
     Object.defineProperty(cls.prototype, 'muted', { get() { return this[P.__muted] ?? this.hasAttribute('muted'); }, set(v) { hidden(this, '__muted', Boolean(v)); }, configurable: true, enumerable: true });
     Object.defineProperties(cls.prototype, { paused: { get() { return true; }, configurable: true }, ended: { get() { return false; }, configurable: true }, currentTime: { get() { return 0; }, set() {}, configurable: true }, duration: { get() { return NaN; }, configurable: true }, readyState: { get() { return 0; }, configurable: true }, volume: { get() { return 1; }, set() {}, configurable: true } });

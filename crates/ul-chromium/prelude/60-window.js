@@ -9,7 +9,8 @@ const NETWORK_LATENCY_MS = 2;
 let networkInFlight = 0;
 const afterNetwork = (fn) => {
   networkInFlight++;
-  setTimeout(() => { networkInFlight--; fn(); }, NETWORK_LATENCY_MS);
+  // A tarefa da resposta ainda conta como rede: o quadro que ela pede sai antes da página ficar ociosa.
+  setTimeout(() => { try { fn(); } finally { networkInFlight--; } }, NETWORK_LATENCY_MS);
 };
 // A janela do headless medida no oráculo (o WINDOW do hospedeiro): conteúdo 780x493, janela 780x580, tela 800x600.
 const VIEWPORT = Object.freeze({ width: 780, height: 493, outerWidth: 780, outerHeight: 580 });
@@ -313,7 +314,9 @@ const requestRender = () => {
 };
 const renderFrame = () => {
   frameTimer = null;
-  if (framesOver && !networkInFlight) return;
+  const requestedDuringNetwork = frameImmediate;
+  frameImmediate = false;
+  if (framesOver && !networkInFlight && !requestedDuringNetwork) return;
   if (document.readyState === 'complete') framesOver = true;
   const now = performance.now();
   const callbacks = Array.from(frameCallbacks.values());

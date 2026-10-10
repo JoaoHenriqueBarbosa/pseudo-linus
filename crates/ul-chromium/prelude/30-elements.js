@@ -416,10 +416,13 @@ const reflect = (cls, spec) => {
         if (kind === 'long') { const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; }
         if (kind === 'url') return v === null ? '' : resolveUrl(v);
         if (kind === 'enum') return v === null ? '' : lower(v);
+        // `[Reflect, ReflectEmpty=anonymous, ReflectInvalid=anonymous] DOMString?` (crossOrigin): ausente é `null`.
+        if (kind === 'cors') return v === null ? null : lower(v) === 'use-credentials' ? 'use-credentials' : 'anonymous';
         return v === null ? '' : v;
       },
       set(value) {
         if (kind === 'bool') { if (value) this.setAttribute(attr, ''); else this.removeAttribute(attr); }
+        else if (kind === 'cors' && value === null) this.removeAttribute(attr);
         else this.setAttribute(attr, toStr(value));
       },
     });
