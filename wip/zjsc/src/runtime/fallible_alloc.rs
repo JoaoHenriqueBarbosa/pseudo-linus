@@ -12,6 +12,16 @@ pub fn try_vec_with_capacity<T>(capacity: usize) -> Option<Vec<T>> {
     Some(vector)
 }
 
+/// O `WTF::Vector<T>::tryReserveCapacity(capacity)`: além do alocador, o `VectorBufferBase::tryAllocateBuffer` recusa
+/// buffer de mais de `UINT_MAX` bytes (`newCapacity > std::numeric_limits<unsigned>::max() / sizeof(T)`), seja qual for
+/// a memória da máquina.
+pub fn try_wtf_vector_with_capacity<T>(capacity: usize) -> Option<Vec<T>> {
+    if capacity > u32::MAX as usize / std::mem::size_of::<T>().max(1) {
+        return None;
+    }
+    try_vec_with_capacity(capacity)
+}
+
 /// O `vec![value; length]` que devolve `None` em vez de abortar.
 pub fn try_filled_vec<T: Clone>(value: T, length: usize) -> Option<Vec<T>> {
     let mut vector = try_vec_with_capacity(length)?;

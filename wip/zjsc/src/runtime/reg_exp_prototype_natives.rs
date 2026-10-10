@@ -35,7 +35,7 @@ use crate::runtime::class_info::ClassInfo;
 use crate::runtime::collection_support::put_species_accessor;
 use crate::runtime::error::{create_syntax_error, create_type_error};
 use crate::runtime::exception_helpers::throw_out_of_memory_error;
-use crate::runtime::fallible_alloc::try_vec_with_capacity;
+use crate::runtime::fallible_alloc::try_wtf_vector_with_capacity;
 use crate::runtime::host_call::{throw_thrown, HostCall, HostResult, Thrown};
 use crate::runtime::host_function_support::{throw_error_object, throw_put_error, throw_vm_type_error, ObjectRef};
 use crate::runtime::array_buffer_prototype::put_native_getter;
@@ -892,8 +892,9 @@ fn reg_exp_replace_generic(
         let position = position_double.clamp(0.0, string_length as f64) as usize;
 
         // g. `captures.tryReserveCapacity(nCaptures)` do C++ (um `Vector<String>`, 8 bytes por posição): um
-        // `length` gigante vira `OutOfMemoryError` antes de ler qualquer captura. A sonda tem o mesmo tamanho.
-        if try_vec_with_capacity::<u64>(n_captures as usize).is_none() {
+        // `length` gigante vira `OutOfMemoryError` antes de ler qualquer captura, pelo limite de `UINT_MAX` bytes do
+        // `WTF::Vector` (o `length` 2^32 dá `Out of memory` no bun mesmo com memória sobrando). A sonda tem o mesmo tamanho.
+        if try_wtf_vector_with_capacity::<u64>(n_captures as usize).is_none() {
             return Err(Thrown::OutOfMemory);
         }
         let mut captures: Vec<Option<Vec<u16>>> = Vec::new();
