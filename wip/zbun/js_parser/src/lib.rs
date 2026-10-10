@@ -5,6 +5,80 @@ pub mod lexer;
 #[cfg(test)]
 mod lexer_tests;
 
+// O parser copiado do upstream (README, "Próximos passos", passo 2) fica atrás da feature `parser` até compilar:
+// `cargo check -p bun_js_parser --features parser` mede o que falta. O `Macro` (FFI com o `bun_js_parser_jsc`) e o
+// `react_compiler_host` ficam fora por decisão da coordenação.
+#[cfg(feature = "parser")]
+pub mod error;
+#[cfg(feature = "parser")]
+pub use error::Error;
+#[cfg(feature = "parser")]
+pub use error::Result as CrateResult;
+
+#[cfg(feature = "parser")]
+pub mod parser;
+// Re-export parser-helper types at crate root so p.rs can `use crate::{...}`.
+#[cfg(feature = "parser")]
+pub use parser::*;
+
+#[cfg(feature = "parser")]
+pub(crate) mod fold;
+#[cfg(feature = "parser")]
+pub mod lower;
+#[cfg(feature = "parser")]
+pub mod p;
+#[cfg(feature = "parser")]
+pub mod parse;
+#[cfg(feature = "parser")]
+pub(crate) mod repl_transforms;
+#[cfg(feature = "parser")]
+pub mod scan;
+#[cfg(feature = "parser")]
+pub mod typescript;
+#[cfg(feature = "parser")]
+pub mod visit;
+
+#[cfg(feature = "parser")]
+pub use p::P;
+#[cfg(feature = "parser")]
+pub use parse::parse_entry::{Options as ParserOptions, Parser};
+
+#[cfg(feature = "parser")]
+use bun_ast::{Ast, Ref};
+
+// NOTE: shadows the prelude `Result` for this module. All error-union return
+// types in this file are spelled `core::result::Result<T, E>` to disambiguate.
+//
+// PERF NOTE: `bun_ast::Ast` is ~1 KB. Boxing the `Ast` variant collapses `Result` to 16 B so only a thin pointer
+// is moved up the stack.
+#[cfg(feature = "parser")]
+pub enum Result<'a> {
+    AlreadyBundled(AlreadyBundled),
+    Cached,
+    Ast(Box<Ast<'a>>),
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum AlreadyBundled {
+    Bun,
+    BunCjs,
+    Bytecode,
+    BytecodeCjs,
+}
+
+/// `impl EqlParser for P`: moved out of `bun_ast::expr` (next to `P`).
+#[cfg(feature = "parser")]
+impl<'a, const IS_TS: bool, const SCAN: bool> bun_ast::expr::EqlParser for crate::p::P<'a, IS_TS, SCAN> {
+    #[inline]
+    fn arena(&self) -> &bun_alloc::Arena {
+        self.arena
+    }
+    #[inline]
+    fn module_ref(&self) -> Ref {
+        self.module_ref
+    }
+}
+
 pub mod defines_table;
 
 // from bun_bundler::defines: canonical `Define` / `DefineData` / `DotDefine` live here so the parser and the
@@ -371,6 +445,113 @@ pub mod defines {
     }
 }
 pub use defines::{Define, DefineData};
+
+// from bun_js_printer::renamer: only the slot-assignment helpers the parser calls live here; the full
+// `NumberRenamer`/`MinifyRenamer` machinery stays in `bun_js_printer`. No porte, os filhos de um escopo são índices
+// no `Store`, que entra como parâmetro no lugar da arena.
+#[cfg(feature = "parser")]
+pub mod renamer {
+    use bun_ast::SlotCounts;
+    use bun_ast::Store;
+    use bun_ast::scope::Scope;
+    use bun_ast::symbol::{INVALID_NESTED_SCOPE_SLOT, SlotNamespace, Symbol};
+
+    pub(crate) fn assign_nested_scope_slots(store: &Store, module_scope: &Scope, symbols: &mut [Symbol]) -> SlotCounts {
+        let mut slot_counts = SlotCounts::default();
+        let mut sorted_members: Vec<u32> = Vec::new();
+
+        // Temporarily set the nested scope slots of top-level symbols to valid so
+        // they aren't renamed in nested scopes. This prevents us from accidentally
+        // assigning nested scope slots to variables declared using "var" in a nested
+        // scope that are actually hoisted up to the module scope to become a top-
+        // level symbol.
+        const VALID_SLOT: u32 = 0;
+        for member in module_scope.members.values() {
+            symbols[member.ref_.inner_index() as usize].nested_scope_slot = VALID_SLOT;
+        }
+        for ref_ in module_scope.generated.iter() {
+            symbols[ref_.inner_index() as usize].nested_scope_slot = VALID_SLOT;
+        }
+
+        for &child in module_scope.children.iter() {
+            slot_counts.union_max(assign_nested_scope_slots_helper(
+                store,
+                &mut sorted_members,
+                &store[child],
+                symbols,
+                SlotCounts::default(),
+            ));
+        }
+
+        // Then set the nested scope slots of top-level symbols back to zero. Top-
+        // level symbols are not supposed to have nested scope slots.
+        for member in module_scope.members.values() {
+            symbols[member.ref_.inner_index() as usize].nested_scope_slot = INVALID_NESTED_SCOPE_SLOT;
+        }
+        for ref_ in module_scope.generated.iter() {
+            symbols[ref_.inner_index() as usize].nested_scope_slot = INVALID_NESTED_SCOPE_SLOT;
+        }
+
+        slot_counts
+    }
+
+    fn assign_nested_scope_slots_helper(
+        store: &Store,
+        sorted_members: &mut Vec<u32>,
+        scope: &Scope,
+        symbols: &mut [Symbol],
+        slot_to_copy: SlotCounts,
+    ) -> SlotCounts {
+        let mut slot = slot_to_copy;
+
+        // Sort member map keys for determinism
+        {
+            sorted_members.clear();
+            sorted_members.reserve(scope.members.len());
+            for member in scope.members.values() {
+                sorted_members.push(member.ref_.inner_index());
+            }
+            sorted_members.sort_unstable();
+
+            // Assign slots for this scope's symbols. Only do this if the slot is
+            // not already assigned. Nested scopes have copies of symbols from parent
+            // scopes and we want to use the slot from the parent scope, not child scopes.
+            for &inner_index in sorted_members.iter() {
+                let symbol = &mut symbols[inner_index as usize];
+                let ns = symbol.slot_namespace();
+                if ns != SlotNamespace::MustNotBeRenamed && symbol.nested_scope_slot().is_none() {
+                    symbol.nested_scope_slot = slot.slots[ns];
+                    slot.slots[ns] += 1;
+                }
+            }
+        }
+
+        for ref_ in scope.generated.iter() {
+            let symbol = &mut symbols[ref_.inner_index() as usize];
+            let ns = symbol.slot_namespace();
+            if ns != SlotNamespace::MustNotBeRenamed && symbol.nested_scope_slot().is_none() {
+                symbol.nested_scope_slot = slot.slots[ns];
+                slot.slots[ns] += 1;
+            }
+        }
+
+        // Labels are always declared in a nested scope, so we don't need to check.
+        if let Some(ref_) = scope.label_ref.to_nullable() {
+            let symbol = &mut symbols[ref_.inner_index() as usize];
+            let ns = SlotNamespace::Label;
+            symbol.nested_scope_slot = slot.slots[ns];
+            slot.slots[ns] += 1;
+        }
+
+        // Assign slots for the symbols of child scopes
+        let mut slot_counts = slot;
+        for &child in scope.children.iter() {
+            slot_counts.union_max(assign_nested_scope_slots_helper(store, sorted_members, &store[child], symbols, slot));
+        }
+
+        slot_counts
+    }
+}
 
 #[cfg(test)]
 mod defines_tests;

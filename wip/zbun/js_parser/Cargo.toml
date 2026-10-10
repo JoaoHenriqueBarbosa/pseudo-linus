@@ -17,5 +17,9 @@ bun_wyhash = { path = "../bun_wyhash" }
 bytemuck.workspace = true
 strum.workspace = true
 
+[features]
+# O parser copiado do upstream, enquanto não compila (README, "Próximos passos", passo 2).
+parser = []
+
 [lints]
 workspace = true
