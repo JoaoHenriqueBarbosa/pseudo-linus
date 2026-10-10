@@ -18,11 +18,12 @@ use crate::{document, encoding};
 
 /// O prelúdio JavaScript: o DOM e as APIs de janela escritos sobre a ponte. O valor do `let` de topo é o gancho de
 /// ciclo de vida; não é propriedade do global, então a página não o enxerga por introspecção.
-const PRELUDE_PARTS: [&str; 14] = [
+const PRELUDE_PARTS: [&str; 19] = [
     include_str!("../prelude/00-core.js"),
     include_str!("../prelude/10-events.js"),
     include_str!("../prelude/20-nodes.js"),
     include_str!("../prelude/30-elements.js"),
+    include_str!("../prelude/35-geometry.js"),
     include_str!("../prelude/40-html.js"),
     "const WEBGL_TABLE = ",
     include_str!("../data/webgl-swiftshader.json"),
@@ -30,6 +31,10 @@ const PRELUDE_PARTS: [&str; 14] = [
     include_str!("../data/webgl-extensions.json"),
     ";\n",
     include_str!("../prelude/45-webgl.js"),
+    "const CANVAS2D_SURFACE = ",
+    include_str!("../data/canvas2d-surface.json"),
+    ";\n",
+    include_str!("../prelude/46-canvas2d.js"),
     include_str!("../prelude/50-document.js"),
     include_str!("../prelude/55-xpath.js"),
     include_str!("../prelude/60-window.js"),
