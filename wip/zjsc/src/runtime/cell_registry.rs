@@ -609,6 +609,9 @@ impl Registry {
 
     fn push(&mut self, entry: Option<CellEntry>) -> usize {
         self.allocations += 1;
+        if let Some(entry) = &entry {
+            crate::runtime::heap_size::did_allocate(crate::runtime::heap_size::allocation_bytes(entry));
+        }
         let index = match self.free.pop() {
             Some(index) => {
                 let index = index as usize;
@@ -876,9 +879,14 @@ pub fn reserve() -> usize {
 
 /// Preenche (ou troca) a entrada de um id vindo de `insert`/`reserve`. `false` se o id não existe.
 pub fn set(cell_id: usize, entry: CellEntry) -> bool {
+    // A célula reservada só vira alocação de verdade aqui (o `reserve` não tem tipo nem tamanho ainda).
+    let bytes = crate::runtime::heap_size::allocation_bytes(&entry);
     CELLS.with(|registry| {
         let mut registry = registry.borrow_mut();
         let Some(index) = registry.slot(cell_id) else { return false };
+        if registry.cells[index].is_none() {
+            crate::runtime::heap_size::did_allocate(bytes);
+        }
         registry.cells[index] = Some(entry);
         true
     })
@@ -983,6 +991,12 @@ pub fn live_butterfly_bytes() -> usize {
     CELLS.with(|registry| {
         registry.borrow().cells.iter().flatten().filter_map(|entry| entry.as_js_object()).map(|object| object.indexed_storage_bytes()).sum()
     })
+}
+
+/// O tamanho do heap vivo em classes de alocação (`Heap::m_totalBytesVisited` mais a memória extra): o que a política
+/// de `heap_size` usa para dimensionar o ciclo seguinte.
+pub(crate) fn live_heap_bytes() -> usize {
+    CELLS.with(|registry| registry.borrow().cells.iter().flatten().map(crate::runtime::heap_size::cell_bytes).sum())
 }
 
 /// Solta a célula e devolve a entrada. O índice não é reaproveitado (o slot guarda o dono original, que

@@ -38,8 +38,8 @@ use crate::bytecode::unlinked_code_block::UnlinkedCodeBlock;
 use crate::runtime::cell_registry::{self, CellEntry};
 use crate::runtime::js_value::{JSValue, NOT_CELL_MASK};
 
-/// `Heap::m_minBytesPerCycle` em células: o mínimo de alocações entre duas coletas automáticas.
-const MIN_ALLOCATIONS_PER_CYCLE: usize = 100_000;
+/// `Heap::m_minBytesPerCycle`, agora em bytes: ver `heap_size`. O estresse (`ZJSC_GC_STRESS`) continua contando
+/// alocações, para o teste das raízes.
 
 /// O conjunto marcado e a pilha de trabalho de uma coleta (`SlotVisitor`).
 pub struct Marker {
@@ -281,8 +281,12 @@ struct State {
     scoped_roots: Vec<usize>,
     /// A contagem de alocações logo depois da última coleta (ou do início do programa).
     allocations_after_collection: usize,
-    /// Quantas alocações disparam a próxima coleta automática.
+    /// Quantas alocações disparam a próxima coleta automática (só no modo de estresse, que conta células).
     threshold: usize,
+    /// O relógio de bytes (`heap_size`) logo depois da última coleta (ou do início do programa).
+    bytes_after_collection: usize,
+    /// Quantos bytes o ciclo atual pode alocar antes da próxima coleta (`m_maxEdenSize`).
+    bytes_allowed: usize,
     /// Os `UnlinkedCodeBlock`s criados: as constantes dos vivos são raízes (o código pode ser ligado de novo).
     unlinked_code_blocks: Vec<Weak<RefCell<UnlinkedCodeBlock>>>,
     /// Os protótipos de toda `Structure` criada: a estrutura guarda o protótipo por id e vive em caches (o perfil
@@ -297,7 +301,7 @@ struct State {
 }
 
 thread_local! {
-    static STATE: RefCell<State> = RefCell::new(State { threshold: initial_threshold(), ..State::default() });
+    static STATE: RefCell<State> = RefCell::new(State { threshold: initial_threshold(), bytes_allowed: crate::runtime::heap_size::MIN_BYTES_PER_CYCLE, ..State::default() });
 }
 
 thread_local! {
@@ -321,7 +325,7 @@ fn stress_threshold() -> Option<usize> {
 }
 
 fn initial_threshold() -> usize {
-    stress_threshold().unwrap_or(MIN_ALLOCATIONS_PER_CYCLE)
+    stress_threshold().unwrap_or(usize::MAX)
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o estado do coletor é do VM que cai.
@@ -332,6 +336,8 @@ pub(crate) fn reset_for_program() {
         let mut state = state.borrow_mut();
         state.threshold = initial_threshold();
         state.allocations_after_collection = cell_registry::allocation_count();
+        state.bytes_after_collection = crate::runtime::heap_size::bytes_allocated();
+        state.bytes_allowed = crate::runtime::heap_size::MIN_BYTES_PER_CYCLE;
     });
 }
 
@@ -437,7 +443,15 @@ pub(crate) fn safe_point(interpreter: &crate::interpreter::interpreter::Interpre
     }
     let due = STATE.with(|state| {
         let state = state.borrow();
-        !state.collecting && cell_registry::allocation_count().saturating_sub(state.allocations_after_collection) >= state.threshold
+        if state.collecting {
+            return false;
+        }
+        if state.threshold != usize::MAX {
+            // Estresse: coleta a cada N alocações, em células.
+            return cell_registry::allocation_count().saturating_sub(state.allocations_after_collection) >= state.threshold;
+        }
+        // `Heap::shouldRequestGC`: os bytes alocados no ciclo passaram do que o heap permite.
+        crate::runtime::heap_size::bytes_allocated().saturating_sub(state.bytes_after_collection) > state.bytes_allowed
     });
     if due {
         collect(Some(interpreter), vm);
@@ -460,12 +474,15 @@ pub fn collect(interpreter: Option<&crate::interpreter::interpreter::Interpreter
         current.peak_live_cells = current.peak_live_cells.max(live);
         statistics.set(current);
     });
+    let live_bytes = cell_registry::live_heap_bytes();
     STATE.with(|state| {
         let mut state = state.borrow_mut();
         state.collecting = false;
         state.allocations_after_collection = cell_registry::allocation_count();
-        // `Heap::updateAllocationLimits`: o próximo ciclo espera alocar tanto quanto ficou vivo.
-        state.threshold = stress_threshold().unwrap_or_else(|| live.max(MIN_ALLOCATIONS_PER_CYCLE));
+        // `Heap::updateAllocationLimits`: o próximo ciclo aloca até `maxHeapSize - currentHeapSize`.
+        state.threshold = initial_threshold();
+        state.bytes_after_collection = crate::runtime::heap_size::bytes_allocated();
+        state.bytes_allowed = crate::runtime::heap_size::bytes_allowed_after_full_collection(live_bytes);
     });
     // `DeferredWorkTimer::scheduleWorkSoon` do `runFinalizationCleanup`: uma tarefa posterior que não segura o laço.
     if let Some(global_object) = cell_registry::first_global_object() {

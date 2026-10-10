@@ -27,8 +27,8 @@
 //!   inicialização dupla sob GC e `ObjectInitializationScope`; sem GC, nas formas de vetor
 //!   `try_create_uninitialized_restricted` é `try_create` (os elementos nascem buracos) e
 //!   `initialize_index` escreve por cima.
-//! - `vectorLength` é livre (`available_contiguous_vector_length` é a identidade): `tryCreate` com
-//!   `vectorLengthHint` reserva ao menos o hint, mas o valor exato não é observável.
+//! - `vectorLength` segue o tamanho de classe do `MarkedSpace` (`available_contiguous_vector_length`): `tryCreate` com
+//!   `vectorLengthHint` reserva ao menos o hint. O valor não aparece em JS, mas o relógio de bytes do coletor o conta.
 //!   `reallocateAndShrinkButterfly` de `setLength` vira o mesmo laço de limpeza do ramo curto, porque
 //!   encolher o `Vec` não é observável.
 //! - O C++ lança `RangeError`/`TypeError`/`OutOfMemoryError` pelo `ThrowScope`. Aqui as funções que podem
@@ -248,7 +248,7 @@ impl JSArray {
         let object = JSObject::allocate(vm, structure);
         // `Butterfly::clearRange(indexingType, butterfly, 0, vectorLength)`: o `ensureLength` já deixa os
         // elementos novos como buraco (`JSValue()` ou `PNaN`).
-        if vector_length_hint > 0 && !object.ensure_length(vm, vector_length_hint) {
+        if !object.allocate_vector(vector_length_hint) {
             return None;
         }
         object.set_public_length(initial_length);

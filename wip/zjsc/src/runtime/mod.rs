@@ -256,6 +256,7 @@ pub mod async_from_sync_iterator_prototype;
 pub mod module_program_executable;
 pub mod cell_registry;
 pub mod gc;
+pub mod heap_size;
 pub mod code_cache;
 pub mod function_overrides;
 pub mod inferred_value;

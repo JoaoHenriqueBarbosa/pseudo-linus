@@ -132,10 +132,15 @@ pub fn next_length(length: usize) -> usize {
     length + length / 2
 }
 
-/// `Butterfly::availableContiguousVectorLength(propertyCapacity, vectorLength)`: a identidade (veja o
-/// cabeçalho do módulo).
-pub fn available_contiguous_vector_length(_property_capacity: usize, vector_length: u32) -> u32 {
-    vector_length
+/// `Butterfly::availableContiguousVectorLength(propertyCapacity, vectorLength)`: arredonda a `Butterfly` ao tamanho de
+/// classe do `MarkedSpace` e devolve quantos elementos cabem nela. O valor não aparece em JS, mas o relógio de bytes
+/// do coletor (`heap_size`) conta a `Butterfly` inteira, então o tamanho exato muda o momento da coleta.
+pub fn available_contiguous_vector_length(property_capacity: usize, vector_length: u32) -> u32 {
+    // `Butterfly::totalSize(0, propertyCapacity, true, payload)`: propriedades fora de linha, cabeçalho de indexação (8
+    // bytes) e o vetor.
+    let total_size = |payload: usize| property_capacity * 8 + 8 + payload;
+    let cell_size = crate::runtime::heap_size::optimal_size_for(total_size(8 * vector_length as usize));
+    ((cell_size - total_size(0)) / 8) as u32
 }
 
 /// `Butterfly::optimalContiguousVectorLength(propertyCapacity, vectorLength)`.
@@ -773,6 +778,9 @@ impl JSObject {
     /// `allocateMoreOutOfLineStorage(vm, oldSize, newSize)`: as posições novas começam vazias.
     pub fn allocate_more_out_of_line_storage(&self, _vm: &VM, old_size: usize, new_size: usize) {
         debug_assert!(new_size > old_size);
+        // O C++ aloca uma `Butterfly` nova inteira (`AuxiliarySpace`): o relógio de bytes do coletor conta o total.
+        let (vector_length, has_indexing) = self.butterfly_shape();
+        crate::runtime::heap_size::did_allocate_butterfly(new_size, vector_length, has_indexing);
         let mut butterfly = self.butterfly.borrow_mut();
         debug_assert!(butterfly.out_of_line.len() >= old_size.min(butterfly.out_of_line.len()));
         butterfly.out_of_line.resize(new_size, JSValue::empty());
@@ -2423,6 +2431,16 @@ impl JSObject {
         self.butterfly.borrow().indexed.vector_length()
     }
 
+    /// O comprimento de vetor e se há cabeçalho de indexação, para a contabilidade de bytes do coletor (`heap_size`);
+    /// `(0, false)` quando a butterfly está emprestada para escrita (a coleta não lê o que não pode provar).
+    pub(crate) fn butterfly_shape(&self) -> (usize, bool) {
+        let Ok(butterfly) = self.butterfly.try_borrow() else { return (0, false) };
+        match &butterfly.indexed {
+            IndexedStorage::None => (0, false),
+            indexed => (indexed.vector_length() as usize, true),
+        }
+    }
+
     /// `nonPropertyTransition` aplicado a este objeto.
     pub(crate) fn transition_indexing(&self, vm: &VM, transition_kind: TransitionKind) {
         let old_structure = self.structure();
@@ -2811,8 +2829,21 @@ impl JSObject {
             )
         };
 
+        self.resize_vector(property_capacity, new_vector_length)
+    }
+
+    /// Aloca o vetor indexado com `new_vector_length` elementos (a `Butterfly` nova do C++): `JSArray::tryCreate` o usa
+    /// direto, com o comprimento ótimo, e `ensureLengthSlow` com o comprimento crescido.
+    pub(crate) fn allocate_vector(&self, vector_length: u32) -> bool {
+        let property_capacity = self.structure().out_of_line_capacity() as usize;
+        self.resize_vector(property_capacity, optimal_contiguous_vector_length(property_capacity, vector_length))
+    }
+
+    fn resize_vector(&self, property_capacity: usize, new_vector_length: u32) -> bool {
         // `Vec::resize` abortaria o processo se o alocador recusasse (até 2 GiB aqui); `try_resize` devolve
-        // `false`, que `ensure_length` repassa como a falta de memória.
+        // `false`, que `ensure_length` repassa como a falta de memória. O C++ aloca uma `Butterfly` nova do tamanho
+        // inteiro: o relógio de bytes do coletor conta ela.
+        crate::runtime::heap_size::did_allocate_butterfly(property_capacity, new_vector_length as usize, true);
         let mut butterfly = self.butterfly.borrow_mut();
         match &mut butterfly.indexed {
             IndexedStorage::Doubles(doubles) => {
