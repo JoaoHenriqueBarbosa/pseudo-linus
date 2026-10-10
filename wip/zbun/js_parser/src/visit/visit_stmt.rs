@@ -1,4 +1,5 @@
 #![warn(unused_must_use)]
+use bun_ast::NodeStore as _;
 use crate::Error;
 use crate::lexer as js_lexer;
 use crate::p::{P, ReactRefreshExportKind};
@@ -483,14 +484,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     stmts.push(Stmt::alloc(
                         S::Local {
                             kind: S::Kind::KConst,
-                            decls: G::DeclList::from_slice(&[G::Decl {
+                            decls: p.store.alloc_slice((&[G::Decl {
                                 binding: Binding::alloc(
                                     p.arena,
                                     B::Identifier { r#ref: temp_id },
                                     stmt.loc,
                                 ),
                                 value: Some(value_expr),
-                            }]),
+                            }]).to_vec()),
                             ..Default::default()
                         },
                         stmt.loc,
@@ -535,14 +536,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         stmt.loc,
                     ));
                     let items = core::slice::from_mut(p.arena.alloc(js_ast::ClauseItem {
-                        alias: js_ast::StoreStr::new(b"default"),
+                        alias: p.store.alloc_str(b"default"),
                         alias_loc: data.default_name.loc,
                         name: data.default_name,
                         ..Default::default()
                     }));
                     stmts.push(p.s(
                         S::ExportClause {
-                            items: bun_ast::StoreSlice::new_mut(items),
+                            items: p.store.alloc_slice(items),
                             is_single_line: false,
                         },
                         stmt.loc,
@@ -706,14 +707,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     stmts.push(Stmt::alloc(
                                         S::Local {
                                             kind: S::Kind::KConst,
-                                            decls: G::DeclList::from_slice(&[G::Decl {
+                                            decls: p.store.alloc_slice((&[G::Decl {
                                                 binding: Binding::alloc(
                                                     p.arena,
                                                     B::Identifier { r#ref: ref_to_use },
                                                     stmt.loc,
                                                 ),
                                                 value: Some(e),
-                                            }]),
+                                            }]).to_vec()),
                                             ..Default::default()
                                         },
                                         stmt.loc,
@@ -977,10 +978,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     S::Local {
                         kind: S::Kind::KVar,
                         is_export: true,
-                        decls: G::DeclList::from_slice(&[G::Decl {
+                        decls: p.store.alloc_slice((&[G::Decl {
                             binding,
                             value: Some(wrapped),
-                        }]),
+                        }]).to_vec()),
                         ..Default::default()
                     },
                     stmt.loc,
@@ -1460,7 +1461,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 // last entry's value: `keys()` borrows the map; wrap as
                                 // `StoreStr` so the borrow is detached before re-borrowing
                                 // `commonjs_named_exports` mutably below.
-                                let key: &'a [u8] = js_ast::StoreStr::new(
+                                let key: &'a [u8] = p.store.alloc_str(
                                     &p.commonjs_named_exports.keys()[to_convert as usize][..],
                                 )
                                 .slice();
@@ -1510,7 +1511,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 let clause_items =
                                     core::slice::from_mut(p.arena.alloc(js_ast::ClauseItem {
                                         // We want the generated name to not conflict
-                                        alias: js_ast::StoreStr::new(key),
+                                        alias: p.store.alloc_str(key),
                                         alias_loc: bin.left.loc,
                                         name: js_ast::LocRef {
                                             ref_,
@@ -1529,7 +1530,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 );
                                 let export = p.s(
                                     S::ExportClause {
-                                        items: bun_ast::StoreSlice::new_mut(clause_items),
+                                        items: p.store.alloc_slice(clause_items),
                                         is_single_line: true,
                                     },
                                     stmt.loc,

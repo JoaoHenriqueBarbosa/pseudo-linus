@@ -1,4 +1,5 @@
 #![warn(unused_must_use)]
+use bun_ast::NodeStore as _;
 use bun_collections::VecExt;
 use std::io::Write as _;
 
@@ -2678,7 +2679,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 p.nearest_stmt_list_mut().unwrap().push(decl);
 
                 p.handle_react_refresh_post_visit_function_body(&mut stmts_list, hook);
-                p.store[e_].body.stmts = bun_ast::StoreSlice::new_mut(stmts_list.into_bump_slice_mut());
+                p.store[e_].body.stmts = p.store.alloc_slice(stmts_list);
 
                 *e = p.get_react_refresh_hook_signal_init(hook, expr);
                 return;
@@ -2707,7 +2708,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.store[e_].prefer_expr = true;
         }
 
-        p.store[e_].body.stmts = bun_ast::StoreSlice::new_mut(stmts_list.into_bump_slice_mut());
+        p.store[e_].body.stmts = p.store.alloc_slice(stmts_list);
     }
     #[inline(never)] // PERF(port:frame): see e_jsx_element.
     fn e_function(p: &mut Self, e: &mut Expr, in_: ExprIn) {

@@ -1,4 +1,5 @@
 #![warn(unused_must_use)]
+use bun_ast::NodeStore as _;
 use bun_alloc::AllocError;
 use bun_ast::import_record;
 use bun_collections::StringArrayHashMap;
@@ -452,7 +453,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                             items_len,
                         );
                     }
-                    self.store[stmt].items = bun_ast::StoreSlice::new_mut(concat);
+                    self.store[stmt].items = self.store.alloc_slice(concat);
                 }
             }
             if namespace_ref.is_valid() {
@@ -608,7 +609,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                     E::Function {
                         func: G::Fn {
                             body: G::FnBody {
-                                stmts: bun_ast::StoreSlice::new_mut(body_stmts),
+                                stmts: self.store.alloc_slice(body_stmts),
                                 loc,
                             },
                             ..Default::default()
@@ -653,7 +654,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
         if !self.export_props.is_empty() {
             let obj = Expr::init(
                 E::Object {
-                    properties: G::PropertyList::move_from_list(core::mem::take(
+                    properties: self.store.alloc_slice(core::mem::take(
                         &mut self.export_props,
                     )),
                     ..Default::default()
@@ -762,7 +763,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
         // Note: `Stmt` is `Copy`;
         // copy into the parser arena so the `StoreSlice<Stmt>` outlives this struct.
         let stmts = core::mem::take(&mut self.stmts);
-        self.last_part.stmts = bun_ast::StoreSlice::new_mut(p.arena.alloc_slice_copy(&stmts));
+        self.last_part.stmts = self.store.alloc_slice(p.arena.alloc_slice_copy(&stmts));
         self.last_part.tag = bun_ast::PartTag::None;
         Ok(())
     }

@@ -84,6 +84,7 @@ pub mod Macro {
 }
 
 #[cfg(feature = "parser")]
+use bun_ast::NodeStore as _;
 use bun_ast::{Ast, Ref};
 
 // NOTE: shadows the prelude `Result` for this module. All error-union return

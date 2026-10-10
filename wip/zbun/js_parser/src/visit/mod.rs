@@ -6,6 +6,7 @@ pub mod visit_binary;
 pub(crate) mod visit_expr;
 pub(crate) mod visit_stmt;
 
+use bun_ast::NodeStore as _;
 use crate::lexer as js_lexer;
 use crate::p::{LowerUsingDeclarationsContext, P};
 use crate::parser::{
@@ -186,7 +187,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         func.body = G::FnBody {
-            stmts: bun_ast::StoreSlice::new_mut(stmts.into_bump_slice_mut()),
+            stmts: self.store.alloc_slice(stmts),
             loc: body_loc,
         };
 
@@ -936,7 +937,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.pop_scope();
         let items: &'a mut [Stmt] = stmts.into_bump_slice_mut();
         if let StmtData::SBlock(mut b) = new_stmt.data {
-            self.store[b].stmts = bun_ast::StoreSlice::new_mut(items);
+            self.store[b].stmts = self.store.alloc_slice(items);
         }
         if self.options.features.minify_syntax {
             // `stmts` was consumed above; `items` aliases the slice now
@@ -1376,7 +1377,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         stmts.extend_from_slice(&old_body[..super_end]);
                         stmts.extend_from_slice(&injected);
                         stmts.extend_from_slice(&old_body[super_end..]);
-                        self.store[cf].func.body.stmts = bun_ast::StoreSlice::from_bump(stmts);
+                        self.store[cf].func.body.stmts = self.store.alloc_slice(stmts);
                     } else {
                         let loc = class.body_loc;
                         let mut ctor_stmts = BumpVec::<Stmt>::with_capacity_in(
@@ -1396,7 +1397,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 },
                                 loc,
                             );
-                            let args = ExprNodeList::init_one(spread);
+                            let args = self.store.alloc_slice([spread]);
                             let call = self.new_expr(
                                 E::Call {
                                     target,
@@ -1423,7 +1424,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     args: bun_ast::StoreSlice::EMPTY,
                                     body: G::FnBody {
                                         loc,
-                                        stmts: bun_ast::StoreSlice::from_bump(ctor_stmts),
+                                        stmts: self.store.alloc_slice(ctor_stmts),
                                     },
                                     flags: flags::FUNCTION_NONE,
                                     ..Default::default()
@@ -1442,7 +1443,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         );
                     }
 
-                    class.properties = bun_ast::StoreSlice::from_bump(class_body);
+                    class.properties = self.store.alloc_slice(class_body);
                 }
             }
 
@@ -1675,7 +1676,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 );
 
                 if let_decls.len() > 0 {
-                    let decls = G::DeclList::from_bump_vec(let_decls);
+                    let decls = self.store.alloc_slice(let_decls);
                     let loc = decls.at(0).value.unwrap().loc;
                     before.push(p.s(
                         S::Local {
@@ -1695,7 +1696,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             before.push(new);
                         }
                     } else {
-                        let decls = G::DeclList::from_bump_vec(var_decls);
+                        let decls = self.store.alloc_slice(var_decls);
                         let loc = decls.at(0).value.unwrap().loc;
                         before.push(p.s(
                             S::Local {

@@ -1,4 +1,5 @@
 #![warn(unused_must_use)]
+use bun_ast::NodeStore as _;
 use bun_collections::VecExt;
 
 use crate::Error;
@@ -64,7 +65,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
         }
 
-        Ok(ExprNodeList::from_bump_vec(decorators))
+        Ok(self.store.alloc_slice(decorators))
     }
 
     /// Parse a standard (TC39) decorator expression following the `@` token.
@@ -472,7 +473,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             S::Namespace {
                 name,
                 arg: arg_ref,
-                stmts: bun_ast::StoreSlice::new_mut(stmts_slice),
+                stmts: self.store.alloc_slice(stmts_slice),
                 is_export: opts.is_export,
             },
             loc,
@@ -512,7 +513,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.lexer.expect(T::TStringLiteral)?;
             p.lexer.expect(T::TCloseParen)?;
             if !opts.is_typescript_declare {
-                let args = ExprNodeList::init_one(path);
+                let args = self.store.alloc_slice([path]);
                 let close_paren_loc = p.lexer.loc();
                 value = p.new_expr(
                     E::Call {
@@ -558,10 +559,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             .declare_symbol(SymbolKind::Constant, default_name_loc, default_name)
             .expect("unreachable");
         let binding = p.b(B::Identifier { r#ref: ref_ }, default_name_loc);
-        let decls = G::DeclList::init_one(G::Decl {
+        let decls = self.store.alloc_slice([G::Decl {
             binding,
             value: Some(value),
-        });
+        }]);
         Ok(p.s(
             S::Local {
                 kind,
@@ -627,7 +628,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let mut value = EnumValue {
                 loc: p.lexer.loc(),
                 ref_: Ref::NONE,
-                name: js_ast::StoreStr::new(b"" as &[u8]),
+                name: self.store.alloc_str(b"" as &[u8]),
                 value: None,
             };
             // Parse the name
@@ -639,7 +640,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 value.name = estr.data;
                 js_lexer::is_identifier(self.store.str(value.name))
             } else if p.lexer.is_identifier_or_keyword() {
-                value.name = js_ast::StoreStr::new(p.lexer.identifier);
+                value.name = self.store.alloc_str(p.lexer.identifier);
                 true
             } else {
                 p.lexer.expect(T::TIdentifier)?;
@@ -772,7 +773,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             S::Enum {
                 name,
                 arg: arg_ref,
-                values: bun_ast::StoreSlice::new_mut(values.into_bump_slice_mut()),
+                values: self.store.alloc_slice(values),
                 is_export: opts.is_export,
             },
             loc,

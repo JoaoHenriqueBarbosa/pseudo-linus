@@ -1,4 +1,5 @@
 use crate::js_lexer;
+use bun_ast::NodeStore as _;
 use crate::p::P;
 use crate::parser::FindSymbolResult;
 use bun_ast as js_ast;
@@ -90,7 +91,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 self.symbols[new_ref.inner_index() as usize].namespace_alias =
                                     Some(Box::new(js_ast::NamespaceAlias {
                                         namespace_ref: arg_ref,
-                                        alias: js_ast::StoreStr::new(name),
+                                        alias: self.store.alloc_str(name),
                                         ..Default::default()
                                     }));
                                 break 'brk new_ref;

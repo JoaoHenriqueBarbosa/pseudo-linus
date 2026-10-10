@@ -1,6 +1,7 @@
 #![allow(clippy::too_many_arguments, clippy::needless_late_init)]
 //! Lowering for TC39 standard ES decorators.
 
+use bun_ast::NodeStore as _;
 use bun_alloc::ArenaVecExt as _;
 
 use bun_collections::{HashMap, VecExt};
@@ -153,7 +154,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     fn call_rt(&mut self, l: bun_ast::Loc, name: &'static [u8], args: &[Expr]) -> Expr {
         let bump = self.arena;
         let a = bump.alloc_slice_copy(args);
-        let list = ExprNodeList::from_arena_slice(a);
+        let list = self.store.alloc_slice((a).to_vec());
         self.call_runtime(l, name, list)
     }
 
@@ -167,7 +168,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     /// Single var declaration statement.
     fn var_decl(&mut self, ref_: Ref, value: Option<Expr>, l: bun_ast::Loc) -> Stmt {
         let binding = self.b(B::Identifier { r#ref: ref_ }, l);
-        let decls = DeclList::from_slice(&[G::Decl { binding, value }]);
+        let decls = self.store.alloc_slice((&[G::Decl { binding, value }]).to_vec());
         self.s(
             S::Local {
                 decls,
@@ -188,7 +189,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     ) -> Stmt {
         let b1 = self.b(B::Identifier { r#ref: r1 }, l);
         let b2 = self.b(B::Identifier { r#ref: r2 }, l);
-        let decls = DeclList::from_slice(&[
+        let decls = self.store.alloc_slice((&[
             G::Decl {
                 binding: b1,
                 value: v1,
@@ -197,7 +198,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 binding: b2,
                 value: v2,
             },
-        ]);
+        ]).to_vec());
         self.s(
             S::Local {
                 decls,
@@ -795,7 +796,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 new_args.push(*arg);
                             }
                             self.store[*e].target = call_target;
-                            self.store[*e].args = ExprNodeList::from_bump_vec(new_args);
+                            self.store[*e].args = self.store.alloc_slice(new_args);
                             return;
                         }
                     }
@@ -902,7 +903,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.temp_refs_to_declare.truncate(baseline);
         Some(self.s(
             S::Local {
-                decls: DeclList::from_bump_vec(capture_decls),
+                decls: self.store.alloc_slice(capture_decls),
                 ..Default::default()
             },
             loc,
@@ -928,7 +929,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut new_stmts = BumpVec::<Stmt>::with_capacity_in(old_stmts.len() + 1, self.arena);
         new_stmts.push(decl_stmt);
         new_stmts.extend_from_slice(old_stmts);
-        js_ast::StmtNodeList::from_bump(new_stmts)
+        self.store.alloc_slice(new_stmts)
     }
 
     fn rewrite_private_accesses_in_stmts(&mut self, stmts: &mut [Stmt], map: &PrivateLoweredMap) {
@@ -1561,7 +1562,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     )]);
                     let get_fn = G::Fn {
                         body: G::FnBody {
-                            stmts: bun_ast::StoreSlice::new_mut(get_body),
+                            stmts: self.store.alloc_slice(get_body),
                             loc,
                         },
                         ..Default::default()
@@ -1591,9 +1592,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         ..Default::default()
                     });
                     let set_fn = G::Fn {
-                        args: bun_ast::StoreSlice::new_mut(core::slice::from_mut(setter_fn_args)),
+                        args: self.store.alloc_slice(core::slice::from_mut(setter_fn_args)),
                         body: G::FnBody {
-                            stmts: bun_ast::StoreSlice::new_mut(set_body),
+                            stmts: self.store.alloc_slice(set_body),
                             loc,
                         },
                         ..Default::default()
@@ -1867,7 +1868,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
 
-            let dec_args_list = ExprNodeList::from_bump_vec(dec_args);
+            let dec_args_list = self.store.alloc_slice(dec_args);
             let raw_element = p.call_runtime(loc, b"__decorateElement", dec_args_list);
             let element = if let Some(fn_ref) = private_method_fn_ref {
                 p.assign_to(fn_ref, raw_element, loc)
@@ -2072,7 +2073,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 )
             });
 
-            let cls_dec_list = ExprNodeList::from_bump_vec(cls_dec_args);
+            let cls_dec_list = self.store.alloc_slice(cls_dec_args);
             let dec_call = p.call_runtime(loc, b"__decorateElement", cls_dec_list);
             suffix_exprs.push(p.assign_to(class_name_ref, dec_call, class_name_loc));
         }
@@ -2116,7 +2117,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             }
                         } else {
                             // Wrap in IIFE
-                            let stmts_ptr = bun_ast::StoreSlice::new_mut(stmts_slice);
+                            let stmts_ptr = self.store.alloc_slice(stmts_slice);
                             let iife_body = p.new_expr(
                                 E::Arrow {
                                     body: G::FnBody {
@@ -2157,7 +2158,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if let Some(init_val) = entry.prop.initializer {
                             run_args.push(init_val);
                         }
-                        let run_args_list = ExprNodeList::from_bump_vec(run_args);
+                        let run_args_list = self.store.alloc_slice(run_args);
                         let run_init_call =
                             p.call_runtime(loc, b"__runInitializers", run_args_list);
 
@@ -2241,7 +2242,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if let Some(init_val) = entry.prop.initializer {
                     run_args.push(init_val);
                 }
-                let run_args_list = ExprNodeList::from_bump_vec(run_args);
+                let run_args_list = self.store.alloc_slice(run_args);
                 let run_init_call = p.call_runtime(loc, b"__runInitializers", run_args_list);
 
                 if entry.is_accessor || entry.is_private {
@@ -2327,7 +2328,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 spliced.extend_from_slice(&body_stmts[..insert_at]);
                 spliced.extend_from_slice(&constructor_inject_stmts);
                 spliced.extend_from_slice(&body_stmts[insert_at..]);
-                func.func.body.stmts = bun_ast::StoreSlice::new_mut(spliced.into_bump_slice_mut());
+                func.func.body.stmts = self.store.alloc_slice(spliced);
                 found_constructor = true;
                 break;
             }
@@ -2346,7 +2347,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     );
                     let spread = p.new_expr(E::Spread { value: inner }, loc);
                     let arg_slice = bump.alloc_slice_copy(&[spread]);
-                    let call_args = ExprNodeList::from_arena_slice(arg_slice);
+                    let call_args = self.store.alloc_slice((arg_slice).to_vec());
                     let call = p.new_expr(
                         E::Call {
                             target,
@@ -2364,7 +2365,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     ));
                 }
                 ctor_stmts.extend_from_slice(&constructor_inject_stmts);
-                let ctor_body_ptr = bun_ast::StoreSlice::new_mut(ctor_stmts.into_bump_slice_mut());
+                let ctor_body_ptr = self.store.alloc_slice(ctor_stmts);
                 let func = G::Fn {
                     name: None,
                     open_parens_loc: bun_ast::Loc::EMPTY,
@@ -2410,7 +2411,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             new_properties = merged;
         }
 
-        class.properties = bun_ast::StoreSlice::new_mut(new_properties.into_bump_slice_mut());
+        class.properties = self.store.alloc_slice(new_properties);
         class.has_decorators = false;
         class.should_lower_standard_decorators = false;
 
@@ -2508,7 +2509,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Emit var declarations
             if !expr_var_decls.is_empty() {
-                let decls = DeclList::from_bump_vec(expr_var_decls);
+                let decls = self.store.alloc_slice(expr_var_decls);
                 let var_decl_stmt = p.s(
                     S::Local {
                         decls,
@@ -2567,7 +2568,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 },
                 class_name_loc,
             ));
-            let decls = DeclList::from_slice(&[G::Decl { binding, value }]);
+            let decls = self.store.alloc_slice((&[G::Decl { binding, value }]).to_vec());
             out.push(p.s(
                 S::Local {
                     kind: S::Kind::KLet,

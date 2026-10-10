@@ -1,6 +1,7 @@
 //! O `Define` com o `store` próprio (opção (B) do README): os índices de `DefineData.value` valem no `Store` de
 //! cada arquivo, que nasce como cópia do `store` do `Define`.
 
+use bun_ast::NodeStore as _;
 use bun_ast::{E, ExprData, NodeStore};
 
 use crate::defines::{Define, DefineData};

@@ -1,4 +1,5 @@
 use bun_alloc::ArenaVecExt as _;
+use bun_ast::NodeStore as _;
 use bun_collections::VecExt;
 use core::mem::MaybeUninit;
 
@@ -598,7 +599,7 @@ impl<'a> Parser<'a> {
             ..Default::default()
         };
 
-        let lazy_data = js_ast::StoreRef::from_bump(p.arena.alloc(final_expr.data));
+        let lazy_data = self.store.alloc(final_expr.data);
         let stmts: &mut [Stmt] = p.arena.alloc_slice_fill_with(1, |_| Stmt {
             data: js_ast::StmtData::SLazyExport(lazy_data),
             loc: expr.loc,

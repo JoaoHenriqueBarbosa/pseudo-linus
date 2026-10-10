@@ -1,5 +1,6 @@
 #![allow(clippy::single_match)]
 #![warn(unused_must_use)]
+use bun_ast::NodeStore as _;
 use bun_collections::VecExt;
 use bun_core;
 
@@ -385,7 +386,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 cases.push(js_ast::Case {
                     value,
-                    body: bun_ast::StoreSlice::from_bump(body),
+                    body: p.store.alloc_slice(body),
                     loc: bun_ast::Loc::EMPTY,
                 });
             }
@@ -394,7 +395,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 S::Switch {
                     test,
                     body_loc,
-                    cases: bun_ast::StoreSlice::from_bump(cases),
+                    cases: p.store.alloc_slice(cases),
                 },
                 loc,
             ))
@@ -455,7 +456,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             catch = Some(js_ast::Catch {
                 loc: catch_loc,
                 binding,
-                body: bun_ast::StoreSlice::from_bump(stmts),
+                body: p.store.alloc_slice(stmts),
                 body_loc: catch_body_loc,
             });
             p.pop_scope();
@@ -470,7 +471,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.lexer.next()?;
             finally = Some(js_ast::Finally {
                 loc: finally_loc,
-                stmts: bun_ast::StoreSlice::from_bump(stmts),
+                stmts: p.store.alloc_slice(stmts),
             });
             p.pop_scope();
         }
@@ -478,7 +479,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         Ok(p.s(
             S::Try {
                 body_loc,
-                body: bun_ast::StoreSlice::from_bump(body),
+                body: p.store.alloc_slice(body),
                 catch,
                 finally,
             },
@@ -810,7 +811,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.lexer.next()?;
             Ok(p.s(
                 S::Block {
-                    stmts: bun_ast::StoreSlice::from_bump(stmts),
+                    stmts: p.store.alloc_slice(stmts),
                     close_brace_loc,
                 },
                 loc,
@@ -1215,7 +1216,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     namespace_ref = p.store_name_in_ref(name);
                     alias = Some(G::ExportStarAlias {
                         loc: p.lexer.loc(),
-                        original_name: bun_ast::StoreStr::new(name),
+                        original_name: p.store.alloc_str(name),
                     });
                     p.lexer.next()?;
                     p.lexer.expect_contextual_keyword(b"from")?;
@@ -1951,7 +1952,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             for decl in (&p.store[p.store[*local].decls]) {
                                 Self::extract_decls_for_binding(decl.binding, &mut _decls)?;
                             }
-                            decls = G::DeclList::from_bump_vec(_decls);
+                            decls = p.store.alloc_slice(_decls);
                         }
                         _ => {}
                     }

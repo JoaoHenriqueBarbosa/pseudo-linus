@@ -1,5 +1,6 @@
 //! JavaScript/JSON lexer.
 
+use bun_ast::NodeStore as _;
 use core::fmt;
 
 use bun_alloc::Arena;

@@ -5,6 +5,7 @@
 //! - Wraps code with await in async IIFE with variable hoisting
 //! - Hoists declarations for variable persistence across REPL lines
 
+use bun_ast::NodeStore as _;
 use bun_alloc::Arena as Bump;
 use bun_alloc::{ArenaVec as BumpVec, ArenaVecExt as _};
 use bun_collections::VecExt;
@@ -119,7 +120,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     }
 
                     if !hoisted_decl_list.is_empty() {
-                        let decls = G::DeclList::from_bump_vec(hoisted_decl_list);
+                        let decls = self.store.alloc_slice(hoisted_decl_list);
                         hoisted_stmts.push(self.s(
                             S::Local {
                                 kind,
@@ -493,7 +494,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
             E::Arrow {
                 body: G::FnBody {
                     loc: bun_ast::Loc::EMPTY,
-                    stmts: bun_ast::StoreSlice::new_mut(inner_slice),
+                    stmts: self.store.alloc_slice(inner_slice),
                 },
                 is_async,
                 ..Default::default()
@@ -530,11 +531,11 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         // reinjected directive's IIFE isn't dropped.
         if parts.is_empty() {
             parts.push(js_ast::Part {
-                stmts: bun_ast::StoreSlice::new_mut(final_slice),
+                stmts: self.store.alloc_slice(final_slice),
                 ..Default::default()
             });
         } else {
-            parts[0].stmts = bun_ast::StoreSlice::new_mut(final_slice);
+            parts[0].stmts = self.store.alloc_slice(final_slice);
             parts.truncate(1);
         }
 
@@ -743,7 +744,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
             value: Some(expr),
             ..Default::default()
         });
-        let prop_list = G::PropertyList::from_bump_vec(properties);
+        let prop_list = self.store.alloc_slice(properties);
         self.new_expr(
             E::Object {
                 properties: prop_list,
@@ -842,7 +843,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                         items.push(expr);
                     }
                 }
-                let item_list = ExprNodeList::from_bump_vec(items);
+                let item_list = self.store.alloc_slice(items);
                 self.new_expr(
                     E::Array {
                         items: item_list,
@@ -871,7 +872,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                         ..Default::default()
                     });
                 }
-                let prop_list = G::PropertyList::from_bump_vec(properties);
+                let prop_list = self.store.alloc_slice(properties);
                 self.new_expr(
                     E::Object {
                         properties: prop_list,

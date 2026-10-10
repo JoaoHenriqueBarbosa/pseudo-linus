@@ -1,4 +1,5 @@
 #![warn(unused_must_use)]
+use bun_ast::NodeStore as _;
 use bun_collections::VecExt;
 use bun_core::feature_flags as FeatureFlags;
 
@@ -246,7 +247,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         symbol.namespace_alias =
                                             Some(Box::new(G::NamespaceAlias {
                                                 namespace_ref: id.ref_,
-                                                alias: js_ast::StoreStr::new(name),
+                                                alias: self.store.alloc_str(name),
                                                 import_record_index,
                                                 was_originally_property_access: true,
                                             }));

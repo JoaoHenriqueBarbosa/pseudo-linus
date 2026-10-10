@@ -1,4 +1,5 @@
 #![warn(unused_must_use)]
+use bun_ast::NodeStore as _;
 use crate::lexer::T;
 use crate::p::P;
 use crate::parser::{JSXTag, options};
@@ -219,7 +220,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if is_key_after_spread {
                 flags.insert(flags::JSXElement::IsKeyAfterSpread);
             }
-            properties = G::PropertyList::move_from_list(props);
+            properties = self.store.alloc_slice(props);
             if is_key_after_spread
                 && p.options.jsx.runtime == options::JSXRuntime::Automatic
                 && !p.has_classic_runtime_warned
@@ -364,7 +365,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     return Ok(p.new_expr(
                         E::JSXElement {
                             tag: end_tag.data.as_expr(),
-                            children: ExprNodeList::move_from_list(children),
+                            children: self.store.alloc_slice(children),
                             properties,
                             key_prop_index: key_prop_i,
                             flags,

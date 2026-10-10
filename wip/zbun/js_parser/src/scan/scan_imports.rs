@@ -1,5 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 #![warn(unused_must_use)]
+use bun_ast::NodeStore as _;
 use crate::lower::lower_esm_exports_hmr::ConvertESMExportsForHmr;
 use crate::p::P;
 use crate::parser::{ImportItemForNamespaceMap, Ref};
@@ -396,7 +397,7 @@ impl<'a> ImportScanner<'a> {
                                 handle_oom(p.named_imports.put(
                                     item.ref_,
                                     js_ast::NamedImport {
-                                        alias: Some(js_ast::StoreStr::new(*alias)),
+                                        alias: Some(p.store.alloc_str(*alias)),
                                         alias_loc: item.loc,
                                         namespace_ref,
                                         import_record_index: st.import_record_index,
@@ -418,7 +419,7 @@ impl<'a> ImportScanner<'a> {
                                 symbol.namespace_alias =
                                     Some(Box::new(G::NamespaceAlias {
                                         namespace_ref,
-                                        alias: js_ast::StoreStr::new(*alias),
+                                        alias: p.store.alloc_str(*alias),
                                         import_record_index: st.import_record_index,
                                         was_originally_property_access: !st
                                             .star_name_loc
@@ -714,7 +715,7 @@ impl<'a> ImportScanner<'a> {
                         let export_default_args = p.arena.alloc_slice_fill_default::<Expr>(2);
                         export_default_args[0] = p.module_exports(expr.loc);
                         export_default_args[1] = expr;
-                        let args = js_ast::ExprNodeList::from_arena_slice(export_default_args);
+                        let args = p.store.alloc_slice((export_default_args).to_vec());
                         let value = p.call_runtime(expr.loc, b"__exportDefault", args);
                         stmt = p.s(
                             S::SExpr {

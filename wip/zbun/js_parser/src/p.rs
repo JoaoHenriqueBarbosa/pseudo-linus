@@ -2,6 +2,7 @@ use bun_collections::VecExt;
 // This file defines the `P` parser struct (generic over typescript/jsx/scan_only
 // const params) and its core methods.
 
+use bun_ast::NodeStore as _;
 use core::ptr::NonNull;
 use std::io::Write as _;
 
@@ -1594,7 +1595,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.new_expr(
             E::Call {
                 target: require_resolve_ref,
-                args: ExprNodeList::init_one(arg),
+                args: self.store.alloc_slice([arg]),
                 ..Default::default()
             },
             arg.loc,
@@ -1644,7 +1645,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return self.new_expr(
                 E::Call {
                     target: self.value_for_require(arg.loc),
-                    args: ExprNodeList::init_one(arg),
+                    args: self.store.alloc_slice([arg]),
                     ..Default::default()
                 },
                 arg.loc,
@@ -1775,7 +1776,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 self.new_expr(
                     E::Call {
                         target: self.value_for_require(arg.loc),
-                        args: ExprNodeList::init_one(arg),
+                        args: self.store.alloc_slice([arg]),
                         ..Default::default()
                     },
                     arg.loc,
@@ -2391,8 +2392,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let response_ref = self.response_ref;
         let clause_items =
             arena.alloc_slice_fill_with::<js_ast::ClauseItem, _>(1, |_| js_ast::ClauseItem {
-                alias: js_ast::StoreStr::new(b"Response"),
-                original_name: js_ast::StoreStr::new(b"Response"),
+                alias: self.store.alloc_str(b"Response"),
+                original_name: self.store.alloc_str(b"Response"),
                 alias_loc: bun_ast::Loc::default(),
                 name: LocRef {
                     ref_: response_ref,
@@ -2416,7 +2417,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.named_imports.put(
             self.response_ref,
             js_ast::NamedImport {
-                alias: Some(js_ast::StoreStr::new(b"Response")),
+                alias: Some(self.store.alloc_str(b"Response")),
                 alias_loc: bun_ast::Loc::default(),
                 namespace_ref: self.bun_app_namespace_ref,
                 import_record_index: import_record_i,
@@ -2446,7 +2447,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         parts.push(js_ast::Part {
             stmts: stmts.into(),
             declared_symbols,
-            import_record_indices: js_ast::PartImportRecordIndices::init_one(import_record_i),
+            import_record_indices: self.store.alloc_slice([import_record_i]),
             tag: bun_ast::PartTag::Runtime,
             ..Default::default()
         });
@@ -2502,8 +2503,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let clause_items =
             arena.alloc_slice_fill_with::<js_ast::ClauseItem, _>(imports.len(), |_| {
                 js_ast::ClauseItem {
-                    alias: js_ast::StoreStr::new(b""),
-                    original_name: js_ast::StoreStr::new(b""),
+                    alias: self.store.alloc_str(b""),
+                    original_name: self.store.alloc_str(b""),
                     alias_loc: bun_ast::Loc::default(),
                     name: LocRef::default(),
                 }
@@ -2522,8 +2523,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let ref_ = symbols.get(alias).expect("unreachable");
             let alias_name: &'static [u8] = symbols.alias_name(alias);
             *clause_item = js_ast::ClauseItem {
-                alias: js_ast::StoreStr::new(alias_name),
-                original_name: js_ast::StoreStr::new(alias_name),
+                alias: self.store.alloc_str(alias_name),
+                original_name: self.store.alloc_str(alias_name),
                 alias_loc: bun_ast::Loc::default(),
                 name: LocRef {
                     ref_,
@@ -2541,7 +2542,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if symbol.namespace_alias.is_none() {
                     symbol.namespace_alias = Some(Box::new(js_ast::NamespaceAlias {
                         namespace_ref,
-                        alias: js_ast::StoreStr::new(alias_name),
+                        alias: self.store.alloc_str(alias_name),
                         import_record_index: import_record_i,
                         was_originally_property_access: false,
                     }));
@@ -2552,7 +2553,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             self.named_imports.put(
                 ref_,
                 js_ast::NamedImport {
-                    alias: Some(js_ast::StoreStr::new(alias_name)),
+                    alias: Some(self.store.alloc_str(alias_name)),
                     alias_loc: bun_ast::Loc::default(),
                     namespace_ref,
                     import_record_index: import_record_i,
@@ -2597,7 +2598,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         parts.push(js_ast::Part {
             stmts: stmts.into(),
             declared_symbols,
-            import_record_indices: js_ast::PartImportRecordIndices::init_one(import_record_i),
+            import_record_indices: self.store.alloc_slice([import_record_i]),
             tag,
             can_be_removed_if_unused: is_jsx,
             force_tree_shaking: is_jsx,
@@ -2676,8 +2677,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     });
                 } else {
                     items_import.push(js_ast::ClauseItem {
-                        alias: js_ast::StoreStr::new(entry.name),
-                        original_name: js_ast::StoreStr::new(entry.name),
+                        alias: self.store.alloc_str(entry.name),
+                        original_name: self.store.alloc_str(entry.name),
                         alias_loc: bun_ast::Loc::default(),
                         name: LocRef {
                             ref_: entry.r#ref,
@@ -2693,7 +2694,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 self.named_imports.put(
                     entry.r#ref,
                     js_ast::NamedImport {
-                        alias: Some(js_ast::StoreStr::new(entry.name)),
+                        alias: Some(self.store.alloc_str(entry.name)),
                         alias_loc: bun_ast::Loc::EMPTY,
                         namespace_ref,
                         import_record_index,
@@ -2708,7 +2709,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let stmt = if HOT_MODULE_RELOADING {
             let binding = self.b(
                 B::Object {
-                    properties: bun_ast::StoreSlice::from_bump(items_hmr),
+                    properties: self.store.alloc_slice(items_hmr),
                     is_single_line: false,
                 },
                 bun_ast::Loc::EMPTY,
@@ -2723,10 +2724,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             self.s(
                 S::Local {
                     kind: js_ast::s::Kind::KConst,
-                    decls: G::DeclList::from_slice(&[Decl {
+                    decls: self.store.alloc_slice((&[Decl {
                         binding,
                         value: Some(value),
-                    }]),
+                    }]).to_vec()),
                     ..Default::default()
                 },
                 bun_ast::Loc::EMPTY,
@@ -2735,7 +2736,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             self.s(
                 S::Import {
                     namespace_ref,
-                    items: bun_ast::StoreSlice::from_bump(items_import),
+                    items: self.store.alloc_slice(items_import),
                     import_record_index,
                     is_single_line: false,
                     default_name: None,
@@ -2750,7 +2751,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         parts.push(js_ast::Part {
             stmts: stmts.into(),
             declared_symbols,
-            import_record_indices: js_ast::PartImportRecordIndices::init_one(import_record_index),
+            import_record_indices: self.store.alloc_slice([import_record_index]),
             tag: bun_ast::PartTag::Runtime,
             ..Default::default()
         });
@@ -3477,7 +3478,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let symbol = &mut self.symbols[self.response_ref.inner_index() as usize];
                     symbol.namespace_alias = Some(Box::new(js_ast::NamespaceAlias {
                         namespace_ref: self.bun_app_namespace_ref,
-                        alias: js_ast::StoreStr::new(b"Response"),
+                        alias: self.store.alloc_str(b"Response"),
                         was_originally_property_access: false,
                         import_record_index: u32::MAX,
                     }));
@@ -3535,7 +3536,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let members = &scope_ref.members;
                     let mut v = BumpVec::with_capacity_in(members.count(), arena);
                     for (k, m) in members.iter() {
-                        v.push((js_ast::StoreStr::new(k), *m));
+                        v.push((self.store.alloc_str(k), *m));
                     }
                     v
                 };
@@ -3992,7 +3993,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 return Some(self.b(
                     B::Array {
-                        items: bun_ast::StoreSlice::new_mut(items.into_bump_slice_mut()),
+                        items: self.store.alloc_slice(items),
                         has_spread: is_spread,
                         is_single_line: self.store[ex].is_single_line,
                     },
@@ -4061,7 +4062,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 return Some(self.b(
                     B::Object {
-                        properties: bun_ast::StoreSlice::new_mut(properties.into_bump_slice_mut()),
+                        properties: self.store.alloc_slice(properties),
                         is_single_line: self.store[ex].is_single_line,
                     },
                     expr.loc,
@@ -4374,7 +4375,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if symbol.namespace_alias.is_none() {
                         symbol.namespace_alias = Some(Box::new(js_ast::NamespaceAlias {
                             namespace_ref: stmt.namespace_ref,
-                            alias: js_ast::StoreStr::new(b"default"),
+                            alias: self.store.alloc_str(b"default"),
                             import_record_index: stmt.import_record_index,
                             was_originally_property_access: false,
                         }));
@@ -4455,7 +4456,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if symbol.namespace_alias.is_none() {
                     symbol.namespace_alias = Some(Box::new(js_ast::NamespaceAlias {
                         namespace_ref: stmt.namespace_ref,
-                        alias: js_ast::StoreStr::new(alias),
+                        alias: self.store.alloc_str(alias),
                         import_record_index: stmt.import_record_index,
                         was_originally_property_access: false,
                     }));
@@ -4510,7 +4511,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             items_slice[end] = item;
             end += 1;
         }
-        stmt.items = bun_ast::StoreSlice::new_mut(&mut items_slice[..end]);
+        stmt.items = self.store.alloc_slice(&mut items_slice[..end]);
 
         // If we remapped the entire import away
         // i.e. import {graphql} "react-relay"
@@ -4614,7 +4615,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let inner_index = self.symbols.len() as js_ast::base::RefInt; // @truncate
         self.symbols.push(Symbol {
             kind,
-            original_name: js_ast::StoreStr::new(identifier),
+            original_name: self.store.alloc_str(identifier),
             ..Default::default()
         });
 
@@ -4859,12 +4860,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         };
 
         if let Some(existing) = map {
-            let scope = js_ast::StoreRef::from_bump(self.arena.alloc(js_ast::TSNamespaceScope {
+            let scope = self.store.alloc(js_ast::TSNamespaceScope {
                 exported_members: existing,
                 is_enum_scope,
                 arg_ref: Ref::NONE,
                 property_accesses: Default::default(),
-            }));
+            });
             self.ts_namespace_scopes.push(scope);
             return scope;
         }
@@ -4873,14 +4874,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Two bump allocs from the same arena; `StoreRef` is non-null so the
         // map field can't be null-then-patched, and same-arena allocation
         // keeps the locality while avoiding a self-referential init.
-        let map = js_ast::StoreRef::from_bump(self.arena.alloc(Default::default()));
+        let map = self.store.alloc(Default::default());
         self.ts_namespace_member_maps.push(map);
-        let scope = js_ast::StoreRef::from_bump(self.arena.alloc(js_ast::TSNamespaceScope {
+        let scope = self.store.alloc(js_ast::TSNamespaceScope {
             exported_members: map,
             is_enum_scope,
             arg_ref: Ref::NONE,
             property_accesses: Default::default(),
-        }));
+        });
         self.ts_namespace_scopes.push(scope);
         scope
     }
@@ -5609,7 +5610,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // `can_be_removed_if_unused` while the `&mut` is live (reborrowed as
             // shared), then decay it to a raw `*mut` for storage in `Part` so no
             // outstanding `&mut` aliases the stored pointer afterwards.
-            let final_stmts = bun_ast::StoreSlice::from_bump(part_stmts);
+            let final_stmts = self.store.alloc_slice(part_stmts);
             let can_be_removed_if_unused = self.stmts_can_be_removed_if_unused(final_stmts.slice());
 
             let symbol_uses = self.take_symbol_uses()?;
@@ -5630,10 +5631,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         &mut self.import_records_for_current_part,
                         BumpVec::new_in(self.arena),
                     );
-                    js_ast::PartImportRecordIndices::from_slice(v.as_slice())
+                    self.store.alloc_slice((v.as_slice()).to_vec())
                 },
                 // SAFETY: fresh bump allocation, uniquely owned by the new Part.
-                scopes: bun_ast::StoreSlice::new_mut(
+                scopes: self.store.alloc_slice(
                     core::mem::replace(
                         &mut self.scopes_for_current_part,
                         BumpVec::new_in(self.arena),
@@ -6737,10 +6738,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             crate::parser::Runtime::ReplaceableExport::Delete => false,
             crate::parser::Runtime::ReplaceableExport::Replace(value) => {
                 let count = stmts.len();
-                let decls = js_ast::g::DeclList::from_slice(&[G::Decl {
+                let decls = self.store.alloc_slice((&[G::Decl {
                     binding: self.b(B::Identifier { r#ref: name_ref }, loc),
                     value: Some(*value),
-                }]);
+                }]).to_vec());
                 let mut local = self.s(
                     S::Local {
                         is_export: true,
@@ -6761,10 +6762,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let inject_ref = self
                     .declare_symbol(js_ast::symbol::Kind::Other, loc, name)
                     .expect("unreachable");
-                let decls = js_ast::g::DeclList::from_slice(&[G::Decl {
+                let decls = self.store.alloc_slice((&[G::Decl {
                     binding: self.b(B::Identifier { r#ref: inject_ref }, loc),
                     value: Some(*value),
-                }]);
+                }]).to_vec());
                 let mut local = self.s(
                     S::Local {
                         is_export: true,
@@ -6926,10 +6927,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .put_no_clobber(name_ref, ())
                 .expect("oom");
 
-            let decls = js_ast::g::DeclList::from_slice(&[G::Decl {
+            let decls = self.store.alloc_slice((&[G::Decl {
                 binding: self.b(B::Identifier { r#ref: name_ref }, name_loc),
                 value: None,
-            }]);
+            }]).to_vec());
             let _ = arena;
 
             if self.current_scope == self.module_scope {
@@ -7006,12 +7007,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // `G::Arg` is not `Copy` (contains `Vec<Decorator>`); use
         // `alloc_slice_fill_iter` instead of `alloc_slice_copy`.
-        let func_args = bun_ast::StoreSlice::new_mut(arena.alloc_slice_fill_iter([G::Arg {
+        let func_args = self.store.alloc_slice(arena.alloc_slice_fill_iter([G::Arg {
             binding: self.b(B::Identifier { r#ref: arg_ref }, name_loc),
             ..Default::default()
         }]));
 
-        let args_list = ExprNodeList::init_one(arg_expr);
+        let args_list = self.store.alloc_slice([arg_expr]);
 
         let target = 'target: {
             // "(() => { foo() })()" => "(() => foo())()"
@@ -7323,7 +7324,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                             let args = self
                                                 .arena
                                                 .alloc_slice_copy(&[arg0, *arg_decorator]);
-                                            let args = ExprNodeList::from_arena_slice(args);
+                                            let args = self.store.alloc_slice((args).to_vec());
                                             let call = self.call_runtime(
                                                 arg_decorator.loc,
                                                 b"__legacyDecorateParamTS",
@@ -7392,7 +7393,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         );
                         full.extend_from_slice(prop.ts_decorators.slice());
                         full.extend_from_slice(&array);
-                        let full_items = ExprNodeList::from_bump_vec(full);
+                        let full_items = self.store.alloc_slice(full);
                         let array_expr = self.new_expr(
                             E::Array {
                                 items: full_items,
@@ -7406,7 +7407,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             descriptor_key,
                             descriptor_kind,
                         ]);
-                        let args = ExprNodeList::from_arena_slice(args_slice);
+                        let args = self.store.alloc_slice((args_slice).to_vec());
 
                         let decorator = self.call_runtime(
                             prop.key.expect("infallible: prop has key").loc,
@@ -7496,7 +7497,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 self.store[s_class].class.properties =
-                    bun_ast::StoreSlice::new_mut(class_properties.into_bump_slice_mut());
+                    self.store.alloc_slice(class_properties);
 
                 if !instance_members.is_empty() {
                     if let Some(mut cf) = constructor_function {
@@ -7523,7 +7524,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         constructor_stmts.extend_from_slice(&old_stmts[i..]);
 
                         self.store[cf].func.body.stmts =
-                            bun_ast::StoreSlice::new_mut(constructor_stmts.into_bump_slice_mut());
+                            self.store.alloc_slice(constructor_stmts);
                     } else {
                         // Rebuild the property list with the new entry at index 0
                         // (Property is not Clone).
@@ -7547,7 +7548,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 },
                                 stmt.loc,
                             );
-                            let args = ExprNodeList::init_one(super_);
+                            let args = self.store.alloc_slice([super_]);
 
                             let call_value = self.new_expr(
                                 E::Call {
@@ -7578,7 +7579,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     args: bun_ast::StoreSlice::EMPTY,
                                     body: G::FnBody {
                                         loc: stmt.loc,
-                                        stmts: bun_ast::StoreSlice::new_mut(
+                                        stmts: self.store.alloc_slice(
                                             constructor_stmts.into_bump_slice_mut(),
                                         ),
                                     },
@@ -7599,7 +7600,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
 
                         self.store[s_class].class.properties =
-                            bun_ast::StoreSlice::new_mut(properties.into_bump_slice_mut());
+                            self.store.alloc_slice(properties);
                     }
 
                     // TODO: make sure "super()" comes before instance field initializers
@@ -7632,7 +7633,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         .serialize_metadata(ca.ts_metadata.clone())
                                         .expect("unreachable");
                                 }
-                                let items = ExprNodeList::from_arena_slice(param_array);
+                                let items = self.store.alloc_slice((param_array).to_vec());
                                 self.new_expr(
                                     E::Array {
                                         items,
@@ -7654,14 +7655,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 bun_ast::Loc::EMPTY,
                             );
                             let args_slice = self.arena.alloc_slice_copy(&[label, args1]);
-                            let args = ExprNodeList::from_arena_slice(args_slice);
+                            let args = self.store.alloc_slice((args_slice).to_vec());
                             array.push(self.call_runtime(stmt.loc, b"__legacyMetadataTS", args));
                         }
                     }
 
                     let class_name = self.store[s_class].class.class_name.unwrap();
                     let class_ref = class_name.ref_;
-                    let array_items = ExprNodeList::move_from_list(array);
+                    let array_items = self.store.alloc_slice(array);
                     let array_expr = self.new_expr(
                         E::Array {
                             items: array_items,
@@ -7671,7 +7672,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     );
                     let class_ident = self.new_expr(E::Identifier::init(class_ref), class_name.loc);
                     let args_slice = self.arena.alloc_slice_copy(&[array_expr, class_ident]);
-                    let args = ExprNodeList::from_arena_slice(args_slice);
+                    let args = self.store.alloc_slice((args_slice).to_vec());
 
                     let lhs = self.new_expr(E::Identifier::init(class_ref), class_name.loc);
                     let rhs = self.call_runtime(stmt.loc, b"__legacyDecorateClassTS", args);
@@ -7711,7 +7712,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let label = self.new_expr(E::EString::from_static($label), bun_ast::Loc::EMPTY);
                 let value = $value;
                 let args = self.arena.alloc_slice_copy(&[label, value]);
-                let args = ExprNodeList::from_arena_slice(args);
+                let args = self.store.alloc_slice((args).to_vec());
                 array.push(self.call_runtime(loc, b"__legacyMetadataTS", args));
             }};
         }
@@ -7743,7 +7744,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     .serialize_metadata(method_arg.ts_metadata.clone())
                                     .expect("unreachable");
                             }
-                            let items = ExprNodeList::from_arena_slice(args_array);
+                            let items = self.store.alloc_slice((args_array).to_vec());
                             let arr = self.new_expr(
                                 E::Array {
                                     items,
@@ -7810,7 +7811,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     .serialize_metadata(method_arg.ts_metadata.clone())
                                     .expect("unreachable");
                             }
-                            let items = ExprNodeList::from_arena_slice(args_array);
+                            let items = self.store.alloc_slice((args_array).to_vec());
                             let arr = self.new_expr(
                                 E::Array {
                                     items,
@@ -8074,7 +8075,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         self.s(
             S::Block {
-                stmts: bun_ast::StoreSlice::new_mut(stmts),
+                stmts: self.store.alloc_slice(stmts),
                 close_brace_loc: bun_ast::Loc::EMPTY,
             },
             loc,
@@ -8502,7 +8503,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let call = self.new_expr(
             E::Call {
                 target: Expr::init_identifier(self.react_refresh.register_ref, loc),
-                args: ExprNodeList::from_slice(&[Expr::init_identifier(r#ref, loc), label_expr]),
+                args: self.store.alloc_slice((&[Expr::init_identifier(r#ref, loc), label_expr]).to_vec()),
                 ..Default::default()
             },
             loc,
@@ -8552,7 +8553,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.new_expr(
             E::Call {
                 target: Expr::init_identifier(self.server_components_wrap_ref, bun_ast::Loc::EMPTY),
-                args: ExprNodeList::from_slice(&[val, module_path, name_expr]),
+                args: self.store.alloc_slice((&[val, module_path, name_expr]).to_vec()),
                 ..Default::default()
             },
             bun_ast::Loc::EMPTY,
@@ -8731,7 +8732,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         ));
         self.s(
             S::Local {
-                decls: G::DeclList::init_one(G::Decl { binding, value }),
+                decls: self.store.alloc_slice([G::Decl { binding, value }]),
                 ..Default::default()
             },
             loc,
@@ -8772,7 +8773,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // () => [useCustom1, useCustom2]
             let array = self.new_expr(
                 E::Array {
-                    items: ExprNodeList::from_slice(ctx.user_hooks.values()),
+                    items: self.store.alloc_slice((ctx.user_hooks.values()).to_vec()),
                     ..Default::default()
                 },
                 loc,
@@ -8781,7 +8782,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             args.push(self.new_expr(
                 E::Arrow {
                     body: G::FnBody {
-                        stmts: bun_ast::StoreSlice::new_mut(self.arena.alloc_slice_copy(&[ret])),
+                        stmts: self.store.alloc_slice(self.arena.alloc_slice_copy(&[ret])),
                         loc,
                     },
                     prefer_expr: true,
@@ -8795,7 +8796,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.new_expr(
             E::Call {
                 target: Expr::init_identifier(ctx.signature_cb, loc),
-                args: ExprNodeList::from_slice(args.as_slice()),
+                args: self.store.alloc_slice((args.as_slice()).to_vec()),
                 ..Default::default()
             },
             loc,
@@ -8924,7 +8925,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     kept_import_equals = kept_import_equals || result.kept_import_equals;
                     removed_import_equals = removed_import_equals || result.removed_import_equals;
 
-                    part.stmts = bun_ast::StoreSlice::new_mut(result.stmts);
+                    part.stmts = self.store.alloc_slice(result.stmts);
                     if !part.stmts.is_empty() {
                         if self.module_scope().contains_direct_eval
                             && part.declared_symbols.len() > 0
@@ -9177,10 +9178,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     func: G::Fn {
                         name: None,
                         open_parens_loc: bun_ast::Loc::EMPTY,
-                        args: bun_ast::StoreSlice::new_mut(args),
+                        args: self.store.alloc_slice(args),
                         body: G::FnBody {
                             loc: bun_ast::Loc::EMPTY,
-                            stmts: bun_ast::StoreSlice::new_mut(stmts_to_copy),
+                            stmts: self.store.alloc_slice(stmts_to_copy),
                         },
                         flags: Flags::FUNCTION_NONE,
                         ..Default::default()
@@ -9202,7 +9203,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 parts.push(js_ast::Part::default());
             }
             parts.truncate(1);
-            parts[0].stmts = bun_ast::StoreSlice::new_mut(top_level_stmts);
+            parts[0].stmts = self.store.alloc_slice(top_level_stmts);
         }
 
         // REPL mode transforms
@@ -9374,7 +9375,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             char_freq,
             scope_uses,
             directive: if module_scope_strict == js_ast::StrictModeKind::ExplicitStrictMode {
-                Some(bun_ast::StoreStr::new(b"use strict"))
+                Some(self.store.alloc_str(b"use strict"))
             } else {
                 None
             },
@@ -9906,7 +9907,7 @@ impl LowerUsingDeclarationsContext {
                     decl.value = Some(p.call_runtime(
                         value_loc,
                         b"__using",
-                        ExprNodeList::from_arena_slice(args),
+                        self.store.alloc_slice((args).to_vec()),
                     ));
                 }
             }
@@ -10008,7 +10009,7 @@ impl LowerUsingDeclarationsContext {
             end += 1;
         }
 
-        let non_exported_statements = bun_ast::StoreSlice::new_mut(&mut stmts[..end as usize]);
+        let non_exported_statements = self.store.alloc_slice(&mut stmts[..end as usize]);
 
         let caught_ref = p.generate_temp_ref(Some(b"_catch"));
         let err_ref = p.generate_temp_ref(Some(b"_err"));
@@ -10077,7 +10078,7 @@ impl LowerUsingDeclarationsContext {
                     loc,
                 ),
             ]);
-            p.call_runtime(loc, b"__callDispose", ExprNodeList::from_arena_slice(args))
+            p.call_runtime(loc, b"__callDispose", self.store.alloc_slice((args).to_vec()))
         };
 
         let finally_stmts: &'a mut [Stmt] = if self.has_await_using {
@@ -10108,10 +10109,10 @@ impl LowerUsingDeclarationsContext {
             let promise_binding = p.b(B::Identifier { r#ref: promise_ref }, loc);
             let stmt0 = p.s(
                 S::Local {
-                    decls: G::DeclList::init_one(Decl {
+                    decls: self.store.alloc_slice([Decl {
                         binding: promise_binding,
                         value: Some(call_dispose),
-                    }),
+                    }]),
                     ..Default::default()
                 },
                 loc,
@@ -10163,10 +10164,10 @@ impl LowerUsingDeclarationsContext {
         let stack_init = p.new_expr(E::Array::default(), loc);
         result.push(p.s(
             S::Local {
-                decls: G::DeclList::init_one(Decl {
+                decls: self.store.alloc_slice([Decl {
                     binding: stack_binding,
                     value: Some(stack_init),
-                }),
+                }]),
                 kind: js_ast::s::Kind::KLet,
                 ..Default::default()
             },
@@ -10206,7 +10207,7 @@ impl LowerUsingDeclarationsContext {
                 },
                 loc,
             );
-            bun_ast::StoreSlice::new_mut(p.arena.alloc_slice_copy(&[stmt0]))
+            self.store.alloc_slice(p.arena.alloc_slice_copy(&[stmt0]))
         };
         result.push(p.s(
             S::Try {
@@ -10220,7 +10221,7 @@ impl LowerUsingDeclarationsContext {
                 }),
                 finally: Some(js_ast::Finally {
                     loc,
-                    stmts: bun_ast::StoreSlice::new_mut(finally_stmts),
+                    stmts: self.store.alloc_slice(finally_stmts),
                 }),
             },
             loc,
@@ -10229,7 +10230,7 @@ impl LowerUsingDeclarationsContext {
         if !exports.is_empty() {
             result.push(p.s(
                 S::ExportClause {
-                    items: bun_ast::StoreSlice::new_mut(exports.into_bump_slice_mut()),
+                    items: self.store.alloc_slice(exports),
                     is_single_line: false,
                 },
                 loc,

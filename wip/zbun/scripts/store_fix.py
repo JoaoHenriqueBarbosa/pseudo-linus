@@ -229,4 +229,90 @@ def main():
     print(f"trocas: {dict(totals)}, puladas: {skipped}, aplicado: {apply}")
 
 
-main()
+CTOR_RE = re.compile(
+    rb"(?P<path>(?:\b[A-Za-z_][A-Za-z0-9_]*::)*(?:StoreStr|StoreSlice|StoreRef|ExprNodeList|StmtNodeList|DeclList|PropertyList"
+    rb"|ArgList|PartImportRecordIndices|ClauseItemList))::(?P<name>new|new_mut|from_bump|from_bump_vec|from_arena_slice"
+    rb"|from_slice|move_from_list|init_one)\("
+)
+BUMP_SUFFIX = re.compile(rb"\.into_bump_slice(_mut)?\(\)\s*$")
+ARENA_ALLOC = re.compile(rb"^\s*(?:self\.|p\.)?(?:arena|bump)\.alloc\(")
+
+
+def ctors(root):
+    """Construtores de lista e de string que apontavam para a arena viram gravações no Store.
+
+      StoreStr::new(a)                      ->  STORE.alloc_str(a)
+      Lista::{new_mut,from_bump}(a)         ->  STORE.alloc_slice(a)       (sem o `.into_bump_slice[_mut]()`)
+      Lista::{from_bump_vec,move_from_list} ->  STORE.alloc_slice(a)
+      Lista::{from_arena_slice,from_slice}  ->  STORE.alloc_slice(a.to_vec())
+      Lista::init_one(a)                    ->  STORE.alloc_slice([a])
+      StoreRef::from_bump(arena.alloc(a))   ->  STORE.alloc(a)
+    """
+    import os
+
+    total = skipped = 0
+    for folder, _, names in os.walk(f"{root}/js_parser/src"):
+        for name in names:
+            if not name.endswith(".rs"):
+                continue
+            path = f"{folder}/{name}"
+            data = open(path, "rb").read()
+            lines = data.splitlines(keepends=True)
+            starts = []
+            offset = 0
+            for line in lines:
+                starts.append(offset)
+                offset += len(line)
+            ops = []
+            for found in CTOR_RE.finditer(data):
+                open_at = found.end() - 1
+                close = match_close(data, open_at)
+                line_index = max(i for i, st in enumerate(starts) if st <= found.start())
+                store = store_name(lines, line_index)
+                if close is None or store is None:
+                    skipped += 1
+                    print(f"pulado: {path}:{line_index + 1} {found.group('name').decode()} (store={store})")
+                    continue
+                kind, member = found.group("path").split(b"::")[-1], found.group("name")
+                argument = data[open_at + 1 : close]
+                if kind == b"StoreStr" and member == b"new":
+                    head, tail = f"{store}.alloc_str(".encode(), b")"
+                elif kind == b"StoreRef" and member == b"from_bump":
+                    inner = ARENA_ALLOC.match(argument)
+                    if not inner:
+                        skipped += 1
+                        print(f"pulado: {path}:{line_index + 1} StoreRef::from_bump sem arena.alloc")
+                        continue
+                    argument = argument[inner.end() : argument.rstrip().rfind(b")")]
+                    head, tail = f"{store}.alloc(".encode(), b")"
+                elif member in (b"new_mut", b"from_bump", b"from_bump_vec", b"move_from_list"):
+                    argument = BUMP_SUFFIX.sub(b"", argument)
+                    head, tail = f"{store}.alloc_slice(".encode(), b")"
+                elif member in (b"from_arena_slice", b"from_slice"):
+                    head, tail = f"{store}.alloc_slice((".encode(), b").to_vec())"
+                elif member == b"init_one":
+                    head, tail = f"{store}.alloc_slice([".encode(), b"])"
+                else:
+                    continue
+                ops.append((found.start(), close + 1 - found.start(), head + argument + tail))
+                total += 1
+            # construtor dentro do argumento de outro: fica para a rodada seguinte
+            ops.sort()
+            kept = []
+            for op in ops:
+                if kept and op[0] < kept[-1][0] + kept[-1][1]:
+                    continue
+                kept.append(op)
+            ops = kept
+            out = bytearray(data)
+            for pos, delete, text in sorted(ops, reverse=True):
+                out[pos : pos + delete] = text
+            if ops and "--apply" in sys.argv:
+                open(path, "wb").write(bytes(out))
+    print(f"construtores: {total}, pulados: {skipped}, aplicado: {'--apply' in sys.argv}")
+
+
+if len(sys.argv) > 2 and sys.argv[1] == "ctors":
+    ctors(sys.argv[2])
+else:
+    main()

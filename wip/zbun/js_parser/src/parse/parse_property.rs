@@ -1,5 +1,6 @@
 #![warn(unused_must_use)]
 
+use bun_ast::NodeStore as _;
 use bun_collections::VecExt;
 use bun_core;
 
@@ -228,7 +229,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         Ok(Some(G::Property {
-            ts_decorators: ExprNodeList::from_slice(&opts.ts_decorators),
+            ts_decorators: self.store.alloc_slice((&opts.ts_decorators).to_vec()),
             kind,
             flags: prop_flags,
             key: Some(*key),
@@ -737,7 +738,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 return Ok(Some(G::Property {
-                    ts_decorators: ExprNodeList::from_slice(&opts.ts_decorators),
+                    ts_decorators: self.store.alloc_slice((&opts.ts_decorators).to_vec()),
                     kind,
                     flags: prop_flags,
                     key: Some(key),

@@ -1,4 +1,5 @@
 use bun_alloc::ArenaVecExt as _;
+use bun_ast::NodeStore as _;
 use bun_collections::VecExt;
 
 use crate::js_lexer;
@@ -344,7 +345,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             rest_arg = false;
         }
         if !args.is_empty() {
-            func.args = bun_ast::StoreSlice::new_mut(args.into_bump_slice_mut());
+            func.args = self.store.alloc_slice(args);
         }
 
         // Reserve the special name "arguments" in this scope. This ensures that it
@@ -513,7 +514,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.fn_or_arrow_data_parse = old_fn_or_arrow_data;
         Ok(G::FnBody {
             loc,
-            stmts: bun_ast::StoreSlice::new_mut(stmts.into_bump_slice_mut()),
+            stmts: self.store.alloc_slice(stmts),
         })
     }
 
@@ -596,7 +597,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             prefer_expr: true,
             body: G::FnBody {
                 loc: arrow_loc,
-                stmts: bun_ast::StoreSlice::new_mut(stmts),
+                stmts: self.store.alloc_slice(stmts),
             },
             has_react_hooks_suppression,
             ..Default::default()

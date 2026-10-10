@@ -1,5 +1,6 @@
 #![allow(clippy::single_match)]
 #![warn(unused_must_use)]
+use bun_ast::NodeStore as _;
 use bun_collections::VecExt;
 
 use crate::lexer::T;
@@ -789,7 +790,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // In this case, we can't distinguish between the two yet
             self_errors.merge_into(errors.unwrap());
         }
-        let items_list = ExprNodeList::from_arena_slice(&items);
+        let items_list = p.store.alloc_slice((&items).to_vec());
         Ok(p.new_expr(
             E::Array {
                 items: items_list,
@@ -877,7 +878,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         // BumpVec → Vec via arena slice; see pfx_t_open_bracket.
-        let properties_list = G::PropertyList::from_bump_vec(properties);
+        let properties_list = p.store.alloc_slice(properties);
         Ok(p.new_expr(
             E::Object {
                 properties: properties_list,

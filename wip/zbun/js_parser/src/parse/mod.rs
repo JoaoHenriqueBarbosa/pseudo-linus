@@ -10,6 +10,7 @@ pub(crate) mod parse_stmt;
 pub mod parse_suffix;
 pub(crate) mod parse_typescript;
 
+use bun_ast::NodeStore as _;
 use bun_collections::VecExt;
 
 use bun_alloc::{ArenaVec as BumpVec, ArenaVecExt as _};
@@ -263,7 +264,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let has_any_decorators = has_decorators || class_opts.ts_decorators.len() > 0;
         // `Expr: Copy`: safe arena-slice → owned Vec (one memcpy, no double-drop).
-        let ts_decorators = ExprNodeList::from_arena_slice(class_opts.ts_decorators);
+        let ts_decorators = self.store.alloc_slice((class_opts.ts_decorators).to_vec());
         Ok(G::Class {
             class_name: name,
             extends,
@@ -271,7 +272,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             ts_decorators,
             class_keyword,
             body_loc,
-            properties: bun_ast::StoreSlice::new_mut(properties.into_bump_slice_mut()),
+            properties: self.store.alloc_slice(properties),
             has_decorators: has_any_decorators,
             should_lower_standard_decorators: p.options.features.standard_decorators
                 && (has_any_decorators || has_auto_accessor),
@@ -320,7 +321,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // `from_bump` leaks into the arena and wraps the unique `&'bump mut [T]`
         // so mutable provenance is preserved for the visit pass.
-        Ok((bun_ast::StoreSlice::from_bump(parts), tail_loc))
+        Ok((self.store.alloc_slice(parts), tail_loc))
     }
 
     // This assumes the caller has already checked for TStringLiteral or TNoSubstitutionTemplateLiteral
@@ -369,7 +370,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let close_paren_loc = p.lexer.loc();
         p.lexer.expect(T::TCloseParen)?;
         Ok(ExprListLoc {
-            list: ExprNodeList::from_arena_slice(&args),
+            list: self.store.alloc_slice((&args).to_vec()),
             loc: close_paren_loc,
         })
     }
@@ -620,7 +621,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return Ok(p.new_expr(
                 E::Call {
                     target: async_expr,
-                    args: ExprNodeList::from_arena_slice(items),
+                    args: self.store.alloc_slice((items).to_vec()),
                     ..Default::default()
                 },
                 loc,
@@ -1086,7 +1087,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     p.lexer.expect(T::TCloseBracket)?;
                     return Ok(p.b(
                         B::Array {
-                            items: bun_ast::StoreSlice::new_mut(items.into_bump_slice_mut()),
+                            items: self.store.alloc_slice(items),
                             has_spread,
                             is_single_line,
                         },
@@ -1142,7 +1143,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                     return Ok(p.b(
                         B::Object {
-                            properties: bun_ast::StoreSlice::new_mut(
+                            properties: self.store.alloc_slice(
                                 properties.into_bump_slice_mut(),
                             ),
                             is_single_line,
@@ -1321,7 +1322,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.lexer.next()?;
         }
 
-        Ok(G::DeclList::from_arena_slice(&decls))
+        Ok(self.store.alloc_slice((&decls).to_vec()))
     }
 
     pub(crate) fn parse_path(&mut self) -> Result<ParsedPath, Error> {
@@ -1512,7 +1513,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 let bytes = str_.string(p.arena).expect("OOM");
                                 stmt = Stmt::alloc(
                                     S::Directive {
-                                        value: bun_ast::StoreStr::new(bytes),
+                                        value: self.store.alloc_str(bytes),
                                     },
                                     stmt.loc,
                                 );
