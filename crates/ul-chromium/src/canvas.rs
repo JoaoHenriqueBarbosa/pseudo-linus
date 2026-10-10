@@ -322,14 +322,17 @@ pub fn premultiplied(width: u32, height: u32, rgba: &[u8]) -> Option<Pixmap> {
     Some(Pixmap::from_parts(data, width as u16, height as u16, PixelMetadata { may_have_transparency: true, alpha_type: ImageAlphaType::AlphaPremultiplied }))
 }
 
-/// Desfaz a premultiplicação como o `SkUnPreMultiply` (tabela de escalas de 24 bits).
+/// Desfaz a premultiplicação como o highp do `SkRasterPipeline` que o Chromium usa na leitura: em binário32,
+/// `c/255` vezes `1/(a/255)`, vezes 255, limitado a 255 e arredondado ao par. Medido no oráculo (899 amostras de
+/// `putImageData` e `getImageData`, todas iguais); a tabela de 24 bits do `SkUnPreMultiply` erra uma unidade em
+/// parte delas.
 fn unpremultiply(px: PremulRgba8) -> [u8; 4] {
-    let a = u32::from(px.a);
-    if a == 0 {
+    if px.a == 0 {
         return [0, 0, 0, 0];
     }
-    let scale = ((255u32 << 24) + a / 2) / a;
-    let un = |c: u8| ((scale * u32::from(c) + (1 << 23)) >> 24).min(255) as u8;
+    let to_unit = 1.0f32 / 255.0;
+    let inverse = 1.0f32 / (f32::from(px.a) * to_unit);
+    let un = |c: u8| ((f32::from(c) * to_unit * inverse * 255.0).min(255.0).round_ties_even()) as u8;
     [un(px.r), un(px.g), un(px.b), px.a]
 }
 
