@@ -779,7 +779,7 @@ impl<'a> Parser<'a> {
         // We don't want to ever put files with `// @bun` into this cache, as that would be wasteful.
         #[cfg(not(target_arch = "wasm32"))]
         if bun_core::feature_flags::RUNTIME_TRANSPILER_CACHE {
-            if let Some(cache) = p.options.features.runtime_transpiler_cache_mut() {
+            if let Some(cache) = p.options.features.runtime_transpiler_cache.as_deref_mut() {
                 // `Path::is_node_module`/`is_jsx_file` live on the resolver
                 // `fs::Path` (not the logger stub): their bodies are inlined here.
                 let path = &p.source.path;
@@ -1918,7 +1918,7 @@ impl<'a> Parser<'a> {
                     || item.path.text == b"@jest/globals"
                     || item.path.text == b"vitest"
                 {
-                    if let Some(cache) = p.options.features.runtime_transpiler_cache_mut() {
+                    if let Some(cache) = p.options.features.runtime_transpiler_cache.as_deref_mut() {
                         // If we rewrote import paths, we need to disable the runtime transpiler cache
                         if item.path.text != b"bun:test" {
                             cache.input_hash = None;
@@ -2086,7 +2086,7 @@ impl<'a> Parser<'a> {
             }
 
             // If we injected jest globals, we need to disable the runtime transpiler cache
-            if let Some(cache) = p.options.features.runtime_transpiler_cache_mut() {
+            if let Some(cache) = p.options.features.runtime_transpiler_cache.as_deref_mut() {
                 cache.input_hash = None;
             }
         }
@@ -2307,7 +2307,7 @@ impl<'a> Parser<'a> {
 
         #[cfg(not(target_arch = "wasm32"))]
         if bun_core::feature_flags::RUNTIME_TRANSPILER_CACHE {
-            if let Some(cache) = p.options.features.runtime_transpiler_cache_mut() {
+            if let Some(cache) = p.options.features.runtime_transpiler_cache.as_deref_mut() {
                 if p.macro_call_count != 0 {
                     // disable this for:
                     // - macros

@@ -239,11 +239,9 @@ pub mod Runtime {
         /// This is used for `--print` entry points so we can get the result.
         pub remove_cjs_module_wrapper: bool,
 
-        // `?*bun.jsc.RuntimeTranspilerCache`: raw `*mut` (not `&'a mut`)
-        // so `Features` stays `'static`-bounded inside `Parser::Options` and avoids
-        // the borrowck self-borrow that `&'a mut` would induce while `P` holds
-        // `&mut Options`.
-        pub runtime_transpiler_cache: Option<*mut RuntimeTranspilerCache>,
+        // `?*bun.jsc.RuntimeTranspilerCache`: o cache é do parse que o recebe, então as `Features` são donas dele
+        // (`Box`), e quem preenche o lê de volta das opções ao fim do parse.
+        pub runtime_transpiler_cache: Option<Box<RuntimeTranspilerCache>>,
 
         // TODO: make this a bitset of all unsupported features
         pub lower_using: bool,
@@ -315,22 +313,6 @@ pub mod Runtime {
     }
 
     impl Features {
-        /// Reborrow the optional `RuntimeTranspilerCache` back-pointer.
-        ///
-        /// `&self` receiver (not `&mut`) so call sites may hold other shared
-        /// borrows of `p.options.*` across the returned `&mut` (e.g.
-        /// `cache.get(p.source, &raw const p.options, p.options.jsx.parse)`).
-        /// Callers must not hold two results live at once. Centralises the raw
-        /// deref so the four parse-entry use sites stay safe.
-        #[inline]
-        #[allow(clippy::mut_from_ref)]
-        pub(crate) fn runtime_transpiler_cache_mut(&self) -> Option<&mut RuntimeTranspilerCache> {
-            // SAFETY: `runtime_transpiler_cache` is `Option<*mut _>` (see PORT
-            // NOTE on the field): the caller that populated it guarantees the
-            // pointee is unique to this parse and outlives `Features`.
-            self.runtime_transpiler_cache.map(|p| unsafe { &mut *p })
-        }
-
         /// Initialize bundler feature flags for dead-code elimination via `import { feature } from "bun:bundle"`.
         /// Returns an owned `Box<StringSet>`, or `None` if no flags are provided.
         /// Keys are kept sorted so iteration order is deterministic (for RuntimeTranspilerCache hashing).
