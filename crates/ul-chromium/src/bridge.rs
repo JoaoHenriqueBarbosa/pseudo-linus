@@ -463,6 +463,11 @@ impl DomHost for Bridge {
                 };
                 Ok(DomArg::Str(crate::imaging::encode(str_arg(args, 3)?, num_arg(args, 4).unwrap_or(-1.0), width, height, &rgba)))
             }
+            // [caminho, regra, traço ([] no isPointInPath), transformação, x, y] → acerto.
+            "canvasHit" => {
+                let (DomArg::List(path), DomArg::List(stroke), DomArg::List(ctm)) = (args.first().ok_or_else(illegal)?, args.get(2).ok_or_else(illegal)?, args.get(3).ok_or_else(illegal)?) else { return Err(illegal()) };
+                Ok(DomArg::Bool(crate::canvas::hit(path, str_arg(args, 1)?, stroke, ctm, num_arg(args, 4)?, num_arg(args, 5)?)))
+            }
             "root" => Ok(num(self.doc.borrow().root_node().id)),
             "docElement" => {
                 let doc = self.doc.borrow();

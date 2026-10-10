@@ -483,8 +483,17 @@ const CANVAS_2D_IMPL = {
     const [ops, t] = canvasPathArg(s, pathOrRule);
     s.state.clips = [...s.state.clips, [ops.slice(), t.slice(), fillRule]];
   },
-  isPointInPath() { c2d(this); return false; },
-  isPointInStroke() { c2d(this); return false; },
+  isPointInPath(...args) {
+    const s = c2d(this);
+    const path = args[0] instanceof Path2D ? args.shift() : undefined;
+    const fillRule = canvasFillRule('isPointInPath', args[2]);
+    return op('canvasHit', canvasPathArg(s, path), fillRule, [], s.state.transform, Number(args[0]), Number(args[1]));
+  },
+  isPointInStroke(...args) {
+    const s = c2d(this);
+    const path = args[0] instanceof Path2D ? args.shift() : undefined;
+    return op('canvasHit', canvasPathArg(s, path), 'nonzero', canvasStrokeArg(s.state), s.state.transform, Number(args[0]), Number(args[1]));
+  },
   drawFocusIfNeeded() { c2d(this); },
   fillText(text, x, y, maxWidth) { canvasText(c2d(this), 'fillText', text, x, y, maxWidth); },
   strokeText(text, x, y, maxWidth) { canvasText(c2d(this), 'strokeText', text, x, y, maxWidth); },

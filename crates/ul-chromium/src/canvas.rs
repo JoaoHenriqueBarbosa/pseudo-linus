@@ -9,7 +9,7 @@ use std::sync::Arc;
 use skrifa::outline::OutlinePen;
 use vello_cpu::color::{AlphaColor, PremulRgba8, Srgb};
 use vello_cpu::filter_effects::{EdgeMode, Filter, FilterPrimitive};
-use vello_cpu::kurbo::{self, Affine, BezPath, Cap, Join, Point, Rect, Shape, Stroke, StrokeOpts, SvgArc, Vec2};
+use vello_cpu::kurbo::{self, Affine, BezPath, Cap, Join, ParamCurveNearest, Point, Rect, Shape, Stroke, StrokeOpts, SvgArc, Vec2};
 use vello_cpu::peniko::{BlendMode, Compose, Extend, Fill, Gradient, ImageAlphaType, ImageBrush, ImageQuality, ImageSampler, InterpolationAlphaSpace, Mix};
 use vello_cpu::{ImageSource, Mask, PaintType, PixelMetadata, Pixmap, RenderContext, Resources};
 use zjsc::runtime::dom_bridge::DomArg;
@@ -411,6 +411,35 @@ fn text_path(args: &[DomArg], ctm: Affine) -> BezPath {
         draw_glyph(glyph, hinted.map(|s| s as f32), &mut pen);
     }
     path
+}
+
+/// O `SkPath::contains` do Skia: dentro pela regra de preenchimento, e o ponto sobre o contorno também conta.
+fn contains(path: &BezPath, point: Point, rule: Fill) -> bool {
+    let on_edge = path.segments().any(|seg| seg.nearest(point, 1e-12).distance_sq <= 1e-18);
+    let winding = path.winding(point);
+    on_edge || if rule == Fill::EvenOdd { winding % 2 != 0 } else { winding != 0 }
+}
+
+/// O `isPointInPath` (`stroke` vazio) e o `isPointInStroke` (`stroke` = [largura, cap, join, miterLimit, traços,
+/// deslocamento]). `path` é o caminho do prelúdio; `ctm`, a transformação atual; (x, y) em pixels do canvas, sem
+/// transformação, como medido no oráculo (`testbench/oracle/measured/canvas-hit.html`).
+pub fn hit(path: &[DomArg], rule: &str, stroke: &[DomArg], ctm: &[DomArg], x: f64, y: f64) -> bool {
+    if !x.is_finite() || !y.is_finite() {
+        return false;
+    }
+    let device = device_path(path);
+    let point = Point::new(x, y);
+    if stroke.is_empty() {
+        return contains(&device, point, fill_rule(rule));
+    }
+    let ctm = affine(ctm);
+    if ctm.determinant() == 0.0 {
+        return false;
+    }
+    let inverse = ctm.inverse();
+    let style = stroke_style(stroke);
+    let outline = kurbo::stroke(inverse * device, &style, &StrokeOpts::default(), 1e-4);
+    contains(&outline, inverse * point, Fill::NonZero)
 }
 
 impl Surface {

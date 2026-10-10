@@ -33,14 +33,25 @@ fn measure_text_matches_oracle() {
     assert!(wrong.is_empty(), "{} divergências:\n{}", wrong.len(), wrong.join("\n"));
 }
 
+/// `isPointInPath` e `isPointInStroke` contra `testbench/oracle/measured/canvas-hit.html` (borda, regras, transformação,
+/// cap, join e tracejado).
+#[test]
+fn hit_tests_match_oracle() {
+    assert_eq!(probe_output(include_str!("../../../testbench/oracle/measured/canvas-hit.html")), serde_json::from_str::<serde_json::Value>(include_str!("canvas-hit.json")).unwrap());
+}
+
+/// Roda uma sonda do oráculo aqui e devolve o JSON que ela grava em `data-out`.
+fn probe_output(probe: &str) -> serde_json::Value {
+    let (dom, _) = common::run(&[("/", probe)]);
+    let start = dom.find("data-out=\"").unwrap() + 10;
+    serde_json::from_str(&dom[start..start + dom[start..].find('"').unwrap()].replace("&quot;", "\"")).unwrap()
+}
+
 /// O `toDataURL` contra `testbench/oracle/measured/canvas-encode.html`: PNG e JPEG byte a byte iguais aos do Chromium
 /// nas cenas sem antisserrilhado.
 #[test]
 fn data_url_matches_oracle() {
-    let probe = include_str!("../../../testbench/oracle/measured/canvas-encode.html");
-    let (dom, _) = common::run(&[("/", probe)]);
-    let start = dom.find("data-out=\"").unwrap() + 10;
-    let ours: serde_json::Value = serde_json::from_str(&dom[start..start + dom[start..].find('"').unwrap()].replace("&quot;", "\"")).unwrap();
+    let ours = probe_output(include_str!("../../../testbench/oracle/measured/canvas-encode.html"));
     let oracle: serde_json::Value = serde_json::from_str(include_str!("canvas-encode.json")).unwrap();
     for (key, want) in oracle.as_object().unwrap() {
         assert_eq!(&ours[key], want, "{key}");
@@ -51,10 +62,7 @@ fn data_url_matches_oracle() {
 /// `testbench/oracle/measured/canvas-baselines.html`: a página roda aqui e o resultado tem de ser o do oráculo.
 #[test]
 fn text_baselines_match_oracle() {
-    let probe = include_str!("../../../testbench/oracle/measured/canvas-baselines.html");
-    let (dom, _) = common::run(&[("/", probe)]);
-    let start = dom.find("data-out=\"").unwrap() + 10;
-    let ours: serde_json::Value = serde_json::from_str(&dom[start..start + dom[start..].find('"').unwrap()].replace("&quot;", "\"")).unwrap();
+    let ours = probe_output(include_str!("../../../testbench/oracle/measured/canvas-baselines.html"));
     let oracle: serde_json::Value = serde_json::from_str(include_str!("canvas-baselines.json")).unwrap();
     assert_eq!(ours, oracle);
 }
