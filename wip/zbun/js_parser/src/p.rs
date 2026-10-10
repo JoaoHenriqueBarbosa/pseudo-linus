@@ -9415,28 +9415,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_ONLY> {
     /// Construct a `P` in place at `out`.
     ///
-    /// PERF: an earlier shape returned `Result<Self, _>` by value. `P`
-    /// is ~5 KiB; the by-value return forced a stack temp inside `init` (5176-B
-    /// frame, ASM-verified) plus a move at the caller's `?` (`_scan_imports`
-    /// 14168-B frame, 5× `memcpy`). Out-pointer init writes the struct exactly
-    /// once at its final address: every pre-computable post-init mutation is
-    /// hoisted above the
-    /// single `out.write(Self { .. })` so there is no stack temporary `Self`
-    /// to relocate.
-    ///
-    /// On `Ok(())`, `*out` is fully initialized and the caller owns dropping
-    /// it (e.g. via `assume_init`); on `Err`, `*out` is left untouched.
-    /// Taking `&mut MaybeUninit<Self>` (vs the previous `*mut Self`) makes the
-    /// alignment/writability precondition a type guarantee, so this fn is safe.
+    /// O parser vai para o heap (`Box`): `P` tem uns 5 KiB, e o upstream o constrói direto no lugar final para não
+    /// copiar o struct entre quadros de pilha. O `Box` dá o mesmo endereço estável sem o `MaybeUninit` nem o
+    /// `assume_init` que a escrita no lugar exigia.
     pub fn init(
-        out: &mut core::mem::MaybeUninit<Self>,
         arena: &'a Bump,
         log: core::ptr::NonNull<bun_ast::Log>,
         source: &'a bun_ast::Source,
         define: &'a Define,
         mut lexer: js_lexer::Lexer<'a>,
         mut opts: ParserOptions<'a>,
-    ) -> Result<(), crate::Error> {
+    ) -> Result<Box<Self>, crate::Error> {
         // Pre-size the parser's per-file name/ref-keyed symbol maps so the
         // common case never re-hashes while it grows. Profiling the runtime
         // transpiler showed
@@ -9530,9 +9519,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // dispatch). Computed before the literal so it can still read `opts`.
         let jsx_transform = JSXTransformType::from_parse_flag(opts.jsx.parse);
 
-        // Single placement write: no separate stack temp for `Self`.
-        // `MaybeUninit::write` is safe; it overwrites without dropping.
-        out.write(Self {
+        let parser = Box::new(Self {
             // This must default to true or else parsing "in" won't work right.
             // It will fail for the case in the "in-keyword.js" file
             allow_in: true,
@@ -9706,7 +9693,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // (the previous post-init `if !SCAN_ONLY { .. }` rewrites were
         // redundant with the literal and have been dropped).
 
-        Ok(())
+        Ok(parser)
     }
 }
 
