@@ -124,6 +124,11 @@ impl HostCall {
         HostCall { this_value, arguments, new_target: JSValue::empty(), callee: 0, caller_code_block: None, native_frame: None }
     }
 
+    /// O próprio frame nativo; `None` num `HostCall` montado à mão.
+    pub fn native_frame(&self) -> Option<crate::interpreter::call_frame::CallFrame> {
+        self.native_frame
+    }
+
     /// O índice do primeiro registro do próprio frame nativo (`CallFrame::registers`); `None` num `HostCall`
     /// montado à mão. É a âncora dos quadros Wasm da função exportada (`wasm_call_stack`).
     pub fn native_frame_registers(&self) -> Option<usize> {

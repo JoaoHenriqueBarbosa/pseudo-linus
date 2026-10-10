@@ -269,6 +269,13 @@ fn construct_generic_typed_array_view(global_object: &JSGlobalObject, call: &Hos
     } else {
         if !first_value.is_object() {
             // the step 9 of https://tc39.es/ecma262/2026/#sec-typedarray
+            // O V8 diz `Invalid typed array length: -1` (medido no Chromium 154).
+            if crate::runtime::stack_frame::v8_stack_format() && first_value.is_number() && first_value.as_number().trunc() < 0.0 {
+                return Err(Thrown::range_error(&format!(
+                    "Invalid typed array length: {}",
+                    crate::runtime::v8_stack::number_text(first_value.as_number())
+                )));
+            }
             length = Some(first_value.to_index("length")? as usize);
         }
 

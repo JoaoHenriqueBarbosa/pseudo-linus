@@ -1028,9 +1028,13 @@ pub(crate) fn dispatch_event(global_object: &JSGlobalObject, target: JSValue, ev
         let message = make_string_dyn(&[&"The event \"", &wtf_from_units(&state.kind), &"\" is already being dispatched"]);
         return Err(throw_coded_error_with_message(global_object, message, "ERR_EVENT_RECURSION"));
     }
+    // No global o `target` e o `currentTarget` do evento são o objeto global cru, não o `JSGlobalProxy` que é o
+    // `globalThis` (o `toJS` do `GlobalScope` do bun; medido no bun 1.4.2: `e.target === globalThis` é `false`, mas o
+    // protótipo é o mesmo e as chaves também). Os ouvintes continuam registrados no `globalThis`.
+    let exposed = if target.encode() == global_target(global_object).encode() { global_object.as_value() } else { target };
     update_event(event, |state| {
-        state.target = target;
-        state.current_target = target;
+        state.target = exposed;
+        state.current_target = exposed;
         state.phase = AT_TARGET;
         state.dispatching = true;
     });

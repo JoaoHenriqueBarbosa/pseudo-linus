@@ -76,7 +76,15 @@ use crate::runtime::vm::VM;
 
 /// `getIteratorErrorMessage(validateIterable(vm, iterable, symbolIterator), iterable)` para o iterável que
 /// não tem `Symbol.iterator` chamável.
-pub(crate) fn not_iterable_message(iterable: JSValue) -> &'static str {
+pub(crate) fn not_iterable_message(iterable: JSValue) -> String {
+    // O V8 escreve o número (`5 is not iterable`, medido no Chromium 154).
+    if iterable.is_number() && crate::runtime::stack_frame::v8_stack_format() {
+        return format!("{} is not iterable", crate::runtime::v8_stack::number_text(iterable.as_number()));
+    }
+    jsc_not_iterable_message(iterable).to_string()
+}
+
+fn jsc_not_iterable_message(iterable: JSValue) -> &'static str {
     if iterable.is_number() {
         return "number is not iterable";
     }
@@ -100,7 +108,7 @@ pub(crate) fn not_iterable_message(iterable: JSValue) -> &'static str {
 /// tem de ser chamável (só o `op_iterator_open`: o `op_async_iterator_open` vai direto à chamada).
 fn validate_iterable(global_object: &JSGlobalObject, iterable: JSValue, symbol_iterator: JSValue) -> LLIntResult<()> {
     if get_call_data(symbol_iterator).is_none() {
-        return Err(throw_type_error(global_object, not_iterable_message(iterable)));
+        return Err(throw_type_error(global_object, &not_iterable_message(iterable)));
     }
     Ok(())
 }

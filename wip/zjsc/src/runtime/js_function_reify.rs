@@ -269,7 +269,8 @@ impl JSFunction {
         };
         // O bun imprime o acessor de chave literal sem o `get `/`set ` (`at g (...)`), mas o de chave computada,
         // cujo `name` foi reificado por `setFunctionName`, com ele (`at get [d]`, `at get dyn`), medido contra o bun 1.4.2.
-        let is_accessor = !reified && {
+        // O V8 sempre o mantém (`at get p`, medido no Chromium 154).
+        let is_accessor = !reified && !crate::runtime::stack_frame::v8_stack_format() && {
             let executable = self.js_executable();
             let executable = executable.borrow();
             executable.is_getter() || executable.is_setter()

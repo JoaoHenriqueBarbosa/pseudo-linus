@@ -136,6 +136,12 @@ impl ErrorInstance {
         let instance = Rc::new(ErrorInstance { base: JSNonFinalObject::new(vm, structure), data: RefCell::new(data) });
         instance.base.set_cell_id(cell_id);
         cell_registry::set(cell_id, CellEntry::ErrorInstance(Rc::clone(&instance)));
+        // O V8 instala o acessor `stack` antes de `message` e `cause` (`stack,message`, medido no Chromium 154).
+        if crate::runtime::stack_frame::v8_stack_format() {
+            if let Some(global_object) = instance.structure().realm() {
+                crate::runtime::v8_stack::install_stack_accessor(&global_object, &instance);
+            }
+        }
         instance
     }
 
@@ -287,6 +293,11 @@ impl ErrorInstance {
         }
     }
 
+    /// Tira os frames guardados (o acessor `stack` do V8 os formata ou os descarta).
+    pub fn take_pending_stack(&self) -> Option<Vec<StackFrame>> {
+        self.data.borrow_mut().pending_frames.take()
+    }
+
     /// `Error.captureStackTrace(error)` num `ErrorInstance`: troca os frames guardados e descarta o texto já
     /// materializado; o cabeçalho é refeito na próxima leitura de `stack`.
     pub fn replace_pending_stack(&self, frames: Vec<StackFrame>) {
@@ -371,6 +382,10 @@ fn is_error_info_property(vm: &VM, property_name: &PropertyName) -> bool {
 /// `materializeErrorInfoIfNeeded` de um objeto qualquer: só age em `ErrorInstance` com frames guardados.
 /// `true` se materializou (a `Structure` do objeto pode ter mudado, e o `VM` pode ter exceção pendente).
 pub fn materialize_error_info(object: &JSObject) -> bool {
+    // No V8 `stack` é o acessor ([`crate::runtime::v8_stack`]) e não há `line`, `column` nem `sourceURL`.
+    if crate::runtime::stack_frame::v8_stack_format() {
+        return false;
+    }
     let Some(error) = ErrorInstance::from_cell_id(object.cell_id()) else {
         return false;
     };

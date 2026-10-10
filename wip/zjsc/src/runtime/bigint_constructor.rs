@@ -63,6 +63,13 @@ fn call_big_int_constructor_body(_global_object: &JSGlobalObject, call: &HostCal
     if primitive.is_double() {
         let number = primitive.as_double();
         if !is_integer(number) {
+            // A mensagem do V8 traz o número (medido no Chromium 154).
+            if crate::runtime::stack_frame::v8_stack_format() {
+                return Err(Thrown::range_error(&format!(
+                    "The number {} cannot be converted to a BigInt because it is not an integer",
+                    crate::runtime::v8_stack::number_text(number)
+                )));
+            }
             return Err(Thrown::range_error("Not an integer"));
         }
         return or_pending(make_big_int_from_double(number));

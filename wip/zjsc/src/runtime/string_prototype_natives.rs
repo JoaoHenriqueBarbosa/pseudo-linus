@@ -250,7 +250,17 @@ fn body_last_index_of(call: &StringCall, this: &WtfString) -> Result<JSValue, St
 }
 
 fn body_repeat(call: &StringCall, this: &WtfString) -> Result<JSValue, StringError> {
-    string_value(call, &algo::repeat(this, call.integer(0)?)?)
+    let count = call.integer(0)?;
+    // O V8 diz `Invalid count value: -1.5` com o argumento como veio (medido no Chromium 154).
+    if (count < 0.0 || count.is_infinite()) && crate::runtime::stack_frame::v8_stack_format() {
+        let argument = call.argument(0);
+        let shown = if argument.is_number() { argument.as_number() } else { count };
+        return Err(StringError::Thrown(Thrown::range_error(&format!(
+            "Invalid count value: {}",
+            crate::runtime::v8_stack::number_text(shown)
+        ))));
+    }
+    string_value(call, &algo::repeat(this, count)?)
 }
 
 fn pad_with(call: &StringCall, this: &WtfString, at_start: bool) -> Result<JSValue, StringError> {

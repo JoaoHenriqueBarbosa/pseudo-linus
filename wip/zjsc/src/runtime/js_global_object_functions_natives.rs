@@ -169,11 +169,14 @@ fn global_func_eval(global_object: &JSGlobalObject, call_frame: &mut NativeCallF
     let _realm = CurrentRealmScope::enter(global_object);
     let global_object = current_global_object();
     let source_origin = caller_source_origin(&global_object.vm().interpreter(), call_frame.call_frame());
+    let eval_origin = crate::runtime::stack_frame::v8_stack_format()
+        .then(|| crate::runtime::v8_stack::eval_origin(&global_object, call_frame.call_frame()));
     let result = global_object.vm().interpreter().global_func_eval(
         &global_object,
         call_frame.argument(0),
         &source_origin,
         SourceTaintedOrigin::Untainted,
+        eval_origin,
     );
     match result {
         Ok(value) => value.encode(),

@@ -1003,10 +1003,13 @@ impl BytecodeGenerator {
         // If we're in strict mode, we always throw.
         // If we're not in strict mode, we throw for "const" variables but not the function callee.
         if self.ecma_mode().is_strict() || variable.is_const() {
-            let message = crate::runtime::identifier::Identifier::from_span(
-                &self.vm,
-                crate::runtime::error_messages::READONLY_PROPERTY_WRITE_ERROR.as_bytes(),
-            );
+            // O V8 diz `Assignment to constant variable.` (medido no Chromium 154).
+            let text = if crate::runtime::stack_frame::v8_stack_format() {
+                "Assignment to constant variable."
+            } else {
+                crate::runtime::error_messages::READONLY_PROPERTY_WRITE_ERROR
+            };
+            let message = crate::runtime::identifier::Identifier::from_span(&self.vm, text.as_bytes());
             self.emit_throw_type_error_identifier(&message);
             return true;
         }

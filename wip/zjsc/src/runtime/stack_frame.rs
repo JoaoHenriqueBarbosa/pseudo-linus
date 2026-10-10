@@ -22,7 +22,7 @@
 //!   não existem: nenhum frame assim entra na captura. O frame de função nativa é o do `Bun`:
 //!   `nome (unknown)` ([`StackFrame::native_function`]), e o de builtin em JS público é `nome (native:1:11)`.
 
-use std::cell::OnceCell;
+use std::cell::{Cell, OnceCell};
 use std::fmt;
 use std::rc::Rc;
 
@@ -35,6 +35,27 @@ use crate::interpreter::unwind::source_url_stripped_of;
 use crate::parser::source_provider::SourceProvider;
 use crate::runtime::js_value::JSValue;
 use crate::runtime::script_executable::ScriptExecutableRef;
+
+thread_local! {
+    /// O programa é um navegador: `Error.stack`, o `CallSite` e as mensagens de erro seguem o V8, não o bun.
+    static V8_STACK_FORMAT: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Liga (o navegador) ou desliga o formato de pilha do V8 para o programa em curso.
+pub fn set_v8_stack_format(enabled: bool) {
+    V8_STACK_FORMAT.with(|flag| flag.set(enabled));
+}
+
+/// O programa em curso usa o formato de pilha do V8.
+pub fn v8_stack_format() -> bool {
+    V8_STACK_FORMAT.try_with(Cell::get).unwrap_or(false)
+}
+
+/// Fim do programa: volta ao formato do bun.
+pub(crate) fn reset_for_program() {
+    let _ = V8_STACK_FORMAT.try_with(|flag| flag.set(false));
+    crate::runtime::v8_stack::reset_for_program();
+}
 
 /// O que `StackFrame` resolve sob demanda: `functionName(vm)`, `sourceURLStripped(vm)`,
 /// `computeLineAndColumn()`, `hasLineAndColumnInfo()` e o recuo do `new`.
@@ -194,7 +215,7 @@ fn callee_back_offset(block: &CodeBlock, bytecode_index: BytecodeIndex) -> u32 {
     found.map_or(0, |start| divot - start)
 }
 
-fn is_line_terminator_unit(unit: u16) -> bool {
+pub(crate) fn is_line_terminator_unit(unit: u16) -> bool {
     unit == 0x0A || unit == 0x0D || unit == 0x2028 || unit == 0x2029
 }
 
@@ -396,15 +417,22 @@ impl StackFrame {
             let line_column = line_and_column_for(&source.code_block, source.bytecode_index);
             let mut line_column = line_column;
             let mut construct_back_offset = construct_back_offset(&block, source.bytecode_index);
-            // O texto de `stack` mostra a coluna remapeada pelo source map do transpilador do `Bun` (o último token
-            // mapeável até o `divot`, ver `callee_back_offset`), não o `(`; o recuo do `CallSite` até o `new`
-            // continua medido a partir do `(`, por isso entra descontado desse recuo.
-            let raw_name_back_offset = callee_back_offset(&block, source.bytecode_index);
-            let name_back_offset = raw_name_back_offset.min(line_column.column.saturating_sub(1));
-            line_column.column -= name_back_offset;
-            // Com source map (arquivo transpilado) a construção também fica no último mapping até o `(`, sem recuo ao `new`.
-            if raw_name_back_offset > 0 {
+            if v8_stack_format() {
+                // O V8 não tem transpilador nem recuo de `CallSite`: a coluna já é a do `SourcePosition`.
+                let shift = crate::runtime::v8_stack::position_shift(&block, source.bytecode_index);
+                line_column.column = u32::try_from((i64::from(line_column.column) + shift).max(1)).unwrap_or(1);
                 construct_back_offset = 0;
+            } else {
+                // O texto de `stack` mostra a coluna remapeada pelo source map do transpilador do `Bun` (o último
+                // token mapeável até o `divot`, ver `callee_back_offset`), não o `(`; o recuo do `CallSite` até o
+                // `new` continua medido a partir do `(`, por isso entra descontado desse recuo.
+                let raw_name_back_offset = callee_back_offset(&block, source.bytecode_index);
+                let name_back_offset = raw_name_back_offset.min(line_column.column.saturating_sub(1));
+                line_column.column -= name_back_offset;
+                // Com source map (arquivo transpilado) a construção também fica no último mapping até o `(`, sem recuo ao `new`.
+                if raw_name_back_offset > 0 {
+                    construct_back_offset = 0;
+                }
             }
             // O harness dos goldens roda o texto reimpresso e o bun mostra a posição no fonte original.
             if let Some(map) = owner.source().provider().and_then(|provider| provider.position_map()) {
@@ -436,6 +464,14 @@ impl StackFrame {
         let code = block.owner_executable().source();
         let provider = code.provider()?;
         Some(crate::runtime::js_module_loader::rust_string(&provider.source()))
+    }
+
+    /// A origem do `eval` ou `new Function` de onde o código do frame veio (formato de pilha do V8).
+    pub fn eval_origin(&self) -> Option<String> {
+        let source = self.source.as_ref()?;
+        let block = source.code_block.borrow();
+        let code = block.owner_executable().source();
+        code.provider()?.eval_origin()
     }
 
     /// `functionName(vm)`.

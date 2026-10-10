@@ -395,6 +395,9 @@ impl Interpreter {
             return Ok(program);
         }
         let program_source = program.to_wtf_string();
+        // Formato de pilha do V8: de onde o `eval` veio, calculado antes de qualquer empréstimo do `CodeBlock` chamador.
+        let eval_origin = crate::runtime::stack_frame::v8_stack_format()
+            .then(|| crate::runtime::v8_stack::eval_origin(global_object, callee_frame));
 
         let cached = caller_code_block.borrow_mut().direct_eval_code_cache().get(&program_source, bytecode_index);
         if let Some(eval) = cached {
@@ -455,6 +458,11 @@ impl Interpreter {
                 TextPosition::default(),
                 SourceProviderSourceType::Program,
             );
+            if let Some(origin) = eval_origin {
+                if let Some(provider) = source.provider() {
+                    provider.set_eval_origin(origin);
+                }
+            }
             direct_eval_executable::create(
                 global_object,
                 &source,

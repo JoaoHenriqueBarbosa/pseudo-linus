@@ -184,7 +184,19 @@ fn emit_warning_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRes
     if deprecation && process_flag(global_object, "throwDeprecation") {
         queue_tick(global_object, native(global_object, "throwTick", 1, throw_tick), vec![warning]);
     } else {
-        queue_tick(global_object, native(global_object, "emitTick", 1, emit_tick), vec![warning]);
+        // No bun o tick que emite `warning` é JS interno (`node:process`), fora da pilha: o erro lançado por um ouvinte
+        // de `warning` tem só o frame do ouvinte (medido no bun 1.4.2, sem `at emitTick`).
+        let emit = crate::runtime::js_function::JSFunction::create_native_with_own_structure(
+            global_object.vm(),
+            global_object,
+            1,
+            &WtfString::from_latin1(b"emitTick"),
+            emit_tick,
+            crate::runtime::implementation_visibility::ImplementationVisibility::Private,
+            crate::runtime::intrinsic::Intrinsic::NoIntrinsic,
+            crate::runtime::js_function::call_host_function_as_constructor,
+        );
+        queue_tick(global_object, emit.as_value(), vec![warning]);
     }
     Ok(JSValue::undefined())
 }
