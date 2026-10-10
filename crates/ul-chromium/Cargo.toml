@@ -21,6 +21,9 @@ blitz-html = "=0.3.0-beta.2"
 blitz-traits = "=0.3.0-beta.2"
 # O motor de CSS do Servo (o mesmo que o Blitz usa): parse e serialização canônica do `style` escrito via CSSOM.
 stylo = "=0.20.0"
+# O parser de media query do `matchMedia` é o do stylo, que pede o tokenizador e os modos de parse dele.
+stylo_traits = "=0.20.0"
+cssparser = "0.37"
 selectors = "=0.40.0"
 url = "2.5"
 # Motor JavaScript: o JavaScriptCore portado, ainda fora do workspace (ver wip/zjsc).

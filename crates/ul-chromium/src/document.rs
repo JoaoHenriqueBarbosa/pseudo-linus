@@ -120,6 +120,47 @@ pub fn normalize_style(text: &str) -> String {
     out
 }
 
+/// O valor computado de `name` no elemento `id`, como o stylo o serializa (o `getComputedStyle`). Shorthand só tem
+/// valor quando todas as longhands dela coincidem. `None` para nome desconhecido ou nó sem estilo.
+pub fn computed_value(doc: &mut BaseDocument, id: NodeId, name: &str) -> Option<String> {
+    use style::properties::{PropertyDeclarationId, PropertyId};
+    doc.resolve(0.0);
+    let node = doc.get_node(id)?;
+    let styles = node.primary_styles()?;
+    let property = PropertyId::parse_enabled_for_all_content(name).ok()?;
+    match property.as_shorthand() {
+        Err(declaration) => Some(styles.computed_value_to_string(declaration)),
+        Ok(shorthand) => {
+            let mut values = shorthand.longhands().map(|longhand| styles.computed_value_to_string(PropertyDeclarationId::Longhand(longhand)));
+            let first = values.next()?;
+            Some(if values.all(|value| value == first) { first } else { String::new() })
+        }
+    }
+}
+
+/// Se a media query casa com a janela do documento (o `matchMedia`), pelo parser e avaliador do stylo.
+pub fn media_matches(doc: &mut BaseDocument, query: &str) -> bool {
+    use style::media_queries::MediaList;
+    use style::parser::ParserContext;
+    use style::stylesheets::{CssRuleType, CustomMediaEvaluator, Namespaces, Origin, UrlExtraData};
+    let base = url::Url::parse("about:blank").expect("about:blank");
+    let data = UrlExtraData(style::servo_arc::Arc::new(base));
+    let mut context = ParserContext::new(
+        Origin::Author,
+        &data,
+        Some(CssRuleType::Media),
+        style_traits::ParsingMode::DEFAULT,
+        selectors::matching::QuirksMode::NoQuirks,
+        std::borrow::Cow::Owned(Namespaces::default()),
+        None,
+        None,
+        Default::default(),
+    );
+    let mut input = cssparser::ParserInput::new(query);
+    let list = MediaList::parse(&mut context, &mut cssparser::Parser::new(&mut input));
+    list.evaluate(doc.stylist_device(), selectors::matching::QuirksMode::NoQuirks, &mut CustomMediaEvaluator::none())
+}
+
 /// O Blink guarda os números de CSS em double e os serializa com seis algarismos significativos; o stylo guarda em f32,
 /// que muda o sexto algarismo (`55.319148...%` sai `55.3192%`). Os números decimais do texto chegam ao stylo já
 /// arredondados como o Blink os escreveria. Strings, `url(...)` e números colados a identificadores ficam intactos.

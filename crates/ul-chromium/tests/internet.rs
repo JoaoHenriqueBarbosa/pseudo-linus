@@ -148,6 +148,8 @@ fn internet_scoreboard() {
     let golden = bench().join("golden/chromium-internet");
     let unstable: Vec<String> = std::fs::read_to_string(corpus.join("unstable.txt")).unwrap_or_default().lines().map(str::to_owned).collect();
     let only: Option<String> = std::env::var("PAGE").ok();
+    // TAPE_DIR=diretório troca a fita da página de PAGE por uma cópia (diagnóstico com o código da página instrumentado).
+    let tape_override = std::env::var("TAPE_DIR").ok().map(PathBuf::from);
     let mut groups: HashMap<String, (usize, usize, Vec<String>)> = HashMap::new();
     for line in std::fs::read_to_string(corpus.join("pages.txt")).unwrap().lines().filter(|l| !l.starts_with('#') && !l.is_empty()) {
         let mut parts = line.split('|');
@@ -159,9 +161,10 @@ fn internet_scoreboard() {
         // As outras saídas legítimas do oráculo (ordem de rede diferente entre execuções): `<id>.<n>.dom`.
         let variants: Vec<String> = (1..).map_while(|n| std::fs::read_to_string(golden.join(format!("{id}.{n}.dom"))).ok()).collect();
         eprintln!("página: {id}");
-        let tape: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(corpus.join(id).join("tape.json")).unwrap()).unwrap();
+        let tape_dir = tape_override.clone().unwrap_or_else(|| corpus.join(id));
+        let tape: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(tape_dir.join("tape.json")).unwrap()).unwrap();
         let recorded_at = tape["recorded_at"].as_i64().unwrap_or(0);
-        *CURRENT.lock().unwrap() = Some((corpus.join(id), address.to_owned()));
+        *CURRENT.lock().unwrap() = Some((tape_dir, address.to_owned()));
         // A página roda num pseudo-processo no instante da gravação: o `Date` dela lê o mesmo relógio que o oráculo
         // tinha sob o faketime.
         let kit = TestKit::new().programs(vec![sysabi::Program::bin("tape-page", tape_page_main)]).time(recorded_at);

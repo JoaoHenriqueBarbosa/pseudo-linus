@@ -186,6 +186,35 @@ console.log(h.localName, window.f.localName, two.length, String(two), v, 'h' in 
 }
 
 #[test]
+fn switch_with_many_numeric_cases() {
+    // O getBumpedLaneForHydrationByLane do React 19.3 (nextjs.org): com o switch errado a hidratação nunca agenda.
+    let script = "<script>function e$(e){switch(e){case 2:e=1;break;case 8:e=4;break;case 32:e=16;break;case 256:case 512:case 1024:case 2048:case 4096:case 8192:case 16384:case 32768:case 65536:case 131072:case 262144:case 524288:case 1048576:case 2097152:case 4194304:case 8388608:case 0x1000000:case 0x2000000:e=128;break;case 0x10000000:e=0x8000000;break;default:e=0}return e}
+console.log([2, 8, 32, 256, 0x2000000, 0x10000000, 3].map(e$).join(' '))</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "1 4 16 128 128 134217728 0\n");
+}
+
+#[test]
+fn media_range_syntax_applies() {
+    // O Tailwind 4 escreve `@media (width>=48rem)`; a janela do headless tem 780px.
+    let html = "<style>body{margin:0}@media (width>=48rem){.g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}</style><div class=g><div id=a>a</div><div>b</div></div><script>console.log(document.getElementById('a').offsetWidth, matchMedia('(width>=48rem)').matches)</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "390 true\n");
+}
+
+#[test]
+fn computed_style_and_media_queries() {
+    // Saída do chromium do oráculo para a mesma página.
+    let html = r#"<body style="margin:0"><style>.b{box-sizing:border-box}</style><div id=a style="width:100px;padding:10px;border:1px solid red;color:rgb(1,2,3);--x: 5px;margin:4px"></div><div id=b class=b style="width:100px;padding:10px"></div><span id=c>s</span><div id=d style="display:none;width:50%"></div><script>
+const g = (id) => getComputedStyle(document.getElementById(id));
+const a = g('a'), b = g('b'), c = g('c'), d = g('d');
+console.log([a.width, a.height, a.color, a.getPropertyValue('--x'), a.margin, a.marginTop, a.display, b.width, c.display, c.width, d.width, d.display, a.position, a.opacity, matchMedia('(width>=48rem)').matches, matchMedia('(max-width: 700px)').matches, matchMedia('(prefers-color-scheme: dark)').matches].join('|'));
+</script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "100px|0px|rgb(1, 2, 3)|5px|4px|4px|block|100px|inline|auto|50%|none|static|1|true|false|false\n");
+}
+
+#[test]
 fn push_apply_in_timer() {
     let script = "<script>setTimeout(function () { for (var n of [10, 1000, 70000, 200000]) { var a = []; var b = new Array(n).fill(1); a.push.apply(a, b); console.log(n, a.length) } }, 0)</script>";
     let (_, log) = run(&[("/", script)]);

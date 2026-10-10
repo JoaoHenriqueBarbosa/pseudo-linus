@@ -395,6 +395,14 @@ impl DomHost for Bridge {
                 let found = document::layout_box(&mut self.doc.borrow_mut(), id);
                 Ok(found.map_or(DomArg::Null, |values| DomArg::List(values.into_iter().map(DomArg::Num).collect())))
             }
+            // O valor computado de uma longhand ou propriedade customizada, como o stylo o serializa; `null` para
+            // nome desconhecido ou nó sem estilo.
+            "computedStyle" => {
+                let id = id_arg(args, 0)?;
+                let name = str_arg(args, 1)?;
+                Ok(document::computed_value(&mut self.doc.borrow_mut(), id, name).map_or(DomArg::Null, DomArg::Str))
+            }
+            "matchMedia" => Ok(DomArg::Bool(document::media_matches(&mut self.doc.borrow_mut(), str_arg(args, 0)?))),
             "setDefined" => {
                 let id = id_arg(args, 0)?;
                 self.doc.borrow_mut().get_node_mut(id).ok_or_else(illegal)?.set_defined();

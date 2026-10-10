@@ -197,20 +197,26 @@ function sheetFor(owner) {
 }
 const fontFaceSet = Object.assign(Object.create(EventTarget.prototype), { ready: Promise.resolve(), status: 'loaded', size: 0, check: () => true, load: () => Promise.resolve([]), add() {}, delete() { return false; }, clear() {}, forEach() {}, onloading: null, onloadingdone: null, onloadingerror: null });
 
-const defaultDisplay = (el) => {
-  const t = el.localName;
-  if (/^(div|p|ul|ol|li|h[1-6]|section|article|header|footer|nav|main|aside|form|table|pre|blockquote|body|html|dl|dt|dd|fieldset|figure|figcaption|hr|address|details|summary|dialog|menu|legend)$/.test(t)) return t === 'li' ? 'list-item' : t === 'table' ? 'table' : 'block';
-  if (/^(head|script|style|link|meta|title|base|template|noscript|area|datalist|param|source|track)$/.test(t)) return 'none';
-  return 'inline';
+// O estilo computado é o do stylo; `width` e `height` de elemento com caixa saem no valor usado do layout (o valor
+// resolvido do CSSOM), na caixa que o `box-sizing` mede.
+const resolvedSize = (el, name) => {
+  const b = boxOf(el);
+  if (!b || op('computedStyle', idOf(el), 'display') === 'inline') return null;
+  const borderBox = op('computedStyle', idOf(el), 'box-sizing') === 'border-box';
+  const [top, right, bottom, left] = [0, 1, 2, 3].map((i) => b.border[i] + b.padding[i]);
+  const size = name === 'width' ? b.width - (borderBox ? 0 : left + right) : b.height - (borderBox ? 0 : top + bottom);
+  return `${+size.toFixed(4)}px`;
 };
 const getComputedStyle = (el) => {
-  const inline = el.style;
   const target = Object.create(CSSStyleDeclaration.prototype);
   hidden(target, '__element', el);
-  const read = (name) => { const v = inline.getPropertyValue(name); if (v) return v; if (name === 'display') return el.hidden ? 'none' : defaultDisplay(el); if (name === 'visibility') return 'visible'; if (name === 'position') return 'static'; if (name === 'opacity') return '1'; return ''; };
+  const read = (name) => {
+    if ((name === 'width' || name === 'height') && el.isConnected) { const size = resolvedSize(el, name); if (size !== null) return size; }
+    return op('computedStyle', idOf(el), name) ?? '';
+  };
   return proxied(target, {
     get(t, key, receiver) {
-      if (key === 'getPropertyValue') return (n) => read(String(n).toLowerCase());
+      if (key === 'getPropertyValue') return (n) => { const name = String(n); return read(name.startsWith('--') ? name : name.toLowerCase()); };
       if (typeof key === 'string' && !(key in t)) return read(kebab(key));
       return Reflect.get(t, key, receiver);
     },
@@ -219,19 +225,7 @@ const getComputedStyle = (el) => {
 };
 
 const matchMedia = (query) => {
-  const q = String(query).toLowerCase();
-  const evalOne = (c) => {
-    let m;
-    if ((m = /\(\s*min-width\s*:\s*(\d+(?:\.\d+)?)px\s*\)/.exec(c))) return VIEWPORT.width >= +m[1];
-    if ((m = /\(\s*max-width\s*:\s*(\d+(?:\.\d+)?)px\s*\)/.exec(c))) return VIEWPORT.width <= +m[1];
-    if (/prefers-color-scheme\s*:\s*light/.test(c)) return true;
-    if (/prefers-color-scheme\s*:\s*dark/.test(c) || /prefers-reduced-motion\s*:\s*reduce/.test(c)) return false;
-    if (/^\s*(all|screen)\s*$/.test(c)) return true;
-    if (/print/.test(c)) return false;
-    if (/hover\s*:\s*hover|pointer\s*:\s*fine/.test(c)) return true;
-    return false;
-  };
-  const matches = q.split(',').some((part) => part.split(/\band\b/).every((c) => evalOne(c)));
+  const matches = op('matchMedia', String(query));
   return Object.assign(Object.create(EventTarget.prototype), { matches, media: String(query), onchange: null, addListener() {}, removeListener() {} });
 };
 
