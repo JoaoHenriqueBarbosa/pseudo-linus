@@ -5,6 +5,7 @@
 pub mod array_hash_map;
 pub mod bit_set;
 pub mod identity_context;
+pub mod index_sort;
 pub mod pool;
 pub mod vec_ext;
 pub mod zig_hash_map;
@@ -18,7 +19,7 @@ pub use array_hash_map::{
 pub use bit_set::IntegerBitSet;
 pub use identity_context::{IdentityContext, IdentityHash};
 pub use pool::{ObjectPool, ObjectPoolType, PoolGuard};
-pub use vec_ext::VecExt;
+pub use vec_ext::{VecExt, prepend_from};
 pub use zig_hash_map::{AutoHashContext, HashContext, HashMap};
 
 /// std-compat path so call sites that wrote `bun_collections::hash_map::Entry`

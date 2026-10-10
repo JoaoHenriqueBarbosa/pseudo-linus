@@ -3,6 +3,8 @@
 #![forbid(unsafe_code)]
 
 pub mod comptime_string_map;
+pub mod error;
+pub use error::{Error, Error as CrateError, Result as CrateResult};
 pub mod feature_flags;
 pub mod fmt;
 pub mod generic_index;
@@ -85,4 +87,35 @@ pub fn trim<'a>(slice: &'a [u8], values_to_strip: &[u8]) -> &'a [u8] {
     let begin = slice.iter().position(|b| !values_to_strip.contains(b)).unwrap_or(slice.len());
     let end = slice.iter().rposition(|b| !values_to_strip.contains(b)).map_or(begin, |i| i + 1);
     &slice[begin..end]
+}
+
+pub use bun_alloc::out_of_memory;
+
+/// Unwrap a `Result`, calling `outOfMemory()` on **any** `Err`.
+#[inline]
+#[track_caller]
+pub fn handle_oom<T, E>(r: core::result::Result<T, E>) -> T {
+    match r {
+        Ok(v) => v,
+        Err(_) => out_of_memory(),
+    }
+}
+
+/// `bun.perf`. No upstream, `trace` emite um intervalo do ftrace quando `BUN_TRACE=1` e o kernel aceita o
+/// `Bun__linux_trace_init` (FFI em C). Esse backend fica fora do porte, e o caminho que sobra é o do upstream
+/// com o rastreio desligado: o `Ctx` vazio.
+pub mod perf {
+    pub struct Ctx {}
+
+    impl Ctx {
+        pub(crate) const DISABLED: Ctx = Ctx {};
+        #[inline]
+        pub fn end(&mut self) {}
+    }
+
+    #[inline]
+    pub fn trace(name: &'static str) -> Ctx {
+        let _ = name;
+        Ctx::DISABLED
+    }
 }

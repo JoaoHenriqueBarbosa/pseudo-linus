@@ -7,7 +7,8 @@ use bun_ast::{self as js_ast, Expr, G, LocRef, S, Stmt, Symbol};
 use bun_ast::{ImportRecord, import_record};
 use bun_collections::VecExt;
 use bun_core::strings;
-use bun_crash_handler::handle_oom::handle_oom;
+// No upstream, o `handle_oom` do `bun_crash_handler` (só `AllocError`); o crash handler fica fora do porte.
+use bun_core::handle_oom;
 
 // `stmts` is a sub-slice of the input `stmts` argument (in-place compacted),
 // so it borrows from the caller.

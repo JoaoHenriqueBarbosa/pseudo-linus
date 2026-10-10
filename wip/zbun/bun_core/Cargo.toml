@@ -11,6 +11,7 @@ path = "src/lib.rs"
 bun_alloc = { path = "../bun_alloc" }
 bun_core_macros = { path = "../bun_core_macros" }
 strum.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 bstr = { version = "1", default-features = false, features = ["alloc"] }

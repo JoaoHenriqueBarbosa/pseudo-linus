@@ -281,6 +281,35 @@ pub fn fmt_identifier(name: &[u8]) -> FormatValidIdentifier<'_> {
     FormatValidIdentifier { name }
 }
 
+/// esbuild has an 8 character truncation of a base32 encoded bytes. this
+/// is not exactly that, but it will appear as such. the character list
+/// chosen omits similar characters in the unlikely case someone is
+/// trying to memorize a hash.
+pub struct TruncatedHash32(pub u64);
+
+pub fn truncated_hash32(int: u64) -> TruncatedHash32 {
+    TruncatedHash32(int)
+}
+
+impl core::fmt::Display for TruncatedHash32 {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write_bytes(f, &truncated_hash32_bytes(self.0))
+    }
+}
+
+/// Const-fn core of [`truncated_hash32`]: the 8-byte base32-ish encoding (native-endian byte reinterpretation).
+pub const fn truncated_hash32_bytes(int: u64) -> [u8; 8] {
+    const CHARS: &[u8; 32] = b"0123456789abcdefghjkmnpqrstvwxyz";
+    let b = int.to_ne_bytes();
+    let mut out = [0u8; 8];
+    let mut i = 0;
+    while i < 8 {
+        out[i] = CHARS[(b[i] & 31) as usize];
+        i += 1;
+    }
+    out
+}
+
 /// Format a string to an ECMAScript identifier.
 pub struct FormatValidIdentifier<'a> {
     pub name: &'a [u8],

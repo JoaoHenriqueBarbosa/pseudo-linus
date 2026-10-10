@@ -67,6 +67,16 @@ impl core::fmt::Display for AllocError {
 }
 impl core::error::Error for AllocError {}
 
+/// No upstream a chamada sobe para o `bun_crash_handler` por um símbolo `extern "Rust"` de link, que monta o
+/// relatório de queda. O crash handler fica fora do porte (decisão da coordenação), então vale o caminho que o
+/// upstream usa sem ele (o `cfg(test)`): a mensagem e o `abort`.
+#[cold]
+#[inline(never)]
+pub fn out_of_memory() -> ! {
+    let _ = std::io::Write::write_all(&mut std::io::stderr(), b"bun: out of memory\n");
+    std::process::abort()
+}
+
 /// `ArenaString`: o texto que `arena_format!` monta. Cresce num `String` e só vai para a arena no
 /// `into_bump_str`.
 pub struct ArenaString<'a> {

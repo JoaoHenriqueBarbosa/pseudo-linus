@@ -87,9 +87,26 @@ impl<T> VecExt<T> for Vec<T> {
     }
 }
 
+/// Move all of `src` to the front of `dst`, leaving `src` empty. No upstream é um `ptr::copy` com `set_len`; aqui o
+/// `splice` faz o mesmo deslocamento sem `unsafe`.
+pub fn prepend_from<T>(dst: &mut Vec<T>, src: &mut Vec<T>) {
+    if src.is_empty() {
+        return;
+    }
+    dst.splice(0..0, src.drain(..));
+}
+
 #[cfg(test)]
 mod tests {
     use super::VecExt;
+
+    #[test]
+    fn prepend_from_moves_to_the_front() {
+        let mut dst = vec![3, 4];
+        let mut src = vec![1, 2];
+        super::prepend_from(&mut dst, &mut src);
+        assert_eq!((dst, src), (vec![1, 2, 3, 4], vec![]));
+    }
 
     #[test]
     fn vec_ext_basics() {
