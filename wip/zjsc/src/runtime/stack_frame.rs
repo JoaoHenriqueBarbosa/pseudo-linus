@@ -617,7 +617,9 @@ impl StackFrame {
         } else {
             name.to_string()
         };
-        if style == Style::Trace && location.source_url == "native" {
+        // O `ZigStackFrame` não tem URL para o builtin nem para o código sem fonte (o inicializador de campo de classe,
+        // `unknown` na linha de `stack`): medido no bun 1.4.2, `at new A (1:17)` no trace e `new A (unknown:1:17)` no `stack`.
+        if style == Style::Trace && (location.source_url == "native" || location.source_url == "unknown") {
             return format!("{name} ({}:{column})", location.line);
         }
         let location_text = match (location.source_url.is_empty(), location.has_line_and_column_info) {
