@@ -6,7 +6,13 @@
 //! o caminho em bloco para texto que forma o próprio cluster (`bulk_unit_width`): o primeiro codepoint
 //! do bloco não consulta a quebra de grafema, só descarrega o cluster pendente, então um `Prepend` logo
 //! antes dele não o gruda.
+//!
+//! As sequências ANSI são as de `ansi.rs` (o `ANSIHelpers.h`, que o `Bun.stripANSI` também usa). O modo
+//! `perCodePoint` (o do node) mede cada codepoint pela tabela tirada do ICU do bun no oráculo
+//! (`string_width_per_code_point.rs`).
 
+use super::ansi::{consume_ansi, is_escape_character};
+use super::string_width_per_code_point::RUNS;
 use super::string_width_tables::{GRAPHEME_BREAK_STAGE_1, GRAPHEME_BREAK_STAGE_2, GRAPHEME_BREAK_STAGE_3};
 
 const FUSED_CLASS_MASK: u8 = 0x1F;
@@ -301,95 +307,6 @@ impl GraphemeState {
     }
 }
 
-/// O que `ANSI::isEscapeCharacter` reconhece como introdutor de sequência.
-fn is_escape_character(unit: u16) -> bool {
-    matches!(unit, 0x1B | 0x9B | 0x9D | 0x90 | 0x98 | 0x9E | 0x9F)
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum AnsiState {
-    Start,
-    GotEsc,
-    IgnoreNextChar,
-    InCsi,
-    InOsc,
-    InOscGotEsc,
-    NeedSt,
-    NeedStGotEsc,
-}
-
-/// O primeiro índice a partir de `from` cuja unidade está em `lo..=hi` ou em `also`.
-fn scan_in_range(units: &[u16], from: usize, lo: u16, hi: u16, also: &[u16]) -> Option<usize> {
-    (from..units.len()).find(|&i| (lo..=hi).contains(&units[i]) || also.contains(&units[i]))
-}
-
-/// O primeiro índice a partir de `from` cuja unidade é uma das `targets`.
-fn scan_any(units: &[u16], from: usize, targets: &[u16]) -> Option<usize> {
-    (from..units.len()).find(|&i| targets.contains(&units[i]))
-}
-
-/// Consome a sequência ANSI que começa em `start` e devolve o índice logo após ela (`ANSI::consumeANSI`,
-/// variante Latin-1/UTF-16). Devolve `start` quando não há sequência ali.
-fn consume_ansi(units: &[u16], start: usize) -> usize {
-    let end = units.len();
-    let mut state = AnsiState::Start;
-    let mut it = start;
-    while it < end {
-        let c = units[it];
-        if matches!(state, AnsiState::InOscGotEsc | AnsiState::NeedStGotEsc) {
-            if c == u16::from(b'\\') {
-                state = AnsiState::Start;
-                it += 1;
-                continue;
-            }
-            // Outro ESC abortou o payload e introduz uma sequência nova; este é o byte depois dele.
-            state = AnsiState::GotEsc;
-        }
-        match state {
-            AnsiState::Start => match c {
-                0x1B => state = AnsiState::GotEsc,
-                0x9B => state = AnsiState::InCsi,
-                0x9D => state = AnsiState::InOsc,
-                0x90 | 0x98 | 0x9E | 0x9F => state = AnsiState::NeedSt,
-                _ => return it,
-            },
-            AnsiState::GotEsc => match c {
-                0x1B => {}
-                0x18 | 0x1A => state = AnsiState::Start,
-                0x5B => state = AnsiState::InCsi,
-                0x5D => state = AnsiState::InOsc,
-                0x50 | 0x58 | 0x5E | 0x5F => state = AnsiState::NeedSt,
-                0x20..=0x2F => state = AnsiState::IgnoreNextChar,
-                0x30..=0x7E => state = AnsiState::Start,
-                0x9C => state = AnsiState::Start,
-                _ => return it,
-            },
-            AnsiState::IgnoreNextChar => {
-                state = if c == 0x1B { AnsiState::GotEsc } else { AnsiState::Start };
-            }
-            AnsiState::InCsi => {
-                let Some(term) = scan_in_range(units, it, 0x40, 0x7E, &[0x1B, 0x18, 0x1A, 0x9C]) else { return end };
-                it = term;
-                state = if units[term] == 0x1B { AnsiState::GotEsc } else { AnsiState::Start };
-            }
-            AnsiState::InOsc | AnsiState::NeedSt => {
-                let osc = state == AnsiState::InOsc;
-                let term = if osc { scan_any(units, it, &[0x07, 0x9C, 0x1B, 0x18, 0x1A]) } else { scan_any(units, it, &[0x1B, 0x9C, 0x18, 0x1A]) };
-                let Some(term) = term else { return end };
-                it = term;
-                state = if units[term] == 0x1B {
-                    if osc { AnsiState::InOscGotEsc } else { AnsiState::NeedStGotEsc }
-                } else {
-                    AnsiState::Start
-                };
-            }
-            AnsiState::InOscGotEsc | AnsiState::NeedStGotEsc => {}
-        }
-        it += 1;
-    }
-    end
-}
-
 /// A largura fixa de uma unidade UTF-16 que sempre forma o próprio cluster (`ClassifyBulkUTF16Unit`):
 /// ASCII imprimível, a maior parte do latino, grego e cirílico (1) e kana, CJK, sílabas hangul e formas
 /// de largura plena (2). `None` encerra o run em bloco.
@@ -531,6 +448,36 @@ pub fn visible_width(units: &[u16], ambiguous_as_wide: bool, count_ansi: bool) -
         pos += accumulator.add_run(&units[pos..], true);
     }
     accumulator.finish()
+}
+
+/// `perCodePointColumnWidth` (o `GetColumnWidth` do node sobre o ICU do bun), pela medição no oráculo.
+fn per_code_point_column_width(cp: u32, ambiguous_as_wide: bool) -> usize {
+    let (_, narrow, wide) = RUNS[RUNS.partition_point(|run| run.0 <= cp) - 1];
+    usize::from(if ambiguous_as_wide { wide } else { narrow })
+}
+
+/// `perCodePointUTF16Width`: cada codepoint pela própria largura, sem grafemas (uma sequência de emoji com ZWJ conta
+/// cada membro); o surrogate solto conta como ele mesmo. Com `count_ansi` falso as sequências de escape não contam.
+pub fn per_code_point_width(units: &[u16], ambiguous_as_wide: bool, count_ansi: bool) -> usize {
+    let mut width = 0;
+    let mut pos = 0;
+    while pos < units.len() {
+        let unit = units[pos];
+        if !count_ansi && is_escape_character(unit) {
+            pos = consume_ansi(units, pos);
+            continue;
+        }
+        let mut cp = u32::from(unit);
+        pos += 1;
+        if (0xD800..0xDC00).contains(&unit)
+            && let Some(&next) = units.get(pos).filter(|next| (0xDC00..0xE000).contains(*next))
+        {
+            cp = 0x10000 + ((cp - 0xD800) << 10) + (u32::from(next) - 0xDC00);
+            pos += 1;
+        }
+        width += per_code_point_column_width(cp, ambiguous_as_wide);
+    }
+    width
 }
 
 #[cfg(test)]

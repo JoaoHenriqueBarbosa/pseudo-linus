@@ -2,7 +2,7 @@
 //! (`HasStaticPropertyTable`) e `@@toStringTag` `Bun`. As entradas `PropertyCallback` nascem no primeiro acesso, as
 //! `Function` viram funções nativas, e a ordem de `Object.getOwnPropertyNames(Bun)` é a da tabela. Aqui ficam só as
 //! entradas que o porte já sustenta, na posição que têm na tabela do bun 1.4.2; as demais (servidor, arquivos,
-//! transpilador, `stringWidth`...) entram nos degraus seguintes do plano (`wip/notes/bun-on-zjsc-plan.md`).
+//! transpilador, `which`...) entram nos degraus seguintes do plano (`wip/notes/bun-on-zjsc-plan.md`).
 //!
 //! Propriedade de dados comum do global; na ordem de chaves vem entre `global` e `File`, o que a tabela `ORDER` de
 //! `js_global_object_init.rs` já resolve.
@@ -17,6 +17,9 @@ use crate::runtime::console_format::Formatter;
 use crate::runtime::current_realm::current_global_object;
 use crate::runtime::date_instance::DateInstance;
 use crate::runtime::deep_equals::{deep_equals, Mode};
+use crate::runtime::host_function_support::ObjectRef;
+use crate::runtime::object_bindings::get_if_property_exists_prototype_pollution_mitigation;
+use crate::runtime::string_width;
 use crate::runtime::host_call::{pending_or, HostCall, HostResult, Thrown};
 use crate::runtime::implementation_visibility::ImplementationVisibility;
 use crate::runtime::intrinsic::Intrinsic;
@@ -334,8 +337,44 @@ fn strip_ansi_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResul
 
 host_function!(bun_strip_ansi, strip_ansi_body);
 
+/// `applyTruthyBooleanOption` do `stringWidth.cpp`: `undefined`, `null` e string vazia mantêm o padrão; o resto vira
+/// booleano (`ToBoolean`).
+fn truthy_option(global_object: &JSGlobalObject, options: &ObjectRef, name: &str, default: bool) -> Result<bool, Thrown> {
+    let vm = global_object.vm();
+    let property_name = PropertyName::from_identifier(&crate::runtime::identifier::Identifier::from_span(vm, name.as_bytes()));
+    let value = get_if_property_exists_prototype_pollution_mitigation(global_object, options, &property_name)?.unwrap_or(JSValue::undefined());
+    if value.is_undefined_or_null() || (value.is_string() && !value.to_boolean()) {
+        return Ok(default);
+    }
+    Ok(value.to_boolean())
+}
+
+/// `jsFunctionBunStringWidth`: `undefined` mede 0; o resto vira texto. Opções: `countAnsiEscapeCodes` (falso),
+/// `ambiguousIsNarrow` (verdadeiro) e `perCodePoint` (falso), lidas sem enxergar o `Object.prototype`.
+fn string_width_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let input = call.argument(0);
+    if input.is_undefined() {
+        return Ok(js_number(0.0));
+    }
+    let units = units_of(global_object, input)?;
+    if units.is_empty() {
+        return Ok(js_number(0.0));
+    }
+    let (mut count_ansi, mut ambiguous_is_narrow, mut per_code_point) = (false, true, false);
+    let options = call.argument(1);
+    if let Some(options) = ObjectRef::from_value(&options).filter(|_| options.is_object()) {
+        count_ansi = truthy_option(global_object, &options, "countAnsiEscapeCodes", count_ansi)?;
+        ambiguous_is_narrow = truthy_option(global_object, &options, "ambiguousIsNarrow", ambiguous_is_narrow)?;
+        per_code_point = truthy_option(global_object, &options, "perCodePoint", per_code_point)?;
+    }
+    let measure = if per_code_point { string_width::per_code_point_width } else { string_width::visible_width };
+    Ok(js_number(measure(&units, !ambiguous_is_narrow, count_ansi) as f64))
+}
+
+host_function!(bun_string_width, string_width_body);
+
 /// `bunObjectTable` de `BunObject.cpp`, na ordem do `@begin`, só com as entradas portadas.
-static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 15] = [
+static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 16] = [
     lazy_entry_with_attributes("argv", DONT_DELETE, create_argv),
     native_function_entry("deepEquals", DONT_DELETE, bun_deep_equals, 2, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("env", READ_ONLY | DONT_DELETE, create_env),
@@ -349,6 +388,7 @@ static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 15] = [
     lazy_entry_with_attributes("revision", READ_ONLY | DONT_DELETE, create_revision),
     native_function_entry("sleep", DONT_DELETE, bun_sleep, 1, Intrinsic::NoIntrinsic),
     native_function_entry("sleepSync", DONT_DELETE, bun_sleep_sync, 1, Intrinsic::NoIntrinsic),
+    native_function_entry("stringWidth", DONT_DELETE, bun_string_width, 2, Intrinsic::NoIntrinsic),
     native_function_entry("stripANSI", DONT_DELETE, bun_strip_ansi, 1, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("version", READ_ONLY | DONT_DELETE, create_version),
 ];

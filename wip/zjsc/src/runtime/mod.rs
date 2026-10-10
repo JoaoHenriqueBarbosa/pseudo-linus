@@ -343,6 +343,8 @@ pub mod symbol_object;
 pub mod symbol_prototype;
 pub mod symbol_constructor;
 pub mod object_constructor;
+pub mod object_bindings;
+pub mod string_width_per_code_point;
 pub mod big_integer;
 pub mod uint16_with_fraction;
 pub mod uncaught_report;
