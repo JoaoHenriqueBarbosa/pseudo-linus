@@ -71,6 +71,32 @@ pub struct HostConsoleClient {
 
 thread_local! {
     static CLIENT: Rc<HostConsoleClient> = Rc::new(HostConsoleClient::default());
+    /// O observador das chamadas de `console` (o `Runtime.consoleAPICalled` do DevTools do navegador).
+    static OBSERVER: RefCell<Option<ConsoleObserver>> = const { RefCell::new(None) };
+}
+
+/// Recebe o tipo da chamada no vocabulário do protocolo do DevTools (`log`, `warning`, `count`, `timeEnd`...) e os
+/// argumentos. `count` chega com o rótulo e o total; `timeEnd` e `timeLog` com o rótulo, os milissegundos e o resto.
+pub type ConsoleObserver = Rc<dyn Fn(&JSGlobalObject, &str, &[JSValue])>;
+
+/// Instala (ou tira, com `None`) o observador da thread. A escrita no `ConsoleHost` segue igual.
+pub fn set_console_observer(observer: Option<ConsoleObserver>) {
+    OBSERVER.with(|slot| *slot.borrow_mut() = observer);
+}
+
+fn observe(global_object: &JSGlobalObject, kind: &str, arguments: &[JSValue]) {
+    let observer = OBSERVER.with(|slot| slot.borrow().clone());
+    if let Some(observer) = observer {
+        observer(global_object, kind, arguments);
+    }
+}
+
+fn observed_arguments(arguments: &ScriptArguments) -> Vec<JSValue> {
+    (0..arguments.argument_count()).map(|index| arguments.argument_at(index)).collect()
+}
+
+fn label_value(global_object: &JSGlobalObject, label: &WtfString) -> JSValue {
+    JSValue::from_js_string(crate::runtime::js_string::js_string(global_object.vm(), label))
 }
 
 /// Instala o cliente no global (o `Weak` do global aponta para a instância única da thread). O estado da instância
@@ -470,11 +496,16 @@ impl HostConsoleClient {
     }
 
     /// A linha de `timeLog` e `timeEnd` no stderr: `[tempo] etiqueta args...`, sem recuo; nada sem o cronômetro.
-    fn write_elapsed(&self, global_object: &JSGlobalObject, label: &WtfString, arguments: &ScriptArguments) {
+    fn write_elapsed(&self, global_object: &JSGlobalObject, label: &WtfString, arguments: &ScriptArguments, kind: &str) {
+        let label_text = label;
         let label = units(label);
         let Some(started) = self.state.borrow().timers.get(&label).copied() else { return };
+        let elapsed = started.elapsed().as_secs_f64() * 1000.0;
+        let mut observed = vec![label_value(global_object, label_text), crate::runtime::js_value::js_number(elapsed)];
+        observed.extend(observed_arguments(arguments));
+        observe(global_object, kind, &observed);
         let mut line = Vec::new();
-        push_ascii(&mut line, &format!("[{}]", format_elapsed(started.elapsed().as_secs_f64() * 1000.0)));
+        push_ascii(&mut line, &format!("[{}]", format_elapsed(elapsed)));
         if !label.is_empty() {
             line.push(u16::from(b' '));
             line.extend(&label);
@@ -490,6 +521,26 @@ impl HostConsoleClient {
 
 impl ConsoleClient for HostConsoleClient {
     fn message_with_type_and_level(&self, message_type: MessageType, level: MessageLevel, global_object: &JSGlobalObject, arguments: ScriptArguments) {
+        let kind = match (message_type, level) {
+            (MessageType::Log, MessageLevel::Log) => Some("log"),
+            (MessageType::Log, MessageLevel::Debug) => Some("debug"),
+            (MessageType::Log, MessageLevel::Info) => Some("info"),
+            (MessageType::Log, MessageLevel::Error) => Some("error"),
+            (MessageType::Log, MessageLevel::Warning) => Some("warning"),
+            (MessageType::Dir, _) => Some("dir"),
+            (MessageType::DirXML, _) => Some("dirxml"),
+            (MessageType::Table, _) => Some("table"),
+            (MessageType::Trace, _) => Some("trace"),
+            (MessageType::Clear, _) => Some("clear"),
+            (MessageType::StartGroup, _) => Some("startGroup"),
+            (MessageType::StartGroupCollapsed, _) => Some("startGroupCollapsed"),
+            (MessageType::EndGroup, _) => Some("endGroup"),
+            (MessageType::Assert, _) => Some("assert"),
+            _ => None,
+        };
+        if let Some(kind) = kind {
+            observe(global_object, kind, &observed_arguments(&arguments));
+        }
         match message_type {
             MessageType::Log => {
                 // `console.error()` e `console.warn()` sem argumentos escrevem a linha vazia no stdout (medido no bun).
@@ -519,6 +570,7 @@ impl ConsoleClient for HostConsoleClient {
             *total += 1;
             *total
         };
+        observe(global_object, "count", &[label_value(global_object, label), crate::runtime::js_value::js_number(total as f64)]);
         let mut line = key;
         push_ascii(&mut line, &format!(": {total}\n"));
         Self::write(global_object, false, &line);
@@ -537,11 +589,11 @@ impl ConsoleClient for HostConsoleClient {
     }
 
     fn time_log(&self, global_object: &JSGlobalObject, label: &WtfString, arguments: ScriptArguments) {
-        self.write_elapsed(global_object, label, &arguments);
+        self.write_elapsed(global_object, label, &arguments, "timeLog");
     }
 
     fn time_end(&self, global_object: &JSGlobalObject, label: &WtfString) {
-        self.write_elapsed(global_object, label, &ScriptArguments::default());
+        self.write_elapsed(global_object, label, &ScriptArguments::default(), "timeEnd");
         self.state.borrow_mut().timers.remove(&units(label));
     }
 

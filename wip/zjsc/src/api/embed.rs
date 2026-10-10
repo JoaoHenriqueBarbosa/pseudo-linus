@@ -177,6 +177,22 @@ impl PageRunner {
     pub fn drain_microtasks(&self) {
         self.vm.drain_microtasks();
     }
+
+    /// Entrega cada chamada de `console` a `handle` como `(tipo, ...argumentos)`, com o tipo no vocabulário do
+    /// `Runtime.consoleAPICalled` (ver `console_client::ConsoleObserver`). A saída no `ConsoleHost` não muda.
+    pub fn set_console_hook(&self, handle: &HostHandle) {
+        let function = handle.0;
+        crate::runtime::console_client::set_console_observer(Some(Rc::new(move |global_object: &JSGlobalObject, kind: &str, args: &[JSValue]| {
+            let vm = global_object.vm();
+            let mut values = vec![JSValue::from_js_string(js_string(vm, &WtfString::from_utf8(kind.as_bytes())))];
+            values.extend_from_slice(args);
+            // Uma exceção do observador não pode vazar para a chamada de `console` da página.
+            let pending = vm.exception();
+            if call_function(global_object, function, JSValue::undefined(), &values).is_none() && pending.is_none() {
+                vm.clear_exception();
+            }
+        })));
+    }
 }
 
 /// Cria o programa da página e entrega o [`PageRunner`] a `body`. `document_url` e `fetch` alimentam os módulos ES
@@ -201,6 +217,7 @@ pub fn run_page<T>(console: Rc<dyn ConsoleHost>, dom: Rc<dyn DomHost>, document_
         crate::runtime::timers::enable_event_loop();
         let runner = PageRunner { vm, global_object, modules };
         let result = body(&runner);
+        crate::runtime::console_client::set_console_observer(None);
         PAGE_GLOBAL.with(|slot| slot.borrow_mut().take());
         result
     })
