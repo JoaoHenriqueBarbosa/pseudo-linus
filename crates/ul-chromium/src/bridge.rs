@@ -83,6 +83,13 @@ fn str_arg(args: &[DomArg], index: usize) -> Result<&str, DomError> {
     }
 }
 
+fn num_arg(args: &[DomArg], index: usize) -> Result<f64, DomError> {
+    match args.get(index) {
+        Some(DomArg::Num(n)) => Ok(*n),
+        _ => Err(illegal()),
+    }
+}
+
 fn opt_id(args: &[DomArg], index: usize) -> Option<NodeId> {
     match args.get(index) {
         Some(DomArg::Num(n)) => Some(NodeId::from_u64(*n as u64)),
@@ -362,6 +369,10 @@ impl DomHost for Bridge {
                 let mut images = self.images.borrow_mut();
                 images.push(decoded);
                 Ok(DomArg::List(vec![DomArg::Num((images.len() - 1) as f64), DomArg::Num(f64::from(width)), DomArg::Num(f64::from(height))]))
+            }
+            "measureText" => {
+                let font = crate::canvas_text::CanvasFont { family: &str_arg(args, 1)?, weight: num_arg(args, 2)? as f32, style: &str_arg(args, 3)?, size: num_arg(args, 4)? as f32 };
+                Ok(DomArg::List(crate::canvas_text::measure(&str_arg(args, 0)?, &font).into_iter().map(DomArg::Num).collect()))
             }
             "root" => Ok(num(self.doc.borrow().root_node().id)),
             "docElement" => {

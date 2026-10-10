@@ -2,6 +2,7 @@
 
 pub mod blink_css;
 pub mod bridge;
+pub mod canvas_text;
 pub mod cli;
 pub mod document;
 pub mod encoding;

@@ -22,6 +22,8 @@ blitz-html = "=0.3.0-beta.2"
 blitz-traits = "=0.3.0-beta.2"
 # O contexto de fontes do Blitz, montado aqui com as fontes da VFS (sem as do sistema hospedeiro).
 parley = { version = "0.11.1", default-features = false, features = ["std"] }
+# Contornos e caixas dos glifos para o texto do canvas (o mesmo leitor de fonte do parley).
+skrifa = { version = "0.44", default-features = false, features = ["std"] }
 # O motor de CSS do Servo (o mesmo que o Blitz usa): parse e serialização canônica do `style` escrito via CSSOM.
 stylo = "=0.20.0"
 # O parser de media query do `matchMedia` é o do stylo, que pede o tokenizador e os modos de parse dele.

@@ -629,9 +629,11 @@ const canvasImageSource = (image, method) => {
   throw new TypeError(`Failed to execute '${method}' on 'CanvasRenderingContext2D': The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'.`);
 };
 // As medidas de texto vêm das fontes do sistema, escolhidas como o Chromium escolhe (ponte `measureText`).
+// O peso numérico da fonte do canvas; os relativos são contra o `normal` herdado (bolder vira 700, lighter, 100).
+const canvasFontWeight = (weight) => ({ normal: 400, bold: 700, bolder: 700, lighter: 100 })[weight] ?? Number(weight);
 const canvasMeasureText = (s, text) => {
   const font = s.state.font;
-  const result = op('measureText', text, font.family, font.weight, font.style, font.size);
+  const result = op('measureText', String(text), font.family, canvasFontWeight(font.weight), font.style, font.size);
   const [width, left, right, ascent, descent, fontAscent, fontDescent] = result;
   const baselineShift = { alphabetic: 0, top: fontAscent, hanging: fontAscent * 0.8, middle: (fontAscent - fontDescent) / 2, ideographic: -fontDescent, bottom: -fontDescent }[s.state.textBaseline];
   return {

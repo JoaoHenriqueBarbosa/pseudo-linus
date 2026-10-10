@@ -61,6 +61,14 @@ fn console_reaches_host() {
     assert_eq!(log, "oi\n");
 }
 
+/// O `measureText` do canvas passa pelas fontes da VFS; os valores são os do Chromium do oráculo.
+#[test]
+fn canvas_measure_text() {
+    let script = "const c = document.createElement('canvas').getContext('2d'); const m = c.measureText('Hello'); c.font = 'bold 20px Arial'; const b = c.measureText('ação'); console.log([m.width, m.actualBoundingBoxAscent, m.fontBoundingBoxAscent, m.hangingBaseline, b.width, b.actualBoundingBoxDescent].join(' '))";
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    assert_eq!(log, "22.7880859375 8 9 7.199999809265137 45.5859375 4\n");
+}
+
 #[test]
 fn timer_exception_does_not_stop_the_page() {
     let (dom, log) = run(&[("/", "<body><script>setTimeout(() => { throw new Error('x') }, 0); setTimeout(() => document.body.append('depois'), 5)</script>")]);
