@@ -202,7 +202,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         {
             for arg in func.args.slice() {
                 if let BData::BIdentifier(id) = arg.binding.data {
-                    self.record_assignment(id.r#ref);
+                    self.record_assignment(self.store[id].r#ref);
                 }
             }
         }
@@ -304,7 +304,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut replacement: Option<crate::parser::Runtime::ReplaceableExport> = None;
                 if IS_POSSIBLY_DECL_TO_REMOVE {
                     if let BData::BIdentifier(id) = decl.binding.data {
-                        let id_ref = id.r#ref;
+                        let id_ref = self.store[id].r#ref;
                         let name = self.load_name_from_ref(id_ref);
                         let found = self
                             .options
@@ -333,7 +333,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let prev_decorator_class_name = self.decorator_class_name;
                 if was_anonymous_named_expr {
                     if let ExprData::EClass(e_class) = &val.data {
-                        if e_class.should_lower_standard_decorators {
+                        if self.store[*e_class].should_lower_standard_decorators {
                             if let BData::BIdentifier(id) = decl.binding.data {
                                 let id = id.get();
                                 self.decorator_class_name = Some(self.load_name_from_ref(id.r#ref));
@@ -388,7 +388,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if self.should_unwrap_common_js_to_esm() {
                     if prev_require_to_convert_count < self.imports_to_convert_from_require.len() {
                         if let BData::BIdentifier(id) = decl.binding.data {
-                            let ref_ = id.r#ref;
+                            let ref_ = self.store[id].r#ref;
                             if let Some(value) = decl.value {
                                 if let ExprData::ERequireString(req) = value.data {
                                     if let Some(unwrapped_id) = req.unwrapped_id.get() {
@@ -415,9 +415,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // `await import(x)`, or a local already holding a tracked
                     // namespace (`const ns = await import(x); const { a } = ns`).
                     let (namespace_ref, records): (_, Vec<u32>) = match val.data {
-                        ExprData::EAwait(aw) => match aw.value.data {
-                            ExprData::EImport(im) if im.namespace_ref.is_valid() => {
-                                (im.namespace_ref, vec![im.import_record_index])
+                        ExprData::EAwait(aw) => match self.store[aw].value.data {
+                            ExprData::EImport(im) if self.store[im].namespace_ref.is_valid() => {
+                                (self.store[im].namespace_ref, vec![self.store[im].import_record_index])
                             }
                             _ => break 'dyn_import_await,
                         },
@@ -453,7 +453,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // accesses after the second decl would be tracked
                         // against the FIRST decl's record.
                         BData::BIdentifier(id) if kind != LocalKind::KVar && !is_export => {
-                            let local = id.r#ref;
+                            let local = self.store[id].r#ref;
                             if self.import_items_for_namespace.contains_key(&local) {
                                 break 'dyn_import_await;
                             }
@@ -494,10 +494,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         self.dynamic_import_needs_object.insert(r, ());
                     }
                     if !records.is_empty()
-                        && !self.import_items_for_namespace.contains_key(&id.r#ref)
+                        && !self.import_items_for_namespace.contains_key(&self.store[id].r#ref)
                     {
                         self.register_dynamic_import_namespace_local_multi(
-                            id.r#ref,
+                            self.store[id].r#ref,
                             decl.binding.loc,
                             &records,
                         );
@@ -512,7 +512,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let ExprData::EAwait(aw) = val.data else {
                         break 'promise_all;
                     };
-                    let ExprData::ECall(call) = aw.value.data else {
+                    let ExprData::ECall(call) = self.store[aw].value.data else {
                         break 'promise_all;
                     };
                     let BData::BArray(pattern) = decl.binding.data else {
@@ -550,7 +550,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             }
                         }
                         BData::BIdentifier(id) if kind != LocalKind::KVar && !is_export => {
-                            let local = id.r#ref;
+                            let local = self.store[id].r#ref;
                             if self.import_items_for_namespace.contains_key(&local)
                                 || !self.options.bundle
                                 || req.unwrapped_id.get().is_some()
@@ -593,7 +593,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 );
             } else if IS_POSSIBLY_DECL_TO_REMOVE {
                 if let BData::BIdentifier(id) = decl.binding.data {
-                    let id_ref = id.r#ref;
+                    let id_ref = self.store[id].r#ref;
                     let name = self.load_name_from_ref(id_ref);
                     if let Some(replacer) = self
                         .options
@@ -643,7 +643,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             BData::BObject(bound_object) => {
                 let bound_object = bound_object.get();
                 if let ExprData::EObject(mut object) = expr.data {
-                    if object.was_originally_macro {
+                    if self.store[object].was_originally_macro {
                         for property in bound_object.properties() {
                             if property.flags.contains(flags::Property::IsSpread) {
                                 return;
@@ -665,7 +665,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                                 if let BData::BIdentifier(id) = property.value.data
                                                 {
                                                     self.const_values
-                                                        .put(id.r#ref, query.expr)
+                                                        .put(self.store[id].r#ref, query.expr)
                                                         .expect("oom");
                                                 }
                                             }
@@ -673,27 +673,27 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     }
                                     let i = query.i as usize;
                                     if i >= end as usize {
-                                        object.properties.slice_mut().swap(i, end as usize);
+                                        self.store[object].properties.slice_mut().swap(i, end as usize);
                                         end += 1;
                                     }
                                 }
                             }
                         }
-                        object.properties.truncate(end as usize);
+                        self.store[object].properties.truncate(end as usize);
                     }
                 }
             }
             BData::BArray(bound_array) => {
                 let bound_array = bound_array.get();
                 if let ExprData::EArray(mut array) = expr.data {
-                    if array.was_originally_macro && !bound_array.has_spread {
+                    if self.store[array].was_originally_macro && !bound_array.has_spread {
                         let bound_items = bound_array.items();
-                        let trunc_n = array.items.len().min(bound_items.len());
-                        array.items.truncate(trunc_n);
-                        let n = array.items.len_u32() as usize;
+                        let trunc_n = self.store[array].items.len().min(bound_items.len());
+                        self.store[array].items.truncate(trunc_n);
+                        let n = self.store[array].items.len_u32() as usize;
                         for (item, child_expr) in bound_items[..n]
                             .iter()
-                            .zip(array.items.slice_mut().iter_mut())
+                            .zip(self.store[array].items.slice_mut().iter_mut())
                         {
                             if matches!(item.binding.data, BData::BMissing(_)) {
                                 *child_expr = self.new_expr(E::Missing {}, expr.loc);
@@ -706,7 +706,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             BData::BIdentifier(id) => {
                 if self.options.features.inlining {
-                    self.const_values.put(id.r#ref, expr).expect("oom");
+                    self.const_values.put(self.store[id].r#ref, expr).expect("oom");
                 }
             }
             BData::BMissing(_) => {}
@@ -722,7 +722,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Optionally preserve the name
         match decl.binding.data {
             BData::BIdentifier(id) => {
-                let id_ref = id.r#ref;
+                let id_ref = self.store[id].r#ref;
                 if could_be_const_value || (Self::ALLOW_MACROS && could_be_macro) {
                     if let Some(val) = decl.value {
                         if val.can_be_const_value() {
@@ -761,9 +761,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 } else {
                     AssignTarget::None
                 };
-                self.stmt_expr_value = st.value.data;
+                self.stmt_expr_value = self.store[st].value.data;
                 self.visit_expr_in_out(
-                    &mut st.value,
+                    &mut self.store[st].value,
                     ExprIn {
                         assign_target,
                         ..Default::default()
@@ -771,13 +771,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 );
             }
             StmtData::SLocal(mut st) => {
-                for dec in st.decls.slice_mut() {
+                for dec in self.store[st].decls.slice_mut() {
                     self.visit_binding(dec.binding, None);
                     if let Some(val) = dec.value.as_mut() {
                         self.visit_expr(val);
                     }
                 }
-                st.kind = self.select_local_kind(st.kind);
+                self.store[st].kind = self.select_local_kind(self.store[st].kind);
             }
             _ => {
                 self.panic("Unexpected stmt in visitForLoopInit", format_args!(""));
@@ -804,7 +804,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // Bindings the renamer must see outside the scope that owns
                 // them (`ScopeUses::sees`): a hoisted `var`, a parameter, a
                 // catch binding.
-                let scope_kind = self.current_scope.kind;
+                let scope_kind = self.store[self.current_scope].kind;
                 if scope_kind == js_ast::scope::Kind::FunctionArgs
                     || scope_kind == js_ast::scope::Kind::CatchBinding
                     || (self.symbols[bind.r#ref.inner_index() as usize].is_hoisted()
@@ -846,7 +846,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_decorator_class_name2 = self.decorator_class_name;
                         if was_anonymous_named_expr {
                             if let ExprData::EClass(e_class) = &default_value.data {
-                                if e_class.should_lower_standard_decorators {
+                                if self.store[e_class].should_lower_standard_decorators {
                                     if let BData::BIdentifier(id) = item.binding.data {
                                         let id = id.get();
                                         self.decorator_class_name =
@@ -885,7 +885,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_decorator_class_name3 = self.decorator_class_name;
                         if was_anonymous_named_expr {
                             if let ExprData::EClass(e_class) = &default_value.data {
-                                if e_class.should_lower_standard_decorators {
+                                if self.store[e_class].should_lower_standard_decorators {
                                     if let BData::BIdentifier(id) = property.value.data {
                                         let id = id.get();
                                         self.decorator_class_name =
@@ -928,7 +928,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.push_scope_for_visit_pass(ScopeKind::Block, stmt.loc)
             .expect("unreachable");
         let block_stmts: &[Stmt] = match stmt.data {
-            StmtData::SBlock(b) => b.stmts.slice(),
+            StmtData::SBlock(b) => self.store[b].stmts.slice(),
             _ => unreachable!(),
         };
         let mut stmts = BumpVec::with_capacity_in(block_stmts.len(), self.arena);
@@ -937,7 +937,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.pop_scope();
         let items: &'a mut [Stmt] = stmts.into_bump_slice_mut();
         if let StmtData::SBlock(mut b) = new_stmt.data {
-            b.stmts = bun_ast::StoreSlice::new_mut(items);
+            self.store[b].stmts = bun_ast::StoreSlice::new_mut(items);
         }
         if self.options.features.minify_syntax {
             // `stmts` was consumed above; `items` aliases the slice now
@@ -954,7 +954,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         let has_if_scope = match stmt.data {
-            StmtData::SFunction(f) => f.func.flags.contains(flags::Function::HasIfScope),
+            StmtData::SFunction(f) => self.store[f].func.flags.contains(flags::Function::HasIfScope),
             _ => false,
         };
 
@@ -1158,8 +1158,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let was_anon = val.is_anonymous_named();
                         let prev_dcn = self.decorator_class_name;
                         if let ExprData::EClass(e_class) = &val.data {
-                            if e_class.class_name.is_none()
-                                && e_class.should_lower_standard_decorators
+                            if self.store[e_class].class_name.is_none()
+                                && self.store[e_class].should_lower_standard_decorators
                             {
                                 self.decorator_class_name = Some(name);
                             }
@@ -1191,8 +1191,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let was_anon = val.is_anonymous_named();
                         let prev_dcn2 = self.decorator_class_name;
                         if let ExprData::EClass(e_class) = &val.data {
-                            if e_class.class_name.is_none()
-                                && e_class.should_lower_standard_decorators
+                            if self.store[e_class].class_name.is_none()
+                                && self.store[e_class].should_lower_standard_decorators
                             {
                                 self.decorator_class_name = Some(name);
                             }
@@ -1221,7 +1221,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let (func_args, param_props): (bun_ast::StoreSlice<G::Arg>, usize) =
                     match constructor_function {
                         Some(cf) => {
-                            let args = cf.func.args;
+                            let args = self.store[cf].func.args;
                             let n = args
                                 .iter()
                                 .filter(|a| {
@@ -1281,7 +1281,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if !arg.is_typescript_ctor_field {
                             continue;
                         }
-                        let (id_ref, bind_loc) = (id.r#ref, arg.binding.loc);
+                        let (id_ref, bind_loc) = (self.store[id].r#ref, arg.binding.loc);
                         let name: &'a [u8] = self.symbols[id_ref.inner_index() as usize]
                             .original_name
                             .slice();
@@ -1332,7 +1332,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     self.new_expr(
                                         E::Dot {
                                             target: this_target,
-                                            name: s.data,
+                                            name: self.store[*s].data,
                                             name_loc: key.loc,
                                             ..Default::default()
                                         },
@@ -1361,14 +1361,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
 
                     if let Some(mut cf) = constructor_function {
-                        let old_body: &[Stmt] = cf.func.body.stmts.slice();
+                        let old_body: &[Stmt] = self.store[cf].func.body.stmts.slice();
                         let super_end = if class.extends.is_some() {
                             old_body
                                 .iter()
                                 .position(|s| {
                                     matches!(&s.data, StmtData::SExpr(se)
-                                        if matches!(&se.value.data, ExprData::ECall(c)
-                                            if matches!(c.target.data, ExprData::ESuper(_))))
+                                        if matches!(&self.store[se].value.data, ExprData::ECall(c)
+                                            if matches!(self.store[c].target.data, ExprData::ESuper(_))))
                                 })
                                 .map_or(0, |i| i + 1)
                         } else {
@@ -1381,7 +1381,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         stmts.extend_from_slice(&old_body[..super_end]);
                         stmts.extend_from_slice(&injected);
                         stmts.extend_from_slice(&old_body[super_end..]);
-                        cf.func.body.stmts = bun_ast::StoreSlice::from_bump(stmts);
+                        self.store[cf].func.body.stmts = bun_ast::StoreSlice::from_bump(stmts);
                     } else {
                         let loc = class.body_loc;
                         let mut ctor_stmts = BumpVec::<Stmt>::with_capacity_in(
@@ -1568,7 +1568,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // Annex B of the JavaScript standard.
                             // SAFETY: current_scope is a valid arena ptr for the parse.
                             if !p.current_scope().kind_stops_hoisting()
-                                && p.symbols[data.func.name.unwrap().ref_.inner_index() as usize]
+                                && p.symbols[self.store[data].func.name.unwrap().ref_.inner_index() as usize]
                                     .kind
                                     == SymbolKind::HoistedFunction
                             {
@@ -1611,7 +1611,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // semantics because we need two identifiers to do that and direct "eval"
                             // means neither identifier can be renamed to something else. So in that
                             // case we give up and do not preserve the semantics of the original code.
-                            let name = data.func.name.unwrap();
+                            let name = self.store[data].func.name.unwrap();
                             let name_ref = name.ref_;
                             // SAFETY: current_scope is a valid arena ptr for the parse.
                             if p.current_scope().contains_direct_eval {
@@ -1658,11 +1658,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             }
 
                             // The last function statement for a given symbol wins
-                            data.func.name = None;
+                            self.store[data].func.name = None;
                             // SAFETY: `G::Fn`'s fields are POD (`StoreSlice<T>`, ints, flags)
                             // with no `Drop`, so a bitwise read is a plain copy; the type just
                             // lacks `derive(Copy)`.
-                            let func = unsafe { core::ptr::read(&raw const data.func) };
+                            let func = unsafe { core::ptr::read(&raw const self.store[data].func) };
                             let_decls[index as usize].value =
                                 Some(p.new_expr(E::Function { func }, stmt.loc));
                         }
@@ -1817,16 +1817,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // `const_values` via the macro path in `visitDecl`
                             // (`could_be_macro`), so skip them here to avoid
                             // silently dropping the declaration.
-                            if local.kind.is_using() {
+                            if self.store[local].kind.is_using() {
                                 continue;
                             }
-                            if !local.is_export && !local.origin.is_commonjs_export() {
-                                let mut any_decl_in_const_values = local.kind == LocalKind::KConst;
-                                let decls: &mut [Decl] = local.decls.slice_mut();
+                            if !self.store[local].is_export && !self.store[local].origin.is_commonjs_export() {
+                                let mut any_decl_in_const_values = self.store[local].kind == LocalKind::KConst;
+                                let decls: &mut [Decl] = self.store[local].decls.slice_mut();
                                 let mut end: usize = 0;
                                 for idx in 0..decls.len() {
                                     if let BData::BIdentifier(id_ptr) = decls[idx].binding.data {
-                                        let id_ref = id_ptr.r#ref;
+                                        let id_ref = self.store[id_ptr].r#ref;
                                         if p.const_values.contains(&id_ref) {
                                             any_decl_in_const_values = true;
                                             let symbol = &p.symbols[id_ref.inner_index() as usize];
@@ -1841,7 +1841,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     decls.swap(end, idx);
                                     end += 1;
                                 }
-                                local.decls.truncate(end);
+                                self.store[local].decls.truncate(end);
                                 if any_decl_in_const_values {
                                     if end == 0 {
                                         *stmt = stmt.to_empty();
@@ -1918,18 +1918,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // "using" / "await using" declarations have disposal
                     // side-effects on scope exit, so they must not be
                     // removed by inlining their initializer into the use.
-                    if local.decls.len_u32() == 0
-                        || local.kind == LocalKind::KVar
-                        || local.kind.is_using()
-                        || local.is_export
+                    if self.store[local].decls.len_u32() == 0
+                        || self.store[local].kind == LocalKind::KVar
+                        || self.store[local].kind.is_using()
+                        || self.store[local].is_export
                     {
                         break;
                     }
 
                     // The variable must be initialized, since we will be substituting
                     // the value into the usage.
-                    let last_idx = (local.decls.len_u32() - 1) as usize;
-                    let last: &mut Decl = &mut local.decls.slice_mut()[last_idx];
+                    let last_idx = (self.store[local].decls.len_u32() - 1) as usize;
+                    let last: &mut Decl = &mut self.store[local].decls.slice_mut()[last_idx];
                     let Some(replacement) = last.value else { break };
 
                     // The binding must be an identifier that is only used once.
@@ -1939,7 +1939,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let BData::BIdentifier(ident_ptr) = last.binding.data else {
                         break;
                     };
-                    let id = ident_ptr.r#ref;
+                    let id = self.store[ident_ptr].r#ref;
 
                     let symbol: &Symbol = &p.symbols[id.inner_index() as usize];
 
@@ -1958,16 +1958,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // Read as "more uses than accounted for" when finalizing.
                             p.namespace_tracked_uses.insert(id, u32::MAX);
                         }
-                        match local.decls.len_u32() {
+                        match self.store[local].decls.len_u32() {
                             1 => {
-                                local.decls.clear();
+                                self.store[local].decls.clear();
                                 let new_len = output.len() - 1;
                                 output.truncate(new_len);
                                 continue 'inner;
                             }
                             _ => {
-                                let n = local.decls.len() - 1;
-                                local.decls.truncate(n);
+                                let n = self.store[local].decls.len() - 1;
+                                self.store[local].decls.truncate(n);
                                 continue 'inner;
                             }
                         }
@@ -2005,9 +2005,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 // The parse pass allocates `decls` in the bump arena
                                 // (`from_bump_slice` → `Origin::Borrowed`); promote to a
                                 // global-heap buffer before growing it.
-                                for d in local.decls.slice() {
+                                for d in self.store[local].decls.slice() {
                                     // SAFETY: Decl is field-wise Copy (Binding, Option<Expr>).
-                                    prev_local.decls.push(unsafe { core::ptr::read(d) });
+                                    self.store[prev_local].decls.push(unsafe { core::ptr::read(d) });
                                 }
                                 continue;
                             }
@@ -2024,11 +2024,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             if !prev_stmt.is_super_call()
                                 && p.options.runtime_merge_adjacent_expression_statements()
                             {
-                                prev_expr.does_not_affect_tree_shaking = prev_expr
+                                self.store[prev_expr].does_not_affect_tree_shaking = prev_expr
                                     .does_not_affect_tree_shaking
-                                    && s_expr.does_not_affect_tree_shaking;
-                                prev_expr.value =
-                                    Expr::join_with_comma(prev_expr.value, s_expr.value);
+                                    && self.store[s_expr].does_not_affect_tree_shaking;
+                                self.store[prev_expr].value =
+                                    Expr::join_with_comma(self.store[prev_expr].value, self.store[s_expr].value);
                                 continue;
                             }
                         } else if let StmtData::SLocal(prev_local) = prev_stmt.data {
@@ -2040,27 +2040,27 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             //      var f = 123;
                             //
                             // This doesn't handle every case. Only the very simple one.
-                            if let ExprData::EBinary(bin_assign) = s_expr.value.data {
-                                if prev_local.decls.len_u32() == 1
-                                    && bin_assign.op == OpCode::BinAssign
+                            if let ExprData::EBinary(bin_assign) = self.store[s_expr].value.data {
+                                if self.store[prev_local].decls.len_u32() == 1
+                                    && self.store[bin_assign].op == OpCode::BinAssign
                                     // we can only do this with var because var is hoisted
                                     // the statement we are merging into may use the statement before its defined.
-                                    && prev_local.kind == LocalKind::KVar
+                                    && self.store[prev_local].kind == LocalKind::KVar
                                 {
-                                    if let ExprData::EIdentifier(left_id) = bin_assign.left.data {
+                                    if let ExprData::EIdentifier(left_id) = self.store[bin_assign].left.data {
                                         // `prev_local` is a `StoreRef` (Copy) so
                                         // re-slicing here writes through to the arena slot.
                                         let mut prev_local = prev_local;
-                                        let decl = &mut prev_local.decls.slice_mut()[0];
+                                        let decl = &mut self.store[prev_local].decls.slice_mut()[0];
                                         if let BData::BIdentifier(bid_ptr) = decl.binding.data {
-                                            let bid_ref = bid_ptr.r#ref;
+                                            let bid_ref = self.store[bid_ptr].r#ref;
                                             if bid_ref.eql(left_id.ref_)
                                                 // If the value was assigned, we shouldn't merge it incase it was used in the current statement
                                                 // https://github.com/oven-sh/bun/issues/2948
                                                 // We don't have a more granular way to check symbol usage so this is the best we can do
                                                 && decl.value.is_none()
                                             {
-                                                decl.value = Some(bin_assign.right);
+                                                decl.value = Some(self.store[bin_assign].right);
                                                 p.ignore_usage(left_id.ref_);
                                                 continue;
                                             }
@@ -2079,8 +2079,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
                             if !prev_stmt.is_super_call() {
-                                s_switch.test =
-                                    Expr::join_with_comma(prev_expr.value, s_switch.test);
+                                self.store[s_switch].test =
+                                    Expr::join_with_comma(self.store[prev_expr].value, self.store[s_switch].test);
                                 output.truncate(prev_idx);
                             }
                         }
@@ -2094,7 +2094,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
                             if !prev_stmt.is_super_call() {
-                                s_if.test = Expr::join_with_comma(prev_expr.value, s_if.test);
+                                self.store[s_if].test = Expr::join_with_comma(self.store[prev_expr].value, self.store[s_if].test);
                                 output.truncate(prev_idx);
                             }
                         }
@@ -2106,16 +2106,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 StmtData::SReturn(mut ret) => {
                     // Merge return statements with the previous expression statement
                     if output.len() > 0
-                        && ret.value.is_some()
+                        && self.store[ret].value.is_some()
                         && p.options.runtime_merge_adjacent_expression_statements()
                     {
                         let prev_idx = output.len() - 1;
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
                             if !prev_stmt.is_super_call() {
-                                ret.value = Some(Expr::join_with_comma(
-                                    prev_expr.value,
-                                    ret.value.unwrap(),
+                                self.store[ret].value = Some(Expr::join_with_comma(
+                                    self.store[prev_expr].value,
+                                    self.store[ret].value.unwrap(),
                                 ));
                                 output[prev_idx] = stmt;
                                 continue;
@@ -2141,8 +2141,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 output[prev_idx] = p.s(
                                     S::Throw {
                                         value: Expr::join_with_comma(
-                                            prev_expr.value,
-                                            s_throw.value,
+                                            self.store[prev_expr].value,
+                                            self.store[s_throw].value,
                                         ),
                                     },
                                     stmt.loc,

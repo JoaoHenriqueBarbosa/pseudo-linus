@@ -466,7 +466,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let should_emit_temp_var = p.options.features.react_fast_refresh
                     && match expr.data {
                         js_ast::ExprData::EArrow(_) => true,
-                        js_ast::ExprData::ECall(call) => match call.target.data {
+                        js_ast::ExprData::ECall(call) => match p.store[call].target.data {
                             js_ast::ExprData::EIdentifier(id) => {
                                 id.ref_ == p.react_refresh.latest_signature_ref
                             }
@@ -1229,7 +1229,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         js_ast::ExprData::EArrow(_) | js_ast::ExprData::EFunction(_) => {}
 
                         // A wrapped component.
-                        js_ast::ExprData::ECall(call) => match call.target.data {
+                        js_ast::ExprData::ECall(call) => match p.store[call].target.data {
                             js_ast::ExprData::EIdentifier(id) => {
                                 if id.ref_ != p.react_refresh.latest_signature_ref {
                                     break 'try_register;
@@ -1240,7 +1240,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         _ => break 'try_register,
                     }
                     let id = match decl.binding.data {
-                        js_ast::binding::Data::BIdentifier(b) => b.r#ref,
+                        js_ast::binding::Data::BIdentifier(b) => p.store[b].r#ref,
                         _ => break 'try_register,
                     };
                     let original_name = p.symbols[id.inner_index() as usize].original_name.slice();
@@ -1261,7 +1261,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         break 'try_annotate;
                     };
                     let id = match decl.binding.data {
-                        js_ast::binding::Data::BIdentifier(b) => b.r#ref,
+                        js_ast::binding::Data::BIdentifier(b) => p.store[b].r#ref,
                         _ => break 'try_annotate,
                     };
                     let original_name = p.symbols[id.inner_index() as usize].original_name.slice();
@@ -1780,7 +1780,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if let Some(no2) = data.no {
                     let no_is_empty = match no2.data {
                         StmtData::SEmpty(_) => true,
-                        StmtData::SBlock(block) => block.stmts.len() == 0,
+                        StmtData::SBlock(block) => p.store[block].stmts.len() == 0,
                         _ => false,
                     };
                     if no_is_empty {
@@ -1845,7 +1845,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let can_remove_test = p.expr_can_be_removed_if_unused(&data.test);
             match data.yes.data {
                 StmtData::SExpr(yes_expr) => {
-                    if yes_expr.value.is_missing() {
+                    if p.store[yes_expr].value.is_missing() {
                         if let Some(no) = data.no {
                             if no.is_missing_expr() && can_remove_test {
                                 return Ok(());
@@ -1906,9 +1906,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if let StmtData::SLocal(local) = for_init.data {
                 // Potentially relocate "var" declarations to the top level. Note that this
                 // must be done inside the scope of the for loop or they won't be relocated.
-                if local.kind == S::Kind::KVar {
+                if p.store[local].kind == S::Kind::KVar {
                     let relocate = p.maybe_relocate_vars_to_top_level(
-                        local.decls.slice(),
+                        p.store[local].decls.slice(),
                         RelocateVarsMode::Normal,
                     );
                     if let Some(relocated) = relocate.stmt {
@@ -1946,7 +1946,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let decl: &mut G::Decl = &mut local.decls.slice_mut()[0];
                         if let js_ast::binding::Data::BIdentifier(b_id) = decl.binding.data {
                             if let Some(val) = decl.value {
-                                let id_ref = b_id.r#ref;
+                                let id_ref = p.store[b_id].r#ref;
                                 stmts.push(Stmt::assign(
                                     Expr::init_identifier(id_ref, decl.binding.loc),
                                     val,
@@ -1986,9 +1986,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if let StmtData::SLocal(_) = data.init.data {
             if let StmtData::SLocal(local) = data.init.data {
-                if local.kind == S::Kind::KVar {
+                if p.store[local].kind == S::Kind::KVar {
                     let relocate = p.maybe_relocate_vars_to_top_level(
-                        local.decls.slice(),
+                        p.store[local].decls.slice(),
                         RelocateVarsMode::ForInOrForOf,
                     );
                     if let Some(relocated_stmt) = relocate.stmt {
@@ -2011,7 +2011,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         js_ast::binding::Data::BIdentifier(b) => b,
                         _ => unreachable!("for-of using must bind an identifier"),
                     };
-                    let id_original_name = p.symbols[id.r#ref.inner_index() as usize]
+                    let id_original_name = p.symbols[p.store[id].r#ref.inner_index() as usize]
                         .original_name
                         .slice();
                     let temp_ref = p.generate_temp_ref(Some(id_original_name));
@@ -2020,7 +2020,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     VecExt::append(
                         &mut first_decls,
                         G::Decl {
-                            binding: p.b(B::Identifier { r#ref: id.r#ref }, loc),
+                            binding: p.b(B::Identifier { r#ref: p.store[id].r#ref }, loc),
                             value: Some(Expr::init_identifier(temp_ref, loc)),
                         },
                     );
@@ -2034,7 +2034,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     );
 
                     let length = if let StmtData::SBlock(b) = data.body.data {
-                        b.stmts.len()
+                        p.store[b].stmts.len()
                     } else {
                         1
                     };
@@ -2042,7 +2042,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         BumpVec::with_capacity_in(1 + length, p.arena);
                     statements.push(first);
                     if let StmtData::SBlock(b) = data.body.data {
-                        statements.extend_from_slice(b.stmts.slice());
+                        statements.extend_from_slice(p.store[b].stmts.slice());
                     } else {
                         statements.push(data.body);
                     }
@@ -2057,7 +2057,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             && p.current_scope().parent.is_none(),
                     );
                     if let StmtData::SBlock(mut b) = data.body.data {
-                        b.stmts = list_to_stmts(visited_stmts);
+                        p.store[b].stmts = list_to_stmts(visited_stmts);
                     } else {
                         data.body = p.s(
                             S::Block {
@@ -2067,7 +2067,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             loc,
                         );
                     }
-                    id.r#ref = temp_ref;
+                    p.store[id].r#ref = temp_ref;
                     init2.kind = S::Kind::KConst;
                 }
             }
@@ -2234,7 +2234,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // ts_namespace is set for the enum scope (push_scope_for_visit_pass populated it
         // during the parse pass); exported_members is an arena-backed `StoreRef`.
         let mut exported_members: js_ast::StoreRef<js_ast::TSNamespaceMemberMap> =
-            p.cur_scope().ts_namespace.unwrap().exported_members;
+            p.store[p.cur_scope().ts_namespace.unwrap()].exported_members;
 
         // We normally don't fold numeric constants because they might increase code
         // size, but it's important to fold numeric constants inside enums since
@@ -2256,7 +2256,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 // "See through" any wrapped comments
                 let underlying_value = if let js_ast::ExprData::EInlinedEnum(ie) = visited.data {
-                    ie.value
+                    p.store[ie].value
                 } else {
                     visited
                 };
@@ -2411,8 +2411,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let child_stmts: &[Stmt] = data.stmts.slice();
         for child_stmt in child_stmts.iter() {
             if let StmtData::SLocal(local) = child_stmt.data {
-                if local.is_export {
-                    p.mark_exported_decls_inside_namespace(data.arg, local.decls.slice());
+                if p.store[local].is_export {
+                    p.mark_exported_decls_inside_namespace(data.arg, p.store[local].decls.slice());
                 }
             }
         }

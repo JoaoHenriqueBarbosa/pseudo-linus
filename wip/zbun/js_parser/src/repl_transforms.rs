@@ -111,7 +111,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
 
                     // Extract individual identifiers from binding patterns for hoisting
                     let mut hoisted_decl_list = BumpVec::<G::Decl>::new_in(bump);
-                    for decl in local.decls.slice() {
+                    for decl in self.store[local].decls.slice() {
                         self.repl_extract_identifiers_from_binding(
                             decl.binding,
                             &mut hoisted_decl_list,
@@ -131,7 +131,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     }
 
                     // Create assignment expressions for the inner statements
-                    for decl in local.decls.slice() {
+                    for decl in self.store[local].decls.slice() {
                         if let Some(value) = decl.value {
                             // Create assignment expression: binding = value
                             let assign_expr =
@@ -150,7 +150,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     // For function declarations:
                     // Hoist as: var funcName;
                     // Inner: this.funcName = funcName; function funcName() {}
-                    if let Some(name_loc) = func.func.name {
+                    if let Some(name_loc) = self.store[func].func.name {
                         let name_ref = name_loc.ref_;
                         hoisted_stmts.push(self.s(
                             S::Local {
@@ -215,7 +215,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     // For class declarations:
                     // Hoist as: var ClassName; (use var so it persists to vm context)
                     // Inner: ClassName = class ClassName {}
-                    if let Some(name_loc) = class.class.class_name {
+                    if let Some(name_loc) = self.store[class].class.class_name {
                         let name_ref = name_loc.ref_;
                         hoisted_stmts.push(self.s(
                             S::Local {
@@ -236,7 +236,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                         // Convert class declaration to assignment: ClassName = class ClassName {}
                         // G::Class is non-Copy (owns a Vec); the original
                         // S::Class store entry is dead after this rewrite, so move it out.
-                        let class_value = core::mem::take(&mut class.class);
+                        let class_value = core::mem::take(&mut self.store[class].class);
                         let class_expr = self.new_expr(class_value, stmt.loc);
                         let class_id = self.new_expr(
                             E::Identifier {
@@ -271,7 +271,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     //   import * as X from 'mod'   -> var X = await import('mod')
                     //   import 'mod'              -> await import('mod')
                     let path_str: &'static [u8] = self.import_records.items()
-                        [import_data.import_record_index as usize]
+                        [self.store[import_data].import_record_index as usize]
                         .path
                         .text;
                     let str_expr = self.new_expr(
@@ -293,9 +293,9 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     let await_expr = self.new_expr(E::Await { value: import_expr }, stmt.loc);
 
                     // `items` is an arena-owned `StoreSlice<ClauseItem>` valid for 'a.
-                    let import_items: &[bun_ast::ClauseItem] = import_data.items.slice();
+                    let import_items: &[bun_ast::ClauseItem] = self.store[import_data].items.slice();
 
-                    if !import_data.star_name_loc.is_empty() {
+                    if !self.store[import_data].star_name_loc.is_empty() {
                         // import * as X from 'mod' -> var X = await import('mod')
                         hoisted_stmts.push(self.s(
                             S::Local {
@@ -305,7 +305,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                                     Binding::alloc(
                                         bump,
                                         B::Identifier {
-                                            r#ref: import_data.namespace_ref,
+                                            r#ref: self.store[import_data].namespace_ref,
                                         },
                                         stmt.loc,
                                     ),
@@ -316,7 +316,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                         ));
                         let left = self.new_expr(
                             E::Identifier {
-                                ref_: import_data.namespace_ref,
+                                ref_: self.store[import_data].namespace_ref,
                                 ..Default::default()
                             },
                             stmt.loc,
@@ -336,7 +336,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                             },
                             stmt.loc,
                         ));
-                    } else if let Some(default_name) = import_data.default_name {
+                    } else if let Some(default_name) = self.store[import_data].default_name {
                         // import X from 'mod' -> var X = (await import('mod')).default
                         // import X, { a } from 'mod' -> var __ns = await import('mod'); var X = __ns.default; var a = __ns.a;
                         let default_ref = default_name.ref_;
@@ -370,7 +370,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                             )?;
                             let ns_ref_expr = self.new_expr(
                                 E::Identifier {
-                                    ref_: import_data.namespace_ref,
+                                    ref_: self.store[import_data].namespace_ref,
                                     ..Default::default()
                                 },
                                 stmt.loc,
@@ -463,7 +463,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                 }
                 StmtData::SDirective(directive) => {
                     // In REPL mode, treat directives (string literals) as expressions.
-                    let value_str: &'static [u8] = directive.value.slice();
+                    let value_str: &'static [u8] = self.store[directive].value.slice();
                     let str_expr = self.new_expr(
                         E::String {
                             data: value_str.into(),
@@ -672,7 +672,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     StmtData::SEmpty(_) | StmtData::SComment(_) => continue,
                     StmtData::SExpr(expr_data) => {
                         // Wrap in return { value: expr }
-                        let wrapped = self.repl_wrap_expr_in_value_object(expr_data.value, bump);
+                        let wrapped = self.repl_wrap_expr_in_value_object(self.store[expr_data].value, bump);
                         inner_stmts[last_idx] = self.s(
                             S::Return {
                                 value: Some(wrapped),
@@ -696,7 +696,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         match binding.data {
             B::B::BIdentifier(ident) => {
                 decls.push(G::Decl {
-                    binding: self.b(B::Identifier { r#ref: ident.r#ref }, binding.loc),
+                    binding: self.b(B::Identifier { r#ref: self.store[ident].r#ref }, binding.loc),
                     value: None,
                 });
             }
@@ -765,7 +765,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
             B::B::BIdentifier(ident) => {
                 let left = self.new_expr(
                     E::Identifier {
-                        ref_: ident.r#ref,
+                        ref_: self.store[ident].r#ref,
                         ..Default::default()
                     },
                     binding.loc,
@@ -816,7 +816,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         match binding.data {
             B::B::BIdentifier(ident) => self.new_expr(
                 E::Identifier {
-                    ref_: ident.r#ref,
+                    ref_: self.store[ident].r#ref,
                     ..Default::default()
                 },
                 binding.loc,

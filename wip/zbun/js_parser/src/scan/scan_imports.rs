@@ -596,8 +596,8 @@ impl<'a> ImportScanner<'a> {
                 }
 
                 js_ast::StmtData::SFunction(st) => {
-                    if st.func.flags.contains(bun_ast::flags::Function::IsExport) {
-                        if let Some(name) = st.func.name {
+                    if p.store[st].func.flags.contains(bun_ast::flags::Function::IsExport) {
+                        if let Some(name) = p.store[st].func.name {
                             // SAFETY: arena-owned slice valid for 'p.
                             let original_name: &'p [u8] = p.symbols
                                 [name.ref_.inner_index() as usize]
@@ -608,7 +608,7 @@ impl<'a> ImportScanner<'a> {
                             p.log().add_range_error(
                                 Some(p.source),
                                 bun_ast::Range {
-                                    loc: st.func.open_parens_loc,
+                                    loc: p.store[st].func.open_parens_loc,
                                     len: 2,
                                 },
                                 b"Exported functions must have a name",
@@ -617,8 +617,8 @@ impl<'a> ImportScanner<'a> {
                     }
                 }
                 js_ast::StmtData::SClass(st) => {
-                    if st.is_export {
-                        if let Some(name) = st.class.class_name {
+                    if p.store[st].is_export {
+                        if let Some(name) = p.store[st].class.class_name {
                             // SAFETY: arena-owned slice valid for 'p.
                             let original_name: &'p [u8] = p.symbols
                                 [name.ref_.inner_index() as usize]
@@ -629,7 +629,7 @@ impl<'a> ImportScanner<'a> {
                             p.log().add_range_error(
                                 Some(p.source),
                                 bun_ast::Range {
-                                    loc: st.class.body_loc,
+                                    loc: p.store[st].class.body_loc,
                                     len: 0,
                                 },
                                 b"Exported classes must have a name",
@@ -638,22 +638,22 @@ impl<'a> ImportScanner<'a> {
                     }
                 }
                 js_ast::StmtData::SLocal(st) => {
-                    if st.is_export {
-                        for decl in st.decls.slice() {
+                    if p.store[st].is_export {
+                        for decl in p.store[st].decls.slice() {
                             p.record_exported_binding(decl.binding);
                         }
                     }
 
                     // Remove unused import-equals statements, since those likely
                     // correspond to types instead of values
-                    if st.origin.is_ts_import_equals() && !st.is_export && st.decls.len_u32() > 0 {
-                        let decl = &st.decls.slice()[0];
+                    if p.store[st].origin.is_ts_import_equals() && !p.store[st].is_export && p.store[st].decls.len_u32() > 0 {
+                        let decl = &p.store[st].decls.slice()[0];
 
                         // Skip to the underlying reference
                         let mut value: Option<Expr> = decl.value;
                         if decl.value.is_some() {
                             while let js_ast::ExprData::EDot(dot) = value.unwrap().data {
-                                value = Some(dot.target);
+                                value = Some(p.store[dot].target);
                             }
                         }
 
@@ -662,7 +662,7 @@ impl<'a> ImportScanner<'a> {
                             if let js_ast::ExprData::EIdentifier(id) = val.data {
                                 // Is this import statement unused?
                                 if let js_ast::b::B::BIdentifier(b_id) = decl.binding.data {
-                                    let b_id_ref = b_id.r#ref;
+                                    let b_id_ref = p.store[b_id].r#ref;
                                     if p.symbols[b_id_ref.inner_index() as usize].use_count_estimate
                                         == 0
                                     {
@@ -682,8 +682,8 @@ impl<'a> ImportScanner<'a> {
                 }
                 js_ast::StmtData::SExportDefault(mut st) => {
                     // Capture default_name now and record the export after the body below.
-                    let deferred_default_name = st.default_name;
-                    let alias_of_import = match &st.value {
+                    let deferred_default_name = p.store[st].default_name;
+                    let alias_of_import = match &p.store[st].value {
                         js_ast::StmtOrExpr::Expr(expr) if p.options.bundle => {
                             let ref_ = match expr.data {
                                 js_ast::ExprData::EIdentifier(id) => id.ref_,
@@ -709,7 +709,7 @@ impl<'a> ImportScanner<'a> {
                     // But only if it's anonymous
                     // This monomorphization is the parser `P` only (see fn-level TODO).
                     if !HOT_MODULE_RELOADING_TRANSFORMATIONS && will_transform_to_common_js {
-                        let expr = core::mem::take(&mut st.value).to_expr();
+                        let expr = core::mem::take(&mut p.store[st].value).to_expr();
                         // Arena allocation that persists in the AST.
                         let export_default_args = p.arena.alloc_slice_fill_default::<Expr>(2);
                         export_default_args[0] = p.module_exports(expr.loc);
@@ -736,7 +736,7 @@ impl<'a> ImportScanner<'a> {
                 }
                 js_ast::StmtData::SExportClause(st) => {
                     // SAFETY: arena-owned slice valid for 'p.
-                    for item in st.items.slice().iter() {
+                    for item in p.store[st].items.slice().iter() {
                         // SAFETY: arena-owned alias slice valid for 'p.
                         let alias: &'p [u8] = item.alias.slice();
                         p.record_export(item.alias_loc, alias, item.name.ref_)?;
@@ -744,37 +744,37 @@ impl<'a> ImportScanner<'a> {
                 }
                 js_ast::StmtData::SExportStar(st) => {
                     p.import_records_for_current_part
-                        .push(st.import_record_index);
+                        .push(p.store[st].import_record_index);
 
-                    if let Some(alias) = &st.alias {
+                    if let Some(alias) = &p.store[st].alias {
                         // "export * as ns from 'path'"
                         p.named_imports.put(
-                            st.namespace_ref,
+                            p.store[st].namespace_ref,
                             js_ast::NamedImport {
                                 alias: None,
                                 alias_is_star: true,
                                 alias_loc: alias.loc,
                                 namespace_ref: Ref::NONE,
-                                import_record_index: st.import_record_index,
+                                import_record_index: p.store[st].import_record_index,
                                 is_exported: true,
                                 local_parts_with_uses: Vec::new(),
                             },
                         )?;
                         let original: &'p [u8] = alias.original_name.slice();
-                        p.record_export(alias.loc, original, st.namespace_ref)?;
-                        p.import_records.items_mut()[st.import_record_index as usize]
+                        p.record_export(alias.loc, original, p.store[st].namespace_ref)?;
+                        p.import_records.items_mut()[p.store[st].import_record_index as usize]
                             .flags
                             .insert(import_record::Flags::CONTAINS_IMPORT_STAR);
                     } else {
                         // "export * from 'path'"
-                        p.export_star_import_records.push(st.import_record_index);
+                        p.export_star_import_records.push(p.store[st].import_record_index);
                     }
                 }
                 js_ast::StmtData::SExportFrom(st) => {
                     p.import_records_for_current_part
-                        .push(st.import_record_index);
+                        .push(p.store[st].import_record_index);
                     // SAFETY: arena-owned slice valid for 'p.
-                    let items = st.items.slice();
+                    let items = p.store[st].items.slice();
                     p.named_imports
                         .ensure_unused_capacity(items.len())
                         .expect("unreachable");
@@ -789,8 +789,8 @@ impl<'a> ImportScanner<'a> {
                                 alias_is_star: false,
                                 alias: Some(item.original_name),
                                 alias_loc: item.name.loc,
-                                namespace_ref: st.namespace_ref,
-                                import_record_index: st.import_record_index,
+                                namespace_ref: p.store[st].namespace_ref,
+                                import_record_index: p.store[st].import_record_index,
                                 is_exported: true,
                                 local_parts_with_uses: Vec::new(),
                             },
@@ -800,7 +800,7 @@ impl<'a> ImportScanner<'a> {
                         p.record_export(item.name.loc, alias, ref_)?;
 
                         let record =
-                            &mut p.import_records.items_mut()[st.import_record_index as usize];
+                            &mut p.import_records.items_mut()[p.store[st].import_record_index as usize];
                         // SAFETY: arena-owned slice valid for 'p.
                         let original = item.original_name.slice();
                         if strings::eql_comptime(original, b"default") {

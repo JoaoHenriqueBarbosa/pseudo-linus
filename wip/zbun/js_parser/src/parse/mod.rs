@@ -86,10 +86,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             self.parse_suffix(expr, Level::Call.sub(1), errors.as_deref_mut(), flags)?;
             match &mut expr.data {
                 js_ast::expr::Data::ECall(ex) => {
-                    ex.can_be_unwrapped_if_unused = js_ast::CanBeUnwrapped::IfUnused;
+                    self.store[*ex].can_be_unwrapped_if_unused = js_ast::CanBeUnwrapped::IfUnused;
                 }
                 js_ast::expr::Data::ENew(ex) => {
-                    ex.can_be_unwrapped_if_unused = js_ast::CanBeUnwrapped::IfUnused;
+                    self.store[*ex].can_be_unwrapped_if_unused = js_ast::CanBeUnwrapped::IfUnused;
                 }
                 _ => {}
             }
@@ -521,7 +521,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut is_spread = false;
                 if let js_ast::expr::Data::ESpread(v) = &items[i].data {
                     is_spread = true;
-                    let inner = v.value;
+                    let inner = self.store[v].value;
                     items[i] = inner;
                 }
 
@@ -1490,8 +1490,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if is_directive_prologue {
                 is_directive_prologue = false;
                 if let js_ast::stmt::Data::SExpr(expr) = &stmt.data {
-                    if let js_ast::expr::Data::EString(str_) = &expr.value.data {
-                        if !str_.prefer_template {
+                    if let js_ast::expr::Data::EString(str_) = &self.store[*expr].value.data {
+                        if !self.store[str_].prefer_template {
                             is_directive_prologue = true;
 
                             if str_.eql_comptime(b"use strict") {
@@ -1531,7 +1531,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if !p.options.suppress_warnings_about_weird_code {
                 let mut needs_check = true;
                 if let js_ast::stmt::Data::SReturn(ret) = &stmt.data {
-                    if ret.value.is_none() && !p.latest_return_had_semicolon {
+                    if self.store[*ret].value.is_none() && !p.latest_return_had_semicolon {
                         return_without_semicolon_start = stmt.loc.start;
                         needs_check = false;
                     }

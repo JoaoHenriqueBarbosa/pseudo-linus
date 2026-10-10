@@ -54,33 +54,33 @@ impl SideEffects {
         loop {
             match &mut expr.data {
                 ExprData::EUnary(e) => {
-                    if e.op == Op::Code::UnNot {
+                    if p.store[*e].op == Op::Code::UnNot {
                         // "!!a" => "a"
-                        if let ExprData::EUnary(inner) = &e.value.data {
-                            if inner.op == Op::Code::UnNot {
-                                *expr = inner.value;
+                        if let ExprData::EUnary(inner) = &p.store[*e].value.data {
+                            if p.store[inner].op == Op::Code::UnNot {
+                                *expr = p.store[inner].value;
                                 continue;
                             }
                         }
-                        Self::_simplify_boolean(p, &mut e.value);
+                        Self::_simplify_boolean(p, &mut p.store[*e].value);
                     }
                 }
-                ExprData::EBinary(e) => match e.op {
+                ExprData::EBinary(e) => match p.store[*e].op {
                     Op::Code::BinLogicalAnd => {
-                        if let Some(effects) = SideEffects::to_boolean(p, &e.right.data) {
+                        if let Some(effects) = SideEffects::to_boolean(p, &p.store[*e].right.data) {
                             if effects.value && effects.side_effects == SideEffects::NoSideEffects {
                                 // "if (anything && truthyNoSideEffects)" => "if (anything)"
-                                *expr = e.left;
+                                *expr = p.store[*e].left;
                                 continue;
                             }
                         }
                     }
                     Op::Code::BinLogicalOr => {
-                        if let Some(effects) = SideEffects::to_boolean(p, &e.right.data) {
+                        if let Some(effects) = SideEffects::to_boolean(p, &p.store[*e].right.data) {
                             if !effects.value && effects.side_effects == SideEffects::NoSideEffects
                             {
                                 // "if (anything || falsyNoSideEffects)" => "if (anything)"
-                                *expr = e.left;
+                                *expr = p.store[*e].left;
                                 continue;
                             }
                         }
@@ -151,7 +151,7 @@ impl SideEffects {
             | ExprData::EInlinedEnum(_) => return None,
 
             ExprData::EDot(dot) => {
-                if dot.can_be_removed_if_unused {
+                if p.store[dot].can_be_removed_if_unused {
                     return None;
                 }
             }
@@ -167,46 +167,46 @@ impl SideEffects {
                 }
             }
             ExprData::EIf(mut ternary) => {
-                let yes = ternary.yes;
-                ternary.yes = Self::simplify_unused_expr(p, yes).unwrap_or_else(|| yes.to_empty());
-                let no = ternary.no;
-                ternary.no = Self::simplify_unused_expr(p, no).unwrap_or_else(|| no.to_empty());
+                let yes = p.store[ternary].yes;
+                p.store[ternary].yes = Self::simplify_unused_expr(p, yes).unwrap_or_else(|| yes.to_empty());
+                let no = p.store[ternary].no;
+                p.store[ternary].no = Self::simplify_unused_expr(p, no).unwrap_or_else(|| no.to_empty());
 
                 // "foo() ? 1 : 2" => "foo()"
-                if ternary.yes.is_empty() && ternary.no.is_empty() {
-                    return Self::simplify_unused_expr(p, ternary.test);
+                if p.store[ternary].yes.is_empty() && p.store[ternary].no.is_empty() {
+                    return Self::simplify_unused_expr(p, p.store[ternary].test);
                 }
 
                 // "foo() ? 1 : bar()" => "foo() || bar()"
-                if ternary.yes.is_empty() {
+                if p.store[ternary].yes.is_empty() {
                     return Some(Expr::join_with_left_associative_op(
                         Op::Code::BinLogicalOr,
-                        ternary.test,
-                        ternary.no,
+                        p.store[ternary].test,
+                        p.store[ternary].no,
                     ));
                 }
 
                 // "foo() ? bar() : 2" => "foo() && bar()"
-                if ternary.no.is_empty() {
+                if p.store[ternary].no.is_empty() {
                     return Some(Expr::join_with_left_associative_op(
                         Op::Code::BinLogicalAnd,
-                        ternary.test,
-                        ternary.yes,
+                        p.store[ternary].test,
+                        p.store[ternary].yes,
                     ));
                 }
             }
             ExprData::EUnary(un) => {
                 // These operators must not have any type conversions that can execute code
                 // such as "toString" or "valueOf". They must also never throw any exceptions.
-                match un.op {
+                match p.store[un].op {
                     Op::Code::UnVoid | Op::Code::UnNot => {
-                        return Self::simplify_unused_expr(p, un.value);
+                        return Self::simplify_unused_expr(p, p.store[un].value);
                     }
                     Op::Code::UnTypeof => {
                         // "typeof x" must not be transformed into if "x" since doing so could
                         // cause an exception to be thrown. Instead we can just remove it since
                         // "typeof x" is special-cased in the standard to never throw.
-                        if matches!(un.value.data, ExprData::EIdentifier(_))
+                        if matches!(p.store[un].value.data, ExprData::EIdentifier(_))
                             && un
                                 .flags
                                 .contains(E::UnaryFlags::WAS_ORIGINALLY_TYPEOF_IDENTIFIER)
@@ -214,7 +214,7 @@ impl SideEffects {
                             return None;
                         }
 
-                        return Self::simplify_unused_expr(p, un.value);
+                        return Self::simplify_unused_expr(p, p.store[un].value);
                     }
                     _ => {}
                 }
@@ -223,11 +223,11 @@ impl SideEffects {
             ExprData::ECall(call) => {
                 // A call that has been marked "__PURE__" can be removed if all arguments
                 // can be removed. The annotation causes us to ignore the target.
-                if call.can_be_unwrapped_if_unused != CallUnwrap::Never {
-                    if call.args.len_u32() > 0 {
-                        let joined = Self::join_all_simplified(p, &call.args);
+                if p.store[call].can_be_unwrapped_if_unused != CallUnwrap::Never {
+                    if p.store[call].args.len_u32() > 0 {
+                        let joined = Self::join_all_simplified(p, &p.store[call].args);
                         if let Some(j) = &joined {
-                            if call.can_be_unwrapped_if_unused
+                            if p.store[call].can_be_unwrapped_if_unused
                                 == CallUnwrap::IfUnusedAndToStringSafe
                             {
                                 // For now, only support this for 1 argument.
@@ -245,11 +245,11 @@ impl SideEffects {
             ExprData::ENew(call) => {
                 // A call that has been marked "__PURE__" can be removed if all arguments
                 // can be removed. The annotation causes us to ignore the target.
-                if call.can_be_unwrapped_if_unused != CallUnwrap::Never {
-                    if call.args.len_u32() > 0 {
-                        let joined = Self::join_all_simplified(p, &call.args);
+                if p.store[call].can_be_unwrapped_if_unused != CallUnwrap::Never {
+                    if p.store[call].args.len_u32() > 0 {
+                        let joined = Self::join_all_simplified(p, &p.store[call].args);
                         if let Some(j) = &joined {
-                            if call.can_be_unwrapped_if_unused
+                            if p.store[call].can_be_unwrapped_if_unused
                                 == CallUnwrap::IfUnusedAndToStringSafe
                             {
                                 // For now, only support this for 1 argument.
@@ -266,7 +266,7 @@ impl SideEffects {
             }
 
             ExprData::EBinary(mut bin) => {
-                match bin.op {
+                match p.store[bin].op {
                     // These operators must not have any type conversions that can execute code
                     // such as "toString" or "valueOf". They must also never throw any exceptions.
                     Op::Code::BinStrictEq | Op::Code::BinStrictNe | Op::Code::BinComma => {
@@ -283,15 +283,15 @@ impl SideEffects {
                     | Op::Code::BinGt
                     | Op::Code::BinLe
                     | Op::Code::BinGe => {
-                        if Self::is_primitive_with_side_effects(p, bin.left.loc, &bin.left.data)
+                        if Self::is_primitive_with_side_effects(p, p.store[bin].left.loc, &p.store[bin].left.data)
                             && Self::is_primitive_with_side_effects(
                                 p,
-                                bin.right.loc,
-                                &bin.right.data,
+                                p.store[bin].right.loc,
+                                &p.store[bin].right.data,
                             )
                         {
-                            let left = bin.left;
-                            let right = bin.right;
+                            let left = p.store[bin].left;
+                            let right = p.store[bin].right;
                             let left_simplified = Self::simplify_unused_expr(p, left);
                             let right_simplified = Self::simplify_unused_expr(p, right);
 
@@ -307,17 +307,17 @@ impl SideEffects {
                             ));
                         }
 
-                        match bin.op {
+                        match p.store[bin].op {
                             Op::Code::BinLooseEq | Op::Code::BinLooseNe => {
                                 // If one side is a number and the other side is a known primitive with side effects,
                                 // the number can be printed as `0` since the result being unused doesn't matter,
                                 // we only care to invoke the coercion.
                                 // We only do this optimization if the other side is a known primitive with side effects
                                 // to avoid corrupting shared nodes when the other side is an undefined identifier
-                                if matches!(bin.left.data, ExprData::ENumber(_)) {
-                                    bin.left.data = ExprData::ENumber(E::Number::new(0.0));
-                                } else if matches!(bin.right.data, ExprData::ENumber(_)) {
-                                    bin.right.data = ExprData::ENumber(E::Number::new(0.0));
+                                if matches!(p.store[bin].left.data, ExprData::ENumber(_)) {
+                                    p.store[bin].left.data = ExprData::ENumber(E::Number::new(0.0));
+                                } else if matches!(p.store[bin].right.data, ExprData::ENumber(_)) {
+                                    p.store[bin].right.data = ExprData::ENumber(E::Number::new(0.0));
                                 }
                             }
                             _ => {}
@@ -327,15 +327,15 @@ impl SideEffects {
                     Op::Code::BinLogicalAnd
                     | Op::Code::BinLogicalOr
                     | Op::Code::BinNullishCoalescing => {
-                        let right = bin.right;
-                        bin.right = Self::simplify_unused_expr(p, right)
+                        let right = p.store[bin].right;
+                        p.store[bin].right = Self::simplify_unused_expr(p, right)
                             .unwrap_or_else(|| right.to_empty());
                         // Preserve short-circuit behavior: the left expression is only unused if
                         // the right expression can be completely removed. Otherwise, the left
                         // expression is important for the branch.
 
-                        if bin.right.is_empty() {
-                            return Self::simplify_unused_expr(p, bin.left);
+                        if p.store[bin].right.is_empty() {
+                            return Self::simplify_unused_expr(p, p.store[bin].left);
                         }
                     }
 
@@ -347,10 +347,10 @@ impl SideEffects {
                 // Objects with "..." spread expressions can't be unwrapped because the
                 // "..." triggers code evaluation via getters. In that case, just trim
                 // the other items instead and leave the object expression there.
-                let len = e_object.properties.len_u32() as usize;
+                let len = p.store[e_object].properties.len_u32() as usize;
                 let mut has_spread = false;
                 for i in 0..len {
-                    if e_object.properties.at(i).kind == G::PropertyKind::Spread {
+                    if p.store[e_object].properties.at(i).kind == G::PropertyKind::Spread {
                         has_spread = true;
                         break;
                     }
@@ -359,9 +359,9 @@ impl SideEffects {
                     // Spread properties must always be evaluated
                     let mut end: usize = 0;
                     for j in 0..len {
-                        let kind = e_object.properties.at(j).kind;
+                        let kind = p.store[e_object].properties.at(j).kind;
                         if kind != G::PropertyKind::Spread {
-                            let prev_value = e_object.properties.at(j).value.unwrap();
+                            let prev_value = p.store[e_object].properties.at(j).value.unwrap();
                             let is_computed = e_object
                                 .properties
                                 .at(j)
@@ -369,21 +369,21 @@ impl SideEffects {
                                 .contains(bun_ast::flags::Property::IsComputed);
                             let value = Self::simplify_unused_expr(p, prev_value);
                             if let Some(value) = value {
-                                e_object.properties.mut_(j).value = Some(value);
+                                p.store[e_object].properties.mut_(j).value = Some(value);
                             } else if !is_computed {
                                 continue;
                             } else {
                                 let zero = p.new_expr(E::Number::new(0.0), prev_value.loc);
-                                e_object.properties.mut_(j).value = Some(zero);
+                                p.store[e_object].properties.mut_(j).value = Some(zero);
                             }
                         }
 
                         // G::Property is not Copy (Vec ts_decorators field), so swap
                         // so the kept property lands at `end` without cloning.
-                        e_object.properties.slice_mut().swap(end, j);
+                        p.store[e_object].properties.slice_mut().swap(end, j);
                         end += 1;
                     }
-                    e_object.properties.shrink_retaining_capacity(end);
+                    p.store[e_object].properties.shrink_retaining_capacity(end);
                     return Some(expr);
                 }
 
@@ -395,9 +395,9 @@ impl SideEffects {
                 // Otherwise, the object can be completely removed. We only need to keep any
                 // object properties with side effects. Apply this simplification recursively.
                 for i in 0..len {
-                    let flags = e_object.properties.at(i).flags;
-                    let key = e_object.properties.at(i).key;
-                    let value = e_object.properties.at(i).value;
+                    let flags = p.store[e_object].properties.at(i).flags;
+                    let key = p.store[e_object].properties.at(i).key;
+                    let value = p.store[e_object].properties.at(i).value;
                     if flags.contains(bun_ast::flags::Property::IsComputed) {
                         // Make sure "ToString" is still evaluated on the key
                         let key_expr = key.unwrap();
@@ -426,20 +426,20 @@ impl SideEffects {
                 return Some(result);
             }
             ExprData::EArray(mut arr) => {
-                let len = arr.items.len_u32() as usize;
+                let len = p.store[arr].items.len_u32() as usize;
 
                 // Arrays with "..." spread expressions can't be unwrapped because the
                 // "..." triggers code evaluation via iterators. In that case, just trim
                 // the missing items instead and leave the array expression there.
                 let mut has_spread = false;
                 for i in 0..len {
-                    if matches!(arr.items.at(i).data, ExprData::ESpread(_)) {
+                    if matches!(p.store[arr].items.at(i).data, ExprData::ESpread(_)) {
                         has_spread = true;
                         break;
                     }
                 }
                 if has_spread {
-                    let items = arr.items.slice_mut();
+                    let items = p.store[arr].items.slice_mut();
                     let mut end: usize = 0;
                     for j in 0..len {
                         if !matches!(items[j].data, ExprData::EMissing(_)) {
@@ -447,13 +447,13 @@ impl SideEffects {
                             end += 1;
                         }
                     }
-                    arr.items.shrink_retaining_capacity(end);
+                    p.store[arr].items.shrink_retaining_capacity(end);
                     return Some(expr);
                 }
 
                 // Otherwise, the array can be completely removed. We only need to keep any
                 // array items with side effects. Apply this simplification recursively.
-                return Self::join_all_simplified(p, &arr.items);
+                return Self::join_all_simplified(p, &p.store[arr].items);
             }
 
             _ => {}
@@ -506,7 +506,7 @@ impl SideEffects {
             return Some(expr);
         };
         debug_assert!(matches!(
-            root_bin.op,
+            p.store[root_bin].op,
             Op::Code::BinStrictEq | Op::Code::BinStrictNe | Op::Code::BinComma
         ));
 
@@ -517,13 +517,13 @@ impl SideEffects {
             .push(BinaryExpressionSimplifyVisitor { bin: root_bin });
 
         // Build stack up of expressions
-        let mut left: Expr = root_bin.left;
+        let mut left: Expr = p.store[root_bin].left;
         while let ExprData::EBinary(left_bin) = left.data {
-            match left_bin.op {
+            match p.store[left_bin].op {
                 Op::Code::BinStrictEq | Op::Code::BinStrictNe | Op::Code::BinComma => {
                     p.binary_expression_simplify_stack
                         .push(BinaryExpressionSimplifyVisitor { bin: left_bin });
-                    left = left_bin.left;
+                    left = p.store[left_bin].left;
                 }
                 _ => break,
             }
@@ -535,7 +535,7 @@ impl SideEffects {
         while i > stack_bottom {
             i -= 1;
             let top = p.binary_expression_simplify_stack[i];
-            let right = top.bin.right;
+            let right = p.store[top.bin].right;
             let visited_right = Self::simplify_unused_expr(p, right).unwrap_or(Expr::EMPTY);
             result = Expr::join_with_comma(result, visited_right);
         }
@@ -729,7 +729,7 @@ impl SideEffects {
             | ExprData::EString(_)
             | ExprData::EInlinedEnum(_) => true,
             ExprData::EUnary(e) => matches!(
-                e.op,
+                p.store[*e].op,
                 // number or bigint
                 Op::Code::UnPos | Op::Code::UnNeg | Op::Code::UnCpl
                 | Op::Code::UnPreDec | Op::Code::UnPreInc
@@ -741,7 +741,7 @@ impl SideEffects {
                 // string
                 | Op::Code::UnTypeof
             ),
-            ExprData::EBinary(e) => match e.op {
+            ExprData::EBinary(e) => match p.store[*e].op {
                 // boolean
                 Op::Code::BinStrictEq | Op::Code::BinStrictNe | Op::Code::BinLooseEq
                 | Op::Code::BinLooseNe | Op::Code::BinLt | Op::Code::BinGt
@@ -763,17 +763,17 @@ impl SideEffects {
                 Op::Code::BinLogicalAnd | Op::Code::BinLogicalOr | Op::Code::BinNullishCoalescing
                 | Op::Code::BinLogicalAndAssign | Op::Code::BinLogicalOrAssign
                 | Op::Code::BinNullishCoalescingAssign => {
-                    Self::is_primitive_with_side_effects(p, e.left.loc, &e.left.data)
-                        && Self::is_primitive_with_side_effects(p, e.right.loc, &e.right.data)
+                    Self::is_primitive_with_side_effects(p, p.store[*e].left.loc, &p.store[*e].left.data)
+                        && Self::is_primitive_with_side_effects(p, p.store[*e].right.loc, &p.store[*e].right.data)
                 }
                 Op::Code::BinComma => {
-                    Self::is_primitive_with_side_effects(p, e.right.loc, &e.right.data)
+                    Self::is_primitive_with_side_effects(p, p.store[*e].right.loc, &p.store[*e].right.data)
                 }
                 _ => false,
             },
             ExprData::EIf(e) => {
-                Self::is_primitive_with_side_effects(p, e.yes.loc, &e.yes.data)
-                    && Self::is_primitive_with_side_effects(p, e.no.loc, &e.no.data)
+                Self::is_primitive_with_side_effects(p, p.store[*e].yes.loc, &p.store[*e].yes.data)
+                    && Self::is_primitive_with_side_effects(p, p.store[*e].no.loc, &p.store[*e].no.data)
             }
             _ => false,
         }
@@ -808,7 +808,7 @@ impl SideEffects {
                 value: true,
                 side_effects: SideEffects::NoSideEffects,
             }),
-            ExprData::EUnary(e) => match e.op {
+            ExprData::EUnary(e) => match p.store[*e].op {
                 // Always number or bigint
                 Op::Code::UnPos | Op::Code::UnNeg | Op::Code::UnCpl
                 | Op::Code::UnPreDec | Op::Code::UnPreInc
@@ -823,7 +823,7 @@ impl SideEffects {
                 }
                 _ => None,
             },
-            ExprData::EBinary(e) => match e.op {
+            ExprData::EBinary(e) => match p.store[*e].op {
                 // always string or number or bigint
                 Op::Code::BinAdd | Op::Code::BinAddAssign
                 // always number or bigint
@@ -844,14 +844,14 @@ impl SideEffects {
                     Some(Known { value: false, side_effects: SideEffects::CouldHaveSideEffects })
                 }
                 Op::Code::BinComma => {
-                    Self::to_null_or_undefined(p, &e.right.data).map(|res| Known {
+                    Self::to_null_or_undefined(p, &p.store[*e].right.data).map(|res| Known {
                         value: res.value,
                         side_effects: SideEffects::CouldHaveSideEffects,
                     })
                 }
                 _ => None,
             },
-            ExprData::EInlinedEnum(e) => Self::to_null_or_undefined(p, &e.value.data),
+            ExprData::EInlinedEnum(e) => Self::to_null_or_undefined(p, &p.store[*e].value.data),
             _ => None,
         }
     }
@@ -880,14 +880,14 @@ impl SideEffects {
                 value: e.value() != 0.0 && !e.value().is_nan(),
                 side_effects: SideEffects::NoSideEffects,
             }),
-            ExprData::EBigInt(e) => E::BigInt::check_equality(&e.value, b"0").map(|equal| Known {
+            ExprData::EBigInt(e) => E::BigInt::check_equality(&p.store[*e].value, b"0").map(|equal| Known {
                 value: !equal,
                 side_effects: SideEffects::NoSideEffects,
             }),
             ExprData::EString(e) => Some(Known {
                 // Open-coded `isPresent` to dodge an ambiguous inherent `len()`
                 // while E.rs's duplicate `impl EString` blocks are being merged.
-                value: e.rope_len > 0 || !e.data.is_empty(),
+                value: p.store[*e].rope_len > 0 || !p.store[*e].data.is_empty(),
                 side_effects: SideEffects::NoSideEffects,
             }),
             ExprData::EFunction(_) | ExprData::EArrow(_) | ExprData::ERegExp(_) => Some(Known {
@@ -898,7 +898,7 @@ impl SideEffects {
                 value: true,
                 side_effects: SideEffects::CouldHaveSideEffects,
             }),
-            ExprData::EUnary(e) => match e.op {
+            ExprData::EUnary(e) => match p.store[*e].op {
                 Op::Code::UnVoid => Some(Known {
                     value: false,
                     side_effects: SideEffects::CouldHaveSideEffects,
@@ -910,34 +910,34 @@ impl SideEffects {
                         side_effects: SideEffects::CouldHaveSideEffects,
                     })
                 }
-                Op::Code::UnNot => Self::to_boolean(p, &e.value.data).map(|res| Known {
+                Op::Code::UnNot => Self::to_boolean(p, &p.store[*e].value.data).map(|res| Known {
                     value: !res.value,
                     side_effects: res.side_effects,
                 }),
                 _ => None,
             },
-            ExprData::EBinary(e) => match e.op {
-                Op::Code::BinLogicalOr => match Self::to_boolean(p, &e.right.data) {
+            ExprData::EBinary(e) => match p.store[*e].op {
+                Op::Code::BinLogicalOr => match Self::to_boolean(p, &p.store[*e].right.data) {
                     Some(res) if res.value => Some(Known {
                         value: true,
                         side_effects: SideEffects::CouldHaveSideEffects,
                     }),
                     _ => None,
                 },
-                Op::Code::BinLogicalAnd => match Self::to_boolean(p, &e.right.data) {
+                Op::Code::BinLogicalAnd => match Self::to_boolean(p, &p.store[*e].right.data) {
                     Some(res) if !res.value => Some(Known {
                         value: false,
                         side_effects: SideEffects::CouldHaveSideEffects,
                     }),
                     _ => None,
                 },
-                Op::Code::BinComma => Self::to_boolean(p, &e.right.data).map(|res| Known {
+                Op::Code::BinComma => Self::to_boolean(p, &p.store[*e].right.data).map(|res| Known {
                     value: res.value,
                     side_effects: SideEffects::CouldHaveSideEffects,
                 }),
                 Op::Code::BinGt => {
-                    if let Some(left_num) = e.left.data.to_finite_number() {
-                        if let Some(right_num) = e.right.data.to_finite_number() {
+                    if let Some(left_num) = p.store[*e].left.data.to_finite_number() {
+                        if let Some(right_num) = p.store[*e].right.data.to_finite_number() {
                             return Some(Known {
                                 value: left_num > right_num,
                                 side_effects: SideEffects::NoSideEffects,
@@ -947,8 +947,8 @@ impl SideEffects {
                     None
                 }
                 Op::Code::BinLt => {
-                    if let Some(left_num) = e.left.data.to_finite_number() {
-                        if let Some(right_num) = e.right.data.to_finite_number() {
+                    if let Some(left_num) = p.store[*e].left.data.to_finite_number() {
+                        if let Some(right_num) = p.store[*e].right.data.to_finite_number() {
                             return Some(Known {
                                 value: left_num < right_num,
                                 side_effects: SideEffects::NoSideEffects,
@@ -958,8 +958,8 @@ impl SideEffects {
                     None
                 }
                 Op::Code::BinLe => {
-                    if let Some(left_num) = e.left.data.to_finite_number() {
-                        if let Some(right_num) = e.right.data.to_finite_number() {
+                    if let Some(left_num) = p.store[*e].left.data.to_finite_number() {
+                        if let Some(right_num) = p.store[*e].right.data.to_finite_number() {
                             return Some(Known {
                                 value: left_num <= right_num,
                                 side_effects: SideEffects::NoSideEffects,
@@ -969,8 +969,8 @@ impl SideEffects {
                     None
                 }
                 Op::Code::BinGe => {
-                    if let Some(left_num) = e.left.data.to_finite_number() {
-                        if let Some(right_num) = e.right.data.to_finite_number() {
+                    if let Some(left_num) = p.store[*e].left.data.to_finite_number() {
+                        if let Some(right_num) = p.store[*e].right.data.to_finite_number() {
                             return Some(Known {
                                 value: left_num >= right_num,
                                 side_effects: SideEffects::NoSideEffects,
@@ -981,7 +981,7 @@ impl SideEffects {
                 }
                 _ => None,
             },
-            ExprData::EInlinedEnum(e) => Self::to_boolean(p, &e.value.data),
+            ExprData::EInlinedEnum(e) => Self::to_boolean(p, &p.store[*e].value.data),
             ExprData::ESpecial(special) => match special {
                 E::Special::ModuleExports
                 | E::Special::ResolvedSpecifierString(_)

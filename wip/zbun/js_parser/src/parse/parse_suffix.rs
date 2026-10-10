@@ -457,7 +457,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.parse_expr_with_flags(
             Level::Comma,
             EFlags::AfterQuestionAndBeforeColon,
-            &mut e_if.yes,
+            &mut p.store[e_if].yes,
         )?;
 
         p.allow_in = old_allow_in;
@@ -474,7 +474,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         } else {
             EFlags::None
         };
-        p.parse_expr_with_flags(Level::Comma, no_flags, &mut e_if.no)?;
+        p.parse_expr_with_flags(Level::Comma, no_flags, &mut p.store[e_if].no)?;
 
         // condition ? yes : no
         //                     ^
@@ -1393,7 +1393,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Warn about "!a in b" instead of "!(a in b)"
         if let ExprData::EUnary(unary) = &left.data {
-            if unary.op == OpCode::UnNot {
+            if p.store[*unary].op == OpCode::UnNot {
                 // TODO:
                 // p.log.addRangeWarning(source: ?Source, r: Range, text: string)
             }
@@ -1423,7 +1423,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // example of code with this problem: https://github.com/mrdoob/three.js/pull/11182.
         if !p.options.suppress_warnings_about_weird_code {
             if let ExprData::EUnary(unary) = &left.data {
-                if unary.op == OpCode::UnNot {
+                if p.store[*unary].op == OpCode::UnNot {
                     // TODO:
                     // p.log.addRangeWarning(source: ?Source, r: Range, text: string)
                 }

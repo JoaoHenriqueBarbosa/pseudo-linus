@@ -155,8 +155,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         }
                                         ExprData::EDot(dot) => {
                                             break 'brk p.new_expr(
-                                                E::EString::init(&dot.name),
-                                                dot.name_loc,
+                                                E::EString::init(&self.store[*dot].name),
+                                                self.store[*dot].name_loc,
                                             );
                                         }
                                         ExprData::EIndex(index) => {

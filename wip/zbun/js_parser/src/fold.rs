@@ -67,7 +67,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // run without raw-pointer `unsafe` and without borrowing `p`.
         let mut scope = p.current_scope_ref();
         while !scope.kind_stops_hoisting() {
-            let parent = scope.parent;
+            let parent = self.store[scope].parent;
             debug_assert!(parent.is_some());
             scope = parent.unwrap();
         }
@@ -137,10 +137,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::ExprData::EAwait(aw) => {
                     // `(await import("str")).foo`: record the alias; the
                     // expression is left as written.
-                    if let js_ast::ExprData::EImport(im) = aw.value.data {
-                        if im.namespace_ref.is_valid() && can_track_dynamic_import_member {
+                    if let js_ast::ExprData::EImport(im) = self.store[aw].value.data {
+                        if self.store[im].namespace_ref.is_valid() && can_track_dynamic_import_member {
                             p.import_items_for_namespace
-                                .get_mut(&im.namespace_ref)
+                                .get_mut(&self.store[im].namespace_ref)
                                 .unwrap()
                                 .put(
                                     name,
@@ -150,7 +150,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     },
                                 )
                                 .expect("oom");
-                            p.note_tracked_namespace_use(im.namespace_ref);
+                            p.note_tracked_namespace_use(self.store[im].namespace_ref);
                         }
                     }
                 }
@@ -341,11 +341,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     // that's a de-opt.
                                     || p.commonjs_named_exports.count() > 0
                                     // anything which is not module.exports = {} is a de-opt.
-                                    || !matches!(stmt_bin.right.data, js_ast::ExprData::EObject(_))
-                                    || !matches!(stmt_bin.left.data, js_ast::ExprData::EDot(_))
-                                    || stmt_bin.left.data.e_dot().expect("infallible: variant checked").name != b"exports"
+                                    || !matches!(self.store[stmt_bin].right.data, js_ast::ExprData::EObject(_))
+                                    || !matches!(self.store[stmt_bin].left.data, js_ast::ExprData::EDot(_))
+                                    || self.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked").name != b"exports"
                                     || !matches!(
-                                        stmt_bin.left.data.e_dot().expect("infallible: variant checked").target.data,
+                                        self.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked").target.data,
                                         js_ast::ExprData::EIdentifier(_)
                                     )
                                     || !stmt_bin
@@ -388,7 +388,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                             js_ast::ExprData::ECommonjsExportIdentifier(_)
                                             | js_ast::ExprData::EImportIdentifier(_)
                                             | js_ast::ExprData::EIdentifier(_) => false,
-                                            js_ast::ExprData::ECall(call) => match call.target.data {
+                                            js_ast::ExprData::ECall(call) => match self.store[call].target.data {
                                                 js_ast::ExprData::ECommonjsExportIdentifier(_)
                                                 | js_ast::ExprData::EImportIdentifier(_)
                                                 | js_ast::ExprData::EIdentifier(_) => false,
@@ -542,7 +542,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 js_ast::ExprData::EInlinedEnum(ie) => {
-                    sw_data = ie.value.data;
+                    sw_data = self.store[ie].value.data;
                     continue 'sw;
                 }
                 js_ast::ExprData::EObject(obj) => {
@@ -556,12 +556,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // To avoid thinking too much about edgecases, only do this for:
                             //   1) Objects with a single property
                             //   2) Not a method, not a computed property
-                            if obj.properties.len_u32() == 1
+                            if self.store[obj].properties.len_u32() == 1
                                 && !identifier_opts.is_delete_target()
                                 && identifier_opts.assign_target() == js_ast::AssignTarget::None
                                 && !identifier_opts.is_call_target()
                             {
-                                let prop: &G::Property = &obj.properties.slice()[0];
+                                let prop: &G::Property = &self.store[obj].properties.slice()[0];
                                 if let (Some(value), Some(key)) = (prop.value, prop.key) {
                                     if prop.flags.len() == 0
                                         && matches!(key.data, js_ast::ExprData::EString(_))

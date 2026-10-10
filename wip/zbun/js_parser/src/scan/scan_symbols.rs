@@ -37,12 +37,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             while let Some(scope) = current {
                 // Track if we're inside a "with" statement body
-                if scope.kind == js_ast::scope::Kind::With {
+                if self.store[scope].kind == js_ast::scope::Kind::With {
                     is_inside_with_scope = true;
                 }
 
                 // Forbid referencing "arguments" inside class bodies
-                if scope.forbid_arguments && !did_forbid_arguments && name == b"arguments" {
+                if self.store[scope].forbid_arguments && !did_forbid_arguments && name == b"arguments" {
                     let r = js_lexer::range_of_identifier(self.source, loc);
                     self.log().add_range_error_fmt(
                         Some(self.source),
@@ -57,7 +57,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     declare_loc = member.loc;
                     // Unbound globals live in the module scope.
                     scope_use = self.track_scope_uses
-                        && (scope.parent.is_some()
+                        && (self.store[scope].parent.is_some()
                             || self.symbols[member.ref_.inner_index() as usize].kind
                                 != js_ast::symbol::Kind::Unbound);
                     break 'brk member.ref_;
@@ -68,7 +68,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // guards, so the probe is dead for JS inputs: gate it so the
                 // load+branch fold away in the `TYPESCRIPT == false` monomorphization.
                 if Self::IS_TYPESCRIPT_ENABLED {
-                    if let Some(mut ts_namespace) = scope.ts_namespace {
+                    if let Some(mut ts_namespace) = self.store[scope].ts_namespace {
                         let ts = &*ts_namespace;
                         let exported: &js_ast::TSNamespaceMemberMap = &ts.exported_members;
                         if let Some(member) = exported.get(name) {
@@ -99,7 +99,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
 
-                current = scope.parent;
+                current = self.store[scope].parent;
             }
 
             // Allocate an "unbound" symbol

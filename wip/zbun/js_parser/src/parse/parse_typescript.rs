@@ -218,7 +218,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut ts_namespace: js_ast::StoreRef<js_ast::TSNamespaceScope> =
             p.get_or_create_exported_namespace_members(name_text, opts.is_export, false);
         let mut exported_members: js_ast::StoreRef<TSNamespaceMemberMap> =
-            ts_namespace.exported_members;
+            self.store[ts_namespace].exported_members;
         let ns_member_data = TSNamespaceMemberData::Namespace(exported_members);
 
         // Declare the namespace and create the scope
@@ -282,8 +282,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         for stmt in stmts.iter() {
             match &stmt.data {
                 StmtData::SFunction(func) => {
-                    if func.func.flags.contains(flags::Function::IsExport) {
-                        let locref = func.func.name.unwrap();
+                    if self.store[*func].func.flags.contains(flags::Function::IsExport) {
+                        let locref = self.store[*func].func.name.unwrap();
                         let ref_ = locref.ref_;
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
                         let fn_name: &[u8] =
@@ -300,8 +300,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 StmtData::SClass(class) => {
-                    if class.is_export {
-                        let locref = class.class.class_name.unwrap();
+                    if self.store[*class].is_export {
+                        let locref = self.store[*class].class.class_name.unwrap();
                         let ref_ = locref.ref_;
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
                         let class_name: &[u8] =
@@ -318,8 +318,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 StmtData::SNamespace(ns) => {
-                    if ns.is_export {
-                        let ref_ = ns.name.ref_;
+                    if self.store[*ns].is_export {
+                        let ref_ = self.store[*ns].name.ref_;
                         if let Some(member_data) = p.ref_to_ts_namespace_member.get(&ref_) {
                             let member_data = clone_ts_member_data(member_data);
                             // SAFETY: original_name is arena-owned, valid for 'a.
@@ -329,7 +329,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 ns_name,
                                 TSNamespaceMember {
                                     data: clone_ts_member_data(&member_data),
-                                    loc: ns.name.loc,
+                                    loc: self.store[*ns].name.loc,
                                 },
                             )?;
                             p.ref_to_ts_namespace_member.insert(ref_, member_data);
@@ -337,8 +337,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 StmtData::SEnum(ns) => {
-                    if ns.is_export {
-                        let ref_ = ns.name.ref_;
+                    if self.store[*ns].is_export {
+                        let ref_ = self.store[*ns].name.ref_;
                         if let Some(member_data) = p.ref_to_ts_namespace_member.get(&ref_) {
                             let member_data = clone_ts_member_data(member_data);
                             // SAFETY: original_name is arena-owned, valid for 'a.
@@ -348,7 +348,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 enum_name,
                                 TSNamespaceMember {
                                     data: clone_ts_member_data(&member_data),
-                                    loc: ns.name.loc,
+                                    loc: self.store[*ns].name.loc,
                                 },
                             )?;
                             p.ref_to_ts_namespace_member.insert(ref_, member_data);
@@ -356,8 +356,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 StmtData::SLocal(local) => {
-                    if local.is_export {
-                        for decl in local.decls.slice() {
+                    if self.store[*local].is_export {
+                        for decl in self.store[*local].decls.slice() {
                             p.define_exported_namespace_binding(
                                 &mut exported_members,
                                 decl.binding,
@@ -377,7 +377,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         for stmt in stmts.iter() {
             match &stmt.data {
                 StmtData::SLocal(local) => {
-                    if local.origin.is_ts_import_equals() && !local.is_export {
+                    if self.store[*local].origin.is_ts_import_equals() && !self.store[*local].is_export {
                         import_equal_count += 1;
                     }
                 }
@@ -456,7 +456,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             // Named in this scope so that no binding inside shadows it.
             VecExt::append(&mut p.current_scope_mut().generated, arg_ref);
-            ts_namespace.arg_ref = arg_ref;
+            self.store[ts_namespace].arg_ref = arg_ref;
         }
         p.pop_scope();
 
@@ -593,7 +593,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut ts_namespace: js_ast::StoreRef<js_ast::TSNamespaceScope> =
             p.get_or_create_exported_namespace_members(name_text, opts.is_export, true);
         let mut exported_members: js_ast::StoreRef<TSNamespaceMemberMap> =
-            ts_namespace.exported_members;
+            self.store[ts_namespace].exported_members;
 
         // Declare the enum and create the scope
         let scope_index = p.scopes_in_order.len();
@@ -727,7 +727,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             p.ref_to_ts_namespace_member
                 .insert(arg_ref, TSNamespaceMemberData::Namespace(exported_members));
-            ts_namespace.arg_ref = arg_ref;
+            self.store[ts_namespace].arg_ref = arg_ref;
 
             p.pop_scope();
         }

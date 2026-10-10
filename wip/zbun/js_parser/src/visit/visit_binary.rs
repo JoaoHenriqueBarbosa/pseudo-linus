@@ -22,7 +22,7 @@ fn try_optimize_typeof_undefined<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bo
     let (typeof_expr, string_expr, flip_comparison) = 'exprs: {
         // Try left side as typeof, right side as string
         if let ExprData::EUnary(unary) = &e_.left.data {
-            if unary.op == Op::Code::UnTypeof {
+            if p.store[*unary].op == Op::Code::UnTypeof {
                 if let ExprData::EString(s) = &e_.right.data {
                     if s.eql_comptime(b"undefined") {
                         break 'exprs (e_.left, e_.right, false);
@@ -34,7 +34,7 @@ fn try_optimize_typeof_undefined<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bo
 
         // Try right side as typeof, left side as string
         if let ExprData::EUnary(unary) = &e_.right.data {
-            if unary.op == Op::Code::UnTypeof {
+            if p.store[*unary].op == Op::Code::UnTypeof {
                 if let ExprData::EString(s) = &e_.left.data {
                     if s.eql_comptime(b"undefined") {
                         break 'exprs (e_.right, e_.left, true);
@@ -123,7 +123,7 @@ impl BinaryExpressionVisitor {
         // Propagate name for anonymous decorated class expressions in assignments
         if e_.op == Op::Code::BinAssign && was_anonymous_named_expr {
             if let ExprData::EClass(class) = &e_.right.data {
-                if class.should_lower_standard_decorators {
+                if p.store[class].should_lower_standard_decorators {
                     if let ExprData::EIdentifier(ident) = e_.left.data {
                         p.decorator_class_name = Some(p.load_name_from_ref(ident.ref_));
                     }
@@ -220,11 +220,11 @@ impl BinaryExpressionVisitor {
                     // by the previous unwind step; only simplify its .right to avoid
                     // re-walking/reallocating the whole chain (O(n^2) arena blowup).
                     let simplified_left = match e_.left.data {
-                        ExprData::EBinary(mut inner) if inner.op == Op::Code::BinComma => {
-                            match SideEffects::simplify_unused_expr(p, inner.right) {
-                                None => Some(inner.left),
+                        ExprData::EBinary(mut inner) if p.store[inner].op == Op::Code::BinComma => {
+                            match SideEffects::simplify_unused_expr(p, p.store[inner].right) {
+                                None => Some(p.store[inner].left),
                                 Some(simplified_right) => {
-                                    inner.right = simplified_right;
+                                    p.store[inner].right = simplified_right;
                                     Some(e_.left)
                                 }
                             }

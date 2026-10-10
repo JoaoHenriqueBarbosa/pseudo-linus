@@ -235,7 +235,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // Link to previous if statement's else branch
             if let Some(mut prev_if) = current_if {
                 // `StoreRef` `DerefMut`: arena-allocated S::If from prior iteration.
-                prev_if.no = Some(if_stmt);
+                p.store[prev_if].no = Some(if_stmt);
             }
 
             // Set current if for next iteration. The S::If was just allocated via Stmt::alloc;
@@ -260,7 +260,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // current_if was set just above in this iteration; `StoreRef` `DerefMut`.
                 let no = p.parse_stmt(&mut stmt_opts)?;
                 let mut cur = current_if.unwrap();
-                cur.no = Some(no);
+                p.store[cur].no = Some(no);
                 return Ok(root_if.unwrap());
             }
 
@@ -691,7 +691,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if let Some(init_stmt) = &init_ {
                 match &init_stmt.data {
                     js_ast::StmtData::SLocal(local) => {
-                        if local.kind == js_ast::s::Kind::KConst {
+                        if p.store[*local].kind == js_ast::s::Kind::KConst {
                             p.require_initializers(js_ast::s::Kind::KConst, decls_ptr.slice())?;
                         }
                     }
@@ -1004,7 +1004,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
 
                         let default_name = if let Some(func) = stmt.data.s_function() {
-                            if let Some(name) = func.func.name {
+                            if let Some(name) = p.store[func].func.name {
                                 LocRef {
                                     loc: name.loc,
                                     ref_: name.ref_,
@@ -1062,7 +1062,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             }
 
                             js_ast::StmtData::SFunction(func_container) => {
-                                if let Some(name) = func_container.func.name {
+                                if let Some(name) = p.store[*func_container].func.name {
                                     break 'default_name_getter LocRef {
                                         loc: name.loc,
                                         ref_: name.ref_,
@@ -1070,7 +1070,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 }
                             }
                             js_ast::StmtData::SClass(class) => {
-                                if let Some(name) = class.class.class_name {
+                                if let Some(name) = p.store[*class].class.class_name {
                                     break 'default_name_getter LocRef {
                                         loc: name.loc,
                                         ref_: name.ref_,
@@ -1139,7 +1139,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             }
 
                             js_ast::StmtData::SFunction(func_container) => {
-                                if let Some(_name) = func_container.func.name {
+                                if let Some(_name) = p.store[*func_container].func.name {
                                     break 'default_name_getter LocRef {
                                         loc: default_loc,
                                         ref_: _name.ref_,
@@ -1147,7 +1147,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 }
                             }
                             js_ast::StmtData::SClass(class) => {
-                                if let Some(_name) = class.class.class_name {
+                                if let Some(_name) = p.store[*class].class.class_name {
                                     break 'default_name_getter LocRef {
                                         loc: default_loc,
                                         ref_: _name.ref_,
@@ -1945,10 +1945,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     match &stmt.data {
                         js_ast::StmtData::SLocal(local) => {
                             let mut _decls = bun_alloc::ArenaVec::<G::Decl>::with_capacity_in(
-                                local.decls.len_u32() as usize,
+                                p.store[*local].decls.len_u32() as usize,
                                 p.arena,
                             );
-                            for decl in local.decls.slice() {
+                            for decl in p.store[*local].decls.slice() {
                                 Self::extract_decls_for_binding(decl.binding, &mut _decls)?;
                             }
                             decls = G::DeclList::from_bump_vec(_decls);
