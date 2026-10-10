@@ -1904,8 +1904,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // Potentially relocate "var" declarations to the top level. Note that this
                 // must be done inside the scope of the for loop or they won't be relocated.
                 if p.store[local].kind == S::Kind::KVar {
+                    let decls_copy = p.store[p.store[local].decls].to_vec();
                     let relocate = p.maybe_relocate_vars_to_top_level(
-                        (&p.store[p.store[local].decls]),
+                        &decls_copy,
                         RelocateVarsMode::Normal,
                     );
                     if let Some(relocated) = relocate.stmt {
@@ -1935,26 +1936,26 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             data.body = p.visit_loop_body(data.body);
 
             // Check for a variable initializer
-            if let StmtData::SLocal(mut local_ref) = data.init.data {
-                let local: &mut S::Local = &mut p.store[local_ref];
-                if local.kind == S::Kind::KVar {
+            if let StmtData::SLocal(local_ref) = data.init.data {
+                let local_kind = p.store[local_ref].kind;
+                let local_decls = p.store[local_ref].decls;
+                if local_kind == S::Kind::KVar {
                     // Lower for-in variable initializers in case the output is used in strict mode
-                    if local.decls.len_u32() == 1 {
-                        let decl: &mut G::Decl = &mut (&mut p.store[local.decls])[0];
-                        if let js_ast::binding::Data::BIdentifier(b_id) = decl.binding.data {
-                            if let Some(val) = decl.value {
+                    if local_decls.len_u32() == 1 {
+                        let binding = p.store[local_decls][0].binding;
+                        if let js_ast::binding::Data::BIdentifier(b_id) = binding.data {
+                            if let Some(val) = p.store[local_decls][0].value {
                                 let id_ref = p.store[b_id].r#ref;
-                                stmts.push(Stmt::assign(&mut p.store, 
-                                    Expr::init_identifier(id_ref, decl.binding.loc),
-                                    val,
-                                ));
-                                decl.value = None;
+                                let target = Expr::init_identifier(id_ref, binding.loc);
+                                stmts.push(Stmt::assign(&mut p.store, target, val));
+                                p.store[local_decls][0].value = None;
                             }
                         }
                     }
 
+                    let decls_copy = p.store[local_decls].to_vec();
                     let relocate = p.maybe_relocate_vars_to_top_level(
-                        (&p.store[local.decls]),
+                        &decls_copy,
                         RelocateVarsMode::ForInOrForOf,
                     );
                     if let Some(relocated_stmt) = relocate.stmt {
@@ -1984,8 +1985,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if let StmtData::SLocal(_) = data.init.data {
             if let StmtData::SLocal(local) = data.init.data {
                 if p.store[local].kind == S::Kind::KVar {
+                    let decls_copy = p.store[p.store[local].decls].to_vec();
                     let relocate = p.maybe_relocate_vars_to_top_level(
-                        (&p.store[p.store[local].decls]),
+                        &decls_copy,
                         RelocateVarsMode::ForInOrForOf,
                     );
                     if let Some(relocated_stmt) = relocate.stmt {
@@ -1995,12 +1997,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             // Handle "for (using x of y)" and "for (await using x of y)"
-            if let StmtData::SLocal(mut init2_ref) = data.init.data {
-                let init2: &mut S::Local = &mut p.store[init2_ref];
-                if init2.kind.is_using() && p.options.features.lower_using {
+            if let StmtData::SLocal(init2_ref) = data.init.data {
+                let init2_kind = p.store[init2_ref].kind;
+                let init2_decls = p.store[init2_ref].decls;
+                if init2_kind.is_using() && p.options.features.lower_using {
                     // fn lowerUsingDeclarationInForOf()
                     let loc = data.init.loc;
-                    let binding = p.store[init2.decls][0].binding;
+                    let binding = p.store[init2_decls][0].binding;
                     // `StoreRef<B::Identifier>` is `Copy` + `Deref`/`DerefMut` over the
                     // arena node, so hoisting it to a local lets every read/write below
                     // go through the safe accessor instead of a raw `as_ptr()` deref.
@@ -2008,18 +2011,19 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         js_ast::binding::Data::BIdentifier(b) => b,
                         _ => unreachable!("for-of using must bind an identifier"),
                     };
-                    let id_original_name = p.store.str(p.symbols[p.store[id].r#ref.inner_index() as usize]
-                        .original_name);
-                    let temp_ref = p.generate_temp_ref(Some(id_original_name));
+                    let id_symbol = p.store[id].r#ref.inner_index() as usize;
+                    let id_original_name = p.store.str(p.symbols[id_symbol].original_name).to_vec();
+                    let temp_ref = p.generate_temp_ref(Some(&id_original_name));
 
-                    let first_binding = p.b(B::Identifier { r#ref: p.store[id].r#ref }, loc);
+                    let first_id_ref = p.store[id].r#ref;
+                    let first_binding = p.b(B::Identifier { r#ref: first_id_ref }, loc);
                     let first_decls = p.store.alloc_slice([G::Decl {
                         binding: first_binding,
                         value: Some(Expr::init_identifier(temp_ref, loc)),
                     }]);
                     let first = p.s(
                         S::Local {
-                            kind: init2.kind,
+                            kind: init2_kind,
                             decls: first_decls,
                             ..Default::default()
                         },
@@ -2035,7 +2039,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         BumpVec::with_capacity_in(1 + length, p.arena);
                     statements.push(first);
                     if let StmtData::SBlock(b) = data.body.data {
-                        statements.extend_from_slice((&p.store[p.store[b].stmts]));
+                        let body_stmts = p.store[b].stmts;
+                        statements.extend_from_slice(&p.store[body_stmts]);
                     } else {
                         statements.push(data.body);
                     }
@@ -2043,14 +2048,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut ctx = crate::p::LowerUsingDeclarationsContext::init(p)?;
                     let mut stmts_slice = statements.into_vec();
                     ctx.scan_stmts(p, &mut stmts_slice);
-                    let visited_stmts = ctx.finalize(
-                        p,
-                        &stmts_slice,
-                        p.will_wrap_module_in_try_catch_for_using
-                            && p.current_scope().parent.is_none(),
-                    );
-                    if let StmtData::SBlock(mut b) = data.body.data {
-                        p.store[b].stmts = list_to_stmts(&mut p.store, visited_stmts);
+                    let will_wrap = p.will_wrap_module_in_try_catch_for_using
+                        && p.current_scope().parent.is_none();
+                    let visited_stmts = ctx.finalize(p, &stmts_slice, will_wrap);
+                    if let StmtData::SBlock(b) = data.body.data {
+                        let block_stmts = list_to_stmts(&mut p.store, visited_stmts);
+                        p.store[b].stmts = block_stmts;
                     } else {
                         let block_stmts = list_to_stmts(&mut p.store, visited_stmts);
                         data.body = p.s(
@@ -2062,7 +2065,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         );
                     }
                     p.store[id].r#ref = temp_ref;
-                    init2.kind = S::Kind::KConst;
+                    p.store[init2_ref].kind = S::Kind::KConst;
                 }
             }
         }

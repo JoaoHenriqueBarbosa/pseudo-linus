@@ -513,16 +513,21 @@ impl<'a> ConvertESMExportsForHmr<'a> {
         match binding.data {
             B::B::BMissing(_) => {}
             B::B::BIdentifier(id) => {
-                self.visit_ref_to_export(p, p.store[id].r#ref, None, binding.loc, false)?;
+                let id_ref = p.store[id].r#ref;
+                self.visit_ref_to_export(p, id_ref, None, binding.loc, false)?;
             }
             B::B::BArray(array) => {
-                for item in p.store[p.store[array].items].iter() {
-                    self.visit_binding_to_export(p, item.binding)?;
+                let items = p.store[array].items;
+                for index in 0..items.len() {
+                    let item_binding = p.store[items][index].binding;
+                    self.visit_binding_to_export(p, item_binding)?;
                 }
             }
             B::B::BObject(object) => {
-                for item in p.store[p.store[object].properties].iter() {
-                    self.visit_binding_to_export(p, item.value)?;
+                let properties = p.store[object].properties;
+                for index in 0..properties.len() {
+                    let item_value = p.store[properties][index].value;
+                    self.visit_binding_to_export(p, item_value)?;
                 }
             }
         }
@@ -577,7 +582,8 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             // This is technically incorrect in that we've marked this as a
             // top level symbol. but all we care about is preventing name
             // collisions, not necessarily the best minificaiton (dev only)
-            let arg1 = p.generate_temp_ref(Some(p.store.str(original_name)));
+            let original_name_bytes = p.store.str(original_name).to_vec();
+            let arg1 = p.generate_temp_ref(Some(&original_name_bytes));
             self.last_part
                 .declared_symbols
                 .append(js_ast::DeclaredSymbol {

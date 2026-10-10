@@ -183,7 +183,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.lexer.expect_or_insert_semicolon()?;
 
         if !opts.is_typescript_declare {
-            p.require_initializers(js_ast::s::Kind::KConst, (&p.store[decls]))?;
+            let decls_copy = p.store[decls].to_vec();
+            p.require_initializers(js_ast::s::Kind::KConst, &decls_copy)?;
         }
 
         Ok(p.s(
@@ -391,14 +392,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 });
             }
             p.lexer.expect(T::TCloseBrace)?;
-            Ok(p.s(
-                S::Switch {
+            Ok({ let arg_a = S::Switch {
                     test,
                     body_loc,
                     cases: p.store.alloc_slice(cases),
-                },
+                }; p.s( arg_a,
                 loc,
-            ))
+            ) })
         })();
         p.pop_scope();
         result
@@ -476,15 +476,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.pop_scope();
         }
 
-        Ok(p.s(
-            S::Try {
+        Ok({ let arg_a = S::Try {
                 body_loc,
                 body: p.store.alloc_slice(body),
                 catch,
                 finally,
-            },
+            }; p.s( arg_a,
             loc,
-        ))
+        ) })
     }
 
     #[inline(never)]
@@ -809,13 +808,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let stmts = p.parse_stmts_up_to(T::TCloseBrace, &mut stmt_opts)?;
             let close_brace_loc = p.lexer.loc();
             p.lexer.next()?;
-            Ok(p.s(
-                S::Block {
+            Ok({ let arg_a = S::Block {
                     stmts: p.store.alloc_slice(stmts),
                     close_brace_loc,
-                },
+                }; p.s( arg_a,
                 loc,
-            ))
+            ) })
         })();
         p.pop_scope();
         result
@@ -1237,13 +1235,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     namespace_ref = p.store_name_in_ref(name);
                 }
 
-                let import_record_index = p.add_import_record(
+                let import_record_index = { let arg_c = p.store.str(path.text); p.add_import_record(
                     ImportKind::Stmt,
-                    path.loc,
-                    p.store.str(path.text),
+                    path.loc, arg_c,
                     // TODO: import assertions
                     // path.assertions
-                );
+                ) };
 
                 if path.is_macro {
                     p.log().add_error(
@@ -1326,7 +1323,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             bun_core::fmt::fmt_identifier(path_name.non_unique_name_string_base())
                         )
                         .expect("unreachable");
-                        p.store_name_in_ref(p.arena.alloc_slice_copy(&buf))
+                        { let arg_a = p.arena.alloc_slice_copy(&buf); p.store_name_in_ref( arg_a) }
                     };
 
                     if Self::TRACK_SYMBOL_USAGE_DURING_PARSE_PASS {

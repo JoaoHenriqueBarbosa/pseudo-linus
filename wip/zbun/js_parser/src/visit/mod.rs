@@ -762,12 +762,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     AssignTarget::None
                 };
                 self.stmt_expr_value = self.store[st].value.data;
-                { let arg_a = &mut self.store[st].value; self.visit_expr_in_out( arg_a,
+                { let mut arg_a = self.store[st].value; self.visit_expr_in_out( &mut arg_a,
                     ExprIn {
                         assign_target,
                         ..Default::default()
                     },
-                ) };
+                ); self.store[st].value = arg_a; }
             }
             StmtData::SLocal(mut st) => {
                 for dec in (&mut self.store[self.store[st].decls]) {

@@ -484,21 +484,29 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
             js_ast::ExprData::EArrow(e) => {
-                let stmts = (&mut self.store[self.store[*e].body.stmts]);
-                self.rewrite_stmts(stmts, kind);
+                let range = self.store[*e].body.stmts;
+                self.rewrite_stmt_range(range, kind);
             }
             js_ast::ExprData::EFunction(e) => match kind {
                 RewriteKind::ReplaceThis { .. } => {}
                 RewriteKind::ReplaceRef { .. } => {
-                    let stmts = (&mut self.store[self.store[*e].func.body.stmts]);
-                    if !stmts.is_empty() {
-                        self.rewrite_stmts(stmts, kind);
+                    let range = self.store[*e].func.body.stmts;
+                    if !range.is_empty() {
+                        self.rewrite_stmt_range(range, kind);
                     }
                 }
             },
             js_ast::ExprData::EClass(_) => {}
             _ => {}
         }
+    }
+
+    /// `rewrite_stmts` sobre uma faixa do `Store`: copia para fora, reescreve e grava de volta, porque a faixa
+    /// emprestada do `Store` não convive com o `&mut self` da reescrita.
+    fn rewrite_stmt_range(&mut self, range: bun_ast::StoreSlice<Stmt>, kind: RewriteKind) {
+        let mut list = self.store[range].to_vec();
+        self.rewrite_stmts(&mut list, kind);
+        self.store[range].copy_from_slice(&list);
     }
 
     fn rewrite_stmts(&mut self, stmts: &mut [Stmt], kind: RewriteKind) {
@@ -517,10 +525,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     );
                 }
                 js_ast::StmtData::SLocal(local) => {
-                    for decl in (&mut self.store[self.store[*local].decls]) {
-                        if let Some(v) = &mut decl.value {
+                    let decls = self.store[*local].decls;
+                    for index in 0..decls.len() {
+                        let mut slot = self.store[decls][index].value;
+                        if let Some(v) = &mut slot {
                             self.rewrite_expr(v, kind);
                         }
+                        self.store[decls][index].value = slot;
                     }
                 }
                 js_ast::StmtData::SReturn(ret) => {
@@ -530,7 +541,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                     self.store[*ret].value = slot;
                 }
-                js_ast::StmtData::SThrow(data) => { let arg_a = &mut self.store[*data].value; self.rewrite_expr( arg_a, kind) },
+                js_ast::StmtData::SThrow(data) => { let mut arg_a = self.store[*data].value; self.rewrite_expr( &mut arg_a, kind); self.store[*data].value = arg_a; },
                 js_ast::StmtData::SIf(data) => {
                     let mut t = self.store[*data].test;
                     self.rewrite_expr(&mut t, kind);
@@ -545,8 +556,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.store[*data].no = slot;
                 }
                 js_ast::StmtData::SBlock(data) => {
-                    let stmts = (&mut self.store[self.store[*data].stmts]);
-                    self.rewrite_stmts(stmts, kind);
+                    let range = self.store[*data].stmts;
+                    self.rewrite_stmt_range(range, kind);
                 }
                 js_ast::StmtData::SFor(data) => {
                     let mut slot = self.store[*data].init;
@@ -604,28 +615,28 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut t = self.store[*data].test;
                     self.rewrite_expr(&mut t, kind);
                     self.store[*data].test = t;
-                    let cases = (&mut self.store[self.store[*data].cases]);
-                    for case in cases.iter_mut() {
-                        if let Some(v) = &mut case.value {
+                    let cases = self.store[*data].cases;
+                    for index in 0..cases.len() {
+                        let mut slot = self.store[cases][index].value;
+                        if let Some(v) = &mut slot {
                             self.rewrite_expr(v, kind);
                         }
-                        let body = (&mut self.store[case.body]);
-                        self.rewrite_stmts(body, kind);
+                        self.store[cases][index].value = slot;
+                        let body = self.store[cases][index].body;
+                        self.rewrite_stmt_range(body, kind);
                     }
                 }
                 js_ast::StmtData::STry(data) => {
-                    let body = (&mut self.store[self.store[*data].body]);
-                    self.rewrite_stmts(body, kind);
+                    let body = self.store[*data].body;
+                    self.rewrite_stmt_range(body, kind);
                     let mut slot = self.store[*data].catch;
                     if let Some(c) = &mut slot {
-                        let cb = (&mut self.store[c.body]);
-                        self.rewrite_stmts(cb, kind);
+                        self.rewrite_stmt_range(c.body, kind);
                     }
                     self.store[*data].catch = slot;
                     let mut slot = self.store[*data].finally;
                     if let Some(f) = &mut slot {
-                        let fb = (&mut self.store[f.stmts]);
-                        self.rewrite_stmts(fb, kind);
+                        self.rewrite_stmt_range(f.stmts, kind);
                     }
                     self.store[*data].finally = slot;
                 }
@@ -913,13 +924,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             });
         }
         self.temp_refs_to_declare.truncate(baseline);
-        Some(self.s(
-            S::Local {
+        Some({ let arg_a = S::Local {
                 decls: self.store.alloc_slice(capture_decls),
                 ..Default::default()
-            },
+            }; self.s( arg_a,
             loc,
-        ))
+        ) })
     }
 
     /// Declare receiver-capture temporaries created past `temps_before` at the
@@ -948,7 +958,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         for stmt_item in stmts.iter_mut() {
             match &mut stmt_item.data {
                 js_ast::StmtData::SExpr(data) => {
-                    { let arg_a = &mut self.store[*data].value; self.rewrite_private_accesses_in_expr( arg_a, map) }
+                    { let mut arg_a = self.store[*data].value; self.rewrite_private_accesses_in_expr( &mut arg_a, map); self.store[*data].value = arg_a; }
                 }
                 js_ast::StmtData::SReturn(data) => {
                     let mut slot = self.store[*data].value;
@@ -958,7 +968,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.store[*data].value = slot;
                 }
                 js_ast::StmtData::SThrow(data) => {
-                    { let arg_a = &mut self.store[*data].value; self.rewrite_private_accesses_in_expr( arg_a, map) }
+                    { let mut arg_a = self.store[*data].value; self.rewrite_private_accesses_in_expr( &mut arg_a, map); self.store[*data].value = arg_a; }
                 }
                 js_ast::StmtData::SLocal(data) => {
                     for decl in (&mut self.store[self.store[*data].decls]) {
@@ -1099,7 +1109,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             js_ast::StmtData::SClass(c) => c,
             _ => unreachable!(),
         };
-        { let arg_a = &mut self.store[s_class].class; self.lower_impl( arg_a, stmt.loc, None, false, Some(stmt), out) };
+        { let mut arg_a = self.store[s_class].class; self.lower_impl( &mut arg_a, stmt.loc, None, false, Some(stmt), out); self.store[s_class].class = arg_a; }
     }
 
     pub(crate) fn lower_standard_decorators_expr(

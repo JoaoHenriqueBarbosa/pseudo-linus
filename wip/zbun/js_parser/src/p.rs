@@ -1955,13 +1955,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     .expect("unreachable");
             }
             js_ast::b::B::BArray(array) => {
-                for prop in (&self.store[self.store[array].items]) {
-                    self.record_exported_binding(prop.binding);
+                let items = self.store[array].items;
+                for index in 0..items.len() {
+                    let binding = self.store[items][index].binding;
+                    self.record_exported_binding(binding);
                 }
             }
             js_ast::b::B::BObject(obj) => {
-                for prop in (&self.store[self.store[obj].properties]) {
-                    self.record_exported_binding(prop.value);
+                let properties = self.store[obj].properties;
+                for index in 0..properties.len() {
+                    let value = self.store[properties][index].value;
+                    self.record_exported_binding(value);
                 }
             }
         }
@@ -4619,7 +4623,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         name
     }
 
-    pub(crate) fn new_symbol(&mut self, kind: js_ast::symbol::Kind, identifier: &'a [u8]) -> Ref {
+    pub(crate) fn new_symbol(&mut self, kind: js_ast::symbol::Kind, identifier: &[u8]) -> Ref {
         let inner_index = self.symbols.len() as js_ast::base::RefInt; // @truncate
         self.symbols.push(Symbol {
             kind,
@@ -4734,13 +4738,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     .insert(id.r#ref, js_ast::ts::Data::Property);
             }
             js_ast::b::B::BObject(obj) => {
-                for prop in (&self.store[self.store[obj].properties]) {
-                    self.define_exported_namespace_binding(exported_members, prop.value)?;
+                let properties = self.store[obj].properties;
+                for index in 0..properties.len() {
+                    let value = self.store[properties][index].value;
+                    self.define_exported_namespace_binding(exported_members, value)?;
                 }
             }
             js_ast::b::B::BArray(obj) => {
-                for prop in (&self.store[self.store[obj].items]) {
-                    self.define_exported_namespace_binding(exported_members, prop.binding)?;
+                let items = self.store[obj].items;
+                for index in 0..items.len() {
+                    let binding = self.store[items][index].binding;
+                    self.define_exported_namespace_binding(exported_members, binding)?;
                 }
             }
         }
@@ -5795,7 +5803,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::StmtData::SImport(_) => {}
 
                 js_ast::StmtData::SClass(st) => {
-                    if !self.class_can_be_removed_if_unused(&self.store[*st].class) {
+                    let class = self.store[*st].class.clone();
+                    if !self.class_can_be_removed_if_unused(&class) {
                         return false;
                     }
                 }
@@ -5806,7 +5815,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // no side effects by construction.
                         continue;
                     }
-                    if !self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*st].value) {
+                    let value = self.store[*st].value;
+                    if !self.expr_can_be_removed_if_unused_without_dce_check(&value) {
                         return false;
                     }
                 }
@@ -5817,8 +5827,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         return false;
                     }
 
-                    for decl in (&self.store[self.store[*st].decls]) {
-                        if !self.decl_binding_can_be_removed_if_unused_without_dce_check(decl) {
+                    let decls = self.store[*st].decls;
+                    for index in 0..decls.len() {
+                        let decl = self.store[decls][index];
+                        if !self.decl_binding_can_be_removed_if_unused_without_dce_check(&decl) {
                             return false;
                         }
                         if let Some(decl_value) = &decl.value {
@@ -5838,14 +5850,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 js_ast::StmtData::STry(try_) => {
-                    // arena-owned `StoreSlice<Stmt>` valid for parser 'a; no aliasing &mut outstanding
-                    if !self.stmts_can_be_removed_if_unused_without_dce_check((&self.store[self.store[*try_].body]))
-                        || (self.store[*try_].finally.is_some()
-                            && !self.stmts_can_be_removed_if_unused_without_dce_check(
-                                (&self.store[self.store[*try_].finally.as_ref().unwrap().stmts]),
-                            ))
-                    {
+                    let body = self.store[self.store[*try_].body].to_vec();
+                    if !self.stmts_can_be_removed_if_unused_without_dce_check(&body) {
                         return false;
+                    }
+                    if let Some(finally) = self.store[*try_].finally {
+                        let finally_stmts = self.store[finally.stmts].to_vec();
+                        if !self.stmts_can_be_removed_if_unused_without_dce_check(&finally_stmts) {
+                            return false;
+                        }
                     }
                 }
 
@@ -5855,15 +5868,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::StmtData::SExportDefault(st) => match &self.store[*st].value {
                     js_ast::StmtOrExpr::Stmt(s2) => match &s2.data {
                         js_ast::StmtData::SExpr(s_expr) => {
-                            if !self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*s_expr].value)
-                            {
+                            let value = self.store[*s_expr].value;
+                            if !self.expr_can_be_removed_if_unused_without_dce_check(&value) {
                                 return false;
                             }
                         }
                         // These never have side effects
                         js_ast::StmtData::SFunction(_) => {}
                         js_ast::StmtData::SClass(sc) => {
-                            if !self.class_can_be_removed_if_unused(&self.store[*sc].class) {
+                            let class = self.store[*sc].class.clone();
+                            if !self.class_can_be_removed_if_unused(&class) {
                                 return false;
                             }
                         }
@@ -6136,11 +6150,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
         }
 
-        // arena-owned `StoreSlice<Property>` valid for parser 'a; no aliasing &mut outstanding
-        for property in self.store[class.properties].iter() {
+        let properties = class.properties;
+        for index in 0..properties.len() {
+            let property = self.store[properties][index].clone();
             if property.kind == js_ast::g::PropertyKind::ClassStaticBlock {
-                let csb = property.class_static_block_ref(&self.store).unwrap();
-                if !self.stmts_can_be_removed_if_unused_without_dce_check((&self.store[csb.stmts])) {
+                let csb = *property.class_static_block_ref(&self.store).unwrap();
+                let block_stmts = self.store[csb.stmts].to_vec();
+                if !self.stmts_can_be_removed_if_unused_without_dce_check(&block_stmts) {
                     return false;
                 }
                 continue;
@@ -6872,8 +6888,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
             js_ast::b::B::BObject(obj) => {
-                for item in (&self.store[self.store[obj].properties]) {
-                    self.mark_exported_binding_inside_namespace(r#ref, item.value);
+                let properties = self.store[obj].properties;
+                for index in 0..properties.len() {
+                    let value = self.store[properties][index].value;
+                    self.mark_exported_binding_inside_namespace(r#ref, value);
                 }
             }
         }
@@ -7144,7 +7162,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 );
             }
             js_ast::ExprData::EString(str_) => {
-                return self.new_expr(&self.store[str_], loc);
+                let string = self.store[str_].clone();
+                return self.new_expr(string, loc);
             }
             _ => {}
         }
@@ -7874,14 +7893,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // (refs.deinit(p.arena): arena-backed; nothing to free in Rust)
 
                 macro_rules! ref_name {
-                    ($r:expr) => {
-                        self.store.alloc_str(self.load_name_from_ref($r))
-                    };
+                    ($r:expr) => {{
+                        let name_bytes = self.load_name_from_ref($r).to_vec();
+                        self.store.alloc_str(&name_bytes)
+                    }};
                 }
 
+                let last_name = ref_name!(refs[refs.len() - 1]);
                 let mut dots = self.new_expr(
                     E::Dot {
-                        name: ref_name!(refs[refs.len() - 1]),
+                        name: last_name,
                         name_loc: bun_ast::Loc::EMPTY,
                         target: Expr::default(), // patched below
                         ..Default::default()
@@ -7896,9 +7917,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 );
                 let mut i: usize = refs.len() - 2;
                 while i > 0 {
+                    let dot_name = ref_name!(refs[i]);
                     let next_dot = self.new_expr(
                         E::Dot {
-                            name: ref_name!(refs[i]),
+                            name: dot_name,
                             name_loc: bun_ast::Loc::EMPTY,
                             target: Expr::default(),
                             ..Default::default()
@@ -8004,17 +8026,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // parser 'a, which outlives every Expr). Erase the lifetime to fit the
         // placeholder field type.
         // SAFETY: arena-owned slice valid for the AST lifetime.
-        let name: &'static [u8] = self.store.str(self.symbols[r#ref.inner_index() as usize]
-            .original_name);
-
-        { let arg_a = E::Dot {
-                target: Expr::init_identifier(enclosing_ref, loc),
-                name: self.store.alloc_str(name),
-                name_loc: loc,
-                ..Default::default()
-            }; self.new_expr( arg_a,
-            loc,
-        ) }
+        let original_name = self.symbols[r#ref.inner_index() as usize].original_name;
+        let name_bytes = self.store.str(original_name).to_vec();
+        let name = self.store.alloc_str(&name_bytes);
+        let dot = E::Dot {
+            target: Expr::init_identifier(enclosing_ref, loc),
+            name,
+            name_loc: loc,
+            ..Default::default()
+        };
+        self.new_expr(dot, loc)
     }
 
     pub(crate) fn wrap_identifier_hoisting(&mut self, loc: bun_ast::Loc, r#ref: Ref) -> Expr {
@@ -8300,16 +8321,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     /// When not transpiling we dont use the renamer, so our solution is to generate really
     /// hard to collide with variables, instead of actually making things collision free
-    pub(crate) fn generate_temp_ref(&mut self, default_name: Option<&'a [u8]>) -> Ref {
+    pub(crate) fn generate_temp_ref(&mut self, default_name: Option<&[u8]>) -> Ref {
         self.generate_temp_ref_with_scope(default_name, self.current_scope)
     }
 
     pub(crate) fn generate_temp_ref_with_scope(
         &mut self,
-        default_name: Option<&'a [u8]>,
+        default_name: Option<&[u8]>,
         mut scope: js_ast::StoreRef<Scope>,
     ) -> Ref {
-        let name: &'a [u8] = if let Some(n) = default_name.filter(|_| self.will_use_renamer()) {
+        let name: &[u8] = if let Some(n) = default_name.filter(|_| self.will_use_renamer()) {
             n
         } else {
             self.temp_ref_count += 1;
@@ -8696,13 +8717,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             },
             loc,
         ));
-        self.s(
-            S::Local {
+        { let arg_a = S::Local {
                 decls: self.store.alloc_slice([G::Decl { binding, value }]),
                 ..Default::default()
-            },
+            }; self.s( arg_a,
             loc,
-        )
+        ) }
     }
 
     pub(crate) fn get_react_refresh_hook_signal_init(

@@ -21,6 +21,8 @@ import sys
 USES_PARSER = re.compile(rb"\b(?:p|self)\.")
 STORE_BORROW = re.compile(rb"^\s*&mut\s+(?:p|self)\.store\s*$")
 RECEIVER = re.compile(rb"[A-Za-z_][A-Za-z0-9_]*\.$")
+# Os rótulos do rustc que apontam o callee: o primeiro empréstimo (mutável ou compartilhado) vive até a chamada.
+CALL_LABELS = ("first borrow later used by call", "immutable borrow later used by call")
 
 
 def skip_literal(text, i):
@@ -107,7 +109,7 @@ def calls_from_diag(diag_path):
         if diag["level"] != "error" or (diag.get("code") or {}).get("code") not in ("E0499", "E0502"):
             continue
         for span in diag["spans"]:
-            if (span.get("label") or "").startswith("first borrow later used by call"):
+            if (span.get("label") or "").startswith(CALL_LABELS):
                 calls.setdefault(span["file_name"], set()).add((span["byte_start"], span["byte_end"]))
     return calls
 

@@ -863,7 +863,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         b"Cannot use \"declare\" with a \"using\" declaration",
                     );
                 } else if !opts.is_for_loop_init {
-                    p.require_initializers(js_ast::LocalKind::KUsing, (&p.store[decls]))?;
+                    let decls_copy = p.store[decls].to_vec();
+            p.require_initializers(js_ast::LocalKind::KUsing, &decls_copy)?;
                 }
                 return Ok(ExprOrLetStmt {
                     stmt_or_expr: js_ast::StmtOrExpr::Stmt(p.s(
@@ -918,7 +919,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 b"Cannot use \"declare\" with an \"await using\" declaration",
                             );
                         } else if !opts.is_for_loop_init {
-                            p.require_initializers(js_ast::LocalKind::KAwaitUsing, (&p.store[decls]))?;
+                            let decls_copy = p.store[decls].to_vec();
+            p.require_initializers(js_ast::LocalKind::KAwaitUsing, &decls_copy)?;
                         }
                         return Ok(ExprOrLetStmt {
                             stmt_or_expr: js_ast::StmtOrExpr::Stmt(p.s(

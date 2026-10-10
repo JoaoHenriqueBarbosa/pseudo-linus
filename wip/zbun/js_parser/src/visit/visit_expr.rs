@@ -113,14 +113,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     fn e_spread(p: &mut Self, e: &mut Expr, _: ExprIn) {
         if let js_ast::ExprData::ESpread(mut exp) = e.data {
-            { let arg_a = &mut p.store[exp].value; p.visit_expr( arg_a) };
+            { let mut arg_a = p.store[exp].value; p.visit_expr( &mut arg_a); p.store[exp].value = arg_a; }
         }
     }
 
     fn e_await(p: &mut Self, e: &mut Expr, _: ExprIn) {
         if let js_ast::ExprData::EAwait(mut e_) = e.data {
             p.await_target = Some(p.store[e_].value.data);
-            { let arg_a = &mut p.store[e_].value; p.visit_expr( arg_a) };
+            { let mut arg_a = p.store[e_].value; p.visit_expr( &mut arg_a); p.store[e_].value = arg_a; }
         }
     }
 
@@ -843,7 +843,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // in that case that we don't want to miss (before the top-level "switch"
             // statement).
             if left_binary.is_none() || left_in.assign_target != js_ast::AssignTarget::None {
-                { let arg_a = &mut p.store[v.e].left; p.visit_expr_in_out( arg_a, left_in) };
+                { let mut arg_a = p.store[v.e].left; p.visit_expr_in_out( &mut arg_a, left_in); p.store[v.e].left = arg_a; }
                 current = BinaryExpressionVisitor::visit_right_and_finish(&mut v, p);
                 break;
             }
@@ -1495,25 +1495,25 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let prev_in_branch = p.in_branch_condition;
         p.in_branch_condition = true;
-        { let arg_a = &mut p.store[e_].test; p.visit_expr( arg_a) };
+        { let mut arg_a = p.store[e_].test; p.visit_expr( &mut arg_a); p.store[e_].test = arg_a; }
         p.in_branch_condition = prev_in_branch;
         p.ignore_namespace_local_test_use(&p.store[e_].test);
 
         p.store[e_].test = SideEffects::simplify_boolean(p, p.store[e_].test);
 
         let Some(side_effects) = SideEffects::to_boolean(p, &p.store[e_].test.data) else {
-            { let arg_a = &mut p.store[e_].yes; p.visit_expr( arg_a) };
-            { let arg_a = &mut p.store[e_].no; p.visit_expr( arg_a) };
+            { let mut arg_a = p.store[e_].yes; p.visit_expr( &mut arg_a); p.store[e_].yes = arg_a; }
+            { let mut arg_a = p.store[e_].no; p.visit_expr( &mut arg_a); p.store[e_].no = arg_a; }
             return;
         };
 
         // Mark the control flow as dead if the branch is never taken
         if side_effects.value {
             // "true ? live : dead"
-            { let arg_a = &mut p.store[e_].yes; p.visit_expr( arg_a) };
+            { let mut arg_a = p.store[e_].yes; p.visit_expr( &mut arg_a); p.store[e_].yes = arg_a; }
             let old = p.is_control_flow_dead;
             p.is_control_flow_dead = true;
-            { let arg_a = &mut p.store[e_].no; p.visit_expr( arg_a) };
+            { let mut arg_a = p.store[e_].no; p.visit_expr( &mut arg_a); p.store[e_].no = arg_a; }
             p.is_control_flow_dead = old;
 
             if side_effects.side_effects == SideEffects::CouldHaveSideEffects {
@@ -1540,9 +1540,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // "false ? dead : live"
             let old = p.is_control_flow_dead;
             p.is_control_flow_dead = true;
-            { let arg_a = &mut p.store[e_].yes; p.visit_expr( arg_a) };
+            { let mut arg_a = p.store[e_].yes; p.visit_expr( &mut arg_a); p.store[e_].yes = arg_a; }
             p.is_control_flow_dead = old;
-            { let arg_a = &mut p.store[e_].no; p.visit_expr( arg_a) };
+            { let mut arg_a = p.store[e_].no; p.visit_expr( &mut arg_a); p.store[e_].no = arg_a; }
 
             // "(a, false) ? b : c" => "a, c"
             if side_effects.side_effects == SideEffects::CouldHaveSideEffects {
@@ -2755,12 +2755,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         if let Some(name) = p.store[e_].func.name {
-            final_expr = p.keep_expr_symbol_name(
-                final_expr,
-                // SAFETY: original_name is arena-owned, valid for 'a.
+            final_expr = { let arg_b = // SAFETY: original_name is arena-owned, valid for 'a.
                 p.store.str(p.symbols[name.ref_.inner_index() as usize]
-                    .original_name),
-            );
+                    .original_name); p.keep_expr_symbol_name(
+                final_expr, arg_b,
+            ) };
             replaced = true;
         }
 

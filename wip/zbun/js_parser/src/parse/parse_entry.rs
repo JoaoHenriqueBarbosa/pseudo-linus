@@ -654,16 +654,22 @@ fn lower_date_time_literals<'a>(
     lower_one_date_time_literal(p, expr, temporal_ref, &mut work)?;
     while let Some(container) = work.pop() {
         match container {
-            DateTimeLowerContainer::Object(mut obj) => {
-                for property in (&mut p.store[p.store[obj].properties]) {
-                    if let Some(value) = &mut property.value {
+            DateTimeLowerContainer::Object(obj) => {
+                let properties = p.store[obj].properties;
+                for index in 0..properties.len() {
+                    let mut slot = p.store[properties][index].value;
+                    if let Some(value) = &mut slot {
                         lower_one_date_time_literal(p, value, temporal_ref, &mut work)?;
                     }
+                    p.store[properties][index].value = slot;
                 }
             }
-            DateTimeLowerContainer::Array(mut arr) => {
-                for item in (&mut p.store[p.store[arr].items]) {
-                    lower_one_date_time_literal(p, item, temporal_ref, &mut work)?;
+            DateTimeLowerContainer::Array(arr) => {
+                let items = p.store[arr].items;
+                for index in 0..items.len() {
+                    let mut item = p.store[items][index];
+                    lower_one_date_time_literal(p, &mut item, temporal_ref, &mut work)?;
+                    p.store[items][index] = item;
                 }
             }
         }

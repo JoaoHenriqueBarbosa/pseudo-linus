@@ -821,8 +821,8 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                 binding.loc,
             ),
             B::B::BArray(arr) => {
-                let arr = (&self.store[arr]);
-                let arr_items = arr.items(&self.store);
+                let arr = self.store[arr];
+                let arr_items = arr.items(&self.store).to_vec();
                 let mut items = BumpVec::with_capacity_in(arr_items.len(), bump);
                 for (i, item) in arr_items.iter().enumerate() {
                     let expr = self.repl_convert_binding_to_expr(item.binding, bump);
@@ -853,8 +853,8 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                 )
             }
             B::B::BObject(obj) => {
-                let obj = (&self.store[obj]);
-                let obj_props = obj.properties(&self.store);
+                let obj = self.store[obj];
+                let obj_props = obj.properties(&self.store).to_vec();
                 let mut properties = BumpVec::with_capacity_in(obj_props.len(), bump);
                 for prop in obj_props.iter() {
                     properties.push(G::Property {
