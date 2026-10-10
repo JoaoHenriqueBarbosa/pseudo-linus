@@ -2037,11 +2037,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
 
                     let mut ctx = crate::p::LowerUsingDeclarationsContext::init(p)?;
-                    let stmts_slice = statements.into_bump_slice_mut();
-                    ctx.scan_stmts(p, stmts_slice);
+                    let mut stmts_slice = statements.into_vec();
+                    ctx.scan_stmts(p, &mut stmts_slice);
                     let visited_stmts = ctx.finalize(
                         p,
-                        stmts_slice,
+                        &stmts_slice,
                         p.will_wrap_module_in_try_catch_for_using
                             && p.current_scope().parent.is_none(),
                     );

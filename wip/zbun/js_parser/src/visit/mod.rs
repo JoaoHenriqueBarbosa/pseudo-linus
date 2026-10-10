@@ -924,22 +924,24 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut new_stmt = stmt;
         self.push_scope_for_visit_pass(ScopeKind::Block, stmt.loc)
             .expect("unreachable");
-        let block_stmts: &[Stmt] = match stmt.data {
-            StmtData::SBlock(b) => (&self.store[self.store[b].stmts]),
+        let block_stmts: Vec<Stmt> = match stmt.data {
+            StmtData::SBlock(b) => self.store[self.store[b].stmts].to_vec(),
             _ => unreachable!(),
         };
         let mut stmts = BumpVec::with_capacity_in(block_stmts.len(), self.arena);
-        stmts.extend_from_slice(block_stmts);
+        stmts.extend_from_slice(&block_stmts);
         self.visit_stmts(&mut stmts, kind).expect("unreachable");
         self.pop_scope();
-        let items: &'a mut [Stmt] = stmts.into_bump_slice_mut();
-        if let StmtData::SBlock(mut b) = new_stmt.data {
-            self.store[b].stmts = self.store.alloc_slice(items);
+        // O upstream vaza a lista para a arena (`into_bump_slice_mut`); aqui ela é a lista de trabalho e a
+        // faixa do `Store` recebe uma cópia.
+        let items: Vec<Stmt> = stmts.into_vec();
+        if let StmtData::SBlock(b) = new_stmt.data {
+            self.store[b].stmts = self.store.alloc_slice(items.iter().copied());
         }
         if self.options.features.minify_syntax {
-            // `stmts` was consumed above; `items` aliases the slice now
+            // `stmts` was consumed above; `items` has the same elements as the slice now
             // stored in `s_block.stmts`.
-            new_stmt = self.stmts_to_single_stmt(stmt.loc, items);
+            new_stmt = self.stmts_to_single_stmt(stmt.loc, &items);
         }
 
         new_stmt
@@ -974,7 +976,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             self.pop_scope();
         }
 
-        self.stmts_to_single_stmt(stmt.loc, stmts.into_bump_slice_mut())
+        self.stmts_to_single_stmt(stmt.loc, &stmts.into_vec())
     }
 
     pub(crate) fn visit_class(
@@ -1653,10 +1655,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                             // The last function statement for a given symbol wins
                             self.store[data].func.name = None;
-                            // SAFETY: `G::Fn`'s fields are POD (`StoreSlice<T>`, ints, flags)
-                            // with no `Drop`, so a bitwise read is a plain copy; the type just
-                            // lacks `derive(Copy)`.
-                            let func = unsafe { core::ptr::read(&raw const self.store[data].func) };
+                            // `G::Fn` é `Clone`: o nó do statement descartado entrega uma cópia da função.
+                            let func = self.store[data].func.clone();
                             let_decls[index as usize].value =
                                 Some(p.new_expr(E::Function { func }, stmt.loc));
                         }
@@ -1742,17 +1742,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if kind != StmtsKind::SwitchStmt && p.should_lower_using_declarations(stmts.as_slice()) {
             let mut ctx = LowerUsingDeclarationsContext::init(p)?;
             ctx.scan_stmts(p, stmts.as_mut_slice());
-            // `finalize` stores a sub-slice of the old buffer as the lowered
-            // S.Try `body`, so the buffer must outlive the assignment. Leak
-            // the old buffer into the 'a arena via `into_bump_slice_mut`
-            // (reclaimed on arena reset) before installing the new list -
-            // dropping the old `Vec<_, &MimallocArena>` would `mi_free` it
-            // and leave the S.Try body dangling.
+            // O upstream vaza o buffer antigo para a arena porque o `finalize` guarda uma sub-faixa dele como
+            // `body` do `S.Try`; aqui o `finalize` copia o que guarda para o `Store`, então o buffer antigo é
+            // só um `Vec` local.
             let arena = p.arena;
-            let raw = core::mem::replace(stmts, ListManaged::new_in(arena)).into_bump_slice_mut();
-            // SAFETY: current_scope is a valid arena ptr for the parse.
+            let old_stmts: Vec<Stmt> = core::mem::replace(stmts, ListManaged::new_in(arena)).into_vec();
             let parent_is_none = p.current_scope().parent.is_none();
-            *stmts = ctx.finalize(p, raw, parent_is_none);
+            *stmts = ctx.finalize(p, &old_stmts, parent_is_none);
         }
 
         #[cfg(debug_assertions)]
@@ -1992,17 +1988,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_stmt = &mut output[prev_idx];
                         if let StmtData::SLocal(mut prev_local) = prev_stmt.data {
                             if local.can_merge_with(&prev_local) {
-                                // `Vec::append_slice` requires `T: Clone`
-                                // but `G::Decl` lacks the derive (its fields are all
-                                // `Copy`). Per-element bitwise copy instead.
-                                //
-                                // The parse pass allocates `decls` in the bump arena
-                                // (`from_bump_slice` → `Origin::Borrowed`); promote to a
-                                // global-heap buffer before growing it.
-                                for d in (&self.store[self.store[local].decls]) {
-                                    // SAFETY: Decl is field-wise Copy (Binding, Option<Expr>).
-                                    self.store[prev_local].decls.push(unsafe { core::ptr::read(d) });
+                                // `G::Decl` é `Copy`: as declarações do statement atual entram no fim da lista do
+                                // anterior (`append` do `Store`, que cresce no lugar ou copia para o fim).
+                                let merging: Vec<G::Decl> = self.store[self.store[local].decls].to_vec();
+                                let mut merged = self.store[prev_local].decls;
+                                for d in merging {
+                                    merged = self.store.append(merged, d);
                                 }
+                                self.store[prev_local].decls = merged;
                                 continue;
                             }
                         }

@@ -4453,11 +4453,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let items_slice: &mut [js_ast::ClauseItem] = (&mut self.store[stmt.items]);
         for i in 0..items_slice.len() {
-            // `ClauseItem` does not derive `Copy`; bit-copy via `ptr::read` -
-            // all fields are POD (`StoreStr`/`Loc`/`LocRef`).
-            // SAFETY: items_slice[i] is a live initialised `ClauseItem`; the
-            // original slot is overwritten or compacted below before any drop.
-            let mut item = unsafe { core::ptr::read(&raw const items_slice[i]) };
+            // `ClauseItem` é `Copy` (todos os campos são índices ou números).
+            let mut item = items_slice[i];
             let name = self.load_name_from_ref(item.name.ref_);
             let r#ref = self.declare_symbol(js_ast::symbol::Kind::Import, item.name.loc, name)?;
             item.name.ref_ = r#ref;
@@ -8053,7 +8050,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn stmts_to_single_stmt(
         &mut self,
         loc: bun_ast::Loc,
-        stmts: &'a mut [Stmt],
+        stmts: &[Stmt],
     ) -> Stmt {
         if stmts.is_empty() {
             return Stmt {
@@ -8067,9 +8064,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return stmts[0];
         }
 
+        let block_stmts = self.store.alloc_slice(stmts.iter().copied());
         self.s(
             S::Block {
-                stmts: self.store.alloc_slice(stmts),
+                stmts: block_stmts,
                 close_brace_loc: bun_ast::Loc::EMPTY,
             },
             loc,
@@ -9919,7 +9917,7 @@ impl LowerUsingDeclarationsContext {
     pub(crate) fn finalize<'a, const T: bool, const S_: bool>(
         &mut self,
         p: &mut P<'a, T, S_>,
-        stmts: &'a mut [Stmt],
+        stmts: &[Stmt],
         should_hoist_fns: bool,
     ) -> ListManaged<'a, Stmt> {
         let mut result = BumpVec::new_in(p.arena);
@@ -9948,17 +9946,11 @@ impl LowerUsingDeclarationsContext {
                 }
                 js_ast::StmtData::SExportClause(data) => {
                     // Merge export clauses together.
-                    // ClauseItem isn't `Clone` (POD-only fields, no derive);
-                    // shallow-copy via ptr::read.
-                    // arena-owned `StoreSlice<ClauseItem>` valid for 'a; the source
-                    // slot is never read again (this whole stmt is dropped via the
-                    // `continue` below): safe to `ptr::read` each item.
+                    // `ClauseItem` é `Copy`: a lista do statement descartado é copiada para `exports`.
                     let items = (&p.store[p.store[data].items]);
                     exports.reserve(items.len());
                     for item in items {
-                        // SAFETY: arena-owned slot never read again (stmt dropped
-                        // via `continue` below); shallow move out is sound.
-                        exports.push(unsafe { core::ptr::read(item) });
+                        exports.push(*item);
                     }
                     continue;
                 }
