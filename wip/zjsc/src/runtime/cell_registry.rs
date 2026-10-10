@@ -70,6 +70,17 @@ use crate::runtime::symbol_table::SymbolTableRef;
 
 /// Bits baixos do id, sempre zero.
 const CELL_ID_SHIFT: usize = 3;
+/// Bits do índice (mais um) no id; acima deles vem a geração do slot.
+const INDEX_BITS: usize = 24;
+/// A geração dá a volta em 5 bits: o id inteiro cabe nos 32 bits do `HeapRef` dos metadados de bytecode
+/// (`WriteBarrier` de 32 bits no porte). Os metadados que guardam id de célula morta são limpos antes da
+/// varredura (`CodeBlock::finalize_weak_metadata`), então a volta da geração não ressuscita cache.
+const GENERATION_MASK: u16 = (1 << 5) - 1;
+
+/// O id de um slot numa geração.
+fn make_cell_id(index: usize, generation: u16) -> usize {
+    (((generation as usize) << INDEX_BITS) | (index + 1)) << CELL_ID_SHIFT
+}
 
 /// A célula guardada, uma variante por tipo concreto. Clonar é clonar o `Rc`.
 #[derive(Clone)]
@@ -554,6 +565,12 @@ const RELEASED_OWNER: u32 = u32::MAX;
 struct Registry {
     cells: Vec<Option<CellEntry>>,
     owners: Vec<u32>,
+    /// A geração de cada slot: sobe quando o coletor o varre, e o id velho deixa de achar a célula nova.
+    generations: Vec<u16>,
+    /// Os slots varridos pelo coletor, prontos para a próxima alocação (a free list do `MarkedBlock`).
+    free: Vec<u32>,
+    /// Alocações desde o início da thread: o relógio do gatilho do coletor.
+    allocations: usize,
     /// O dono das próximas células: o `VMScope` mais interno ainda aberto, ou `NO_OWNER`.
     current_owner: u32,
     next_owner: u32,
@@ -561,16 +578,46 @@ struct Registry {
 
 impl Registry {
     const fn new() -> Registry {
-        Registry { cells: Vec::new(), owners: Vec::new(), current_owner: NO_OWNER, next_owner: 1 }
+        Registry {
+            cells: Vec::new(),
+            owners: Vec::new(),
+            generations: Vec::new(),
+            free: Vec::new(),
+            allocations: 0,
+            current_owner: NO_OWNER,
+            next_owner: 1,
+        }
     }
 
     fn push(&mut self, entry: Option<CellEntry>) -> usize {
-        self.cells.push(entry);
-        self.owners.push(self.current_owner);
-        let cell_id = self.cells.len() << CELL_ID_SHIFT;
+        self.allocations += 1;
+        let index = match self.free.pop() {
+            Some(index) => {
+                let index = index as usize;
+                self.cells[index] = entry;
+                self.owners[index] = self.current_owner;
+                index
+            }
+            None => {
+                let index = self.cells.len();
+                assert!(index < (1 << INDEX_BITS) - 1, "registro de células esgotado");
+                self.cells.push(entry);
+                self.owners.push(self.current_owner);
+                self.generations.push(0);
+                index
+            }
+        };
+        let cell_id = make_cell_id(index, self.generations[index]);
+        // A geração dá a volta: o id pode ser o de uma lápide antiga.
         #[cfg(debug_assertions)]
         crate::runtime::gc::forget_tombstone(cell_id);
         cell_id
+    }
+
+    /// O índice do id, se ele é da geração corrente do slot.
+    fn slot(&self, cell_id: usize) -> Option<usize> {
+        let (index, generation) = decode_cell_id(cell_id)?;
+        (self.generations.get(index) == Some(&generation)).then_some(index)
     }
 }
 
@@ -578,6 +625,14 @@ thread_local! {
     static CELLS: RefCell<Registry> = const { RefCell::new(Registry::new()) };
     /// O escopo do último programa terminado nesta thread, ainda vivo para o chamador ler o resultado.
     static RETIRED: RefCell<Option<VMScope>> = const { RefCell::new(None) };
+}
+
+/// A tabela de uma coleção para o coletor; emprestada (no meio de uma escrita) a coleta desiste.
+fn visit_table(table: &RefCell<crate::runtime::js_ordered_hash_table::OrderedTable>, marker: &mut crate::runtime::gc::Marker) {
+    match table.try_borrow() {
+        Ok(table) => table.visit_children(marker),
+        Err(_) => marker.abort(),
+    }
 }
 
 /// Fim de vida de um VM: o equivalente de `~VM` com `heap.lastChanceToFinalize()` do C++. Sem GC, as
@@ -660,14 +715,6 @@ impl Drop for VMScope {
 /// id de célula, `JSValue` ou `Rc` de célula acrescenta aqui um `reset_for_program` dele (ver a auditoria
 /// de `thread_local!` em `PLAN.md`). O que independe do VM (átomos, contadores de id, opções, fuso,
 /// registro de tipos canônicos do wasm) não entra.
-/// A tabela de uma coleção para o coletor; emprestada (no meio de uma escrita) a coleta desiste.
-fn visit_table(table: &RefCell<crate::runtime::js_ordered_hash_table::OrderedTable>, marker: &mut crate::runtime::gc::Marker) {
-    match table.try_borrow() {
-        Ok(table) => table.visit_children(marker),
-        Err(_) => marker.abort(),
-    }
-}
-
 fn reset_program_state() {
     crate::runtime::gc::reset_for_program();
     crate::runtime::current_realm::reset_for_program();
@@ -745,7 +792,7 @@ pub fn remove_all_of(owner: u32) -> usize {
     // chamar `get`/`remove` e não pode encontrar o `RefCell` emprestado.
     let Ok(released) = CELLS.try_with(|registry| {
         let mut registry = registry.borrow_mut();
-        let Registry { cells, owners, .. } = &mut *registry;
+        let Registry { cells, owners, generations, free, .. } = &mut *registry;
         let mut released = Vec::new();
         for (slot, slot_owner) in cells.iter_mut().zip(owners.iter_mut()) {
             if *slot_owner == owner {
@@ -758,7 +805,11 @@ pub fn remove_all_of(owner: u32) -> usize {
         while owners.last() == Some(&RELEASED_OWNER) {
             owners.pop();
             cells.pop();
+            generations.pop();
         }
+        // Slot varrido pelo coletor e depois liberado com o dono não volta pela free list: ou saiu com o rabo, ou
+        // ficou com o dono liberado, como os demais do programa.
+        free.retain(|&index| owners.get(index as usize).is_some_and(|&slot_owner| slot_owner != RELEASED_OWNER));
         released
     }) else {
         return 0;
@@ -774,12 +825,22 @@ pub fn remove_all_of(owner: u32) -> usize {
     count
 }
 
-/// Índice da `Vec` de um id; `None` para zero ou para bits baixos sujos.
-pub(crate) fn index_of(cell_id: usize) -> Option<usize> {
+/// Índice e geração de um id; `None` para zero ou para bits sujos.
+fn decode_cell_id(cell_id: usize) -> Option<(usize, u16)> {
     if cell_id & ((1 << CELL_ID_SHIFT) - 1) != 0 {
         return None;
     }
-    (cell_id >> CELL_ID_SHIFT).checked_sub(1)
+    let raw = cell_id >> CELL_ID_SHIFT;
+    let generation = raw >> INDEX_BITS;
+    if generation > GENERATION_MASK as usize {
+        return None;
+    }
+    Some(((raw & ((1 << INDEX_BITS) - 1)).checked_sub(1)?, generation as u16))
+}
+
+/// O índice da `Vec` de um id da geração corrente (o que o coletor marca).
+pub(crate) fn index_of(cell_id: usize) -> Option<usize> {
+    CELLS.with(|registry| registry.borrow().slot(cell_id))
 }
 
 /// Guarda a célula e devolve o `cell_id`.
@@ -795,13 +856,11 @@ pub fn reserve() -> usize {
 
 /// Preenche (ou troca) a entrada de um id vindo de `insert`/`reserve`. `false` se o id não existe.
 pub fn set(cell_id: usize, entry: CellEntry) -> bool {
-    let Some(index) = index_of(cell_id) else { return false };
-    CELLS.with(|registry| match registry.borrow_mut().cells.get_mut(index) {
-        Some(slot) => {
-            *slot = Some(entry);
-            true
-        }
-        None => false,
+    CELLS.with(|registry| {
+        let mut registry = registry.borrow_mut();
+        let Some(index) = registry.slot(cell_id) else { return false };
+        registry.cells[index] = Some(entry);
+        true
     })
 }
 
@@ -817,13 +876,15 @@ pub fn get(cell_id: usize) -> Option<CellEntry> {
 
 /// `get` sem a conferência de lápide: o coletor lê ids conservadores, que podem cair num slot varrido.
 pub(crate) fn get_for_marking(cell_id: usize) -> Option<CellEntry> {
-    let index = index_of(cell_id)?;
-    CELLS.with(|registry| registry.borrow().cells.get(index).cloned().flatten())
+    CELLS.with(|registry| {
+        let registry = registry.borrow();
+        registry.slot(cell_id).and_then(|index| registry.cells[index].clone())
+    })
 }
 
-/// O tamanho do registro (slots usados e vazios): cresce a cada alocação, o relógio do gatilho do coletor.
-pub(crate) fn slot_count() -> usize {
-    CELLS.with(|registry| registry.borrow().cells.len())
+/// Quantas alocações a thread fez: o relógio do gatilho do coletor.
+pub(crate) fn allocation_count() -> usize {
+    CELLS.try_with(|registry| registry.borrow().allocations).unwrap_or(0)
 }
 
 /// O tamanho do registro e as células que algum `Rc` fora do registro segura (contagem forte maior que 1),
@@ -835,23 +896,28 @@ pub(crate) fn pinned_cells() -> (usize, Vec<usize>) {
             .cells
             .iter()
             .enumerate()
-            .filter_map(|(index, slot)| slot.as_ref().filter(|entry| entry.strong_count() > 1).map(|_| (index + 1) << CELL_ID_SHIFT))
+            .filter_map(|(index, slot)| {
+                slot.as_ref().filter(|entry| entry.strong_count() > 1).map(|_| make_cell_id(index, registry.generations[index]))
+            })
             .collect();
         (registry.cells.len(), pinned)
     })
 }
 
 /// A varredura do coletor: solta toda célula não marcada e devolve os ids soltos com o tipo de cada um. O slot
-/// fica vazio (o índice não volta a ser usado) e as entradas caem fora do empréstimo do registro, porque o
-/// `Drop` em cascata pode chegar a ele.
+/// sobe de geração e entra na free list; as entradas caem fora do empréstimo do registro, porque o `Drop` em
+/// cascata pode chegar a ele.
 pub(crate) fn sweep(marked: &[bool]) -> Vec<(usize, JSType)> {
     let released: Vec<(usize, CellEntry)> = CELLS.with(|registry| {
         let mut registry = registry.borrow_mut();
+        let Registry { cells, generations, free, .. } = &mut *registry;
         let mut released = Vec::new();
-        for (index, slot) in registry.cells.iter_mut().enumerate() {
+        for (index, slot) in cells.iter_mut().enumerate() {
             if slot.is_some() && !marked.get(index).copied().unwrap_or(true) {
                 if let Some(entry) = slot.take() {
-                    released.push(((index + 1) << CELL_ID_SHIFT, entry));
+                    released.push((make_cell_id(index, generations[index]), entry));
+                    generations[index] = (generations[index] + 1) & GENERATION_MASK;
+                    free.push(index as u32);
                 }
             }
         }
@@ -864,8 +930,7 @@ pub(crate) fn sweep(marked: &[bool]) -> Vec<(usize, JSType)> {
 
 /// `JSCell::type()` do id, ou `None` se não há célula.
 pub fn cell_type(cell_id: usize) -> Option<JSType> {
-    let index = index_of(cell_id)?;
-    CELLS.with(|registry| registry.borrow().cells.get(index).and_then(|slot| slot.as_ref().map(CellEntry::js_type)))
+    get_for_marking(cell_id).as_ref().map(CellEntry::js_type)
 }
 
 /// O `JSGlobalObject` registrado mais antigo ainda vivo: o reino de quem converte um valor fora de
@@ -903,8 +968,11 @@ pub fn live_butterfly_bytes() -> usize {
 /// Solta a célula e devolve a entrada. O índice não é reaproveitado (o slot guarda o dono original, que
 /// `remove_all_of` não corta), então um id velho nunca passa a apontar para outra célula.
 pub fn remove(cell_id: usize) -> Option<CellEntry> {
-    let index = index_of(cell_id)?;
-    CELLS.with(|registry| registry.borrow_mut().cells.get_mut(index).and_then(Option::take))
+    CELLS.with(|registry| {
+        let mut registry = registry.borrow_mut();
+        let index = registry.slot(cell_id)?;
+        registry.cells[index].take()
+    })
 }
 
 #[cfg(test)]

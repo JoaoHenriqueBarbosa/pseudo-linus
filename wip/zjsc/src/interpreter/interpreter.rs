@@ -148,15 +148,15 @@ impl Interpreter {
         }
     }
 
-    /// `CodeBlock::finalizeUnconditionally` de cada bloco, depois da marcação e antes da varredura: os perfis
-    /// largam o que guardam por referência fraca. Devolve `false` se algum bloco estiver emprestado.
-    pub(crate) fn update_profiles_before_sweep(&self) -> bool {
+    /// `CodeBlock::finalizeUnconditionally` de cada bloco, depois da marcação e antes da varredura (ver lá).
+    /// Devolve `false` se algum bloco estiver emprestado.
+    pub(crate) fn finalize_code_blocks_before_sweep(&self, doomed: &dyn Fn(usize) -> bool) -> bool {
         let Ok(code_blocks) = self.code_blocks.try_borrow() else {
             return false;
         };
-        code_blocks.values().all(|code_block| {
-            code_block.try_borrow().is_ok_and(|code_block| code_block.update_all_array_allocation_profile_predictions())
-        })
+        code_blocks
+            .values()
+            .all(|code_block| code_block.try_borrow().is_ok_and(|code_block| code_block.finalize_unconditionally(doomed)))
     }
 
     /// A profundidade da recursão nativa de `llint_execute`.

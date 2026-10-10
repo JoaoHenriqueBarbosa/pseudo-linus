@@ -84,6 +84,13 @@ impl Marker {
         }
     }
 
+    /// A célula do id existe e não foi marcada: a varredura vai soltá-la (o `!isMarked` do `finalizeUnconditionally`).
+    pub fn is_doomed(&self, cell_id: usize) -> bool {
+        cell_registry::index_of(cell_id).is_some_and(|index| {
+            !self.marked.get(index).copied().unwrap_or(true) && cell_registry::get_for_marking(cell_id).is_some()
+        })
+    }
+
     /// O `RefCell` estava emprestado para escrita: desiste da coleta.
     pub fn abort(&mut self) {
         self.aborted = true;
@@ -94,8 +101,8 @@ impl Marker {
 struct State {
     /// As raízes explícitas (`Root`), por id, com a contagem de quem as segura.
     roots: HashMap<usize, u32>,
-    /// O tamanho do registro logo depois da última coleta: o que cresceu desde então foi alocado.
-    slots_after_collection: usize,
+    /// A contagem de alocações logo depois da última coleta (ou do início do programa).
+    allocations_after_collection: usize,
     /// Quantas alocações disparam a próxima coleta automática.
     threshold: usize,
     /// Os `UnlinkedCodeBlock`s criados: as constantes dos vivos são raízes (o código pode ser ligado de novo).
@@ -128,7 +135,11 @@ fn initial_threshold() -> usize {
 pub(crate) fn reset_for_program() {
     let taken = STATE.try_with(|state| std::mem::take(&mut *state.borrow_mut()));
     drop(taken);
-    let _ = STATE.try_with(|state| state.borrow_mut().threshold = initial_threshold());
+    let _ = STATE.try_with(|state| {
+        let mut state = state.borrow_mut();
+        state.threshold = initial_threshold();
+        state.allocations_after_collection = cell_registry::allocation_count();
+    });
 }
 
 /// Guarda um `UnlinkedCodeBlock` recém-criado entre as raízes (fraco: some com ele).
@@ -205,7 +216,7 @@ pub(crate) fn safe_point(interpreter: &crate::interpreter::interpreter::Interpre
     }
     let due = STATE.with(|state| {
         let state = state.borrow();
-        !state.collecting && cell_registry::slot_count().saturating_sub(state.slots_after_collection) >= state.threshold
+        !state.collecting && cell_registry::allocation_count().saturating_sub(state.allocations_after_collection) >= state.threshold
     });
     if due {
         collect(Some(interpreter), vm);
@@ -231,7 +242,7 @@ pub fn collect(interpreter: Option<&crate::interpreter::interpreter::Interpreter
     STATE.with(|state| {
         let mut state = state.borrow_mut();
         state.collecting = false;
-        state.slots_after_collection = cell_registry::slot_count();
+        state.allocations_after_collection = cell_registry::allocation_count();
         // `Heap::updateAllocationLimits`: o próximo ciclo espera alocar tanto quanto ficou vivo.
         state.threshold = stress_threshold().unwrap_or_else(|| live.max(MIN_ALLOCATIONS_PER_CYCLE));
     });
@@ -293,7 +304,7 @@ fn mark_and_sweep(interpreter: Option<&crate::interpreter::interpreter::Interpre
             visit_children(&entry, &mut marker);
         }
     }
-    if marker.aborted || !interpreter.update_profiles_before_sweep() {
+    if marker.aborted || !interpreter.finalize_code_blocks_before_sweep(&|cell_id| marker.is_doomed(cell_id)) {
         return 0;
     }
     let swept = cell_registry::sweep(&marker.marked);
