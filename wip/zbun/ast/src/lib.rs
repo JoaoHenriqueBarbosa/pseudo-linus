@@ -77,6 +77,7 @@ pub mod math;
 pub mod new_store;
 pub mod nodes;
 pub mod op;
+pub mod place;
 pub mod s;
 pub mod scope;
 pub mod stmt;
@@ -104,6 +105,7 @@ pub use logger::{
 };
 pub mod known_global;
 pub use new_store::{NodeStore, Stored};
+pub use place::{ExprPlace, Place, PropertyListPlace};
 pub use nodes::{
     ArrayBinding, AssignTarget, BindingNodeIndex, Case, Catch, ClauseItem, EnumValue, ExprNodeIndex, ExprNodeList,
     Finally, ImportItemStatus, LocRef, OptionalChain, Span, StmtNodeIndex, StmtNodeList, StmtOrExpr, StoreRef,

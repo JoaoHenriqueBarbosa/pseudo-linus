@@ -1,5 +1,6 @@
 #![warn(unused_must_use)]
 use bun_ast::NodeStore as _;
+use bun_ast::Place as _;
 use bun_collections::VecExt;
 use std::io::Write as _;
 
@@ -501,10 +502,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     };
 
                     // `props` may be reassigned to point inside a spread object's
-                    // properties. Track it as a `StoreRef` (safe `Deref`/`DerefMut`) so
-                    // the spread-collapse walk and the `push`/`take` calls below stay
-                    // in safe code.
-                    let mut props_handle = js_ast::StoreRef::from_bump(&mut p.store[e_].properties);
+                    // properties. O upstream guarda um ponteiro para o campo `properties`; aqui o campo é um
+                    // `PropertyListPlace` (nó dono e qual campo), lido e escrito contra o `Store`.
+                    let mut props = js_ast::PropertyListPlace::JsxElement(e_);
 
                     // arguments needs to be like
                     // {
@@ -540,33 +540,24 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // <div {{...foo}} />
                     // jsx("div", {...foo})
                     loop {
-                        // `StoreRef<PropertyList>: Deref`: safe arena-backed read.
-                        if !(props_handle.len_u32() == 1
-                            && props_handle.slice()[0].kind == G::PropertyKind::Spread
+                        let list = props.get(&p.store);
+                        if !(list.len_u32() == 1
+                            && p.store[list][0].kind == G::PropertyKind::Spread
                             && matches!(
-                                props_handle.slice()[0].value.unwrap().data,
+                                p.store[list][0].value.unwrap().data,
                                 Data::EObject(..)
                             ))
                         {
                             break;
                         }
-                        // Compute the next handle in a block so the `DerefMut`
-                        // borrow of `props_handle` ends before reassignment.
-                        let next = {
-                            let inner = props_handle.slice_mut()[0]
-                                .value
-                                .as_mut()
-                                .unwrap()
-                                .data
-                                .e_object_mut()
-                                .unwrap();
-                            js_ast::StoreRef::from_bump(&mut inner.properties)
-                        };
-                        props_handle = next;
+                        let inner = p.store[list][0]
+                            .value
+                            .unwrap()
+                            .data
+                            .e_object()
+                            .unwrap();
+                        props = js_ast::PropertyListPlace::Object(inner);
                     }
-                    // `StoreRef: DerefMut`: safe arena-backed handle; no aliasing
-                    // `&mut` outstanding for the remainder of this arm.
-                    let props = &mut *props_handle;
 
                     // Typescript defines static jsx as children.len > 1 or single spread
                     // https://github.com/microsoft/TypeScript/blob/d4fbc9b57d9aa7d02faac9b1e9bb7b37c687f6e9/src/compiler/transformers/jsx.ts#L340
@@ -578,24 +569,33 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // Capture before `mem::take` zeroes `e_.children.len` (struct-literal
                         // fields evaluate in written order; spec reads original len).
                         let children_single_line = p.store[e_].children.len_u32() < 2;
-                        props.push(G::Property {
-                            key: Some(children_key),
-                            value: Some(p.new_expr(
-                                E::Array {
-                                    items: core::mem::take(&mut p.store[e_].children),
-                                    is_single_line: children_single_line,
-                                    ..Default::default()
-                                },
-                                p.store[e_].close_tag_loc,
-                            )),
-                            ..Default::default()
-                        });
+                        let items = core::mem::take(&mut p.store[e_].children);
+                        let children_array = p.new_expr(
+                            E::Array {
+                                items,
+                                is_single_line: children_single_line,
+                                ..Default::default()
+                            },
+                            p.store[e_].close_tag_loc,
+                        );
+                        props.push(
+                            &mut p.store,
+                            G::Property {
+                                key: Some(children_key),
+                                value: Some(children_array),
+                                ..Default::default()
+                            },
+                        );
                     } else if p.store[e_].children.len_u32() == 1 {
-                        props.push(G::Property {
-                            key: Some(children_key),
-                            value: Some((&p.store[p.store[e_].children])[0]),
-                            ..Default::default()
-                        });
+                        let only_child = (&p.store[p.store[e_].children])[0];
+                        props.push(
+                            &mut p.store,
+                            G::Property {
+                                key: Some(children_key),
+                                value: Some(only_child),
+                                ..Default::default()
+                            },
+                        );
                     }
 
                     // Either:
@@ -609,11 +609,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut args = ExprNodeList::init_capacity(args_len);
                     VecExt::append(&mut args, tag);
 
+                    let object_properties = props.take(&mut p.store);
                     VecExt::append(
                         &mut args,
                         p.new_expr(
                             E::Object {
-                                properties: core::mem::take(props),
+                                properties: object_properties,
                                 ..Default::default()
                             },
                             expr.loc,

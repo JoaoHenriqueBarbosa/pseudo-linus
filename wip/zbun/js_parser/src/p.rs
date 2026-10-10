@@ -3,6 +3,7 @@ use bun_collections::VecExt;
 // const params) and its core methods.
 
 use bun_ast::NodeStore as _;
+use bun_ast::Place as _;
 use core::ptr::NonNull;
 use std::io::Write as _;
 
@@ -2763,35 +2764,25 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         r#ref: Ref,
         replacement: Expr,
     ) -> bool {
-        // `StmtData` stores `StoreRef<S::*>` (Copy NonNull); matching by value yields
-        // an owned `StoreRef` whose `DerefMut` reaches the underlying arena slot,
-        // so writing to `*expr` below mutates the AST in place.
-        let mut expr: js_ast::StoreRef<Expr> = 'brk: {
+        // O upstream guarda um `*Expr` para o campo do statement e escreve por ele; aqui o campo é um
+        // `ExprPlace` (statement dono e qual campo), lido e escrito contra o `Store` a cada vez.
+        let place: js_ast::ExprPlace = 'brk: {
             match stmt.data {
-                js_ast::StmtData::SExpr(mut exp) => {
-                    break 'brk js_ast::StoreRef::from_bump(&mut self.store[exp].value);
-                }
-                js_ast::StmtData::SThrow(mut throw) => {
-                    break 'brk js_ast::StoreRef::from_bump(&mut self.store[throw].value);
-                }
-                js_ast::StmtData::SReturn(mut ret) => {
-                    if let Some(value) = self.store[ret].value.as_mut() {
-                        break 'brk js_ast::StoreRef::from_bump(value);
+                js_ast::StmtData::SExpr(exp) => break 'brk js_ast::ExprPlace::SExprValue(exp),
+                js_ast::StmtData::SThrow(throw) => break 'brk js_ast::ExprPlace::ThrowValue(throw),
+                js_ast::StmtData::SReturn(ret) => {
+                    if self.store[ret].value.is_some() {
+                        break 'brk js_ast::ExprPlace::ReturnValue(ret);
                     }
                 }
-                js_ast::StmtData::SIf(mut if_stmt) => {
-                    break 'brk js_ast::StoreRef::from_bump(&mut self.store[if_stmt].test);
-                }
-                js_ast::StmtData::SSwitch(mut switch_stmt) => {
-                    break 'brk js_ast::StoreRef::from_bump(&mut self.store[switch_stmt].test);
-                }
-                js_ast::StmtData::SLocal(mut local) => {
-                    if self.store[local].decls.len_u32() > 0 {
-                        let first = &mut (&mut self.store[self.store[local].decls])[0];
-                        if matches!(first.binding.data, js_ast::b::B::BIdentifier(_)) {
-                            if let Some(value) = first.value.as_mut() {
-                                break 'brk js_ast::StoreRef::from_bump(value);
-                            }
+                js_ast::StmtData::SIf(if_stmt) => break 'brk js_ast::ExprPlace::IfTest(if_stmt),
+                js_ast::StmtData::SSwitch(switch_stmt) => break 'brk js_ast::ExprPlace::SwitchTest(switch_stmt),
+                js_ast::StmtData::SLocal(local) => {
+                    let decls = self.store[local].decls;
+                    if decls.len_u32() > 0 {
+                        let first = &self.store[decls][0];
+                        if matches!(first.binding.data, js_ast::b::B::BIdentifier(_)) && first.value.is_some() {
+                            break 'brk js_ast::ExprPlace::DeclValue(decls, 0);
                         }
                     }
                 }
@@ -2799,9 +2790,6 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             return false;
         };
-        // `StoreRef<Expr>: DerefMut`: arena-owned slot, parser holds exclusive
-        // access during the single-threaded visit pass.
-        let expr = &mut *expr;
 
         // Only continue trying to insert this replacement into sub-expressions
         // after the first one if the replacement has no side effects:
@@ -2820,7 +2808,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         //
         let replacement_can_be_removed = self.expr_can_be_removed_if_unused(&replacement);
         match self.substitute_single_use_symbol_in_expr(
-            *expr,
+            place.get(&self.store),
             r#ref,
             replacement,
             replacement_can_be_removed,
@@ -2836,11 +2824,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.is_revisit_for_substitution = true;
                     // O(n^2) and we will need to think more carefully about
                     // this once we implement syntax compression
-                    *expr = result;
-                    self.visit_expr(expr);
+                    //
+                    // O upstream visita o campo no lugar. Aqui o campo recebe `result` antes, a visita corre
+                    // sobre a cópia e o campo recebe o que ela deixou: durante a visita nada mais lê o campo
+                    // (o dono é o statement que o chamador está processando).
+                    place.set(&mut self.store, result);
+                    let mut visited = result;
+                    self.visit_expr(&mut visited);
+                    place.set(&mut self.store, visited);
                     self.is_revisit_for_substitution = prev_substituting;
                 } else {
-                    *expr = result;
+                    place.set(&mut self.store, result);
                 }
                 return true;
             }
@@ -7925,18 +7919,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     bun_ast::Loc::EMPTY,
                 );
 
-                // `StoreRef<Expr>` (safe `Deref`/`DerefMut`) tracks the arena slot
-                // being patched, so the chain walk stays in safe code per hop.
-                let mut current_expr = js_ast::StoreRef::from_bump(
-                    &mut dots
-                        .data
-                        .e_dot_mut(&mut self.store)
-                        .expect("infallible: variant checked")
-                        .target,
+                // O `ExprPlace` guarda o campo que a cadeia ainda vai preencher (o alvo do `E::Dot` mais
+                // novo); cada passo escreve nele, aloca o próximo nó e desce para o campo dele.
+                let mut current_expr = js_ast::ExprPlace::DotTarget(
+                    dots.data.e_dot().expect("infallible: variant checked"),
                 );
                 let mut i: usize = refs.len() - 2;
                 while i > 0 {
-                    *current_expr = self.new_expr(
+                    let next_dot = self.new_expr(
                         E::Dot {
                             name: ref_name!(refs[i]),
                             name_loc: bun_ast::Loc::EMPTY,
@@ -7945,31 +7935,27 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         },
                         bun_ast::Loc::EMPTY,
                     );
-                    let next = js_ast::StoreRef::from_bump(
-                        &mut current_expr
-                            .data
-                            .e_dot_mut()
-                            .expect("infallible: variant checked")
-                            .target,
+                    current_expr.set(&mut self.store, next_dot);
+                    current_expr = js_ast::ExprPlace::DotTarget(
+                        next_dot.data.e_dot().expect("infallible: variant checked"),
                     );
-                    current_expr = next;
                     i -= 1;
                 }
 
-                if self.is_import_item.contains_key(&refs[0]) {
-                    *current_expr = self.new_expr(
+                let root_ident = if self.is_import_item.contains_key(&refs[0]) {
+                    self.new_expr(
                         E::ImportIdentifier {
                             ref_: refs[0],
                             ..Default::default()
                         },
                         bun_ast::Loc::EMPTY,
-                    );
+                    )
                 } else {
-                    *current_expr =
-                        self.new_expr(E::Identifier::init(refs[0]), bun_ast::Loc::EMPTY);
-                }
+                    self.new_expr(E::Identifier::init(refs[0]), bun_ast::Loc::EMPTY)
+                };
+                current_expr.set(&mut self.store, root_ident);
 
-                let dot_identifier = *current_expr;
+                let dot_identifier = current_expr.get(&self.store);
                 let mut current_dot = dots;
 
                 let right0 = self.check_if_defined_helper(current_dot)?;
@@ -7989,17 +7975,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         .expect("infallible: variant checked")]
                         .target;
                 }
-                current_expr = js_ast::StoreRef::from_bump(
-                    &mut maybe_defined_dots
-                        .data
-                        .e_binary_mut(&mut self.store)
-                        .expect("infallible: variant checked")
-                        .left,
+                current_expr = js_ast::ExprPlace::BinaryLeft(
+                    maybe_defined_dots.data.e_binary().expect("infallible: variant checked"),
                 );
 
                 while i < refs.len() - 2 {
                     let right_n = self.check_if_defined_helper(current_dot)?;
-                    *current_expr = self.new_expr(
+                    let next_binary = self.new_expr(
                         E::Binary {
                             op: js_ast::OpCode::BinLogicalOr,
                             right: right_n,
@@ -8007,14 +7989,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         },
                         bun_ast::Loc::EMPTY,
                     );
-                    let next = js_ast::StoreRef::from_bump(
-                        &mut current_expr
-                            .data
-                            .e_binary_mut()
-                            .expect("infallible: variant checked")
-                            .left,
+                    current_expr.set(&mut self.store, next_binary);
+                    current_expr = js_ast::ExprPlace::BinaryLeft(
+                        next_binary.data.e_binary().expect("infallible: variant checked"),
                     );
-                    current_expr = next;
                     i += 1;
                     if i < refs.len() - 2 {
                         current_dot = self.store[current_dot
@@ -8025,7 +8003,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
 
-                *current_expr = self.check_if_defined_helper(dot_identifier)?;
+                let last = self.check_if_defined_helper(dot_identifier)?;
+                current_expr.set(&mut self.store, last);
 
                 let yes = ident!(b"Object");
                 let root = self.new_expr(

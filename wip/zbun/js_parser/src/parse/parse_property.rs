@@ -516,17 +516,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             p.fn_or_arrow_data_parse = old_fn_or_arrow_data_parse;
                             p.lexer.expect(T::TCloseBrace)?;
 
-                            // Vec::from_slice copies the bump-backed StmtList into a heap-backed list.
-                            // TODO(perf): route ClassStaticBlock.stmts through arena slice directly.
+                            // O upstream copia a `StmtList` da arena para uma lista própria do bloco; aqui os
+                            // statements já ficam numa faixa do `Store`.
                             let stmt_list = <[Stmt]>::to_vec(stmts.as_slice());
-                            let block = p.arena.alloc(G::ClassStaticBlock {
-                                stmts: self.store.alloc_slice(stmt_list),
+                            let block_stmts = p.store.alloc_slice(stmt_list);
+                            let block = p.store.alloc(G::ClassStaticBlock {
+                                stmts: block_stmts,
                                 loc,
                             });
 
                             return Ok(Some(G::Property {
                                 kind: PropertyKind::ClassStaticBlock,
-                                class_static_block: Some(js_ast::StoreRef::from_bump(block)),
+                                class_static_block: Some(block),
                                 ..Default::default()
                             }));
                         }

@@ -134,6 +134,19 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
   Com índice, o padrão é copiar o filho para fora (`Expr` e `Stmt` são `Copy`), visitar com `&mut` no dono e
   devolver: `let left = p.store[b].left; let left = p.visit_expr(left); p.store[b].left = left;`. A ordem das
   visitas e o texto gerado não mudam.
+- **Lugar tipado (`bun_ast::place`).** O upstream guarda `StoreRef::from_bump(&mut node.campo)`, um ponteiro para um
+  campo dentro de outro nó, e escreve por ele enquanto aloca e visita. Com índices não há ponteiro para campo: o
+  "lugar" é o par (nó dono, qual campo), resolvido contra o `Store` a cada leitura (`get`) e a cada escrita (`set`),
+  sem empréstimo de pé entre as duas. Há dois tipos, `ExprPlace` (`E::Dot.target`, `E::Binary.left`, o valor de
+  `SExpr`, `Throw` e `Return`, o `test` de `If` e `Switch`, o valor de uma `Decl`) e `PropertyListPlace`
+  (`properties` de `E::JSXElement` e de `E::Object`, com `push` e `take`). Regra de escolha: copiar o valor para
+  fora, mexer e gravar de volta basta onde o código lê, muda e grava numa janela curta e nada mais alcança o campo
+  (a visita de `substitute_single_use_symbol_in_stmt` grava `result` no campo antes, visita a cópia e grava o que
+  ela deixou: o dono é o statement que o chamador processa, e nada o lê durante a visita); onde o ponteiro para o
+  campo vive por mais de uma alocação (a caminhada pela cadeia de `E::Dot` e de `E::Binary` do `maybe_defined_helper`,
+  a descida pelos spreads de `<div {...{...x}}>`), o lugar é o tipo certo. Cada variante tem teste em
+  `ast/tests/place.rs`. O `from_bump(&mut T)` que só embrulhava uma alocação (`ClassStaticBlock`) virou
+  `store.alloc`.
 - **Listas.** O upstream monta a lista num `ArenaVec` e a vaza para um `StoreSlice`. No porte ela é montada num
   `Vec` local e copiada em bloco para o vetor do tipo (`store.alloc_slice`), o que dá a mesma faixa contígua.
 - **Constantes pré-carregadas.** O upstream aponta `StoreRef::from_static` para nós `'static` (as tabelas de

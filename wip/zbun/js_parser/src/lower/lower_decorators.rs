@@ -267,7 +267,6 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     /// Create a static block property from a single expression.
     fn make_static_block(&mut self, expr: Expr, l: bun_ast::Loc) -> Property {
-        let bump = self.arena;
         let stmt = self.s(
             S::SExpr {
                 value: expr,
@@ -275,15 +274,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             },
             l,
         );
-        let stmts = bump.alloc_slice_copy(&[stmt]);
-        let stmts_list = <[Stmt]>::to_vec(stmts);
-        let sb = bump.alloc(G::ClassStaticBlock {
-            loc: l,
-            stmts: self.store.alloc_slice(stmts_list),
-        });
+        let stmts = self.store.alloc_slice([stmt]);
+        let sb = self.store.alloc(G::ClassStaticBlock { loc: l, stmts });
         Property {
             kind: PropertyKind::ClassStaticBlock,
-            class_static_block: Some(js_ast::StoreRef::from_bump(sb)),
+            class_static_block: Some(sb),
             ..Default::default()
         }
     }
