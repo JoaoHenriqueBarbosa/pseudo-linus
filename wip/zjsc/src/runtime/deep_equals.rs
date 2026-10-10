@@ -20,7 +20,7 @@ use crate::runtime::exception_helpers::calculated_class_name;
 use crate::runtime::gc::RootScope;
 use crate::runtime::host_call::{pending_or, Thrown};
 use crate::runtime::host_function_support::ObjectRef;
-use crate::runtime::identifier::Identifier;
+use crate::runtime::identifier::{parse_index_identifier, Identifier};
 use crate::runtime::indexing_type::has_indexed_properties;
 use crate::runtime::js_array_buffer::JSArrayBuffer;
 use crate::runtime::js_generic_typed_array_view::JSGenericTypedArrayView;
@@ -38,7 +38,29 @@ use crate::runtime::property_name::PropertyName;
 use crate::runtime::property_name_array::PropertyNameArrayBuilder;
 use crate::runtime::property_offset::INVALID_OFFSET;
 use crate::runtime::property_slot::{InternalMethodType, PropertySlot};
-use crate::runtime::proxy_object::{object_get, object_get_own_property_names};
+use crate::runtime::array_buffer_constructor::ARRAY_BUFFER_CONSTRUCTOR_S_INFO;
+use crate::runtime::array_constructor::ARRAY_CONSTRUCTOR_S_INFO;
+use crate::runtime::bigint_constructor::BIG_INT_CONSTRUCTOR_S_INFO;
+use crate::runtime::boolean_constructor::BOOLEAN_CONSTRUCTOR_S_INFO;
+use crate::runtime::class_info::ClassInfo;
+use crate::runtime::data_view_constructor::DATA_VIEW_CONSTRUCTOR_S_INFO;
+use crate::runtime::date_constructor::DATE_CONSTRUCTOR_S_INFO;
+use crate::runtime::error_natives::ERROR_CONSTRUCTOR_S_INFO;
+use crate::runtime::function_constructor::FUNCTION_CONSTRUCTOR_S_INFO;
+use crate::runtime::map_constructor::MAP_CONSTRUCTOR_S_INFO;
+use crate::runtime::node_buffer::BUFFER_CONSTRUCTOR_S_INFO;
+use crate::runtime::number_constructor::NUMBER_CONSTRUCTOR_S_INFO;
+use crate::runtime::object_constructor::OBJECT_CONSTRUCTOR_S_INFO;
+use crate::runtime::object_prototype::object_prototype_to_string;
+use crate::runtime::promise_constructor::JS_PROMISE_CONSTRUCTOR_S_INFO;
+use crate::runtime::proxy_object::{get_property_slot, object_get, object_get_own_property_names, own_property_slot};
+use crate::runtime::reg_exp_prototype_natives::REG_EXP_CONSTRUCTOR_S_INFO;
+use crate::runtime::set_constructor::SET_CONSTRUCTOR_S_INFO;
+use crate::runtime::string_constructor_natives::STRING_CONSTRUCTOR_S_INFO;
+use crate::runtime::symbol_constructor::SYMBOL_CONSTRUCTOR_S_INFO;
+use crate::runtime::typed_array_constructors::TYPED_ARRAY_CONSTRUCTOR_S_INFOS;
+use crate::runtime::weak_map_constructor::WEAK_MAP_CONSTRUCTOR_S_INFO;
+use crate::runtime::weak_set_constructor::WEAK_SET_CONSTRUCTOR_S_INFO;
 use crate::runtime::reg_exp_object::RegExpObject;
 use crate::runtime::string_object::StringObject;
 use crate::runtime::structure::StructureRef;
@@ -50,6 +72,9 @@ use crate::wtf::text::wtf_string::String as WtfString;
 pub(crate) struct Mode {
     pub(crate) strict: bool,
     pub(crate) skip_prototype_identity: bool,
+    /// `checkPrototypes`: o modo do `node:assert` e do `node:util` (`isDeepStrictEqual`), que segue o `objectComparisonStart`
+    /// do Node e só olha as propriedades próprias.
+    pub(crate) check_prototypes: bool,
 }
 
 /// Os pares em comparação (`Vector<std::pair<JSValue, JSValue>, 16>& stack`).
@@ -105,6 +130,9 @@ fn deep_equals_in(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack,
 
 /// O que `Bun__deepEquals` faz depois de empilhar o par: os tipos especiais, os arrays e as propriedades.
 fn compare_objects(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack, o1: &ObjectRef, o2: &ObjectRef) -> Result<bool, Thrown> {
+    if mode.check_prototypes && !object_comparison_start(global_object, mode, o1, o2)? {
+        return Ok(false);
+    }
     if let Some(equal) = special_objects_dequal(global_object, mode, stack, o1, o2)? {
         return Ok(equal);
     }
@@ -121,18 +149,144 @@ fn compare_objects(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack
         return arrays_equal(global_object, mode, stack, o1, o2);
     }
 
-    if mode.strict && !mode.skip_prototype_identity && calculated_class_name(o1) != calculated_class_name(o2) {
+    if mode.strict && !mode.check_prototypes && !mode.skip_prototype_identity && calculated_class_name(o1) != calculated_class_name(o2) {
         return Ok(false);
     }
 
     let vm = global_object.vm();
     let (s1, s2) = (o1.structure(), o2.structure());
-    if fast_enumerable(o1, &s1) && fast_enumerable(o2, &s2) {
+    // O caminho de estruturas diferentes acha com `getDirect` também o que não é enumerável, que o Node ignora.
+    if fast_enumerable(o1, &s1) && fast_enumerable(o2, &s2) && (!mode.check_prototypes || s1.id() == s2.id()) {
         return structures_equal(global_object, mode, stack, o1, o2, &s1, &s2);
     }
 
-    let (a1, a2) = (property_names(global_object, o1)?, property_names(global_object, o2)?);
-    properties_equal(global_object, mode, stack, o1, o2, &a1, &a2, None)
+    let names_of = |object: &ObjectRef| if mode.check_prototypes { own_property_names(global_object, object) } else { property_names(global_object, object) };
+    let (a1, a2) = (names_of(o1)?, names_of(o2)?);
+    properties_equal(global_object, mode, stack, o1, o2, &a1, &a2, None, mode.check_prototypes)
+}
+
+/// `isWellKnownConstructor` (o `wellKnownConstructors` do Node, de qualquer realm): a identidade do `ClassInfo` de
+/// um `JSFunction` ou `InternalFunction`.
+fn is_well_known_constructor(value: JSValue) -> bool {
+    if !value.is_object() {
+        return false;
+    }
+    let Some(object) = ObjectRef::from_value(&value) else { return false };
+    if !matches!(object.cell().type_(), JSType::InternalFunctionType | JSType::JSFunctionType) {
+        return false;
+    }
+    let info: &'static ClassInfo = object.cell().class_info();
+    let known: [&'static ClassInfo; 19] = [
+        &OBJECT_CONSTRUCTOR_S_INFO,
+        &ARRAY_CONSTRUCTOR_S_INFO,
+        &FUNCTION_CONSTRUCTOR_S_INFO,
+        &REG_EXP_CONSTRUCTOR_S_INFO,
+        &JS_PROMISE_CONSTRUCTOR_S_INFO,
+        &STRING_CONSTRUCTOR_S_INFO,
+        &SYMBOL_CONSTRUCTOR_S_INFO,
+        &BIG_INT_CONSTRUCTOR_S_INFO,
+        &BOOLEAN_CONSTRUCTOR_S_INFO,
+        &NUMBER_CONSTRUCTOR_S_INFO,
+        &DATE_CONSTRUCTOR_S_INFO,
+        &ERROR_CONSTRUCTOR_S_INFO,
+        &MAP_CONSTRUCTOR_S_INFO,
+        &SET_CONSTRUCTOR_S_INFO,
+        &WEAK_MAP_CONSTRUCTOR_S_INFO,
+        &WEAK_SET_CONSTRUCTOR_S_INFO,
+        &ARRAY_BUFFER_CONSTRUCTOR_S_INFO,
+        &DATA_VIEW_CONSTRUCTOR_S_INFO,
+        &BUFFER_CONSTRUCTOR_S_INFO,
+    ];
+    known.iter().any(|candidate| std::ptr::eq(*candidate, info)) || TYPED_ARRAY_CONSTRUCTOR_S_INFOS.iter().any(|candidate| std::ptr::eq(candidate, info))
+}
+
+/// O valor de um slot já achado, com a exceção do getter pendente (`slot.getValue` seguido de `RETURN_IF_EXCEPTION`).
+fn slot_value(global_object: &JSGlobalObject, slot: &PropertySlot, name: &PropertyName) -> Result<JSValue, Thrown> {
+    let value = slot.get_value_for(name);
+    pending_or(global_object, value)
+}
+
+/// O começo de `objectComparisonStart` do Node (`lib/internal/util/comparisons.js`): em modo estrito a regra do
+/// `constructor` e do `[[Prototype]]`, e em qualquer modo as etiquetas de `Object.prototype.toString` iguais.
+fn object_comparison_start(global_object: &JSGlobalObject, mode: Mode, o1: &ObjectRef, o2: &ObjectRef) -> Result<bool, Thrown> {
+    let vm = global_object.vm();
+    if !mode.skip_prototype_identity {
+        let constructor_name = PropertyName::from_identifier(&vm.property_names.constructor);
+        let mut slot1 = PropertySlot::new(o1.as_value(), InternalMethodType::Get);
+        let has_constructor = get_property_slot(global_object, o1.as_value(), &constructor_name, &mut slot1)?;
+        let constructor1 = if has_constructor { slot_value(global_object, &slot1, &constructor_name)? } else { JSValue::undefined() };
+        let mut compare_constructors = is_well_known_constructor(constructor1);
+        if !compare_constructors && !constructor1.is_undefined() {
+            if slot1.is_tainted_by_opaque_object() {
+                let mut own_slot = PropertySlot::new(o1.as_value(), InternalMethodType::GetOwnProperty);
+                compare_constructors = !own_property_slot(global_object, o1.as_value(), &constructor_name, &mut own_slot)?;
+            } else {
+                compare_constructors = slot1.slot_base() != Some(o1.cell_id());
+            }
+        }
+        if compare_constructors {
+            // A mesma estrutura mono-proto é a mesma cadeia: o dado achado nela vale também para `val2.constructor`.
+            let inherited_from_shared_chain = slot1.is_cacheable_value()
+                && slot1.slot_base() != Some(o1.cell_id())
+                && o1.structure().id() == o2.structure().id()
+                && !o1.structure().has_poly_proto();
+            if !inherited_from_shared_chain {
+                let constructor2 = object_get(global_object, o2, &constructor_name, o2.as_value())?;
+                if !strict_equal(constructor1, constructor2) {
+                    return Ok(false);
+                }
+            }
+        } else {
+            let proto1 = o1.as_value().get_prototype(global_object)?;
+            let proto2 = o2.as_value().get_prototype(global_object)?;
+            if !same_value(proto1, proto2) {
+                return Ok(false);
+            }
+        }
+    }
+    let tag_of = |object: &ObjectRef| -> Result<WtfString, Thrown> {
+        let tag = object_prototype_to_string(global_object, object.as_value()).ok_or(Thrown::Pending)?;
+        Ok(tag.value())
+    };
+    Ok(tag_of(o1)? == tag_of(o2)?)
+}
+
+/// `nonIndexOwnPropertiesEqual`: as chaves próprias enumeráveis de texto e símbolo que não são índice, lidas pelo
+/// `getOwnPropertySlot` nos dois lados (um getter pode ter tirado a chave no meio do caminho).
+fn non_index_own_properties_equal(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack, o1: &ObjectRef, o2: &ObjectRef) -> Result<bool, Thrown> {
+    let non_index = |object: &ObjectRef| -> Result<Vec<Identifier>, Thrown> {
+        Ok(own_property_names(global_object, object)?.into_iter().filter(|name| name.is_symbol() || parse_index_identifier(name).is_none()).collect())
+    };
+    let (a1, a2) = (non_index(o1)?, non_index(o2)?);
+    if a1.len() != a2.len() {
+        return Ok(false);
+    }
+    for name in &a1 {
+        let property_name = PropertyName::from_identifier(name);
+        let mut slot2 = PropertySlot::new(o2.as_value(), InternalMethodType::GetOwnProperty);
+        if !own_property_slot(global_object, o2.as_value(), &property_name, &mut slot2)? || slot2.attributes() & DONT_ENUM != 0 {
+            return Ok(false);
+        }
+        let v2 = slot_value(global_object, &slot2, &property_name)?;
+        let _v2 = RootScope::new(&[v2]);
+        let mut slot1 = PropertySlot::new(o1.as_value(), InternalMethodType::GetOwnProperty);
+        if !own_property_slot(global_object, o1.as_value(), &property_name, &mut slot1)? || slot1.attributes() & DONT_ENUM != 0 {
+            return Ok(false);
+        }
+        let v1 = slot_value(global_object, &slot1, &property_name)?;
+        let _v1 = RootScope::new(&[v1]);
+        if !deep_equals_in(global_object, mode, stack, v1, v2, true)? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+/// `o->methodTable()->getOwnPropertyNames(o, globalObject, names, DontEnumPropertiesMode::Exclude)`: só as chaves próprias.
+fn own_property_names(global_object: &JSGlobalObject, object: &ObjectRef) -> Result<Vec<Identifier>, Thrown> {
+    let mut names = PropertyNameArrayBuilder::new(global_object.vm(), PropertyNameMode::StringsAndSymbols, PrivateSymbolMode::Exclude);
+    object_get_own_property_names(global_object, object, &mut names, DontEnumPropertiesMode::Exclude)?;
+    Ok(names.iter().cloned().collect())
 }
 
 /// `object->getPropertyNames(globalObject, names, DontEnumPropertiesMode::Exclude)`: as chaves enumeráveis de texto e
@@ -152,7 +306,8 @@ fn fast_enumerable(object: &JSObject, structure: &StructureRef) -> bool {
 
 /// A comparação pelos nomes `a1` e `a2` (o fim de `Bun__deepEquals` e o laço das propriedades do `ErrorInstance`):
 /// cada nome de `a1` lido nos dois lados, e os nomes que sobram em `a2` têm de valer `undefined`. `skip` é o nome que
-/// não conta (o `stack` do erro).
+/// não conta (o `stack` do erro). `own_only` lê o lado direito só pelas próprias enumeráveis (o fim de `Bun__deepEquals`
+/// em modo Node); o ramo do `ErrorInstance` segue com o `getIfPropertyExists` também nesse modo.
 #[allow(clippy::too_many_arguments)]
 fn properties_equal(
     global_object: &JSGlobalObject,
@@ -163,11 +318,12 @@ fn properties_equal(
     a1: &[Identifier],
     a2: &[Identifier],
     skip: Option<&Identifier>,
+    own_only: bool,
 ) -> Result<bool, Thrown> {
     if mode.strict && a1.len() != a2.len() {
         return Ok(false);
     }
-    if !each_property_equal(global_object, mode, stack, o1, o2, a1, skip)? {
+    if !each_property_equal(global_object, mode, stack, o1, o2, a1, skip, own_only)? {
         return Ok(false);
     }
     for name in a2.iter().skip(a1.len()) {
@@ -184,6 +340,7 @@ fn properties_equal(
 
 /// "take a property name from one, try to get it from both": cada nome lido em `o1` (o `[[Get]]`, com getter) e em
 /// `o2` (`getIfPropertyExists`); no modo comum `undefined` casa com a ausência.
+#[allow(clippy::too_many_arguments)]
 fn each_property_equal(
     global_object: &JSGlobalObject,
     mode: Mode,
@@ -192,6 +349,7 @@ fn each_property_equal(
     o2: &ObjectRef,
     names: &[Identifier],
     skip: Option<&Identifier>,
+    own_only: bool,
 ) -> Result<bool, Thrown> {
     for name in names {
         if skip == Some(name) {
@@ -205,7 +363,16 @@ fn each_property_equal(
         // O C++ guarda `prop1` na pilha nativa, varrida pelo coletor conservador; aqui vira raiz enquanto o getter de
         // `o2` roda.
         let _prop1 = RootScope::new(&[prop1]);
-        let prop2 = get_if_property_exists(global_object, o2, &property_name)?;
+        let prop2 = if own_only {
+            // O Node só casa propriedade própria enumerável; `getIfPropertyExists` acharia a herdada e a oculta.
+            let mut slot2 = PropertySlot::new(o2.as_value(), InternalMethodType::GetOwnProperty);
+            if !own_property_slot(global_object, o2.as_value(), &property_name, &mut slot2)? || slot2.attributes() & DONT_ENUM != 0 {
+                return Ok(false);
+            }
+            Some(slot_value(global_object, &slot2, &property_name)?)
+        } else {
+            get_if_property_exists(global_object, o2, &property_name)?
+        };
         if !mode.strict && prop1.is_undefined() && prop2.is_none() {
             continue;
         }
@@ -266,6 +433,11 @@ fn arrays_equal(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack, o
         }
     }
 
+    if mode.check_prototypes {
+        // O Node compara as chaves próprias de texto e símbolo que não são índice; o bloco só de símbolos abaixo sobe a cadeia.
+        return non_index_own_properties_equal(global_object, mode, stack, o1, o2);
+    }
+
     let vm = global_object.vm();
     let symbols_of = |object: &ObjectRef| -> Result<Vec<Identifier>, Thrown> {
         let mut names = PropertyNameArrayBuilder::new(vm, PropertyNameMode::Symbols, PrivateSymbolMode::Exclude);
@@ -276,7 +448,7 @@ fn arrays_equal(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack, o
     if mode.strict && a1.len() != a2.len() {
         return Ok(false);
     }
-    each_property_equal(global_object, mode, stack, o1, o2, &a1, None)
+    each_property_equal(global_object, mode, stack, o1, o2, &a1, None, false)
 }
 
 /// O caminho rápido pela `Structure`: com a mesma estrutura, os pares saem dos mesmos offsets; com estruturas
@@ -430,7 +602,7 @@ fn errors_equal(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack, l
         return Ok(false);
     }
     let (a1, a2) = (property_names(global_object, left)?, property_names(global_object, right)?);
-    properties_equal(global_object, mode, stack, left, right, &a1, &a2, Some(&vm.property_names.stack))
+    properties_equal(global_object, mode, stack, left, right, &a1, &a2, Some(&vm.property_names.stack), false)
 }
 
 /// `NaN` e zero de um número de ponto flutuante de `width` bytes (little-endian), pelos bits.

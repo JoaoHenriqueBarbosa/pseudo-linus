@@ -323,7 +323,7 @@ fn deep_equals_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResu
     }
     let is_true = |value: JSValue| value.is_boolean() && value.as_boolean();
     let strict = is_true(call.argument(2));
-    let mode = Mode { strict, skip_prototype_identity: strict && is_true(call.argument(3)) };
+    let mode = Mode { strict, skip_prototype_identity: strict && is_true(call.argument(3)), check_prototypes: false };
     Ok(JSValue::Bool(deep_equals(global_object, mode, call.argument(0), call.argument(1))?))
 }
 

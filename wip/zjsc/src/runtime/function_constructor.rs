@@ -37,7 +37,7 @@ use crate::runtime::exception_helpers::throw_out_of_memory_error;
 use crate::runtime::function_executable::{FunctionExecutable, OVERRIDE_LINE_NUMBER_NOT_FOUND};
 use crate::runtime::host_call::{HostCall, HostResult};
 use crate::runtime::identifier::Identifier;
-use crate::runtime::internal_function::{get_function_realm, InternalFunction, InternalFunctionRef, PropertyAdditionMode};
+use crate::runtime::internal_function::{get_function_realm, InternalFunction, InternalFunctionRef, PropertyAdditionMode, INTERNAL_FUNCTION_S_INFO};
 use crate::runtime::iterator_operations::thrown_from_llint;
 use crate::runtime::js_async_function::JSAsyncFunction;
 use crate::runtime::js_async_generator_function::JSAsyncGeneratorFunction;
@@ -50,7 +50,10 @@ use crate::runtime::native_function::NativeFunction;
 use crate::runtime::property_attribute::{DONT_DELETE, DONT_ENUM, READ_ONLY};
 use crate::runtime::property_name::PropertyName;
 use crate::runtime::source_origin::SourceOrigin;
-use crate::runtime::structure::StructureRef;
+use crate::runtime::class_info::ClassInfo;
+use crate::runtime::js_type::JSType;
+use crate::runtime::js_type_info::TypeInfo;
+use crate::runtime::structure::{Structure, StructureRef};
 use crate::runtime::string_regexp_support::to_wtf_string_value;
 use crate::runtime::throw_scope::{throw_exception, ThrowScope};
 use crate::runtime::vm::VM;
@@ -359,6 +362,27 @@ function_construction_host_functions!(
     call_async_generator_function_constructor,
     construct_async_generator_function_constructor
 );
+
+/// `const ClassInfo FunctionConstructor::s_info` (`"Function"`, base `InternalFunction`): é o que o
+/// `isWellKnownConstructor` do `deepEquals` reconhece; os construtores de generator, async e async generator têm o
+/// `InternalFunction::s_info` dos irmãos.
+pub static FUNCTION_CONSTRUCTOR_S_INFO: ClassInfo = ClassInfo {
+    class_name: "Function",
+    parent_class: Some(&INTERNAL_FUNCTION_S_INFO),
+    static_prop_hash_table: None,
+    inherits_js_type_range: None,
+};
+
+/// `FunctionConstructor::createStructure(vm, globalObject, prototype)`.
+pub fn create_function_constructor_structure(vm: &VM, global_object: &JSGlobalObject, prototype: JSValue) -> StructureRef {
+    Structure::create(
+        vm,
+        Some(global_object),
+        prototype,
+        TypeInfo::new(JSType::InternalFunctionType, InternalFunction::STRUCTURE_FLAGS),
+        &FUNCTION_CONSTRUCTOR_S_INFO,
+    )
+}
 
 /// `FunctionConstructor::create(vm, structure, functionPrototype)` e os `create` de
 /// `GeneratorFunctionConstructor`, `AsyncFunctionConstructor` e `AsyncGeneratorFunctionConstructor`: o

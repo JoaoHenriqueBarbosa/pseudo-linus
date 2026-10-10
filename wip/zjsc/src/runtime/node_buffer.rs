@@ -53,7 +53,7 @@ static BUFFER_PROTOTYPE_S_INFO: ClassInfo =
     ClassInfo { class_name: "Buffer", parent_class: Some(&JS_NON_FINAL_OBJECT_S_INFO), static_prop_hash_table: None, inherits_js_type_range: None };
 
 /// `const ClassInfo` do construtor (`"Function"`).
-static BUFFER_CONSTRUCTOR_S_INFO: ClassInfo =
+pub static BUFFER_CONSTRUCTOR_S_INFO: ClassInfo =
     ClassInfo { class_name: "Function", parent_class: Some(&INTERNAL_FUNCTION_S_INFO), static_prop_hash_table: None, inherits_js_type_range: None };
 
 thread_local! {

@@ -7,6 +7,7 @@ use crate::api::eval::typeof_for_property_error;
 use crate::api::node_js_host::{module_host, run_factory};
 use crate::host_function;
 use crate::runtime::cell_registry;
+use crate::runtime::deep_equals::{deep_equals, Mode};
 use crate::runtime::error_natives::ERROR_PROTOTYPE_WITH_TABLE_S_INFO;
 use crate::runtime::host_call::{pending_or, HostCall, HostResult, Thrown};
 use crate::runtime::identifier::{parse_index_identifier, Identifier};
@@ -189,6 +190,14 @@ fn get_internal_field_body(_global_object: &JSGlobalObject, call: &HostCall) -> 
 }
 host_function!(get_internal_field, get_internal_field_body);
 
+/// `jsFunctionIsDeepStrictEqual` (`NodeUtilTypesModule.cpp`): a semântica do Node, com a identidade do protótipo que o
+/// `Bun.deepEquals` não checa; o terceiro argumento verdadeiro é o `kStrictWithoutPrototypes` do Node.
+fn is_deep_strict_equal_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let mode = Mode { strict: true, skip_prototype_identity: call.argument(2).to_boolean(), check_prototypes: true };
+    Ok(js_boolean(deep_equals(global_object, mode, call.argument(0), call.argument(1))?))
+}
+host_function!(is_deep_strict_equal, is_deep_strict_equal_body);
+
 /// `$isJSArray(valor)`: `ArrayType` ou `DerivedArrayType`, sem olhar o `Proxy`.
 fn is_js_array_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let JSValue::Cell(cell_id) = call.argument(0) else { return Ok(js_boolean(false)) };
@@ -267,6 +276,7 @@ pub(crate) fn install_util_module(global_object: &JSGlobalObject) -> HostResult 
             ("proxyTarget", 1, proxy_target),
             ("proxyHandler", 1, proxy_handler),
             ("getInternalField", 2, get_internal_field),
+            ("jsFunctionIsDeepStrictEqual", 3, is_deep_strict_equal),
             ("isJSArray", 1, is_js_array),
             ("isError", 1, is_error),
             ("parseEnv", 1, parse_env),

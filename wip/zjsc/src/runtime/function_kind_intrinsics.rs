@@ -30,7 +30,7 @@ use crate::runtime::async_generator_prototype::{create_async_generator_prototype
 use crate::runtime::async_iterator_prototype::{create_async_iterator_proto_func_async_iterator, AsyncIteratorPrototype};
 use crate::runtime::class_info::ClassInfo;
 use crate::runtime::collection_support::put_to_string_tag;
-use crate::runtime::function_constructor::create_function_construction_constructor;
+use crate::runtime::function_constructor::{create_function_construction_constructor, create_function_constructor_structure};
 use crate::runtime::identifier::Identifier;
 use crate::runtime::internal_function::{InternalFunction, InternalFunctionRef};
 use crate::runtime::iterator_operations::create_async_from_sync_iterator_create_function;
@@ -272,7 +272,7 @@ pub fn install_function_kind_intrinsics(
         JSAsyncFromSyncIterator::create_structure(vm, Some(global_object), async_from_sync_iterator_prototype.as_value());
 
     // O `FunctionConstructor`.
-    let function_constructor_structure = InternalFunction::create_structure(vm, Some(global_object), function_prototype.as_value());
+    let function_constructor_structure = create_function_constructor_structure(vm, global_object, function_prototype.as_value());
     let function_constructor =
         create_function_construction_constructor(vm, function_constructor_structure, FunctionConstructionMode::Function, function_prototype);
 

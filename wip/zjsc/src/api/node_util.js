@@ -2818,7 +2818,7 @@ function isBuffer(value) {
 function isFunction(value) {
   return typeof value === "function";
 }
-const { isDeepStrictEqual } = { isDeepStrictEqual: host.isDeepStrictEqual };
+const { isDeepStrictEqual } = { isDeepStrictEqual: host.jsFunctionIsDeepStrictEqual };
 const parseArgs = host.parseArgs;
 let utl;
 function lazyInspectModule() {
