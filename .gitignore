@@ -55,3 +55,6 @@ credentials*.json
 # Os logs do leveldb que o Chromium do oráculo escreveu são fixtures (binários, não são logs de texto).
 !crates/ul-leveldb/tests/fixtures/**/*.log
 # <<< offload jet-dev
+
+# Core dumps de testes abortados
+core.[0-9]*
