@@ -539,8 +539,10 @@ impl ProxyObject {
         ProxyObject::check_recursion(vm)?;
         let target = self.target_object();
 
+        // O nome privado mora no armazenamento do próprio `Proxy` (como os campos `#privados`), sem trap.
         if property_name.is_private_name() {
-            return Ok(js_undefined());
+            let value = self.get_direct_by_name(vm, property_name);
+            return Ok(if value.is_empty() { js_undefined() } else { value });
         }
 
         let handler = self.handler_object()?;
@@ -684,7 +686,7 @@ impl ProxyObject {
         let target = self.target_object();
 
         if property_name.is_private_name() {
-            return Ok(false);
+            return Ok(!self.get_direct_by_name(vm, property_name).is_empty());
         }
 
         let handler = self.handler_object()?;
@@ -761,7 +763,8 @@ impl ProxyObject {
         ProxyObject::check_recursion(vm)?;
 
         if property_name.is_private_name() {
-            return Ok(false);
+            self.put_direct(vm, property_name, put_value, 0);
+            return Ok(true);
         }
 
         let handler = self.handler_object()?;
@@ -823,8 +826,13 @@ impl ProxyObject {
         let vm = global_object.vm();
         ProxyObject::check_recursion(vm)?;
 
+        // O nome privado sai do armazenamento do próprio `Proxy` (o `JSObject::delete_property` não despacha ao trap
+        // para ele).
         if property_name.is_private_name() {
-            return Ok(false);
+            let object: &JSObject = self;
+            return object
+                .delete_property(vm, property_name, &mut crate::runtime::delete_property_slot::DeletePropertySlot::default())
+                .map_err(|_| Thrown::type_error(crate::runtime::error_messages::UNABLE_TO_DELETE_PROPERTY_ERROR));
         }
 
         let handler = self.handler_object()?;

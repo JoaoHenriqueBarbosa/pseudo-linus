@@ -1690,4 +1690,21 @@ mod hidden_program_tests {
             Object.keys(Object.assign({}, el)).length, Reflect.ownKeys({ ...el }).length, readEl(), trapped.length].join('|')";
         assert_eq!(run(prelude, page), "undefined|1|0|1|{\"a\":1}|1|1|1|1|42|0");
     }
+
+    /// O nome privado mora no próprio objeto: num `Proxy` não chama armadilha nem toca o alvo, e grava em objeto
+    /// congelado.
+    #[test]
+    fn private_symbols_store_on_proxies_and_frozen_objects() {
+        let prelude = "const P = __pl_private('x'); delete globalThis.__pl_private; \
+            globalThis.trapped = []; const t = (name) => function () { trapped.push(name); return Reflect[name](...arguments); }; \
+            globalThis.target = {}; globalThis.proxy = new Proxy(target, { get: t('get'), set: t('set'), has: t('has'), \
+              deleteProperty: t('deleteProperty'), defineProperty: t('defineProperty'), getOwnPropertyDescriptor: t('getOwnPropertyDescriptor'), ownKeys: t('ownKeys') }); \
+            proxy[P] = 1; globalThis.fromProxy = [proxy[P], P in proxy]; \
+            globalThis.frozen = Object.freeze({ k: 0 }); frozen[P] = 2; globalThis.fromFrozen = [frozen[P], P in frozen]; \
+            delete proxy[P]; globalThis.afterDelete = [proxy[P], P in proxy];";
+        let page = "trapped.length = 0; const keys = Reflect.ownKeys(proxy).length; \
+            [fromProxy.join(), fromFrozen.join(), afterDelete.join(), keys, Reflect.ownKeys(target).length, Object.isFrozen(frozen), \
+             Reflect.ownKeys(frozen).length, trapped.join()].join('|')";
+        assert_eq!(run(prelude, page), "1,true|2,true|,false|0|0|true|1|ownKeys");
+    }
 }
