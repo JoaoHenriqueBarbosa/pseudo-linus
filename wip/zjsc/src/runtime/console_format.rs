@@ -1643,7 +1643,8 @@ fn is_primitive_tag(value: JSValue) -> bool {
         return false;
     }
     match cell_registry::get(value.as_cell()) {
-        Some(CellEntry::StringObject(_)) => true,
+        // O `RegExp` sai como `Tag::String` (ver `format_builtin`), primitivo: `[ /a/ ]` numa linha (medido no bun 1.4.2).
+        Some(CellEntry::StringObject(_) | CellEntry::RegExpObject(_)) => true,
         Some(CellEntry::WrapperObject(wrapper)) => matches!(wrapper.type_(), JSType::NumberObjectType | JSType::BooleanObjectType),
         _ => false,
     }
