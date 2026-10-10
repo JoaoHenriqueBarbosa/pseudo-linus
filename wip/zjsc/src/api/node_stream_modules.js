@@ -4963,5 +4963,8 @@
     return module.exports;
   }
 
+  // O `require` interno fica guardado no hospedeiro para o `node:util`, que lê `internal/streams/utils` (o `isReadableStream`
+  // e afins) sem que o objeto exportado de `stream` carregue nada a mais.
+  host.registerRequire(require);
   return require("node:stream");
 })

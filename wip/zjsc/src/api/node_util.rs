@@ -271,6 +271,7 @@ pub(crate) fn install_util_module(global_object: &JSGlobalObject) -> HostResult 
             ("isError", 1, is_error),
             ("parseEnv", 1, parse_env),
             ("parseArgs", 1, crate::api::node_parse_args::parse_args),
+            ("requireInternal", 1, crate::api::node_stream::require_internal),
             ("stringWidth", 1, crate::runtime::bun_global::bun_string_width),
         ],
     )?;

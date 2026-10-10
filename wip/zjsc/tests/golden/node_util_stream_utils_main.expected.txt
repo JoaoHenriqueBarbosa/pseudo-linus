@@ -1,0 +1,13 @@
+stdout ok "string"
+writable ok "x"
+readable ok "x"
+duplex ok "x"
+web-readable ok "x"
+web-writable ok "x"
+web-transform TypeError ERR_INVALID_ARG_TYPE The "stream" argument must be an instance of ReadableStream, WritableStream, or Stream. Received an instance of TransformStream
+object TypeError ERR_INVALID_ARG_TYPE The "stream" argument must be an instance of ReadableStream, WritableStream, or Stream. Received an instance of Object
+number TypeError ERR_INVALID_ARG_TYPE The "stream" argument must be an instance of ReadableStream, WritableStream, or Stream. Received type number (1)
+null ok "x"
+sem-validar ok "\u001b[31mx\u001b[39m"
+_isArrayBufferView,_isUint8Array,_uint8ArrayToBuffer,isDestroyed,isDisturbed,isErrored,isReadable,isWritable,Readable,Writable,Duplex,Transform,PassThrough,duplexPair,pipeline,addAbortSignal,finished,destroy,compose,setDefaultHighWaterMark,getDefaultHighWaterMark,promises,Stream,eos
+27 0
