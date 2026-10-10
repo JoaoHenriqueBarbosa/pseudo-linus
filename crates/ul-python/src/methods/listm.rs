@@ -7,7 +7,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::native_util::want_int;
-use crate::object::{is, py_eq, repr, Kw, NativeFnPtr, Value};
+use crate::object::{repr, scan_list_eq, Kw, NativeFnPtr, Value};
 use crate::vm::{exc, iterate, py_lt, type_error, PyResult, Vm};
 
 type ListRef = Rc<RefCell<Vec<Value>>>;
@@ -105,7 +105,11 @@ fn remove(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("remove", &kw)?;
     argc("remove", &args[1..], 1, 1)?;
     let l = this(&args)?;
-    let pos = l.borrow().iter().position(|x| is(x, &args[1]) || py_eq(x, &args[1]));
+    let mut pos = None;
+    scan_list_eq(&l, &args[1], 0, usize::MAX, |i| {
+        pos = Some(i);
+        true
+    })?;
     match pos {
         Some(i) => {
             l.borrow_mut().remove(i);
@@ -156,25 +160,31 @@ fn reverse(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn index(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("index", &kw)?;
     argc("index", &args[1..], 1, 3)?;
-    let items = this(&args)?.borrow().clone();
-    let len = items.len();
+    let l = this(&args)?;
+    let len = l.borrow().len();
     let start = norm_bound(args.get(2), len, 0)?;
     let stop = norm_bound(args.get(3), len, len)?;
-    let mut i = start;
-    while i < stop && i < items.len() {
-        if is(&items[i], &args[1]) || py_eq(&items[i], &args[1]) {
-            return Ok(Value::Int(i as i64));
-        }
-        i += 1;
+    let mut pos = None;
+    scan_list_eq(&l, &args[1], start, stop, |i| {
+        pos = Some(i);
+        true
+    })?;
+    match pos {
+        Some(i) => Ok(Value::Int(i as i64)),
+        None => Err(exc("ValueError", format!("{} is not in list", repr(&args[1])))),
     }
-    Err(exc("ValueError", format!("{} is not in list", repr(&args[1]))))
 }
 
 fn count(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("count", &kw)?;
     argc("count", &args[1..], 1, 1)?;
-    let n = this(&args)?.borrow().iter().filter(|x| is(x, &args[1]) || py_eq(x, &args[1])).count();
-    Ok(Value::Int(n as i64))
+    let l = this(&args)?;
+    let mut n = 0;
+    scan_list_eq(&l, &args[1], 0, usize::MAX, |_| {
+        n += 1;
+        false
+    })?;
+    Ok(Value::Int(n))
 }
 
 type Pair = (Value, Value);

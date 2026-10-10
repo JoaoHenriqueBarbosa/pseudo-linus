@@ -1175,10 +1175,10 @@ impl crate::object::ExtObject for CodeSource {
         Some(self)
     }
     /// `code_richcompare`: o arquivo não entra na comparação.
-    fn eq_value(&self, other: &Value) -> Option<bool> {
+    fn eq_value(&self, other: &Value) -> Option<PyResult<bool>> {
         let Value::Ext(o) = other else { return None };
         let o = o.as_any()?.downcast_ref::<CodeSource>()?;
-        Some(crate::tbobj::code_eq(&self.code, &o.code))
+        Some(Ok(crate::tbobj::code_eq(&self.code, &o.code)))
     }
     fn hash_value(&self) -> Option<i64> {
         Some(crate::tbobj::code_hash(&self.code))

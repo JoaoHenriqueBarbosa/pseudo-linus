@@ -11,9 +11,7 @@ use common::*;
 use host::client::Client;
 use serde_json::json;
 
-const SCENE: &str = include_str!("../../../testbench/oracle/automation/cases/gl_api.py");
 const COMMON: &str = include_str!("../../../testbench/oracle/automation/common.py");
-const GOLDEN: &str = include_str!("../../../testbench/oracle/automation/golden/gl_api.out");
 
 /// O `greenlet/__init__.py` da wheel `greenlet-3.5.6-cp313-cp313-manylinux_2_24_x86_64` (licença MIT e PSF), sem os
 /// comentários: as importações do `_greenlet` e o `__version__` são o que o módulo nativo precisa responder.
@@ -40,8 +38,8 @@ fn write(c: &Client, sb: &str, path: &str, text: &str) {
     assert_eq!(r["exit_code"], 0, "{r}");
 }
 
-#[test]
-fn gl_api_scene_matches_the_oracle() {
+/// Roda a cena `name` (o texto `scene`) com o pacote como o `pip` o deixa e confere a saída com o golden do oráculo.
+fn scene_matches(name: &str, scene: &str, golden: &str) {
     let d = Daemon::kernel("");
     let t = d.user("ana", json!({}));
     let c = d.client(&t);
@@ -50,13 +48,33 @@ fn gl_api_scene_matches_the_oracle() {
     assert_eq!(r["exit_code"], 0, "{r}");
     write(&c, &sb, "/tmp/gl/greenlet/__init__.py", INIT);
     write(&c, &sb, "/tmp/gl/common.py", COMMON);
-    write(&c, &sb, "/tmp/gl/gl_api.py", SCENE);
-    let r = exec(&c, &sb, "cd /tmp/gl && python3 gl_api.py");
+    write(&c, &sb, &format!("/tmp/gl/{name}.py"), scene);
+    let r = exec(&c, &sb, &format!("cd /tmp/gl && python3 {name}.py"));
     assert_eq!(r["stderr"], "", "{r}");
     assert_eq!(r["exit_code"], 0, "{r}");
     let got = r["stdout"].as_str().unwrap();
-    for (n, (want, have)) in GOLDEN.lines().zip(got.lines()).enumerate() {
-        assert_eq!(have, want, "linha {} da cena gl_api", n + 1);
+    for (n, (want, have)) in golden.lines().zip(got.lines()).enumerate() {
+        assert_eq!(have, want, "linha {} da cena {name}; saída inteira:\n{got}", n + 1);
     }
-    assert_eq!(got, GOLDEN);
+    assert_eq!(got, golden, "cena {name}");
+}
+
+#[test]
+fn gl_api_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_api",
+        include_str!("../../../testbench/oracle/automation/cases/gl_api.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_api.out"),
+    );
+}
+
+/// A exceção do `__eq__` de usuário sai de toda comparação feita por código nativo, em vez de virar "diferente"
+/// (o `[Eq()].index(1)` da cena `gl_surface` devolvia `ValueError` no lugar do erro do `__eq__`).
+#[test]
+fn eq_raise_scene_matches_the_oracle() {
+    scene_matches(
+        "eq_raise",
+        include_str!("../../../testbench/oracle/automation/cases/eq_raise.py"),
+        include_str!("../../../testbench/oracle/automation/golden/eq_raise.out"),
+    );
 }

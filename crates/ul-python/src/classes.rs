@@ -3548,15 +3548,15 @@ pub(crate) fn right_is_subclass(a: &Value, b: &Value) -> bool {
 }
 
 /// `a == b` quando um dos lados é instância (ou classe de metaclasse) com `__eq__` em Python.
-pub fn instance_eq(a: &Value, b: &Value) -> Option<bool> {
+pub fn instance_eq(a: &Value, b: &Value) -> Option<PyResult<bool>> {
     let mut vm = current()?;
     let sides = if right_is_subclass(a, b) { [(b, a), (a, b)] } else { [(a, b), (b, a)] };
     for (x, y) in sides {
         if let Some(Value::Function(f)) = dispatch_type(x).and_then(|t| t.lookup("__eq__")) {
-            if let Ok(r) = vm.call_function(&f, vec![x.clone(), y.clone()], Vec::new()) {
-                if !is_not_implemented(&r) {
-                    return Some(r.is_true());
-                }
+            match vm.call_function(&f, vec![x.clone(), y.clone()], Vec::new()) {
+                Ok(r) if is_not_implemented(&r) => {}
+                Ok(r) => return Some(Ok(r.is_true())),
+                Err(e) => return Some(Err(e)),
             }
         }
     }
@@ -3564,7 +3564,7 @@ pub fn instance_eq(a: &Value, b: &Value) -> Option<bool> {
 }
 
 /// `a == b` quando um dos lados é instância de subclasse de tipo embutido: compara os valores embutidos.
-pub(crate) fn payload_eq(a: &Value, b: &Value) -> Option<bool> {
+pub(crate) fn payload_eq(a: &Value, b: &Value) -> Option<PyResult<bool>> {
     let has_payload = |v: &Value| matches!(v, Value::Instance(i) if i.payload.borrow().is_some());
     if has_payload(a) || has_payload(b) {
         return Some(crate::object::py_eq(&crate::vm::unwrap_payload(a), &crate::vm::unwrap_payload(b)));

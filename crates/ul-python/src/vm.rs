@@ -24,7 +24,7 @@ use crate::compile::{Code, Op};
 use crate::generator::{Begun, Callback, CallbackKind, Collect, GenCore, Layer, Pull, ResumeUse, Resumed, Resuming};
 use crate::modules::{csv, json};
 use crate::object::{
-    exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, py_eq, repr, to_str, BoundMethod, Dict, Env,
+    eq_bool, exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, position_eq, py_eq, repr, to_str, BoundMethod, Dict, Env,
     ExcObj, FileKind, FuncObj, Native, ObjError, PyFile, PyStr, Range, Set, Value, EXC_CLASSES, str_cmp,
 };
 
@@ -607,6 +607,7 @@ impl From<ObjError> for PyException {
             ObjError::IntOverflow => {
                 exc("OverflowError", "integer result outside the 64-bit range (arbitrary int is pending)")
             }
+            ObjError::Raised(e) => *e,
         }
     }
 }
@@ -1579,7 +1580,10 @@ impl Chain {
             ChainKind::Binary { op, inplace } => binary_native(op, &self.a, &self.b, inplace),
             ChainKind::Order(op) => compare_native(op, &self.a, &self.b).map(Value::Bool),
             ChainKind::Equal(op) => {
-                let equal = crate::classes::payload_eq(&self.a, &self.b).unwrap_or_else(|| crate::object::py_eq_native(&self.a, &self.b));
+                let equal = match crate::classes::payload_eq(&self.a, &self.b) {
+                    Some(r) => r?,
+                    None => crate::object::py_eq_native(&self.a, &self.b)?,
+                };
                 Ok(Value::Bool(equal != (op == CmpOp::NotEq)))
             }
         }
@@ -2738,7 +2742,7 @@ impl Vm {
                             // de sequência): o método ganha quadro, e o desfecho volta por `CallbackKind::Advance`.
                             Some(crate::lazy::Leaf::Ended) => Event::Ended,
                             Some(crate::lazy::Leaf::Call(method, args)) => match self.enter_function(&method, args, Vec::new())? {
-                                Entered::Done(v) => leaf_event(&*target, Some(v)),
+                                Entered::Done(v) => leaf_event(&*target, Some(v))?,
                                 Entered::Frame(mut callee) => {
                                     let pull = Pull { root: root.clone(), layers, then };
                                     callee.link.then = Some(Dunder::Callback(Box::new(Callback { pull, what: CallbackKind::Advance { leaf: target } })));
@@ -2897,7 +2901,7 @@ impl Vm {
         let event = match what {
             CallbackKind::Mapped => Event::Got(returned.ok_or_else(missing)?),
             CallbackKind::Kept { it, item } => kept_event(&mut layers, it, item, returned.ok_or_else(missing)?.is_true())?,
-            CallbackKind::Advance { leaf } => leaf_event(&*leaf, returned),
+            CallbackKind::Advance { leaf } => leaf_event(&*leaf, returned)?,
             CallbackKind::Keyed { item } => {
                 let ResumeUse::Collect(collect) = then else { return Err(internal("a key outside a collection")) };
                 return self.collect_run(&root, collect, Input::Key(item, returned.ok_or_else(missing)?));
@@ -3100,11 +3104,11 @@ fn kept_event(layers: &mut Vec<Layer>, it: Rc<dyn crate::object::ExtObject>, ite
 }
 
 /// A fonte folha `leaf` entregou `got` (`None`: acabou): o estado dela avança e o evento sobe pelas camadas.
-fn leaf_event(leaf: &dyn crate::object::ExtObject, got: Option<Value>) -> Event {
-    match crate::lazy::leaf_settle(leaf, got) {
+fn leaf_event(leaf: &dyn crate::object::ExtObject, got: Option<Value>) -> PyResult<Event> {
+    Ok(match crate::lazy::leaf_settle(leaf, got)? {
         Some(v) => Event::Got(v),
         None => Event::Ended,
-    }
+    })
 }
 
 /// A fonte que o iterador devolvido por um `__iter__` em Python passa a ser numa coleta: o gerador (ou a cadeia) que
@@ -7408,8 +7412,8 @@ fn compare_native(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
         }
     }
     match op {
-        CmpOp::Eq => Ok(py_eq(a, b)),
-        CmpOp::NotEq => Ok(!py_eq(a, b)),
+        CmpOp::Eq => py_eq(a, b),
+        CmpOp::NotEq => Ok(!py_eq(a, b)?),
         CmpOp::Is => Ok(is(a, b)),
         CmpOp::IsNot => Ok(!is(a, b)),
         CmpOp::In => contains(b, a),
@@ -7509,7 +7513,7 @@ pub(crate) fn contains(container: &Value, item: &Value) -> PyResult<bool> {
             return r;
         }
         if let Some(items) = e.to_items() {
-            return Ok(items.iter().any(|x| is(x, item) || py_eq(x, item)));
+            return Ok(position_eq(&items, item)?.is_some());
         }
     }
     if let Value::Class(c) = container
@@ -7526,10 +7530,16 @@ pub(crate) fn contains(container: &Value, item: &Value) -> PyResult<bool> {
         }
         return contains_by_iteration(container, item);
     }
-    let member = |items: &[Value]| items.iter().any(|x| is(x, item) || py_eq(x, item));
     match container {
-        Value::List(l) => Ok(member(&l.borrow()[..])),
-        Value::Tuple(t) => Ok(member(&t[..])),
+        Value::List(l) => {
+            let mut found = false;
+            crate::object::scan_list_eq(l, item, 0, usize::MAX, |_| {
+                found = true;
+                true
+            })?;
+            Ok(found)
+        }
+        Value::Tuple(t) => Ok(position_eq(t, item)?.is_some()),
         Value::Str(s) => match item {
             Value::Str(sub) => Ok(!crate::object::match_offsets(s.as_str(), sub.as_str(), 1).is_empty()),
             _ => Err(type_error(format!(
@@ -7542,7 +7552,7 @@ pub(crate) fn contains(container: &Value, item: &Value) -> PyResult<bool> {
         Value::Range(r) => match item {
             Value::Int(i) => Ok(r.contains_int(*i)),
             Value::Bool(b) => Ok(r.contains_int(i64::from(*b))),
-            _ => Ok(member(&iterate(container)?)),
+            _ => Ok(position_eq(&iterate(container)?, item)?.is_some()),
         },
         Value::Bytes(_) | Value::ByteArray(_) => match as_index(item) {
             Some(i) if (0..256).contains(&i) => Ok(container.bytes_like().is_some_and(|b| b.contains(&(i as u8)))),
@@ -7582,7 +7592,7 @@ fn contains_by_iteration(container: &Value, item: &Value) -> PyResult<bool> {
         }
     })?;
     while let Some(x) = it.next()? {
-        if is(&x, item) || py_eq(&x, item) {
+        if eq_bool(&x, item)? {
             return Ok(true);
         }
     }
@@ -7688,7 +7698,7 @@ fn order(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
 /// sem diferença, decide o tamanho.
 fn seq_order(op: CmpOp, x: &[Value], y: &[Value]) -> PyResult<bool> {
     for (p, q) in x.iter().zip(y) {
-        if !(is(p, q) || py_eq(p, q)) {
+        if !eq_bool(p, q)? {
             return compare(op, p, q);
         }
     }
