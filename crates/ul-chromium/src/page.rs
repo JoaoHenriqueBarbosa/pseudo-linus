@@ -129,6 +129,8 @@ impl Page {
         let module_bridge = self.bridge.clone();
         let module_fetch: zjsc::api::browser_modules::ModuleFetch = Rc::new(move |address: &str| fetch_text(&module_bridge.fetcher, address, "*/*"));
         run_page(self.console.clone(), bridge.clone(), &document_url, module_fetch, |runner| {
+            // `Number.prototype.toString(radix)` arredonda a cauda como o V8.
+            zjsc::runtime::number_prototype::set_v8_radix_strings(true);
             // O valor do programa é a função gancho: o hospedeiro a guarda, sem binding global que a página veja.
             let prelude = format!("(function () {{ 'use strict';\n{}{}\nreturn hook;\n}})();", PRELUDE_PARTS.concat(), PRELUDE_TAIL);
             let hook = match runner.eval_hidden_value(&prelude) {
