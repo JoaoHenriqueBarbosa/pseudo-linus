@@ -36,5 +36,16 @@ COPY --from=mirror-certs ca.crt /usr/local/share/ca-certificates/pypi-sandbox.cr
 RUN update-ca-certificates \
  && printf '[global]\nindex-url = https://pypi.sandbox/simple/\n' > /etc/pip.conf
 
+# O bun 1.4.2 (camada separada, pra não mexer nas versões de cima): referência do `bun` do pseudo-linus,
+# que roda o motor JavaScript próprio. Só o binário, em /usr/local/bin/bun, pinado pelo sha256 do
+# executável linux-x64 do release bun-v1.4.2 de oven-sh/bun (o script de instalação criaria /root/.bun,
+# que não existe no sandbox). O zip é aberto pelo zipfile do python3 pra não acrescentar o unzip.
+RUN curl -fsSL -o /tmp/bun.zip https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/bun-linux-x64.zip \
+ && python3 -m zipfile -e /tmp/bun.zip /tmp/bun-extract \
+ && echo "a83d263767d839e4d2649ca8e35d07159c7afc99afdc96d731ced29e056dda0c  /tmp/bun-extract/bun-linux-x64/bun" | sha256sum -c - \
+ && install -m 0755 /tmp/bun-extract/bun-linux-x64/bun /usr/local/bin/bun \
+ && rm -rf /tmp/bun.zip /tmp/bun-extract \
+ && test "$(bun --version)" = 1.4.2
+
 ENV LC_ALL=C.UTF-8 TZ=UTC HOME=/root
 WORKDIR /work
