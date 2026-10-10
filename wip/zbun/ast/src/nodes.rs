@@ -539,6 +539,12 @@ impl DeclaredSymbolList {
         self.is_top_level.push(entry.is_top_level);
     }
 
+    /// O `append_assume_capacity` do `MultiArrayList`: a capacidade já foi reservada por `ensure_total_capacity`.
+    #[inline]
+    pub fn append_assume_capacity(&mut self, entry: DeclaredSymbol) {
+        self.append(entry);
+    }
+
     pub fn append_list(&mut self, other: &DeclaredSymbolList) {
         self.refs.extend_from_slice(&other.refs);
         self.is_top_level.extend_from_slice(&other.is_top_level);
@@ -549,17 +555,30 @@ impl DeclaredSymbolList {
         self.is_top_level.reserve(count);
     }
 
+    /// Reserva até `count` entradas no total, como o `MultiArrayList.ensureTotalCapacity` (falha só sem memória).
+    pub fn ensure_total_capacity(&mut self, count: usize) -> Result<(), bun_collections::AllocError> {
+        let additional = count.saturating_sub(self.refs.len());
+        self.refs.try_reserve(additional).map_err(|_| bun_collections::AllocError)?;
+        self.is_top_level.try_reserve(additional).map_err(|_| bun_collections::AllocError)?;
+        Ok(())
+    }
+
     pub fn clear_retaining_capacity(&mut self) {
         self.refs.clear();
         self.is_top_level.clear();
     }
 
-    pub fn init_capacity(capacity: usize) -> DeclaredSymbolList {
-        DeclaredSymbolList { refs: Vec::with_capacity(capacity), is_top_level: Vec::with_capacity(capacity) }
+    pub fn init_capacity(capacity: usize) -> Result<DeclaredSymbolList, bun_collections::AllocError> {
+        let mut this = DeclaredSymbolList::default();
+        this.ensure_total_capacity(capacity)?;
+        Ok(this)
     }
 
     pub fn from_slice(entries: &[DeclaredSymbol]) -> DeclaredSymbolList {
-        let mut this = Self::init_capacity(entries.len());
+        let mut this = DeclaredSymbolList {
+            refs: Vec::with_capacity(entries.len()),
+            is_top_level: Vec::with_capacity(entries.len()),
+        };
         for &entry in entries {
             this.append(entry);
         }

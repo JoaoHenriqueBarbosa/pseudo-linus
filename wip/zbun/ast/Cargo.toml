@@ -12,6 +12,7 @@ bitflags.workspace = true
 bstr.workspace = true
 bun_collections = { path = "../bun_collections" }
 bun_core = { path = "../bun_core" }
+bun_paths = { path = "../paths" }
 bun_wyhash = { path = "../bun_wyhash" }
 enum-map.workspace = true
 enumset.workspace = true

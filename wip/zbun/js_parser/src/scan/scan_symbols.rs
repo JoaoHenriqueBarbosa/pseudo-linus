@@ -113,29 +113,23 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 });
             }
 
-            // SAFETY: `name` is a slice of the source or the lexer's string table.
-            let gpe = unsafe {
-                self.module_scope_mut()
-                    .get_or_put_member_with_hash(name, hash)
-            };
-
-            // I don't think this happens?
-            if gpe.found_existing {
-                let existing = *gpe.value_ptr;
+            // The name is not a member of the module scope yet, or a previous lookup would have found it.
+            let module_scope = self.module_scope;
+            if let Some(existing) = self.store[module_scope].get_member_with_hash(&self.store, name, hash) {
+                // I don't think this happens?
                 declare_loc = existing.loc;
                 break 'brk existing.ref_;
             }
 
-            // gpe borrows self.module_scope while self.new_symbol needs &mut self.
-            // Drop gpe, allocate, then re-insert.
             let new_ref = self.new_symbol(js_ast::symbol::Kind::Unbound, name);
-
-            // SAFETY: as above.
-            *unsafe {
-                self.module_scope_mut()
-                    .get_or_put_member_with_hash(name, hash)
-            }
-            .value_ptr = js_ast::scope::Member { ref_: new_ref, loc };
+            let stored_name = self.store.alloc_str(name);
+            js_ast::Scope::put_member_with_hash(
+                &mut self.store,
+                module_scope,
+                stored_name,
+                hash,
+                js_ast::scope::Member { ref_: new_ref, loc },
+            );
 
             declare_loc = loc;
             scope_use = false;

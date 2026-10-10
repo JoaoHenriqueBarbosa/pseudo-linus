@@ -67,7 +67,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // `StoreRef<Scope>` (Copy + safe `Deref`) lets the parent-chain walk
         // run without raw-pointer `unsafe` and without borrowing `p`.
         let mut scope = p.current_scope_ref();
-        while !scope.kind_stops_hoisting() {
+        while !self.store[scope].kind_stops_hoisting() {
             let parent = self.store[scope].parent;
             debug_assert!(parent.is_some());
             scope = parent.unwrap();
@@ -890,7 +890,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             },
             bun_ast::Loc::EMPTY,
         );
-        let right = p.new_expr(E::EString::from_static(b"undefined"), bun_ast::Loc::EMPTY);
+        let undefined_text = E::EString::from_static(&mut p.store, b"undefined");
+        let right = p.new_expr(undefined_text, bun_ast::Loc::EMPTY);
         Ok(p.new_expr(
             E::Binary {
                 op: js_ast::OpCode::BinStrictEq,

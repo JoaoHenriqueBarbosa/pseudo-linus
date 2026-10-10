@@ -187,7 +187,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 // reshaped for borrowck: get_ptr borrows options; clone the
                 // small enum payload so `inject_replacement_export(&mut self, ...)` can run.
-                if let Some(entry) = p.options.features.replace_exports.get_ptr(name).cloned() {
+                if let Some(entry) = p.options.features.replace_exports.get(name).cloned() {
                     if !entry.is_replace() {
                         p.ignore_usage(symbol.r#ref);
                     }
@@ -289,7 +289,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 // alias is arena-owned (`ArenaStr`), valid for 'a.
                 let alias = p.store.str(items[i].alias);
-                if let Some(entry) = p.options.features.replace_exports.get_ptr(alias).cloned() {
+                if let Some(entry) = p.options.features.replace_exports.get(alias).cloned() {
                     let _ =
                         p.inject_replacement_export(stmts, old_ref, bun_ast::Loc::EMPTY, &entry);
                     continue;
@@ -343,7 +343,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     .options
                     .features
                     .replace_exports
-                    .get_ptr(alias_name)
+                    .get(alias_name)
                     .cloned()
                 {
                     let declared = p
@@ -386,7 +386,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let orig_dead = p.is_control_flow_dead;
         if p.options.features.replace_exports.count() > 0 {
-            if let Some(entry) = p.options.features.replace_exports.get_ptr(b"default") {
+            if let Some(entry) = p.options.features.replace_exports.get(&b"default"[..]) {
                 p.is_control_flow_dead =
                     p.options.features.dead_code_elimination && !entry.is_replace();
                 mark_for_replace = true;
@@ -555,7 +555,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         .options
                         .features
                         .replace_exports
-                        .get_ptr(b"default")
+                        .get(&b"default"[..])
                         .cloned()
                         .unwrap();
                     if let crate::parser::Runtime::ReplaceableExport::Replace(replace_expr) = entry
@@ -647,7 +647,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .options
                                 .features
                                 .replace_exports
-                                .get_ptr(b"default")
+                                .get(&b"default"[..])
                                 .cloned()
                                 .unwrap();
                             if let crate::parser::Runtime::ReplaceableExport::Replace(
@@ -792,7 +792,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .options
                                 .features
                                 .replace_exports
-                                .get_ptr(b"default")
+                                .get(&b"default"[..])
                                 .cloned()
                                 .unwrap();
                             if let crate::parser::Runtime::ReplaceableExport::Replace(
@@ -994,7 +994,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .options
                 .features
                 .replace_exports
-                .get_ptr(original_name)
+                .get(original_name)
                 .cloned()
             {
                 let _ = p.inject_replacement_export(
@@ -1085,7 +1085,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .expect("infallible: name checked")
                 .ref_;
             let name = p.load_name_from_ref(ref_);
-            if let Some(replacement) = p.options.features.replace_exports.get_ptr(name).cloned() {
+            if let Some(replacement) = p.options.features.replace_exports.get(name).cloned() {
                 if p.inject_replacement_export(
                     stmts,
                     ref_,

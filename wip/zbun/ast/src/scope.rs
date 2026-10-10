@@ -347,6 +347,16 @@ impl Scope {
         self.members.get_hashed(store, hash_value, name).copied()
     }
 
+    /// O `get_or_put_member_with_hash` do upstream no uso que o parser faz dele (`*gpe.value_ptr = member`): insere
+    /// ou sobrescreve o membro `name` do escopo. No upstream o nome é uma referência que o `unsafe` prolonga; aqui é
+    /// uma faixa do `Store`. A tabela de membros mora dentro do próprio `Store` e lê os nomes dele, então os membros
+    /// saem do escopo durante a chamada (dois empréstimos do mesmo `Store` não coexistem).
+    pub fn put_member_with_hash(store: &mut Store, scope: StoreRef<Scope>, name: StoreStr, hash: u32, member: Member) {
+        let mut members = core::mem::take(&mut store[scope].members);
+        *members.get_or_put_hashed(store, hash, name).value_ptr = member;
+        store[scope].members = members;
+    }
+
     /// Associated-fn form of `can_merge_symbols` taking the scope's [`Kind`] by value.
     pub fn can_merge_symbol_kinds<const IS_TYPESCRIPT_ENABLED: bool>(
         scope_kind: Kind,
@@ -496,4 +506,27 @@ pub enum Kind {
     FunctionArgs,
     FunctionBody,
     ClassStaticInit,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn put_member_with_hash_inserts_then_overwrites_through_the_store() {
+        let mut store = Store::default();
+        let scope = store.alloc(Scope::EMPTY);
+        let name = store.alloc_str(b"foo");
+        let hash = Members::hash(b"foo");
+        let first = Member { ref_: Ref::NONE, loc: crate::Loc { start: 1 } };
+        Scope::put_member_with_hash(&mut store, scope, name, hash, first);
+        let found = store[scope].get_member_with_hash(&store, b"foo", hash).expect("o membro foi inserido");
+        assert_eq!(found.loc.start, 1);
+
+        let second = Member { ref_: Ref::NONE, loc: crate::Loc { start: 2 } };
+        Scope::put_member_with_hash(&mut store, scope, name, hash, second);
+        assert_eq!(store[scope].members.len(), 1);
+        let found = store[scope].get_member_with_hash(&store, b"foo", hash).expect("o membro segue lá");
+        assert_eq!(found.loc.start, 2);
+    }
 }

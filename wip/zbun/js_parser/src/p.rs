@@ -3556,20 +3556,24 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 'next_member: for (_key_ptr, mut value) in member_snapshot.into_iter() {
                     let mut symbol_idx = value.ref_.inner_index() as usize;
 
-                    // `Symbol.original_name` is an arena-owned `StoreStr` valid for 'a.
-                    let name: &'a [u8] = self.store.str(self.symbols[symbol_idx].original_name);
+                    // `Symbol.original_name` é uma faixa do `Store`: cada uso lê os bytes na hora, porque uma
+                    // referência longa ao `Store` não conviveria com as escritas no mesmo `Store` (`new_symbol`,
+                    // `put_member_with_hash`).
+                    let name_store = self.symbols[symbol_idx].original_name;
                     let mut hash: Option<u32> = None;
 
                     if self.store[scope_parent].kind == js_ast::scope::Kind::CatchBinding
                         && self.symbols[symbol_idx].kind != js_ast::symbol::Kind::Hoisted
                     {
-                        hash = Some(js_ast::scope::Members::hash(name));
-                        if let Some(existing_member) =
-                            scope_parent.get_member_with_hash(name, hash.unwrap())
-                        {
+                        hash = Some(js_ast::scope::Members::hash(self.store.str(name_store)));
+                        if let Some(existing_member) = self.store[scope_parent].get_member_with_hash(
+                            &self.store,
+                            self.store.str(name_store),
+                            hash.unwrap(),
+                        ) {
                             self.log().add_symbol_already_declared_error(
                                 self.source,
-                                name,
+                                self.store.str(name_store),
                                 value.loc,
                                 existing_member.loc,
                             );
@@ -3629,14 +3633,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
 
                     if hash.is_none() {
-                        hash = Some(js_ast::scope::Members::hash(name));
+                        hash = Some(js_ast::scope::Members::hash(self.store.str(name_store)));
                     }
 
                     while let Some(mut _scope_ptr) = __scope {
                         // `_scope_ptr` walks the parent chain so it never aliases `scope`
                         // (whose only live borrow is the by-value members snapshot above).
-                        let _scope = &mut self.store[_scope_ptr];
-                        let scope_kind = _scope.kind;
+                        let scope_kind = self.store[_scope_ptr].kind;
 
                         // Variable declarations hoisted past a "with" statement may actually end
                         // up overwriting a property on the target of the "with" statement instead
@@ -3652,9 +3655,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             self.symbols[symbol_idx].set_must_not_be_renamed(true);
                         }
 
-                        if let Some(member_in_scope) =
-                            _scope.get_member_with_hash(&self.store, name, hash.unwrap())
-                        {
+                        if let Some(member_in_scope) = self.store[_scope_ptr].get_member_with_hash(
+                            &self.store,
+                            self.store.str(name_store),
+                            hash.unwrap(),
+                        ) {
                             let existing_idx = member_in_scope.ref_.inner_index() as usize;
                             let existing_kind = self.symbols[existing_idx].kind;
 
@@ -3677,11 +3682,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 // `StringHashMap` get_or_put already stores the key on insert and
                                 // cannot hand out `&mut K` (see StringHashMapGetOrPut docs), so
                                 // no key write is needed here.
-                                // SAFETY: `name` is a symbol's `original_name`.
-                                *unsafe {
-                                    _scope.get_or_put_member_with_hash(name, hash.unwrap())
-                                }
-                                .value_ptr = member_in_scope;
+                                js_ast::Scope::put_member_with_hash(
+                                    &mut self.store,
+                                    _scope_ptr,
+                                    name_store,
+                                    hash.unwrap(),
+                                    member_in_scope,
+                                );
 
                                 // "function foo() {} { var foo; }"
                                 if _scope_ptr == self.module_scope
@@ -3712,7 +3719,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         let _ = write!(
                                             &mut msg,
                                             "{} was originally declared here",
-                                            bstr::BStr::new(name)
+                                            bstr::BStr::new(self.store.str(name_store))
                                         );
                                         let notes: Box<[bun_ast::Data]> =
                                             Box::new([bun_ast::range_data(
@@ -3729,7 +3736,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                             notes,
                                             format_args!(
                                                 "{} has already been declared",
-                                                bstr::BStr::new(name)
+                                                bstr::BStr::new(self.store.str(name_store))
                                             ),
                                         );
                                     } else if _scope_ptr == scope_parent {
@@ -3745,19 +3752,27 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // If this is a catch identifier, silently merge the existing symbol
                             // into this symbol but continue hoisting past this catch scope
                             self.symbols[existing_idx].link.set(value.ref_);
-                            // SAFETY: `name` is a symbol's `original_name`.
-                            *unsafe { _scope.get_or_put_member_with_hash(name, hash.unwrap()) }
-                                .value_ptr = value;
+                            js_ast::Scope::put_member_with_hash(
+                                &mut self.store,
+                                _scope_ptr,
+                                name_store,
+                                hash.unwrap(),
+                                value,
+                            );
                         }
 
-                        if _scope.kind_stops_hoisting() {
-                            // SAFETY: `name` is a symbol's `original_name`.
-                            *unsafe { _scope.get_or_put_member_with_hash(name, hash.unwrap()) }
-                                .value_ptr = value;
+                        if self.store[_scope_ptr].kind_stops_hoisting() {
+                            js_ast::Scope::put_member_with_hash(
+                                &mut self.store,
+                                _scope_ptr,
+                                name_store,
+                                hash.unwrap(),
+                                value,
+                            );
                             break;
                         }
 
-                        __scope = _scope.parent;
+                        __scope = self.store[_scope_ptr].parent;
                     }
                 }
             }
@@ -7576,8 +7591,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         constructor_stmts.extend_from_slice(&instance_members);
 
-                        let key_expr =
-                            self.new_expr(E::EString::from_static(b"constructor"), stmt.loc);
+                        let constructor_text = E::EString::from_static(&mut self.store, b"constructor");
+                        let key_expr = self.new_expr(constructor_text, stmt.loc);
                         let value_expr = self.new_expr(
                             E::Function {
                                 func: G::Fn {
@@ -7657,10 +7672,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     bun_ast::Loc::EMPTY,
                                 )
                             };
-                            let label = self.new_expr(
-                                E::EString::from_static(b"design:paramtypes"),
-                                bun_ast::Loc::EMPTY,
-                            );
+                            let paramtypes_text = E::EString::from_static(&mut self.store, b"design:paramtypes");
+                            let label = self.new_expr(paramtypes_text, bun_ast::Loc::EMPTY);
                             let args_slice = self.arena.alloc_slice_copy(&[label, args1]);
                             let args = self.store.alloc_slice((args_slice).to_vec());
                             array.push(self.call_runtime(stmt.loc, b"__legacyMetadataTS", args));
@@ -7716,7 +7729,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // pulled out of the per-arm code to cut a ~3x repetition.
         macro_rules! push_metadata {
             ($label:expr, $value:expr) => {{
-                let label = self.new_expr(E::EString::from_static($label), bun_ast::Loc::EMPTY);
+                let label_text = E::EString::from_static(&mut self.store, $label);
+                let label = self.new_expr(label_text, bun_ast::Loc::EMPTY);
                 let value = $value;
                 let args = self.arena.alloc_slice_copy(&[label, value]);
                 let args = self.store.alloc_slice((args).to_vec());
@@ -8106,7 +8120,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut _scope: Option<js_ast::StoreRef<Scope>> = Some(self.current_scope_ref());
 
         while let Some(scope) = _scope {
-            if scope.kind_stops_hoisting() {
+            if self.store[scope].kind_stops_hoisting() {
                 break;
             }
             if let Some(label_ref) = self.store[scope].label_ref.to_nullable() {
@@ -8950,7 +8964,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             unsafe {
                                 core::ptr::write(
                                     &raw mut part.declared_symbols,
-                                    self.declared_symbols.clone().expect("unreachable"),
+                                    self.declared_symbols.clone(),
                                 );
                             }
                         } else {
@@ -10026,7 +10040,7 @@ impl LowerUsingDeclarationsContext {
         // parent-chain walk and the `.generated` writes below run without
         // raw-pointer `unsafe`, and does not borrow `p`.
         let mut scope: js_ast::StoreRef<Scope> = p.current_scope_ref();
-        while !scope.kind_stops_hoisting() {
+        while !p.store[scope].kind_stops_hoisting() {
             scope = p.store[scope].parent.unwrap();
         }
 

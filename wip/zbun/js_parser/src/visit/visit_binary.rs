@@ -49,7 +49,8 @@ fn try_optimize_typeof_undefined<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bo
     };
 
     // Create new string with "u"
-    let u_string = p.new_expr(E::EString::from_static(b"u"), string_expr.loc);
+    let u_text = E::EString::from_static(&mut p.store, b"u");
+    let u_string = p.new_expr(u_text, string_expr.loc);
 
     // Create the optimized comparison
     let left = if flip_comparison {

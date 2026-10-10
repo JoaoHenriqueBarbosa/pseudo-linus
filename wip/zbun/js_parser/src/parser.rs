@@ -1517,11 +1517,6 @@ pub(crate) mod prefill {
         pub(crate) const ZERO: E::Number = E::Number::new(0.0);
     }
 
-    pub(crate) mod string {
-        use super::*;
-        pub(crate) const CHILDREN: E::String = E::String::from_static(b"children");
-    }
-
     pub(crate) mod data {
         use super::*;
         pub(crate) const THIS: js_ast::ExprData = js_ast::ExprData::EThis(E::This {});

@@ -101,8 +101,8 @@ impl Location {
         if let Some(source) = _source {
             if r.is_empty() {
                 return Some(Location {
-                    file: source.path.text.clone(),
-                    namespace: source.path.namespace.clone(),
+                    file: Cow::Borrowed(source.path.text),
+                    namespace: Cow::Borrowed(source.path.namespace),
                     line: -1,
                     column: -1,
                     length: 0,
@@ -131,8 +131,8 @@ impl Location {
             }
 
             return Some(Location {
-                file: source.path.text.clone(),
-                namespace: source.path.namespace.clone(),
+                file: Cow::Borrowed(source.path.text),
+                namespace: Cow::Borrowed(source.path.namespace),
                 line: crate::usize2loc(data.line_count).start,
                 column: crate::usize2loc(data.column_count).start,
                 length: if r.len > -1 { u32::try_from(r.len).expect("int cast") as usize } else { 1 },
@@ -571,18 +571,8 @@ pub fn range_of_identifier<const FIXED: bool>(contents: &[u8], loc: Loc) -> Rang
 // Source
 // ───────────────────────────────────────────────────────────────────────────
 
-/// O `bun_paths::fs::Path` na parte que o logger lê.
-#[derive(Clone)]
-pub struct Path {
-    pub text: Cow<'static, [u8]>,
-    pub namespace: Cow<'static, [u8]>,
-}
-
-impl Default for Path {
-    fn default() -> Self {
-        Path { text: Cow::Borrowed(b""), namespace: Cow::Borrowed(b"file") }
-    }
-}
+/// O caminho lógico do arquivo, o mesmo `bun_paths::fs::Path` do upstream (`name()`, `is_node_module()`).
+pub use bun_paths::fs::Path;
 
 /// Returned by [`Source::check_parseable_len`] once it has logged the error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -590,7 +580,7 @@ pub struct SourceTooLarge;
 
 #[derive(Clone)]
 pub struct Source {
-    pub path: Path,
+    pub path: Path<'static>,
     pub contents: Cow<'static, [u8]>,
     pub contents_is_recycled: bool,
     pub identifier_name: Cow<'static, [u8]>,
@@ -713,9 +703,9 @@ fn clamp_error_offset(contents: &[u8], offset_loc: Loc) -> usize {
 }
 
 impl Source {
-    /// `Source::init_path_string`, sem o `bun_paths`: o caminho é o texto dado, no namespace `file`.
-    pub fn init_path_string(path: impl Into<Cow<'static, [u8]>>, contents: impl Into<Cow<'static, [u8]>>) -> Source {
-        Source { path: Path { text: path.into(), ..Path::default() }, contents: contents.into(), ..Source::default() }
+    /// `Source::init_path_string`: o caminho é o texto dado, no namespace `file`.
+    pub fn init_path_string(path: &'static [u8], contents: impl Into<Cow<'static, [u8]>>) -> Source {
+        Source { path: Path::init(path), contents: contents.into(), ..Source::default() }
     }
 
     #[inline]

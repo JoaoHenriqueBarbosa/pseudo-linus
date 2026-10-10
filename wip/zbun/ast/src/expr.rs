@@ -231,6 +231,12 @@ impl Expr {
     pub fn is_primitive_literal(&self) -> bool {
         Tag::is_primitive_literal(self.data.tag())
     }
+
+    /// Uma chamada com esta expressão como alvo passa um valor de `this` (`a.b()` e `a[b]()`).
+    #[inline]
+    pub fn has_value_for_this_in_call(&self) -> bool {
+        matches!(self.data, Data::EDot(_) | Data::EIndex(_))
+    }
 }
 
 // ───────────────────────────────────────────────────────────────────────────

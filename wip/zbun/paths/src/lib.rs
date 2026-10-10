@@ -145,6 +145,18 @@ pub mod fs {
         pub const fn init(text: &'a [u8]) -> Self {
             Self { pretty: text, text, namespace: b"file", is_disabled: false, is_symlink: false }
         }
+
+        /// O diretório do caminho passa por `/node_modules/` (o `isNodeModule` do upstream, com o separador do
+        /// Linux).
+        pub fn is_node_module(&self) -> bool {
+            bun_core::strings::last_index_of(self.name().dir, b"/node_modules/").is_some()
+        }
+    }
+
+    impl Default for Path<'_> {
+        fn default() -> Self {
+            Path::init(b"")
+        }
     }
 }
 
@@ -170,5 +182,14 @@ mod tests {
         assert_eq!(PathName::find_extname(b"/x/.bashrc"), b"");
         let p = Path::init(b"/src/app.tsx");
         assert_eq!((p.namespace, p.name().ext), (&b"file"[..], &b".tsx"[..]));
+    }
+
+    #[test]
+    fn node_module_looks_at_the_directory_only() {
+        assert!(Path::init(b"/proj/node_modules/pkg/index.js").is_node_module());
+        assert!(!Path::init(b"/proj/src/index.js").is_node_module());
+        // o diretório é `/node_modules`, sem a barra do fim: o upstream também não conta
+        assert!(!Path::init(b"/node_modules/x.js").is_node_module());
+        assert_eq!(Path::default().namespace, b"file");
     }
 }

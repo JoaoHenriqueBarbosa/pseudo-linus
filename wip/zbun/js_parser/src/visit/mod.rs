@@ -311,7 +311,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .options
                             .features
                             .replace_exports
-                            .get_ptr(name)
+                            .get(name)
                             .map(|r| (r.clone(), r.is_replace()));
                         if let Some((entry, is_replace)) = found {
                             replacement = Some(entry);
@@ -600,7 +600,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         .options
                         .features
                         .replace_exports
-                        .get_ptr(name)
+                        .get(name)
                         .cloned()
                     {
                         // The entry is cloned out of `self.options.features.replace_exports`, which is not
@@ -808,7 +808,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if scope_kind == js_ast::scope::Kind::FunctionArgs
                     || scope_kind == js_ast::scope::Kind::CatchBinding
                     || (self.symbols[bind.r#ref.inner_index() as usize].is_hoisted()
-                        && !self.current_scope.kind_stops_hoisting())
+                        && !self.store[self.current_scope].kind_stops_hoisting())
                 {
                     self.record_scope_use(bind.r#ref);
                 }
@@ -1412,7 +1412,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             ));
                         }
                         ctor_stmts.extend_from_slice(&injected);
-                        let key_expr = self.new_expr(E::EString::from_static(b"constructor"), loc);
+                        let constructor_text = E::EString::from_static(&mut self.store, b"constructor");
+                        let key_expr = self.new_expr(constructor_text, loc);
                         let value_expr = self.new_expr(
                             E::Function {
                                 func: G::Fn {

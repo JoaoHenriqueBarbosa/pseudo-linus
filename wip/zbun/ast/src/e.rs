@@ -1173,6 +1173,13 @@ impl EString {
         }
     }
 
+    /// Um texto constante do transpilador (`"children"`, `"constructor"`). No upstream `from_static` aponta para a
+    /// memória estática; aqui os bytes vão para o `Store` do arquivo, porque a faixa só existe dentro dele (a
+    /// seção "Arena tipada" do README prevê o `Prefill` para isso, que ainda não existe).
+    pub fn from_static(store: &mut Store, text: &'static [u8]) -> Self {
+        Self::init(store.alloc_str(text))
+    }
+
     /// A TOML date/time literal; `data` must be ASCII text `Temporal.*.from`
     /// accepts verbatim.
     pub fn init_toml_datetime(data: Str, kind: TomlDateTimeKind) -> Self {

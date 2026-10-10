@@ -529,7 +529,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         p.store[e_].children.truncate(last_child as usize);
                     }
 
-                    let children_key = p.new_expr(prefill::string::CHILDREN, expr.loc);
+                    let children_text = E::EString::from_static(&mut p.store, b"children");
+                    let children_key = p.new_expr(children_text, expr.loc);
 
                     // Optimization: if the only non-child prop is a spread object
                     // we can just pass the object as the first argument
@@ -1110,8 +1111,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             if inlined.can_be_inlined_from_property_access() {
                                 // "[obj.m][0]()" => "(0, obj.m)()"
                                 *e = if is_call_target && inlined.has_value_for_this_in_call() {
-                                    p.new_expr(E::Number::new(0.0), expr.loc)
-                                        .join_with_comma(inlined)
+                                    let zero = p.new_expr(E::Number::new(0.0), expr.loc);
+                                    Expr::join_with_comma(&mut p.store, zero, inlined)
                                 } else {
                                     inlined
                                 };
@@ -1197,11 +1198,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         .kind
                         == js_ast::symbol::Kind::Unbound
                 {
-                    p.store[e_].value = Expr {
-                        loc: p.store[e_].value.loc,
+                    let value = p.store[e_].value;
+                    let zero = Expr {
+                        loc: value.loc,
                         data: prefill::data::ZERO,
-                    }
-                    .join_with_comma(p.store[e_].value);
+                    };
+                    p.store[e_].value = Expr::join_with_comma(&mut p.store, zero, value);
                 }
 
                 if matches!(p.store[e_].value.data, Data::ERequireCallTarget) {
@@ -1324,16 +1326,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if p.options.features.minify_syntax {
                     // "-(a, b)" => "a, -b"
                     if !matches!(p.store[e_].op, Op::UnDelete | Op::UnTypeof) {
-                        if let Data::EBinary(comma) = &p.store[e_].value.data {
-                            if p.store[*comma].op == Op::BinComma {
-                                *e = p.store[*comma].left.join_with_comma(p.new_expr(
-                                    E::Unary {
-                                        op: p.store[e_].op,
-                                        value: p.store[*comma].right,
-                                        flags: p.store[e_].flags,
-                                    },
-                                    p.store[*comma].right.loc,
-                                ));
+                        if let Data::EBinary(comma) = p.store[e_].value.data {
+                            if p.store[comma].op == Op::BinComma {
+                                let (left, right) = (p.store[comma].left, p.store[comma].right);
+                                let (op, flags) = (p.store[e_].op, p.store[e_].flags);
+                                let unary = p.new_expr(E::Unary { op, value: right, flags }, right.loc);
+                                *e = Expr::join_with_comma(&mut p.store, left, unary);
                                 return;
                             }
                         }
@@ -1527,9 +1525,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.is_control_flow_dead = old;
 
             if side_effects.side_effects == SideEffects::CouldHaveSideEffects {
-                *e = SideEffects::simplify_unused_expr(p, p.store[e_].test)
-                    .unwrap_or_else(|| p.new_expr(E::Missing {}, p.store[e_].test.loc))
-                    .join_with_comma(p.store[e_].yes);
+                let test = p.store[e_].test;
+                let simplified = SideEffects::simplify_unused_expr(p, test)
+                    .unwrap_or_else(|| p.new_expr(E::Missing {}, test.loc));
+                let yes = p.store[e_].yes;
+                *e = Expr::join_with_comma(&mut p.store, simplified, yes);
                 return;
             }
 
@@ -1537,9 +1537,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // "(1 ? this.fn : 2)" => "this.fn"
             // "(1 ? this.fn : 2)()" => "(0, this.fn)()"
             if is_call_target && p.store[e_].yes.has_value_for_this_in_call() {
-                *e = p
-                    .new_expr(E::Number::new(0.0), p.store[e_].test.loc)
-                    .join_with_comma(p.store[e_].yes);
+                let zero = p.new_expr(E::Number::new(0.0), p.store[e_].test.loc);
+                let yes = p.store[e_].yes;
+                *e = Expr::join_with_comma(&mut p.store, zero, yes);
                 return;
             }
 
@@ -1554,9 +1554,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // "(a, false) ? b : c" => "a, c"
             if side_effects.side_effects == SideEffects::CouldHaveSideEffects {
-                *e = SideEffects::simplify_unused_expr(p, p.store[e_].test)
-                    .unwrap_or_else(|| p.new_expr(E::Missing {}, p.store[e_].test.loc))
-                    .join_with_comma(p.store[e_].no);
+                let test = p.store[e_].test;
+                let simplified = SideEffects::simplify_unused_expr(p, test)
+                    .unwrap_or_else(|| p.new_expr(E::Missing {}, test.loc));
+                let no = p.store[e_].no;
+                *e = Expr::join_with_comma(&mut p.store, simplified, no);
                 return;
             }
 
@@ -1564,9 +1566,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // "(1 ? this.fn : 2)" => "this.fn"
             // "(1 ? this.fn : 2)()" => "(0, this.fn)()"
             if is_call_target && p.store[e_].no.has_value_for_this_in_call() {
-                *e = p
-                    .new_expr(E::Number::new(0.0), p.store[e_].test.loc)
-                    .join_with_comma(p.store[e_].no);
+                let zero = p.new_expr(E::Number::new(0.0), p.store[e_].test.loc);
+                let no = p.store[e_].no;
+                *e = Expr::join_with_comma(&mut p.store, zero, no);
                 return;
             }
             *e = p.store[e_].no;

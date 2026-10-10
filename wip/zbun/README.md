@@ -50,6 +50,17 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
     as duas num corpus de caminhos com `.`, `..`, controles, delimitadores e não ASCII;
   - o `bun_ptr::BackRef` do `visit_decls` (um ponteiro para a entrada de `replace_exports`, que não muda durante a
     visita) vira um clone da entrada: `ReplaceableExport` é `Clone` e o `Expr` dentro dele é um índice do `Store`.
+- Lacunas de API do parser, fechadas sobre o `Store`:
+  - `Source.path` é o `bun_paths::fs::Path<'static>` do upstream (o `ast` passa a depender do `bun_paths`), com
+    `name()` e `is_node_module()` (a barra `/node_modules/` no diretório, como o `isNodeModule`);
+  - `EString::from_static(store, texto)` grava os bytes no `Store` do arquivo, porque a faixa só existe dentro dele;
+    o `prefill::string::CHILDREN` const deixou de existir até o `Prefill` entrar (item da seção "Arena tipada");
+  - `Scope::put_member_with_hash(store, escopo, nome, hash, membro)` no lugar do `get_or_put_member_with_hash`
+    `unsafe`: os membros saem do escopo durante a chamada, o padrão de "Escrita durante a visita";
+  - `DeclaredSymbolList::{init_capacity, ensure_total_capacity}` devolvem `Result<_, AllocError>` como o
+    `MultiArrayList`, e ganha `append_assume_capacity`;
+  - `replace_exports.get_ptr(chave)` vira `replace_exports.get(chave)` do mapa (o `ReplaceableExportMap` tem `Deref`
+    para ele), para não haver função de repasse.
 
 ## Próximos passos (parser e printer)
 
