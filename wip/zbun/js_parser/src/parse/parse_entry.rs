@@ -1008,8 +1008,6 @@ impl<'a> Parser<'a> {
                             .iter()
                             .position(|k| *k == stmt.loc)
                             .expect("enum scope-order entry recorded during parse");
-                        // Map stores `&'a [ScopeOrder]`; shared borrow may freely alias the inner
-                        // re-lookup performed by `append_part → visit_stmts`.
                         p.scope_order_to_visit = p.scopes_in_order_for_enum.values()[idx];
 
                         let mut enum_parts = BumpVec::<js_ast::Part>::new_in(arena);
@@ -1117,8 +1115,8 @@ impl<'a> Parser<'a> {
                             .position(|k| *k == stmt.loc)
                             .expect("enum scope-order entry");
                         let enum_scope_count = p.scopes_in_order_for_enum.values()[idx].len();
-                        // Advance the shared-slice cursor past this enum's scopes.
-                        p.scope_order_to_visit = &p.scope_order_to_visit[enum_scope_count..];
+                        // Avança o cursor de visita para depois dos escopos deste enum.
+                        p.scope_order_to_visit.skip(enum_scope_count);
                     }
                     _ => {
                         let sliced = [*stmt];

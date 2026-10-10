@@ -641,7 +641,7 @@ pub(crate) const ARGUMENTS_STR: &[u8] = b"arguments";
 // While the names for Expr, Binding, and Stmt are directly copied from esbuild, those were likely inspired by Go's parser.
 // which is another example of a very fast parser.
 
-pub(crate) type ScopeOrderList<'bump> = bun_alloc::ArenaVec<'bump, Option<ScopeOrder<'bump>>>;
+pub(crate) type ScopeOrderList = Vec<Option<ScopeOrder>>;
 
 // kept as a static reference
 pub(crate) const EXPORTS_STRING_NAME: &[u8] = b"exports";
@@ -1168,25 +1168,7 @@ pub(crate) type StringBoolMap = StringHashMap<bool>;
 pub(crate) type RefMap = HashMap<Ref, ()>;
 pub(crate) type RefRefMap = HashMap<Ref, Ref>;
 
-// O escopo é um índice no Store (`StoreRef`, Copy): o passe de visita escreve por ele e o passe de parse
-// precisa de Copy para a lista de `Option<ScopeOrder>` ser indexável e truncável. O `'arena` só existe enquanto
-// as faixas `&'a [ScopeOrder<'a>]` do parser não migram para o Store (fatia seguinte do passe).
-#[derive(Clone, Copy)]
-pub struct ScopeOrder<'arena> {
-    pub(crate) loc: bun_ast::Loc,
-    pub(crate) scope: js_ast::StoreRef<Scope>,
-    _phantom: core::marker::PhantomData<&'arena Scope>,
-}
-impl<'arena> ScopeOrder<'arena> {
-    #[inline]
-    pub(crate) fn new(loc: bun_ast::Loc, scope: js_ast::StoreRef<Scope>) -> Self {
-        Self {
-            loc,
-            scope,
-            _phantom: core::marker::PhantomData,
-        }
-    }
-}
+pub use bun_ast::scope::ScopeOrder;
 
 #[derive(Clone, Copy, Default)]
 pub struct ParenExprOpts {

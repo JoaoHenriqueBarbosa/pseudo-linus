@@ -527,7 +527,7 @@ pub struct P<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> {
     // symbols must be separate from the pass that binds identifiers to declared
     // symbols to handle declaring a hoisted "var" symbol in a nested scope and
     // binding a name to it in a parent or sibling scope.
-    pub(crate) scopes_in_order: ScopeOrderList<'a>,
+    pub(crate) scopes_in_order: ScopeOrderList,
     // Shared slice: the visit pass only ever *reads* `ScopeOrder` (which is
     // `Copy`) and advances/reslices the cursor. A `&'a mut [_]` here forced
     // raw-ptr round-trips at the enum-preprocess save/restore sites and
@@ -535,7 +535,7 @@ pub struct P<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> {
     // `visit_stmts` re-looked-up the same arena slice from
     // `scopes_in_order_for_enum`. A `&'a [_]` is `Copy`, so save/restore is a
     // plain value copy and the map can hand out the same slice freely.
-    pub(crate) scope_order_to_visit: &'a [ScopeOrder<'a>],
+    pub(crate) scope_order_to_visit: js_ast::StoreSlice<ScopeOrder>,
 
     // These properties are for the visit pass, which runs after the parse pass.
     // The visit pass binds identifiers to declared symbols, does constant
@@ -702,11 +702,9 @@ pub struct P<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> {
     pub(crate) ts_namespace: RecentlyVisitedTSNamespace,
     pub(crate) top_level_enums: List<'a, Ref>,
 
-    // Value is a shared `&'a [ScopeOrder<'a>]`. The visit pass never writes
-    // through these slices: it only reads
-    // `Copy` elements and advances a cursor: so the map and
-    // `scope_order_to_visit` may safely alias the same arena allocation.
-    pub(crate) scopes_in_order_for_enum: ArrayHashMap<bun_ast::Loc, &'a [ScopeOrder<'a>]>,
+    // O valor é uma faixa do `Store`: o passe de visita só lê e avança um cursor, então o mapa e
+    // `scope_order_to_visit` podem apontar para a mesma faixa.
+    pub(crate) scopes_in_order_for_enum: ArrayHashMap<bun_ast::Loc, js_ast::StoreSlice<ScopeOrder>>,
 
     // If this is true, then all top-level statements are wrapped in a try/catch
     pub(crate) will_wrap_module_in_try_catch_for_using: bool,
@@ -3285,16 +3283,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         {
-            // Compact `scopes_in_order` (parse pass leaves None holes from
-            // popAndDiscardScope) into a dense bump-slice for the visit pass.
-            let mut buf =
-                BumpVec::<ScopeOrder<'a>>::with_capacity_in(self.scopes_in_order.len(), self.arena);
-            for item_ in self.scopes_in_order.iter().flatten() {
-                buf.push(*item_);
-            }
-            // `into_bump_slice()` leaks the BumpVec into the arena and returns
-            // a `&'a [T]` for that allocation.
-            self.scope_order_to_visit = buf.into_bump_slice();
+            // Compacta `scopes_in_order` (o passe de parse deixa buracos `None` do popAndDiscardScope) numa faixa
+            // densa do `Store` para o passe de visita.
+            let dense: Vec<ScopeOrder> = self.scopes_in_order.iter().flatten().copied().collect();
+            self.scope_order_to_visit = self.store.alloc_slice(dense);
         }
 
         self.is_file_considered_to_have_esm_exports = !self.top_level_await_keyword.is_empty()
@@ -3784,13 +3776,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     }
 
     #[inline]
-    fn next_scope_in_order_for_visit_pass(&mut self) -> ScopeOrder<'a> {
-        let (head, rest) = self
-            .scope_order_to_visit
-            .split_first()
-            .expect("scope_order_to_visit empty");
-        self.scope_order_to_visit = rest;
-        *head
+    fn next_scope_in_order_for_visit_pass(&mut self) -> ScopeOrder {
+        assert!(!self.scope_order_to_visit.is_empty(), "scope_order_to_visit empty");
+        let head = self.store[self.scope_order_to_visit][0];
+        self.scope_order_to_visit.skip(1);
+        head
     }
 
     pub(crate) fn push_scope_for_visit_pass(
@@ -3799,11 +3789,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         loc: bun_ast::Loc,
     ) -> Result<(), crate::Error> {
         if self.reported_stack_overflow.get() {
-            while let Some((head, rest)) = self.scope_order_to_visit.split_first() {
+            while !self.scope_order_to_visit.is_empty() {
+                let head = self.store[self.scope_order_to_visit][0];
                 if head.loc.start == loc.start && self.store[head.scope].kind == kind {
                     break;
                 }
-                self.scope_order_to_visit = rest;
+                self.scope_order_to_visit.skip(1);
             }
         }
 
@@ -3944,7 +3935,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Remember the length in case we call popAndDiscardScope() later
         let scope_index = self.scopes_in_order.len();
         self.scopes_in_order
-            .push(Some(ScopeOrder::new(loc, scope)));
+            .push(Some(ScopeOrder { loc, scope }));
         // Output.print("\nLoc: {d}\n", .{loc.start});
         Ok(scope_index)
     }
@@ -8264,7 +8255,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             current_scope: self.current_scope,
             current_scope_children_len: self.store[self.current_scope].children.len(),
             scopes_in_order_len: self.scopes_in_order.len(),
-            scopes_in_order_for_enum_len: self.scopes_in_order_for_enum.len(),
+            scopes_in_order_for_enum_len: self.scopes_in_order_for_enum.count(),
             symbols_len: self.symbols.len(),
             allocated_names_len: self.allocated_names.len(),
             import_records_len: self.import_records.len(),
@@ -8302,7 +8293,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.store[scope].children.truncate(snapshot.current_scope_children_len);
         self.current_scope = scope;
         self.scopes_in_order.truncate(snapshot.scopes_in_order_len);
-        while self.scopes_in_order_for_enum.len() > snapshot.scopes_in_order_for_enum_len {
+        while self.scopes_in_order_for_enum.count() > snapshot.scopes_in_order_for_enum_len {
             self.scopes_in_order_for_enum.pop();
         }
 
@@ -9573,7 +9564,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // ~one scope per 64 source bytes covers most files without regrowth.
         let mut scope_order =
-            ScopeOrderList::with_capacity_in((source.contents.len() / 64).max(1), arena);
+            ScopeOrderList::with_capacity((source.contents.len() / 64).max(1));
         // O escopo do módulo vive no Store do arquivo (nasce como cópia do Store dos Define) e é endereçado por índice.
         let mut store = define.store.clone();
         let scope = store.alloc(Scope {
@@ -9587,7 +9578,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         });
         store[scope].members.reserve(estimated_symbol_count);
 
-        scope_order.push(Some(ScopeOrder::new(loc_module_scope, scope)));
+        scope_order.push(Some(ScopeOrder { loc: loc_module_scope, scope }));
 
         // Only enable during bundling, when not bundling CJS
         let commonjs_named_exports_deoptimized = if opts.bundle {
@@ -9780,7 +9771,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             import_items_for_namespace: Default::default(),
             is_import_item: Default::default(),
             export_default_alias_of_import: Ref::NONE,
-            scope_order_to_visit: &[],
+            scope_order_to_visit: js_ast::StoreSlice::EMPTY,
             module_scope_directive_loc: bun_ast::Loc::default(),
             is_control_flow_dead: false,
             track_scope_uses,

@@ -1530,8 +1530,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if p.scopes_in_order_for_enum.count() > 0 {
                 for stmt in stmts.iter_mut() {
                     if matches!(stmt.data, StmtData::SEnum(_)) {
-                        // `scope_order_to_visit: &'a [ScopeOrder<'a>]` is `Copy`;
-                        // plain save/restore.
+                        // `scope_order_to_visit` é uma faixa Copy do `Store`: guardar e restaurar.
                         let old_scopes_in_order = p.scope_order_to_visit;
 
                         p.scope_order_to_visit =
@@ -1589,7 +1588,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                             let enum_scope_count =
                                 scopes_for_enum_at(&p.scopes_in_order_for_enum, stmt.loc).len();
-                            p.scope_order_to_visit = &p.scope_order_to_visit[enum_scope_count..];
+                            p.scope_order_to_visit.skip(enum_scope_count);
                             continue 'stmt_loop;
                         }
                         _ => {}
@@ -2165,10 +2164,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     }
 }
 
-fn scopes_for_enum_at<'a>(
-    map: &bun_collections::ArrayHashMap<bun_ast::Loc, &'a [ScopeOrder<'a>]>,
+fn scopes_for_enum_at(
+    map: &bun_collections::ArrayHashMap<bun_ast::Loc, js_ast::StoreSlice<ScopeOrder>>,
     loc: bun_ast::Loc,
-) -> &'a [ScopeOrder<'a>] {
+) -> js_ast::StoreSlice<ScopeOrder> {
     map.get(&loc)
         .copied()
         .expect("scopes_in_order_for_enum miss for enum stmt loc")

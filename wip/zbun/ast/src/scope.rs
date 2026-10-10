@@ -284,6 +284,14 @@ impl Members {
     }
 }
 
+/// Um escopo criado pelo passe de parse, na ordem de criação: o passe de visita reencontra cada escopo nessa ordem.
+/// As listas de ordem são faixas do `Store` (`StoreSlice<ScopeOrder>`).
+#[derive(Clone, Copy)]
+pub struct ScopeOrder {
+    pub loc: crate::Loc,
+    pub scope: crate::StoreRef<Scope>,
+}
+
 #[derive(Clone)]
 pub struct Scope {
     pub kind: Kind,

@@ -755,17 +755,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
 
-            let mut items: BumpVec<'_, ScopeOrder> = BumpVec::with_capacity_in(count, p.arena);
+            let mut items: Vec<ScopeOrder> = Vec::with_capacity(count);
             for item in &p.scopes_in_order[scope_index..] {
                 let Some(item) = item else { continue };
                 items.push(*item);
             }
-            break 'scope_order_clone items.into_bump_slice();
+            break 'scope_order_clone p.store.alloc_slice(items);
         };
         // debug-assert no prior entry.
-        // Stored as `&'a [ScopeOrder]`; the visit pass only reads these, so
-        // `scope_order_to_visit` may alias the same arena slice freely.
-        let prev = p.scopes_in_order_for_enum.insert(loc, scope_order_clone);
+        // Faixa do `Store` (Copy): o passe de visita só lê, e `scope_order_to_visit` pode apontar para ela.
+        let prev = p.scopes_in_order_for_enum.insert(&loc, scope_order_clone);
         debug_assert!(prev.is_none());
 
         Ok(p.s(

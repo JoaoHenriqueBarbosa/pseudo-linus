@@ -112,6 +112,14 @@ impl<T> StoreSlice<T> {
         self.start as usize..(self.start + self.len) as usize
     }
 
+    /// Tira `count` elementos da frente da faixa (o par de `truncate`).
+    #[inline]
+    pub fn skip(&mut self, count: usize) {
+        assert!(count <= self.len as usize);
+        self.start += count as u32;
+        self.len -= count as u32;
+    }
+
     /// Encurta a faixa. Os elementos de trás continuam no `Store`, só deixam de ser alcançados por esta faixa.
     #[inline]
     pub fn truncate(&mut self, new_len: usize) {

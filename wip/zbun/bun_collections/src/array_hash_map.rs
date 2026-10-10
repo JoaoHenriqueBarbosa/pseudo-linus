@@ -29,8 +29,9 @@ impl OwnKey<[u8]> for Box<[u8]> {
     }
 }
 
-impl OwnKey<u32> for u32 {
-    fn own(key: &u32) -> Self {
+/// Chave `Copy` (inteiro, `Loc`): a própria chave.
+impl<T: Copy> OwnKey<T> for T {
+    fn own(key: &T) -> Self {
         *key
     }
 }
@@ -142,6 +143,17 @@ impl<K: Hash + Eq + Clone, V> ArrayHashMap<K, V> {
         K: Borrow<Q>,
     {
         self.fetch_swap_remove(key).is_some()
+    }
+
+    /// Tira a última entrada inserida (`pop` do upstream).
+    pub fn pop(&mut self) -> Option<KV<K, V>>
+    where
+        K: Hash + Eq,
+    {
+        let key = self.keys.pop()?;
+        let value = self.values.pop().expect("chaves e valores do ArrayHashMap do mesmo tamanho");
+        self.index.remove(&key);
+        Some(KV { key, value })
     }
 
     pub fn fetch_swap_remove<Q: ?Sized + Hash + Eq>(&mut self, key: &Q) -> Option<KV<K, V>>

@@ -614,12 +614,6 @@ impl PartialEq for Ref {
     }
 }
 impl Eq for Ref {}
-/// O `Ref` é a própria chave guardada nos `ArrayHashMap` por símbolo.
-impl bun_collections::OwnKey<Ref> for Ref {
-    fn own(key: &Ref) -> Self {
-        *key
-    }
-}
 impl core::hash::Hash for Ref {
     #[inline]
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {

@@ -82,6 +82,7 @@ crate::define_store! {
         template_parts: E::TemplatePart,
         // Escopos e os mapas de namespace do TypeScript
         scopes: crate::Scope,
+        scope_orders: crate::scope::ScopeOrder,
         ts_namespace_scopes: crate::TSNamespaceScope,
         ts_namespace_member_maps: crate::TSNamespaceMemberMap,
     }
