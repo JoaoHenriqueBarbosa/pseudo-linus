@@ -3180,6 +3180,25 @@ t.join(); print(spins > 0, flag)
     assert_eq!(String::from_utf8(o.stdout).unwrap(), "['wait', 'set', 'go']\nTrue [1]\n");
 }
 
+/// O SO recusa a reserva de pilha da thread do interpretador (limite de memória): ela sobe com a pilha menor seguinte,
+/// como o CPython sobe com pouca memória, e nunca vira uma mensagem de falha que o CPython não tem.
+#[test]
+fn interpreter_thread_falls_back_to_a_smaller_stack_when_the_os_refuses() {
+    assert_eq!(crate::run_on_stack_ladder(&[usize::MAX, usize::MAX / 2, 1 << 20], || 7), 7);
+}
+
+/// Um panic de bug na thread do interpretador é um crash: o processo morre por SIGSEGV, não imprime
+/// "Fatal Python error: could not run the interpreter thread", que não existe no CPython.
+#[test]
+fn a_bug_panic_in_the_interpreter_thread_dies_by_sigsegv() {
+    let died = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| crate::run_on_stack_ladder(&[1 << 20], || -> () { panic!("bug") })));
+    let payload = died.expect_err("o panic de bug sobe como morte por sinal");
+    assert!(matches!(payload.downcast_ref::<sysabi::KillUnwind>(), Some(sysabi::KillUnwind(sysabi::Signal::SIGSEGV))));
+    // A recusa de todas as pilhas acaba do mesmo jeito.
+    let refused = std::panic::catch_unwind(|| crate::run_on_stack_ladder(&[usize::MAX], || 1));
+    assert!(matches!(refused.expect_err("sem pilha").downcast_ref::<sysabi::KillUnwind>(), Some(sysabi::KillUnwind(sysabi::Signal::SIGSEGV))));
+}
+
 #[test]
 fn re_flags_error_scenario() {
     let src = r##"
@@ -3776,10 +3795,11 @@ with tempfile.TemporaryDirectory() as d:
     except py_compile.PyCompileError as e:
         print('PyCompileError', 'SyntaxError' in e.exc_type_name)
 "##;
-    let o = crate::run_source(src);
-    assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(o.stderr, "");
-    let out = String::from_utf8(o.stdout).unwrap();
+    // Num pseudo-processo, como o programa real: o `os.getcwd` e o `tempfile` dependem dele.
+    let o = in_process(src);
+    assert_eq!(o.status, exited(0), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(o.stderr, b"");
+    let out = o.stdout_str();
     assert!(out.starts_with("True True\nTrue True True\n"), "{out}");
     assert!(out.ends_with("True\nPyCompileError True\n"), "{out}");
 }

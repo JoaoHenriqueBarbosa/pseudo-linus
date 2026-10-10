@@ -208,11 +208,7 @@ pub(crate) fn settle_fork() {
 /// pai terminaria.
 fn run_child(image: VmImage, tail: RunTail, gate: Release) -> i32 {
     let mode = tail.finish_mode;
-    let outcome = crate::on_interpreter_thread(move || child_main(&image, &tail, gate)).unwrap_or_else(|| crate::Outcome {
-        stdout: Vec::new(),
-        stderr: "Fatal Python error: could not run the interpreter thread\n".into(),
-        status: 1,
-    });
+    let outcome = crate::on_interpreter_thread(move || child_main(&image, &tail, gate));
     crate::conclude(outcome, mode)
 }
 
