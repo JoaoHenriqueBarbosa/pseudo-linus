@@ -480,6 +480,14 @@ tag(XMLHttpRequest, 'XMLHttpRequest');
 Object.assign(XMLHttpRequest, { UNSENT: 0, OPENED: 1, HEADERS_RECEIVED: 2, LOADING: 3, DONE: 4 });
 defineHandlerProperties(XMLHttpRequest.prototype, ['readystatechange', 'load', 'error', 'abort', 'loadend', 'loadstart', 'progress', 'timeout']);
 
+// O corpo de uma resposta da rede chega em outra tarefa: ler `json()`, `text()` e afins espera uma volta do laço,
+// como no Chromium (o corpo vem do processo de rede depois dos cabeçalhos).
+const networkBody = (bytes) => new ReadableStream({
+  pull(controller) {
+    return new Promise((resolve) => setTimeout(resolve, 0)).then(() => { controller.enqueue(bytes); controller.close(); });
+  },
+});
+
 const realFetch = (input, init = {}) => new Promise((resolve, reject) => {
   const request = typeof input === 'object' && input !== null && !(input instanceof URL) ? input : null;
   const url = resolveUrl(request ? request.url : String(input));
@@ -494,7 +502,7 @@ const realFetch = (input, init = {}) => new Promise((resolve, reject) => {
     if (init.signal && init.signal.aborted) return reject(domException('The user aborted a request.', 'AbortError'));
     const result = netFetch(method, url, headers, body);
     if (result === null) return reject(new TypeError('Failed to fetch'));
-    const response = new Response(result[0] === 204 || result[0] === 205 || result[0] === 304 ? null : rawBytes(result[4]), { status: result[0], statusText: result[1], headers: headerList(result[3]) });
+    const response = new Response(result[0] === 204 || result[0] === 205 || result[0] === 304 ? null : networkBody(rawBytes(result[4])), { status: result[0], statusText: result[1], headers: headerList(result[3]) });
     Object.defineProperty(response, 'url', { value: result[2], configurable: true });
     // A resposta filtrada: `basic` na mesma origem, `cors` na que passou pelo CORS.
     Object.defineProperty(response, 'type', { value: new URL(result[2]).origin === new URL(pageState.url).origin ? 'basic' : 'cors', configurable: true });
