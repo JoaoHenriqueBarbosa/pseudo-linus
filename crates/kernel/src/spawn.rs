@@ -19,7 +19,7 @@ use vfs::{Caller, Cred, Loc, PinnedLoc, Start};
 
 use crate::exec::{Image, comm_of};
 use crate::fd::FdTable;
-use crate::proc::{Entry, INIT_PID, PState, Proc, Rel, Task, finish_process};
+use crate::proc::{Entry, INIT_PID, PState, Proc, Rel, Table, Task, finish_process};
 use crate::sandbox::SbInner;
 use crate::signal::SigState;
 
@@ -213,12 +213,8 @@ pub(crate) fn insert_child(sb: &Arc<SbInner>, spec: ChildSpec) -> Result<Arc<Tas
         return Err(Errno::EAGAIN);
     }
     let nproc = spec.rlimits[Resource::Nproc as usize].cur;
-    if !spec.cred.is_root() && nproc != sysabi::RLIM_INFINITY {
-        let uid = spec.cred.uid;
-        let n = t.map.values().filter(|e| e.rel.zombie.is_none() && e.proc.pid != INIT_PID && e.proc.st.lock().cred.uid == uid).count();
-        if n as u64 >= nproc {
-            return Err(Errno::EAGAIN);
-        }
+    if !spec.cred.is_root() && nproc != sysabi::RLIM_INFINITY && uid_tasks(&t, spec.cred.uid) as u64 >= nproc {
+        return Err(Errno::EAGAIN);
     }
     let (ppgid, psid) = t.rel(spec.ppid).map(|r| (r.pgid, r.sid)).unwrap_or((INIT_PID, INIT_PID));
     if let ProcessGroup::Join(g) = spec.group
@@ -310,6 +306,38 @@ pub(crate) fn start_process(sb: &Arc<SbInner>, task: Arc<Task>, body: Body) -> R
             Err(e)
         }
     }
+}
+
+/// As tarefas vivas de `uid` como o `RLIMIT_NPROC` as conta (`user->processes`): cada processo e cada vaga de
+/// [`reserve_task`] das threads que os programas mantêm sem thread do SO. O init e os zumbis ficam de fora.
+fn uid_tasks(t: &Table, uid: u32) -> usize {
+    t.map
+        .values()
+        .filter(|e| e.rel.zombie.is_none() && e.proc.pid != INIT_PID && e.proc.st.lock().cred.uid == uid)
+        .map(|e| 1 + e.proc.virtual_tasks.load(Ordering::Relaxed))
+        .sum()
+}
+
+/// Reserva uma vaga de tarefa no processo de `cur` (`Syscalls::reserve_task`): EAGAIN se o usuário, que não é
+/// root, já tem `RLIMIT_NPROC` tarefas. A conta e o acréscimo ficam sob a trava da tabela, então duas reservas
+/// concorrentes não passam juntas do limite.
+pub(crate) fn reserve_task(cur: &Task) -> Result<(), Errno> {
+    let (is_root, uid, nproc) = {
+        let st = cur.proc.st.lock();
+        (st.cred.is_root(), st.cred.uid, st.rlimits[Resource::Nproc as usize].cur)
+    };
+    let t = cur.sb.table.lock();
+    if !is_root && nproc != sysabi::RLIM_INFINITY && uid_tasks(&t, uid) as u64 >= nproc {
+        return Err(Errno::EAGAIN);
+    }
+    cur.proc.virtual_tasks.fetch_add(1, Ordering::Relaxed);
+    Ok(())
+}
+
+/// Devolve uma vaga de [`reserve_task`]; sem vaga reservada, nada acontece (o filho de um `fork` herda threads que
+/// reservaram no processo de origem).
+pub(crate) fn release_task(cur: &Task) {
+    let _ = cur.proc.virtual_tasks.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| v.checked_sub(1));
 }
 
 /// Cria uma thread nova no processo de `cur`.

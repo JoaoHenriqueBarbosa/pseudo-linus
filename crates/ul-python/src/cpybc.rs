@@ -2404,13 +2404,18 @@ impl<'a> Gen<'a> {
         Ok(())
     }
 
-    /// `fold_iter`: `for x in [1, 2]` e `x in [1, 2]` percorrem uma tupla constante.
+    /// `fold_iter`: `for x in [1, 2]` e `x in [1, 2]` percorrem uma tupla constante, e uma lista literal sem estrela
+    /// e com elementos que não são constantes vira `BUILD_TUPLE` (o otimizador troca o tipo antes de tentar dobrar).
     fn iter_value(&mut self, e: &Expr) -> Res<()> {
         if let E::List { elts, ctx: ExprContext::Load } = &e.kind {
             if let Some(items) = fold_all(elts)? {
                 let loc = self.loc(&e.pos);
                 self.load_cv(Cv::tuple(items), loc);
                 return Ok(());
+            }
+            if !elts.iter().any(|x| matches!(x.kind, E::Starred { .. })) {
+                let loc = self.loc(&e.pos);
+                return self.sequence(elts, Seq::Tuple, loc);
             }
         }
         // `fold_iter` troca o conjunto de constantes por um `frozenset` constante.

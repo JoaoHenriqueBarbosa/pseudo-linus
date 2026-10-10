@@ -40,6 +40,11 @@ fn write(c: &Client, sb: &str, path: &str, text: &str) {
 
 /// Roda a cena `name` (o texto `scene`) com o pacote como o `pip` o deixa e confere a saída com o golden do oráculo.
 fn scene_matches(name: &str, scene: &str, golden: &str) {
+    scene_matches_as(name, scene, golden, None);
+}
+
+/// Como [`scene_matches`], com a cena rodando como `user` (o `exec` roda como root, que o `RLIMIT_NPROC` não limita).
+fn scene_matches_as(name: &str, scene: &str, golden: &str, user: Option<&str>) {
     let d = Daemon::kernel("");
     let t = d.user("ana", json!({}));
     let c = d.client(&t);
@@ -49,7 +54,11 @@ fn scene_matches(name: &str, scene: &str, golden: &str) {
     write(&c, &sb, "/tmp/gl/greenlet/__init__.py", INIT);
     write(&c, &sb, "/tmp/gl/common.py", COMMON);
     write(&c, &sb, &format!("/tmp/gl/{name}.py"), scene);
-    let r = exec(&c, &sb, &format!("cd /tmp/gl && python3 {name}.py"));
+    let python = match user {
+        Some(user) => format!("runuser -u {user} -- python3"),
+        None => "python3".to_string(),
+    };
+    let r = exec(&c, &sb, &format!("cd /tmp/gl && {python} {name}.py"));
     assert_eq!(r["stderr"], "", "{r}");
     assert_eq!(r["exit_code"], 0, "{r}");
     let got = r["stdout"].as_str().unwrap();
@@ -57,6 +66,20 @@ fn scene_matches(name: &str, scene: &str, golden: &str) {
         assert_eq!(have, want, "linha {} da cena {name}; saída inteira:\n{got}", n + 1);
     }
     assert_eq!(got, golden, "cena {name}");
+}
+
+/// O limite de threads: com `RLIMIT_NPROC` posto 4 acima das tarefas que o usuário já tem, `Thread.start()` e
+/// `_thread.start_new_thread` dão `RuntimeError: can't start new thread` quando o limite já foi atingido (a thread de
+/// `clone` conta no limite), a thread que falhou não existe, e as vagas voltam quando as threads acabam.
+/// `thread_limit.py` roda como `nobody`, o `exec` é root e o `RLIMIT_NPROC` não limita root.
+#[test]
+fn thread_limit_scene_matches_the_oracle() {
+    scene_matches_as(
+        "thread_limit",
+        include_str!("../../../testbench/oracle/automation/cases/thread_limit.py"),
+        include_str!("../../../testbench/oracle/automation/golden/thread_limit.out"),
+        Some("nobody"),
+    );
 }
 
 #[test]
@@ -155,11 +178,10 @@ fn gc_referents_generators_and_iterators_scene_matches_the_oracle() {
     );
 }
 
-/// `gc.get_referents` de uma expressão geradora. Divergência aberta: o `.0` do nosso gerador é o iterável, e o
-/// CPython guarda o iterador que quem a criou obteve (`GET_ITER` fora do corpo); e a lista literal de constantes do
-/// `for` vira tupla na compilação do CPython. Os dois são mudanças de compilação (`comprehension_function`).
+/// `gc.get_referents` de uma expressão geradora: o `.0` é o iterador que quem a criou obteve (`GET_ITER` do lado de
+/// fora, o `GetIterValue` do compilador), e a lista literal de constantes do `for` vira tupla na compilação do CPython
+/// (`fold_iter`), então o iterador é um `tuple_iterator`.
 #[test]
-#[ignore = "o .0 da expressão geradora é o iterável (falta o GET_ITER do lado de fora) e falta a lista literal virar tupla"]
 fn gc_referents_generator_expression_scene_matches_the_oracle() {
     scene_matches(
         "gc_referents_genexp",

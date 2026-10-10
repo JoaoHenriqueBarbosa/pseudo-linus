@@ -353,22 +353,77 @@ fn iter_next(&self) {
 });
 
 /// O iterador vivo de um iterável qualquer, como objeto: a coleta do laço de quadros puxa dele quando a fonte
-/// não é um gerador (`sorted(lista, key=f)`, `sum(IteradorDeUsuario())`), e a imagem do heap o leva inteiro.
+/// não é um gerador (`sorted(lista, key=f)`, `sum(IteradorDeUsuario())`), a imagem do heap o leva inteiro, e o `.0` de
+/// uma compreensão é um (`GET_ITER` do primeiro iterável, feito fora da função). O tipo é o que o CPython mostra pela
+/// origem (`list_iterator`, `tuple_iterator`, `str_ascii_iterator`, `range_iterator`; `iterator` nos demais).
 pub struct IterBox {
     iter: RefCell<PyIter>,
+    kind: &'static str,
+    /// O `next` já bateu no fim: o CPython solta a origem nessa hora e não a visita mais (`gc.get_referents`).
+    exhausted: Cell<bool>,
 }
 
 impl IterBox {
     pub(crate) fn new(iter: PyIter) -> Value {
-        Value::Ext(Rc::new(IterBox { iter: RefCell::new(iter) }))
+        Value::Ext(Self::shared(iter))
+    }
+
+    /// O mesmo objeto sem o embrulho de [`Value`], para quem guarda um `Rc<dyn ExtObject>`.
+    pub(crate) fn shared(iter: PyIter) -> Rc<IterBox> {
+        let kind = match &iter {
+            PyIter::List(..) => "list_iterator",
+            PyIter::Tuple(..) => "tuple_iterator",
+            PyIter::Str(s, _) if s.as_str().is_ascii() => "str_ascii_iterator",
+            PyIter::Str(..) => "str_iterator",
+            PyIter::Range { .. } => "range_iterator",
+            _ => "iterator",
+        };
+        Rc::new(IterBox { iter: RefCell::new(iter), kind, exhausted: Cell::new(false) })
     }
 }
 
-lazy_iterator!(IterBox, "iterator",
-image(&self) { Some(ExtImage::Lazy(LazyParts::Boxed { iter: iter_parts(&self.iter.borrow()) })) },
-fn iter_next(&self) {
-    self.iter.borrow_mut().next()
-});
+impl ExtObject for IterBox {
+    fn type_name(&self) -> &'static str {
+        self.kind
+    }
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+    fn image(&self) -> Option<ExtImage> {
+        Some(ExtImage::Lazy(LazyParts::Boxed { iter: iter_parts(&self.iter.borrow()) }))
+    }
+    /// `listiter_traverse` e parentes: a sequência de origem, até o iterador esgotar.
+    fn referents(&self) -> Vec<Value> {
+        if self.exhausted.get() {
+            return Vec::new();
+        }
+        match &*self.iter.borrow() {
+            PyIter::List(l, _) => vec![Value::List(l.clone())],
+            PyIter::Tuple(t, _) => vec![Value::Tuple(t.clone())],
+            PyIter::Str(s, _) => vec![Value::Str(s.clone())],
+            _ => Vec::new(),
+        }
+    }
+    fn repr(&self) -> String {
+        object_repr(self.kind, self)
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__next__"]
+    }
+    fn is_iterable(&self) -> bool {
+        true
+    }
+    fn iter_next(&self) -> PyResult<Option<Value>> {
+        let next = self.iter.borrow_mut().next()?;
+        if next.is_none() {
+            self.exhausted.set(true);
+        }
+        Ok(next)
+    }
+    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        next_method(self, name)
+    }
+}
 
 /// O iterador do protocolo antigo de sequência (`iter(obj)` sem `__iter__`, com `__getitem__`): chama
 /// `obj[0]`, `obj[1]`... a cada passo, até `IndexError` ou `StopIteration`, que o esgotam de vez
@@ -534,7 +589,7 @@ pub(crate) fn frame_source(obj: &dyn ExtObject, idx: usize) -> Option<Rc<dyn Ext
     with_source(obj, idx, |it| match it {
         PyIter::Ext(e) => needs_frames(e).then(|| e.clone()),
         PyIter::Inst(v) => crate::vm::dunder_function(v, "__next__")
-            .map(|_| Rc::new(IterBox { iter: RefCell::new(PyIter::Inst(v.clone())) }) as Rc<dyn ExtObject>),
+            .map(|_| IterBox::shared(PyIter::Inst(v.clone())) as Rc<dyn ExtObject>),
         _ => None,
     })
     .flatten()

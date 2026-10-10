@@ -3,13 +3,13 @@
 //! nanossegundos). Cada função é uma chamada de sistema só: a conta que a glibc faz por cima (`nice`,
 //! `sysconf`, `times`) fica no `os.py`, onde o CPython também a tem em C.
 
-use sysabi::{sys, AtFlags, Errno, FallocFlags, Fd, Resource, RusageWho, SchedParam, SetAttrWhen, SetTime, SysResult, Syscalls, TimeSpec, Termios, Winsize};
+use sysabi::{sys, AtFlags, Errno, FallocFlags, Fd, Resource, Rlimit, RusageWho, SchedParam, SetAttrWhen, SetTime, SysResult, Syscalls, TimeSpec, Termios, Winsize};
 
 use crate::modules::osnative::{arg, need_kernel, os_error, path_bytes, want_fd, OrOs};
 use crate::modules::ModuleBuilder;
-use crate::native_util::{no_kwargs, want_int};
+use crate::native_util::{no_kwargs, value_error, want_int};
 use crate::object::{Kw, Value};
-use crate::vm::{PyResult, Vm};
+use crate::vm::{exc, type_error, PyResult, Vm};
 
 fn want_pid(fname: &str, args: &[Value], i: usize) -> PyResult<i32> {
     need_kernel()?;
@@ -232,11 +232,9 @@ fn sched_get_priority_min(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Va
     Ok(int(sys::sched_get_priority_min(policy).or_os(None)?))
 }
 
-/// `(atual, máximo)` de um `RLIMIT_*`, com `-1` no `RLIM_INFINITY`.
-fn getrlimit(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("getrlimit", &kw)?;
-    need_kernel()?;
-    let res = match want_int(arg("getrlimit", &args, 0)?)? {
+/// O `RLIMIT_*` de um número, ou `ValueError: invalid resource specified` como o `resource` do CPython.
+fn want_resource(v: &Value) -> PyResult<Resource> {
+    Ok(match want_int(v)? {
         0 => Resource::Cpu,
         1 => Resource::Fsize,
         2 => Resource::Data,
@@ -253,11 +251,51 @@ fn getrlimit(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         13 => Resource::Nice,
         14 => Resource::Rtprio,
         15 => Resource::Rttime,
-        _ => return Err(os_error(Errno::EINVAL, None)),
+        _ => return Err(value_error("invalid resource specified")),
+    })
+}
+
+/// `(atual, máximo)` de um `RLIMIT_*`, com `-1` no `RLIM_INFINITY`.
+fn getrlimit(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("getrlimit", &kw)?;
+    need_kernel()?;
+    let [res] = &args[..] else {
+        return Err(type_error(format!("resource.getrlimit() takes exactly one argument ({} given)", args.len())));
     };
-    let lim = sys::current().getrlimit(res).or_os(None)?;
+    let lim = sys::current().getrlimit(want_resource(res)?).or_os(None)?;
     let show = |v: u64| if v == sysabi::RLIM_INFINITY { int(-1) } else { int(v as i64) };
     Ok(Value::tuple(vec![show(lim.cur), show(lim.max)]))
+}
+
+/// O `py2rlim` do CPython: `-1` é `RLIM_INFINITY`, e o que não cabe num `long` é `OverflowError`.
+fn want_rlim(v: &Value) -> PyResult<u64> {
+    match v {
+        Value::Big(_) => Err(exc("OverflowError", "Python int too large to convert to C long")),
+        other => Ok(want_int(other)? as u64),
+    }
+}
+
+/// `setrlimit(resource, (atual, máximo))` com as mensagens do `resource.setrlimit` do CPython.
+fn setrlimit(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("setrlimit", &kw)?;
+    need_kernel()?;
+    let [res, limits] = &args[..] else {
+        return Err(type_error(format!("resource.setrlimit() takes exactly 2 arguments ({} given)", args.len())));
+    };
+    let res = want_resource(res)?;
+    let items = match limits {
+        Value::Tuple(t) => t.to_vec(),
+        Value::List(l) => l.borrow().clone(),
+        other => return Err(type_error(format!("'{}' object is not iterable", other.type_name()))),
+    };
+    let [cur, max] = &items[..] else { return Err(value_error("expected a tuple of 2 integers")) };
+    let lim = Rlimit { cur: want_rlim(cur)?, max: want_rlim(max)? };
+    match sys::current().setrlimit(res, lim) {
+        Ok(()) => Ok(Value::None),
+        Err(Errno::EINVAL) => Err(value_error("current limit exceeds maximum limit")),
+        Err(Errno::EPERM) => Err(value_error("not allowed to raise maximum limit")),
+        Err(e) => Err(os_error(e, None)),
+    }
 }
 
 /// `(utime, stime)` em segundos do processo (`0`) ou dos filhos já colhidos (`-1`).
@@ -511,6 +549,7 @@ pub(crate) fn register(builder: ModuleBuilder) -> ModuleBuilder {
         .func("sched_get_priority_max", sched_get_priority_max)
         .func("sched_get_priority_min", sched_get_priority_min)
         .func("getrlimit", getrlimit)
+        .func("setrlimit", setrlimit)
         .func("getrusage", getrusage)
         .func("winsize", winsize)
         .func("pty_number", pty_number)
