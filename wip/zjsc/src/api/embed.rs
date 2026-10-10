@@ -99,8 +99,9 @@ impl PageRunner {
         result.map(HostHandle).map_err(|exception| describe_exception(&exception))
     }
 
-    /// Chama a função de `handle` com `args` a partir do hospedeiro (sem frame da página) e esvazia as microtarefas.
-    pub fn call_hidden(&self, handle: &HostHandle, args: &[HostArg]) -> Result<(), String> {
+    /// Chama a função de `handle` com `args` a partir do hospedeiro (sem frame da página), esvazia as microtarefas e
+    /// devolve o resultado.
+    pub fn call_hidden(&self, handle: &HostHandle, args: &[HostArg]) -> Result<HostHandle, String> {
         let args: Vec<JSValue> = args
             .iter()
             .map(|arg| match arg {
@@ -115,7 +116,7 @@ impl PageRunner {
             exception
         });
         self.vm.drain_microtasks();
-        result.map(|_| ())
+        result.map(HostHandle)
     }
 
     /// Roda o laço de eventos (timers, immediates, microtarefas) no relógio virtual do motor até esvaziar ou até
@@ -133,6 +134,12 @@ impl PageRunner {
     /// Troca o `Math.random` da página pelo do V8 com a semente dada (o `--js-flags=--random-seed` do Chromium).
     pub fn set_random_seed(&self, seed: u64) {
         self.global_object.set_v8_random_seed(seed);
+    }
+
+    /// Acesso nomeado da janela: `handle` recebe o nome que a busca no global e em toda a cadeia não achou e devolve
+    /// o valor, ou `undefined` para ausente.
+    pub fn set_global_named_lookup(&self, handle: &HostHandle) {
+        crate::runtime::global_named_lookup::set_global_named_lookup(&self.global_object, handle.0);
     }
 
     /// Entrega ao hospedeiro as rejeições sem tratador: `handle` recebe `("unhandled", promise, reason)` ao fim de

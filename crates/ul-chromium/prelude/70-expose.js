@@ -40,6 +40,19 @@ for (const [key, value] of Object.entries(windowGlobals)) Object.defineProperty(
 Object.defineProperty(globalThis, 'document', { value: document, writable: false, configurable: false, enumerable: true });
 Object.defineProperty(globalThis, 'location', { get: () => location, set: (v) => { location.href = v; }, configurable: false, enumerable: true });
 
+// Acesso nomeado da janela (o WindowProperties do Blink): o motor pergunta o nome que a janela e a cadeia dela não
+// têm. Acha o elemento de id `x`, ou de nome `x` entre embed, form, img e object; mais de um vira HTMLCollection viva.
+const namedTargets = (name) => {
+  if (typeof name !== 'string' || name === '') return [];
+  const quoted = cssEscape(name);
+  return Array.from(document.querySelectorAll(`[id="${quoted}"], embed[name="${quoted}"], form[name="${quoted}"], img[name="${quoted}"], object[name="${quoted}"]`));
+};
+const namedValue = (name) => {
+  const found = namedTargets(name);
+  if (found.length === 0) return undefined;
+  return found.length === 1 ? found[0] : liveList(HTMLCollection.prototype, () => namedTargets(name));
+};
+
 const windowMetrics = { innerWidth: VIEWPORT.width, innerHeight: VIEWPORT.height, outerWidth: VIEWPORT.outerWidth, outerHeight: VIEWPORT.outerHeight, devicePixelRatio: 1, scrollX: 0, scrollY: 0, pageXOffset: 0, pageYOffset: 0, screenX: 0, screenY: 0, screenLeft: 0, screenTop: 0, length: 0, closed: false, opener: null, name: '', status: '', isSecureContext: pageState.url.startsWith('https:') || pageState.url.startsWith('http://localhost'), origin: location.origin === 'null' ? 'null' : location.origin, crossOriginIsolated: false, originAgentCluster: true };
 for (const [key, value] of Object.entries(windowMetrics)) Object.defineProperty(globalThis, key, { value, writable: true, configurable: true, enumerable: true });
 

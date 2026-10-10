@@ -304,11 +304,18 @@ const frameCallbacks = new Map();
 let nextFrameCallback = 1;
 const idleCallbacks = new Map();
 let frameTimer = null;
+// O quadro agendado sai sem esperar a grade (pedido com rede em voo).
+let frameImmediate = false;
 let framesOver = false;
 // Os quadros caem numa grade de 16ms do tempo virtual; com rede em voo, saem já (o relógio virtual está parado).
 const requestRender = () => {
-  if (frameTimer !== null || (framesOver && !networkInFlight)) return;
-  frameTimer = setTimeout(renderFrame, networkInFlight ? 0 : 16 - (performance.now() % 16));
+  if (framesOver && !networkInFlight) return;
+  if (frameTimer !== null) {
+    if (frameImmediate || !networkInFlight) return;
+    clearTimeout(frameTimer);
+  }
+  frameImmediate = networkInFlight > 0;
+  frameTimer = setTimeout(renderFrame, frameImmediate ? 0 : 16 - (performance.now() % 16));
 };
 const renderFrame = () => {
   frameTimer = null;
@@ -616,6 +623,7 @@ const hook = (name, a, b) => {
       break;
     }
     case 'currentScript': hidden(document, '__currentScript', a === null ? null : wrap(a)); break;
+    case 'namedLookup': return namedValue;
     case 'url': pageState.url = a; break;
     // Rejeições sem tratador, do rastreador do motor. `handled` também chega para a promessa tratada no mesmo
     // checkpoint, que nunca foi relatada: só as relatadas ganham `rejectionhandled`.

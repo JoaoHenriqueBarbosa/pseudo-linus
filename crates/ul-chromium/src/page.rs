@@ -145,6 +145,10 @@ impl Page {
                 }
             };
             runner.set_rejection_hook(&hook);
+            // O acesso nomeado da janela (`window.x` para o elemento de id `x`), pedido ao gancho.
+            if let Ok(named) = runner.call_hidden(&hook, &[HostArg::Str("namedLookup")]) {
+                runner.set_global_named_lookup(&named);
+            }
             runner.set_network_latency_ms(NETWORK_LATENCY_MS);
             if let Some(seed) = self.random_seed {
                 runner.set_random_seed(seed);
