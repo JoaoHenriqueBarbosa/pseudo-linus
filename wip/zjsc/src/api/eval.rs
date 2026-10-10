@@ -223,14 +223,7 @@ pub fn evaluate_mapped_script_result_units(source: &[u16], url: &str, result_nam
         let _finalizer = VmFinalizer::new(&vm);
         // Como o bun, a origem é a URL `file://` do arquivo: o `eval` e o `new Function` mostram essa URL nas frames.
         let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{url}").as_bytes())));
-        let named = make_source(
-            &wtf_from_units(source),
-            &origin,
-            SourceTaintedOrigin::Untainted,
-            WtfString::from_latin1(url.as_bytes()),
-            TextPosition::default(),
-            SourceProviderSourceType::Program,
-        );
+        let named = transpiled_source(&wtf_from_units(source), &origin, WtfString::from_latin1(url.as_bytes()));
         if !position_runs.is_empty() {
             let map = PositionMap::new(position_runs, 0).expect("mapa de posições com tamanho múltiplo de quatro");
             named.provider().expect("SourceCode sem provedor").set_position_map(Rc::new(map));
@@ -288,14 +281,15 @@ pub fn evaluate_hidden_program(global_object: &JSGlobalObjectRef, source: &str) 
 
 pub(crate) fn named_program_source(source: &str, url: &str) -> SourceCode {
     let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{url}").as_bytes())));
-    make_source(
-        &WtfString::from_utf8(source.as_bytes()),
-        &origin,
-        SourceTaintedOrigin::Untainted,
-        WtfString::from_latin1(url.as_bytes()),
-        TextPosition::default(),
-        SourceProviderSourceType::Program,
-    )
+    transpiled_source(&WtfString::from_utf8(source.as_bytes()), &origin, WtfString::from_latin1(url.as_bytes()))
+}
+
+/// Um arquivo que o bun roda: passou pelo transpilador, que tira os comentários (as diretivas `//# sourceURL=` não
+/// valem nele, só no `eval` e no `Function`).
+fn transpiled_source(text: &WtfString, origin: &SourceOrigin, url: WtfString) -> SourceCode {
+    let code = make_source(text, origin, SourceTaintedOrigin::Untainted, url, TextPosition::default(), SourceProviderSourceType::Program);
+    code.provider().expect("SourceCode sem provedor").set_comments_stripped();
+    code
 }
 
 /// `bun arquivo.js`: roda `source` (arquivo `url`) como o programa principal sobre um global novo com `console`
@@ -620,15 +614,7 @@ fn evaluate_cjs_program_inner(
         // do porte ocupa a linha 1 e o corpo a 2; o mapa identidade com deslocamento de uma linha acerta tanto as
         // linhas de `stack` quanto as dos executáveis de função (o `SourceCode` de função prende a primeira linha em 1,
         // então um `start_position` negativo não chega a elas).
-        let start_position = TextPosition::default();
-        let named = make_source(
-            &wtf_from_units(&text),
-            &origin,
-            SourceTaintedOrigin::Untainted,
-            WtfString::from_latin1(url.as_bytes()),
-            start_position,
-            SourceProviderSourceType::Program,
-        );
+        let named = transpiled_source(&wtf_from_units(&text), &origin, WtfString::from_latin1(url.as_bytes()));
         if position_runs.is_empty() && !strict {
             let map = PositionMap::new(&[1, 1, 0, 0], 1).expect("mapa de posições");
             named.provider().expect("SourceCode sem provedor").set_position_map(Rc::new(map));
@@ -969,7 +955,7 @@ fn compile_module(global_object: &JSGlobalObject, module: JSValue, text: &WtfStr
     units.extend(utf16_units("\n})"));
     let file_text = rust_string(file);
     let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{file_text}").as_bytes())));
-    let source = make_source(&wtf_from_units(&units), &origin, SourceTaintedOrigin::Untainted, file.clone(), TextPosition::default(), SourceProviderSourceType::Program);
+    let source = transpiled_source(&wtf_from_units(&units), &origin, file.clone());
     let Some((global, require)) = module_index(&module).and_then(|index| {
         CJS_STATE.with(|state| state.borrow().as_ref().map(|state| (state.global_object.clone(), state.modules[index].require.clone())))
     }) else {
@@ -1295,14 +1281,7 @@ fn run_sequence(sources: &[&str], url: &str, result_name: &str, run_timers: bool
             crate::runtime::timers::enable_event_loop();
         }
         for (index, source) in sources.iter().enumerate() {
-            let named = make_source(
-                &WtfString::from_utf8(source.as_bytes()),
-                &origin,
-                SourceTaintedOrigin::Untainted,
-                WtfString::from_latin1(url.as_bytes()),
-                TextPosition::default(),
-                SourceProviderSourceType::Program,
-            );
+            let named = transpiled_source(&WtfString::from_utf8(source.as_bytes()), &origin, WtfString::from_latin1(url.as_bytes()));
             if let Err(exception) = evaluate(&global_object, &named) {
                 errors.push(format!("{index}:{}", describe_exception(&exception)));
             }
@@ -1605,14 +1584,7 @@ fn evaluate_with_cjs_caller(source: &[u16], caller_file: &str, caller: &str, res
         let text = format!("{header}{caller}}})");
         let origin_path = if caller_file.starts_with('/') { caller_file.to_string() } else { format!("/{caller_file}") };
         let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file://{origin_path}").as_bytes())));
-        let named = make_source(
-            &WtfString::from_utf8(text.as_bytes()),
-            &origin,
-            SourceTaintedOrigin::Untainted,
-            WtfString::from_utf8(caller_file.as_bytes()),
-            TextPosition::default(),
-            SourceProviderSourceType::Program,
-        );
+        let named = transpiled_source(&WtfString::from_utf8(text.as_bytes()), &origin, WtfString::from_utf8(caller_file.as_bytes()));
         // O corpo do chamador começa na linha 1 do arquivo do bun; o porte o tem atrás do cabeçalho do wrapper, então
         // o deslocamento de linha é o número de quebras do cabeçalho, calculado do texto montado. As colunas são as
         // do próprio texto (medido no bun 1.4.2: `globalThis.vm = ...;\ntry { vm.runInThisContext(` dá `case.js:2:10`

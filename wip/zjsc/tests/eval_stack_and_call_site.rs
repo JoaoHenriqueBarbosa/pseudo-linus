@@ -32,6 +32,18 @@ fn source_url_directive_names_the_eval_frame() {
     assert!(stack.lines().nth(1).is_some_and(|line| line.trim().starts_with("at anonymous (fn.js:")), "{stack}");
 }
 
+/// O arquivo que o bun roda passou pelo transpilador, que tira os comentários: o `//# sourceURL=` dele não nomeia
+/// nada, e o do `eval` lá dentro continua valendo.
+#[test]
+fn source_url_directive_of_the_main_file_is_stripped() {
+    let source = "var R = [new Error(1).stack, eval('new Error(2).stack\\n//# sourceURL=inner.js')].map(s => s.split('\\n')[1].trim()).join('|');\n//# sourceURL=main.js\n";
+    let value = zjsc::api::eval::evaluate_named_script_result(source, "case.js", "R").expect("R");
+    let text = String::from_utf8_lossy(&value.to_wtf_string().utf8(zjsc::wtf::text::conversion_mode::ConversionMode::LenientConversion)).into_owned();
+    let urls: Vec<&str> = text.split('|').map(|frame| frame.split(':').next().unwrap_or_default()).collect();
+    // Medido no bun 1.4.2: `at <arquivo>:1:14|at <anonymous> (inner.js:1:10)`.
+    assert_eq!(urls, ["at case.js", "at <anonymous> (inner.js"], "{text}");
+}
+
 #[test]
 fn strictness_spreads_to_older_frames_and_native_frames_follow_the_receiver() {
     let hook = "Error.prepareStackTrace = (e, cs) => cs.map(c => c.getFunctionName() + ':' + c.isToplevel() + ':' + typeof c.getFunction()).join(' ');";

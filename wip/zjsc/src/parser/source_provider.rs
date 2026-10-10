@@ -78,6 +78,9 @@ pub struct SourceProviderBase {
     /// Fonte do próprio hospedeiro que a página não pode enxergar (o DOM do navegador escrito em JavaScript): toda
     /// função dele nasce `ImplementationVisibility::Private`, como as builtins do JSC.
     hidden: Cell<bool>,
+    /// O fonte passou pelo transpilador do bun, que tira os comentários: as diretivas `//# sourceURL=` e
+    /// `//# sourceMappingURL=` não chegam ao motor (medido no bun 1.4.2, o arquivo principal não se renomeia).
+    comments_stripped: Cell<bool>,
 }
 
 impl SourceProviderBase {
@@ -106,6 +109,7 @@ impl SourceProviderBase {
             position_map: RefCell::new(None),
             raw_columns: Cell::new(false),
             hidden: Cell::new(false),
+            comments_stripped: Cell::new(false),
         }
     }
 }
@@ -262,12 +266,21 @@ pub trait SourceProvider: std::fmt::Debug {
 
     /// `setSourceURLDirective(const String&)`.
     fn set_source_url_directive(&self, source_url_directive: &WtfString) {
-        *self.base().source_url_directive.borrow_mut() = source_url_directive.clone();
+        if !self.base().comments_stripped.get() {
+            *self.base().source_url_directive.borrow_mut() = source_url_directive.clone();
+        }
     }
 
     /// `setSourceMappingURLDirective(const String&)`.
     fn set_source_mapping_url_directive(&self, source_mapping_url_directive: &WtfString) {
-        *self.base().source_mapping_url_directive.borrow_mut() = source_mapping_url_directive.clone();
+        if !self.base().comments_stripped.get() {
+            *self.base().source_mapping_url_directive.borrow_mut() = source_mapping_url_directive.clone();
+        }
+    }
+
+    /// O fonte veio do transpilador do bun (ver `comments_stripped`): as diretivas de comentário são ignoradas.
+    fn set_comments_stripped(&self) {
+        self.base().comments_stripped.set(true);
     }
 
     /// `setSourceTaintedOrigin(SourceTaintedOrigin)`.
