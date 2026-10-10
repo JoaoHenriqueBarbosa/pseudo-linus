@@ -4,10 +4,11 @@
 //! DIVERGÊNCIAS:
 //! - `JSInternalFieldObjectImpl<1>` é um `JSNonFinalObject` com o `callback` num campo, como em
 //!   `js_string_iterator.rs` (sem GC não há `WriteBarrier`).
-//! - Sem GC nenhum alvo morre: `reconcileWeakReferencesAtGCEnd` (que move registros de vivos para mortos e
-//!   agenda o `runFinalizationCleanup` no `DeferredWorkTimer`) e o próprio `runFinalizationCleanup` não
-//!   existem, e as tabelas de mortos ficam vazias. `takeDeadHoldingsValue`, `deadCount` e `deadRegistrations`
-//!   são portados porque o coletor, quando chegar, só precisa preenchê-las.
+//! - O coletor chama `visit_children` (o `callback` e os `holdings`, fortes; alvos e tokens são fracos) e
+//!   `finalize` (o `finalizeUnconditionally`: move para os mortos o registro de alvo que a varredura vai soltar e
+//!   esquece o token morto). O `runFinalizationCleanup` roda numa tarefa posterior, um timer nativo de prazo 0 que
+//!   não segura o laço, no papel do `DeferredWorkTimer::scheduleWorkSoon`; o reino é o do programa
+//!   (`first_global_object`), não o da `Structure` do registro.
 //! - `Locker<JSCellLock>` some (uma thread, `RefCell`). `UncheckedKeyHashMap<JSCell*, ...>` é um `HashMap`
 //!   pelo `cell_id` do alvo ou do token; nada observável depende da ordem de iteração dele.
 //! - `finishCreation` chama `currentScriptExecutionOwner(globalObject)` para criar o wrapper DOM do
@@ -78,6 +79,8 @@ pub struct JSFinalizationRegistry {
     /// `internalField(Field::Callback)`.
     callback: JSValue,
     registrations: RefCell<Registrations>,
+    /// `m_hasAlreadyScheduledWork`.
+    has_already_scheduled_work: std::cell::Cell<bool>,
 }
 
 /// A referência à célula, o `*` do C++.
@@ -110,6 +113,7 @@ impl JSFinalizationRegistry {
             base: JSNonFinalObject::new(vm, Rc::clone(structure)),
             callback,
             registrations: RefCell::new(Registrations::default()),
+            has_already_scheduled_work: std::cell::Cell::new(false),
         });
         cell.set_cell_id(cell_id);
         cell_registry::set(cell_id, CellEntry::FinalizationRegistry(Rc::clone(&cell)));
@@ -137,6 +141,69 @@ impl JSFinalizationRegistry {
     /// `callback()`.
     pub fn callback(&self) -> JSValue {
         self.internal_field(Field::Callback)
+    }
+
+    /// `visitChildren`: o `callback` e os `holdings` de todos os registros; alvos e tokens não.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.callback);
+        let Ok(registrations) = self.registrations.try_borrow() else {
+            marker.abort();
+            return;
+        };
+        for registration in registrations.live.values().flatten().chain(&registrations.no_unregistration_live) {
+            marker.value(registration.holdings);
+        }
+        for holdings in registrations.dead.values().flatten().chain(&registrations.no_unregistration_dead) {
+            marker.value(*holdings);
+        }
+    }
+
+    /// `finalizeUnconditionally`: o registro cujo alvo a varredura vai soltar passa a morto, e o token que vai ser
+    /// solto deixa de cancelar (os registros dele passam às listas sem token). Devolve `true` se há morto à espera
+    /// do `runFinalizationCleanup` e ele ainda não foi agendado (`m_hasAlreadyScheduledWork`).
+    pub(crate) fn finalize(&self, marker: &crate::runtime::gc::Marker) -> bool {
+        let mut registrations = self.registrations.borrow_mut();
+        let Registrations { live, dead, no_unregistration_live, no_unregistration_dead } = &mut *registrations;
+        no_unregistration_live.retain(|registration| {
+            let alive = !marker.is_doomed(registration.target);
+            if !alive {
+                no_unregistration_dead.push(registration.holdings);
+            }
+            alive
+        });
+        for (token, bucket) in live.iter_mut() {
+            bucket.retain(|registration| {
+                let alive = !marker.is_doomed(registration.target);
+                if !alive {
+                    dead.entry(*token).or_default().push(registration.holdings);
+                }
+                alive
+            });
+        }
+        live.retain(|_, bucket| !bucket.is_empty());
+        let dead_tokens: Vec<usize> = live.keys().chain(dead.keys()).copied().filter(|&token| marker.is_doomed(token)).collect();
+        for token in dead_tokens {
+            no_unregistration_live.extend(live.remove(&token).unwrap_or_default());
+            no_unregistration_dead.extend(dead.remove(&token).unwrap_or_default());
+        }
+        let has_dead = !dead.is_empty() || !no_unregistration_dead.is_empty();
+        has_dead && !self.has_already_scheduled_work.replace(true)
+    }
+
+    /// `runFinalizationCleanup(globalObject)`: chama o `callback` com cada `holdings` de alvo morto. A exceção vai
+    /// ao relatório de erro não capturado e encerra a limpeza.
+    pub(crate) fn run_finalization_cleanup(&self, global_object: &JSGlobalObject) {
+        self.has_already_scheduled_work.set(false);
+        while let Some(holdings) = self.take_dead_holdings_value() {
+            match crate::runtime::js_microtask::call_microtask(global_object, self.callback, JSValue::undefined(), &[holdings], "callback is not a function") {
+                Err(crate::runtime::js_promise_host::Thrown::Value(error)) => {
+                    global_object.vm().report_unhandled_error(global_object, error);
+                    return;
+                }
+                Err(crate::runtime::js_promise_host::Thrown::Termination) => return,
+                Ok(_) => {}
+            }
+        }
     }
 
     /// `registerTarget(vm, target, holdings, token)`: `token` é `undefined` ou uma célula.

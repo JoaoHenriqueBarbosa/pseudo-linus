@@ -114,6 +114,8 @@ pub struct VM {
     control_flow_profiler_enabled_count: Cell<u32>,
     /// `bool m_failNextNewCodeBlock { false }`.
     fail_next_new_code_block: Cell<bool>,
+    /// `m_currentWeakRefVersion`: o `WeakRef` criado ou lido nesta versão segura o alvo até ela avançar.
+    current_weak_ref_version: Cell<u64>,
     /// `bool m_globalConstRedeclarationShouldThrow { true }`.
     global_const_redeclaration_should_throw: Cell<bool>,
     /// `bool m_allowRedeclaringSymbols { false }`.
@@ -378,6 +380,7 @@ impl VM {
             control_flow_profiler: RefCell::new(None),
             control_flow_profiler_enabled_count: Cell::new(0),
             fail_next_new_code_block: Cell::new(false),
+            current_weak_ref_version: Cell::new(0),
             global_const_redeclaration_should_throw: Cell::new(true),
             allow_redeclaring_symbols: Cell::new(false),
             last_exception: RefCell::new(None),
@@ -526,6 +529,17 @@ impl VM {
             ]);
         }
         self.default_microtask_queue.visit_children(marker);
+    }
+
+    /// `currentWeakRefVersion()`.
+    pub fn current_weak_ref_version(&self) -> u64 {
+        self.current_weak_ref_version.get()
+    }
+
+    /// `finalizeSynchronousJSExecution()`: fim do trabalho síncrono e das microtarefas de uma tarefa; os
+    /// `WeakRef`s lidos até aqui deixam de segurar o alvo (o `ClearKeptObjects` da especificação).
+    pub fn finalize_synchronous_js_execution(&self) {
+        self.current_weak_ref_version.set(self.current_weak_ref_version.get() + 1);
     }
 
     /// `setFailNextNewCodeBlock()`.

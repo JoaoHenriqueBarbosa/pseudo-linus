@@ -122,6 +122,12 @@ impl VM {
     /// por uma microtarefa roda logo depois DELA (`perform_microtask_checkpoint`). Uma drenagem iniciada de dentro de
     /// um tick (`is_processing_ticks`) é só de microtarefas.
     pub fn drain_microtasks(&self) {
+        self.drain_microtasks_and_ticks();
+        self.finalize_synchronous_js_execution();
+    }
+
+    /// O laço de `drainMicrotasks`: os ticks do `process.nextTick` e as microtarefas até as duas filas esvaziarem.
+    fn drain_microtasks_and_ticks(&self) {
         use crate::runtime::process_object as ticks;
         if ticks::is_processing_ticks() {
             self.drain_microtasks_only();

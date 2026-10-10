@@ -32,7 +32,7 @@ fn weak_ref_deref_body(global_object: &JSGlobalObject, call: &HostCall) -> HostR
             WEAK_REF_NOT_AN_OBJECT_MESSAGE,
             WEAK_REF_WRONG_RECEIVER_MESSAGE,
         )?;
-        Ok(reference.deref_target())
+        Ok(reference.deref_target(global_object.vm()))
     })
 }
 

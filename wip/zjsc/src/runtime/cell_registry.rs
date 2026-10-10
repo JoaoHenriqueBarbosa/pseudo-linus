@@ -188,12 +188,15 @@ impl CellEntry {
         match self {
             CellEntry::Scope(scope) => scope.visit_children(marker),
             CellEntry::GetterSetter(getter_setter) => getter_setter.visit_children(marker),
-            // WeakMap e WeakSet ainda seguram chave e valor fortes (sem ephemeron, ver `gc.rs`).
             CellEntry::Map(cell) => visit_table(cell.table(), marker),
             CellEntry::Set(cell) => visit_table(cell.table(), marker),
-            CellEntry::WeakMap(cell) => visit_table(cell.table(), marker),
-            CellEntry::WeakSet(cell) => visit_table(cell.table(), marker),
+            CellEntry::WeakObjectRef(weak_ref) => weak_ref.visit_children(marker),
+            CellEntry::FinalizationRegistry(registry) => registry.visit_children(marker),
             _ => {}
+        }
+        // As coleções fracas e as referências fracas voltam depois da marcação forte (efêmeros e finalização).
+        if matches!(self, CellEntry::WeakMap(_) | CellEntry::WeakSet(_) | CellEntry::WeakObjectRef(_) | CellEntry::FinalizationRegistry(_)) {
+            marker.defer_weak(self.clone());
         }
     }
 

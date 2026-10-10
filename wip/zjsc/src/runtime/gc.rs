@@ -20,11 +20,15 @@
 //! Em build de depuração a célula varrida deixa uma lápide: ler o id dela depois é pânico com o tipo, o que
 //! transforma uma aresta esquecida em erro barulhento no lugar de comportamento estranho.
 //!
+//! Depois da marcação forte vêm os efêmeros de `WeakMap` (ponto fixo) e o `finalizeUnconditionally` das células
+//! fracas e dos `CodeBlock`s: a entrada de `WeakMap`/`WeakSet` de chave morta sai, o `WeakRef` de alvo morto fica
+//! vazio (o alvo lido ou criado na versão corrente é forte, `m_lastAccessVersion`), o `FinalizationRegistry` move
+//! os registros mortos e agenda a limpeza numa tarefa posterior.
+//!
 //! DIVERGÊNCIAS:
-//! - O índice de uma célula varrida não é reaproveitado (o slot fica vazio): os caches por id (o da
-//!   `Structure` por protótipo, as tabelas laterais por célula) seguram ids mortos sem enfraquecê-los, como os
-//!   `Weak` do C++ fariam. O slot vazio custa o tamanho de uma `Option<CellEntry>` e o dono.
-//! - `WeakRef`, `WeakMap`, `WeakSet` e `FinalizationRegistry` ainda seguram o alvo forte.
+//! - Sem gerações nem coleta concorrente: toda coleta é completa e para o mundo.
+//! - Os caches por id fora dos metadados de bytecode (o da `Structure` por protótipo, as tabelas laterais por
+//!   célula) não são enfraquecidos; o id carrega a geração do slot, e o id velho não acha a célula nova.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -44,11 +48,26 @@ pub struct Marker {
     /// Algum `RefCell` estava emprestado para escrita: a célula não pôde ser lida e a coleta desiste (não
     /// varre nada), porque não dá para provar o que ela segura.
     aborted: bool,
+    /// `vm.currentWeakRefVersion()` na hora da coleta.
+    weak_ref_version: u64,
+    /// As células de semântica fraca alcançadas (`WeakMap`, `WeakSet`, `WeakRef`, `FinalizationRegistry`), para
+    /// os efêmeros e a finalização depois da marcação forte.
+    deferred_weak: Vec<CellEntry>,
 }
 
 impl Marker {
-    fn new(slot_count: usize) -> Marker {
-        Marker { marked: vec![false; slot_count], worklist: Vec::new(), aborted: false }
+    fn new(slot_count: usize, weak_ref_version: u64) -> Marker {
+        Marker { marked: vec![false; slot_count], worklist: Vec::new(), aborted: false, weak_ref_version, deferred_weak: Vec::new() }
+    }
+
+    /// `vm.currentWeakRefVersion()` da coleta.
+    pub fn weak_ref_version(&self) -> u64 {
+        self.weak_ref_version
+    }
+
+    /// Guarda uma célula de semântica fraca alcançada.
+    pub(crate) fn defer_weak(&mut self, entry: CellEntry) {
+        self.deferred_weak.push(entry);
     }
 
     /// `SlotVisitor::append(JSValue)`; o `Option` vazio é o `WriteBarrier` nulo.
@@ -230,7 +249,7 @@ pub fn collect(interpreter: Option<&crate::interpreter::interpreter::Interpreter
     if already {
         return 0;
     }
-    let freed = mark_and_sweep(interpreter, vm);
+    let (freed, registries_to_clean) = mark_and_sweep(interpreter, vm);
     let live = cell_registry::live_cell_count();
     STATISTICS.with(|statistics| {
         let mut current = statistics.get();
@@ -246,6 +265,16 @@ pub fn collect(interpreter: Option<&crate::interpreter::interpreter::Interpreter
         // `Heap::updateAllocationLimits`: o próximo ciclo espera alocar tanto quanto ficou vivo.
         state.threshold = stress_threshold().unwrap_or_else(|| live.max(MIN_ALLOCATIONS_PER_CYCLE));
     });
+    // `DeferredWorkTimer::scheduleWorkSoon` do `runFinalizationCleanup`: uma tarefa posterior que não segura o laço.
+    if let Some(global_object) = cell_registry::first_global_object() {
+        for registry in registries_to_clean {
+            crate::runtime::timers::schedule_native(
+                &global_object,
+                0.0,
+                std::rc::Rc::new(move |global: &crate::runtime::js_global_object::JSGlobalObject| registry.run_finalization_cleanup(global)),
+            );
+        }
+    }
     freed
 }
 
@@ -268,9 +297,12 @@ pub fn statistics() -> Statistics {
     STATISTICS.with(std::cell::Cell::get)
 }
 
-fn mark_and_sweep(interpreter: Option<&crate::interpreter::interpreter::Interpreter>, vm: &crate::runtime::vm::VM) -> usize {
+fn mark_and_sweep(
+    interpreter: Option<&crate::interpreter::interpreter::Interpreter>,
+    vm: &crate::runtime::vm::VM,
+) -> (usize, Vec<crate::runtime::js_finalization_registry::JSFinalizationRegistryRef>) {
     let (slot_count, pinned) = cell_registry::pinned_cells();
-    let mut marker = Marker::new(slot_count);
+    let mut marker = Marker::new(slot_count, vm.current_weak_ref_version());
     for cell_id in pinned {
         marker.cell(cell_id);
     }
@@ -299,13 +331,46 @@ fn mark_and_sweep(interpreter: Option<&crate::interpreter::interpreter::Interpre
     };
     interpreter.visit_gc_roots(&mut marker);
     vm.visit_gc_roots(&mut marker);
-    while let Some(cell_id) = marker.worklist.pop() {
-        if let Some(entry) = cell_registry::get_for_marking(cell_id) {
-            visit_children(&entry, &mut marker);
+    // A marcação forte e os efêmeros (`Heap::runFixpointPhase`): o valor de `WeakMap` cuja chave ficou marcada é
+    // marcado, e o que ele alcança pode marcar outra chave; repete até nada mudar.
+    loop {
+        while let Some(cell_id) = marker.worklist.pop() {
+            if let Some(entry) = cell_registry::get_for_marking(cell_id) {
+                visit_children(&entry, &mut marker);
+            }
+        }
+        let deferred = std::mem::take(&mut marker.deferred_weak);
+        let mut progressed = false;
+        for entry in &deferred {
+            if let CellEntry::WeakMap(map) = entry {
+                match map.table().try_borrow() {
+                    Ok(table) => progressed |= table.visit_ephemerons(&mut marker),
+                    Err(_) => marker.abort(),
+                }
+            }
+        }
+        marker.deferred_weak.splice(0..0, deferred);
+        if !progressed {
+            break;
         }
     }
     if marker.aborted || !interpreter.finalize_code_blocks_before_sweep(&|cell_id| marker.is_doomed(cell_id)) {
-        return 0;
+        return (0, Vec::new());
+    }
+    // `finalizeUnconditionally` das células fracas, antes da varredura (as lápides ainda são células).
+    let mut registries_to_clean = Vec::new();
+    for entry in &marker.deferred_weak {
+        match entry {
+            CellEntry::WeakMap(map) => map.table().borrow_mut().remove_dead_keys(&marker),
+            CellEntry::WeakSet(set) => set.table().borrow_mut().remove_dead_keys(&marker),
+            CellEntry::WeakObjectRef(weak_ref) => weak_ref.finalize(&marker),
+            CellEntry::FinalizationRegistry(registry) => {
+                if registry.finalize(&marker) {
+                    registries_to_clean.push(std::rc::Rc::clone(registry));
+                }
+            }
+            _ => {}
+        }
     }
     let swept = cell_registry::sweep(&marker.marked);
     let count = swept.len();
@@ -316,7 +381,7 @@ fn mark_and_sweep(interpreter: Option<&crate::interpreter::interpreter::Interpre
             state.swept.insert(*cell_id, *js_type);
         }
     });
-    count
+    (count, registries_to_clean)
 }
 
 /// `JSCell::visitChildren` por tipo: os `JSValue` que a célula segura.

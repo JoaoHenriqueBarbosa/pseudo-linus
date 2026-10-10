@@ -56,6 +56,40 @@ fn measure_loop_peak_memory() {
     println!("{peak} {:?}", gc::statistics());
 }
 
+/// Fracos, medido no bun 1.4.2 com coleta automática: o `WeakRef` segura o alvo até o fim do trabalho síncrono e
+/// das microtarefas e o solta na tarefa seguinte; o `FinalizationRegistry` chama o callback numa tarefa posterior
+/// para cada alvo morto; o valor de `WeakMap` vive enquanto a chave vive (efêmero) e morre com ela; o item de
+/// `WeakSet` não segura nada.
+#[test]
+fn weak_references_follow_the_collector() {
+    let program = "
+        var log = [];
+        var r = new WeakRef({});
+        var fr = new FinalizationRegistry(h => log.push('fin ' + h));
+        (function () { fr.register({}, 'a'); fr.register({}, 'b'); })();
+        var key = {};
+        var wm = new WeakMap();
+        wm.set(key, { v: 7 });
+        (function () { var k2 = {}, v2 = {}; fr.register(v2, 'wmvalue'); wm.set(k2, v2); })();
+        var ws = new WeakSet();
+        (function () { var o = {}; ws.add(o); fr.register(o, 'wsitem'); })();
+        (function () { var t = {}; fr.register({}, 'cancelled', t); fr.unregister(t); })();
+        for (let i = 0; i < 300000; i++) { const a = [i]; }
+        log.push('sync ' + typeof r.deref());
+        queueMicrotask(() => log.push('micro ' + typeof r.deref()));
+        setTimeout(() => {
+            for (let i = 0; i < 300000; i++) { const a = [i]; }
+            log.push('t1 ' + typeof r.deref() + ' ' + wm.get(key).v);
+            setTimeout(() => { R = log.sort().join(','); }, 5);
+        }, 0);
+    ";
+    let result = zjsc::api::eval::evaluate_named_script_running_timers_reporting_uncaught(program, "/app/main.js", "R")
+        .expect("sem exceção não capturada")
+        .unwrap_or_else(|_| panic!("o programa lançou exceção"));
+    let text = String::from_utf8_lossy(&result.as_js_string().value().utf8(ConversionMode::LenientConversion)).into_owned();
+    assert_eq!(text, "fin a,fin b,fin wmvalue,fin wsitem,micro object,sync object,t1 undefined 7");
+}
+
 /// Cada tipo de dono sozinho, para a lápide apontar a aresta que falta.
 fn survives(setup: &str, step: &str, check: &str, expected: &str) {
     let program = format!("{setup}; for (let i = 0; i < 250000; i++) {{ const g = {{ i: i }}; if (i % 1000 === 0) {{ {step}; }} }} String({check})");
