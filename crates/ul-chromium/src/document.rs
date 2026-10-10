@@ -47,6 +47,15 @@ pub fn layout_box(doc: &mut BaseDocument, id: NodeId) -> Option<[f64; 14]> {
     if !node.is_element() {
         return None;
     }
+    // Sob `display: none` (no próprio nó ou num ancestral) não há caixa: medidas zeradas, sem interseção.
+    let mut current = Some(id);
+    while let Some(at) = current {
+        let ancestor = doc.get_node(at)?;
+        if ancestor.primary_styles().is_some_and(|s| s.get_box().display.is_none()) {
+            return None;
+        }
+        current = ancestor.parent;
+    }
     // O layout sem o arredondamento do taffy: o Chromium mede em frações (21.44 do margin do h1, não 21).
     let layout = node.unrounded_layout();
     let (mut x, mut y) = (layout.location.x, layout.location.y);

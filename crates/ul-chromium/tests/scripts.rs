@@ -128,6 +128,41 @@ fn scroll_container_reserves_scrollbar() {
 }
 
 #[test]
+fn fractional_radix_strings_match_v8() {
+    // Saída do chromium do oráculo; o id do CodeGroup do VitePress é `Math.random().toString(36).substring(7)`.
+    let script = "<script>for (const x of [0.123456789, Math.PI / 10, 0.9876543210123, 1 / 3, 0.000123456, 123.456, 2 ** -30 + 0.1]) console.log(x.toString(36), x.toString(7), x.toString(16), x.toString(2))</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(
+        log,
+        "0.4fzzzxjylrx 0.0602263655133143611 0.1f9add3739635f 0.00011111100110101101110100110111001110010110001101011111\n\
+         0.bb5exfivbcc 0.212520344346455155 0.506cbdda73c38 0.0101000001101100101111011101101001110011110000111\n\
+         0.zk00001xj0a 0.662523354215303612 0.fcd6e9e0803be8 0.11111100110101101110100111100000100000000011101111101\n\
+         0.c 0.2222222222222222222 0.55555555555554 0.010101010101010101010101010101010101010101010101010101\n\
+         0.005rcwu8qgexl 0.00002034461564452542663 0.0008173f7b84ca6e8 0.00000000000010000001011100111111011110111000010011001010011011101\n\
+         3f.gez4w97ry 234.312256641535441 7b.74bc6a7ef9dc 1111011.0111010010111100011010100111111011111001110111\n\
+         0.3llllnmkyoi 0.04620462051066354516 0.1999999d99999a 0.0001100110011001100110011001110110011001100110011001101\n"
+    );
+}
+
+#[test]
+fn frames_stop_after_load() {
+    // Ordem medida no chromium do oráculo: o quadro que segue o `load` roda o rAF e entrega os observadores, o idle
+    // callback vem depois dele, e depois disso não há quadro (nem rAF nem entrega nova).
+    let html = "<body><div id=a style='height:50px'>a</div><div id=h style='display:none'>h</div><script>
+const log = (s) => console.log(s);
+const watch = (label, id = 'a') => { new IntersectionObserver((es) => log(label + ' io ' + es[0].isIntersecting)).observe(document.getElementById(id)); };
+requestAnimationFrame(() => log('raf sync'));
+watch('hidden', 'h');
+document.addEventListener('DOMContentLoaded', () => { log('dcl'); requestIdleCallback(() => { log('ric dcl'); watch('ric dcl'); }); });
+window.addEventListener('load', () => { log('load'); watch('load'); requestIdleCallback(() => { log('ric load'); watch('ric load'); }); requestAnimationFrame(() => log('raf load')); });
+setTimeout(() => { log('t10'); }, 10);
+setTimeout(() => { log('t30'); watch('t30'); requestAnimationFrame(() => log('raf t30')); }, 30);
+</script><script type=module>log('module'); watch('module'); requestIdleCallback(() => { log('ric module'); watch('ric module'); });</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "module\ndcl\nload\nt10\nraf sync\nraf load\nhidden io false\nmodule io true\nload io true\nric module\nric dcl\nric load\nt30\n");
+}
+
+#[test]
 fn push_apply_in_timer() {
     let script = "<script>setTimeout(function () { for (var n of [10, 1000, 70000, 200000]) { var a = []; var b = new Array(n).fill(1); a.push.apply(a, b); console.log(n, a.length) } }, 0)</script>";
     let (_, log) = run(&[("/", script)]);

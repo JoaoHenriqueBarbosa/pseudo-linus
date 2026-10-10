@@ -131,14 +131,11 @@ for (const name of ['setImmediate', 'clearImmediate']) delete globalThis[name];
   for (const key of ['PerformanceTiming', 'PerformanceNavigation']) Object.defineProperty(globalThis, key, { enumerable: false });
 }
 
-const scheduleFrame = (cb) => setTimeout(() => cb(performance.now()), 16);
 Object.assign(globalThis, {
-  requestAnimationFrame: scheduleFrame,
-  cancelAnimationFrame: (id) => clearTimeout(id),
-  // O período ocioso vem depois de um quadro: o headless já pintou o seu (e entregou os observadores) quando o
-  // callback roda, e o que ele observa não recebe entrega.
-  requestIdleCallback: (cb) => setTimeout(() => { renderFrame(); cb({ didTimeout: false, timeRemaining: () => 50 }); }, 16),
-  cancelIdleCallback: (id) => clearTimeout(id),
+  requestAnimationFrame,
+  cancelAnimationFrame,
+  requestIdleCallback,
+  cancelIdleCallback,
   alert() {}, confirm() { return false; }, prompt() { return null; }, print() {}, open() { return null; }, close() {}, stop() {}, focus() {}, blur() {},
   scrollTo() {}, scrollBy() {}, scroll() {}, moveTo() {}, moveBy() {}, resizeTo() {}, resizeBy() {},
   getSelection: () => selection,

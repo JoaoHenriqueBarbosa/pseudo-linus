@@ -286,26 +286,57 @@ mutationHook.record = (rec) => {
     });
   }
 };
-// ---- ResizeObserver e IntersectionObserver: medidos na atualização de renderização, sobre o layout do hospedeiro. A
-// janela é a raiz do IntersectionObserver e não rola. Medido no oráculo: sob --virtual-time-budget o headless só
-// produz o primeiro quadro (o da primeira pintura); mudança de layout depois dele não gera entrega nova.
+// ---- Quadros: requestAnimationFrame, ResizeObserver, IntersectionObserver e idle callbacks, sobre o layout do
+// hospedeiro. A janela é a raiz do IntersectionObserver e não rola. Medido no oráculo (sob --virtual-time-budget): o
+// headless produz quadros a cada 16ms enquanto a página carrega, mais um logo depois do `load`, e nenhum depois dele;
+// o rAF pedido depois desse último nunca roda e a mudança de layout não gera entrega nova. Em cada quadro os
+// callbacks de rAF rodam antes das entregas de ResizeObserver, que vêm antes das de IntersectionObserver; o idle
+// callback espera o quadro seguinte.
 const renderObservers = new Set();
-let renderPending = false;
-let firstFrameDone = false;
+const frameCallbacks = new Map();
+let nextFrameCallback = 1;
+const idleCallbacks = new Map();
+let frameTimer = null;
+let framesOver = false;
+// Os quadros caem numa grade de 16ms do tempo virtual.
 const requestRender = () => {
-  if (renderPending || firstFrameDone) return;
-  renderPending = true;
-  setTimeout(renderFrame, 16);
+  if (framesOver || frameTimer !== null) return;
+  frameTimer = setTimeout(renderFrame, 16 - (performance.now() % 16));
 };
-// O único quadro do headless; um segundo pedido não mede nada.
 const renderFrame = () => {
-  if (firstFrameDone) return;
-  renderPending = false;
-  firstFrameDone = true;
-  // Medido no oráculo: as entregas de ResizeObserver saem antes das de IntersectionObserver no mesmo quadro.
+  frameTimer = null;
+  if (framesOver) return;
+  if (document.readyState === 'complete') framesOver = true;
+  const now = performance.now();
+  const callbacks = Array.from(frameCallbacks.values());
+  frameCallbacks.clear();
+  for (const cb of callbacks) { try { cb.call(window, now); } catch (error) { reportError(error); } }
   const all = Array.from(renderObservers);
   for (const observer of all) if (observer instanceof ResizeObserver) observer[P.__measure]();
   for (const observer of all) if (!(observer instanceof ResizeObserver)) observer[P.__measure]();
+  for (const id of Array.from(idleCallbacks.keys())) setTimeout(() => runIdle(id), 0);
+  if (frameCallbacks.size) requestRender();
+};
+const requestAnimationFrame = (cb) => {
+  const id = nextFrameCallback++;
+  if (framesOver) return id;
+  frameCallbacks.set(id, cb);
+  requestRender();
+  return id;
+};
+const cancelAnimationFrame = (id) => { frameCallbacks.delete(id); };
+const requestIdleCallback = (cb) => {
+  const id = nextFrameCallback++;
+  idleCallbacks.set(id, cb);
+  if (framesOver) setTimeout(() => runIdle(id), 1); else requestRender();
+  return id;
+};
+const cancelIdleCallback = (id) => { idleCallbacks.delete(id); };
+const runIdle = (id) => {
+  const cb = idleCallbacks.get(id);
+  if (!cb) return;
+  idleCallbacks.delete(id);
+  cb.call(window, { didTimeout: false, timeRemaining: () => 50 });
 };
 const sizeEntry = (inlineSize, blockSize) => Object.freeze([Object.freeze({ inlineSize, blockSize })]);
 class ResizeObserverEntry {
@@ -379,10 +410,12 @@ class IntersectionObserver {
     const entries = [];
     const root = { x: 0, y: 0, width: windowMetrics.innerWidth, height: windowMetrics.innerHeight };
     for (const [target, last] of this[P.__targets]) {
-      const b = boxOf(target) || { x: 0, y: 0, width: 0, height: 0 };
+      // Sem caixa (`display: none`, desconectado) o alvo não intersecta, nem na borda da raiz.
+      const box = boxOf(target);
+      const b = box || { x: 0, y: 0, width: 0, height: 0 };
       const left = Math.max(b.x, root.x), top = Math.max(b.y, root.y);
       const right = Math.min(b.x + b.width, root.x + root.width), bottom = Math.min(b.y + b.height, root.y + root.height);
-      const isIntersecting = target.isConnected && right >= left && bottom >= top;
+      const isIntersecting = Boolean(box) && target.isConnected && right >= left && bottom >= top;
       const area = b.width * b.height;
       const ratio = isIntersecting ? (area > 0 ? ((right - left) * (bottom - top)) / area : 1) : 0;
       // O índice do limiar cruzado: -1 é "ainda não medido", que sempre entrega.
@@ -566,6 +599,8 @@ const hook = (name, a, b) => {
       hidden(load, '__targetOverride', document);
       window.dispatchEvent(load);
       window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }));
+      // O quadro que segue o `load` acontece mesmo sem pedido, e é o último.
+      requestRender();
       break;
     }
     case 'fire': { const el = wrappers.get(a) || wrap(a); el.dispatchEvent(new Event(b)); break; }
