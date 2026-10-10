@@ -21,7 +21,7 @@ const glTarget = (s) => {
   if (!t || t.width !== w || t.height !== h) {
     const samples = s.attrs.antialias ? SAMPLES_4X : SAMPLES_1X;
     const n = samples.length;
-    t = s.target = { width: w, height: h, samples, color: new Uint8Array(w * h * 4 * n), depth: s.attrs.depth ? new Float32Array(w * h * n).fill(1) : null, stencil: s.attrs.stencil ? new Uint8Array(w * h * n) : null, resolved: null, max: BITS_8_MAX, alpha: s.attrs.alpha };
+    t = s.target = { width: w, height: h, samples, color: new Uint8Array(w * h * 4 * n), depth: s.attrs.depth ? new Float32Array(w * h * n).fill(1) : null, stencil: s.attrs.stencil ? new Uint8Array(w * h * n) : null, resolved: null, max: BITS_8_MAX, alpha: s.attrs.alpha, float: null, depthQuant: DEPTH_EXACT };
     glDropQueue(s);
   }
   return t;
@@ -35,6 +35,27 @@ const BITS_8_MAX = [255, 255, 255, 255];
 const GL_COLOR_BITS = { RGBA4: [4, 4, 4, 4], RGB5_A1: [5, 5, 5, 1], RGB565: [5, 6, 5, 0], RGBA8: [8, 8, 8, 8], RGB8: [8, 8, 8, 0] };
 // Um valor de `bits` bits expandido para 8, como a conversão de leitura do ANGLE.
 const expandTo8 = (q, bits) => (bits === 8 ? q : bits === 0 ? 255 : bits === 1 ? q * 255 : bits === 4 ? q * 17 : (q << (8 - bits)) | (q >> (2 * bits - 8)));
+// Cor em ponto flutuante: nada limita a [0, 1], e cada canal guarda os bits do binário32 do valor arredondado ao
+// formato (o R11F_G11F_B10F trunca a mantissa e leva negativo a zero; o canal ausente guarda 0, o alfa 1). O half do
+// SwiftShader não confere o estouro: de 65520 a 131072 o expoente 31 fica com a mantissa, um NaN que a leitura devolve
+// com a carga (0x7c06 vira 0x7f80c000), e os bits guardados preservam isso.
+const FLOAT_MAX = [1, 1, 1, 1];
+const renderHalf = (x) => {
+  const bits = f32Bits(x), sign = (bits >>> 16) & 0x8000, abs = bits & 0x7fffffff;
+  if (abs >= 0x38800000 && abs < 0x48000000) { const r = abs - 0x38000000; return sign | ((r + 0xfff + ((r >>> 13) & 1)) >>> 13); }
+  return floatToHalf(x);
+};
+const halfBits = (h) => ((h >> 10) & 31) === 31 ? (((h & 0x8000) << 16) | 0x7f800000 | ((h & 1023) << 13)) >>> 0 : f32Bits(halfToFloat(h)) >>> 0;
+const glFloatQuantizers = (fmt) => [0, 1, 2, 3].map((c) => {
+  if (c >= fmt.comps || (fmt.alphaOne && c === 3)) { const b = f32Bits(c === 3 ? 1 : 0) >>> 0; return () => b; }
+  if (fmt.half) return (v) => halfBits(renderHalf(v));
+  if (fmt.packedFloat) { const m = c === 2 ? 5 : 6; return (v) => f32Bits(smallFloat(toSmallFloat(v, m), m)) >>> 0; }
+  return (v) => f32Bits(v) >>> 0;
+});
+// DEPTH_COMPONENT16: o z de cada amostra e o guardado são roundEven(z * 65535) em binário32, sobre 65535 (medido
+// no oráculo; o truncamento erra as faixas).
+const D16_QUANT = (z) => fr(roundEven(fr(z * 65535)) / 65535);
+const DEPTH_EXACT = (z) => z;
 // O alvo de um framebuffer completo a partir dos anexos fotografados no comando, ou `null` se o formato de cor ainda
 // não tem caminho de escrita (cor em ponto flutuante).
 const glFramebufferTarget = (attachments) => {
@@ -42,7 +63,7 @@ const glFramebufferTarget = (attachments) => {
   const color = att('COLOR_ATTACHMENT0'), depth = att('DEPTH_ATTACHMENT', 'DEPTH_STENCIL_ATTACHMENT'), stencil = att('STENCIL_ATTACHMENT', 'DEPTH_STENCIL_ATTACHMENT');
   const any = color || depth || stencil, first = objOf(any.object);
   const [w, h] = first.size || first.levels.get(any.level);
-  const t = { width: w, height: h, samples: SAMPLES_1X, upright: true, color: null, depth: null, stencil: null, max: BITS_8_MAX, alpha: true, bits: [8, 8, 8, 8], image: null };
+  const t = { width: w, height: h, samples: SAMPLES_1X, upright: true, color: null, depth: null, stencil: null, max: BITS_8_MAX, alpha: true, bits: [8, 8, 8, 8], image: null, float: null, depthQuant: DEPTH_EXACT };
   if (color) {
     const o = objOf(color.object);
     if (o.size) {
@@ -50,34 +71,58 @@ const glFramebufferTarget = (attachments) => {
       Object.assign(t, { color: o.color, bits, max: bits.map((b) => (b ? (1 << b) - 1 : 255)), alpha: bits[3] > 0 });
     } else {
       const img = o.images.get(texImageKey(texFace(color.textarget), color.level));
-      if (img.fmt.kind !== 'unorm' || img.fmt.depth) return null;
-      const bits = [0, 1, 2, 3].map((c) => (c < img.fmt.comps && !(img.fmt.alphaOne && c === 3) ? img.fmt.bits[c] : 0));
-      Object.assign(t, { image: img, color: new Uint8Array(w * h * 4), bits, max: bits.map((b) => (b ? (1 << b) - 1 : 255)), alpha: bits[3] > 0 });
+      if (img.fmt.depth || (img.fmt.kind !== 'unorm' && img.fmt.kind !== 'float')) return null;
       const n = img.fmt.comps;
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 4; c++) {
-        t.color[((h - 1 - y) * w + x) * 4 + c] = bits[c] ? img.data[(y * w + x) * n + c] >> (16 - bits[c]) : 255;
+      if (img.fmt.kind === 'float') {
+        Object.assign(t, { image: img, float: glFloatQuantizers(img.fmt), color: new Uint32Array(w * h * 4), bits: [0, 1, 2, 3].map((c) => (c < n ? 32 : 0)), max: FLOAT_MAX, alpha: n === 4 && !img.fmt.alphaOne });
+        const absent = t.float.map((q) => q(0));
+        // O número do JS não guarda a carga do NaN: a imagem leva a parte os bits de cada NaN que o desenho escreveu.
+        const nan = img.nanBits;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 4; c++) {
+          const i = (y * w + x) * n + c, v = c < n ? img.data[i] : 0;
+          t.color[((h - 1 - y) * w + x) * 4 + c] = c >= n ? absent[c] : Number.isNaN(v) && nan && nan.has(i) ? nan.get(i) : f32Bits(v) >>> 0;
+        }
+      } else {
+        const bits = [0, 1, 2, 3].map((c) => (c < n && !(img.fmt.alphaOne && c === 3) ? img.fmt.bits[c] : 0));
+        Object.assign(t, { image: img, color: new Uint8Array(w * h * 4), bits, max: bits.map((b) => (b ? (1 << b) - 1 : 255)), alpha: bits[3] > 0 });
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 4; c++) {
+          t.color[((h - 1 - y) * w + x) * 4 + c] = bits[c] ? img.data[(y * w + x) * n + c] >> (16 - bits[c]) : 255;
+        }
       }
     }
   }
-  if (depth) t.depth = objOf(depth.object).depth;
+  if (depth) {
+    const o = objOf(depth.object);
+    t.depth = o.depth;
+    if (o.formatName === 'DEPTH_COMPONENT16') t.depthQuant = D16_QUANT;
+  }
   if (stencil) t.stencil = objOf(stencil.object).stencil;
   return t;
 };
 // Devolve a cor do alvo à textura anexada.
 const glStoreTarget = (t) => {
   const img = t.image, n = img.fmt.comps, { width: w, height: h } = t;
+  if (t.float) img.nanBits = null;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < n; c++) {
-    if (t.bits[c]) img.data[(y * w + x) * n + c] = (t.color[((h - 1 - y) * w + x) * 4 + c] << (16 - t.bits[c])) & 0xffff;
+    const v = t.color[((h - 1 - y) * w + x) * 4 + c], i = (y * w + x) * n + c;
+    if (t.float) {
+      img.data[i] = f32FromBits(v);
+      if (Number.isNaN(img.data[i])) (img.nanBits ??= new Map()).set(i, v);
+    } else if (t.bits[c]) img.data[i] = (v << (16 - t.bits[c])) & 0xffff;
   }
 };
-// O readPixels de um framebuffer: roda a fila e devolve RGBA de 8 bits com a linha 0 embaixo.
+// O readPixels de um framebuffer: roda a fila e devolve RGBA com a linha 0 embaixo (8 bits, ou os bits do binário32
+// num anexo de ponto flutuante, com `float` marcado).
 const glReadFramebuffer = (s, f) => {
   glFlush(s);
   const t = glFramebufferTarget(f.attachments);
   if (!t || !t.color) return null;
-  const { width: w, height: h } = t, pixels = new Uint8Array(w * h * 4);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 4; c++) pixels[(y * w + x) * 4 + c] = expandTo8(t.color[((h - 1 - y) * w + x) * 4 + c], t.bits[c]);
-  return { pixels, width: w, height: h };
+  const { width: w, height: h } = t, pixels = t.float ? new Uint32Array(w * h * 4) : new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 4; c++) {
+    const v = t.color[((h - 1 - y) * w + x) * 4 + c];
+    pixels[(y * w + x) * 4 + c] = t.float ? v : expandTo8(v, t.bits[c]);
+  }
+  return { pixels, width: w, height: h, float: !!t.float };
 };
 // A fotografia do framebuffer de desenho no comando, com a imagem de cor fixada.
 const glDrawFramebuffer = (s) => {
@@ -165,11 +210,11 @@ const glRunClear = (s, t, entry) => {
   if (t.color && entry.mask & GL.COLOR_BUFFER_BIT) {
     const color = p.get('COLOR_CLEAR_VALUE');
     const mask = p.get('COLOR_WRITEMASK');
-    const bytes = Array.from(color, (c, i) => (i === 3 && !t.alpha ? t.max[3] : unormClear(c, t.max[i])));
+    const bytes = Array.from(color, (c, i) => (t.float ? t.float[i](c) : i === 3 && !t.alpha ? t.max[3] : unormClear(c, t.max[i])));
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) for (let k = 0; k < n; k++) { const i = ((y * t.width + x) * n + k) * 4; for (let c = 0; c < 4; c++) if (mask[c]) t.color[i + c] = bytes[c]; }
   }
   if (t.depth && entry.mask & GL.DEPTH_BUFFER_BIT && p.get('DEPTH_WRITEMASK')) {
-    const d = Math.min(1, Math.max(0, p.get('DEPTH_CLEAR_VALUE')));
+    const d = t.depthQuant(Math.min(1, Math.max(0, p.get('DEPTH_CLEAR_VALUE'))));
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) for (let k = 0; k < n; k++) t.depth[(y * t.width + x) * n + k] = d;
   }
   if (t.stencil && entry.mask & GL.STENCIL_BUFFER_BIT) {
@@ -605,10 +650,18 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
     fsMain.body({ g, l: new Array(fsMain.count), rt });
     if (rt.discarded) return null;
     const out = stages.usesFragData && !g[fragSlot].some((x) => x !== 0) ? g[stages.fs.globals.get('gl_FragData').slot][0] : g[fragSlot];
-    return out.map((v) => Math.min(1, Math.max(0, v)));
+    return out;
   };
   const runLane = (lane, x, y, prev, cur) => { rt.lane = lane; rt.calls = 0; rt.prev = prev; rt.cur = cur; return fragment(x, y); };
-  const write = (x, y, covered, src) => {
+  // Alvo normalizado: a saída e a mistura limitam a [0, 1]; em ponto flutuante, nada limita, a mistura fica em
+  // binário32 e o formato quantiza na escrita.
+  const clamp = t.float ? fr : (v) => Math.min(1, Math.max(0, v));
+  // Em ponto flutuante, o fator (1 - a) também sai em binário32 antes do produto (medido na sonda webgl-fbo-gaps).
+  const factor = t.float ? fr : (v) => v;
+  const encode = t.float ? (v, ch) => t.float[ch](v) : (v, ch) => unormN(v, max[ch]);
+  const decode = t.float ? (ci, ch) => f32FromBits(t.color[ci + ch]) : (ci, ch) => t.color[ci + ch] / max[ch];
+  const write = (x, y, covered, out) => {
+    const src = out.map(clamp);
     for (let k = 0; k < n; k++) {
       if (!(covered & (1 << k))) continue;
       const si = (y * t.width + x) * n + k;
@@ -616,7 +669,7 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
       if (stencil && !stencil.test(stencil.ref & stencil.mask, t.stencil[si] & stencil.mask)) { glStencilApply(t, stencil, si, stencil.fail); continue; }
       if (depthTest) {
         const [sx, sy] = t.samples[k];
-        const zs = Math.min(1, Math.max(0, direct ? direct.z() : evalPlane(zPlane, fr(fr(x + sx - 0.5) - ax), fr(sampleRowV(y, sy) - ay))));
+        const zs = t.depthQuant(Math.min(1, Math.max(0, direct ? direct.z() : evalPlane(zPlane, fr(fr(x + sx - 0.5) - ax), fr(sampleRowV(y, sy) - ay)))));
         if (!depthFn(zs, t.depth[si])) { if (stencil) glStencilApply(t, stencil, si, stencil.zfail); continue; }
         if (depthWrite) t.depth[si] = zs;
       }
@@ -624,13 +677,13 @@ const glRasterTriangle = (s, t, entry, stages, fsGlobals, fsMain, [a, b, c], pro
       const ci = si * 4;
       let rgba = src;
       if (blend && t.color) {
-        const dst = [t.color[ci] / max[0], t.color[ci + 1] / max[1], t.color[ci + 2] / max[2], alphaBits ? t.color[ci + 3] / max[3] : 1];
+        const dst = [decode(ci, 0), decode(ci, 1), decode(ci, 2), alphaBits ? decode(ci, 3) : 1];
         rgba = [0, 1, 2, 3].map((ch) => {
-          const sf = (ch === 3 ? srcA : srcRgb)(src, dst, ch, constant), df = (ch === 3 ? dstA : dstRgb)(src, dst, ch, constant);
-          return Math.min(1, Math.max(0, (ch === 3 ? eqA : eqRgb)(fr(src[ch] * sf), fr(dst[ch] * df), src[ch], dst[ch])));
+          const sf = factor((ch === 3 ? srcA : srcRgb)(src, dst, ch, constant)), df = factor((ch === 3 ? dstA : dstRgb)(src, dst, ch, constant));
+          return clamp((ch === 3 ? eqA : eqRgb)(fr(src[ch] * sf), fr(dst[ch] * df), src[ch], dst[ch]));
         });
       }
-      if (t.color) for (let ch = 0; ch < 4; ch++) if (mask[ch]) t.color[ci + ch] = ch === 3 && !alphaBits ? max[3] : unormN(rgba[ch], max[ch]);
+      if (t.color) for (let ch = 0; ch < 4; ch++) if (mask[ch]) t.color[ci + ch] = ch === 3 && !alphaBits ? max[3] : encode(rgba[ch], ch);
     }
   };
   for (let qv = (t.height - by1) & ~1; qv < t.height - by0; qv += 2) for (let qx = bx0 & ~1; qx < bx1; qx += 2) {

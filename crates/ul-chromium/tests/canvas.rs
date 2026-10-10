@@ -202,6 +202,13 @@ fn webgl_framebuffers_match_oracle() {
     assert_scenes_exact(include_str!("../../../testbench/oracle/measured/webgl-fbo.html"), include_str!("webgl-fbo.json"));
 }
 
+/// Anexo de cor em ponto flutuante (lido em binário32: as unidades de 4 bytes são canais), DEPTH_COMPONENT16 e o
+/// erro de feedback loop, iguais ao oráculo.
+#[test]
+fn webgl_framebuffer_gaps_match_oracle() {
+    assert_scenes_exact(include_str!("../../../testbench/oracle/measured/webgl-fbo-gaps.html"), include_str!("webgl-fbo-gaps.json"));
+}
+
 /// Roda a sonda e exige cada cena (readPixels em base64) igual à do oráculo em todos os pixels.
 fn assert_scenes_exact(probe: &str, oracle: &str) {
     let ours = probe_output(probe);
@@ -212,6 +219,10 @@ fn assert_scenes_exact(probe: &str, oracle: &str) {
         .unwrap()
         .iter()
         .filter_map(|(name, want)| {
+            // Valor que não é base64 (status, getError, extensão presente) se compara direto.
+            if !want.is_string() {
+                return (*want != ours[name]).then(|| format!("{name}: {want} no oráculo, {} aqui", ours[name]));
+            }
             let (a, b) = (decode(want), decode(&ours[name]));
             if a.len() != b.len() {
                 return Some(format!("{name}: {} bytes no oráculo, {} aqui", a.len(), b.len()));

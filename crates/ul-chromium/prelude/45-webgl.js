@@ -458,6 +458,7 @@ const checkDraw = (ctx, vertices, instances = 1) => {
   if (!program || !objOf(program).linked) { glError(ctx, GL.INVALID_OPERATION); return false; }
   const fb = s.params.get('DRAW_FRAMEBUFFER_BINDING');
   if (fb && framebufferStatus(s, fb) !== GL.FRAMEBUFFER_COMPLETE) { glError(ctx, GL.INVALID_FRAMEBUFFER_OPERATION); return false; }
+  if (fb && feedbackLoop(s, objOf(program), objOf(fb))) { glError(ctx, GL.INVALID_OPERATION); return false; }
   for (const active of objOf(program).attribs) {
     const a = s.vao.attribs[active.location];
     if (!a || !a.enabled) continue;
@@ -471,11 +472,39 @@ const checkDraw = (ctx, vertices, instances = 1) => {
   }
   return true;
 };
+// O feedback loop do WebGL: uma unidade que um sampler ativo do programa lê tem ligada uma textura anexada ao
+// framebuffer de desenho. Sampler que o compilador descartou não conta (o oráculo desenha sem erro).
+const SAMPLER_UNIT_TARGET = (typeName) => (/CUBE/.test(typeName) ? 'TEXTURE_CUBE_MAP' : /3D/.test(typeName) ? 'TEXTURE_3D' : /ARRAY/.test(typeName) ? 'TEXTURE_2D_ARRAY' : 'TEXTURE_2D');
+const feedbackLoop = (s, p, f) => {
+  const attached = new Set(Array.from(f.attachments.values(), (a) => (a.level !== undefined ? objOf(a.object) : null)).filter(Boolean));
+  if (!attached.size) return false;
+  return p.uniforms.some((u, index) => u.block === undefined && /SAMPLER/.test(u.typeName) && Array.from({ length: u.size }, (_, el) => {
+    const unit = s.units[(p.uniformValues.get(index + ':' + el) || [0])[0]];
+    const tex = unit && unit[SAMPLER_UNIT_TARGET(u.typeName)];
+    return tex && attached.has(objOf(tex));
+  }).some(Boolean));
+};
+// As cores que um framebuffer aceita de anexo: as normalizadas sempre; as de ponto flutuante com o
+// EXT_color_buffer_float (o WebGL 2; o R11F_G11F_B10F também).
+const FLOAT_RENDERABLE = new Set(['R16F', 'RG16F', 'RGBA16F', 'R32F', 'RG32F', 'RGBA32F', 'R11F_G11F_B10F']);
+const readsFloat = (f) => {
+  const a = f.attachments.get(GL.COLOR_ATTACHMENT0);
+  const img = a && a.level !== undefined && objOf(a.object).images.get(texImageKey(texFace(a.textarget), a.level));
+  return !!img && img.fmt.kind === 'float';
+};
 const framebufferStatus = (s, fb) => {
   if (!fb) return GL.FRAMEBUFFER_COMPLETE;
   const f = objOf(fb);
   const attachments = Array.from(f.attachments.values());
   if (!attachments.length) return GL.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT;
+  for (const a of attachments) {
+    if (a.level === undefined) continue;
+    const o = objOf(a.object);
+    // Numa textura mutável, o nível anexado precisa estar em [TEXTURE_BASE_LEVEL, q] (ES 3.0, 9.4.2).
+    if (s.version === 2 && !o.params.get('TEXTURE_IMMUTABLE_FORMAT') && a.level < o.params.get('TEXTURE_BASE_LEVEL')) return GL.FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+    const img = o.images && o.images.get(texImageKey(texFace(a.textarget), a.level));
+    if (s.version === 2 && img && img.fmt.kind === 'float' && !img.fmt.depth && !(FLOAT_RENDERABLE.has(img.fmt.name) && s.extensions.has('EXT_color_buffer_float'))) return GL.FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+  }
   const sizes = attachments.map((a) => { const o = objOf(a.object); return o.size ? o.size.join('x') : a.level !== undefined && o.levels && o.levels.get(a.level) ? o.levels.get(a.level).join('x') : null; });
   if (sizes.some((x) => x === null || x === '0x0')) return GL.FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
   if (new Set(sizes).size > 1) return s.version === 2 ? GL.FRAMEBUFFER_INCOMPLETE_ATTACHMENT : GL.FRAMEBUFFER_INCOMPLETE_DIMENSIONS;
@@ -1092,14 +1121,16 @@ const glMethods = {
     const s = glState(this);
     if (s.lost) return;
     if (width < 0 || height < 0) { glError(this, GL.INVALID_VALUE); return; }
-    if (format !== GL.RGBA || type !== GL.UNSIGNED_BYTE) {
-      if (!(format === s.params.get('IMPLEMENTATION_COLOR_READ_FORMAT') && type === s.params.get('IMPLEMENTATION_COLOR_READ_TYPE'))) { glError(this, GL.INVALID_OPERATION); return; }
+    const fb = s.params.get('READ_FRAMEBUFFER_BINDING');
+    // Um anexo de cor em ponto flutuante só se lê como RGBA/FLOAT (e o normalizado nunca assim).
+    const floatRead = fb && framebufferStatus(s, fb) === GL.FRAMEBUFFER_COMPLETE && readsFloat(objOf(fb));
+    if (floatRead ? !(format === GL.RGBA && type === GL.FLOAT) : format !== GL.RGBA || type !== GL.UNSIGNED_BYTE) {
+      if (floatRead || !(format === s.params.get('IMPLEMENTATION_COLOR_READ_FORMAT') && type === s.params.get('IMPLEMENTATION_COLOR_READ_TYPE'))) { glError(this, GL.INVALID_OPERATION); return; }
     }
     if (!ArrayBuffer.isView(dst)) { if (s.version === 2 && typeof dst === 'number' && s.params.get('PIXEL_PACK_BUFFER_BINDING')) return; glError(this, GL.INVALID_VALUE); return; }
-    if (!(dst instanceof Uint8Array || dst instanceof Uint8ClampedArray)) { glError(this, GL.INVALID_OPERATION); return; }
-    const out = new Uint8Array(dst.buffer, dst.byteOffset + dstOffset, dst.byteLength - dstOffset);
+    if (floatRead ? !(dst instanceof Float32Array) : !(dst instanceof Uint8Array || dst instanceof Uint8ClampedArray)) { glError(this, GL.INVALID_OPERATION); return; }
+    const out = floatRead ? new Uint32Array(dst.buffer, dst.byteOffset + dstOffset * 4, dst.length - dstOffset) : new Uint8Array(dst.buffer, dst.byteOffset + dstOffset, dst.byteLength - dstOffset);
     if (out.length < width * height * 4) { glError(this, GL.INVALID_OPERATION); return; }
-    const fb = s.params.get('READ_FRAMEBUFFER_BINDING');
     if (fb && framebufferStatus(s, fb) !== GL.FRAMEBUFFER_COMPLETE) { glError(this, GL.INVALID_FRAMEBUFFER_OPERATION); return; }
     const source = fb ? glReadFramebuffer(s, objOf(fb)) : { pixels: glFlush(s), width: s.width, height: s.height };
     if (!source) return;

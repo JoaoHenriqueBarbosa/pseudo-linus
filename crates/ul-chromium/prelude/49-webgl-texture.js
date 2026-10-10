@@ -577,6 +577,7 @@ const log2sqrt = (x) => { const sq = fr(x * x); return fr(fr(fr(f32Bits(sq)) - L
 const log2Lod = (x) => { const sq = fr(x * x); return fr(fr(fr(f32Bits(sq)) - LOD_BIAS) * 2 ** -24); };
 const f32View = new DataView(new ArrayBuffer(4));
 const f32Bits = (x) => { f32View.setFloat32(0, x); return f32View.getInt32(0); };
+const f32FromBits = (b) => { f32View.setUint32(0, b >>> 0); return f32View.getFloat32(0); };
 const bitsF32 = (i) => { f32View.setInt32(0, i); return f32View.getFloat32(0); };
 
 // A face e as coordenadas (U, V) de uma direção do cubo, e o eixo maior M (cubeFace).
