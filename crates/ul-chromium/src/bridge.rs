@@ -333,6 +333,11 @@ impl DomHost for Bridge {
             // O texto do estilo em linha, sem sincronizar.
             "getStyle" => Ok(self.style_attribute(id_arg(args, 0)?).map_or(DomArg::Null, DomArg::Str)),
             "pageUrl" => Ok(DomArg::Str(self.url.borrow().clone())),
+            // O carimbo do quadro: o instante (ms desde a origem) clampado pelo `TimeClamper`.
+            "frameTime" => match args.first() {
+                Some(DomArg::Num(elapsed)) => Ok(DomArg::Num(zjsc::runtime::time_clamper::clamp_delta_ms(*elapsed))),
+                _ => Ok(DomArg::Undefined),
+            },
             // A compilação de um script que a página inseriu custa tempo virtual, como os do documento.
             "chargeSource" => {
                 if let Some(DomArg::Num(bytes)) = args.first() {

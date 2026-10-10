@@ -173,7 +173,8 @@ pub(crate) fn reset_for_program() {
 /// tempo virtual do laço desde o início do programa.
 pub(crate) fn now_ms() -> f64 {
     if crate::wtf::date_math::virtual_clock_origin_ns().is_some() {
-        return crate::runtime::waiter_list_manager::virtual_now();
+        let elapsed = crate::runtime::waiter_list_manager::virtual_now();
+        return crate::runtime::time_clamper::clamped_now_ms(elapsed).unwrap_or(elapsed);
     }
     STATE.with(|state| {
         let mut state = state.borrow_mut();
@@ -191,6 +192,9 @@ pub(crate) fn now_ms() -> f64 {
 
 /// `performance.timeOrigin`: milissegundos com fração desde a época.
 fn time_origin_ms() -> f64 {
+    if let Some(origin) = crate::runtime::time_clamper::clamped_time_origin_ms() {
+        return origin;
+    }
     if let Some(origin) = crate::wtf::date_math::virtual_clock_origin_ns() {
         return origin as f64 / 1_000_000.0;
     }

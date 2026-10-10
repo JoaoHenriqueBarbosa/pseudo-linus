@@ -325,7 +325,10 @@ let frameTimer = null;
 // O quadro agendado sai sem esperar a grade (pedido com rede em voo).
 let frameImmediate = false;
 let framesOver = false;
-// Os quadros caem numa grade de 16ms do tempo virtual; com rede em voo, saem já (o relógio virtual está parado).
+// Os quadros caem na grade do `BeginFrameArgs::DefaultInterval()` (16666 µs) do tempo virtual; com rede em voo, saem
+// já (o relógio virtual está parado). O carimbo do quadro é o instante da grade, clampado como no Blink.
+const FRAME_INTERVAL_MS = 16.666;
+let frameAt = 0;
 const requestRender = () => {
   if (framesOver && !networkInFlight) return;
   if (frameTimer !== null) {
@@ -333,7 +336,10 @@ const requestRender = () => {
     clearTimeout(frameTimer);
   }
   frameImmediate = networkInFlight > 0;
-  frameTimer = setTimeout(renderFrame, frameImmediate ? 0 : 16 - (performance.now() % 16));
+  const now = performance.now();
+  const tick = Math.floor(now / FRAME_INTERVAL_MS) + (frameImmediate ? 0 : 1);
+  frameAt = tick * FRAME_INTERVAL_MS;
+  frameTimer = setTimeout(renderFrame, frameImmediate ? 0 : Math.ceil(frameAt - now));
 };
 const renderFrame = () => {
   frameTimer = null;
@@ -341,7 +347,7 @@ const renderFrame = () => {
   frameImmediate = false;
   if (framesOver && !networkInFlight && !requestedDuringNetwork) return;
   if (document.readyState === 'complete') framesOver = true;
-  const now = performance.now();
+  const now = op('frameTime', frameAt);
   const callbacks = Array.from(frameCallbacks.values());
   frameCallbacks.clear();
   for (const cb of callbacks) { try { cb.call(window, now); } catch (error) { reportError(error); } }

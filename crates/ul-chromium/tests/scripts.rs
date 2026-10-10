@@ -439,3 +439,31 @@ fn hidden_is_on_html_element_prototype() {
     let (_, log) = run(&[("/", "<script>console.log(Object.getOwnPropertyNames(HTMLElement.prototype).includes('hidden'), 'hidden' in Element.prototype)</script>")]);
     assert_eq!(log, "true false\n");
 }
+
+#[test]
+fn clock_has_the_blink_grain_and_frames_the_vsync_grid() {
+    // Medido no oráculo (testbench/oracle/measured/clock.html): sem crossOriginIsolated, performance.now, timeOrigin e
+    // Event.timeStamp caem em múltiplos de 100 µs, com o ruído da subtração de dois instantes grandes; o carimbo do
+    // rAF sai redondo e os quadros andam 16,6 ou 16,7 ms (a grade de 16666 µs clampada).
+    let script = r#"<script>
+var grain = function (v) { return Math.abs(v * 10 - Math.round(v * 10)) < 1e-6; };
+var nows = []; for (var i = 0; i < 50; i++) { for (var j = 0, s = 0; j < 3000 * i; j++) s += j; nows.push(performance.now()); }
+console.log('now', nows.every(grain), nows.some(function (v) { return !/^\d+(\.\d)?$/.test(String(v)); }));
+console.log('origin', grain(performance.timeOrigin), 'event', grain(new Event('x').timeStamp), crossOriginIsolated);
+var frames = [];
+var step = function (t) { frames.push(t); if (frames.length < 3) requestAnimationFrame(step); };
+requestAnimationFrame(step);
+setTimeout(function () {
+  var onGrid = function (t) { return Math.abs(t / 16.666 - Math.round(t / 16.666)) * 16.666 <= 0.1 + 1e-9; };
+  console.log('frames', frames.length >= 1, frames.every(function (t) { return /^\d+(\.\d)?$/.test(String(t)) && onGrid(t); }));
+  console.log('deltas', frames.slice(1).map(function (t, i) { return (t - frames[i]).toFixed(1); }).join(','));
+}, 200);
+</script>"#;
+    let (_, log) = run(&[("/", script)]);
+    let lines: Vec<&str> = log.lines().collect();
+    assert_eq!(lines[0], "now true true", "{log}");
+    assert_eq!(lines[1], "origin true event true false", "{log}");
+    assert_eq!(lines[2], "frames true true", "{log}");
+    let deltas = lines[3].strip_prefix("deltas").unwrap().trim();
+    assert!(deltas.is_empty() || deltas.split(',').all(|d| d == "16.6" || d == "16.7"), "{log}");
+}

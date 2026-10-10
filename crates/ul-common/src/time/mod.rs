@@ -19,15 +19,22 @@ pub mod zone;
 /// kernel do sandbox e o `TestKit` controlam). Fora de um pseudo-processo (testes de uma crate isolada),
 /// o relógio do host.
 pub fn realtime_nanos() -> i128 {
-    if let Some(sys) = sysabi::sys::try_current() {
-        if let Ok(spec) = sys.clock_gettime(sysabi::Clock::Realtime) {
-            return i128::from(spec.sec) * 1_000_000_000 + i128::from(spec.nsec);
-        }
-    }
-    match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+    sys_clock_nanos(sysabi::Clock::Realtime).unwrap_or_else(|| match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
         Ok(elapsed) => elapsed.as_nanos() as i128,
         Err(error) => -(error.duration().as_nanos() as i128),
-    }
+    })
+}
+
+/// Nanossegundos no `CLOCK_MONOTONIC` do pseudo-processo (o tempo desde o boot do sandbox). Fora de um
+/// pseudo-processo, o tempo desde a primeira leitura.
+pub fn monotonic_nanos() -> i128 {
+    static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+    sys_clock_nanos(sysabi::Clock::Monotonic).unwrap_or_else(|| START.get_or_init(std::time::Instant::now).elapsed().as_nanos() as i128)
+}
+
+fn sys_clock_nanos(clock: sysabi::Clock) -> Option<i128> {
+    let spec = sysabi::sys::try_current()?.clock_gettime(clock).ok()?;
+    Some(i128::from(spec.sec) * 1_000_000_000 + i128::from(spec.nsec))
 }
 
 /// Segundos num dia.

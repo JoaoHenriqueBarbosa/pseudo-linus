@@ -41,6 +41,15 @@ const PRELUDE_PARTS: [&str; 19] = [
 ];
 const PRELUDE_TAIL: &str = include_str!("../prelude/70-expose.js");
 
+/// O segredo do `TimeClamper`: o `base::RandUint64()` do processo, do `getrandom` do sandbox.
+fn clock_secret() -> u64 {
+    let mut bytes = [0u8; 8];
+    if let Some(sys) = sys::try_current() {
+        let _ = sys.getrandom(&mut bytes);
+    }
+    u64::from_le_bytes(bytes)
+}
+
 /// O que o Chromium faz com `console.*` no modo headless sem `--enable-logging`: nada aparece.
 #[derive(Debug)]
 struct SilentConsole;
@@ -160,6 +169,11 @@ impl Page {
             // Sob `--virtual-time-budget`, `Date` e `performance.now` andam com o tempo virtual dos timers, a partir
             // do relógio do sistema no início da página.
             zjsc::wtf::date_math::set_virtual_clock(zjsc::wtf::date_math::current_time_in_nanoseconds() as f64 / 1_000_000.0);
+            // O relógio da página arredonda como o `TimeClamper` do Blink: 100 µs (a página nunca tem
+            // `crossOriginIsolated`), um segredo aleatório por processo e a origem no relógio monotônico do sandbox.
+            let origin_ticks_us = (ul_common::time::monotonic_nanos() / 1000) as i64;
+            let unix_at_zero_us = (zjsc::wtf::date_math::current_time_in_nanoseconds() / 1000) as i64 - origin_ticks_us;
+            zjsc::runtime::time_clamper::set_time_clamper(clock_secret(), zjsc::runtime::time_clamper::COARSE_RESOLUTION_US, origin_ticks_us, unix_at_zero_us);
             // O valor do programa é a função gancho: o hospedeiro a guarda, sem binding global que a página veja.
             let prelude = format!("(function () {{ 'use strict';\n{}{}\nreturn hook;\n}})();", PRELUDE_PARTS.concat(), PRELUDE_TAIL);
             let hook = match runner.eval_hidden_value(&prelude) {
