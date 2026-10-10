@@ -1,7 +1,7 @@
 //! O comportamento do banco ao longo de muitas escritas: as memtables cheias viram tabelas durante a execução, o nível 0
 //! passa do limite e é compactado, e o que o usuário lê continua sendo a última versão de cada chave.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use ul_leveldb::env::{Env, MemEnv};
 use ul_leveldb::table::Table;
@@ -22,7 +22,7 @@ fn filler(seed: u32, length: usize) -> Vec<u8> {
 
 fn open(env: &MemEnv) -> Db {
     env.set_clock(1_791_666_000_000_000);
-    Db::open(Rc::new(env.clone()), DIR, Options::chromium(0x10)).unwrap()
+    Db::open(Arc::new(env.clone()), DIR, Options::chromium(0x10)).unwrap()
 }
 
 fn tables(env: &MemEnv) -> Vec<String> {
@@ -31,6 +31,12 @@ fn tables(env: &MemEnv) -> Vec<String> {
 
 fn log_text(env: &MemEnv) -> String {
     String::from_utf8(env.read_file(&format!("{DIR}/LOG")).unwrap()).unwrap()
+}
+
+#[test]
+fn the_database_can_be_shared_between_threads_behind_a_mutex() {
+    fn assert_send_and_sync<T: Send + Sync>() {}
+    assert_send_and_sync::<std::sync::Mutex<Db>>();
 }
 
 #[test]

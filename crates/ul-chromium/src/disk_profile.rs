@@ -8,18 +8,25 @@
 //! perfil) vira marcador que este módulo preenche a cada execução.
 //!
 //! O que o molde ainda não refaz, e as fatias seguintes fecham: os checksums dos arquivos binários com campos
-//! aleatórios (o log do leveldb, o WAL do SQLite, o índice do cache de disco), que o leveldb próprio refará, e o
-//! perfil do `--dump-dom`, que sai do processo antes de a árvore estar completa e pede um molde à parte.
+//! aleatórios (o WAL do SQLite, o índice do cache de disco), e o perfil do `--dump-dom`, que sai do processo antes de
+//! a árvore estar completa e pede um molde à parte. O banco do Local Storage já não vem do molde: o leveldb próprio
+//! (`ul-leveldb`) o cria e o `LocalStorageStore` grava nele o que as páginas guardam.
 
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 use sysabi::{sys, AtFlags, Errno, Fd, Mode};
 
 use ul_common::fsutil::mkdir_p;
 use ul_common::time::Civil;
 
+use crate::local_storage::LocalStorageStore;
+use crate::sys_env::SysEnv;
+
 /// O molde, gerado no oráculo (ver o cabeçalho de `testbench/oracle/profile-pack.py` para o formato).
 static PACK: &[u8] = include_bytes!("../profile/template.pack");
+/// O diretório do banco do Local Storage no perfil: o molde o traz (de uma execução do oráculo), mas quem o grava é o
+/// leveldb próprio, com o log, o MANIFEST e o `LOG` de verdade.
+const LOCAL_STORAGE_DB: &[u8] = b"Default/Local Storage/leveldb";
 
 /// Delimitador dos marcadores (U+E000 em UTF-8).
 const MARK: [u8; 3] = [0xEE, 0x80, 0x80];
@@ -232,6 +239,8 @@ pub struct DiskProfile {
     /// `$XDG_CONFIG_HOME` ou `$HOME/.config`: o molde traz o `chromium/Crash Reports` do crashpad a partir daqui.
     config_base: Vec<u8>,
     start_us: i64,
+    /// O banco do Local Storage (`Default/Local Storage/leveldb`), que o molde não traz: o banco próprio o cria.
+    local_storage: Option<Arc<LocalStorageStore>>,
 }
 
 impl DiskProfile {
@@ -239,9 +248,10 @@ impl DiskProfile {
     /// crashpad), os `Singleton*` e o diretório de soquete em `/tmp`. Os erros de gravação não impedem o navegador de
     /// subir: o Chromium também segue sem o perfil quando o disco recusa.
     pub fn start(user_data_dir: Option<&[u8]>) -> DiskProfile {
-        let profile = DiskProfile::new(user_data_dir);
+        let mut profile = DiskProfile::new(user_data_dir);
         let _ = profile.write_layer(LAYER_START);
         let _ = profile.write_singletons();
+        profile.local_storage = profile.open_local_storage();
         profile
     }
 
@@ -251,18 +261,33 @@ impl DiskProfile {
             Some(path) if !path.is_empty() => path,
             _ => [home.as_slice(), b"/.config"].concat(),
         };
-        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64 }
+        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, local_storage: None }
     }
 
-    /// A saída limpa: o que o Chromium só grava ao encerrar (`Preferences`, o `Local State` completo).
+    /// O banco do Local Storage do perfil, para o contexto de navegação padrão do navegador.
+    pub fn local_storage(&self) -> Option<Arc<LocalStorageStore>> {
+        self.local_storage.clone()
+    }
+
+    fn open_local_storage(&self) -> Option<Arc<LocalStorageStore>> {
+        let dir = [self.user_data_dir.as_deref()?, b"/", LOCAL_STORAGE_DB].concat();
+        let thread_id = sys::current().gettid() as u64;
+        LocalStorageStore::open(Arc::new(SysEnv::new()), &String::from_utf8_lossy(&dir), thread_id).ok().map(Arc::new)
+    }
+
+    /// A saída limpa: o que o Chromium só grava ao encerrar (`Preferences`, o `Local State` completo), depois do
+    /// commit do que as páginas gravaram no Local Storage.
     pub fn finish(&self) {
+        if let Some(store) = &self.local_storage {
+            let _ = store.flush();
+        }
         let _ = self.write_layer(LAYER_EXIT);
     }
 
     fn write_layer(&self, layer: u8) -> Result<(), Errno> {
         let user_dir = self.user_data_dir.as_deref().unwrap_or(b"");
         let expander = Expander { start_us: self.start_us, user_dir };
-        for entry in template().iter().filter(|e| e.layer == layer) {
+        for entry in template().iter().filter(|e| e.layer == layer && !(e.root == ROOT_USER_DATA && e.path.starts_with(LOCAL_STORAGE_DB))) {
             let base = match entry.root {
                 ROOT_USER_DATA => match &self.user_data_dir {
                     Some(dir) => dir.as_slice(),

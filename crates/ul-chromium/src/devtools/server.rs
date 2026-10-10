@@ -72,6 +72,8 @@ pub struct Browser {
     /// O perfil de cada contexto de navegação (o padrão e os de `Target.createBrowserContext`), que as abas dele
     /// compartilham.
     profiles: std::collections::HashMap<String, std::sync::Arc<crate::session::Profile>>,
+    /// O banco do Local Storage do `--user-data-dir`, que o laço manda gravar o que passou do atraso de commit.
+    local_storage: Option<std::sync::Arc<crate::local_storage::LocalStorageStore>>,
     targets: Vec<Target>,
     sessions: Vec<Session>,
     conns: Vec<Conn>,
@@ -147,14 +149,16 @@ impl http::Browser for Browser {
 }
 
 impl Browser {
-    pub fn new(options: &Options) -> Browser {
+    pub fn new(options: &Options, local_storage: Option<std::sync::Arc<crate::local_storage::LocalStorageStore>>) -> Browser {
         let context_id = token();
-        let profiles = std::collections::HashMap::from([(context_id.clone(), std::sync::Arc::default())]);
+        let default_profile = local_storage.clone().map_or_else(crate::session::Profile::default, crate::session::Profile::with_local_storage);
+        let profiles = std::collections::HashMap::from([(context_id.clone(), std::sync::Arc::new(default_profile))]);
         Browser {
             browser_id: uuid(),
             context_id,
             contexts: Vec::new(),
             profiles,
+            local_storage,
             targets: Vec::new(),
             sessions: Vec::new(),
             conns: Vec::new(),
@@ -826,9 +830,14 @@ impl Browser {
                 fds.push(PollFd { fd: target.link.events, events: PollEvents::IN, revents: PollEvents::empty() });
             }
             let pending = self.targets.iter().any(|t| !t.pending.is_empty()) || self.conns.iter().any(|c| matches!(c.transport, Transport::Pipe { .. }) && !c.outbox.is_empty());
-            let wait = if pending { Some(std::time::Duration::from_millis(1)) } else { None };
+            // Com o banco do Local Storage de pé, o laço acorda a cada segundo para gravar o que passou dos 5 s.
+            let commit_tick = self.local_storage.as_ref().map(|_| std::time::Duration::from_secs(1));
+            let wait = if pending { Some(std::time::Duration::from_millis(1)) } else { commit_tick };
             if matches!(sys.poll(&mut fds, wait), Err(e) if e != sysabi::Errno::EINTR) {
                 return;
+            }
+            if let Some(store) = &self.local_storage {
+                let _ = store.flush_due();
             }
             let mut at = 0;
             if let Some(listener) = listener {
@@ -858,9 +867,9 @@ impl Browser {
 }
 
 /// O navegador com DevTools remoto: abre a primeira aba em `url`, anuncia o endereço no stderr e serve até o
-/// `Browser.close`.
-pub fn run(ctx: &mut Ctx, options: &Options, url: &str) -> i32 {
-    let mut browser = Browser::new(options);
+/// `Browser.close`. Com `local_storage` (o banco do `--user-data-dir`), o `localStorage` do contexto padrão persiste nele.
+pub fn run(ctx: &mut Ctx, options: &Options, url: &str, local_storage: Option<std::sync::Arc<crate::local_storage::LocalStorageStore>>) -> i32 {
+    let mut browser = Browser::new(options, local_storage);
     let listener = match options.port {
         Some(port) if !options.pipe => sysabi::sys::tcp_listen_at(std::net::IpAddr::from([127, 0, 0, 1]), port, 128, true, true).ok().map(|(fd, bound)| {
             let _ = ctx.stderr().write_all(format!("\nDevTools listening on ws://127.0.0.1:{bound}/devtools/browser/{}\n", browser.browser_id).as_bytes());

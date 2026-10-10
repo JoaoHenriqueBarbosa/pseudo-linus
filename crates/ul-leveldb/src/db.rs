@@ -5,9 +5,9 @@
 //! Tudo roda na thread de quem chama: no leveldb a memtable cheia vira tabela numa thread de fundo, aqui logo depois
 //! da escrita que a encheu; os arquivos que restam no disco são os mesmos.
 
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use ul_common::time::Civil;
 
@@ -59,14 +59,14 @@ struct LogFile {
 }
 
 pub struct Db {
-    env: Rc<dyn Env>,
+    env: Arc<dyn Env>,
     dir: String,
     options: Options,
     mem: MemTable,
     versions: VersionSet,
     log: Option<LogFile>,
     logfile_number: u64,
-    tables: RefCell<HashMap<u64, Rc<Table>>>,
+    tables: Mutex<HashMap<u64, Arc<Table>>>,
     /// Verdadeiro enquanto o trabalho que no leveldb roda na thread de fundo está em andamento: as linhas do `LOG`
     /// saem com o id dela.
     background: Cell<bool>,
@@ -78,7 +78,7 @@ fn corruption(message: impl Into<String>) -> Error {
 }
 
 impl Db {
-    pub fn open(env: Rc<dyn Env>, dir: &str, options: Options) -> Result<Db> {
+    pub fn open(env: Arc<dyn Env>, dir: &str, options: Options) -> Result<Db> {
         env.create_dir_all(dir)?;
         let info_log = info_log_file_name(dir);
         let _ = env.rename(&info_log, &old_info_log_file_name(dir));
@@ -92,7 +92,7 @@ impl Db {
             mem: MemTable::new(),
             log: None,
             logfile_number: 0,
-            tables: RefCell::new(HashMap::new()),
+            tables: Mutex::new(HashMap::new()),
             background: Cell::new(false),
         };
         db.recover_and_start()?;
@@ -283,7 +283,7 @@ impl Db {
             };
             if !keep {
                 if file_type == FileType::Table {
-                    self.tables.borrow_mut().remove(&number);
+                    self.cache().remove(&number);
                 }
                 self.info(&format!("Delete type={} #{}", file_type as i32, number));
                 let _ = self.env.remove_file(&format!("{}/{}", self.dir, name));
@@ -452,12 +452,17 @@ impl Db {
         Ok(meta)
     }
 
-    fn table(&self, file: &FileMeta) -> Result<Rc<Table>> {
-        if let Some(table) = self.tables.borrow().get(&file.number) {
+    /// As tabelas já abertas, por número de arquivo.
+    fn cache(&self) -> MutexGuard<'_, HashMap<u64, Arc<Table>>> {
+        self.tables.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn table(&self, file: &FileMeta) -> Result<Arc<Table>> {
+        if let Some(table) = self.cache().get(&file.number) {
             return Ok(table.clone());
         }
-        let table = Rc::new(Table::open(self.env.read_file(&table_file_name(&self.dir, file.number))?)?);
-        self.tables.borrow_mut().insert(file.number, table.clone());
+        let table = Arc::new(Table::open(self.env.read_file(&table_file_name(&self.dir, file.number))?)?);
+        self.cache().insert(file.number, table.clone());
         Ok(table)
     }
 

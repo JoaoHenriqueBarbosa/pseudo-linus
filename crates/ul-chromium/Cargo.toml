@@ -12,6 +12,8 @@ sysabi = { workspace = true }
 sysio = { workspace = true }
 ul-common = { workspace = true }
 ul-net = { path = "../ul-net" }
+# O banco do Local Storage e do IndexedDB do perfil, no formato em disco do leveldb do Chromium.
+ul-leveldb = { path = "../ul-leveldb" }
 # Parser de HTML conforme a especificação (o mesmo do Servo), na versão que o blitz-html usa.
 html5ever = "0.39"
 markup5ever = "0.39"
