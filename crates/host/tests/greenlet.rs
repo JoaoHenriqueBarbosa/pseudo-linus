@@ -100,6 +100,16 @@ fn hash_index_scene_matches_the_oracle() {
     );
 }
 
+/// `range()` aceita objeto com `__index__`, como o `PyNumber_Index`.
+#[test]
+fn range_index_scene_matches_the_oracle() {
+    scene_matches(
+        "range_index",
+        include_str!("../../../testbench/oracle/automation/cases/range_index.py"),
+        include_str!("../../../testbench/oracle/automation/golden/range_index.out"),
+    );
+}
+
 /// O estado interno não aparece em nada que o programa enxergue (`__dict__`, `vars`, `dir`, `__del__`, `__slots__`),
 /// o tipo é estático como no C e as funções de módulo são `builtin_function_or_method` de `greenlet._greenlet`.
 #[test]

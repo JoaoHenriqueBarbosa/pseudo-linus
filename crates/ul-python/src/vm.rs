@@ -6427,6 +6427,29 @@ fn as_index(v: &Value) -> Option<i64> {
     }
 }
 
+/// O `PyNumber_Index`: o próprio `int` (o `bool` e a subclasse de `int` viram o inteiro), ou o que o `__index__` de
+/// usuário devolve, que tem de ser `int`.
+pub(crate) fn number_index(v: &Value) -> PyResult<Value> {
+    let int = |v: &Value| matches!(unwrap_payload(v), Value::Int(_) | Value::Bool(_) | Value::Big(_));
+    if int(v) {
+        return Ok(match unwrap_payload(v) {
+            Value::Bool(b) => Value::Int(i64::from(b)),
+            other => other,
+        });
+    }
+    if let Value::Instance(_) = v
+        && let Some(mut vm) = current()
+        && let Some(r) = vm.call_dunder(v, "__index__", Vec::new())
+    {
+        let r = r?;
+        if !int(&r) {
+            return Err(type_error(format!("__index__ returned non-int (type {})", r.type_name())));
+        }
+        return number_index(&r);
+    }
+    Err(type_error(format!("'{}' object cannot be interpreted as an integer", v.type_name())))
+}
+
 fn range_of(args: &[Value]) -> PyResult<Value> {
     if args.is_empty() {
         return Err(type_error("range expected at least 1 argument, got 0"));
@@ -6436,7 +6459,8 @@ fn range_of(args: &[Value]) -> PyResult<Value> {
     }
     let mut ints = Vec::with_capacity(3);
     for a in args {
-        match as_index(a) {
+        let n = number_index(a)?;
+        match as_index(&n) {
             Some(i) => ints.push(i),
             None => {
                 return Err(type_error(format!("'{}' object cannot be interpreted as an integer", a.type_name())))
