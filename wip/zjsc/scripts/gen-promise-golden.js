@@ -620,14 +620,17 @@ for (let n = 1; n <= 6; n++) {
   );
 }
 
-// Amostra determinística por hash (sampleByHash) até o alvo.
+// Amostra determinística por hash (sampleByHash) com folga: `measureBodies` descarta o programa não determinístico, o que
+// lança de forma síncrona e o que vaza caminho, e o golden fica com os TARGET primeiros que sobram (o teste exige TARGET).
 const TARGET = 1200;
-const selected = sampleByHash(programs, TARGET);
+const selected = sampleByHash(programs, Math.round(TARGET * 1.15));
 programs.length = 0;
 programs.push(...selected);
 
 // Executa cada programa no bun, num processo próprio, como arquivo (ver async-golden.js).
-measureBodies(programs, "promise_case.js").then((lines) => {
+measureBodies(programs, "promise_case.js").then((measured) => {
+  if (measured.length < TARGET) throw new Error("só " + measured.length + " programas medidos");
+  const lines = measured.slice(0, TARGET);
   process.stdout.write(emitFactoredLines("promise", lines));
-  process.stderr.write(`${programs.length} programas\n`);
+  process.stderr.write(`${lines.length} programas\n`);
 });
