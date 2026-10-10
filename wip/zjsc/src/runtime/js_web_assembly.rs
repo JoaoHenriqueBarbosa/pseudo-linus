@@ -36,7 +36,7 @@ use crate::runtime::intrinsic::Intrinsic;
 use crate::runtime::iterator_operations::get_value_property;
 use crate::runtime::js_array_buffer::JSArrayBuffer;
 use crate::runtime::js_big_int_ops::{make_big_int_from_i64, to_big_int, to_big_int64_value};
-use crate::runtime::js_function::{call_host_function_as_constructor, put_direct_native_function_without_transition, JSFunction};
+use crate::runtime::js_function::{call_host_function_as_constructor, put_direct_native_function_without_transition, JSFunction, JSFunctionRef};
 use crate::runtime::identifier::Identifier;
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_object::JSObject;
@@ -1682,22 +1682,25 @@ fn install_memory_table_global(global_object: &JSGlobalObject, namespace: &JSObj
 }
 
 /// `value` de `Global.prototype`: acessor com `get value` e `set value` (`PropertyAttribute::Accessor`).
+/// A função de um acessor `JSC_NATIVE_GETTER`/setter: uma `JSFunction` nativa comum cujo nome já leva o `get `/`set `
+/// (o `toString` mostra `function get value()`, ao contrário do `CustomAccessor`, que mostra o nome puro).
+fn native_accessor_function(global_object: &JSGlobalObject, length: u32, name: &str, function: NativeFunction) -> JSFunctionRef {
+    JSFunction::create_native(
+        global_object.vm(),
+        global_object,
+        length,
+        &WtfString::from_utf8(name.as_bytes()),
+        function,
+        ImplementationVisibility::Public,
+        Intrinsic::NoIntrinsic,
+        call_host_function_as_constructor,
+    )
+}
+
 fn put_value_accessor(global_object: &JSGlobalObject, prototype: &JSObject) {
     let vm = global_object.vm();
-    let make = |length: u32, name: &str, function: NativeFunction| {
-        JSFunction::create_native(
-            vm,
-            global_object,
-            length,
-            &WtfString::from_utf8(name.as_bytes()),
-            function,
-            ImplementationVisibility::Public,
-            Intrinsic::NoIntrinsic,
-            call_host_function_as_constructor,
-        )
-    };
-    let getter = make(0, "get value", web_assembly_global_value);
-    let setter = make(1, "set value", web_assembly_global_set_value);
+    let getter = native_accessor_function(global_object, 0, "get value", web_assembly_global_value);
+    let setter = native_accessor_function(global_object, 1, "set value", web_assembly_global_set_value);
     let accessor = GetterSetter::create_from_values(vm, getter.as_value(), setter.as_value());
     prototype.put_direct_non_index_accessor_without_transition(vm, &prop(vm, "value"), &accessor, ACCESSOR);
 }
@@ -1889,8 +1892,12 @@ fn install_instance_class(global_object: &JSGlobalObject, namespace: &JSObject) 
         call: call_web_assembly_instance,
         construct: construct_web_assembly_instance,
     };
+    // `exports` é `JSC_NATIVE_GETTER` no C++ (medido no bun 1.4.2: `String(get)` é `function get exports()`), não
+    // `CustomAccessor` como `Memory.buffer` e `Table.length`.
     let instance_prototype = instance_class.install_with(global_object, &namespace, |prototype| {
-        put_enumerable_getter(global_object, prototype, "exports", web_assembly_instance_exports);
+        let getter = native_accessor_function(global_object, 0, "get exports", web_assembly_instance_exports);
+        let accessor = GetterSetter::create_from_values(vm, getter.as_value(), JSValue::undefined());
+        prototype.put_direct_non_index_accessor_without_transition(vm, &prop(vm, "exports"), &accessor, ACCESSOR);
     });
     put_to_string_tag(vm, &instance_prototype, "WebAssembly.Instance");
     let instance_structure = IntlInstance::create_structure(vm, Some(global_object), instance_prototype.as_value());
