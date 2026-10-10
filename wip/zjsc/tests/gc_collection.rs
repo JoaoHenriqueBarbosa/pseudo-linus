@@ -215,6 +215,47 @@ fn errors_with_dead_frames_take_the_text_path() {
     assert_eq!(stressed(&program), "Error: m|message+line+column+sourceURL+stack|TypeError: m|true");
 }
 
+/// Locais Rust de nativos que chamam JS (o `MarkedArgumentBuffer` e a pilha C++ do JSC): a coleção nova do
+/// construtor de `Map` e `Set` e o iterador enquanto o gerador roda, os itens que o `toArray` já leu.
+#[test]
+fn native_locals_survive_calls_into_javascript() {
+    let program = format!("{CHURN} var g = function* () {{ for (var i = 0; i < 4; i++) {{ churn(); yield [i, {{ v: i }}]; }} }};
+        var m = new Map(g()); var s = new Set(g());
+        var a = (function* () {{ for (var i = 0; i < 3; i++) {{ churn(); yield 'x' + i; }} }})().flatMap(x => new String(x)).toArray();
+        R = m.size + ':' + m.get(3).v + ':' + s.size + ':' + a.join('');");
+    assert_eq!(stressed(&program), "4:3:4:x0x1x2");
+}
+
+/// Os combinadores de `Promise` seguram a promessa de resultado, a capacidade e as funções do caminho rápido em
+/// locais Rust enquanto o iterável roda JS.
+#[test]
+fn promise_combinators_survive_their_iterable() {
+    let program = format!("{CHURN} var log = []; var g = function* () {{ for (let i = 0; i < 3; i++) {{ churn(); yield {{ then(f) {{ f(i); }} }}; }} }};
+        Promise.race(g()).then(v => log.push('race ' + v)); Promise.all(g()).then(v => log.push('all ' + v.join('')));
+        class P extends Promise {{}} P.allSettled(g()).then(v => log.push('settled ' + v.length));
+        setTimeout(() => {{ R = log.join(','); }}, 1);");
+    assert_eq!(stressed(&program), "race 0,all 012,settled 3");
+}
+
+/// O estado de `module` e `require` do CJS mora em Rust (`CjsState`) e é raiz.
+#[test]
+fn cjs_module_state_survives() {
+    let program = format!("{CHURN} module.id = 'a' + 'b'; module.paths = ['p' + 1]; churn(); console.log(module.id + module.paths[0]);");
+    assert_eq!(stressed_main(&program), "abp1\n");
+}
+
+/// A recursão de `yield*` não pode gastar mais pilha com o coletor ligado: a profundidade máxima com coleta a cada
+/// alocação é a mesma que sem coleta.
+#[test]
+fn deep_yield_star_recursion_fits_under_collection() {
+    let program = "var depth = 0; function* r() { depth++; yield* r(); } try { [...r()]; } catch (e) {} R = String(depth);";
+    let plain = zjsc::api::eval::evaluate_named_script_running_timers_reporting_uncaught(program, "/app/main.js", "R")
+        .expect("sem exceção não capturada")
+        .unwrap_or_else(|_| panic!("o programa lançou exceção"));
+    let plain = String::from_utf8_lossy(&plain.to_wtf_string().utf8(ConversionMode::LenientConversion)).into_owned();
+    assert_eq!(stressed(program), plain);
+}
+
 /// Cada tipo de dono sozinho, para a lápide apontar a aresta que falta.
 fn survives(setup: &str, step: &str, check: &str, expected: &str) {
     let program = format!("{setup}; for (let i = 0; i < 250000; i++) {{ const g = {{ i: i }}; if (i % 1000 === 0) {{ {step}; }} }} String({check})");

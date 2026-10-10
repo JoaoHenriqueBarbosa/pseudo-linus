@@ -156,8 +156,11 @@ fn iterator_proto_to_array(global_object: &JSGlobalObject, call: &HostCall) -> H
     if !this_value.is_object() {
         return Err(Thrown::type_error("Iterator.prototype.toArray requires that |this| be an Object."));
     }
+    // O `MarkedArgumentBuffer` do C++: os itens já lidos vivem só aqui enquanto o próximo `next` roda JS.
+    let marked = crate::runtime::gc::RootScope::new(&[]);
     let mut values = Vec::new();
     for_each_in_iterator_protocol(global_object, this_value, |next_item| {
+        marked.append(next_item);
         values.push(next_item);
         Ok(())
     })?;

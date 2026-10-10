@@ -809,6 +809,25 @@ thread_local! {
     static CJS_STATE: RefCell<Option<CjsState>> = const { RefCell::new(None) };
 }
 
+/// As raízes do coletor: tudo o que o estado de `module` e `require` guarda (o `CjsState` é a parte do objeto
+/// `Module` do bun que aqui mora em Rust).
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    CJS_STATE.with(|state| {
+        let Ok(state) = state.try_borrow() else {
+            marker.abort();
+            return;
+        };
+        let Some(state) = state.as_ref() else { return };
+        marker.values(&state.slots);
+        marker.values(&[state.require, state.require_from, state.resolve_from]);
+        marker.value(state.helper);
+        for module in &state.modules {
+            marker.values(&[module.module, module.require]);
+            marker.values(&module.slots);
+        }
+    });
+}
+
 /// Fim do programa (`cell_registry::reset_program_state`): o nome do arquivo e os valores guardados são do programa.
 pub(crate) fn reset_for_program() {
     let _ = CJS_FILENAME.try_with(|name| name.borrow_mut().clear());

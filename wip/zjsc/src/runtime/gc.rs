@@ -174,6 +174,7 @@ fn visit_host_roots(marker: &mut Marker) {
     rt::console_format::visit_gc_roots(marker);
     rt::streams::visit_gc_roots(marker);
     crate::api::builtin_modules::visit_gc_roots(marker);
+    crate::api::eval::visit_gc_roots(marker);
     HOST_ROOTS.with(|roots| roots.borrow().iter().for_each(|visit| visit(marker)));
 }
 
@@ -255,19 +256,22 @@ pub(crate) fn retain_prototype(prototype: JSValue) {
     }
 }
 
-/// `MarkedArgumentBuffer` de um driver nativo da raiz (a microtarefa, o timer, o tick): os valores que ele segura
-/// em locais Rust enquanto chama JS em profundidade 1, onde o ponto seguro coleta. É uma pilha: o escopo mais
-/// novo cai primeiro.
+/// `MarkedArgumentBuffer` de código nativo: os valores que ele segura em locais Rust enquanto chama JS (a pilha C++
+/// que o coletor do JSC varre de modo conservador). É uma pilha: o escopo mais novo cai primeiro.
 pub struct RootScope(usize);
 
 impl RootScope {
     pub fn new(values: &[JSValue]) -> RootScope {
-        STATE.with(|state| {
-            let mut state = state.borrow_mut();
-            let base = state.scoped_roots.len();
-            state.scoped_roots.extend(values.iter().filter_map(|value| if let JSValue::Cell(cell_id) = value { Some(*cell_id) } else { None }));
-            RootScope(base)
-        })
+        let scope = RootScope(STATE.with(|state| state.borrow().scoped_roots.len()));
+        values.iter().for_each(|value| scope.append(*value));
+        scope
+    }
+
+    /// `MarkedArgumentBuffer::append`: só no topo da pilha (os escopos abertos pelo JS chamado já caíram).
+    pub fn append(&self, value: JSValue) {
+        if let JSValue::Cell(cell_id) = value {
+            STATE.with(|state| state.borrow_mut().scoped_roots.push(cell_id));
+        }
     }
 }
 
