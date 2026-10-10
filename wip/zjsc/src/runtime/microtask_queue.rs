@@ -66,6 +66,18 @@ pub struct MicrotaskQueue {
 }
 
 impl MicrotaskQueue {
+    /// `MicrotaskQueue::visitAggregate`: o global e os argumentos de cada tarefa enfileirada.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        let Ok(queue) = self.queue.try_borrow() else {
+            marker.abort();
+            return;
+        };
+        for task in queue.iter() {
+            marker.cell(task.global_object);
+            marker.values(&task.arguments);
+        }
+    }
+
     /// `enqueue(QueuedTask&&)`.
     pub fn enqueue(&self, task: QueuedTask) {
         self.queue.borrow_mut().push_back(task);

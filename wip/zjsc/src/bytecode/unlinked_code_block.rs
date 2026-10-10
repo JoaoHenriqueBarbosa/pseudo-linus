@@ -322,6 +322,14 @@ impl UnlinkedCodeBlock {
     /// `static constexpr unsigned maxAge = 7`.
     pub const MAX_AGE: u32 = 7;
 
+    /// A base compartilhada que as filhas guardam, já conhecida do coletor: as constantes do bloco são raízes
+    /// enquanto ele viver (o `visitChildren` do `UnlinkedCodeBlock`).
+    fn new_shared(code_type: CodeType, info: &ExecutableInfo, code_generation_mode: u8) -> Rc<RefCell<UnlinkedCodeBlock>> {
+        let base = Rc::new(RefCell::new(UnlinkedCodeBlock::new(code_type, info, code_generation_mode)));
+        crate::runtime::gc::register_unlinked_code_block(&base);
+        base
+    }
+
     /// `UnlinkedCodeBlock(VM&, Structure*, CodeType, const ExecutableInfo&, OptionSet<CodeGenerationMode>)`.
     pub fn new(code_type: CodeType, info: &ExecutableInfo, code_generation_mode: u8) -> UnlinkedCodeBlock {
         let mut code_block = UnlinkedCodeBlock {
@@ -816,7 +824,7 @@ impl UnlinkedGlobalCodeBlock {
     /// `UnlinkedGlobalCodeBlock(VM&, Structure*, CodeType, const ExecutableInfo&, OptionSet<CodeGenerationMode>)`.
     fn new(code_type: CodeType, info: &ExecutableInfo, code_generation_mode: u8) -> UnlinkedGlobalCodeBlock {
         UnlinkedGlobalCodeBlock {
-            base: Rc::new(RefCell::new(UnlinkedCodeBlock::new(code_type, info, code_generation_mode))),
+            base: UnlinkedCodeBlock::new_shared(code_type, info, code_generation_mode),
             features: NO_FEATURES,
             lexically_scoped_features: NO_LEXICALLY_SCOPED_FEATURES,
             has_captured_variables: false,
@@ -1038,7 +1046,7 @@ impl UnlinkedFunctionCodeBlock {
         code_generation_mode: u8,
     ) -> Rc<RefCell<UnlinkedFunctionCodeBlock>> {
         Rc::new(RefCell::new(UnlinkedFunctionCodeBlock {
-            base: Rc::new(RefCell::new(UnlinkedCodeBlock::new(code_type, info, code_generation_mode))),
+            base: UnlinkedCodeBlock::new_shared(code_type, info, code_generation_mode),
         }))
     }
 

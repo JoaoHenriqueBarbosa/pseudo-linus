@@ -46,6 +46,14 @@ pub struct ArrayStorage {
 }
 
 impl ArrayStorage {
+    /// `visitChildren`: o vetor e o mapa esparso.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.values(&self.vector);
+        if let Some(sparse_map) = &self.sparse_map {
+            sparse_map.visit_children(marker);
+        }
+    }
+
     /// `tryCreateArrayButterfly(vm, owner, initialLength)` mais o `indexingHeaderForArrayStorage`:
     /// armazenamento novo com `length` e `vectorLength` dados, todos os buracos limpos. `None` é o `nullptr`
     /// do `tryAllocate` (falta de memória): quem chama lança `OutOfMemoryError`.

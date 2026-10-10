@@ -143,7 +143,49 @@ pub enum CellEntry {
     DOMException(crate::runtime::js_dom_exception::JSDOMExceptionRef),
 }
 
+/// `Rc::strong_count` da referência que a variante guarda.
+macro_rules! entry_strong_count {
+    ($entry:expr; $($variant:ident),* $(,)?) => {
+        match $entry {
+            $(CellEntry::$variant(cell) => Rc::strong_count(cell),)*
+            CellEntry::Scope(scope) => scope.strong_count(),
+        }
+    };
+}
+
 impl CellEntry {
+    /// Quantos `Rc` fortes seguram a célula, contando o do registro: mais de um quer dizer que algo fora do
+    /// registro (um local Rust, um campo `Rc`, um `thread_local`) a usa, e o coletor a trata como raiz.
+    pub(crate) fn strong_count(&self) -> usize {
+        entry_strong_count!(self;
+            String, RegExp, CellButterfly, Symbol, SymbolTable, TemplateObjectDescriptor, Callee, Function, BigInt,
+            Object, ErrorInstance, DateInstance, RegExpObject, StringObject, WrapperObject, GetterSetter,
+            CustomGetterSetter, Exception, InternalFunction, Promise, SlimPromiseReaction, FullPromiseReaction,
+            PromiseCombinatorsContext, PromiseCombinatorsGlobalContext, Map, Set, WeakMap, WeakSet, MapIterator,
+            SetIterator, Generator, AsyncGenerator, AsyncFunctionGenerator, AsyncFromSyncIterator, ArrayIterator,
+            ArrayBuffer, DataView, TypedArray, WeakObjectRef, ShadowRealm, FinalizationRegistry, StringIterator,
+            RegExpStringIterator, Proxy, GlobalProxy, ProxyRevoke, ModuleRecord, ModuleNamespace, DirectArguments,
+            ScopedArguments, PropertyNameEnumerator, CallSite, IntlInstance, TemporalDuration, TemporalInstant,
+            TemporalPlainDate, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainYearMonth,
+            TemporalPlainMonthDay, TemporalZonedDateTime, IteratorHelper, WrapForValidIterator, DisposableStack,
+            AsyncDisposableStack, DOMException,
+        )
+    }
+
+    /// O que a célula segura além da base `JSObject` e dos campos internos (`visitChildren` de cada classe).
+    pub(crate) fn visit_extra_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        match self {
+            CellEntry::Scope(scope) => scope.visit_children(marker),
+            CellEntry::GetterSetter(getter_setter) => getter_setter.visit_children(marker),
+            // WeakMap e WeakSet ainda seguram chave e valor fortes (sem ephemeron, ver `gc.rs`).
+            CellEntry::Map(cell) => visit_table(cell.table(), marker),
+            CellEntry::Set(cell) => visit_table(cell.table(), marker),
+            CellEntry::WeakMap(cell) => visit_table(cell.table(), marker),
+            CellEntry::WeakSet(cell) => visit_table(cell.table(), marker),
+            _ => {}
+        }
+    }
+
     /// Desfaz os elos `Rc` que a célula tem de volta para o `JSGlobalObject` (ver `remove_all_of`). Só o
     /// desmonte do programa chama: depois disto a célula não executa mais nada.
     fn break_realm_links(&self) {
@@ -525,7 +567,10 @@ impl Registry {
     fn push(&mut self, entry: Option<CellEntry>) -> usize {
         self.cells.push(entry);
         self.owners.push(self.current_owner);
-        self.cells.len() << CELL_ID_SHIFT
+        let cell_id = self.cells.len() << CELL_ID_SHIFT;
+        #[cfg(debug_assertions)]
+        crate::runtime::gc::forget_tombstone(cell_id);
+        cell_id
     }
 }
 
@@ -615,7 +660,16 @@ impl Drop for VMScope {
 /// id de célula, `JSValue` ou `Rc` de célula acrescenta aqui um `reset_for_program` dele (ver a auditoria
 /// de `thread_local!` em `PLAN.md`). O que independe do VM (átomos, contadores de id, opções, fuso,
 /// registro de tipos canônicos do wasm) não entra.
+/// A tabela de uma coleção para o coletor; emprestada (no meio de uma escrita) a coleta desiste.
+fn visit_table(table: &RefCell<crate::runtime::js_ordered_hash_table::OrderedTable>, marker: &mut crate::runtime::gc::Marker) {
+    match table.try_borrow() {
+        Ok(table) => table.visit_children(marker),
+        Err(_) => marker.abort(),
+    }
+}
+
 fn reset_program_state() {
+    crate::runtime::gc::reset_for_program();
     crate::runtime::current_realm::reset_for_program();
     crate::runtime::number_prototype::reset_for_program();
     crate::runtime::stack_frame::reset_for_program();
@@ -721,7 +775,7 @@ pub fn remove_all_of(owner: u32) -> usize {
 }
 
 /// Índice da `Vec` de um id; `None` para zero ou para bits baixos sujos.
-fn index_of(cell_id: usize) -> Option<usize> {
+pub(crate) fn index_of(cell_id: usize) -> Option<usize> {
     if cell_id & ((1 << CELL_ID_SHIFT) - 1) != 0 {
         return None;
     }
@@ -753,8 +807,59 @@ pub fn set(cell_id: usize, entry: CellEntry) -> bool {
 
 /// A célula do id (clone do `Rc`), ou `None` se o id é inválido, foi removido ou não foi preenchido.
 pub fn get(cell_id: usize) -> Option<CellEntry> {
+    let entry = get_for_marking(cell_id);
+    #[cfg(debug_assertions)]
+    if entry.is_none() {
+        crate::runtime::gc::check_not_swept(cell_id);
+    }
+    entry
+}
+
+/// `get` sem a conferência de lápide: o coletor lê ids conservadores, que podem cair num slot varrido.
+pub(crate) fn get_for_marking(cell_id: usize) -> Option<CellEntry> {
     let index = index_of(cell_id)?;
     CELLS.with(|registry| registry.borrow().cells.get(index).cloned().flatten())
+}
+
+/// O tamanho do registro (slots usados e vazios): cresce a cada alocação, o relógio do gatilho do coletor.
+pub(crate) fn slot_count() -> usize {
+    CELLS.with(|registry| registry.borrow().cells.len())
+}
+
+/// O tamanho do registro e as células que algum `Rc` fora do registro segura (contagem forte maior que 1),
+/// raízes do coletor.
+pub(crate) fn pinned_cells() -> (usize, Vec<usize>) {
+    CELLS.with(|registry| {
+        let registry = registry.borrow();
+        let pinned = registry
+            .cells
+            .iter()
+            .enumerate()
+            .filter_map(|(index, slot)| slot.as_ref().filter(|entry| entry.strong_count() > 1).map(|_| (index + 1) << CELL_ID_SHIFT))
+            .collect();
+        (registry.cells.len(), pinned)
+    })
+}
+
+/// A varredura do coletor: solta toda célula não marcada e devolve os ids soltos com o tipo de cada um. O slot
+/// fica vazio (o índice não volta a ser usado) e as entradas caem fora do empréstimo do registro, porque o
+/// `Drop` em cascata pode chegar a ele.
+pub(crate) fn sweep(marked: &[bool]) -> Vec<(usize, JSType)> {
+    let released: Vec<(usize, CellEntry)> = CELLS.with(|registry| {
+        let mut registry = registry.borrow_mut();
+        let mut released = Vec::new();
+        for (index, slot) in registry.cells.iter_mut().enumerate() {
+            if slot.is_some() && !marked.get(index).copied().unwrap_or(true) {
+                if let Some(entry) = slot.take() {
+                    released.push(((index + 1) << CELL_ID_SHIFT, entry));
+                }
+            }
+        }
+        released
+    });
+    let swept = released.iter().map(|(cell_id, entry)| (*cell_id, entry.js_type())).collect();
+    drop(released);
+    swept
 }
 
 /// `JSCell::type()` do id, ou `None` se não há célula.

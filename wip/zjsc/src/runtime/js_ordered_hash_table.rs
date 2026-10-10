@@ -147,6 +147,14 @@ pub struct OrderedTable {
 }
 
 impl OrderedTable {
+    /// `JSOrderedHashTable::visitChildren` (o `m_storage`): as chaves e os valores vivos.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        for (key, value) in self.entries.iter().flatten() {
+            marker.value(*key);
+            marker.value(*value);
+        }
+    }
+
     /// `size()`: `aliveEntryCount`.
     pub fn size(&self) -> u32 {
         self.live as u32
@@ -404,6 +412,10 @@ macro_rules! define_collection_iterator {
         }
 
         impl $crate::runtime::js_internal_field_object_impl::InternalFields for $name {
+            fn field_count(&self) -> u32 {
+                NUMBER_OF_INTERNAL_FIELDS
+            }
+
             fn field(&self, index: u32) -> $crate::runtime::js_value::JSValue {
                 if index == Field::Entry as u32 {
                     return $crate::runtime::js_value::JSValue::from_u32(self.cursor.get() as u32);

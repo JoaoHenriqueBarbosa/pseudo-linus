@@ -132,6 +132,33 @@ impl Interpreter {
         self.sp.set(sp);
     }
 
+    /// As raízes do interpretador para o coletor: a pilha de registradores em uso (conservadora) e as constantes
+    /// de todos os `CodeBlock`s cadastrados.
+    pub(crate) fn visit_gc_roots(&self, marker: &mut crate::runtime::gc::Marker) {
+        self.stack.visit_registers(self.sp(), marker);
+        let Ok(code_blocks) = self.code_blocks.try_borrow() else {
+            marker.abort();
+            return;
+        };
+        for code_block in code_blocks.values() {
+            match code_block.try_borrow() {
+                Ok(code_block) => marker.values(code_block.constant_registers()),
+                Err(_) => marker.abort(),
+            }
+        }
+    }
+
+    /// `CodeBlock::finalizeUnconditionally` de cada bloco, depois da marcação e antes da varredura: os perfis
+    /// largam o que guardam por referência fraca. Devolve `false` se algum bloco estiver emprestado.
+    pub(crate) fn update_profiles_before_sweep(&self) -> bool {
+        let Ok(code_blocks) = self.code_blocks.try_borrow() else {
+            return false;
+        };
+        code_blocks.values().all(|code_block| {
+            code_block.try_borrow().is_ok_and(|code_block| code_block.update_all_array_allocation_profile_predictions())
+        })
+    }
+
     /// A profundidade da recursão nativa de `llint_execute`.
     pub(crate) fn native_depth(&self) -> usize {
         self.native_depth.get()

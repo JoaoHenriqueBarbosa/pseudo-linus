@@ -423,6 +423,24 @@ impl JSFinalObject {
 }
 
 impl JSObject {
+    /// `JSObject::visitChildren`: o protótipo da estrutura, o armazenamento inline e o butterfly (propriedades
+    /// fora de linha e o indexado). Um empréstimo de escrita em curso faz a coleta desistir.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.structure().stored_prototype());
+        match (self.inline_storage.try_borrow(), self.butterfly.try_borrow()) {
+            (Ok(inline_storage), Ok(butterfly)) => {
+                marker.values(&inline_storage);
+                marker.values(&butterfly.out_of_line);
+                match &butterfly.indexed {
+                    IndexedStorage::None | IndexedStorage::Doubles(_) => {}
+                    IndexedStorage::Values(values) => marker.values(values),
+                    IndexedStorage::ArrayStorage(storage) => storage.visit_children(marker),
+                }
+            }
+            _ => marker.abort(),
+        }
+    }
+
     /// Bytes reservados pelo armazenamento indexado do butterfly (capacidade dos `Vec`; para o `ArrayStorage`,
     /// o `vectorLength`). Diagnóstico de vazamento: `cell_registry::live_butterfly_bytes`. Um butterfly em
     /// edição (`borrow_mut` ativo) conta zero.

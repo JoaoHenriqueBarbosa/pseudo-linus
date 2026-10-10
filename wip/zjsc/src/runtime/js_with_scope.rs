@@ -51,6 +51,11 @@ impl std::ops::Deref for JSWithScope {
 }
 
 impl JSWithScope {
+    /// `visitChildren`: o objeto do `with`.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.object);
+    }
+
     /// `StructureFlags = Base::StructureFlags`.
     pub const STRUCTURE_FLAGS: u32 = JSScope::STRUCTURE_FLAGS;
 

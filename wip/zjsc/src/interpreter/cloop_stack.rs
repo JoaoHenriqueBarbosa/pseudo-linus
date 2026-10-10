@@ -182,6 +182,18 @@ impl CLoopStack {
         Register::from_encoded(self.registers.borrow()[index])
     }
 
+    /// A varredura conservadora da pilha do coletor: todo registrador de `from` até o topo (`highAddress`).
+    pub(crate) fn visit_registers(&self, from: usize, marker: &mut crate::runtime::gc::Marker) {
+        match self.registers.try_borrow() {
+            Ok(registers) => {
+                for &encoded in registers.get(from..).unwrap_or_default() {
+                    marker.encoded(encoded);
+                }
+            }
+            Err(_) => marker.abort(),
+        }
+    }
+
     /// Atribuição ao registrador na posição `index`.
     pub fn set(&self, index: usize, register: Register) {
         self.registers.borrow_mut()[index] = register.encoded_js_value();

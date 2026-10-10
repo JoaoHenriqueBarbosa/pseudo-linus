@@ -250,6 +250,7 @@ impl Structure {
         inline_capacity: u32,
     ) -> Structure {
         let is_array_storage = has_any_array_storage(indexing_type);
+        crate::runtime::gc::retain_prototype(prototype);
 
         debug_assert!((inline_capacity as PropertyOffset) < FIRST_OUT_OF_LINE_OFFSET);
 
@@ -1383,6 +1384,7 @@ impl Structure {
         transition.set_is_pinned_property_table(true);
         transition.previous = None;
         transition.prototype = prototype;
+        crate::runtime::gc::retain_prototype(prototype);
         transition.transition_kind = TransitionKind::ChangePrototype;
         transition.set_max_offset(structure.max_offset());
         check_offset_with_inline_capacity(transition.transition_offset(), transition.inline_capacity() as i32);

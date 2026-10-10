@@ -1038,6 +1038,24 @@ impl CodeBlock {
         f(&mut table.get_mut::<M>()[metadata_id as usize])
     }
 
+    /// `updateAllArrayAllocationProfilePredictions`, que o `finalizeUnconditionally` do coletor chama antes da
+    /// varredura: o perfil dobra o array que viu por último e solta a referência (fraca no C++) a ele. Devolve
+    /// `false` se a tabela estiver emprestada.
+    pub(crate) fn update_all_array_allocation_profile_predictions(&self) -> bool {
+        use crate::bytecode::array_allocation_profile::HeapArrays;
+        let Some(table) = self.metadata.as_ref() else {
+            return true;
+        };
+        let Ok(mut table) = table.try_borrow_mut() else {
+            return false;
+        };
+        table.for_each::<OpNewArrayMetadata>(|m| m.array_allocation_profile.update_profile(&HeapArrays));
+        table.for_each::<OpNewArrayWithSizeMetadata>(|m| m.array_allocation_profile.update_profile(&HeapArrays));
+        table.for_each::<OpNewArrayBufferMetadata>(|m| m.array_allocation_profile.update_profile(&HeapArrays));
+        table.for_each::<OpNewArrayWithSpeciesMetadata>(|m| m.array_allocation_profile.update_profile(&HeapArrays));
+        true
+    }
+
     /// `offsetInMetadataTable(Metadata*)`, dado o opcode e o `metadataID`.
     pub fn offset_in_metadata_table(&self, opcode_id: OpcodeID, metadata_id: u32) -> usize {
         self.metadata.as_ref().expect("ASSERT(m_metadata)").borrow().offset_in_metadata_table(opcode_id, metadata_id)
