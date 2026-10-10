@@ -1564,7 +1564,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // Annex B of the JavaScript standard.
                             // SAFETY: current_scope is a valid arena ptr for the parse.
                             if !p.current_scope().kind_stops_hoisting()
-                                && p.symbols[self.store[data].func.name.unwrap().ref_.inner_index() as usize]
+                                && p.symbols[p.store[data].func.name.unwrap().ref_.inner_index() as usize]
                                     .kind
                                     == SymbolKind::HoistedFunction
                             {
@@ -1607,7 +1607,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // semantics because we need two identifiers to do that and direct "eval"
                             // means neither identifier can be renamed to something else. So in that
                             // case we give up and do not preserve the semantics of the original code.
-                            let name = self.store[data].func.name.unwrap();
+                            let name = p.store[data].func.name.unwrap();
                             let name_ref = name.ref_;
                             // SAFETY: current_scope is a valid arena ptr for the parse.
                             if p.current_scope().contains_direct_eval {
@@ -1654,9 +1654,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             }
 
                             // The last function statement for a given symbol wins
-                            self.store[data].func.name = None;
+                            p.store[data].func.name = None;
                             // `G::Fn` é `Clone`: o nó do statement descartado entrega uma cópia da função.
-                            let func = self.store[data].func.clone();
+                            let func = p.store[data].func.clone();
                             let_decls[index as usize].value =
                                 Some(p.new_expr(E::Function { func }, stmt.loc));
                         }
@@ -1674,8 +1674,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 );
 
                 if let_decls.len() > 0 {
-                    let decls = self.store.alloc_slice(let_decls);
-                    let loc = self.store[decls][0].value.unwrap().loc;
+                    let decls = p.store.alloc_slice(let_decls);
+                    let loc = p.store[decls][0].value.unwrap().loc;
                     before.push(p.s(
                         S::Local {
                             kind: LocalKind::KLet,
@@ -1694,8 +1694,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             before.push(new);
                         }
                     } else {
-                        let decls = self.store.alloc_slice(var_decls);
-                        let loc = self.store[decls][0].value.unwrap().loc;
+                        let decls = p.store.alloc_slice(var_decls);
+                        let loc = p.store[decls][0].value.unwrap().loc;
                         before.push(p.s(
                             S::Local {
                                 kind: LocalKind::KVar,
@@ -1807,16 +1807,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // `const_values` via the macro path in `visitDecl`
                             // (`could_be_macro`), so skip them here to avoid
                             // silently dropping the declaration.
-                            if self.store[local].kind.is_using() {
+                            if p.store[local].kind.is_using() {
                                 continue;
                             }
-                            if !self.store[local].is_export && !self.store[local].origin.is_commonjs_export() {
-                                let mut any_decl_in_const_values = self.store[local].kind == LocalKind::KConst;
-                                let decls: &mut [Decl] = (&mut self.store[self.store[local].decls]);
+                            if !p.store[local].is_export && !p.store[local].origin.is_commonjs_export() {
+                                let mut any_decl_in_const_values = p.store[local].kind == LocalKind::KConst;
+                                let decls: &mut [Decl] = (&mut p.store[p.store[local].decls]);
                                 let mut end: usize = 0;
                                 for idx in 0..decls.len() {
                                     if let BData::BIdentifier(id_ptr) = decls[idx].binding.data {
-                                        let id_ref = self.store[id_ptr].r#ref;
+                                        let id_ref = p.store[id_ptr].r#ref;
                                         if p.const_values.contains(&id_ref) {
                                             any_decl_in_const_values = true;
                                             let symbol = &p.symbols[id_ref.inner_index() as usize];
@@ -1831,7 +1831,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     decls.swap(end, idx);
                                     end += 1;
                                 }
-                                self.store[local].decls.truncate(end);
+                                p.store[local].decls.truncate(end);
                                 if any_decl_in_const_values {
                                     if end == 0 {
                                         *stmt = stmt.to_empty();
@@ -1908,18 +1908,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // "using" / "await using" declarations have disposal
                     // side-effects on scope exit, so they must not be
                     // removed by inlining their initializer into the use.
-                    if self.store[local].decls.len_u32() == 0
-                        || self.store[local].kind == LocalKind::KVar
-                        || self.store[local].kind.is_using()
-                        || self.store[local].is_export
+                    if p.store[local].decls.len_u32() == 0
+                        || p.store[local].kind == LocalKind::KVar
+                        || p.store[local].kind.is_using()
+                        || p.store[local].is_export
                     {
                         break;
                     }
 
                     // The variable must be initialized, since we will be substituting
                     // the value into the usage.
-                    let last_idx = (self.store[local].decls.len_u32() - 1) as usize;
-                    let last: &mut Decl = &mut (&mut self.store[self.store[local].decls])[last_idx];
+                    let last_idx = (p.store[local].decls.len_u32() - 1) as usize;
+                    let last: &mut Decl = &mut (&mut p.store[p.store[local].decls])[last_idx];
                     let Some(replacement) = last.value else { break };
 
                     // The binding must be an identifier that is only used once.
@@ -1929,7 +1929,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let BData::BIdentifier(ident_ptr) = last.binding.data else {
                         break;
                     };
-                    let id = self.store[ident_ptr].r#ref;
+                    let id = p.store[ident_ptr].r#ref;
 
                     let symbol: &Symbol = &p.symbols[id.inner_index() as usize];
 
@@ -1948,16 +1948,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // Read as "more uses than accounted for" when finalizing.
                             p.namespace_tracked_uses.insert(id, u32::MAX);
                         }
-                        match self.store[local].decls.len_u32() {
+                        match p.store[local].decls.len_u32() {
                             1 => {
-                                self.store[local].decls.clear();
+                                p.store[local].decls.clear();
                                 let new_len = output.len() - 1;
                                 output.truncate(new_len);
                                 continue 'inner;
                             }
                             _ => {
-                                let n = self.store[local].decls.len() - 1;
-                                self.store[local].decls.truncate(n);
+                                let n = p.store[local].decls.len() - 1;
+                                p.store[local].decls.truncate(n);
                                 continue 'inner;
                             }
                         }
@@ -1967,7 +1967,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             // don't merge super calls to ensure they are called before "this" is accessed
-            if stmt.is_super_call(&self.store) {
+            if stmt.is_super_call(&p.store) {
                 output.push(stmt);
                 continue;
             }
@@ -1990,12 +1990,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             if local.can_merge_with(&prev_local) {
                                 // `G::Decl` é `Copy`: as declarações do statement atual entram no fim da lista do
                                 // anterior (`append` do `Store`, que cresce no lugar ou copia para o fim).
-                                let merging: Vec<G::Decl> = self.store[self.store[local].decls].to_vec();
-                                let mut merged = self.store[prev_local].decls;
+                                let merging: Vec<G::Decl> = p.store[p.store[local].decls].to_vec();
+                                let mut merged = p.store[prev_local].decls;
                                 for d in merging {
-                                    merged = self.store.append(merged, d);
+                                    merged = p.store.append(merged, d);
                                 }
-                                self.store[prev_local].decls = merged;
+                                p.store[prev_local].decls = merged;
                                 continue;
                             }
                         }
@@ -2008,14 +2008,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_idx = output.len() - 1;
                         let prev_stmt = &mut output[prev_idx];
                         if let StmtData::SExpr(mut prev_expr) = prev_stmt.data {
-                            if !prev_stmt.is_super_call(&self.store)
+                            if !prev_stmt.is_super_call(&p.store)
                                 && p.options.runtime_merge_adjacent_expression_statements()
                             {
-                                self.store[prev_expr].does_not_affect_tree_shaking = self.store[prev_expr]
+                                p.store[prev_expr].does_not_affect_tree_shaking = p.store[prev_expr]
                                     .does_not_affect_tree_shaking
-                                    && self.store[s_expr].does_not_affect_tree_shaking;
-                                self.store[prev_expr].value =
-                                    Expr::join_with_comma(&mut self.store, self.store[prev_expr].value, self.store[s_expr].value);
+                                    && p.store[s_expr].does_not_affect_tree_shaking;
+                                p.store[prev_expr].value =
+                                    Expr::join_with_comma(&mut p.store, p.store[prev_expr].value, p.store[s_expr].value);
                                 continue;
                             }
                         } else if let StmtData::SLocal(prev_local) = prev_stmt.data {
@@ -2027,27 +2027,27 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             //      var f = 123;
                             //
                             // This doesn't handle every case. Only the very simple one.
-                            if let ExprData::EBinary(bin_assign) = self.store[s_expr].value.data {
-                                if self.store[prev_local].decls.len_u32() == 1
-                                    && self.store[bin_assign].op == OpCode::BinAssign
+                            if let ExprData::EBinary(bin_assign) = p.store[s_expr].value.data {
+                                if p.store[prev_local].decls.len_u32() == 1
+                                    && p.store[bin_assign].op == OpCode::BinAssign
                                     // we can only do this with var because var is hoisted
                                     // the statement we are merging into may use the statement before its defined.
-                                    && self.store[prev_local].kind == LocalKind::KVar
+                                    && p.store[prev_local].kind == LocalKind::KVar
                                 {
-                                    if let ExprData::EIdentifier(left_id) = self.store[bin_assign].left.data {
+                                    if let ExprData::EIdentifier(left_id) = p.store[bin_assign].left.data {
                                         // `prev_local` is a `StoreRef` (Copy) so
                                         // re-slicing here writes through to the arena slot.
                                         let mut prev_local = prev_local;
-                                        let decl = &mut (&mut self.store[self.store[prev_local].decls])[0];
+                                        let decl = &mut (&mut p.store[p.store[prev_local].decls])[0];
                                         if let BData::BIdentifier(bid_ptr) = decl.binding.data {
-                                            let bid_ref = self.store[bid_ptr].r#ref;
+                                            let bid_ref = p.store[bid_ptr].r#ref;
                                             if bid_ref.eql(left_id.ref_)
                                                 // If the value was assigned, we shouldn't merge it incase it was used in the current statement
                                                 // https://github.com/oven-sh/bun/issues/2948
                                                 // We don't have a more granular way to check symbol usage so this is the best we can do
                                                 && decl.value.is_none()
                                             {
-                                                decl.value = Some(self.store[bin_assign].right);
+                                                decl.value = Some(p.store[bin_assign].right);
                                                 p.ignore_usage(left_id.ref_);
                                                 continue;
                                             }
@@ -2065,9 +2065,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_idx = output.len() - 1;
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
-                            if !prev_stmt.is_super_call(&self.store) {
-                                self.store[s_switch].test =
-                                    Expr::join_with_comma(&mut self.store, self.store[prev_expr].value, self.store[s_switch].test);
+                            if !prev_stmt.is_super_call(&p.store) {
+                                p.store[s_switch].test =
+                                    Expr::join_with_comma(&mut p.store, p.store[prev_expr].value, p.store[s_switch].test);
                                 output.truncate(prev_idx);
                             }
                         }
@@ -2080,8 +2080,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_idx = output.len() - 1;
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
-                            if !prev_stmt.is_super_call(&self.store) {
-                                self.store[s_if].test = Expr::join_with_comma(&mut self.store, self.store[prev_expr].value, self.store[s_if].test);
+                            if !prev_stmt.is_super_call(&p.store) {
+                                p.store[s_if].test = Expr::join_with_comma(&mut p.store, p.store[prev_expr].value, p.store[s_if].test);
                                 output.truncate(prev_idx);
                             }
                         }
@@ -2093,16 +2093,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 StmtData::SReturn(mut ret) => {
                     // Merge return statements with the previous expression statement
                     if output.len() > 0
-                        && self.store[ret].value.is_some()
+                        && p.store[ret].value.is_some()
                         && p.options.runtime_merge_adjacent_expression_statements()
                     {
                         let prev_idx = output.len() - 1;
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
-                            if !prev_stmt.is_super_call(&self.store) {
-                                self.store[ret].value = Some(Expr::join_with_comma(&mut self.store, 
-                                    self.store[prev_expr].value,
-                                    self.store[ret].value.unwrap(),
+                            if !prev_stmt.is_super_call(&p.store) {
+                                p.store[ret].value = Some(Expr::join_with_comma(&mut p.store, 
+                                    p.store[prev_expr].value,
+                                    p.store[ret].value.unwrap(),
                                 ));
                                 output[prev_idx] = stmt;
                                 continue;
@@ -2124,12 +2124,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_idx = output.len() - 1;
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
-                            if !prev_stmt.is_super_call(&self.store) {
+                            if !prev_stmt.is_super_call(&p.store) {
                                 output[prev_idx] = p.s(
                                     S::Throw {
-                                        value: Expr::join_with_comma(&mut self.store, 
-                                            self.store[prev_expr].value,
-                                            self.store[s_throw].value,
+                                        value: Expr::join_with_comma(&mut p.store, 
+                                            p.store[prev_expr].value,
+                                            p.store[s_throw].value,
                                         ),
                                     },
                                     stmt.loc,

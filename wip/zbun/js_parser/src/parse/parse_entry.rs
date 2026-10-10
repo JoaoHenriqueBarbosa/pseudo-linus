@@ -699,7 +699,7 @@ fn lower_one_date_time_literal<'a>(
             let class_dot = p.new_expr(
                 E::Dot {
                     target: namespace,
-                    name: E::Str::new(class),
+                    name: p.store.alloc_str(class),
                     name_loc: loc,
                     can_be_removed_if_unused: true,
                     ..Default::default()
@@ -709,7 +709,7 @@ fn lower_one_date_time_literal<'a>(
             let from_dot = p.new_expr(
                 E::Dot {
                     target: class_dot,
-                    name: E::Str::new(b"from"),
+                    name: p.store.alloc_str(b"from"),
                     name_loc: loc,
                     can_be_removed_if_unused: true,
                     ..Default::default()

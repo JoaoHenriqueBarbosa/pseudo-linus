@@ -36,7 +36,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn parse_type_script_decorators(&mut self) -> Result<ExprNodeList, Error> {
         let p = self;
         if !Self::IS_TYPESCRIPT_ENABLED && !p.options.features.standard_decorators {
-            return Ok(self.store.alloc_slice(Vec::new()));
+            return Ok(p.store.alloc_slice(Vec::new()));
         }
 
         let mut decorators: BumpVec<'_, ExprNodeIndex> = BumpVec::new_in(p.arena);
@@ -65,7 +65,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
         }
 
-        Ok(self.store.alloc_slice(decorators))
+        Ok(p.store.alloc_slice(decorators))
     }
 
     /// Parse a standard (TC39) decorator expression following the `@` token.
@@ -149,7 +149,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             p.lexer.expect(T::TIdentifier)?;
                             return Err(crate::Error::SyntaxError);
                         }
-                        let name = E::Str::new(p.lexer.identifier);
+                        let name = p.store.alloc_str(p.lexer.identifier);
                         let name_loc = p.lexer.loc();
                         p.lexer.next()?;
                         expr = p.new_expr(
@@ -219,7 +219,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut ts_namespace: js_ast::StoreRef<js_ast::TSNamespaceScope> =
             p.get_or_create_exported_namespace_members(name_text, opts.is_export, false);
         let mut exported_members: js_ast::StoreRef<TSNamespaceMemberMap> =
-            self.store[ts_namespace].exported_members;
+            p.store[ts_namespace].exported_members;
         let ns_member_data = TSNamespaceMemberData::Namespace(exported_members);
 
         // Declare the namespace and create the scope
@@ -283,12 +283,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         for stmt in stmts.iter() {
             match &stmt.data {
                 StmtData::SFunction(func) => {
-                    if self.store[*func].func.flags.contains(flags::Function::IsExport) {
-                        let locref = self.store[*func].func.name.unwrap();
+                    if p.store[*func].func.flags.contains(flags::Function::IsExport) {
+                        let locref = p.store[*func].func.name.unwrap();
                         let ref_ = locref.ref_;
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
                         let fn_name: &[u8] =
-                            self.store.str(p.symbols[ref_.inner_index() as usize].original_name);
+                            p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
                         exported_members.put(
                             fn_name,
                             TSNamespaceMember {
@@ -301,12 +301,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 StmtData::SClass(class) => {
-                    if self.store[*class].is_export {
-                        let locref = self.store[*class].class.class_name.unwrap();
+                    if p.store[*class].is_export {
+                        let locref = p.store[*class].class.class_name.unwrap();
                         let ref_ = locref.ref_;
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
                         let class_name: &[u8] =
-                            self.store.str(p.symbols[ref_.inner_index() as usize].original_name);
+                            p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
                         exported_members.put(
                             class_name,
                             TSNamespaceMember {
@@ -319,18 +319,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 StmtData::SNamespace(ns) => {
-                    if self.store[*ns].is_export {
-                        let ref_ = self.store[*ns].name.ref_;
+                    if p.store[*ns].is_export {
+                        let ref_ = p.store[*ns].name.ref_;
                         if let Some(member_data) = p.ref_to_ts_namespace_member.get(&ref_) {
                             let member_data = clone_ts_member_data(member_data);
                             // SAFETY: original_name is arena-owned, valid for 'a.
                             let ns_name: &[u8] =
-                                self.store.str(p.symbols[ref_.inner_index() as usize].original_name);
+                                p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
                             exported_members.put(
                                 ns_name,
                                 TSNamespaceMember {
                                     data: clone_ts_member_data(&member_data),
-                                    loc: self.store[*ns].name.loc,
+                                    loc: p.store[*ns].name.loc,
                                 },
                             )?;
                             p.ref_to_ts_namespace_member.insert(ref_, member_data);
@@ -338,18 +338,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 StmtData::SEnum(ns) => {
-                    if self.store[*ns].is_export {
-                        let ref_ = self.store[*ns].name.ref_;
+                    if p.store[*ns].is_export {
+                        let ref_ = p.store[*ns].name.ref_;
                         if let Some(member_data) = p.ref_to_ts_namespace_member.get(&ref_) {
                             let member_data = clone_ts_member_data(member_data);
                             // SAFETY: original_name is arena-owned, valid for 'a.
                             let enum_name: &[u8] =
-                                self.store.str(p.symbols[ref_.inner_index() as usize].original_name);
+                                p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
                             exported_members.put(
                                 enum_name,
                                 TSNamespaceMember {
                                     data: clone_ts_member_data(&member_data),
-                                    loc: self.store[*ns].name.loc,
+                                    loc: p.store[*ns].name.loc,
                                 },
                             )?;
                             p.ref_to_ts_namespace_member.insert(ref_, member_data);
@@ -357,8 +357,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 StmtData::SLocal(local) => {
-                    if self.store[*local].is_export {
-                        for decl in (&self.store[self.store[*local].decls]) {
+                    if p.store[*local].is_export {
+                        for decl in (&p.store[p.store[*local].decls]) {
                             p.define_exported_namespace_binding(
                                 &mut exported_members,
                                 decl.binding,
@@ -378,7 +378,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         for stmt in stmts.iter() {
             match &stmt.data {
                 StmtData::SLocal(local) => {
-                    if self.store[*local].origin.is_ts_import_equals() && !self.store[*local].is_export {
+                    if p.store[*local].origin.is_ts_import_equals() && !p.store[*local].is_export {
                         import_equal_count += 1;
                     }
                 }
@@ -425,7 +425,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             //   })(foo || (foo = {}));
             //
             // SAFETY: current_scope is an arena-owned Scope pointer valid for 'a.
-            if p.current_scope().members.contains_key(&self.store, name_text) {
+            if p.current_scope().members.contains_key(&p.store, name_text) {
                 // Add a "_" to make tests easier to read, since non-bundler tests don't
                 // run the renamer. Keep adding "_" until the argument does not collide
                 // with a symbol declared in the namespace body: paths that skip the
@@ -457,7 +457,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             // Named in this scope so that no binding inside shadows it.
             p.current_scope_mut().generated.push(arg_ref);
-            self.store[ts_namespace].arg_ref = arg_ref;
+            p.store[ts_namespace].arg_ref = arg_ref;
         }
         p.pop_scope();
 
@@ -472,7 +472,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             S::Namespace {
                 name,
                 arg: arg_ref,
-                stmts: self.store.alloc_slice(stmts.into_vec()),
+                stmts: p.store.alloc_slice(stmts.into_vec()),
                 is_export: opts.is_export,
             },
             loc,
@@ -506,13 +506,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if name == b"require" && p.lexer.token == T::TOpenParen {
             // "import ns = require('x')"
             p.lexer.next()?;
-            let path_estr = p.lexer.to_e_string(&mut self.store)?;
+            let path_estr = p.lexer.to_e_string(&mut p.store)?;
             let path_loc = p.lexer.loc();
             let path = p.new_expr(path_estr, path_loc);
             p.lexer.expect(T::TStringLiteral)?;
             p.lexer.expect(T::TCloseParen)?;
             if !opts.is_typescript_declare {
-                let args = self.store.alloc_slice([path]);
+                let args = p.store.alloc_slice([path]);
                 let close_paren_loc = p.lexer.loc();
                 value = p.new_expr(
                     E::Call {
@@ -530,7 +530,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let mut prev_value = value;
             while p.lexer.token == T::TDot {
                 p.lexer.next()?;
-                let dot_name = E::Str::new(p.lexer.identifier);
+                let dot_name = p.store.alloc_str(p.lexer.identifier);
                 let dot_name_loc = p.lexer.loc();
                 value = p.new_expr(
                     E::Dot {
@@ -558,7 +558,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             .declare_symbol(SymbolKind::Constant, default_name_loc, default_name)
             .expect("unreachable");
         let binding = p.b(B::Identifier { r#ref: ref_ }, default_name_loc);
-        let decls = self.store.alloc_slice([G::Decl {
+        let decls = p.store.alloc_slice([G::Decl {
             binding,
             value: Some(value),
         }]);
@@ -593,7 +593,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut ts_namespace: js_ast::StoreRef<js_ast::TSNamespaceScope> =
             p.get_or_create_exported_namespace_members(name_text, opts.is_export, true);
         let mut exported_members: js_ast::StoreRef<TSNamespaceMemberMap> =
-            self.store[ts_namespace].exported_members;
+            p.store[ts_namespace].exported_members;
 
         // Declare the enum and create the scope
         let scope_index = p.scopes_in_order.len();
@@ -627,19 +627,19 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let mut value = EnumValue {
                 loc: p.lexer.loc(),
                 ref_: Ref::NONE,
-                name: self.store.alloc_str(b"" as &[u8]),
+                name: p.store.alloc_str(b"" as &[u8]),
                 value: None,
             };
             // Parse the name
             let needs_symbol: bool = if p.lexer.token == T::TStringLiteral {
                 // `slice8()` is currently duplicated in E.rs (two impl blocks);
                 // read `.data` directly: `to_utf8_e_string` guarantees `is_utf16 == false`.
-                let estr = p.lexer.to_utf8_e_string(&mut self.store)?;
+                let estr = p.lexer.to_utf8_e_string(&mut p.store)?;
                 debug_assert!(!estr.is_utf16);
                 value.name = estr.data;
-                js_lexer::is_identifier(self.store.str(value.name))
+                js_lexer::is_identifier(p.store.str(value.name))
             } else if p.lexer.is_identifier_or_keyword() {
-                value.name = self.store.alloc_str(p.lexer.identifier);
+                value.name = p.store.alloc_str(p.lexer.identifier);
                 true
             } else {
                 p.lexer.expect(T::TIdentifier)?;
@@ -650,7 +650,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Identifiers can be referenced by other values
             if !opts.is_typescript_declare && needs_symbol {
-                value.ref_ = p.declare_symbol(SymbolKind::Other, value.loc, self.store.str(value.name))?;
+                value.ref_ = p.declare_symbol(SymbolKind::Other, value.loc, p.store.str(value.name))?;
             }
 
             // Parse the initializer
@@ -664,7 +664,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             values.push(value);
 
             exported_members.put(
-                self.store.str(value_name),
+                p.store.str(value_name),
                 TSNamespaceMember {
                     loc: value_loc,
                     data: TSNamespaceMemberData::EnumProperty,
@@ -710,7 +710,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             //     foo[foo["bar"] = foo] = "bar";
             //   })(foo || (foo = {}));
             // SAFETY: current_scope is an arena-owned Scope pointer valid for 'a.
-            if p.current_scope().members.contains_key(&self.store, name_text) {
+            if p.current_scope().members.contains_key(&p.store, name_text) {
                 // Add a "_" to make tests easier to read, since non-bundler tests don't
                 // run the renamer. For external-facing things the renamer will avoid
                 // collisions automatically so this isn't important for correctness.
@@ -727,7 +727,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             p.ref_to_ts_namespace_member
                 .insert(arg_ref, TSNamespaceMemberData::Namespace(exported_members));
-            self.store[ts_namespace].arg_ref = arg_ref;
+            p.store[ts_namespace].arg_ref = arg_ref;
 
             p.pop_scope();
         }
@@ -772,7 +772,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             S::Enum {
                 name,
                 arg: arg_ref,
-                values: self.store.alloc_slice(values),
+                values: p.store.alloc_slice(values),
                 is_export: opts.is_export,
             },
             loc,

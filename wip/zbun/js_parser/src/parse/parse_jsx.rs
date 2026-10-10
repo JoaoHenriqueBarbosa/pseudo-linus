@@ -76,7 +76,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
 
                         let prop_name =
-                            p.new_expr(E::EString::init(self.store.alloc_str(prop_name_literal)), key_range.loc);
+                            p.new_expr(E::EString::init(p.store.alloc_str(prop_name_literal)), key_range.loc);
 
                         // Parse the value
                         let value: Expr = if p.lexer.token != T::TEquals {
@@ -138,26 +138,26 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     match &expr.data {
                                         ExprData::EImportIdentifier(ident) => {
                                             break 'brk p.new_expr(
-                                                E::EString::init(self.store.alloc_str(p.load_name_from_ref(ident.ref_))),
+                                                E::EString::init(p.store.alloc_str(p.load_name_from_ref(ident.ref_))),
                                                 expr.loc,
                                             );
                                         }
                                         ExprData::ECommonjsExportIdentifier(ident) => {
                                             break 'brk p.new_expr(
-                                                E::EString::init(self.store.alloc_str(p.load_name_from_ref(ident.ref_))),
+                                                E::EString::init(p.store.alloc_str(p.load_name_from_ref(ident.ref_))),
                                                 expr.loc,
                                             );
                                         }
                                         ExprData::EIdentifier(ident) => {
                                             break 'brk p.new_expr(
-                                                E::EString::init(self.store.alloc_str(p.load_name_from_ref(ident.ref_))),
+                                                E::EString::init(p.store.alloc_str(p.load_name_from_ref(ident.ref_))),
                                                 expr.loc,
                                             );
                                         }
                                         ExprData::EDot(dot) => {
                                             break 'brk p.new_expr(
-                                                E::EString::init(&self.store[*dot].name),
-                                                self.store[*dot].name_loc,
+                                                E::EString::init(&p.store[*dot].name),
+                                                p.store[*dot].name_loc,
                                             );
                                         }
                                         ExprData::EIndex(index) => {
@@ -192,7 +192,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // note: template literals are not supported, operations on strings are not supported either
                             T::TStringLiteral => {
                                 let key_loc = p.lexer.loc();
-                                let key_str = p.lexer.to_e_string(&mut self.store)?;
+                                let key_str = p.lexer.to_e_string(&mut p.store)?;
                                 let key = p.new_expr(key_str, key_loc);
                                 p.lexer.next()?;
                                 props.push(G::Property {
@@ -220,7 +220,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if is_key_after_spread {
                 flags.insert(flags::JSXElement::IsKeyAfterSpread);
             }
-            properties = self.store.alloc_slice(props);
+            properties = p.store.alloc_slice(props);
             if is_key_after_spread
                 && p.options.jsx.runtime == options::JSXRuntime::Automatic
                 && !p.has_classic_runtime_warned
@@ -275,7 +275,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return Ok(p.new_expr(
                 E::JSXElement {
                     tag: start_tag,
-                    self.store.alloc_slice(properties),
+                    properties: p.store.alloc_slice(properties),
                     key_prop_index: key_prop_i,
                     flags,
                     close_tag_loc,
@@ -293,7 +293,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         loop {
             match p.lexer.token {
                 T::TStringLiteral => {
-                    let e_string = p.lexer.to_e_string(&mut self.store)?;
+                    let e_string = p.lexer.to_e_string(&mut p.store)?;
                     children.push(p.new_expr(e_string, loc));
                     p.lexer.next_jsx_element_child()?;
                 }
@@ -365,8 +365,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     return Ok(p.new_expr(
                         E::JSXElement {
                             tag: end_tag.data.as_expr(),
-                            children: self.store.alloc_slice(children),
-                            self.store.alloc_slice(properties),
+                            children: p.store.alloc_slice(children),
+                            properties: p.store.alloc_slice(properties),
                             key_prop_index: key_prop_i,
                             flags,
                             close_tag_loc: end_tag.range.loc,

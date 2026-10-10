@@ -316,7 +316,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             args.push(G::Arg {
-                self.store.alloc_slice(ts_decorators),
+                ts_decorators: p.store.alloc_slice(ts_decorators),
                 binding: arg,
                 default: default_value,
 
@@ -345,14 +345,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             rest_arg = false;
         }
         if !args.is_empty() {
-            func.args = self.store.alloc_slice(args);
+            func.args = p.store.alloc_slice(args);
         }
 
         // Reserve the special name "arguments" in this scope. This ensures that it
         // shadows any variable called "arguments" in any parent scopes. But only do
         // this if it wasn't already declared above because arguments are allowed to
         // be called "arguments", in which case the real "arguments" is inaccessible.
-        if !p.current_scope().members.contains_key(&self.store, arguments_str) {
+        if !p.current_scope().members.contains_key(&p.store, arguments_str) {
             func.arguments_ref = p
                 .declare_symbol(
                     js_ast::symbol::Kind::Arguments,
@@ -514,7 +514,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.fn_or_arrow_data_parse = old_fn_or_arrow_data;
         Ok(G::FnBody {
             loc,
-            stmts: self.store.alloc_slice(stmts),
+            stmts: p.store.alloc_slice(stmts),
         })
     }
 
@@ -597,7 +597,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             prefer_expr: true,
             body: G::FnBody {
                 loc: arrow_loc,
-                stmts: self.store.alloc_slice(stmts),
+                stmts: p.store.alloc_slice(stmts),
             },
             has_react_hooks_suppression,
             ..Default::default()

@@ -264,7 +264,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let has_any_decorators = has_decorators || class_opts.ts_decorators.len() > 0;
         // `Expr: Copy`: safe arena-slice → owned Vec (one memcpy, no double-drop).
-        let ts_decorators = self.store.alloc_slice((class_opts.ts_decorators).to_vec());
+        let ts_decorators = p.store.alloc_slice((class_opts.ts_decorators).to_vec());
         Ok(G::Class {
             class_name: name,
             extends,
@@ -272,7 +272,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             ts_decorators,
             class_keyword,
             body_loc,
-            properties: self.store.alloc_slice(properties),
+            properties: p.store.alloc_slice(properties),
             has_decorators: has_any_decorators,
             should_lower_standard_decorators: p.options.features.standard_decorators
                 && (has_any_decorators || has_auto_accessor),
@@ -299,9 +299,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.lexer.rescan_close_brace_as_template_token()?;
 
             let tail: E::TemplateContents = if !include_raw {
-                E::TemplateContents::Cooked(p.lexer.to_e_string(&mut self.store)?)
+                E::TemplateContents::Cooked(p.lexer.to_e_string(&mut p.store)?)
             } else {
-                E::TemplateContents::Raw(self.store.alloc_str(p.lexer.raw_template_contents()))
+                E::TemplateContents::Raw(p.store.alloc_str(p.lexer.raw_template_contents()))
             };
 
             parts.push(E::TemplatePart {
@@ -321,14 +321,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // `from_bump` leaks into the arena and wraps the unique `&'bump mut [T]`
         // so mutable provenance is preserved for the visit pass.
-        Ok((self.store.alloc_slice(parts), tail_loc))
+        Ok((p.store.alloc_slice(parts), tail_loc))
     }
 
     // This assumes the caller has already checked for TStringLiteral or TNoSubstitutionTemplateLiteral
     pub(crate) fn parse_string_literal(&mut self) -> Result<Expr, Error> {
         let p = self;
         let loc = p.lexer.loc();
-        let mut str_ = p.lexer.to_e_string(&mut self.store)?;
+        let mut str_ = p.lexer.to_e_string(&mut p.store)?;
         str_.prefer_template = p.lexer.token == T::TNoSubstitutionTemplateLiteral;
 
         let expr = p.new_expr(str_, loc);
@@ -370,7 +370,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let close_paren_loc = p.lexer.loc();
         p.lexer.expect(T::TCloseParen)?;
         Ok(ExprListLoc {
-            list: self.store.alloc_slice((&args).to_vec()),
+            list: p.store.alloc_slice((&args).to_vec()),
             loc: close_paren_loc,
         })
     }
@@ -388,7 +388,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .loc()
                 .start
                 .max(p.lexer.previous_backslash_quote_in_jsx.loc.start);
-            let estr = p.lexer.to_e_string(&mut self.store)?;
+            let estr = p.lexer.to_e_string(&mut p.store)?;
             let expr = p.new_expr(estr, *previous_string_with_backslash_loc);
 
             p.lexer.next_inside_jsx_element()?;
@@ -470,7 +470,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             {
                 p.lexer.next()?;
                 let rhs = p.parse_expr(Level::Comma)?;
-                item = Expr::assign(&mut self.store, item, rhs);
+                item = Expr::assign(&mut p.store, item, rhs);
             }
 
             items_list.push(item);
@@ -522,7 +522,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut is_spread = false;
                 if let js_ast::expr::Data::ESpread(v) = &items[i].data {
                     is_spread = true;
-                    let inner = self.store[v].value;
+                    let inner = p.store[v].value;
                     items[i] = inner;
                 }
 
@@ -620,7 +620,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return Ok(p.new_expr(
                 E::Call {
                     target: async_expr,
-                    args: self.store.alloc_slice(items),
+                    args: p.store.alloc_slice(items),
                     ..Default::default()
                 },
                 loc,
@@ -863,7 +863,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         b"Cannot use \"declare\" with a \"using\" declaration",
                     );
                 } else if !opts.is_for_loop_init {
-                    p.require_initializers(js_ast::LocalKind::KUsing, (&self.store[decls]))?;
+                    p.require_initializers(js_ast::LocalKind::KUsing, (&p.store[decls]))?;
                 }
                 return Ok(ExprOrLetStmt {
                     stmt_or_expr: js_ast::StmtOrExpr::Stmt(p.s(
@@ -918,7 +918,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 b"Cannot use \"declare\" with an \"await using\" declaration",
                             );
                         } else if !opts.is_for_loop_init {
-                            p.require_initializers(js_ast::LocalKind::KAwaitUsing, (&self.store[decls]))?;
+                            p.require_initializers(js_ast::LocalKind::KAwaitUsing, (&p.store[decls]))?;
                         }
                         return Ok(ExprOrLetStmt {
                             stmt_or_expr: js_ast::StmtOrExpr::Stmt(p.s(
@@ -1086,7 +1086,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     p.lexer.expect(T::TCloseBracket)?;
                     return Ok(p.b(
                         B::Array {
-                            items: self.store.alloc_slice(items),
+                            items: p.store.alloc_slice(items),
                             has_spread,
                             is_single_line,
                         },
@@ -1142,7 +1142,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                     return Ok(p.b(
                         B::Object {
-                            properties: self.store.alloc_slice(properties.into_vec()),
+                            properties: p.store.alloc_slice(properties.into_vec()),
                             is_single_line,
                         },
                         loc,
@@ -1189,7 +1189,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             T::TBigIntegerLiteral => {
                 key = p.new_expr(
                     E::BigInt {
-                        value: self.store.alloc_str(p.lexer.identifier),
+                        value: p.store.alloc_str(p.lexer.identifier),
                     },
                     p.lexer.loc(),
                 );
@@ -1214,7 +1214,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 key = p.new_expr(
                     E::String {
-                        data: self.store.alloc_str(name),
+                        data: p.store.alloc_str(name),
                         ..Default::default()
                     },
                     loc,
@@ -1319,7 +1319,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.lexer.next()?;
         }
 
-        Ok(self.store.alloc_slice((&decls).to_vec()))
+        Ok(p.store.alloc_slice((&decls).to_vec()))
     }
 
     pub(crate) fn parse_path(&mut self) -> Result<ParsedPath, Error> {
@@ -1375,8 +1375,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             break 'brk Some(SupportedAttribute::BunBakeGraph);
                         }
                     } else if p.lexer.token == T::TStringLiteral {
-                        let estr = p.lexer.to_utf8_e_string(&mut self.store)?;
-                        let string_literal_text = estr.slice8(&self.store);
+                        let estr = p.lexer.to_utf8_e_string(&mut p.store)?;
+                        let string_literal_text = estr.slice8(&p.store);
                         if string_literal_text == b"type" {
                             break 'brk Some(SupportedAttribute::Type);
                         }
@@ -1397,8 +1397,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 p.lexer.expect(T::TColon)?;
 
                 p.lexer.expect(T::TStringLiteral)?;
-                let estr = p.lexer.to_utf8_e_string(&mut self.store)?;
-                let string_literal_text = estr.slice8(&self.store);
+                let estr = p.lexer.to_utf8_e_string(&mut p.store)?;
+                let string_literal_text = estr.slice8(&p.store);
                 if let Some(attr) = supported_attribute {
                     match attr {
                         SupportedAttribute::Type => {
@@ -1488,8 +1488,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if is_directive_prologue {
                 is_directive_prologue = false;
                 if let js_ast::stmt::Data::SExpr(expr) = &stmt.data {
-                    if let js_ast::expr::Data::EString(str_) = &self.store[*expr].value.data {
-                        if !self.store[*str_].prefer_template {
+                    if let js_ast::expr::Data::EString(str_) = &p.store[*expr].value.data {
+                        if !p.store[*str_].prefer_template {
                             is_directive_prologue = true;
 
                             if str_.eql_comptime(b"use strict") {
@@ -1508,9 +1508,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 stmt.data = js_ast::stmt::Data::SEmpty(S::Empty {});
                             } else {
                                 let bytes = str_.string(p.arena).expect("OOM");
-                                stmt = Stmt::alloc(&mut self.store, 
+                                stmt = Stmt::alloc(&mut p.store, 
                                     S::Directive {
-                                        value: self.store.alloc_str(bytes),
+                                        value: p.store.alloc_str(bytes),
                                     },
                                     stmt.loc,
                                 );
@@ -1529,7 +1529,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if !p.options.suppress_warnings_about_weird_code {
                 let mut needs_check = true;
                 if let js_ast::stmt::Data::SReturn(ret) = &stmt.data {
-                    if self.store[*ret].value.is_none() && !p.latest_return_had_semicolon {
+                    if p.store[*ret].value.is_none() && !p.latest_return_had_semicolon {
                         return_without_semicolon_start = stmt.loc.start;
                         needs_check = false;
                     }

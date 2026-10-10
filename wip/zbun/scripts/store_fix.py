@@ -108,9 +108,36 @@ def store_name(lines, line_index):
             if re.search(rb"\bp\s*:", signature):
                 return "p.store"
             if re.search(rb"(&\s*(mut\s+)?|\bmut\s+)self\b|\bself\s*:", signature):
-                return "self.store"
+                # `let p = self;` move o `self` para o alias `p`; depois dele só `p.store` vale.
+                aliased = any(ALIAS_RE.match(lines[j]) for j in range(k, line_index + 1))
+                return "p.store" if aliased else "self.store"
             return None
     return None
+
+
+ALIAS_RE = re.compile(rb"^\s*let\s+p\s*=\s*self\s*;")
+
+
+def selfalias(root):
+    """`self.store` escrito depois de `let p = self;` vira `p.store` (o `self` já foi movido para `p`)."""
+    import os
+
+    total = 0
+    for folder, _, names in os.walk(f"{root}/js_parser/src"):
+        for name in names:
+            if not name.endswith(".rs"):
+                continue
+            path = f"{folder}/{name}"
+            lines = open(path, "rb").read().splitlines(keepends=True)
+            changed = False
+            for index, line in enumerate(lines):
+                if b"self.store" in line and store_name(lines, index) == "p.store":
+                    lines[index] = line.replace(b"self.store", b"p.store")
+                    total += 1
+                    changed = True
+            if changed and "--apply" in sys.argv:
+                open(path, "wb").write(b"".join(lines))
+    print(f"self.store -> p.store: {total}, aplicado: {'--apply' in sys.argv}")
 
 
 def collect(diagnostics):
@@ -329,7 +356,7 @@ def main():
 
 
 CTOR_RE = re.compile(
-    rb"(?P<path>(?:\b[A-Za-z_][A-Za-z0-9_]*::)*(?:StoreStr|StoreSlice|StoreRef|ExprNodeList|StmtNodeList|DeclList|PropertyList"
+    rb"(?<![A-Za-z0-9_])(?P<path>(?:[A-Za-z_][A-Za-z0-9_]*::)*(?:StoreStr|Str|StoreSlice|StoreRef|ExprNodeList|StmtNodeList|DeclList|PropertyList"
     rb"|ArgList|PartImportRecordIndices|ClauseItemList))::(?P<name>new|new_mut|from_bump|from_bump_vec|from_arena_slice"
     rb"|from_slice|move_from_list|init_one)\("
 )
@@ -374,7 +401,7 @@ def ctors(root):
                     continue
                 kind, member = found.group("path").split(b"::")[-1], found.group("name")
                 argument = data[open_at + 1 : close]
-                if kind == b"StoreStr" and member == b"new":
+                if kind in (b"StoreStr", b"Str") and member == b"new":
                     head, tail = f"{store}.alloc_str(".encode(), b")"
                 elif kind == b"StoreRef" and member == b"from_bump":
                     inner = ARENA_ALLOC.match(argument)
@@ -413,5 +440,7 @@ def ctors(root):
 
 if len(sys.argv) > 2 and sys.argv[1] == "ctors":
     ctors(sys.argv[2])
+elif len(sys.argv) > 2 and sys.argv[1] == "selfalias":
+    selfalias(sys.argv[2])
 else:
     main()

@@ -7883,7 +7883,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 macro_rules! ref_name {
                     ($r:expr) => {
-                        E::Str::new(self.load_name_from_ref($r))
+                        self.store.alloc_str(self.load_name_from_ref($r))
                     };
                 }
 

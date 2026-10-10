@@ -100,7 +100,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // `E::Dot::name` is spelled `&'static [u8]` but actually holds an
             // arena-owned slice; the lexer hands back `&'a [u8]`.
-            let name = E::Str::new(p.lexer.identifier);
+            let name = p.store.alloc_str(p.lexer.identifier);
             let name_loc = p.lexer.loc();
             p.lexer.next()?;
 
@@ -239,7 +239,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if !p.lexer.is_identifier_or_keyword() {
                         p.lexer.expect(T::TIdentifier)?;
                     }
-                    let name = E::Str::new(p.lexer.identifier);
+                    let name = p.store.alloc_str(p.lexer.identifier);
                     let name_loc = p.lexer.loc();
                     p.lexer.next()?;
 
@@ -282,7 +282,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             );
         }
         // p.markSyntaxFeature(compat.TemplateLiteral, p.lexer.Range());
-        let head = E::Str::new(p.lexer.raw_template_contents());
+        let head = p.store.alloc_str(p.lexer.raw_template_contents());
         p.lexer.next()?;
 
         let loc = left.loc;
@@ -313,7 +313,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             );
         }
         // p.markSyntaxFeature(compat.TemplateLiteral, p.lexer.Range());
-        let head = E::Str::new(p.lexer.raw_template_contents());
+        let head = p.store.alloc_str(p.lexer.raw_template_contents());
         let (parts, _tail_loc) = p.parse_template_parts(true)?;
         let tag = *left;
         let loc = left.loc;

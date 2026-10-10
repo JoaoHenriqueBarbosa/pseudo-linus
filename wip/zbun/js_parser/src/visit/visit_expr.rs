@@ -1073,7 +1073,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             if num < literal.len() {
                                 *e = p.new_expr(
                                     E::String {
-                                        data: E::Str::new(&literal[num..num + 1]),
+                                        data: p.store.alloc_str(&literal[num..num + 1]),
                                         ..Default::default()
                                     },
                                     expr.loc,

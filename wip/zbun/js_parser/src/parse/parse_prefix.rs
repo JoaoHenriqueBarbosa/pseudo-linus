@@ -317,7 +317,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline]
     fn pfx_t_big_integer_literal(p: &mut Self) -> PResult<Expr> {
         let loc = p.lexer.loc();
-        let value = E::Str::new(p.lexer.identifier);
+        let value = p.store.alloc_str(p.lexer.identifier);
         // markSyntaxFeature bigInt
         p.lexer.next()?;
         Ok(p.new_expr(E::BigInt { value }, loc))
@@ -330,7 +330,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Reset after both success and
         // the `next()?` error path: capture, advance, then unconditionally reset before
         // propagating any error from `next()`.
-        let value = E::Str::new(p.lexer.raw());
+        let value = p.store.alloc_str(p.lexer.raw());
         let next_result = p.lexer.next();
         let flags_offset = p.lexer.regex_flags_start;
         p.lexer.regex_flags_start = None;

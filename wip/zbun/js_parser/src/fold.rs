@@ -67,8 +67,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // `StoreRef<Scope>` (Copy + safe `Deref`) lets the parent-chain walk
         // run without raw-pointer `unsafe` and without borrowing `p`.
         let mut scope = p.current_scope_ref();
-        while !self.store[scope].kind_stops_hoisting() {
-            let parent = self.store[scope].parent;
+        while !p.store[scope].kind_stops_hoisting() {
+            let parent = p.store[scope].parent;
             debug_assert!(parent.is_some());
             scope = parent.unwrap();
         }
@@ -88,9 +88,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let ctx = core::ptr::addr_of_mut!(*p).cast::<core::ffi::c_void>();
             let binding = Binding::to_expr(&decl.binding, ctx, wrapper);
             if let Some(decl_value) = decl.value {
-                value = Expr::join_with_comma(&mut self.store, value, Expr::assign(&mut self.store, binding, decl_value));
+                value = Expr::join_with_comma(&mut p.store, value, Expr::assign(&mut p.store, binding, decl_value));
             } else if mode == RelocateVarsMode::ForInOrForOf {
-                value = Expr::join_with_comma(&mut self.store, value, binding);
+                value = Expr::join_with_comma(&mut p.store, value, binding);
             }
         }
 
@@ -125,7 +125,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         identifier_opts: IdentifierOpts,
     ) -> Option<Expr> {
         let p = self;
-        let name_static = E::Str::new(name);
+        let name_static = p.store.alloc_str(name);
 
         let can_track_dynamic_import_member = identifier_opts.assign_target()
             == js_ast::AssignTarget::None
@@ -138,10 +138,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::ExprData::EAwait(aw) => {
                     // `(await import("str")).foo`: record the alias; the
                     // expression is left as written.
-                    if let js_ast::ExprData::EImport(im) = self.store[aw].value.data {
-                        if self.store[im].namespace_ref.is_valid() && can_track_dynamic_import_member {
+                    if let js_ast::ExprData::EImport(im) = p.store[aw].value.data {
+                        if p.store[im].namespace_ref.is_valid() && can_track_dynamic_import_member {
                             p.import_items_for_namespace
-                                .get_mut(&self.store[im].namespace_ref)
+                                .get_mut(&p.store[im].namespace_ref)
                                 .unwrap()
                                 .put(
                                     name,
@@ -151,7 +151,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     },
                                 )
                                 .expect("oom");
-                            p.note_tracked_namespace_use(self.store[im].namespace_ref);
+                            p.note_tracked_namespace_use(p.store[im].namespace_ref);
                         }
                     }
                 }
@@ -247,7 +247,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         symbol.namespace_alias =
                                             Some(Box::new(G::NamespaceAlias {
                                                 namespace_ref: id.ref_,
-                                                alias: self.store.alloc_str(name),
+                                                alias: p.store.alloc_str(name),
                                                 import_record_index,
                                                 was_originally_property_access: true,
                                             }));
@@ -321,7 +321,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 || identifier_opts.is_delete_target())
                                 && identifier_opts.assign_target() == js_ast::AssignTarget::Replace
                                 && matches!(p.stmt_expr_value, js_ast::ExprData::EBinary(_))
-                                && self.store[p.stmt_expr_value
+                                && p.store[p.stmt_expr_value
                                     .e_binary()
                                     .expect("infallible: variant checked")]
                                     .op
@@ -342,14 +342,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     // that's a de-opt.
                                     || p.commonjs_named_exports.count() > 0
                                     // anything which is not module.exports = {} is a de-opt.
-                                    || !matches!(self.store[stmt_bin].right.data, js_ast::ExprData::EObject(_))
-                                    || !matches!(self.store[stmt_bin].left.data, js_ast::ExprData::EDot(_))
-                                    || self.store[self.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked")].name != b"exports"
+                                    || !matches!(p.store[stmt_bin].right.data, js_ast::ExprData::EObject(_))
+                                    || !matches!(p.store[stmt_bin].left.data, js_ast::ExprData::EDot(_))
+                                    || p.store[p.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked")].name != b"exports"
                                     || !matches!(
-                                        self.store[self.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked")].target.data,
+                                        p.store[p.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked")].target.data,
                                         js_ast::ExprData::EIdentifier(_)
                                     )
-                                    || !self.store[self.store[stmt_bin]
+                                    || !p.store[p.store[stmt_bin]
                                         .left
                                         .data
                                         .e_dot()
@@ -365,12 +365,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     return None;
                                 }
 
-                                let right_obj = self.store[stmt_bin]
+                                let right_obj = p.store[stmt_bin]
                                     .right
                                     .data
                                     .e_object()
                                     .expect("infallible: variant checked");
-                                let props: &[G::Property] = (&self.store[self.store[right_obj].properties]);
+                                let props: &[G::Property] = (&p.store[p.store[right_obj].properties]);
                                 for prop in props {
                                     // if it's not a trivial object literal, de-opt
                                     if prop.kind != G::PropertyKind::Normal
@@ -389,7 +389,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                             js_ast::ExprData::ECommonjsExportIdentifier(_)
                                             | js_ast::ExprData::EImportIdentifier(_)
                                             | js_ast::ExprData::EIdentifier(_) => false,
-                                            js_ast::ExprData::ECall(call) => match self.store[call].target.data {
+                                            js_ast::ExprData::ECall(call) => match p.store[call].target.data {
                                                 js_ast::ExprData::ECommonjsExportIdentifier(_)
                                                 | js_ast::ExprData::EImportIdentifier(_)
                                                 | js_ast::ExprData::EIdentifier(_) => false,
@@ -543,7 +543,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 js_ast::ExprData::EInlinedEnum(ie) => {
-                    sw_data = self.store[ie].value.data;
+                    sw_data = p.store[ie].value.data;
                     continue 'sw;
                 }
                 js_ast::ExprData::EObject(obj) => {
@@ -557,12 +557,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // To avoid thinking too much about edgecases, only do this for:
                             //   1) Objects with a single property
                             //   2) Not a method, not a computed property
-                            if self.store[obj].properties.len_u32() == 1
+                            if p.store[obj].properties.len_u32() == 1
                                 && !identifier_opts.is_delete_target()
                                 && identifier_opts.assign_target() == js_ast::AssignTarget::None
                                 && !identifier_opts.is_call_target()
                             {
-                                let prop: &G::Property = &(&self.store[self.store[obj].properties])[0];
+                                let prop: &G::Property = &(&p.store[p.store[obj].properties])[0];
                                 if let (Some(value), Some(key)) = (prop.value, prop.key) {
                                     if prop.flags.len() == 0
                                         && matches!(key.data, js_ast::ExprData::EString(_))
@@ -573,7 +573,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                             name,
                                         )
                                         && name != b"__proto__"
-                                        && value.can_be_inlined_from_property_access(&self.store)
+                                        && value.can_be_inlined_from_property_access(&p.store)
                                     {
                                         return Some(value);
                                     }
@@ -738,7 +738,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     loc,
                                 }
                             } else {
-                                Expr::init(&mut self.store, E::Object::default(), loc)
+                                Expr::init(&mut p.store, E::Object::default(), loc)
                             });
                         }
                         if name == b"accept" {
@@ -767,7 +767,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         );
                         if in_lookup_table {
                             if enabled {
-                                return Some(Expr::init(&mut self.store, 
+                                return Some(Expr::init(&mut p.store, 
                                     E::Dot {
                                         target: Expr::init_identifier(p.hmr_api_ref, target.loc),
                                         name: name_static,
@@ -837,7 +837,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 js_ast::ts::Data::EnumString(str_ptr) => {
                     p.ignore_usage_of_identifier_in_dot_chain(*target);
-                    let value = p.new_expr(&self.store[str_ptr], loc);
+                    let value = p.new_expr(&p.store[str_ptr], loc);
                     return Some(p.wrap_inlined_enum(value, name));
                 }
 
@@ -845,7 +845,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // If this isn't a constant, return a clone of this property access
                     // but with the namespace member data associated with it so that
                     // more property accesses off of this property access are recognized.
-                    let name_static = E::Str::new(name);
+                    let name_static = p.store.alloc_str(name);
                     let expr = p.new_expr(
                         E::Dot {
                             target: *target,

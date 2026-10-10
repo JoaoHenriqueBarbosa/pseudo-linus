@@ -130,7 +130,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // G::Fn is not Copy (FnBody/TS-metadata aren't), so mutate `func` in place.
         let mut func = func;
         func.flags.insert(flags::Function::IsUniqueFormalParameters);
-        let args = (&self.store[func.args]);
+        let args = (&p.store[func.args]);
         let value = p.new_expr(E::Function { func }, loc);
 
         // Enforce argument rules for accessors
@@ -229,7 +229,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         Ok(Some(G::Property {
-            ts_decorators: self.store.alloc_slice((&opts.ts_decorators).to_vec()),
+            ts_decorators: p.store.alloc_slice((&opts.ts_decorators).to_vec()),
             kind,
             flags: prop_flags,
             key: Some(*key),
@@ -271,7 +271,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 T::TBigIntegerLiteral => {
                     key = p.new_expr(
                         E::BigInt {
-                            value: self.store.alloc_str(p.lexer.identifier),
+                            value: p.store.alloc_str(p.lexer.identifier),
                         },
                         p.lexer.loc(),
                     );
@@ -544,7 +544,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         return Err(crate::Error::SyntaxError);
                     }
 
-                    key = p.new_expr(E::EString::init(self.store.alloc_str(name)), name_range.loc);
+                    key = p.new_expr(E::EString::init(p.store.alloc_str(name)), name_range.loc);
 
                     // Parse a shorthand property
                     let is_shorthand_property = !opts.is_class
@@ -739,7 +739,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 return Ok(Some(G::Property {
-                    ts_decorators: self.store.alloc_slice((&opts.ts_decorators).to_vec()),
+                    ts_decorators: p.store.alloc_slice((&opts.ts_decorators).to_vec()),
                     kind,
                     flags: prop_flags,
                     key: Some(key),
