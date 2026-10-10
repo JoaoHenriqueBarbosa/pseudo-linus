@@ -17,6 +17,13 @@ pub(super) struct Cancellation {
 
 pub(super) type CancelRef = Rc<RefCell<Cancellation>>;
 
+impl Traced for Cancellation {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.reasons.trace(out);
+        self.promise.trace(out);
+    }
+}
+
 impl Cancellation {
     pub(super) fn create(global_object: &JSGlobalObject, stream: &StreamRef) -> CancelRef {
         Rc::new(RefCell::new(Cancellation { stream: stream.clone(), canceled: [false; 2], reasons: [JSValue::undefined(); 2], promise: new_promise(global_object) }))
@@ -66,6 +73,13 @@ struct Shared {
 
 type SharedRef = Rc<RefCell<Shared>>;
 
+impl Traced for Shared {
+    /// O stream, o leitor e os ramos são estado de um `OBJECTS`; só o cancelamento segura valores próprios.
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.cancellation.trace(out);
+    }
+}
+
 /// Um ramo do `tee`: a fonte nativa do stream devolvido em `index`.
 struct Branch {
     shared: SharedRef,
@@ -81,6 +95,10 @@ impl NativeSource for Branch {
     fn cancel(&self, global_object: &JSGlobalObject, reason: JSValue) -> JSValue {
         let cancellation = self.shared.borrow().cancellation.clone();
         cancel_branch(global_object, &cancellation, self.index, reason)
+    }
+
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.shared.trace(out);
     }
 }
 

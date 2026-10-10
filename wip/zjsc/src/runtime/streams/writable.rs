@@ -94,6 +94,26 @@ pub struct Core<V: Clone> {
 }
 
 impl<V: Clone> Core<V> {
+    /// Cada valor JS que o núcleo segura (o `visitChildren` do controlador): o erro guardado, os efeitos ainda por
+    /// aplicar, o motivo do aborto pendente e os chunks da fila.
+    pub fn for_each_value(&self, mut visit: impl FnMut(&V)) {
+        self.stored_error.iter().for_each(&mut visit);
+        for effect in &self.effects {
+            match effect {
+                Effect::Reject(_, value) | Effect::SinkWrite(value) | Effect::SinkAbort(value) | Effect::AbortSignal(value) => visit(value),
+                Effect::NewPromise(_) | Effect::Resolve(_) | Effect::MarkHandled(_) | Effect::SinkClose | Effect::ErrorSteps => {}
+            }
+        }
+        if let Some(pending) = &self.pending_abort {
+            visit(&pending.reason);
+        }
+        for item in &self.queue {
+            if let Item::Chunk(chunk, _) = item {
+                visit(chunk);
+            }
+        }
+    }
+
     /// `setUpWritableStreamDefaultControllerBeforeStart`: estado inicial e backpressure.
     pub fn new(hwm: f64) -> Self {
         let mut c = Core {

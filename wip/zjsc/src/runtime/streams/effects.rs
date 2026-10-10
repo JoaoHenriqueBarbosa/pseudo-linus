@@ -11,6 +11,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::readable::{mark_handled, new_promise, reject, resolve};
+use super::trace::Traced;
 use crate::runtime::host_call::Thrown;
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_value::JSValue;
@@ -20,6 +21,12 @@ pub(super) type P = u32;
 
 /// As promessas JS dos ids do `Core` (o id é o índice).
 pub(super) struct Promises(Vec<JSValue>);
+
+impl Traced for Promises {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.0.trace(out);
+    }
+}
 
 impl Promises {
     pub(super) fn new() -> Self {

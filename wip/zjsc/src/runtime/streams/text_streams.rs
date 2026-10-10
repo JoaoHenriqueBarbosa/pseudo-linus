@@ -33,6 +33,7 @@ use crate::runtime::host_call::{HostCall, HostResult, Thrown};
 use crate::runtime::identifier::Identifier;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
 use crate::runtime::internal_function::INTERNAL_FUNCTION_S_INFO;
+use super::trace::{mark_all, Traced};
 use crate::runtime::intl_support::{get_property, to_rust_string};
 use crate::runtime::structured_clone::is_object_cell;
 use crate::runtime::intrinsic::Intrinsic;
@@ -94,12 +95,26 @@ thread_local! {
     static TRANSFORM_STREAM: Cell<Option<EncodedJSValue>> = const { Cell::new(None) };
 }
 
-/// As raízes do coletor: o construtor de `TransformStream`; o estado dos transformadores é opaco e adia a coleta.
+impl Traced for Entry {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.stream.trace(out);
+    }
+}
+
+/// As raízes do coletor: o construtor de `TransformStream`, as instâncias (as chaves vivem enquanto o programa
+/// existir) e o `TransformStream` de dentro de cada uma.
 pub(super) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
     if let Some(constructor) = TRANSFORM_STREAM.with(Cell::get) {
         marker.encoded(constructor);
     }
-    marker.defer_while(OBJECTS.with(|objects| !objects.borrow().is_empty()));
+    mark_all(marker, |out| {
+        OBJECTS.with(|objects| {
+            objects.borrow().iter().for_each(|(key, entry)| {
+                out.push(JSValue::decode(*key));
+                entry.trace(out);
+            })
+        })
+    });
 }
 
 pub(super) fn reset_for_program() {

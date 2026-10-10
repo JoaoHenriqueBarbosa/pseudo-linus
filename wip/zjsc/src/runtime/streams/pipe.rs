@@ -11,7 +11,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use super::readable::{call_js, mark_handled, new_promise, reaction, reject, rejected_with, resolve, resolved_with, take_error, text_value, then, type_error_value};
+use super::readable::{call_js, mark_handled, new_promise, reaction_holding, reject, rejected_with, resolve, resolved_with, take_error, text_value, then, type_error_value};
+use super::trace::{hold, Traced};
+use crate::runtime::gc::RootScope;
 use super::{is_instance, reject_with_thrown, throw_invalid_this, Kind};
 use crate::runtime::abort_signal::is_signal;
 use crate::runtime::host_call::{HostCall, HostResult, Thrown};
@@ -22,6 +24,19 @@ use crate::runtime::native_class_support::throw_native_type_error;
 
 /// Uma chamada de método adiada: objeto, nome e argumentos.
 type Action = (JSValue, &'static str, Vec<JSValue>);
+
+/// As chamadas adiadas de um `shutdown`, para a closure que as roda declarar o que segura.
+#[derive(Clone)]
+struct Actions(Vec<Action>);
+
+impl Traced for Actions {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        for (object, _, arguments) in &self.0 {
+            object.trace(out);
+            arguments.trace(out);
+        }
+    }
+}
 
 struct Pipe {
     reader: JSValue,
@@ -37,6 +52,15 @@ struct Pipe {
 
 type PipeRef = Rc<RefCell<Pipe>>;
 
+impl Traced for Pipe {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.reader.trace(out);
+        self.writer.trace(out);
+        self.promise.trace(out);
+        self.pending_writes.trace(out);
+    }
+}
+
 /// `object[name](...args)`; `Err` é o valor lançado.
 fn invoke(global_object: &JSGlobalObject, object: JSValue, name: &str, arguments: &[JSValue]) -> Result<JSValue, JSValue> {
     let function = get_property(global_object, object, name).map_err(|_| take_error(global_object))?;
@@ -48,43 +72,60 @@ fn property(global_object: &JSGlobalObject, object: JSValue, name: &str) -> Resu
 }
 
 fn ignore(global_object: &JSGlobalObject) -> JSValue {
-    reaction(global_object, |_, _| Ok(()))
+    reaction_holding(global_object, Vec::new(), |_, _| Ok(()))
 }
 
 type JoinDone = Box<dyn FnOnce(&JSGlobalObject, Option<JSValue>)>;
-type JoinState = Rc<RefCell<(usize, Option<JSValue>, Option<JoinDone>)>>;
+
+/// O que o `join` espera: quantas promessas faltam, a primeira rejeição, o que fazer no fim e o que o `done` captura.
+struct Join {
+    remaining: usize,
+    first_error: Option<JSValue>,
+    done: Option<JoinDone>,
+    held: Vec<Rc<dyn Traced>>,
+}
+
+type JoinState = Rc<RefCell<Join>>;
+
+impl Traced for Join {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.first_error.trace(out);
+        self.held.iter().for_each(|held| held.trace(out));
+    }
+}
 
 fn settle(global_object: &JSGlobalObject, state: &JoinState, error: Option<JSValue>) {
     let finished = {
         let mut inner = state.borrow_mut();
-        inner.0 -= 1;
-        if inner.1.is_none() {
-            inner.1 = error;
+        inner.remaining -= 1;
+        if inner.first_error.is_none() {
+            inner.first_error = error;
         }
-        let first_error = inner.1;
-        if inner.0 == 0 { inner.2.take().map(|done| (done, first_error)) } else { None }
+        let first_error = inner.first_error;
+        if inner.remaining == 0 { inner.done.take().map(|done| (done, first_error)) } else { None }
     };
     if let Some((done, first_error)) = finished {
         done(global_object, first_error);
     }
 }
 
-/// Espera todas as promessas; `done` recebe a primeira rejeição, se houve.
-fn join(global_object: &JSGlobalObject, promises: Vec<JSValue>, done: JoinDone) {
+/// Espera todas as promessas; `done` recebe a primeira rejeição, se houve. `held` lista os valores JS que `done`
+/// captura.
+fn join(global_object: &JSGlobalObject, promises: Vec<JSValue>, done: JoinDone, held: Vec<Rc<dyn Traced>>) {
     if promises.is_empty() {
         done(global_object, None);
         return;
     }
-    let state: JoinState = Rc::new(RefCell::new((promises.len(), None, Some(done))));
+    let state: JoinState = Rc::new(RefCell::new(Join { remaining: promises.len(), first_error: None, done: Some(done), held }));
     for promise in promises {
         let promise = resolved_with(global_object, promise);
         let for_ok = state.clone();
         let for_bad = state.clone();
-        let on_ok = reaction(global_object, move |global_object, _| {
+        let on_ok = reaction_holding(global_object, vec![hold(state.clone())], move |global_object, _| {
             settle(global_object, &for_ok, None);
             Ok(())
         });
-        let on_bad = reaction(global_object, move |global_object, error| {
+        let on_bad = reaction_holding(global_object, vec![hold(state.clone())], move |global_object, error| {
             settle(global_object, &for_bad, Some(error));
             Ok(())
         });
@@ -115,8 +156,9 @@ fn run_actions(global_object: &JSGlobalObject, pipe: &PipeRef, error: Option<JSV
         .into_iter()
         .map(|(object, name, arguments)| invoke(global_object, object, name, &arguments).unwrap_or_else(|thrown| rejected_with(global_object, thrown)))
         .collect();
+    let held = vec![hold(pipe.clone()), hold(error)];
     let pipe = pipe.clone();
-    join(global_object, calls, Box::new(move |global_object, action_error| finalize(global_object, &pipe, action_error.or(error))));
+    join(global_object, calls, Box::new(move |global_object, action_error| finalize(global_object, &pipe, action_error.or(error))), held);
 }
 
 /// `ReadableStreamPipeTo` shutdown: espera as escritas em voo, roda as ações, solta os travamentos.
@@ -129,8 +171,9 @@ fn shutdown(global_object: &JSGlobalObject, pipe: &PipeRef, error: Option<JSValu
         inner.shutting_down = true;
         std::mem::take(&mut inner.pending_writes)
     };
+    let held = vec![hold(pipe.clone()), hold(error), hold(Actions(actions.clone()))];
     let pipe = pipe.clone();
-    join(global_object, pending, Box::new(move |global_object, _| run_actions(global_object, &pipe, error, actions)));
+    join(global_object, pending, Box::new(move |global_object, _| run_actions(global_object, &pipe, error, actions)), held);
 }
 
 fn is_stopped(pipe: &PipeRef) -> bool {
@@ -156,7 +199,7 @@ fn read_step(global_object: &JSGlobalObject, pipe: &PipeRef) {
         Err(_) => return,
     };
     let for_chunk = pipe.clone();
-    let on_chunk = reaction(global_object, move |global_object, result| {
+    let on_chunk = reaction_holding(global_object, vec![hold(pipe.clone())], move |global_object, result| {
         if is_stopped(&for_chunk) {
             return Ok(());
         }
@@ -185,7 +228,7 @@ fn pump(global_object: &JSGlobalObject, pipe: &PipeRef) {
     let Ok(ready) = property(global_object, writer, "ready") else { return };
     let ready = resolved_with(global_object, ready);
     let for_ready = pipe.clone();
-    let on_ready = reaction(global_object, move |global_object, _| {
+    let on_ready = reaction_holding(global_object, vec![hold(pipe.clone())], move |global_object, _| {
         read_step(global_object, &for_ready);
         Ok(())
     });
@@ -201,7 +244,7 @@ fn watch_closed(global_object: &JSGlobalObject, pipe: &PipeRef) {
     if let Ok(closed) = property(global_object, reader, "closed") {
         let closed = resolved_with(global_object, closed);
         let for_closed = pipe.clone();
-        let on_closed = reaction(global_object, move |global_object, _| {
+        let on_closed = reaction_holding(global_object, vec![hold(pipe.clone())], move |global_object, _| {
             let (writer, prevent_close) = {
                 let inner = for_closed.borrow();
                 (inner.writer, inner.prevent_close)
@@ -211,7 +254,7 @@ fn watch_closed(global_object: &JSGlobalObject, pipe: &PipeRef) {
             Ok(())
         });
         let for_errored = pipe.clone();
-        let on_errored = reaction(global_object, move |global_object, error| {
+        let on_errored = reaction_holding(global_object, vec![hold(pipe.clone())], move |global_object, error| {
             let (writer, prevent_abort) = {
                 let inner = for_errored.borrow();
                 (inner.writer, inner.prevent_abort)
@@ -225,13 +268,13 @@ fn watch_closed(global_object: &JSGlobalObject, pipe: &PipeRef) {
     if let Ok(closed) = property(global_object, writer, "closed") {
         let closed = resolved_with(global_object, closed);
         let for_closed = pipe.clone();
-        let on_closed = reaction(global_object, move |global_object, _| {
+        let on_closed = reaction_holding(global_object, vec![hold(pipe.clone())], move |global_object, _| {
             let error = type_error_value(global_object, "the destination writable stream closed before all data could be piped to it");
             cancel_source(global_object, &for_closed, error);
             Ok(())
         });
         let for_errored = pipe.clone();
-        let on_errored = reaction(global_object, move |global_object, error| {
+        let on_errored = reaction_holding(global_object, vec![hold(pipe.clone())], move |global_object, error| {
             cancel_source(global_object, &for_errored, error);
             Ok(())
         });
@@ -287,6 +330,8 @@ fn start_pipe(global_object: &JSGlobalObject, source: JSValue, dest: JSValue, op
     let reader = invoke(global_object, source, "getReader", &[])?;
     let writer = invoke(global_object, dest, "getWriter", &[])?;
     let promise = new_promise(global_object);
+    // O leitor, o escritor e a promessa só vivem nestes locais até as reações do `pipe` os segurarem.
+    let _locals = RootScope::new(&[reader, writer, promise, signal]);
     let pipe = Rc::new(RefCell::new(Pipe { reader, writer, promise, prevent_abort, prevent_cancel, prevent_close, shutting_down: false, finished: false, pending_writes: Vec::new() }));
     if !signal.is_undefined() {
         if property(global_object, signal, "aborted")?.to_boolean() {
@@ -294,7 +339,7 @@ fn start_pipe(global_object: &JSGlobalObject, source: JSValue, dest: JSValue, op
             return Ok(promise);
         }
         let for_signal = pipe.clone();
-        let listener = reaction(global_object, move |global_object, _| {
+        let listener = reaction_holding(global_object, vec![hold(pipe.clone()), hold(signal)], move |global_object, _| {
             on_signal_abort(global_object, &for_signal, signal);
             Ok(())
         });

@@ -34,6 +34,7 @@ use flate2::{Crc, Decompress, FlushDecompress, Status};
 
 use super::readable::extract_high_water_mark;
 use super::text_streams::{construct_inner_stream, enqueue, inspect_composite, install_wrapped_class, invalid_chunk, native_transformer, Produced};
+use super::trace::{mark_all, Traced};
 use super::transform_js::{ts_readable, ts_writable};
 use super::writable_js::convert_strategy;
 use crate::host_function;
@@ -604,9 +605,23 @@ thread_local! {
     static OBJECTS: RefCell<HashMap<EncodedJSValue, EntryRef>> = RefCell::new(HashMap::new());
 }
 
-/// Há estado de stream de compressão (opaco ao coletor).
-pub(super) fn holds_state() -> bool {
-    OBJECTS.with(|objects| !objects.borrow().is_empty())
+impl Traced for Entry {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.stream.trace(out);
+    }
+}
+
+/// As raízes do coletor: as instâncias (as chaves vivem enquanto o programa existir) e o `TransformStream` de dentro
+/// de cada uma. O motor de compressão é só bytes.
+pub(super) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    mark_all(marker, |out| {
+        OBJECTS.with(|objects| {
+            objects.borrow().iter().for_each(|(key, entry)| {
+                out.push(JSValue::decode(*key));
+                entry.trace(out);
+            })
+        })
+    });
 }
 
 pub(super) fn reset_for_program() {

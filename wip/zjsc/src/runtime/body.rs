@@ -395,7 +395,7 @@ pub(crate) fn consume(global_object: &JSGlobalObject, body: &mut Option<Body>, r
 fn consume_stream(global_object: &JSGlobalObject, stream: JSValue, read: Read) -> JSValue {
     let promise = JSPromise::create(global_object.vm(), &global_object.promise_structure());
     let settled = promise.as_value();
-    let started = read_stream_bytes(global_object, stream, move |global_object, result| {
+    let started = read_stream_bytes(global_object, stream, &[settled], move |global_object, result| {
         let outcome = result.and_then(|bytes| {
             let bytes = if matches!(read, Read::Text) { bytes.strip_prefix(BOM).unwrap_or(&bytes).to_vec() } else { bytes };
             read_body(global_object, read.clone(), &bytes).map_err(|_| pending_reason(global_object))

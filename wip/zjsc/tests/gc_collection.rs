@@ -118,6 +118,36 @@ fn timer_callbacks_and_arguments_survive() {
     assert_eq!(stressed(&program), "xy");
 }
 
+#[test]
+fn transform_stream_construction_locals_survive() {
+    let program = format!("{CHURN} var R = '';
+        (async () => {{
+            var ts = new TransformStream({{ start() {{ return new Promise(r => setTimeout(r, 1)); }} }});
+            var w = ts.writable.getWriter(); churn(); await w.ready; R += w.desiredSize;
+            var ts2 = new TransformStream({{ transform(c, k) {{ churn(); k.enqueue(c.toUpperCase()); k.enqueue(c + '!'); }}, flush(k) {{ k.enqueue('end'); }} }});
+            var w2 = ts2.writable.getWriter(); var r2 = ts2.readable.getReader();
+            w2.write('a'); w2.write('b'); w2.close();
+            for (;;) {{ var x = await r2.read(); if (x.done) break; churn(); R += x.value; }}
+        }})();");
+    assert_eq!(stressed(&program), "1Aa!Bb!end");
+}
+
+#[test]
+fn stream_state_survives_collections() {
+    let program = format!("{CHURN} var R = '';
+        (async () => {{
+            var rs = new ReadableStream({{ pull(c) {{ churn(); c.enqueue({{ v: 'x' }}); c.close(); }} }});
+            var [a, b] = rs.tee();
+            var ts = new TransformStream({{ transform(c, k) {{ churn(); k.enqueue(c.v + '1'); }} }});
+            var w = ts.writable.getWriter(); var tr = ts.readable.getReader(); var ra = a.getReader();
+            var chunk = await ra.read(); churn(); w.write(chunk.value); w.close();
+            var out = await tr.read(); churn();
+            var rb = await b.getReader().read();
+            R = out.value + '|' + rb.value.v;
+        }})();");
+    assert_eq!(stressed(&program), "x1|x");
+}
+
 /// Roda `program` como `/app/main.js` coletando a cada alocação e devolve o que ele imprimiu. O programa principal
 /// passa pelo ponto seguro do laço no topo (`stressed` avalia um programa sem esse caminho e não chega a coletar).
 fn stressed_main(program: &str) -> String {

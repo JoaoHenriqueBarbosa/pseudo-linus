@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use super::effects::{drain, promise_of, EffectState, PromiseOp, Promises};
+use super::trace::{mark_all, Traced};
 use super::readable::{
     call_js, callable_member, extract_high_water_mark, invalid_state, invalid_this, invoke_returning_promise, prototype_of, range_error_value, reaction, rejected_with,
     resolved_with, rethrow, take_error, text_value, then, type_error_value,
@@ -47,6 +48,8 @@ pub(super) trait NativeSink {
     fn write(&self, global_object: &JSGlobalObject, chunk: JSValue) -> JSValue;
     fn close(&self, global_object: &JSGlobalObject) -> JSValue;
     fn abort(&self, global_object: &JSGlobalObject, reason: JSValue) -> JSValue;
+    /// Os valores JS que o sink segura além do que está num `OBJECTS` (o `visitChildren` dele).
+    fn trace(&self, out: &mut Vec<JSValue>);
 }
 
 /// Qual braço roda `write`/`close`/`abort`: o `underlyingSink` do usuário ou um sink nativo.
@@ -104,9 +107,45 @@ thread_local! {
     static OBJECTS: RefCell<HashMap<EncodedJSValue, Obj>> = RefCell::new(HashMap::new());
 }
 
-/// Há estado de stream gravável (opaco ao coletor).
-pub(super) fn holds_state() -> bool {
-    OBJECTS.with(|objects| !objects.borrow().is_empty())
+impl Traced for Stream {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.core.for_each_value(|value| out.push(*value));
+        self.promises.trace(out);
+        self.algorithms.trace(out);
+        self.size.trace(out);
+        self.controller.trace(out);
+        self.signal.trace(out);
+    }
+}
+
+impl Traced for SinkAlgorithms {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        match self {
+            SinkAlgorithms::JavaScript { sink, write, close, abort } => {
+                sink.trace(out);
+                write.trace(out);
+                close.trace(out);
+                abort.trace(out);
+            }
+            SinkAlgorithms::Native(native) => native.trace(out),
+        }
+    }
+}
+
+/// As raízes do coletor: os objetos gravaveis (as chaves vivem enquanto o programa existir) e o que o estado deles
+/// segura. O escritor não segura valor próprio (as promessas dele moram na arena do stream).
+pub(super) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    mark_all(marker, |out| {
+        OBJECTS.with(|objects| {
+            objects.borrow().iter().for_each(|(key, object)| {
+                out.push(JSValue::decode(*key));
+                match object {
+                    Obj::Stream(state) | Obj::Controller(state) => state.trace(out),
+                    Obj::Writer(_) => {}
+                }
+            })
+        })
+    });
 }
 
 pub(super) fn reset_for_program() {

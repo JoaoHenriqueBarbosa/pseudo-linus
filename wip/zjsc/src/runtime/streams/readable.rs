@@ -33,8 +33,10 @@ use crate::runtime::host_call::{throw_thrown, HostCall, HostResult, Thrown};
 use super::bytes::{msg, Action, ByteCore, Chunk, PullInto, ReaderKind};
 use crate::runtime::typed_array_type::TypedArrayType;
 use super::effects::{drain, EffectState, PromiseOp, Promises, P};
+use super::trace::{hold, mark_all, take_contended, Traced};
 use crate::runtime::array_buffer::{ArrayBuffer, ArrayBufferRef};
 use crate::runtime::js_module_loader::{describe_received, rust_string};
+use crate::runtime::gc::RootScope;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
 use crate::runtime::intl_support::{get_property, to_number_checked};
 use crate::runtime::intrinsic::Intrinsic;
@@ -271,6 +273,8 @@ struct Controller {
 pub(super) trait NativeSource {
     fn pull(&self, global_object: &JSGlobalObject) -> JSValue;
     fn cancel(&self, global_object: &JSGlobalObject, reason: JSValue) -> JSValue;
+    /// Os valores JS que a fonte segura além do que está num `OBJECTS` (o `visitChildren` dela).
+    fn trace(&self, out: &mut Vec<JSValue>);
 }
 
 /// Qual braço roda `pull`/`cancel` do controlador: o `underlyingSource` do usuário ou uma fonte nativa.
@@ -310,17 +314,105 @@ enum Obj {
 
 type Reaction = Rc<dyn Fn(&JSGlobalObject, JSValue) -> Result<(), Thrown>>;
 
+/// Uma reação registrada: o código da closure e o que ela captura em valores JS (o contexto que o C++ guarda nos
+/// slots da função `jsWebStreamsHandler_*`), visitado enquanto a função da reação viver.
+struct Handler {
+    run: Reaction,
+    held: Vec<Rc<dyn Traced>>,
+}
+
 thread_local! {
     static OBJECTS: RefCell<HashMap<EncodedJSValue, Obj>> = RefCell::new(HashMap::new());
-    static HANDLERS: RefCell<HashMap<usize, Reaction>> = RefCell::new(HashMap::new());
+    static HANDLERS: RefCell<HashMap<usize, Handler>> = RefCell::new(HashMap::new());
     static PROTOTYPES: RefCell<HashMap<&'static str, EncodedJSValue>> = RefCell::new(HashMap::new());
 }
 
-/// As raízes do coletor: os protótipos; os objetos e as reações (closures) são opacos e adiam a coleta.
+impl Traced for Stream {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.stored_error.trace(out);
+    }
+}
+
+impl Traced for Reader {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.requests.trace(out);
+        self.closed.trace(out);
+    }
+}
+
+impl Traced for Controller {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.queue.iter().for_each(|(chunk, _)| chunk.trace(out));
+        self.size.trace(out);
+        self.algorithms.trace(out);
+        self.value.trace(out);
+    }
+}
+
+impl Traced for ByteState {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.algorithms.trace(out);
+        self.value.trace(out);
+        self.promises.trace(out);
+        self.request.trace(out);
+    }
+}
+
+impl Traced for ByobRequest {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.value.trace(out);
+        self.view.trace(out);
+    }
+}
+
+impl Traced for SourceAlgorithms {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        match self {
+            SourceAlgorithms::JavaScript { source, pull, cancel } => {
+                source.trace(out);
+                pull.trace(out);
+                cancel.trace(out);
+            }
+            SourceAlgorithms::Native(native) => native.trace(out),
+        }
+    }
+}
+
+impl Obj {
+    /// Os valores do estado do objeto (o objeto JS da chave o chamador já pôs).
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        match self {
+            Obj::Stream(state) => state.trace(out),
+            Obj::Reader(state) => state.trace(out),
+            Obj::Controller(state) => state.trace(out),
+            Obj::ByteController(state) => state.trace(out),
+            Obj::Request(state) => state.trace(out),
+        }
+    }
+}
+
+/// As raízes do coletor: os protótipos, os objetos de stream (as chaves vivem enquanto o programa existir, como as
+/// instâncias de `INSTANCES`) e o que o estado de cada um segura. As reações são efêmeras da função delas
+/// ([`visit_side_table`]).
 pub(super) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
     PROTOTYPES.with(|prototypes| prototypes.borrow().values().for_each(|prototype| marker.encoded(*prototype)));
-    marker.defer_while(OBJECTS.with(|objects| !objects.borrow().is_empty()));
-    marker.defer_while(HANDLERS.with(|handlers| !handlers.borrow().is_empty()));
+    mark_all(marker, |out| {
+        OBJECTS.with(|objects| {
+            objects.borrow().iter().for_each(|(key, object)| {
+                out.push(JSValue::decode(*key));
+                object.trace(out);
+            })
+        })
+    });
+}
+
+/// As reações como tabela lateral da função da reação: o contexto dela é filho da função, e a entrada sai com ela.
+pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: crate::runtime::gc::SidePhase) -> bool {
+    let progressed = crate::runtime::gc::side_table(&HANDLERS, marker, phase, |handler, out| handler.held.iter().for_each(|held| held.trace(out)));
+    if take_contended() {
+        marker.abort();
+    }
+    progressed
 }
 
 pub(super) fn reset_for_program() {
@@ -473,7 +565,7 @@ pub(super) fn then(global_object: &JSGlobalObject, promise: JSValue, on_fulfille
 }
 
 fn reaction_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let handler = HANDLERS.with(|handlers| handlers.borrow().get(&call.callee()).cloned());
+    let handler = HANDLERS.with(|handlers| handlers.borrow().get(&call.callee()).map(|handler| handler.run.clone()));
     if let Some(handler) = handler {
         handler(global_object, call.argument(0))?;
     }
@@ -481,8 +573,19 @@ fn reaction_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult 
 }
 host_function!(reaction_native, reaction_body);
 
-/// Uma função nativa que roda `handler(argument(0))`: o `jsWebStreamsHandler_*` com o contexto no fecho.
+/// Uma função nativa que roda `handler(argument(0))` e só captura estado de stream registrado num `OBJECTS` (que o
+/// coletor já visita): o `jsWebStreamsHandler_*` com o contexto no fecho.
 pub(super) fn reaction(global_object: &JSGlobalObject, handler: impl Fn(&JSGlobalObject, JSValue) -> Result<(), Thrown> + 'static) -> JSValue {
+    reaction_holding(global_object, Vec::new(), handler)
+}
+
+/// Como [`reaction`], para a closure que captura valores JS ou estado fora de um `OBJECTS`: `held` lista o que ela
+/// captura, e o coletor o visita enquanto a função da reação viver (o contexto nos slots da função, no C++).
+pub(super) fn reaction_holding(
+    global_object: &JSGlobalObject,
+    held: Vec<Rc<dyn Traced>>,
+    handler: impl Fn(&JSGlobalObject, JSValue) -> Result<(), Thrown> + 'static,
+) -> JSValue {
     let function = JSFunction::create_native(
         global_object.vm(),
         global_object,
@@ -495,7 +598,7 @@ pub(super) fn reaction(global_object: &JSGlobalObject, handler: impl Fn(&JSGloba
     );
     let value = function.as_value();
     if let JSValue::Cell(cell_id) = value {
-        HANDLERS.with(|handlers| handlers.borrow_mut().insert(cell_id, Rc::new(handler)));
+        HANDLERS.with(|handlers| handlers.borrow_mut().insert(cell_id, Handler { run: Rc::new(handler), held }));
     }
     value
 }
@@ -673,6 +776,8 @@ fn call_pull_if_needed(global_object: &JSGlobalObject, controller: &ControllerRe
     });
     let for_rejected = controller.clone();
     let on_rejected = reaction(global_object, move |global_object, error| controller_error(global_object, &for_rejected, error));
+    // As duas reações só vivem neste local enquanto o `pull` do usuário roda JS.
+    let _reactions = RootScope::new(&[on_fulfilled, on_rejected]);
     let pull_promise = match algorithms {
         Some(algorithms) => algorithms.run_pull(global_object, value),
         None => resolved_with(global_object, JSValue::undefined()),
@@ -830,6 +935,7 @@ pub(super) fn byte_call_pull_if_needed(global_object: &JSGlobalObject, state: &B
     });
     let for_rejected = state.clone();
     let on_rejected = reaction(global_object, move |global_object, error| byte_controller_error(global_object, &for_rejected, error));
+    let _reactions = RootScope::new(&[on_fulfilled, on_rejected]);
     let pull_promise = match algorithms {
         Some(algorithms) => algorithms.run_pull(global_object, value),
         None => resolved_with(global_object, JSValue::undefined()),
@@ -1662,14 +1768,26 @@ fn closed_queue_len(stream: &Stream) -> Option<usize> {
     state.core.close_requested.then(|| state.core.queued_chunks())
 }
 
-/// Quem recebe cada pedaço lido por [`read_all`]: `Err` aborta a leitura com esse motivo.
-pub(super) type ChunkSink = Rc<dyn Fn(&JSGlobalObject, JSValue) -> Result<(), JSValue>>;
-/// Quem recebe o fim de [`read_all`]: `Ok` quando o stream fechou, `Err` com o erro do stream ou do sorvedouro.
-pub(super) type EndSink = Rc<dyn Fn(&JSGlobalObject, Result<(), JSValue>)>;
+/// Os dois sorvedouros de [`read_all`]: `chunk` recebe cada pedaço lido (`Err` aborta a leitura com esse motivo) e
+/// `end` recebe o fim (`Ok` quando o stream fechou, `Err` com o erro do stream ou do sorvedouro). `held` lista o que as
+/// closures capturam em valores JS (o coletor o visita enquanto a leitura durar).
+pub(super) struct Sinks {
+    pub(super) chunk: Box<dyn Fn(&JSGlobalObject, JSValue) -> Result<(), JSValue>>,
+    pub(super) end: Box<dyn Fn(&JSGlobalObject, Result<(), JSValue>)>,
+    pub(super) held: Vec<Rc<dyn Traced>>,
+}
+
+pub(super) type SinksRef = Rc<Sinks>;
+
+impl Traced for Sinks {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.held.iter().for_each(|held| held.trace(out));
+    }
+}
 
 /// Lê o `ReadableStream` `value` até o fim por um leitor interno (que não conta em `locked`), em cadeia de promessas:
 /// cada leitura reage na seguinte, sem bloquear. Devolve `false` se `value` não é um stream ou já está travado/lido.
-pub(super) fn read_all(global_object: &JSGlobalObject, value: JSValue, on_chunk: ChunkSink, on_end: EndSink) -> bool {
+pub(super) fn read_all(global_object: &JSGlobalObject, value: JSValue, sinks: SinksRef) -> bool {
     let Some(stream) = stream_of(value) else { return false };
     if is_locked_or_disturbed(value) {
         return false;
@@ -1679,17 +1797,17 @@ pub(super) fn read_all(global_object: &JSGlobalObject, value: JSValue, on_chunk:
     };
     let Some(reader) = reader_of(reader_value, ReaderKind::Default) else { return false };
     reader.borrow_mut().hidden = true;
-    if drain_closed_queue(global_object, &stream, &reader, &on_chunk, &on_end) {
+    if drain_closed_queue(global_object, &stream, &reader, &sinks) {
         return true;
     }
-    pump(global_object, stream, reader, on_chunk, on_end);
+    pump(global_object, stream, reader, sinks);
     true
 }
 
 /// Como o bun: o stream cujos pedaços já estão na fila com o fechamento pedido é esvaziado de uma vez, de forma
 /// síncrona, e o leitor interno é solto antes de `read_all` voltar (o stream fica destravado e fechado). Só a entrega
 /// dos pedaços ao sorvedouro segue em cadeia de promessas. Devolve `false` quando o stream não está nesse estado.
-fn drain_closed_queue(global_object: &JSGlobalObject, stream: &StreamRef, reader: &ReaderRef, on_chunk: &ChunkSink, on_end: &EndSink) -> bool {
+fn drain_closed_queue(global_object: &JSGlobalObject, stream: &StreamRef, reader: &ReaderRef, sinks: &SinksRef) -> bool {
     let pending = {
         let inner = stream.borrow();
         match closed_queue_len(&inner) {
@@ -1703,67 +1821,69 @@ fn drain_closed_queue(global_object: &JSGlobalObject, stream: &StreamRef, reader
         if reader_read_request(global_object, stream, reader, promise).is_err() {
             let error = take_error(global_object);
             reader_release(global_object, reader);
-            on_end(global_object, Err(error));
+            (sinks.end)(global_object, Err(error));
             return true;
         }
         reads.push(promise);
     }
     reader_release(global_object, reader);
-    deliver_drained(global_object, reads, 0, on_chunk.clone(), on_end.clone());
+    deliver_drained(global_object, reads, 0, sinks.clone());
     true
 }
 
-/// Entrega ao sorvedouro, em ordem, os pedaços já lidos por [`drain_closed_queue`]; no fim chama `on_end`.
-fn deliver_drained(global_object: &JSGlobalObject, reads: Vec<JSValue>, index: usize, on_chunk: ChunkSink, on_end: EndSink) {
+/// Entrega ao sorvedouro, em ordem, os pedaços já lidos por [`drain_closed_queue`]; no fim chama `end`.
+fn deliver_drained(global_object: &JSGlobalObject, reads: Vec<JSValue>, index: usize, sinks: SinksRef) {
     let Some(&promise) = reads.get(index) else {
-        on_end(global_object, Ok(()));
+        (sinks.end)(global_object, Ok(()));
         return;
     };
-    let (next_chunk, next_end) = (on_chunk.clone(), on_end.clone());
-    let fulfilled = reaction(global_object, move |global_object, result| {
+    let held = vec![hold(reads.clone()), hold(sinks.clone())];
+    let next_sinks = sinks.clone();
+    let fulfilled = reaction_holding(global_object, held.clone(), move |global_object, result| {
         let chunk = get_property(global_object, result, "value")?;
-        match next_chunk(global_object, chunk) {
-            Ok(()) => deliver_drained(global_object, reads.clone(), index + 1, next_chunk.clone(), next_end.clone()),
-            Err(error) => next_end(global_object, Err(error)),
+        match (next_sinks.chunk)(global_object, chunk) {
+            Ok(()) => deliver_drained(global_object, reads.clone(), index + 1, next_sinks.clone()),
+            Err(error) => (next_sinks.end)(global_object, Err(error)),
         }
         Ok(())
     });
-    let rejected = reaction(global_object, move |global_object, error| {
-        on_end(global_object, Err(error));
+    let rejected = reaction_holding(global_object, held, move |global_object, error| {
+        (sinks.end)(global_object, Err(error));
         Ok(())
     });
     then(global_object, promise, fulfilled, rejected, JSValue::undefined());
 }
 
-fn pump(global_object: &JSGlobalObject, stream: StreamRef, reader: ReaderRef, on_chunk: ChunkSink, on_end: EndSink) {
+fn pump(global_object: &JSGlobalObject, stream: StreamRef, reader: ReaderRef, sinks: SinksRef) {
     let promise = new_promise(global_object);
     if reader_read_request(global_object, &stream, &reader, promise).is_err() {
         let error = take_error(global_object);
         reader_release(global_object, &reader);
-        on_end(global_object, Err(error));
+        (sinks.end)(global_object, Err(error));
         return;
     }
-    let (next_stream, next_reader, next_chunk, next_end) = (stream, reader.clone(), on_chunk, on_end.clone());
-    let fulfilled = reaction(global_object, move |global_object, result| {
+    let held = vec![hold(sinks.clone())];
+    let (next_stream, next_reader, next_sinks) = (stream, reader.clone(), sinks.clone());
+    let fulfilled = reaction_holding(global_object, held.clone(), move |global_object, result| {
         let done = get_property(global_object, result, "done")?;
         if matches!(done, JSValue::Bool(true)) {
             reader_release(global_object, &next_reader);
-            next_end(global_object, Ok(()));
+            (next_sinks.end)(global_object, Ok(()));
             return Ok(());
         }
         let chunk = get_property(global_object, result, "value")?;
-        match next_chunk(global_object, chunk) {
-            Ok(()) => pump(global_object, next_stream.clone(), next_reader.clone(), next_chunk.clone(), next_end.clone()),
+        match (next_sinks.chunk)(global_object, chunk) {
+            Ok(()) => pump(global_object, next_stream.clone(), next_reader.clone(), next_sinks.clone()),
             Err(error) => {
                 reader_release(global_object, &next_reader);
-                next_end(global_object, Err(error));
+                (next_sinks.end)(global_object, Err(error));
             }
         }
         Ok(())
     });
-    let rejected = reaction(global_object, move |global_object, error| {
+    let rejected = reaction_holding(global_object, held, move |global_object, error| {
         reader_release(global_object, &reader);
-        on_end(global_object, Err(error));
+        (sinks.end)(global_object, Err(error));
         Ok(())
     });
     then(global_object, promise, fulfilled, rejected, JSValue::undefined());

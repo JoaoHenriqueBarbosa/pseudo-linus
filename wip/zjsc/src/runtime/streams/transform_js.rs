@@ -18,13 +18,15 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use super::effects::{drain, promise_of, EffectState, PromiseOp, Promises, P};
+use super::trace::{hold, mark_all, Traced};
 use super::readable::{
-    self, callable_member, error_of, extract_high_water_mark, invalid_this, invoke_returning_promise, new_promise, prototype_of, reaction, rejected_with, resolve,
+    self, callable_member, error_of, extract_high_water_mark, invalid_this, invoke_returning_promise, new_promise, prototype_of, reaction, reaction_holding, rejected_with, resolve,
     resolved_with, rethrow, then, type_error_value, NativeSource, ReadableHandle,
 };
 use super::transform::{Core, Effect, EnqueueError, Kind as TransformerKind, Readable, Writable};
 use super::writable_js::{self, convert_strategy, NativeSink, WritableHandle};
 use crate::runtime::collection_support::derived_structure;
+use crate::runtime::gc::RootScope;
 use crate::runtime::host_call::{HostCall, HostResult, Thrown};
 use crate::runtime::intl_support::get_property;
 use crate::runtime::js_global_object::JSGlobalObject;
@@ -68,9 +70,37 @@ thread_local! {
     static OBJECTS: RefCell<HashMap<EncodedJSValue, Obj>> = RefCell::new(HashMap::new());
 }
 
-/// Há estado de stream de transformação (opaco ao coletor).
-pub(super) fn holds_state() -> bool {
-    OBJECTS.with(|objects| !objects.borrow().is_empty())
+impl Traced for Transform {
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        if let Some(core) = &self.core {
+            core.for_each_value(|value| out.push(*value));
+        }
+        self.promises.trace(out);
+        self.transformer.trace(out);
+        self.transform.trace(out);
+        self.flush.trace(out);
+        self.cancel.trace(out);
+        self.controller.trace(out);
+        if let Some(sides) = &self.sides {
+            sides.readable.trace(out);
+            sides.writable.trace(out);
+        }
+    }
+}
+
+/// As raízes do coletor: os objetos de transformação (as chaves vivem enquanto o programa existir) e o que o estado
+/// deles segura. As duas pontas do par moram nos `OBJECTS` de `readable` e `writable_js`.
+pub(super) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    mark_all(marker, |out| {
+        OBJECTS.with(|objects| {
+            objects.borrow().iter().for_each(|(key, object)| {
+                out.push(JSValue::decode(*key));
+                match object {
+                    Obj::Stream(state) | Obj::Controller(state) => state.trace(out),
+                }
+            })
+        })
+    });
 }
 
 pub(super) fn reset_for_program() {
@@ -229,11 +259,13 @@ fn finish(global_object: &JSGlobalObject, stream: &TransformRef, done: &Done, ou
     drain(global_object, stream)
 }
 
-fn settle(global_object: &JSGlobalObject, stream: &TransformRef, promise: JSValue, done: Done) {
+/// `held` lista os valores JS que `done` captura (o motivo do cancelamento): o coletor os visita enquanto as reações
+/// viverem.
+fn settle(global_object: &JSGlobalObject, stream: &TransformRef, promise: JSValue, done: Done, held: Vec<Rc<dyn Traced>>) {
     let (for_fulfilled, done_fulfilled) = (stream.clone(), done.clone());
-    let on_fulfilled = reaction(global_object, move |global_object, _| finish(global_object, &for_fulfilled, &done_fulfilled, Ok(())));
+    let on_fulfilled = reaction_holding(global_object, held.clone(), move |global_object, _| finish(global_object, &for_fulfilled, &done_fulfilled, Ok(())));
     let for_rejected = stream.clone();
-    let on_rejected = reaction(global_object, move |global_object, error| finish(global_object, &for_rejected, &done, Err(error)));
+    let on_rejected = reaction_holding(global_object, held, move |global_object, error| finish(global_object, &for_rejected, &done, Err(error)));
     then(global_object, promise, on_fulfilled, on_rejected, JSValue::undefined());
 }
 
@@ -254,7 +286,7 @@ fn call_transform(global_object: &JSGlobalObject, stream: &TransformRef, chunk: 
         Some(function) if !cleared => invoke_returning_promise(global_object, function, transformer, &[chunk, controller]),
         _ => default_transform(global_object, stream, chunk),
     };
-    settle(global_object, stream, promise, Rc::new(move |core, read, write, outcome| core.on_transform_done(read, write, result, outcome)));
+    settle(global_object, stream, promise, Rc::new(move |core, read, write, outcome| core.on_transform_done(read, write, result, outcome)), Vec::new());
 }
 
 fn call_flush(global_object: &JSGlobalObject, stream: &TransformRef) {
@@ -266,7 +298,7 @@ fn call_flush(global_object: &JSGlobalObject, stream: &TransformRef) {
         Some(function) if live => invoke_returning_promise(global_object, function, transformer, &[controller]),
         _ => resolved_with(global_object, JSValue::undefined()),
     };
-    settle(global_object, stream, promise, Rc::new(|core, read, _, outcome| core.on_flush_done(read, outcome)));
+    settle(global_object, stream, promise, Rc::new(|core, read, _, outcome| core.on_flush_done(read, outcome)), Vec::new());
 }
 
 fn call_cancel(global_object: &JSGlobalObject, stream: &TransformRef, reason: JSValue, from_sink: bool) {
@@ -278,7 +310,7 @@ fn call_cancel(global_object: &JSGlobalObject, stream: &TransformRef, reason: JS
         Some(function) if live => invoke_returning_promise(global_object, function, transformer, &[reason]),
         _ => resolved_with(global_object, JSValue::undefined()),
     };
-    settle(global_object, stream, promise, Rc::new(move |core, read, write, outcome| core.on_cancel_done(read, write, from_sink, reason, outcome)));
+    settle(global_object, stream, promise, Rc::new(move |core, read, write, outcome| core.on_cancel_done(read, write, from_sink, reason, outcome)), vec![hold(reason)]);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -310,6 +342,9 @@ impl NativeSource for Bridge {
     fn cancel(&self, global_object: &JSGlobalObject, reason: JSValue) -> JSValue {
         self.finish_algorithm(global_object, |core| core.source_cancel(reason))
     }
+
+    /// O estado da ponte é o `Transform`, registrado num `OBJECTS` (`visit_gc_roots`).
+    fn trace(&self, _out: &mut Vec<JSValue>) {}
 }
 
 impl NativeSink for Bridge {
@@ -335,6 +370,8 @@ impl NativeSink for Bridge {
     fn abort(&self, global_object: &JSGlobalObject, reason: JSValue) -> JSValue {
         self.finish_algorithm(global_object, |core| core.sink_abort(reason))
     }
+
+    fn trace(&self, _out: &mut Vec<JSValue>) {}
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -380,6 +417,9 @@ pub(super) fn construct_stream(global_object: &JSGlobalObject, call: &HostCall) 
     let structure = derived_structure(global_object, call, instance_structure)?;
     let vm = global_object.vm();
     let value = JSFinalObject::create(vm, &structure).as_value();
+    // A instância, o controlador, a promessa de start e o retorno do `start` só vivem nestes locais até o estado os
+    // segurar (`register` e `sides`); cada alocação do construtor é ponto seguro.
+    let _value = RootScope::new(&[value]);
     let dict = convert_transformer(global_object, transformer)?;
     if dict.has_readable_type {
         return Err(Thrown::range_error("The transformer's 'readableType' property is reserved and must not be present"));
@@ -392,6 +432,7 @@ pub(super) fn construct_stream(global_object: &JSGlobalObject, call: &HostCall) 
 
     let controller_structure = instance_structure(vm, Some(global_object), prototype_of("TransformStreamDefaultController"));
     let controller = JSFinalObject::create(vm, &controller_structure).as_value();
+    let _controller = RootScope::new(&[controller]);
     let kind = if transformer.is_object() { TransformerKind::JavaScript } else { TransformerKind::Identity };
     let stream = Rc::new(RefCell::new(Transform {
         core: Some(Core::new(kind)),
@@ -409,8 +450,10 @@ pub(super) fn construct_stream(global_object: &JSGlobalObject, call: &HostCall) 
     drain(global_object, &stream)?;
 
     let start_promise = new_promise(global_object);
+    let _start_promise = RootScope::new(&[start_promise]);
     let bridge = Rc::new(Bridge(stream.clone()));
     let (writable, write) = writable_js::create_native(global_object, bridge.clone(), writable_high_water_mark, writable_size, start_promise)?;
+    let _writable = RootScope::new(&[writable]);
     let (readable, read) = readable::create_native(global_object, bridge, readable_high_water_mark, readable_size, start_promise);
     stream.borrow_mut().sides = Some(Sides { readable, writable, read, write });
 
@@ -419,6 +462,7 @@ pub(super) fn construct_stream(global_object: &JSGlobalObject, call: &HostCall) 
         Some(function) => call_function(global_object, function, transformer, &[controller]).ok_or(Thrown::Pending)?,
         None => JSValue::undefined(),
     };
+    let _start_result = RootScope::new(&[start_result]);
     resolve(global_object, start_promise, start_result);
     Ok(value)
 }

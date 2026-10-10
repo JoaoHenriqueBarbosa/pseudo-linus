@@ -21,6 +21,13 @@ struct Shared {
 
 type SharedRef = Rc<RefCell<Shared>>;
 
+impl Traced for Shared {
+    /// O stream, o leitor e os ramos são estado de um `OBJECTS`; só o cancelamento segura valores próprios.
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.cancellation.trace(out);
+    }
+}
+
 /// Um ramo do `tee`: a fonte nativa do stream de bytes devolvido em `index`.
 struct Branch {
     shared: SharedRef,
@@ -36,6 +43,10 @@ impl NativeSource for Branch {
     fn cancel(&self, global_object: &JSGlobalObject, reason: JSValue) -> JSValue {
         let cancellation = self.shared.borrow().cancellation.clone();
         cancel_branch(global_object, &cancellation, self.index, reason)
+    }
+
+    fn trace(&self, out: &mut Vec<JSValue>) {
+        self.shared.trace(out);
     }
 }
 

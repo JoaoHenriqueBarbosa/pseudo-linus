@@ -82,6 +82,17 @@ pub struct Core<V: Clone> {
 }
 
 impl<V: Clone> Core<V> {
+    /// Cada valor JS que o núcleo segura: os efeitos ainda por aplicar e os chunks de escrita pendentes.
+    pub fn for_each_value(&self, mut visit: impl FnMut(&V)) {
+        for effect in &self.effects {
+            match effect {
+                Effect::Reject(_, value) | Effect::CallTransform(value, _) | Effect::CallCancel(value, _) => visit(value),
+                Effect::NewPromise(_) | Effect::Resolve(_) | Effect::CallFlush => {}
+            }
+        }
+        self.pending_write.values().for_each(|pending| visit(&pending.chunk));
+    }
+
     /// `initializeTransformStream`: backpressure começa `false` e `set_backpressure(true)` o liga.
     pub fn new(kind: Kind) -> Self {
         let mut c = Core {

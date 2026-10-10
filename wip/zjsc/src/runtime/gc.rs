@@ -144,6 +144,7 @@ fn visit_side_tables(marker: &mut Marker, phase: SidePhase) -> bool {
         rt::js_web_assembly::visit_side_table,
         rt::js_web_assembly_jspi::visit_side_table,
         rt::js_module_loader::visit_side_table,
+        rt::streams::visit_side_table,
     ] {
         progressed |= visit(marker, phase);
     }
