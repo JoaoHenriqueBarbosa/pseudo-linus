@@ -376,54 +376,8 @@ pub(crate) fn city_hash64(s: &[u8], seed: u64) -> u64 {
     hash_len16(city_hash64_unseeded(s).wrapping_sub(CITY_K2), seed)
 }
 
-const RAPID_SECRET: [u64; 3] = [0x2d358dccaa6c78a5, 0x8bb84b93962eacc9, 0x4b33a62ed433d4a3];
-
-/// rapidhash (v1).
-pub(crate) fn rapidhash(seed: u64, input: &[u8]) -> u64 {
-    let sc = RAPID_SECRET;
-    let len = input.len();
-    let (mut a, mut b) = (0u64, 0u64);
-    let mut state = [seed ^ mix(seed ^ sc[0], sc[1]) ^ len as u64, 0, 0];
-    if len <= 16 {
-        if len >= 4 {
-            let d = (len & 24) >> (len >> 3);
-            let e = len - 4;
-            a = (u64::from(read32(input, 0)) << 32) | u64::from(read32(input, e));
-            b = (u64::from(read32(input, d)) << 32) | u64::from(read32(input, e - d));
-        } else if len > 0 {
-            a = (u64::from(input[0]) << 56) | (u64::from(input[len >> 1]) << 32) | u64::from(input[len - 1]);
-        }
-    } else {
-        let mut k = input;
-        if len > 48 {
-            state[1] = state[0];
-            state[2] = state[0];
-            while k.len() >= 96 {
-                for i in 0..6 {
-                    state[i % 3] = mix(read64(k, 16 * i) ^ sc[i % 3], read64(k, 16 * i + 8) ^ state[i % 3]);
-                }
-                k = &k[96..];
-            }
-            if k.len() >= 48 {
-                for i in 0..3 {
-                    state[i] = mix(read64(k, 16 * i) ^ sc[i], read64(k, 16 * i + 8) ^ state[i]);
-                }
-                k = &k[48..];
-            }
-            state[0] ^= state[1] ^ state[2];
-        }
-        if k.len() > 16 {
-            state[0] = mix(read64(k, 0) ^ sc[2], read64(k, 8) ^ state[0] ^ sc[1]);
-            if k.len() > 32 {
-                state[0] = mix(read64(k, 16) ^ sc[2], read64(k, 24) ^ state[0]);
-            }
-        }
-        a = read64(input, len - 16);
-        b = read64(input, len - 8);
-    }
-    let (a, b) = mum(a ^ sc[1], b ^ state[0]);
-    mix(a ^ sc[0] ^ len as u64, b ^ sc[1])
-}
+/// rapidhash (v1): o núcleo comum ao WTF do WebKit e do Blink, com os vetores do upstream.
+pub(crate) use ul_common::hash::rapidhash::rapidhash;
 
 #[cfg(test)]
 mod tests {
@@ -450,29 +404,6 @@ mod tests {
         assert_eq!(smhasher_32(murmur3_32), 0xB0F57EE3);
         assert_eq!(smhasher_32(|bytes, _| city_hash32(bytes)), 0x68254F81);
         assert_eq!(smhasher_64(city_hash64), 0x5FABC5C5);
-    }
-
-    #[test]
-    fn rapidhash_vectors() {
-        let bytes: Vec<u8> = (0..1024).map(|i| b"abcdefgh"[i % 8]).collect();
-        let cases: [(usize, u64); 13] = [
-            (0, 0x5a6ef77074ebc84b),
-            (1, 0xc11328477bc0f5d1),
-            (2, 0x5644ac035e40d569),
-            (3, 0x347080fbf5fcd81),
-            (4, 0x56b66b8dc802bcc),
-            (8, 0xb6bf9055973aac7c),
-            (16, 0xed56d62eead1e402),
-            (32, 0xc19072d767da8ffb),
-            (64, 0x89bb40a9928a4f0d),
-            (128, 0xe0af7c5e7b6e29fd),
-            (256, 0x9a3ed35fbedfa11a),
-            (512, 0x4c684b2119ca19fb),
-            (1024, 0x4b575f5bf25600d6),
-        ];
-        for (size, expected) in cases {
-            assert_eq!(rapidhash(0xbdd89aa982704029, &bytes[..size]), expected, "size={size}");
-        }
     }
 
     #[test]

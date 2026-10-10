@@ -28,6 +28,7 @@ pub mod algo;
 pub mod blake2;
 pub mod kdf;
 pub mod keccak;
+pub mod rapidhash;
 pub mod ripemd;
 pub mod sha512;
 pub mod sm3;
