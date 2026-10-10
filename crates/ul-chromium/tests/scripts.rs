@@ -27,7 +27,7 @@ fn window_own_properties_match_the_oracle() {
     // nunca imitado pela metade). A catraca só desce: 34 interfaces faltando quando o teste entrou.
     let present: Vec<&(String, String)> = expected.iter().filter(|e| actual.contains(e)).collect();
     assert_eq!(actual.iter().collect::<Vec<_>>(), present);
-    assert!(missing.len() <= 1, "faltam {missing:?}");
+    assert!(missing.is_empty(), "faltam {missing:?}");
 }
 
 /// As interfaces simples da janela, com os retornos e as mensagens que o oráculo deu (página em `http://127.0.0.1`).
@@ -216,6 +216,28 @@ fn navigation_api_as_the_oracle() {
         navigation.entries().length, navigation.activation.from])), 0))";
     let (_, log) = run(&[("/", &format!("<script>{probe}</script>"))]);
     assert_eq!(log, "[2,\"push\",1,null]\n");
+}
+
+/// O IndexedDB como o oráculo em tempo real: a forma das interfaces e um roteiro de chaves, faixas, abertura com
+/// upgrade, stores, índices, transações (erros, abort, commit, ativação), cursores, `versionchange`, `blocked` e
+/// exclusão, com as mensagens do Blink.
+#[test]
+fn indexeddb_as_the_oracle() {
+    for (script, expected) in [
+        (include_str!("fixtures/indexeddb-shape.js"), include_str!("fixtures/indexeddb-shape.expected")),
+        (include_str!("fixtures/indexeddb.js"), include_str!("fixtures/indexeddb.expected")),
+    ] {
+        let (_, log) = common::run_at_for(
+            "http://127.0.0.1:8000/p",
+            &[],
+            &[("/p", r#"<pre id=o></pre><script src="/probe.js"></script>"#), ("/probe.js", script)],
+            Some(30000.0),
+        );
+        // O relato do erro não capturado vai ao console (que a gravação do oráculo não lê); o probe o registra pelo
+        // evento `error` da janela.
+        let log: String = log.lines().filter(|line| !line.starts_with("Uncaught ")).map(|line| format!("{line}\n")).collect();
+        assert_eq!(log, expected);
+    }
 }
 
 #[test]
