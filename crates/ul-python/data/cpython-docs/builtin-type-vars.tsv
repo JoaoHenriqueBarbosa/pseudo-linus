@@ -131,3 +131,5 @@ method_descriptor	__repr__ __call__ __get__ __reduce__ __objclass__ __name__ __d
 wrapper_descriptor	__repr__ __call__ __get__ __reduce__ __objclass__ __name__ __doc__ __qualname__ __text_signature__
 classmethod_descriptor	__repr__ __call__ __get__ __objclass__ __name__ __doc__ __qualname__ __text_signature__
 method-wrapper	__repr__ __hash__ __call__ __lt__ __le__ __eq__ __ne__ __gt__ __ge__ __reduce__ __self__ __objclass__ __name__ __qualname__ __doc__ __text_signature__
+greenlet	__new__ __repr__ __init__ __bool__ switch throw __getstate__ __dict__ run parent gr_frame gr_context dead _stack_saved __doc__ getcurrent error GreenletExit settrace gettrace
+UnswitchableGreenlet	__new__ __init__ force_switch_error force_slp_switch_error __doc__

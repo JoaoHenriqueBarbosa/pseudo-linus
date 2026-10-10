@@ -37,8 +37,9 @@ pub(crate) enum Fold {
     /// `lista.extend(it)`: cada item entra na lista na hora, então uma falha no meio deixa os parciais.
     Extend { target: Value },
     /// `sorted(it, key=, reverse=)`: o CPython esgota o iterável antes de chamar a chave, então os itens
-    /// entram em `items` e só no fim cada chave é chamada, na ordem, formando `pairs` (chave, item).
-    Sorted { key: Option<Value>, reverse: bool, items: Vec<Value>, pairs: Vec<(Value, Value)> },
+    /// entram em `items` e só no fim cada chave é chamada, na ordem, formando `pairs` (chave, item). Com
+    /// `target`, é o `lista.sort(key=, reverse=)`: o resultado volta para a lista e a chamada devolve `None`.
+    Sorted { key: Option<Value>, reverse: bool, items: Vec<Value>, pairs: Vec<(Value, Value)>, target: Option<Value> },
 }
 
 /// O que um item (ou o fim do iterável) faz com a conta: segue, ela já tem o resultado (curto-circuito de
@@ -69,6 +70,12 @@ pub(crate) fn for_call(func: &Value, args: &[Value], kwargs: &[(String, Value)])
     if let Value::Bound(b) = func {
         return match (b.name, &b.recv, args, kwargs) {
             ("extend", Value::List(_), [source], []) => Some((source.clone(), Fold::Extend { target: b.recv.clone() })),
+            // `lista.sort(key=)` com chave em Python: as chaves rodam em quadro sobre uma cópia dos itens.
+            ("sort", Value::List(l), [], _) => {
+                let (key, reverse) = sort_options(kwargs)?;
+                let source = Value::list(l.borrow().clone());
+                Some((source, Fold::Sorted { key, reverse, items: Vec::new(), pairs: Vec::new(), target: Some(b.recv.clone()) }))
+            }
             _ => None,
         };
     }
@@ -103,16 +110,8 @@ pub(crate) fn for_call(func: &Value, args: &[Value], kwargs: &[(String, Value)])
         },
         "sorted" => {
             let [source] = args else { return None };
-            let mut key = None;
-            let mut reverse = false;
-            for (name, value) in kwargs {
-                match name.as_str() {
-                    "key" => key = (!matches!(value, Value::None)).then(|| value.clone()),
-                    "reverse" => reverse = value.is_true(),
-                    _ => return None,
-                }
-            }
-            Some((source.clone(), Fold::Sorted { key, reverse, items: Vec::new(), pairs: Vec::new() }))
+            let (key, reverse) = sort_options(kwargs)?;
+            Some((source.clone(), Fold::Sorted { key, reverse, items: Vec::new(), pairs: Vec::new(), target: None }))
         }
         "set" | "frozenset" => match (args, kwargs) {
             ([source], []) => Some((source.clone(), Fold::set(name == "frozenset"))),
@@ -124,6 +123,20 @@ pub(crate) fn for_call(func: &Value, args: &[Value], kwargs: &[(String, Value)])
         }
         _ => None,
     }
+}
+
+/// O `key=` e o `reverse=` de `sorted` e `lista.sort`; `None` com outro nomeado (a chamada comum dá o erro).
+fn sort_options(kwargs: &[(String, Value)]) -> Option<(Option<Value>, bool)> {
+    let mut key = None;
+    let mut reverse = false;
+    for (name, value) in kwargs {
+        match name.as_str() {
+            "key" => key = (!matches!(value, Value::None)).then(|| value.clone()),
+            "reverse" => reverse = value.is_true(),
+            _ => return None,
+        }
+    }
+    Some((key, reverse))
 }
 
 /// O total de `f` com a compensação `c` acumulada, como o CPython fecha a fase de ponto flutuante.
@@ -269,16 +282,23 @@ impl Fold {
     /// O próximo passo da ordenação com o iterável já esgotado: a chave do próximo item, se ela roda Python, ou
     /// a lista ordenada.
     fn sorted_step(&mut self, vm: &mut Vm) -> PyResult<Flow> {
-        let Fold::Sorted { key, reverse, items, pairs } = self else { return Err(internal("not a sorted fold")) };
-        if let Some(func) = key.as_ref().filter(|f| crate::lazy::runs_python(f)) {
-            if let Some(item) = items.get(pairs.len()) {
-                return Ok(Flow::Key { func: func.clone(), item: item.clone() });
+        let Fold::Sorted { key, reverse, items, pairs, target } = self else { return Err(internal("not a sorted fold")) };
+        let sorted = match key.as_ref().filter(|f| crate::lazy::runs_python(f)) {
+            Some(func) => {
+                if let Some(item) = items.get(pairs.len()) {
+                    return Ok(Flow::Key { func: func.clone(), item: item.clone() });
+                }
+                crate::builtins::sort_keyed(std::mem::take(pairs), *reverse)?
             }
-            let sorted = crate::builtins::sort_keyed(std::mem::take(pairs), *reverse)?;
-            return Ok(Flow::Done(Value::list(sorted)));
-        }
-        let sorted = crate::builtins::sort_items(vm, std::mem::take(items), key.clone(), *reverse)?;
-        Ok(Flow::Done(Value::list(sorted)))
+            None => crate::builtins::sort_items(vm, std::mem::take(items), key.clone(), *reverse)?,
+        };
+        Ok(Flow::Done(match target {
+            Some(Value::List(list)) => {
+                *list.borrow_mut() = sorted;
+                Value::None
+            }
+            _ => Value::list(sorted),
+        }))
     }
 
     /// O resultado quando o iterável acabou sem que a conta tivesse decidido antes (ou a chave do primeiro item

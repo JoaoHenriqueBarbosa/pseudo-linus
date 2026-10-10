@@ -96,6 +96,8 @@ const SOURCES: &[(&str, &str)] = &[
     ("concurrent.futures", include_str!("py/concurrent_futures.py")),
     ("_thread", include_str!("py/_thread.py")),
     ("_gsched", include_str!("py/_gsched.py")),
+    // A camada do `greenlet._greenlet` (o greenlet 3.5.6 sobre as threads verdes), entregue com esse nome.
+    ("_greenlet_impl", include_str!("py/_greenlet_impl.py")),
     ("colorsys", include_str!("../../../kernel/image/usr/lib/python3.13/colorsys.py")),
     ("keyword", include_str!("../../../kernel/image/usr/lib/python3.13/keyword.py")),
     // O `dis` e o `opcode` do Debian rodam sobre o `_opcode` nativo e o `co_code` que o compilador emite.
@@ -140,7 +142,9 @@ const SOURCES: &[(&str, &str)] = &[
     ("_sha2", include_str!("py/_sha2.py")),
     ("_sha3", include_str!("py/_sha3.py")),
     ("numbers", include_str!("../../../kernel/image/usr/lib/python3.13/numbers.py")),
+    // O `contextvars.py` do Debian, sobre o `_contextvars` (extensão em C do `lib-dynload`).
     ("contextvars", include_str!("py/contextvars.py")),
+    ("_contextvars", include_str!("py/_contextvars.py")),
     // O `_decimal` do CPython é C (libmpdec); o `decimal` é o Python do Debian, que reexporta dele. O fonte do `_decimal`
     // é o `_pydecimal` (que o programa importa à parte, do disco), e o `dir()` o limita ao que o módulo C mostra.
     ("_decimal", include_str!("py/decimal.py")),
@@ -531,7 +535,7 @@ fn embedded_dir(real: &str) -> String {
 /// Módulos que no Debian são extensões em C carregadas do `lib-dynload` (não embutidas no executável): o
 /// `__file__` é o `.so`, o `__loader__` é o `ExtensionFileLoader` e, como em todo módulo de C, não há `__builtins__`
 /// nem `__cached__`.
-const DYNLOAD_MODULES: &[&str] = &["termios", "resource", "_uuid"];
+const DYNLOAD_MODULES: &[&str] = &["termios", "resource", "_uuid", "_contextvars"];
 
 fn is_dynload(real: &str) -> bool {
     DYNLOAD_MODULES.contains(&real)

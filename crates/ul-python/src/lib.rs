@@ -43,6 +43,7 @@ pub mod native_util;
 pub mod object;
 pub mod parser;
 pub mod pep695;
+mod referents;
 pub mod stdbuf;
 pub mod stdin;
 pub mod suggest;
@@ -689,31 +690,51 @@ fn run_main(
         let _ = c.sigaction(sysabi::Signal::SIGPIPE, sysabi::SigDisposition::Ignore);
         let _ = c.sigaction(sysabi::Signal::SIGXFSZ, sysabi::SigDisposition::Ignore);
     }
-    on_interpreter_thread(move || run_source_inner(&owned, argv, &name, file_mode, module, finish_mode)).unwrap_or_else(|| Outcome {
-        stdout: Vec::new(),
-        stderr: "Fatal Python error: could not run the interpreter thread\n".into(),
-        status: 1,
-    })
+    on_interpreter_thread(move || run_source_inner(&owned, argv, &name, file_mode, module, finish_mode))
 }
 
-/// Roda `job` na thread do interpretador: pilha de 1 GiB (reservada, não comprometida) para o limite de
-/// recursão de 1000 chamadas caber, e o pseudo-processo de quem chama instalado nela (uma thread nova não
-/// o herda; `open`, stdin e stderr dependem dele). Os desvios de controle do kernel (`execve`, `_exit`,
-/// morte por sinal) desempilham a thread e seguem até o pseudo-processo, que é quem troca o programa ou
-/// termina; um panic de bug (mensagem `&str`/`String`) vira `None`.
-pub(crate) fn on_interpreter_thread<T: Send + 'static>(job: impl FnOnce() -> T + Send + 'static) -> Option<T> {
+/// Roda `job` na thread do interpretador: pilha grande (reservada, não comprometida) para o limite de recursão de
+/// 1000 chamadas caber, e o pseudo-processo de quem chama instalado nela (uma thread nova não o herda; `open`, stdin
+/// e stderr dependem dele). Os desvios de controle do kernel (`execve`, `_exit`, morte por sinal) desempilham a
+/// thread e seguem até o pseudo-processo, que é quem troca o programa ou termina.
+///
+/// O CPython não tem uma mensagem para "a thread do interpretador não subiu": com pouca memória ele sobe do mesmo
+/// jeito, e uma falha interna dele é um crash. Aqui a reserva de pilha que o SO recusa cai para a seguinte, menor;
+/// um panic de bug, ou a recusa de todas, mata o processo por SIGSEGV, o crash que o agente veria no CPython.
+pub(crate) fn on_interpreter_thread<T: Send + 'static>(job: impl FnOnce() -> T + Send + 'static) -> T {
+    run_on_stack_ladder(INTERPRETER_STACKS, job)
+}
+
+/// As pilhas que a thread do interpretador tenta, da maior à menor.
+const INTERPRETER_STACKS: &[usize] = &[1 << 30, 1 << 29, 1 << 28, 1 << 27, 1 << 26];
+
+pub(crate) fn run_on_stack_ladder<T: Send + 'static>(stacks: &[usize], job: impl FnOnce() -> T + Send + 'static) -> T {
+    use std::sync::{Arc, Mutex};
     let current = sys::try_current();
-    let spawned = std::thread::Builder::new().stack_size(1 << 30).spawn(move || {
-        if let Some(c) = current {
-            sys::install(c);
-        }
-        job()
-    });
-    match spawned.map(|h| h.join()) {
-        Ok(Ok(value)) => Some(value),
-        Ok(Err(payload)) if !payload.is::<&'static str>() && !payload.is::<String>() => std::panic::resume_unwind(payload),
-        _ => None,
+    // O `spawn` que falha descarta o fecho; o trabalho fica fora dele para a tentativa seguinte.
+    let job = Arc::new(Mutex::new(Some(job)));
+    for &size in stacks {
+        let (current, job) = (current.clone(), job.clone());
+        let spawned = std::thread::Builder::new().stack_size(size).spawn(move || {
+            if let Some(c) = current {
+                sys::install(c);
+            }
+            let job = job.lock().unwrap_or_else(|e| e.into_inner()).take().expect("job taken once");
+            job()
+        });
+        let Ok(handle) = spawned else { continue };
+        return match handle.join() {
+            Ok(value) => value,
+            Err(payload) if !payload.is::<&'static str>() && !payload.is::<String>() => std::panic::resume_unwind(payload),
+            Err(_) => crash(),
+        };
     }
+    crash()
+}
+
+/// O crash do interpretador: o processo morre por SIGSEGV (o kernel captura o desvio na entrada do pseudo-processo).
+fn crash() -> ! {
+    std::panic::resume_unwind(Box::new(sysabi::KillUnwind(sysabi::Signal::SIGSEGV)))
 }
 
 /// As globais que o `pymain` do CPython dá ao `__main__`: `__package__`, `__loader__`, `__spec__`,
@@ -979,8 +1000,8 @@ mod rust_nest_tests {
         let mut machine = Vm::new();
         machine.globals.borrow_mut().insert("nest".into(), Value::NativeFn(Rc::new(NativeFn { name: "nest", f: nest })));
         assert!(machine.run(&code).is_ok());
-        // `list.sort(key=)` recursa (2); o `key=` de `sorted` roda em quadro do laço (1).
-        assert_eq!(ints(machine.globals.borrow().get("seen").expect("seen")), vec![1, 1, 2, 2, 1, 1, 1]);
+        // O `key=` de `list.sort` e o de `sorted` rodam em quadro do laço (1).
+        assert_eq!(ints(machine.globals.borrow().get("seen").expect("seen")), vec![1, 1, 1, 1, 1, 1, 1]);
         assert_eq!(machine.rust_nest.get(), 0);
     }
 }

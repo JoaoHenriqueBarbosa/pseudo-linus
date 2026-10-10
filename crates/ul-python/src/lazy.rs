@@ -200,7 +200,7 @@ fn iter_next(&self) {
         return Ok(None);
     }
     let x = call(&self.func, Vec::new())?;
-    if crate::object::py_eq(&x, &self.sentinel) {
+    if crate::object::py_eq(&x, &self.sentinel)? {
         self.done.set(true);
         return Ok(None);
     }
@@ -552,7 +552,7 @@ pub(crate) fn leaf_stops(obj: &dyn ExtObject, e: &PyException) -> bool {
 }
 
 /// Aplica ao estado da fonte folha `obj` o desfecho do quadro: o item entregue (`Some`) ou o fim (`None`).
-pub(crate) fn leaf_settle(obj: &dyn ExtObject, got: Option<Value>) -> Option<Value> {
+pub(crate) fn leaf_settle(obj: &dyn ExtObject, got: Option<Value>) -> PyResult<Option<Value>> {
     let any = obj.as_any();
     if let Some(seq) = any.and_then(|any| any.downcast_ref::<OldSeqIter>()) {
         match &got {
@@ -562,12 +562,12 @@ pub(crate) fn leaf_settle(obj: &dyn ExtObject, got: Option<Value>) -> Option<Val
     }
     if let Some(calls) = any.and_then(|any| any.downcast_ref::<CallIter>()) {
         // O valor igual à sentinela (ou o `StopIteration` da função) esgota o iterador de vez.
-        if got.as_ref().map_or(true, |v| crate::object::py_eq(v, &calls.sentinel)) {
+        if got.as_ref().map_or(Ok(true), |v| crate::object::py_eq(v, &calls.sentinel))? {
             calls.done.set(true);
-            return None;
+            return Ok(None);
         }
     }
-    got
+    Ok(got)
 }
 
 /// A camada de `obj` para o laço de quadros, na primeira fonte.

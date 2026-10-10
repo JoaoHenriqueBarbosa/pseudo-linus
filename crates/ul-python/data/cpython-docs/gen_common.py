@@ -32,6 +32,16 @@ NAMED = {
     'classmethod_descriptor': types.ClassMethodDescriptorType, 'method-wrapper': types.MethodWrapperType,
 }
 
+# O tipo em C da extensão `greenlet` 3.5.6, que o ul-python reproduz: só existe no oráculo de automação
+# (`pl-oracle-automation`, com `/opt/playwright/bin/python -I`), onde a linha `greenlet` das tabelas é medida.
+try:
+    import greenlet
+except ImportError:
+    pass
+else:
+    NAMED['greenlet'] = greenlet.greenlet
+    NAMED['UnswitchableGreenlet'] = greenlet._greenlet.UnswitchableGreenlet
+
 
 def type_names(path):
     """Os nomes de tipo da primeira coluna de `builtin-type-dir.tsv`."""

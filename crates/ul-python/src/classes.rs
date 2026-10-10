@@ -48,15 +48,26 @@ fn instance_slots_added(cls: &Rc<ClassObj>) -> &'static [&'static str] {
     if cls.emulates_c_type() {
         return &[];
     }
+    // Uma base que já dá o dicionário ou a lista de referências fracas às instâncias (sem `__slots__`, ou com o nome
+    // no `__slots__`, como o shim do `greenlet`, que tem os dois no C) dispensa o descritor na subclasse.
+    let (mut dict, mut weak) = (false, false);
     for base in cls.mro().into_iter().skip(1) {
         if !base.dict.borrow().contains_key("__slots__") {
             return &[];
         }
+        let slots = base.declared_slots().unwrap_or_default();
+        dict |= slots.iter().any(|s| s == "__dict__");
+        weak |= slots.iter().any(|s| s == "__weakref__");
     }
     if cls.mro().iter().any(|c| c.builtin_base.is_some_and(|b| EXC_CLASSES.iter().any(|(n, _)| *n == b))) {
         return &["__weakref__"];
     }
-    &["__dict__", "__weakref__"]
+    match (dict, weak) {
+        (false, false) => &["__dict__", "__weakref__"],
+        (true, false) => &["__weakref__"],
+        (false, true) => &["__dict__"],
+        (true, true) => &[],
+    }
 }
 
 /// O leiaute das instâncias de uma classe (o que o `compatible_for_assignment` do CPython compara):
@@ -371,7 +382,19 @@ fn lookup_public(cls: &Rc<ClassObj>, name: &str) -> Option<Value> {
             return None;
         }
     }
-    cls.lookup(name)
+    let found = cls.lookup(name)?;
+    // O shim de um tipo em C com linha na tabela do oráculo só mostra os métodos mágicos que o tipo real tem: o
+    // `__del__` com que o shim do `greenlet` mata o segmento solto existe para a finalização da VM, não para o programa.
+    if name.starts_with("__") && name.ends_with("__") {
+        let owner = cls.mro().into_iter().find(|c| c.dict.borrow().contains_key(name));
+        let hidden = owner.is_some_and(|c| {
+            c.emulates_c_type() && crate::builtins_ext::type_dir(&c.name).is_some_and(|names| !names.contains(&name))
+        });
+        if hidden {
+            return None;
+        }
+    }
+    Some(found)
 }
 
 /// `true` se `name` é um campo de `__slots__` de alguma classe da herança (não de um shim de tipo em C).
@@ -2642,14 +2665,14 @@ impl Vm {
                 for (name, member) in slot_members(cls) {
                     d.set(Value::str(name), member)?;
                 }
-                // O `type` sempre grava `__doc__` e, se nenhuma base já dá um `__dict__` às
-                // instâncias, acrescenta os descritores `__dict__` e `__weakref__`.
-                if !cls.dict.borrow().contains_key("__doc__") {
-                    d.set(Value::str("__doc__"), Value::None)?;
-                }
+                // O `type` acrescenta, se nenhuma base já dá um `__dict__` às instâncias, os descritores
+                // `__dict__` e `__weakref__` e, depois deles, o `__doc__` quando o corpo não tem docstring.
                 for slot in instance_slots_added(cls) {
                     let desc = GetSetDescriptor { name: slot, owner: Value::Class(cls.clone()) };
                     d.set(Value::str(*slot), Value::Ext(Rc::new(desc)))?;
+                }
+                if !cls.dict.borrow().contains_key("__doc__") {
+                    d.set(Value::str("__doc__"), Value::None)?;
                 }
                 return Ok(Value::dict(d));
             }
@@ -3224,56 +3247,25 @@ impl Vm {
 
     /// `str(v)`, chamando `__str__` (ou `__repr__`) de usuário.
     pub(crate) fn str_of(&mut self, v: &Value) -> PyResult<String> {
-        if let Value::Class(c) = v {
-            for name in ["__str__", "__repr__"] {
-                if let Some(Value::Function(f)) = c.meta.as_ref().and_then(|m| m.lookup(name)) {
-                    return match self.call_function(&f, vec![v.clone()], Vec::new())? {
-                        Value::Str(s) => Ok(s.as_str().to_string()),
-                        other => Err(type_error(format!("{name} returned non-string (type {})", other.type_name()))),
-                    };
-                }
-            }
-        }
-        if let Value::Instance(i) = v {
-            for name in ["__str__", "__repr__"] {
-                // `str.__str__` devolve o próprio texto: o `__repr__` de usuário não entra em `str(x)`.
-                if name == "__repr__" && matches!(&*i.payload.borrow(), Some(Value::Str(_))) {
-                    continue;
-                }
-                if let Some(Value::Function(f)) = i.class().lookup(name) {
-                    let r = self.call_function(&f, vec![v.clone()], Vec::new())?;
-                    return match r {
-                        Value::Str(s) => Ok(s.as_str().to_string()),
-                        other => Err(type_error(format!("{name} returned non-string (type {})", other.type_name()))),
-                    };
-                }
-            }
-            return Ok(self.default_text(v, true));
-        }
-        Ok(to_str(v))
+        self.text_of(v, true)
     }
 
     /// `repr(v)`, chamando `__repr__` de usuário.
     pub(crate) fn repr_of(&mut self, v: &Value) -> PyResult<String> {
-        if let Value::Class(c) = v {
-            if let Some(Value::Function(f)) = c.meta.as_ref().and_then(|m| m.lookup("__repr__")) {
-                return match self.call_function(&f, vec![v.clone()], Vec::new())? {
-                    Value::Str(s) => Ok(s.as_str().to_string()),
-                    other => Err(type_error(format!("__repr__ returned non-string (type {})", other.type_name()))),
-                };
-            }
+        self.text_of(v, false)
+    }
+
+    /// `str(v)` (`is_str`) ou `repr(v)`, pelo método de usuário que `text_dunder` escolhe.
+    fn text_of(&mut self, v: &Value, is_str: bool) -> PyResult<String> {
+        if let Some((name, f)) = text_dunder(v, is_str) {
+            let r = self.call_function(&f, vec![v.clone()], Vec::new())?;
+            return Ok(to_str(&text_result(name, r)?));
         }
-        if let Value::Instance(i) = v {
-            if let Some(Value::Function(f)) = i.class().lookup("__repr__") {
-                let r = self.call_function(&f, vec![v.clone()], Vec::new())?;
-                return match r {
-                    Value::Str(s) => Ok(s.as_str().to_string()),
-                    other => Err(type_error(format!("__repr__ returned non-string (type {})", other.type_name()))),
-                };
-            }
-            return Ok(self.default_text(v, false));
-        }
-        Ok(crate::object::repr(v))
+        Ok(match v {
+            Value::Instance(_) => self.default_text(v, is_str),
+            _ if is_str => to_str(v),
+            _ => crate::object::repr(v),
+        })
     }
 
     /// `format(v, spec)`.
@@ -3484,45 +3476,23 @@ impl Vm {
 /// Texto de uma instância com `__str__`/`__repr__` de usuário, ou de exceção (`args`); `None` se a
 /// classe não define nada (o chamador usa o texto padrão).
 pub fn instance_text(v: &Value, is_str: bool) -> Option<String> {
-    if let Value::Class(c) = v {
-        // classe cuja metaclasse define `__repr__`/`__str__` (EnumType: `<enum 'Color'>`)
-        let meta = c.meta.as_ref()?;
-        let mut vm = current()?;
-        let names: &[&str] = if is_str { &["__str__", "__repr__"] } else { &["__repr__"] };
-        for name in names {
-            if let Some(Value::Function(f)) = meta.lookup(name) {
-                return match vm.call_function(&f, vec![v.clone()], Vec::new()) {
-                    Ok(Value::Str(s)) => Some(s.as_str().to_string()),
-                    _ => None,
-                };
-            }
-        }
+    // Classe cuja metaclasse define `__repr__`/`__str__` (EnumType: `<enum 'Color'>`) ou instância de usuário.
+    if !matches!(v, Value::Class(_) | Value::Instance(_)) {
         return None;
     }
-    let Value::Instance(i) = v else { return None };
     let mut vm = current()?;
-    let names: &[&str] = if is_str { &["__str__", "__repr__"] } else { &["__repr__"] };
-    for name in names {
-        if *name == "__repr__" && is_str && matches!(&*i.payload.borrow(), Some(Value::Str(_))) {
-            continue;
-        }
-        if let Some(Value::Function(f)) = i.class().lookup(name) {
-            return match vm.call_function(&f, vec![v.clone()], Vec::new()) {
-                Ok(Value::Str(s)) => Some(s.as_str().to_string()),
-                Ok(other) => {
-                    crate::vm::note_text_error(
-                        type_error(format!("{name} returned non-string (type {})", other.type_name())),
-                        vm.depth.get(),
-                    );
-                    None
-                }
-                Err(e) => {
-                    crate::vm::note_text_error(e, vm.depth.get());
-                    None
-                }
-            };
-        }
+    if let Some((name, f)) = text_dunder(v, is_str) {
+        let r = vm.call_function(&f, vec![v.clone()], Vec::new()).and_then(|r| text_result(name, r));
+        return match r {
+            Ok(s) => Some(to_str(&s)),
+            Err(e) if matches!(v, Value::Instance(_)) => {
+                crate::vm::note_text_error(e, vm.depth.get());
+                None
+            }
+            Err(_) => None,
+        };
     }
+    let Value::Instance(i) = v else { return None };
     if i.class().builtin_base.is_some() || is_property_instance(i) {
         return Some(vm.default_text(v, is_str));
     }
@@ -3532,6 +3502,31 @@ pub fn instance_text(v: &Value, is_str: bool) -> Option<String> {
 
 /// O tipo que responde pelos métodos mágicos de `v`: a classe de uma instância e a metaclasse de uma
 /// classe (`None` quando a metaclasse é o `type` padrão ou `v` não é objeto de usuário).
+/// O método em Python que `str(v)` (`is_str`: `__str__`, senão `__repr__`) ou `repr(v)` chama, com o nome dele: o
+/// da classe de uma instância ou o da metaclasse de uma classe. `str.__str__` devolve o próprio texto, então numa
+/// subclasse de `str` o `__repr__` de usuário não entra em `str(x)`.
+pub(crate) fn text_dunder(v: &Value, is_str: bool) -> Option<(&'static str, Rc<FuncObj>)> {
+    let ty = dispatch_type(v)?;
+    let names: &[&'static str] = if is_str { &["__str__", "__repr__"] } else { &["__repr__"] };
+    for &name in names {
+        if name == "__repr__" && is_str && matches!(v, Value::Instance(i) if matches!(&*i.payload.borrow(), Some(Value::Str(_)))) {
+            continue;
+        }
+        if let Some(Value::Function(f)) = ty.lookup(name) {
+            return Some((name, f));
+        }
+    }
+    None
+}
+
+/// O que `__str__`/`__repr__` (`name`) devolveu, se for texto; outro tipo é o `TypeError` do `PyObject_Str`.
+pub(crate) fn text_result(name: &str, v: Value) -> PyResult<Value> {
+    match v {
+        Value::Str(_) => Ok(v),
+        other => Err(type_error(format!("{name} returned non-string (type {})", other.type_name()))),
+    }
+}
+
 fn dispatch_type(v: &Value) -> Option<Rc<ClassObj>> {
     match v {
         Value::Instance(i) => Some(i.class()),
@@ -3548,15 +3543,15 @@ pub(crate) fn right_is_subclass(a: &Value, b: &Value) -> bool {
 }
 
 /// `a == b` quando um dos lados é instância (ou classe de metaclasse) com `__eq__` em Python.
-pub fn instance_eq(a: &Value, b: &Value) -> Option<bool> {
+pub fn instance_eq(a: &Value, b: &Value) -> Option<PyResult<bool>> {
     let mut vm = current()?;
     let sides = if right_is_subclass(a, b) { [(b, a), (a, b)] } else { [(a, b), (b, a)] };
     for (x, y) in sides {
         if let Some(Value::Function(f)) = dispatch_type(x).and_then(|t| t.lookup("__eq__")) {
-            if let Ok(r) = vm.call_function(&f, vec![x.clone(), y.clone()], Vec::new()) {
-                if !is_not_implemented(&r) {
-                    return Some(r.is_true());
-                }
+            match vm.call_function(&f, vec![x.clone(), y.clone()], Vec::new()) {
+                Ok(r) if is_not_implemented(&r) => {}
+                Ok(r) => return Some(Ok(r.is_true())),
+                Err(e) => return Some(Err(e)),
             }
         }
     }
@@ -3564,7 +3559,7 @@ pub fn instance_eq(a: &Value, b: &Value) -> Option<bool> {
 }
 
 /// `a == b` quando um dos lados é instância de subclasse de tipo embutido: compara os valores embutidos.
-pub(crate) fn payload_eq(a: &Value, b: &Value) -> Option<bool> {
+pub(crate) fn payload_eq(a: &Value, b: &Value) -> Option<PyResult<bool>> {
     let has_payload = |v: &Value| matches!(v, Value::Instance(i) if i.payload.borrow().is_some());
     if has_payload(a) || has_payload(b) {
         return Some(crate::object::py_eq(&crate::vm::unwrap_payload(a), &crate::vm::unwrap_payload(b)));
@@ -3573,16 +3568,22 @@ pub(crate) fn payload_eq(a: &Value, b: &Value) -> Option<bool> {
 }
 
 /// `hash(v)` com `__hash__` de usuário.
-pub fn instance_hash(v: &Value) -> Option<i64> {
+pub fn instance_hash(v: &Value) -> Option<PyResult<i64>> {
     let Value::Instance(i) = v else { return None };
     let mut vm = current()?;
     if let Some(Value::Function(f)) = i.class().lookup("__hash__") {
-        if let Ok(Value::Int(h)) = vm.call_function(&f, vec![v.clone()], Vec::new()) {
-            return Some(h);
-        }
+        // `slot_tp_hash`: a exceção do método sai; o resultado tem de ser `int` (reduzido como o `int`, e o -1, que
+        // no C é o erro, vira -2).
+        return Some(vm.call_function(&f, vec![v.clone()], Vec::new()).and_then(|r| {
+            let int = crate::vm::unwrap_payload(&r);
+            if !matches!(int, Value::Int(_) | Value::Bool(_) | Value::Big(_)) {
+                return Err(type_error("__hash__ method should return an integer"));
+            }
+            Ok(crate::object::hash(&int)?)
+        }));
     }
     let payload = i.payload.borrow().clone()?;
-    crate::object::hash(&payload).ok()
+    Some(crate::object::hash(&payload).map_err(Into::into))
 }
 
 /// `bool(v)` de uma instância: `__bool__`, depois `__len__`, senão verdadeiro.

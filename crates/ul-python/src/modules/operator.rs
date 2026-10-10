@@ -89,12 +89,12 @@ fn op_is_not(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 fn op_eq(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, b) = pair("eq", &args, &kw)?;
-    Ok(Value::Bool(py_eq(a, b)))
+    Ok(Value::Bool(py_eq(a, b)?))
 }
 
 fn op_ne(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, b) = pair("ne", &args, &kw)?;
-    Ok(Value::Bool(!py_eq(a, b)))
+    Ok(Value::Bool(!py_eq(a, b)?))
 }
 
 /// Reescreve o `TypeError` de `<` para o símbolo da comparação pedida.
@@ -117,7 +117,7 @@ fn op_lt(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn op_le(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, b) = pair("le", &args, &kw)?;
     let lt = py_lt(a, b).map_err(|e| fix_order_error(e, "<=", a, b))?;
-    Ok(Value::Bool(lt || py_eq(a, b)))
+    Ok(Value::Bool(lt || py_eq(a, b)?))
 }
 
 fn op_gt(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -128,7 +128,7 @@ fn op_gt(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn op_ge(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, b) = pair("ge", &args, &kw)?;
     let gt = py_lt(b, a).map_err(|e| fix_order_error(e, ">=", a, b))?;
-    Ok(Value::Bool(gt || py_eq(a, b)))
+    Ok(Value::Bool(gt || py_eq(a, b)?))
 }
 
 // ---------------------------------------------------------------------------
@@ -231,36 +231,9 @@ fn op_getitem(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     getitem_value(a, b)
 }
 
-fn contains_value(container: &Value, item: &Value) -> PyResult<bool> {
-    let member = |items: &[Value]| items.iter().any(|x| is(x, item) || py_eq(x, item));
-    match container {
-        Value::List(l) => Ok(member(&l.borrow()[..])),
-        Value::Tuple(t) => Ok(member(&t[..])),
-        Value::Str(s) => match item {
-            Value::Str(sub) => Ok(s.as_str().contains(sub.as_str())),
-            _ => Err(type_error(format!("'in <string>' requires string as left operand, not {}", item.type_name()))),
-        },
-        Value::Dict(d) => Ok(d.borrow().contains(item)?),
-        Value::Set(s) => Ok(s.borrow().contains(item)?),
-        Value::Range(r) => match as_index(item) {
-            Some(i) => Ok(r.contains_int(i)),
-            None => Ok(false),
-        },
-        Value::Bytes(b) => match as_index(item) {
-            Some(i) if (0..256).contains(&i) => Ok(b.contains(&(i as u8))),
-            Some(_) => Err(exc("ValueError", "byte must be in range(0, 256)")),
-            None => match item {
-                Value::Bytes(sub) => Ok(sub.is_empty() || b.windows(sub.len()).any(|w| w == &sub[..])),
-                _ => Err(type_error(format!("a bytes-like object is required, not '{}'", item.type_name()))),
-            },
-        },
-        _ => Err(type_error(format!("argument of type '{}' is not iterable", container.type_name()))),
-    }
-}
-
 fn op_contains(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, b) = pair("contains", &args, &kw)?;
-    Ok(Value::Bool(contains_value(a, b)?))
+    Ok(Value::Bool(crate::vm::contains(a, b)?))
 }
 
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {

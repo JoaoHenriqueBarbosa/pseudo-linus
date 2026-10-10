@@ -3146,6 +3146,59 @@ hook ValueError B
     );
 }
 
+/// A fatia das threads verdes é contada em instruções, não em segundos de relógio: uma chamada nativa lenta (a
+/// máquina carregada, um build de depuração) logo antes da primeira instrução de uma thread não faz a fatia vencer
+/// e passar a vez a quem a iniciou. Com a fatia de relógio de 5 ms, o `'set'` saía antes do `'wait'` sob carga. E a
+/// preempção continua existindo: um laço que só gira na principal cede a vez à thread que o destrava.
+#[test]
+fn thread_slice_is_counted_in_instructions_not_wall_clock() {
+    let src = r##"
+import threading, time
+order = []
+ev = threading.Event()
+
+class Waiter(threading.Thread):
+    def run(self):
+        for _ in range(300): sum(range(20000))  # gasta relógio com poucas instruções
+        order.append('wait'); ev.wait(); order.append('go')
+
+def setter(): order.append('set'); ev.set()
+a = Waiter(); b = threading.Thread(target=setter)
+a.start(); b.start(); a.join(); b.join()
+print(order)
+
+flag = []
+def unblock(): time.sleep(0.001); flag.append(1)
+t = threading.Thread(target=unblock); t.start()
+spins = 0
+while not flag:
+    spins += 1
+t.join(); print(spins > 0, flag)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "['wait', 'set', 'go']\nTrue [1]\n");
+}
+
+/// O SO recusa a reserva de pilha da thread do interpretador (limite de memória): ela sobe com a pilha menor seguinte,
+/// como o CPython sobe com pouca memória, e nunca vira uma mensagem de falha que o CPython não tem.
+#[test]
+fn interpreter_thread_falls_back_to_a_smaller_stack_when_the_os_refuses() {
+    assert_eq!(crate::run_on_stack_ladder(&[usize::MAX, usize::MAX / 2, 1 << 20], || 7), 7);
+}
+
+/// Um panic de bug na thread do interpretador é um crash: o processo morre por SIGSEGV, não imprime
+/// "Fatal Python error: could not run the interpreter thread", que não existe no CPython.
+#[test]
+fn a_bug_panic_in_the_interpreter_thread_dies_by_sigsegv() {
+    let died = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| crate::run_on_stack_ladder(&[1 << 20], || -> () { panic!("bug") })));
+    let payload = died.expect_err("o panic de bug sobe como morte por sinal");
+    assert!(matches!(payload.downcast_ref::<sysabi::KillUnwind>(), Some(sysabi::KillUnwind(sysabi::Signal::SIGSEGV))));
+    // A recusa de todas as pilhas acaba do mesmo jeito.
+    let refused = std::panic::catch_unwind(|| crate::run_on_stack_ladder(&[usize::MAX], || 1));
+    assert!(matches!(refused.expect_err("sem pilha").downcast_ref::<sysabi::KillUnwind>(), Some(sysabi::KillUnwind(sysabi::Signal::SIGSEGV))));
+}
+
 #[test]
 fn re_flags_error_scenario() {
     let src = r##"
@@ -3742,10 +3795,11 @@ with tempfile.TemporaryDirectory() as d:
     except py_compile.PyCompileError as e:
         print('PyCompileError', 'SyntaxError' in e.exc_type_name)
 "##;
-    let o = crate::run_source(src);
-    assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(o.stderr, "");
-    let out = String::from_utf8(o.stdout).unwrap();
+    // Num pseudo-processo, como o programa real: o `os.getcwd` e o `tempfile` dependem dele.
+    let o = in_process(src);
+    assert_eq!(o.status, exited(0), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(o.stderr, b"");
+    let out = o.stdout_str();
     assert!(out.starts_with("True True\nTrue True True\n"), "{out}");
     assert!(out.ends_with("True\nPyCompileError True\n"), "{out}");
 }
@@ -6435,12 +6489,16 @@ except TypeError as e:
 
 #[test]
 fn fork_inside_a_callback_is_a_gap_not_a_wrong_copy() {
-    // Com um `run_loop` Rust aninhado (callback de `list.sort(key=)`) o estado não é dado: o pedido falha em vez de
-    // copiar errado. Sai deste teste quando a fatia G4 fechar o caminho.
+    // Com um `run_loop` Rust aninhado (o `__str__` de usuário chamado pela formatação com `%`) o estado não é
+    // dado: o pedido falha em vez de copiar errado. Sai deste teste quando a fatia G4 fechar o caminho.
     let src = "\
 import os
+class R:
+    def __str__(self):
+        os.fork()
+        return 'r'
 try:
-    [1].sort(key=lambda x: os.fork())
+    '%s' % R()
 except RuntimeError as e:
     print(type(e).__name__)
 ";

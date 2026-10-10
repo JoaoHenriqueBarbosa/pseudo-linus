@@ -26,9 +26,33 @@ type NativeBuilder = fn(&mut Vm) -> PyResult<Rc<ModuleObj>>;
 /// módulo é o construído em Rust, com `__file__` apontando o `.so`; o código de máquina do arquivo
 /// nunca é executado.
 pub const NATIVE_EXTENSIONS: &[(&str, NativeBuilder)] = &[
+    ("greenlet._greenlet", |vm| exposed_copy(vm, "_greenlet_impl", "greenlet._greenlet")),
     ("markupsafe._speedups", crate::modules::markupsafe_speedups::build_markupsafe_speedups),
-    ("yaml._yaml", crate::modules::yaml_native::build_yaml_native),
+    ("yaml._yaml", |vm| exposed_copy(vm, "_yaml_impl", "yaml._yaml")),
 ];
+
+/// A extensão cuja camada é um módulo de apoio em Python (`_yaml_impl`, `_greenlet_impl`): o módulo entregue ao
+/// programa é uma cópia dele com o nome `public`, só com os nomes públicos e os dunders que não são do arquivo; os
+/// auxiliares `_nome` e o próprio módulo de apoio não existem para o programa.
+fn exposed_copy(vm: &mut Vm, inner: &str, public: &'static str) -> PyResult<Rc<ModuleObj>> {
+    let inner = crate::modules::import_checked(vm, inner)?;
+    let hidden = ["__file__", "__cached__", "__package__", "__builtins__", "__doc__", "__spec__", "__loader__", "__name__"];
+    let exported = EXPORTED_PRIVATE.iter().find(|(name, _)| *name == public).map_or(&[][..], |(_, names)| *names);
+    let attrs: BTreeMap<String, Value> = inner
+        .attrs
+        .borrow()
+        .iter()
+        .filter(|(name, _)| {
+            exported.contains(&name.as_str())
+                || (!name.starts_with('_') || (name.starts_with("__") && name.ends_with("__"))) && !hidden.contains(&name.as_str())
+        })
+        .map(|(name, value)| (name.clone(), value.clone()))
+        .collect();
+    Ok(Rc::new(ModuleObj { name: intern(public), attrs: RefCell::new(attrs) }))
+}
+
+/// Os nomes `_nome` que a extensão de C exporta e que o pacote importa dela (`from ._greenlet import _C_API`).
+const EXPORTED_PRIVATE: &[(&str, &[&str])] = &[("greenlet._greenlet", &["_C_API"])];
 
 fn native_builder(name: &str) -> Option<NativeBuilder> {
     NATIVE_EXTENSIONS.iter().find(|(n, _)| *n == name).map(|(_, build)| *build)

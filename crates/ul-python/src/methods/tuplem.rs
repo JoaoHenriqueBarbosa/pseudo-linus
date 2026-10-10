@@ -2,8 +2,8 @@
 
 use std::rc::Rc;
 
-use crate::native_util::want_int;
-use crate::object::{is, py_eq, Kw, NativeFnPtr, Value};
+use crate::native_util::norm_bound;
+use crate::object::{eq_bool, Kw, NativeFnPtr, Value};
 use crate::vm::{exc, type_error, PyResult, Vm};
 
 fn this(args: &[Value]) -> PyResult<Rc<[Value]>> {
@@ -18,21 +18,6 @@ fn nokw(fname: &str, kw: &Kw) -> PyResult<()> {
         Ok(())
     } else {
         Err(type_error(format!("tuple.{fname}() takes no keyword arguments")))
-    }
-}
-
-fn norm_bound(v: Option<&Value>, len: usize, default: usize) -> PyResult<usize> {
-    match v {
-        None | Some(Value::None) => Ok(default),
-        Some(x) => {
-            let i = want_int(x)?;
-            if i < 0 {
-                let j = i.saturating_add(len as i64);
-                Ok(if j < 0 { 0 } else { j as usize })
-            } else {
-                Ok(i.min(len as i64) as usize)
-            }
-        }
     }
 }
 
@@ -52,7 +37,7 @@ fn index(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let stop = norm_bound(args.get(3), t.len(), t.len())?;
     let mut i = start;
     while i < stop {
-        if is(&t[i], &args[1]) || py_eq(&t[i], &args[1]) {
+        if eq_bool(&t[i], &args[1])? {
             return Ok(Value::Int(i as i64));
         }
         i += 1;
@@ -66,8 +51,11 @@ fn count(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         return Err(type_error(format!("tuple.count() takes exactly one argument ({} given)", args.len() - 1)));
     }
     let t = this(&args)?;
-    let n = t.iter().filter(|x| is(x, &args[1]) || py_eq(x, &args[1])).count();
-    Ok(Value::Int(n as i64))
+    let mut n = 0;
+    for x in t.iter() {
+        n += i64::from(eq_bool(x, &args[1])?);
+    }
+    Ok(Value::Int(n))
 }
 
 pub const TABLE: &[(&str, NativeFnPtr)] = &[("index", index), ("count", count)];
