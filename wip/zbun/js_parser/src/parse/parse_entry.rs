@@ -2401,7 +2401,7 @@ impl<'a> Parser<'a> {
                             &mut v,
                             "Try require({}) instead",
                             bun_core::fmt::QuotedFormatter {
-                                text: record.path.text
+                                text: p.store.str(record.path.text)
                             }
                         );
                         std::borrow::Cow::Owned(v)

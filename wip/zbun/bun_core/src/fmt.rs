@@ -422,3 +422,49 @@ mod tests {
         assert_eq!(js(f64::NEG_INFINITY), "-Infinity");
     }
 }
+
+/// O texto entre aspas duplas, com `"`, `\` e os caracteres de controle escapados como num literal de string JSON.
+/// Os bytes que não formam UTF-8 válido saem como `\u00XX`.
+pub struct QuotedFormatter<'a> {
+    pub text: &'a [u8],
+}
+
+impl core::fmt::Display for QuotedFormatter<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        use core::fmt::Write as _;
+        f.write_char('"')?;
+        for chunk in self.text.utf8_chunks() {
+            for c in chunk.valid().chars() {
+                match c {
+                    '"' => f.write_str("\\\"")?,
+                    '\\' => f.write_str("\\\\")?,
+                    '\n' => f.write_str("\\n")?,
+                    '\r' => f.write_str("\\r")?,
+                    '\t' => f.write_str("\\t")?,
+                    c if (c as u32) < 0x20 => write!(f, "\\u{:04x}", c as u32)?,
+                    c => f.write_char(c)?,
+                }
+            }
+            for byte in chunk.invalid() {
+                write!(f, "\\u{:04x}", byte)?;
+            }
+        }
+        f.write_char('"')
+    }
+}
+
+#[cfg(test)]
+mod quoted_formatter_tests {
+    use super::QuotedFormatter;
+
+    #[test]
+    fn escapes_like_a_json_string() {
+        let quoted = format!("{}", QuotedFormatter { text: b"a\"b\\c\nd\x01" });
+        assert_eq!(quoted, "\"a\\\"b\\\\c\\nd\\u0001\"");
+    }
+
+    #[test]
+    fn invalid_utf8_bytes_become_escapes() {
+        assert_eq!(format!("{}", QuotedFormatter { text: b"x\xffy" }), "\"x\\u00ffy\"");
+    }
+}

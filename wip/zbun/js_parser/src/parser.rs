@@ -1670,7 +1670,7 @@ pub fn new_lazy_export_ast<'bump>(
         expr,
         source,
         runtime_api_call,
-        js_ast::symbol::List::new_in(bump),
+        js_ast::symbol::List::new(),
     )
 }
 

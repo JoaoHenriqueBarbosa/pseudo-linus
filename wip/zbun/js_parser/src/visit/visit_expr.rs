@@ -1136,23 +1136,19 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .kind
                 == js_ast::symbol::Kind::Import
         {
+            let import_ident_ref = p.store[e_]
+                .target
+                .data
+                .e_identifier()
+                .expect("infallible: variant checked")
+                .ref_;
             let r = js_lexer::range_of_identifier(p.source, p.store[e_].target.loc);
             p.log().add_range_error_fmt(
                 Some(p.source),
                 r,
                 format_args!(
                     "Cannot assign to property on import \"{}\"",
-                    // `original_name: StoreStr` has a safe `Deref<Target=[u8]>`.
-                    BStr::new(
-                        &*p.symbols[p.store[e_]
-                            .target
-                            .data
-                            .e_identifier()
-                            .expect("infallible: variant checked")
-                            .ref_
-                            .inner_index() as usize]
-                            .original_name,
-                    )
+                    BStr::new(p.store.str(p.symbols[import_ident_ref.inner_index() as usize].original_name))
                 ),
             );
         }
