@@ -534,6 +534,35 @@ pub(crate) fn reset_for_program() {
     let _ = ACCESSOR.try_with(|accessor| accessor.borrow_mut().take());
 }
 
+/// O estado guardado é a propriedade privada do objeto no V8: vive enquanto o objeto vive. O passo de efêmeros do
+/// coletor marca o que o estado de objeto marcado segura e devolve se marcou algo novo.
+pub(crate) fn visit_ephemerons(marker: &mut crate::runtime::gc::Marker) -> bool {
+    let Ok(Ok(stored)) = STORED.try_with(|stored| stored.try_borrow().map(|stored| {
+        stored.iter().filter(|(cell_id, _)| !marker.is_doomed(**cell_id)).map(|(_, state)| match state {
+            Stored::Frames(frames) => frames.iter().flat_map(|frame| [JSValue::from_cell(frame.callee), frame.this_value]).collect(),
+            Stored::Value(value) => vec![*value],
+        }).collect::<Vec<Vec<JSValue>>>()
+    })) else {
+        marker.abort();
+        return false;
+    };
+    let mut progressed = false;
+    for value in stored.into_iter().flatten() {
+        if let JSValue::Cell(cell_id) = value {
+            if marker.is_doomed(cell_id) {
+                marker.cell(cell_id);
+                progressed = true;
+            }
+        }
+    }
+    progressed
+}
+
+/// O estado do objeto que a varredura vai soltar sai com ele.
+pub(crate) fn remove_dead(marker: &crate::runtime::gc::Marker) {
+    let _ = STORED.try_with(|stored| stored.borrow_mut().retain(|cell_id, _| !marker.is_doomed(*cell_id)));
+}
+
 fn accessor_function(global_object: &JSGlobalObject, function: NativeFunction) -> JSValue {
     JSFunction::create_native(
         global_object.vm(),

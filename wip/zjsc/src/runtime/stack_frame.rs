@@ -378,6 +378,11 @@ fn last_mappable_token_start<T: crate::wtf::text::string_impl::CharType>(
 }
 
 impl StackFrame {
+    /// `StackFrame::visitAggregate`: o callee e o `this` (o `CodeBlock` é `Rc`, já raiz).
+    pub(crate) fn visit_aggregate(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.cell(self.callee);
+        marker.value(self.this_value);
+    }
     /// Frame JS preguiçoso: guarda o `CodeBlock` e o `BytecodeIndex`; o resto dos campos o chamador preenche.
     pub fn lazy(code_block: CodeBlockRef, bytecode_index: BytecodeIndex, callee: usize) -> StackFrame {
         StackFrame {

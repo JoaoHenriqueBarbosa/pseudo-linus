@@ -391,6 +391,8 @@ fn mark_and_sweep(
             }
         }
         marker.deferred_weak.splice(0..0, deferred);
+        // As tabelas laterais por célula (o estado da pilha V8) são efêmeros do mesmo jeito.
+        progressed |= crate::runtime::v8_stack::visit_ephemerons(&mut marker);
         if !progressed {
             break;
         }
@@ -400,6 +402,7 @@ fn mark_and_sweep(
     }
     // `finalizeUnconditionally` das células fracas, antes da varredura (as lápides ainda são células).
     let mut registries_to_clean = Vec::new();
+    crate::runtime::v8_stack::remove_dead(&marker);
     for entry in &marker.deferred_weak {
         match entry {
             CellEntry::WeakMap(map) => map.table().borrow_mut().remove_dead_keys(&marker),

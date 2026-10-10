@@ -200,6 +200,7 @@ impl CellEntry {
             CellEntry::WrapperObject(wrapper) => wrapper.visit_children(marker),
             CellEntry::RegExpObject(reg_exp) => reg_exp.visit_children(marker),
             CellEntry::Exception(exception) => exception.visit_children(marker),
+            CellEntry::ErrorInstance(error) => error.visit_children(marker),
             CellEntry::Map(cell) => visit_table(cell.table(), marker),
             CellEntry::Set(cell) => visit_table(cell.table(), marker),
             CellEntry::WeakObjectRef(weak_ref) => weak_ref.visit_children(marker),

@@ -147,6 +147,20 @@ fn abort_signal_timeout_survives() {
     assert_eq!(stressed(&program), "TimeoutError");
 }
 
+/// O estado do acessor `stack` do modo V8 é efêmero do objeto: o callee e o `this` dos frames guardados por
+/// `Error.captureStackTrace` vivem enquanto o objeto vive.
+#[test]
+fn v8_stack_state_survives_with_its_object() {
+    let program = format!("{CHURN} var o = {{}}; (function outer() {{ var self = {{ tag: 1 }}; (function inner() {{ Error.captureStackTrace(o); }}).call(self); }})();
+        churn(); var e = (function thrower() {{ return new Error('m'); }})(); churn(); __out = o.stack.split('\\n').length + ':' + e.stack.split('\\n')[1].trim().split(' ')[1];");
+    gc::set_stress_for_thread(Some(1));
+    let result = zjsc::api::eval::evaluate_browser_script_result(&program, "file:///p/probe.js", "__out");
+    gc::set_stress_for_thread(None);
+    let value = result.unwrap_or_else(|_| panic!("o programa lançou exceção"));
+    let text = String::from_utf8_lossy(&value.to_wtf_string().utf8(ConversionMode::LenientConversion)).into_owned();
+    assert_eq!(text, "4:thrower");
+}
+
 /// Cada tipo de dono sozinho, para a lápide apontar a aresta que falta.
 fn survives(setup: &str, step: &str, check: &str, expected: &str) {
     let program = format!("{setup}; for (let i = 0; i < 250000; i++) {{ const g = {{ i: i }}; if (i % 1000 === 0) {{ {step}; }} }} String({check})");

@@ -109,6 +109,18 @@ impl std::ops::Deref for ErrorInstance {
 }
 
 impl ErrorInstance {
+    /// `visitChildren`: os frames ainda não materializados. DIVERGÊNCIA: no C++ eles são fracos e o
+    /// `finalizeUnconditionally` materializa o erro pelo caminho de texto quando um frame morre; aqui seguram o callee
+    /// e o `this` até a primeira leitura de `stack`.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        let Ok(data) = self.data.try_borrow() else {
+            marker.abort();
+            return;
+        };
+        for frame in data.pending_frames.iter().flatten() {
+            frame.visit_aggregate(marker);
+        }
+    }
     /// `StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot |
     /// OverridesGetOwnSpecialPropertyNames | OverridesPut | GetOwnPropertySlotIsImpureForPropertyAbsence`.
     pub const STRUCTURE_FLAGS: u32 = JSNonFinalObject::STRUCTURE_FLAGS
