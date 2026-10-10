@@ -215,6 +215,21 @@ console.log([a.width, a.height, a.color, a.getPropertyValue('--x'), a.margin, a.
 }
 
 #[test]
+fn thin_scrollbar_width() {
+    // Medido no oráculo: barra fina de 10px (com ou sem scrollbar-color, em border-box ou content-box), a normal de 15.
+    let html = "<style>html{box-sizing:border-box}*{box-sizing:inherit;scrollbar-width:thin;scrollbar-color:#888 transparent;margin:0;padding:0}</style><body><script>
+const out = [];
+for (const style of [{}, { boxSizing: 'content-box' }, { scrollbarColor: 'auto' }, { scrollbarWidth: 'auto' }]) {
+  const d = document.createElement('div'); Object.assign(d.style, { width: '100px', height: '100px', overflow: 'scroll', position: 'absolute', top: '-9999px' }, style); document.body.append(d);
+  out.push(d.offsetWidth + '/' + d.clientWidth + '/' + d.clientHeight); d.remove();
+}
+console.log(out.join(' '));
+</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "100/90/90 100/90/90 100/90/90 100/85/85\n");
+}
+
+#[test]
 fn push_apply_in_timer() {
     let script = "<script>setTimeout(function () { for (var n of [10, 1000, 70000, 200000]) { var a = []; var b = new Array(n).fill(1); a.push.apply(a, b); console.log(n, a.length) } }, 0)</script>";
     let (_, log) = run(&[("/", script)]);

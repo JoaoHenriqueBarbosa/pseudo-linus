@@ -35,6 +35,8 @@ pub struct Bridge {
     /// Elementos cujo atributo `style` nasceu de uma escrita do CSSOM e ainda não foi lido. O atributo já vale para
     /// estilo e layout, mas no Blink ele só entra na lista de atributos quando alguém o lê: nessa hora vai para o fim.
     pub unsynced_styles: RefCell<Vec<NodeId>>,
+    /// Os subrecursos que o Blitz pediu (folhas, imagens, fontes), servidos pela rede da página antes de cada medida.
+    pub net: std::sync::Arc<document::QueuedNet>,
 }
 
 /// As operações que leem o atributo `style` (e por isso o sincronizam): a lista inteira de atributos, a serialização,
@@ -100,6 +102,14 @@ fn attr_matches(name: &QualName, wanted: &str) -> bool {
 }
 
 impl Bridge {
+    /// Serve os subrecursos pendentes do Blitz: a folha de estilo e a imagem chegadas valem para o layout.
+    pub fn serve_resources(&self) {
+        let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "*/*".to_owned())];
+        let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };
+        let fetch = |address: &str| (self.fetcher)(address, &spec).ok().filter(|r| r.status < 400).map(|r| r.body);
+        self.net.serve(&mut self.doc.borrow_mut(), &fetch);
+    }
+
     /// Sincroniza o `style` que o CSSOM criou: o atributo passa para o fim da lista, na ordem em que foi escrito.
     pub fn flush_styles(&self) {
         let unsynced = std::mem::take(&mut *self.unsynced_styles.borrow_mut());
@@ -307,6 +317,13 @@ impl DomHost for Bridge {
             // O texto do estilo em linha, sem sincronizar.
             "getStyle" => Ok(self.style_attribute(id_arg(args, 0)?).map_or(DomArg::Null, DomArg::Str)),
             "pageUrl" => Ok(DomArg::Str(self.url.borrow().clone())),
+            // A compilação de um script que a página inseriu custa tempo virtual, como os do documento.
+            "chargeSource" => {
+                if let Some(DomArg::Num(bytes)) = args.first() {
+                    zjsc::runtime::cpu_clock::charge_source_bytes(*bytes as usize);
+                }
+                Ok(DomArg::Undefined)
+            }
             "navigate" => {
                 *self.navigation.borrow_mut() = Some(str_arg(args, 0)?.to_owned());
                 Ok(DomArg::Undefined)
@@ -392,6 +409,7 @@ impl DomHost for Bridge {
             }
             "box" => {
                 let id = id_arg(args, 0)?;
+                self.serve_resources();
                 let found = document::layout_box(&mut self.doc.borrow_mut(), id);
                 Ok(found.map_or(DomArg::Null, |values| DomArg::List(values.into_iter().map(DomArg::Num).collect())))
             }
@@ -400,9 +418,13 @@ impl DomHost for Bridge {
             "computedStyle" => {
                 let id = id_arg(args, 0)?;
                 let name = str_arg(args, 1)?;
+                self.serve_resources();
                 Ok(document::computed_value(&mut self.doc.borrow_mut(), id, name).map_or(DomArg::Null, DomArg::Str))
             }
-            "matchMedia" => Ok(DomArg::Bool(document::media_matches(&mut self.doc.borrow_mut(), str_arg(args, 0)?))),
+            "matchMedia" => {
+                self.serve_resources();
+                Ok(DomArg::Bool(document::media_matches(&mut self.doc.borrow_mut(), str_arg(args, 0)?)))
+            }
             "setDefined" => {
                 let id = id_arg(args, 0)?;
                 self.doc.borrow_mut().get_node_mut(id).ok_or_else(illegal)?.set_defined();

@@ -74,18 +74,25 @@ pub struct Page {
     pub inspector: Option<String>,
     /// Para onde vai o `console.*` da página (mudo por padrão; os testes de diagnóstico trocam).
     pub console: Rc<dyn ConsoleHost>,
+    /// O tamanho do documento, cobrado como trabalho de parse.
+    document_bytes: usize,
 }
 
 /// A ida e volta de rede de uma busca em tempo virtual: o que já estava na fila de tarefas roda antes da resposta.
 /// Maior que o 1ms a que o `setTimeout(0)` é arredondado, para a resposta nunca empatar com uma tarefa já agendada.
 const NETWORK_LATENCY_MS: f64 = 2.0;
+/// O custo virtual do trabalho da página (o `--virtual-time-budget` do Chromium anda com o renderer ocupado),
+/// calibrado contra o oráculo: instrução de bytecode executada e byte de fonte (documento e scripts) compilado.
+const NS_PER_INSTRUCTION: f64 = 0.0;
+const NS_PER_SOURCE_BYTE: f64 = 200.0;
 
 impl Page {
     /// Busca `url` (`file:`, `http:` ou `https:`) e monta o documento.
     pub fn load(url: &str, fetcher: Fetcher) -> Result<Page, String> {
         let (bytes, final_url, content_type, header_csp) = fetch_document(url, &fetcher)?;
         let source = encoding::decode(&bytes, content_type.as_deref());
-        let mut doc = document::parse_at(&source, &final_url);
+        let net = std::sync::Arc::new(document::QueuedNet::default());
+        let mut doc = document::parse_page(&source, &final_url, net.clone());
         if header_csp {
             document::hide_nonces(&mut doc);
         }
@@ -95,9 +102,10 @@ impl Page {
             fetcher,
             url: RefCell::new(final_url),
             navigation: RefCell::new(None),
+            net,
             unsynced_styles: RefCell::new(Vec::new()),
         };
-        Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole) })
+        Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: bytes.len() })
     }
 
     /// A navegação que a página pediu (`location.href = ...`) e ainda não aconteceu.
@@ -127,7 +135,13 @@ impl Page {
         let budget = self.budget_ms;
         let document_url = self.bridge.url.borrow().clone();
         let module_bridge = self.bridge.clone();
-        let module_fetch: zjsc::api::browser_modules::ModuleFetch = Rc::new(move |address: &str| fetch_text(&module_bridge.fetcher, address, "*/*"));
+        let module_fetch: zjsc::api::browser_modules::ModuleFetch = Rc::new(move |address: &str| {
+            let text = fetch_text(&module_bridge.fetcher, address, "*/*");
+            if let Some(text) = &text {
+                zjsc::runtime::cpu_clock::charge_source_bytes(text.len());
+            }
+            text
+        });
         run_page(self.console.clone(), bridge.clone(), &document_url, module_fetch, |runner| {
             // `Number.prototype.toString(radix)` arredonda a cauda como o V8.
             zjsc::runtime::number_prototype::set_v8_radix_strings(true);
@@ -158,6 +172,10 @@ impl Page {
                     eprintln!("inspector: {error}");
                 }
             }
+            // Daqui em diante o trabalho da página custa tempo virtual, como no renderer do Chromium: o parse do
+            // documento, a compilação de cada script e as instruções que ela executa.
+            zjsc::runtime::cpu_clock::set_cpu_cost(NS_PER_INSTRUCTION, NS_PER_SOURCE_BYTE);
+            zjsc::runtime::cpu_clock::charge_source_bytes(self.document_bytes);
             let call = |args: &[HostArg]| {
                 let _ = runner.call_hidden(&hook, args);
             };
@@ -169,6 +187,7 @@ impl Page {
                         Some(address) => runner.eval_module(None, Some(address)),
                         None => {
                             let text = self.bridge.doc.borrow().get_node(info.node).map(|n| n.text_content()).unwrap_or_default();
+                            zjsc::runtime::cpu_clock::charge_source_bytes(text.len());
                             runner.eval_module(Some(&text), None)
                         }
                     };
@@ -182,6 +201,7 @@ impl Page {
                     return;
                 };
                 call(&[HostArg::Str("currentScript"), HostArg::Num(info.node.as_u64() as f64)]);
+                zjsc::runtime::cpu_clock::charge_source_bytes(source.len());
                 if let Err(message) = runner.eval(&source, &name) {
                     call(&[HostArg::Str("scriptError"), HostArg::Str(&message), HostArg::Str(&name)]);
                 }
@@ -207,6 +227,9 @@ impl Page {
             }
             call(&[HostArg::Str("interactive")]);
             for info in scripts.iter().filter(|s| s.kind == ScriptKind::Async) {
+                // Cada `async` é uma tarefa própria: o que venceu enquanto o anterior rodava (um quadro, um timer)
+                // roda antes dele.
+                runner.run_event_loop_for(0.0);
                 run_script(info);
             }
             // As folhas de `<link rel=stylesheet>` chegam antes do `load` da janela; cada uma dispara `load` ou `error`.

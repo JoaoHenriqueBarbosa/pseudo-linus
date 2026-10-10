@@ -570,6 +570,7 @@ const isClassic = (type) => type === '' || /^(text|application)\/(x-)?(java|ecma
 function execScript(el, code, url) {
   const previous = document[P.__currentScript];
   hidden(document, '__currentScript', el);
+  op('chargeSource', code.length);
   try { evalGlobal(code, url); } catch (error) { reportError(error); } finally { hidden(document, '__currentScript', previous || null); }
 }
 function runDynamicScript(el) {

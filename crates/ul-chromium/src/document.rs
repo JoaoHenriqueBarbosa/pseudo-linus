@@ -1,9 +1,12 @@
 //! O documento da página: um `BaseDocument` do Blitz, com o parser do html5ever ligado como o Chromium o liga
 //! (scripting ligado, doctype preservado).
 
+use std::sync::{Arc, Mutex};
+
 use blitz_dom::node::NodeData;
 use blitz_dom::{BaseDocument, DocumentConfig, DocumentMutator, NodeId};
 use blitz_html::DocumentHtmlParser;
+use blitz_traits::net::{NetHandler, NetProvider, Request};
 use blitz_traits::shell::{ColorScheme, Viewport};
 use html5ever::ParseOpts;
 use html5ever::tendril::TendrilSink;
@@ -23,9 +26,20 @@ fn config(base_url: &str) -> DocumentConfig {
     DocumentConfig { base_url: Some(base_url.to_owned()), viewport: Some(Viewport::new(WINDOW.0, WINDOW.1, 1.0, ColorScheme::Light)), ..DocumentConfig::default() }
 }
 
-/// [`parse`] com a URL do documento como base (o Blitz resolve por ela os `href` de folhas e imagens).
+/// [`parse`] com a URL do documento como base (o Blitz resolve por ela os `href` de folhas e imagens). Documento
+/// inerte (o do `DOMParser`): não busca subrecursos.
 pub fn parse_at(html: &str, base_url: &str) -> BaseDocument {
-    let mut doc = BaseDocument::new(config(base_url));
+    parse_with(html, config(base_url))
+}
+
+/// O documento da página: as folhas de estilo, imagens e fontes que o Blitz pede ficam na fila de `net`, que o
+/// hospedeiro serve pela rede dele ([`QueuedNet::serve`]).
+pub fn parse_page(html: &str, base_url: &str, net: Arc<QueuedNet>) -> BaseDocument {
+    parse_with(html, DocumentConfig { net_provider: Some(net), ..config(base_url) })
+}
+
+fn parse_with(html: &str, config: DocumentConfig) -> BaseDocument {
+    let mut doc = BaseDocument::new(config);
     {
         let mut mutr = doc.mutate();
         let sink = DocumentHtmlParser::new(&mut mutr);
@@ -36,6 +50,37 @@ pub fn parse_at(html: &str, base_url: &str) -> BaseDocument {
         html5ever::parse_document(sink, opts).from_utf8().read_from(&mut html.as_bytes()).unwrap();
     }
     doc
+}
+
+/// O provedor de rede do Blitz para a página: guarda os pedidos (o Blitz exige `Send + Sync`, e a rede do hospedeiro é
+/// de uma thread só) até o hospedeiro servi-los.
+#[derive(Default)]
+pub struct QueuedNet(Mutex<Vec<(Request, Box<dyn NetHandler>)>>);
+
+impl NetProvider for QueuedNet {
+    fn fetch(&self, _doc_id: usize, request: Request, handler: Box<dyn NetHandler>) {
+        self.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner).push((request, handler));
+    }
+}
+
+impl QueuedNet {
+    /// Serve os pedidos na fila com `fetch` (corpo de sucesso, ou `None`) e aplica as respostas ao documento. Um recurso
+    /// pode pedir outros (`@import`): repete até a fila esvaziar.
+    pub fn serve(&self, doc: &mut BaseDocument, fetch: &dyn Fn(&str) -> Option<Vec<u8>>) {
+        loop {
+            let pending = std::mem::take(&mut *self.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner));
+            if pending.is_empty() {
+                break;
+            }
+            for (request, handler) in pending {
+                // A falha também responde (corpo vazio): uma folha do `<head>` pendente segura o estilo do documento
+                // inteiro no Blitz, e no Chromium a folha que não chega só não tem regras.
+                let body = fetch(request.url.as_str()).unwrap_or_default();
+                handler.bytes(request.url.to_string(), body.into());
+            }
+            doc.handle_messages();
+        }
+    }
 }
 
 /// A caixa de `id` em coordenadas da janela, depois de estilo e layout: `[x, y, largura, altura]` da caixa de borda

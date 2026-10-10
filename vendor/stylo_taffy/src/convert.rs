@@ -713,12 +713,13 @@ pub fn max_track(
     }
 }
 
-/// pseudo-linus: a barra clássica do Chromium no Linux tem 15px (`scrollbar-width: thin`, 11px; `none`, 0).
+/// pseudo-linus: a barra clássica do Chromium no Linux tem 15px (`scrollbar-width: thin`, 10px; `none`, 0), medido no
+/// oráculo.
 pub fn scrollbar_width(style: &stylo::ComputedValues) -> f32 {
     use style::properties::longhands::scrollbar_width::computed_value::T as ScrollbarWidth;
     match style.clone_scrollbar_width() {
         ScrollbarWidth::Auto => 15.0,
-        ScrollbarWidth::Thin => 11.0,
+        ScrollbarWidth::Thin => 10.0,
         ScrollbarWidth::None => 0.0,
     }
 }
