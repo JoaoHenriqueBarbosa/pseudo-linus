@@ -1331,6 +1331,20 @@ impl EString {
             self.string(store)
         }
     }
+
+    pub fn hash(&self, store: &Store) -> u64 {
+        if self.is_blank() {
+            return 0;
+        }
+        if self.is_utf8() {
+            bun_wyhash::hash(store.str(self.data))
+        } else {
+            // O upstream reinterpreta as unidades como bytes (`bytemuck::cast_slice`), na ordem nativa; aqui os
+            // mesmos bytes são montados em little-endian, a ordem das máquinas que o bun suporta.
+            let bytes: Vec<u8> = self.slice16(store).iter().flat_map(|unit| unit.to_le_bytes()).collect();
+            bun_wyhash::hash(&bytes)
+        }
+    }
 }
 
 // ── EString surface ────────────────────────────────────────────────────────
