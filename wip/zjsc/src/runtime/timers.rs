@@ -843,6 +843,10 @@ pub fn run_event_loop_until_held(global_object: &JSGlobalObject) -> bool {
         if STATE.with(|state| state.borrow().halted) {
             return false;
         }
+        let runs_immediates = STATE.with(|state| {
+            let state = state.borrow();
+            state.alive() && state.has_pending_immediates()
+        });
         if STATE.with(|state| state.borrow().alive()) {
             run_due_loads(global_object);
             run_due_timers(global_object, &mut budget);
@@ -872,6 +876,14 @@ pub fn run_event_loop_until_held(global_object: &JSGlobalObject) -> bool {
             // mesmo ponto, uma cadeia de 100 voltas já deixa um setTimeout(1) vencer e uma de 100 não vence um de 5 ms.
             // Uma volta custa então bem menos que 1 ms; 1/64 ms é exato em ponto flutuante e dá ~1,56 ms por 100 voltas.
             waiter_list_manager::advance_virtual_clock_to(waiter_list_manager::virtual_now() + LOOP_PASS_MS);
+            continue;
+        }
+        if !alive && runs_immediates {
+            // A volta que rodou immediates termina com a fase de timers da volta seguinte antes de o laço olhar se
+            // segue vivo: o timer sem `ref` que venceu nela dispara (medido no bun 1.4.2, `AbortSignal.timeout(0)` com
+            // um `setImmediate` aborta depois do immediate; o de 5 ms não, e sem o immediate o de 0 também não).
+            waiter_list_manager::advance_virtual_clock_to(waiter_list_manager::virtual_now() + LOOP_PASS_MS);
+            run_due_timers(global_object, &mut budget);
             continue;
         }
         let next_timer = if alive { earliest } else { None };

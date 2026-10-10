@@ -17,3 +17,26 @@ fn timers_match_bun() {
         evaluate_script_sequence_result_running_timers(&[source], "timers_case.js", "globalThis.R").1
     });
 }
+
+/// A volta que rodou immediates fecha com a fase de timers da volta seguinte antes de o laço sair: o timer sem `ref` do
+/// `AbortSignal.timeout(0)` vence ali e aborta; o de 5 ms não, e sem immediate nenhum o de 0 também não (medido no bun
+/// 1.4.2, sem sentinela que mantenha o laço vivo).
+#[test]
+fn unref_timer_due_after_an_immediate_pass_still_fires() {
+    let cases = [
+        ("0", "setImmediate(() => log.push('imm'));", r#"["imm","abort"]"#),
+        ("0", "setImmediate(() => { log.push('imm'); setImmediate(() => log.push('imm2')) });", r#"["imm","abort","imm2"]"#),
+        ("0", "setTimeout(() => log.push('to0'), 0);", r#"["abort","to0"]"#),
+        ("5", "setImmediate(() => log.push('imm'));", r#"["imm"]"#),
+        ("0", "", "[]"),
+    ];
+    for (milliseconds, rest, expected) in cases {
+        let source = format!(
+            "var log = []; Object.defineProperty(globalThis, 'R', {{ get() {{ return JSON.stringify(log) }} }}); \
+             AbortSignal.timeout({milliseconds}).addEventListener('abort', () => log.push('abort')); {rest}"
+        );
+        let result = evaluate_script_sequence_result_running_timers(&[&source], "timers_case.js", "globalThis.R").1;
+        let text = result.map(|value| String::from_utf8_lossy(&value.to_wtf_string().utf8(zjsc::wtf::text::conversion_mode::ConversionMode::LenientConversion)).into_owned());
+        assert_eq!(text.as_deref().ok(), Some(expected), "{source}");
+    }
+}
