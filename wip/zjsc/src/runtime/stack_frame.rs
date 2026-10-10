@@ -198,6 +198,14 @@ fn is_line_terminator_unit(unit: u16) -> bool {
     unit == 0x0A || unit == 0x0D || unit == 0x2028 || unit == 0x2029
 }
 
+/// Quem escreve o frame: a linha de `stack`, o `CallSite.toString` ou o `console.trace` do bun.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Style {
+    Stack,
+    CallSite,
+    Trace,
+}
+
 /// O que o laço de [`last_mappable_token_start`] guarda por `(`/`[`/`{` aberto: o que o fecho correspondente
 /// vai mapear.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -517,7 +525,7 @@ impl StackFrame {
     /// `CallSite.prototype.toString`: `nome (native)` nas frames nativas e de builtin (o texto da linha de
     /// `stack` é outro: `eval (unknown)`, `map (native:1:11)`); nas demais é o da linha de `stack`.
     pub fn call_site_text(&self) -> String {
-        if self.is_native_function() { format!("{} (native)", self.display_name()) } else { self.format_call_site(self.call_site_column(), false) }
+        if self.is_native_function() { format!("{} (native)", self.display_name()) } else { self.format_call_site(self.call_site_column(), Style::CallSite) }
     }
 
     /// Os quatro campos de `CallSite.prototype.toJSON` do `Bun` (medido na 1.4.2):
@@ -566,10 +574,18 @@ impl StackFrame {
 
     /// `CallSite.prototype.toString` e o texto depois do `at ` da linha de `stack`.
     pub fn to_call_site_string(&self) -> String {
-        self.format_call_site(self.column(), true)
+        self.format_call_site(self.column(), Style::Stack)
     }
 
-    fn format_call_site(&self, column: u32, omit_first_column: bool) -> String {
+    /// O texto depois do `at ` do `console.trace`, que o bun escreve com o formatador próprio (`ZigStackFrame`), não
+    /// com o de `stack` (medido no bun 1.4.2): a coluna sempre aparece, o builtin sai sem a URL (`forEach (1:11)`), o
+    /// código de `eval` se chama `eval` e o frame sem posição (função nativa, o `eval` nativo) não aparece (`None`).
+    pub fn to_trace_string(&self) -> Option<String> {
+        self.has_line_and_column_info().then(|| self.format_call_site(self.column(), Style::Trace))
+    }
+
+    fn format_call_site(&self, column: u32, style: Style) -> String {
+        let omit_first_column = style == Style::Stack;
         let location = self.location();
         // Função nativa sem nome (o `Proxy` chamado): o `Bun` imprime só `at unknown`.
         if location.function_name.is_empty() && location.source_url == "unknown" {
@@ -584,10 +600,10 @@ impl StackFrame {
                 format!("{}:{}:{}", location.source_url, location.line, column)
             };
         }
-        let name = self.display_name();
+        let name = if style == Style::Trace && location.function_name == "eval code" { "eval" } else { self.display_name() };
         // Medido no `bun` 1.4.2: o texto de `stack` escreve `async f`, mas `CallSite.toString` (a coluna inteira,
         // `omit_first_column == false`) escreve só `f` (ou `<anonymous>`) no frame assíncrono.
-        let name = if self.is_async && !omit_first_column {
+        let name = if self.is_async && style == Style::CallSite {
             match name.strip_prefix("async ") {
                 Some("") | None => name,
                 Some(bare) => bare,
@@ -601,6 +617,9 @@ impl StackFrame {
         } else {
             name.to_string()
         };
+        if style == Style::Trace && location.source_url == "native" {
+            return format!("{name} ({}:{column})", location.line);
+        }
         let location_text = match (location.source_url.is_empty(), location.has_line_and_column_info) {
             (true, _) => return name,
             (false, false) => location.source_url.clone(),

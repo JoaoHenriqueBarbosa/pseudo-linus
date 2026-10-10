@@ -461,9 +461,9 @@ impl HostConsoleClient {
         }
         let frames = global_object.vm().interpreter().get_stack_trace(global_object.vm(), CallFrame::create(top), limit, None, false);
         let mut text = String::new();
-        for frame in &frames {
-            text.push_str("  ");
-            text.push_str(&frame.to_stack_line());
+        for line in frames.iter().filter_map(|frame| frame.to_trace_string()) {
+            text.push_str("      at ");
+            text.push_str(&line);
             text.push('\n');
         }
         Self::write(global_object, false, &units(&WtfString::from_utf8(text.as_bytes())));
