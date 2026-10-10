@@ -3395,20 +3395,34 @@ const { usesHostApi } = require("./host-api.js");
 programs.splice(0, programs.length, ...programs.filter((p) => !usesHostApi(p)));
 const unique = programs.filter((p) => !seen.has(p) && seen.add(p));
 const runner = `console.log("@@" + (${harnessSource})(process.env.ERRORS_GOLDEN_SOURCE))`;
-const lines = [];
-for (const source of unique) {
-  if (/[\t\n\r]/.test(source)) throw new Error("fonte com tab ou quebra de linha: " + source);
+const { measureVarying } = require("./golden-alternatives.js");
+
+// Uma execução: a linha é a que começa por `@@`, separada só por `\n`: com `/^@@(.*)$/m` o `.` e o `$` param nos
+// separadores de linha U+2028 e U+2029, que o JSON da mensagem traz crus (o `JSON.parse` de um separador sozinho), e a
+// linha saía cortada. Filho que morre ou estoura o tempo (laço de finally recursivo, memória) não gera linha.
+function runOnce(source, env) {
   const child = Bun.spawnSync([process.execPath, "-e", runner], {
-    env: { ...process.env, ERRORS_GOLDEN_SOURCE: source },
+    env: { ...env, ERRORS_GOLDEN_SOURCE: source },
     timeout: 20000,
     stdout: "pipe",
     stderr: "pipe",
   });
-  // A linha é a que começa por `@@`, separada só por `\n`: com `/^@@(.*)$/m` o `.` e o `$` param nos separadores de
-  // linha U+2028 e U+2029, que o JSON da mensagem traz crus (o `JSON.parse` de um separador sozinho), e a linha saía
-  // cortada.
   const line = child.stdout.toString().split("\n").find((text) => text.startsWith("@@"));
-  // Filho que morre ou estoura o tempo (laço de finally recursivo, memória) não gera linha.
-  if (line !== undefined) lines.push(source + "\t" + line.slice(2));
+  return { ok: line !== undefined, out: line === undefined ? "" : line.slice(2), err: "" };
 }
-process.stdout.write(require("./golden-prelude.js").assertPublicResult(lines.join("\n") + "\n"));
+
+// Cada programa roda quatro vezes (`measureVarying`): onde a linha varia só em números e palavras (o valor de
+// `Math.random`, o texto de `Date()`), a terceira coluna leva os índices de token que variam no bun. O fuso é o de
+// America/Sao_Paulo, como nos outros goldens com data (`new Date(275760, 8, 13, 0, 0, 0, 1)` só é inválida a oeste de UTC).
+(async () => {
+  const lines = [];
+  const env = { ...process.env, TZ: "America/Sao_Paulo" };
+  for (const source of unique) {
+    if (/[\t\n\r]/.test(source)) throw new Error("fonte com tab ou quebra de linha: " + source);
+    const result = await measureVarying((runEnv) => runOnce(source, runEnv), env);
+    if (!result.ok) continue;
+    if (result.alternatives.length) process.stderr.write("saída instável fora de números e palavras: " + source + "\n");
+    lines.push(source + "\t" + result.out + (result.varying ? "\t" + JSON.stringify(result.varying) : ""));
+  }
+  process.stdout.write(require("./golden-prelude.js").assertPublicResult(lines.join("\n") + "\n"));
+})();

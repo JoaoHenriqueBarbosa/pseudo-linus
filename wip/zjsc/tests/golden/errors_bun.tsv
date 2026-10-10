@@ -4203,7 +4203,7 @@ Math.imul(1n, 1)	error	TypeError	"Conversion from 'BigInt' to 'number' is not al
 Math.clz32(Symbol())	error	TypeError	"Cannot convert a symbol to a number"	TypeError	true
 Math.fround(1n)	error	TypeError	"Conversion from 'BigInt' to 'number' is not allowed."	TypeError	true
 Math.atan2(1n, 1)	error	TypeError	"Conversion from 'BigInt' to 'number' is not allowed."	TypeError	true
-Math.random(1n)(1)	error	TypeError	"Math.random(1n) is not a function. (In 'Math.random(1n)(1)', 'Math.random(1n)' is 0.34362151500138527)"	TypeError	true
+Math.random(1n)(1)	error	TypeError	"Math.random(1n) is not a function. (In 'Math.random(1n)(1)', 'Math.random(1n)' is 0.6988715320715716)"	TypeError	true	[51]
 Math.f16round(1n)	error	TypeError	"Conversion from 'BigInt' to 'number' is not allowed."	TypeError	true
 Math.sumPrecise(1)	error	TypeError	"Type error"	TypeError	true
 Math.sumPrecise([1n])	error	TypeError	"Math.sumPrecise was passed a non-number"	TypeError	true

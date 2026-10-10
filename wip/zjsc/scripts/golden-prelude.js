@@ -6,6 +6,8 @@
 // Saída não determinística no bun (ordem de HashSet de ponteiros, por exemplo): `scripts/golden-alternatives.js` mede o
 // programa várias vezes e, se as saídas diferem, a linha ganha uma quarta coluna `JSON([outras saídas aceitas])`, com a
 // terceira coluna (índice) sempre presente. O teste passa se o porte devolve a segunda coluna ou qualquer alternativa.
+// Saída que nunca se repete (`Math.random`, `Date()`): o último elemento da quarta coluna é um array de inteiros, os
+// índices de token que variam no bun (`measureVarying`), e o teste aceita ali qualquer token da mesma classe.
 // Quinta coluna (meta `[modo, índiceDaCauda, ...corridasDoSufixo]`): as corridas do mapa de posições que caem no prelúdio
 // vivem no `*.preludes.json` (entradas `{text, runs, tails}`), ver `factorMeta`; `readRows` devolve o meta completo.
 // Quem lê o tsv (testes em tests/common/mod.rs e geradores que deduplicam contra goldens vizinhos) só depende de a

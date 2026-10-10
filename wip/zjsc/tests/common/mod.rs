@@ -204,6 +204,87 @@ pub fn json_string_array(array: &str) -> Option<Vec<Vec<u16>>> {
     start.is_none().then_some(literals)
 }
 
+/// A quarta coluna dos goldens fatorados: as saídas exatas aceitas e, como último elemento quando existe, o array de
+/// índices de token que variam no bun (`["alt", [3, 7]]`, ver `measureVarying` em `scripts/golden-alternatives.js`).
+pub fn parse_alternatives(column: &str) -> (Vec<Vec<u16>>, Vec<usize>) {
+    let inner = column.strip_suffix(']').expect("alternativas JSON");
+    let varying_start = inner.rfind('[').filter(|&open| {
+        open > 0 && inner[open + 1..].strip_suffix(']').is_some_and(|indices| indices.bytes().all(|byte| byte.is_ascii_digit() || byte == b','))
+    });
+    match varying_start {
+        Some(open) => {
+            let varying = parse_varying(&inner[open..]);
+            let exact = format!("{}]", inner[..open].trim_end_matches(','));
+            (json_string_array(&exact).expect("alternativas JSON"), varying)
+        }
+        None => (json_string_array(column).expect("alternativas JSON"), Vec::new()),
+    }
+}
+
+/// `[3,7]`: os índices de token que variam no bun.
+pub fn parse_varying(array: &str) -> Vec<usize> {
+    let inner = array.strip_prefix('[').and_then(|rest| rest.strip_suffix(']')).expect("índices de token JSON");
+    inner.split(',').filter(|index| !index.is_empty()).map(|index| index.parse().expect("índice de token")).collect()
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum TokenKind {
+    Number,
+    Word,
+    Other,
+}
+
+/// O `tokenize` de `scripts/golden-alternatives.js`: número (`\d+(\.\d+)?([eE][+-]?\d+)?`), palavra ASCII (`[A-Za-z]+`)
+/// ou qualquer outra unidade UTF-16 sozinha.
+fn tokenize(units: &[u16]) -> Vec<(TokenKind, &[u16])> {
+    let digit = |unit: Option<&u16>| unit.is_some_and(|&unit| (b'0' as u16..=b'9' as u16).contains(&unit));
+    let letter = |unit: u16| u8::try_from(unit).is_ok_and(|byte| byte.is_ascii_alphabetic());
+    let digits_from = |mut index: usize| {
+        while digit(units.get(index)) {
+            index += 1;
+        }
+        index
+    };
+    let mut tokens = Vec::new();
+    let mut index = 0;
+    while index < units.len() {
+        let start = index;
+        let kind = if digit(units.get(index)) {
+            index = digits_from(index);
+            if units.get(index) == Some(&(b'.' as u16)) && digit(units.get(index + 1)) {
+                index = digits_from(index + 1);
+            }
+            if units.get(index).is_some_and(|&unit| unit == b'e' as u16 || unit == b'E' as u16) {
+                let sign = usize::from(units.get(index + 1).is_some_and(|&unit| unit == b'+' as u16 || unit == b'-' as u16));
+                if digit(units.get(index + 1 + sign)) {
+                    index = digits_from(index + 1 + sign);
+                }
+            }
+            TokenKind::Number
+        } else if letter(units[index]) {
+            while index < units.len() && letter(units[index]) {
+                index += 1;
+            }
+            TokenKind::Word
+        } else {
+            index += 1;
+            TokenKind::Other
+        };
+        tokens.push((kind, &units[start..index]));
+    }
+    tokens
+}
+
+/// A saída do porte casa com a do bun quando os tokens são os mesmos, exceto nos índices que variam no bun, onde basta
+/// a mesma classe (qualquer número no lugar de um número, qualquer palavra no lugar de uma palavra).
+pub fn matches_varying(expected: &[u16], actual: &[u16], varying: &[usize]) -> bool {
+    let (expected, actual) = (tokenize(expected), tokenize(actual));
+    expected.len() == actual.len()
+        && expected.iter().zip(&actual).enumerate().all(|(index, (wanted, got))| {
+            wanted.0 == got.0 && (wanted.1 == got.1 || (wanted.0 != TokenKind::Other && varying.contains(&index)))
+        })
+}
+
 /// Roda a avaliação e devolve o texto do valor (`<undefined>` quando não é string), ou o motivo de não ter devolvido.
 /// Com perda: surrogate solitário vira U+FFFD. Os goldens usam `guarded_units`.
 pub fn guarded(evaluate: impl FnOnce() -> Result<JSValue, JSValue>) -> Result<String, String> {
@@ -467,15 +548,16 @@ pub fn check_with_meta<R: Into<Units>>(tsv: &str, preludes: &str, min_total: usi
         let suffix = json_units(columns.next().expect("sufixo"));
         let expected = json_units(columns.next().expect("resultado"));
         let prelude = columns.next().map_or(0, |index| index.parse::<usize>().expect("índice do prelúdio"));
-        // Quarta coluna: outras saídas que o bun também produz (não determinismo medido pelo gerador).
-        let alternatives: Vec<Vec<u16>> = columns.next().map_or_else(Vec::new, |array| json_string_array(array).expect("alternativas JSON"));
+        // Quarta coluna: outras saídas que o bun também produz e os tokens que variam nele (não determinismo medido pelo
+        // gerador).
+        let (alternatives, varying) = columns.next().map_or_else(|| (Vec::new(), Vec::new()), parse_alternatives);
         let meta = columns.next().map_or_else(ProgramMeta::default, |column| ProgramMeta::parse_factored(column, &preludes[prelude]));
         let source = Program::new([preludes[prelude].units.as_slice(), suffix.as_slice()].concat());
         total += 1;
         match run(&source, &meta) {
             Ok(actual) => {
                 let actual: Units = actual.into();
-                if actual.0 != expected && !alternatives.contains(&actual.0) {
+                if actual.0 != expected && !alternatives.contains(&actual.0) && !matches_varying(&expected, &actual.0, &varying) {
                     failures.push(format!("{source}\n    esperado {}\n    veio     {}", escape_units(&expected), escape_units(&actual.0)));
                 }
             }
