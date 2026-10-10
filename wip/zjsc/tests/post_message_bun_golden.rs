@@ -26,7 +26,8 @@ fn post_message_uncaught_matches_bun() {
 
 #[test]
 fn post_message_match_bun() {
-    common::check(GOLDEN, common::NO_PRELUDES, 150, |source| {
+    // O gerador (scripts/gen-post-message-golden.js) escreve exatamente 97 programas.
+    common::check(GOLDEN, common::NO_PRELUDES, 97, |source| {
         match catch_unwind(AssertUnwindSafe(|| evaluate_named_script_reporting_uncaught(source, "post_message_case.js", "R"))) {
             Ok(Err(uncaught)) => Ok(common::Units::from(uncaught)),
             Ok(Ok(read)) => common::guarded_units(|| read),
