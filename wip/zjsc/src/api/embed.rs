@@ -47,6 +47,15 @@ fn pl_eval_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 }
 host_function!(pl_eval, pl_eval_body);
 
+/// `__pl_set_code_guard(função)`: registra a função que o motor consulta antes de compilar texto (`eval` e
+/// `Function`), ver `runtime::dynamic_code_guard`. Sem argumento função, remove o gancho.
+fn pl_set_code_guard_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let function = call.argument(0);
+    crate::runtime::dynamic_code_guard::set_code_guard(function.is_object().then_some(function));
+    Ok(JSValue::undefined())
+}
+host_function!(pl_set_code_guard, pl_set_code_guard_body);
+
 /// Um valor do programa escondido que o hospedeiro guarda para chamar depois ([`PageRunner::call_hidden`]).
 pub struct HostHandle(JSValue);
 
@@ -204,6 +213,7 @@ pub fn run_page<T>(console: Rc<dyn ConsoleHost>, dom: Rc<dyn DomHost>, document_
         global_object.set_console_host(console);
         dom_bridge::install(&global_object, dom);
         install_global_function_with_visibility(&global_object, "__pl_eval", 2, pl_eval, ImplementationVisibility::Private);
+        install_global_function_with_visibility(&global_object, "__pl_set_code_guard", 1, pl_set_code_guard, ImplementationVisibility::Private);
         install_global_function_with_visibility(
             &global_object,
             "__pl_private",
