@@ -20,10 +20,10 @@ MO lote de 1 (observer é o mesmo: true)
   childList alvo=UL +0 -1 prev=LI next=null
 MO2 recebeu childList,childList
 microtarefa depois da entrega? ordem registrada
-largura trocada para 320px
-RO topo content 320x100 border 320x100
-IO topo isIntersecting=true ratio=1.00 alvo 320x100 top=139
-IO fundo isIntersecting=false ratio=0.00 alvo 200x100 top=2239</pre>
+RO topo content 200x100 border 200x100
+IO topo isIntersecting=true ratio=1.00 alvo 200x100 top=139
+IO fundo isIntersecting=false ratio=0.00 alvo 200x100 top=2239
+largura trocada para 320px</pre>
 <script>
   var lines = [];
   function log(line) { lines.push(String(line)); document.getElementById('log').firstChild ? document.getElementById('log').firstChild.data = lines.join('\n') : document.getElementById('log').appendChild(document.createTextNode(lines.join('\n'))); }
