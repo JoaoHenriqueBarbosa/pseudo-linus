@@ -130,20 +130,55 @@ pub fn hex_lower(data: &[u8]) -> String {
     s
 }
 
-const fn build_crc32_table() -> [u32; 256] {
+/// A tabela de um CRC refletido de 32 bits com o polinômio `poly` (0xEDB88320 no CRC-32 de zlib, 0x82F63B78 no
+/// CRC-32C de Castagnoli).
+const fn build_crc_table(poly: u32) -> [u32; 256] {
     let mut table = [0u32; 256];
     let mut n = 0;
     while n < 256 {
         let mut c = n as u32;
         let mut k = 0;
         while k < 8 {
-            c = if c & 1 != 0 { 0xEDB8_8320 ^ (c >> 1) } else { c >> 1 };
+            c = if c & 1 != 0 { poly ^ (c >> 1) } else { c >> 1 };
             k += 1;
         }
         table[n] = c;
         n += 1;
     }
     table
+}
+
+const fn build_crc32_table() -> [u32; 256] {
+    build_crc_table(0xEDB8_8320)
+}
+
+/// A tabela do CRC-32C (polinômio refletido 0x82F63B78), o que o leveldb, o iSCSI e o ext4 usam.
+static CRC32C_TABLE: [u32; 256] = build_crc_table(0x82F6_3B78);
+
+/// Continua um CRC-32C a partir de `value` (o CRC já finalizado dos bytes anteriores, 0 no começo).
+pub fn crc32c_update(value: u32, data: &[u8]) -> u32 {
+    let mut crc = !value;
+    for &byte in data {
+        crc = CRC32C_TABLE[((crc ^ u32::from(byte)) & 0xff) as usize] ^ (crc >> 8);
+    }
+    !crc
+}
+
+/// O CRC-32C de `data`.
+pub fn crc32c(data: &[u8]) -> u32 {
+    crc32c_update(0, data)
+}
+
+/// O CRC "mascarado" do leveldb: guardar o CRC de dados que contêm CRCs deixa de dar o valor trivial. Gira 15 bits
+/// e soma uma constante (`crc32c::Mask` do leveldb).
+pub fn crc32c_mask(crc: u32) -> u32 {
+    ((crc >> 15) | (crc << 17)).wrapping_add(0xa282_ead8)
+}
+
+/// Desfaz [`crc32c_mask`].
+pub fn crc32c_unmask(masked: u32) -> u32 {
+    let rotated = masked.wrapping_sub(0xa282_ead8);
+    (rotated >> 17) | (rotated << 15)
 }
 
 /// A tabela do CRC-32 (polinômio refletido 0xEDB88320), a de zlib, gzip, zip e PNG.
@@ -269,5 +304,25 @@ mod tests {
         assert_eq!(CRC32_TABLE[255], 0x2d02_ef8d);
         // O passo cru, encadeado com as inversões, é o crc32_update.
         assert_eq!(!crc32_step(crc32_step(!0, b'a'), b'b'), crc32_update(0, b"ab"));
+    }
+
+    /// Os vetores do RFC 3720 (apêndice B.4) e do `crc32c_test.cc` do leveldb.
+    #[test]
+    fn crc32c_known_values() {
+        assert_eq!(crc32c(b"123456789"), 0xe306_9283);
+        assert_eq!(crc32c(&[0u8; 32]), 0x8a91_36aa);
+        assert_eq!(crc32c(&[0xffu8; 32]), 0x62a8_ab43);
+        let ascending: Vec<u8> = (0..32).collect();
+        assert_eq!(crc32c(&ascending), 0x46dd_794e);
+        let (a, b) = b"123456789".split_at(4);
+        assert_eq!(crc32c_update(crc32c(a), b), 0xe306_9283);
+    }
+
+    #[test]
+    fn crc32c_mask_round_trips() {
+        for crc in [0u32, 1, 0xe306_9283, 0xffff_ffff] {
+            assert_eq!(crc32c_unmask(crc32c_mask(crc)), crc);
+            assert_ne!(crc32c_mask(crc), crc);
+        }
     }
 }
