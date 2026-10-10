@@ -1,14 +1,30 @@
 //! O que os módulos embutidos escritos em JavaScript (`events`, `stream`) pedem ao hospedeiro: o objeto `host` com as
 //! funções nativas que o JavaScript não faz sozinho (criar o erro com `code` no formato do bun, o `util.inspect`, o
 //! `require` de outro embutido), o `node_internal.js` (erros, validadores e afins, montado uma vez por programa) e a
-//! avaliação do fonte como o programa de nome `node:<módulo>`, que devolve a fábrica chamada com o `host`.
+//! criação da fábrica do módulo como o executável builtin que o bun cria (`createBuiltinExecutable`), chamada com o `host`.
 
 use crate::api::builtin_modules::{cached, load, resolve, Resolved};
-use crate::api::eval::{describe_exception, evaluate, js_text, key_of, named_program_source};
+use crate::api::eval::{describe_exception, js_text, key_of, latin1_program_source};
+use crate::bytecode::executable_info::NeedsClassFieldInitializer;
+use crate::bytecode::unlinked_function_executable::UnlinkedFunctionExecutable;
 use crate::host_function;
+use crate::parser::parser_modes::PrivateBrandRequirement;
+use crate::runtime::builtin_executables::BuiltinExecutables;
+use crate::runtime::construct_ability::ConstructAbility;
+use crate::runtime::constructor_kind::ConstructorKind;
 use crate::runtime::current_realm::current_global_object;
-use crate::runtime::host_call::{HostCall, HostResult};
+use crate::runtime::host_call::{HostCall, HostResult, Thrown};
+use crate::runtime::identifier::Identifier;
+use crate::runtime::implementation_visibility::ImplementationVisibility;
+use crate::runtime::inline_attribute::InlineAttribute;
+use crate::runtime::intrinsic::Intrinsic;
+use crate::runtime::js_function::JSFunction;
 use crate::runtime::js_global_object::JSGlobalObject;
+use crate::runtime::aggregate_error::get_if_property_exists;
+use crate::runtime::host_function_support::ObjectRef;
+use crate::runtime::js_object::{JSFinalObject, JSObject};
+use crate::runtime::property_attribute::DONT_ENUM;
+use crate::runtime::property_name::PropertyName;
 use crate::runtime::js_microtask::call_microtask;
 use crate::runtime::js_module_loader::rust_string;
 use crate::runtime::js_object::JSObjectRef;
@@ -55,6 +71,33 @@ fn require_builtin_body(global_object: &JSGlobalObject, call: &HostCall) -> Host
 }
 host_function!(require_builtin, require_builtin_body);
 
+/// `host.toClass(alvo, nome, base)`: o `$toClass` do bun (`jsFunctionToClass`), que imita `class Foo extends Base {}`
+/// numa função comum. Uma função de módulo embutido nasce sem `prototype`, então é este o ponto que cria o dela: um
+/// objeto novo (filho do `prototype` da `base`) com `constructor`, mais `name` e o `prototype`, todos não enumeráveis.
+fn to_class_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let vm = global_object.vm();
+    let Some(target) = call.argument(0).to_object(global_object) else { return Err(Thrown::Pending) };
+    let name = call.argument(1);
+    let (base, prototype_base) = match ObjectRef::from_value(&call.argument(2)) {
+        None => (global_object.function_prototype().as_value(), global_object.object_prototype().as_value()),
+        Some(base) => {
+            let holder: &JSObject = &base;
+            let Some(prototype) = get_if_property_exists(global_object, holder, &PropertyName::from_identifier(&vm.property_names.prototype))? else {
+                return Err(Thrown::type_error("Base class must have a prototype property"));
+            };
+            (base.as_value(), if prototype.is_object() { prototype } else { global_object.object_prototype().as_value() })
+        }
+    };
+    let structure = JSFinalObject::create_structure(vm, Some(global_object), prototype_base, JSFinalObject::DEFAULT_INLINE_CAPACITY);
+    let prototype = JSFinalObject::create(vm, &structure);
+    prototype.put_direct(vm, &key_of(vm, "constructor"), target.as_value(), DONT_ENUM);
+    target.set_prototype_direct(vm, base);
+    target.put_direct(vm, &key_of(vm, "prototype"), prototype.as_value(), DONT_ENUM);
+    target.put_direct(vm, &key_of(vm, "name"), name, DONT_ENUM);
+    Ok(JSValue::undefined())
+}
+host_function!(to_class, to_class_body);
+
 /// Põe as funções `members` (nome, `length`, corpo) em `host`.
 pub(crate) fn put_functions(global_object: &JSGlobalObject, host: &JSObjectRef, members: &[(&str, u32, NativeFunction)]) {
     let vm = global_object.vm();
@@ -66,18 +109,51 @@ pub(crate) fn put_functions(global_object: &JSGlobalObject, host: &JSObjectRef, 
 /// O `host` sem o `internal`: o que o próprio `node_internal.js` recebe.
 fn base_host(global_object: &JSGlobalObject) -> JSObjectRef {
     let host = construct_empty_object(global_object);
-    put_functions(global_object, &host, &[("throwNodeError", 3, throw_node_error), ("inspect", 2, inspect), ("requireBuiltin", 1, require_builtin)]);
+    put_functions(
+        global_object,
+        &host,
+        &[("throwNodeError", 3, throw_node_error), ("inspect", 2, inspect), ("requireBuiltin", 1, require_builtin), ("toClass", 3, to_class)],
+    );
     host
 }
 
-/// Avalia `source` como o programa `node:<name>` e chama a fábrica que ele devolve com `host`. Falhar aqui é defeito do
-/// fonte embutido, não do programa do usuário.
+/// A fábrica do módulo `node:<name>` como o bun cria um módulo embutido (`InternalModuleRegistry::createInternalModuleById`):
+/// o texto `(function (host) { ... })` vira um executável builtin (`createBuiltinExecutable`, `CannotConstruct`), ligado ao
+/// global, e todas as funções aninhadas herdam o modo builtin. É isso que faz uma função do módulo nascer sem `prototype`
+/// próprio (só o ganha quem o atribui, como `EventEmitter.prototype = {}`) e mostrar o fonte no `Function.prototype.toString`
+/// (a função builtin com `sourceURL` mostra o texto, ver `FunctionExecutable::is_private_builtin_function`).
+fn module_factory(realm: &JSGlobalObject, source: &str, name: &str) -> JSValue {
+    // O que vem antes do `(function (` é o cabeçalho de comentário do arquivo gerado; o bun começa o fonte na fábrica.
+    let text = if source.starts_with("(function (") { source } else { source.find("\n(function (").map_or(source, |at| &source[at + 1..]) };
+    let latin1: Vec<u8> = text
+        .chars()
+        .map(|character| u8::try_from(u32::from(character)).unwrap_or_else(|_| panic!("node:{name}: o fonte embutido tem caractere fora do Latin1: escreva o escape \\u{{...}}")))
+        .collect();
+    let code = latin1_program_source(&latin1, &format!("node:{name}"));
+    let vm = realm.vm();
+    let unlinked = BuiltinExecutables::create_executable(
+        vm,
+        &code,
+        &Identifier::from_span(vm, name.as_bytes()),
+        ImplementationVisibility::Public,
+        ConstructorKind::None,
+        ConstructAbility::CannotConstruct,
+        InlineAttribute::None,
+        NeedsClassFieldInitializer::No,
+        PrivateBrandRequirement::None,
+    );
+    let executable = UnlinkedFunctionExecutable::link(&unlinked, vm, None, &code, None, Intrinsic::NoIntrinsic, false);
+    JSFunction::create(vm, realm, &executable, realm.global_scope()).as_value()
+}
+
+/// Cria a fábrica do módulo `node:<name>` e a chama com `host`. Falhar aqui é defeito do fonte embutido, não do programa
+/// do usuário.
 pub(crate) fn run_factory(global_object: &JSGlobalObject, source: &str, name: &str, host: &JSObjectRef) -> JSValue {
-    let realm = current_global_object();
-    let factory = evaluate(&realm, &named_program_source(source, &format!("node:{name}")))
-        .unwrap_or_else(|error| panic!("node:{name}: {}", describe_exception(&error)));
-    call_microtask(global_object, factory, JSValue::undefined(), &[host.as_value()], "o módulo embutido não é uma função")
-        .unwrap_or_else(|thrown| panic!("node:{name}: a fábrica lançou {thrown:?}"))
+    let factory = module_factory(&current_global_object(), source, name);
+    call_microtask(global_object, factory, JSValue::undefined(), &[host.as_value()], "o módulo embutido não é uma função").unwrap_or_else(|thrown| {
+        let detail = global_object.vm().exception().map_or_else(|| format!("{thrown:?}"), |exception| describe_exception(&exception.value()));
+        panic!("node:{name}: a fábrica lançou {detail}")
+    })
 }
 
 /// O `node_internal.js`: erros com código, validadores, `addAbortListener` e afins, uma vez por programa.

@@ -427,13 +427,6 @@
     };
   }
 
-  // `$toClass(Classe, nome, Pai)` do bun: uma função construtora comum (chamável sem `new`) ligada ao pai.
-  function toClass(klass, name, parent) {
-    Object.defineProperty(klass, "name", { value: name, configurable: true });
-    Object.setPrototypeOf(klass.prototype, parent.prototype);
-    Object.setPrototypeOf(klass, parent);
-  }
-
   return {
     makeError,
     codes,
@@ -450,6 +443,6 @@
     isInsideNodeModules,
     once,
     addAbortListener,
-    toClass,
+    toClass: host.toClass,
   };
 })

@@ -282,8 +282,17 @@ pub fn evaluate_hidden_program(global_object: &JSGlobalObjectRef, source: &str) 
 }
 
 pub(crate) fn named_program_source(source: &str, url: &str) -> SourceCode {
-    let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{url}").as_bytes())));
-    transpiled_source(&WtfString::from_utf8(source.as_bytes()), &origin, WtfString::from_latin1(url.as_bytes()))
+    transpiled_source(&WtfString::from_utf8(source.as_bytes()), &file_origin(url), WtfString::from_latin1(url.as_bytes()))
+}
+
+/// Como [`named_program_source`] para um fonte já em Latin1 (8 bits): o `createBuiltinExecutable` do JSC só aceita o fonte
+/// do módulo embutido nessa forma.
+pub(crate) fn latin1_program_source(source: &[u8], url: &str) -> SourceCode {
+    transpiled_source(&WtfString::from_latin1(source), &file_origin(url), WtfString::from_latin1(url.as_bytes()))
+}
+
+fn file_origin(url: &str) -> SourceOrigin {
+    SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{url}").as_bytes())))
 }
 
 /// Um arquivo que o bun roda: passou pelo transpilador, que tira os comentários (as diretivas `//# sourceURL=` não

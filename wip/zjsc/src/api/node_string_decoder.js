@@ -118,7 +118,7 @@
         this.#pending = Buffer.alloc(0);
         this.#total = 0;
         // Uma sequência incompleta vira um U+FFFD em utf8, e em utf16le sai o que dá para ler.
-        result += this.#encoding === "utf8" ? "�" : pending.toString(this.#encoding);
+        result += this.#encoding === "utf8" ? "\u{FFFD}" : pending.toString(this.#encoding);
       }
       return result;
     }

@@ -348,7 +348,7 @@ impl BuiltinExecutables {
 
     /// `createExecutable(VM&, const SourceCode&, const Identifier&, ...)`: escaneia o fonte e delega.
     #[allow(clippy::too_many_arguments)]
-    fn create_executable(
+    pub(crate) fn create_executable(
         vm: &VM,
         source: &SourceCode,
         name: &Identifier,

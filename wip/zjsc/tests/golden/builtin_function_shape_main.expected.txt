@@ -1,0 +1,364 @@
+url.parse	-	urlParse	3	[length,name]	598:3246f307:function urlParse(url, parseQueryString, slashes
+url.resolve	-	urlResolve	2	[length,name]	94:b7ccb97f:function urlResolve(source, relative) { return
+url.resolveObject	-	urlResolveObject	2	[length,name]	142:2d587af4:function urlResolveObject(source, relative) { 
+url.format	-	urlFormat	2	[length,name]	919:b402e9a1:function urlFormat(urlObject, options) { if (t
+url.Url	P	Url	0	[length,name,prototype]	254:a766ce77:function Url() { this.protocol = null, this.sl
+url.Url.prototype.parse	-	parse	3	[length,name]	6145:4cb225b4:function parse(url, parseQueryString, slashesDen
+url.Url.prototype.format	-	format	0	[length,name]	1475:97dfdcf4:function format() { var auth = this.auth || ""
+url.Url.prototype.resolve	-	resolve	1	[length,name]	96:d27943b5:function resolve(relative) { return this.resol
+url.Url.prototype.resolveObject	-	resolveObject	1	[length,name]	6885:00552447:function resolveObject(relative) { if (typeof 
+url.Url.prototype.parseHost	-	parseHost	0	[length,name]	259:b38f6805:function parseHost() { var host = this.host, p
+url.URLSearchParams	P	URLSearchParams	0	[length,name,prototype]	44:0787981d:function URLSearchParams() { [native code] }
+url.URLSearchParams.prototype.append	-	append	2	[length,name]	35:5dbb66f8:function append() { [native code] }
+url.URLSearchParams.prototype.delete	-	delete	1	[length,name]	35:d913620f:function delete() { [native code] }
+url.URLSearchParams.prototype.get	-	get	1	[length,name]	32:98289f4a:function get() { [native code] }
+url.URLSearchParams.prototype.getAll	-	getAll	1	[length,name]	35:a0d0e583:function getAll() { [native code] }
+url.URLSearchParams.prototype.has	-	has	1	[length,name]	32:103be5de:function has() { [native code] }
+url.URLSearchParams.prototype.set	-	set	2	[length,name]	32:6c1c8846:function set() { [native code] }
+url.URLSearchParams.prototype.sort	-	sort	0	[length,name]	33:e2a85510:function sort() { [native code] }
+url.URLSearchParams.prototype.entries	-	entries	0	[length,name]	36:4a84bbb6:function entries() { [native code] }
+url.URLSearchParams.prototype.keys	-	keys	0	[length,name]	33:9c75a850:function keys() { [native code] }
+url.URLSearchParams.prototype.values	-	values	0	[length,name]	35:e11e06be:function values() { [native code] }
+url.URLSearchParams.prototype.forEach	-	forEach	1	[length,name]	36:2cb48630:function forEach() { [native code] }
+url.URLSearchParams.prototype.toString	-	toString	0	[length,name]	37:02dac02c:function toString() { [native code] }
+url.URLSearchParams.prototype.toJSON	-	toJSON	0	[length,name]	35:524acd67:function toJSON() { [native code] }
+url.URLSearchParams.prototype.<get length>	-	get length	0	[length,name]	35:21949c60:function length() { [native code] }
+url.URLSearchParams.prototype.<get size>	-	get size	0	[length,name]	33:d167a2a9:function size() { [native code] }
+url.URL	P	URL	1	[length,name,prototype,parse,canParse,createObjectURL,revokeObjectURL]	32:c3943dcb:function URL() { [native code] }
+url.URL.parse	-	parse	1	[length,name]	34:12b69275:function parse() { [native code] }
+url.URL.canParse	-	canParse	1	[length,name]	37:f7fb3d41:function canParse() { [native code] }
+url.URL.createObjectURL	-	createObjectURL	1	[length,name]	44:b3c2883e:function createObjectURL() { [native code] }
+url.URL.revokeObjectURL	-	revokeObjectURL	1	[length,name]	44:9110cb84:function revokeObjectURL() { [native code] }
+url.URL.prototype.<get href>	-	get href	0	[length,name]	33:0fd22d95:function href() { [native code] }
+url.URL.prototype.<set href>	-	set href	1	[length,name]	33:0fd22d95:function href() { [native code] }
+url.URL.prototype.<get origin>	-	get origin	0	[length,name]	35:ee29be1a:function origin() { [native code] }
+url.URL.prototype.<get protocol>	-	get protocol	0	[length,name]	37:53f47154:function protocol() { [native code] }
+url.URL.prototype.<set protocol>	-	set protocol	1	[length,name]	37:53f47154:function protocol() { [native code] }
+url.URL.prototype.<get username>	-	get username	0	[length,name]	37:566b68b8:function username() { [native code] }
+url.URL.prototype.<set username>	-	set username	1	[length,name]	37:566b68b8:function username() { [native code] }
+url.URL.prototype.<get password>	-	get password	0	[length,name]	37:051d3ea9:function password() { [native code] }
+url.URL.prototype.<set password>	-	set password	1	[length,name]	37:051d3ea9:function password() { [native code] }
+url.URL.prototype.<get host>	-	get host	0	[length,name]	33:0926cefa:function host() { [native code] }
+url.URL.prototype.<set host>	-	set host	1	[length,name]	33:0926cefa:function host() { [native code] }
+url.URL.prototype.<get hostname>	-	get hostname	0	[length,name]	37:5c80246d:function hostname() { [native code] }
+url.URL.prototype.<set hostname>	-	set hostname	1	[length,name]	37:5c80246d:function hostname() { [native code] }
+url.URL.prototype.<get port>	-	get port	0	[length,name]	33:211a1473:function port() { [native code] }
+url.URL.prototype.<set port>	-	set port	1	[length,name]	33:211a1473:function port() { [native code] }
+url.URL.prototype.<get pathname>	-	get pathname	0	[length,name]	37:75006b6c:function pathname() { [native code] }
+url.URL.prototype.<set pathname>	-	set pathname	1	[length,name]	37:75006b6c:function pathname() { [native code] }
+url.URL.prototype.<get hash>	-	get hash	0	[length,name]	33:f0e95798:function hash() { [native code] }
+url.URL.prototype.<set hash>	-	set hash	1	[length,name]	33:f0e95798:function hash() { [native code] }
+url.URL.prototype.<get search>	-	get search	0	[length,name]	35:adfdd630:function search() { [native code] }
+url.URL.prototype.<set search>	-	set search	1	[length,name]	35:adfdd630:function search() { [native code] }
+url.URL.prototype.<get searchParams>	-	get searchParams	0	[length,name]	41:a220b806:function searchParams() { [native code] }
+url.URL.prototype.toJSON	-	toJSON	0	[length,name]	35:524acd67:function toJSON() { [native code] }
+url.URL.prototype.toString	-	toString	0	[length,name]	37:02dac02c:function toString() { [native code] }
+url.pathToFileURL	-	pathToFileURL	2	[length,name]	1210:5d9f903f:function pathToFileURL(filepath, options) { va
+url.fileURLToPath	-	fileURLToPath	2	[length,name]	696:65511458:function fileURLToPath(url, options) { let win
+url.fileURLToPathBuffer	-	fileURLToPathBuffer	2	[length,name]	1031:eafc2b3c:function fileURLToPathBuffer(path, options) { 
+url.urlToHttpOptions	-	urlToHttpOptions	1	[length,name]	640:13d0d5cb:function urlToHttpOptions(url) { let options =
+url.domainToASCII	-	domainToAscii	1	[length,name]	42:fb6b9a9e:function domainToAscii() { [native code] }
+url.domainToUnicode	-	domainToUnicode	1	[length,name]	44:bb585b9a:function domainToUnicode() { [native code] }
+events	P	EventEmitter	1	[length,name,prototype,captureRejections,defaultMaxListeners,kMaxEventTargetListeners,kMaxEventTargetListenersWarned,once,on,getEventListeners,getMaxListeners,setMaxListeners,EventEmitter,usingDomains,captureRejectionSymbol,EventEmitterAsyncResource,errorMonitor,addAbortListener,init,listenerCount]	655:7e712612:function EventEmitter(opts) { if (this._events
+events.<get captureRejections>	-	get	0	[length,name]	59:22de762c:get() { return EventEmitterPrototype[kCapt
+events.<set captureRejections>	-	set	1	[length,name]	123:b4013b1d:set(value) { validateBoolean(value, "Event
+events.<get defaultMaxListeners>	-	get	0	[length,name]	47:a9ea5ce6:() => { return defaultMaxListeners; }
+events.<set defaultMaxListeners>	-	set	1	[length,name]	96:6d4714e3:(arg) => { validateNumber(arg, "defaultMax
+events.once	-	once	2	[length,name]	1468:ec2093eb:async function once2(emitter, type, options = kE
+events.on	-	on	2	[length,name]	3348:49611dfd:function on(emitter, event, options = kEmptyObje
+events.getEventListeners	-	getEventListeners	2	[length,name]	177:1fc2570e:function getEventListeners(emitter, type) { if
+events.getMaxListeners	-	getMaxListeners	1	[length,name]	418:0b795d8d:function getMaxListeners2(emitterOrTarget) { i
+events.setMaxListeners	-	setMaxListeners	0	[length,name]	607:594fa520:function setMaxListeners2(n = defaultMaxListener
+events.EventEmitterAsyncResource	P	EventEmitterAsyncResource	1	[length,name,prototype]	1051:d5414ad7:class EventEmitterAsyncResource extends EventEmi
+events.EventEmitterAsyncResource.prototype.<get asyncId>	-	get asyncId	0	[length,name]	61:e1accac3:get asyncId() { return this.#asyncResource.a
+events.EventEmitterAsyncResource.prototype.<get triggerAsyncId>	-	get triggerAsyncId	0	[length,name]	75:61889bc7:get triggerAsyncId() { return this.#asyncRes
+events.EventEmitterAsyncResource.prototype.<get asyncResource>	-	get asyncResource	0	[length,name]	57:83b35562:get asyncResource() { return this.#asyncReso
+events.EventEmitterAsyncResource.prototype.emit	-	emit	1	[length,name]	260:3ddd853c:emit(event, ...args) { let asyncResource = t
+events.EventEmitterAsyncResource.prototype.emitDestroy	-	emitDestroy	0	[length,name]	58:a0cc4ee5:emitDestroy() { this.#asyncResource.emitDest
+events.addAbortListener	-	addAbortListener	2	[length,name]	610:15d3c8b6:function addAbortListener(signal, listener) { 
+events.listenerCount	-	listenerCount	2	[length,name]	334:01aedf89:function listenerCount2(emitter, type) { if (@
+events.prototype.setMaxListeners	-	setMaxListeners	1	[length,name]	111:74469772:function setMaxListeners(n) { return validateN
+events.prototype.getMaxListeners	-	getMaxListeners	0	[length,name]	63:2173ab35:function getMaxListeners() { return _getMaxLis
+events.prototype.emit	-	emit	1	[length,name]	1182:cf3d8e6c:function emit(type, ...args) { if (type === "e
+events.prototype.addListener	-	addListener	2	[length,name]	83:a731f753:function addListener(type, fn) { return _addLi
+events.prototype.prependListener	-	prependListener	2	[length,name]	87:54601209:function prependListener(type, fn) { return _a
+events.prototype.once	-	once	2	[length,name]	103:cdbdaa00:function once(type, fn) { return checkListener
+events.prototype.prependOnceListener	-	prependOnceListener	2	[length,name]	131:bdea590d:function prependOnceListener(type, fn) { retur
+events.prototype.removeListener	-	removeListener	2	[length,name]	1229:e136764e:function removeListener(type, listener) { chec
+events.prototype.removeAllListeners	-	removeAllListeners	1	[length,name]	1045:cc0af60a:function removeAllListeners(type) { let events
+events.prototype.listeners	-	listeners	1	[length,name]	284:521dc931:function listeners(type) { var { _events: even
+events.prototype.rawListeners	-	rawListeners	1	[length,name]	240:b83ad5cb:function rawListeners(type) { var { _events } 
+events.prototype.listenerCount	-	listenerCount	2	[length,name]	538:0cc08378:function listenerCount(type, method) { var han
+events.prototype.eventNames	-	eventNames	0	[length,name]	94:4049ce6d:function eventNames() { return this._eventsCou
+stream	P	Stream	1	[length,name,prototype,_isArrayBufferView,_isUint8Array,_uint8ArrayToBuffer,isDestroyed,isDisturbed,isErrored,isReadable,isWritable,Readable,Writable,Duplex,Transform,PassThrough,duplexPair,pipeline,addAbortSignal,finished,destroy,compose,setDefaultHighWaterMark,getDefaultHighWaterMark,promises,Stream,eos]	49:e7cff26e:function Stream(opts) { EE.@call(this, opts); 
+stream._isArrayBufferView	-	isArrayBufferView	1	[length,name]	46:953da22c:function isArrayBufferView() { [native code] }
+stream._isUint8Array	-	isUint8Array	1	[length,name]	41:d6cb929d:function isUint8Array() { [native code] }
+stream._uint8ArrayToBuffer	-	_uint8ArrayToBuffer	1	[length,name]	111:7540975a:function _uint8ArrayToBuffer(chunk) { return n
+stream.isDestroyed	-	isDestroyed	1	[length,name]	246:88c58c10:function isDestroyed(stream) { if (!isNodeStre
+stream.isDisturbed	-	isDisturbed	1	[length,name]	133:858874bb:function isDisturbed(stream) { return !!(strea
+stream.isErrored	-	isErrored	1	[length,name]	273:689770a2:function isErrored(stream) { return !!(stream 
+stream.isReadable	-	isReadable	1	[length,name]	301:636a68b4:function isReadable(stream) { if (stream && st
+stream.isWritable	-	isWritable	1	[length,name]	298:745c117c:function isWritable(stream) { if (stream && st
+stream.Readable	P	Readable	1	[length,name,prototype,ReadableState,_fromList,from,fromWeb,toWeb,wrap]	790:4b1fd6db:function Readable(options) { if (!(this instan
+stream.Readable.ReadableState	P	ReadableState	3	[length,name,prototype]	1098:2c93e6b8:function ReadableState(options, stream, isDuplex
+stream.Readable.ReadableState.prototype.<get objectMode>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set objectMode>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get ended>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set ended>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get endEmitted>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set endEmitted>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get reading>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set reading>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get constructed>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set constructed>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get sync>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set sync>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get needReadable>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set needReadable>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get emittedReadable>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set emittedReadable>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get readableListening>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set readableListening>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get resumeScheduled>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set resumeScheduled>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get errorEmitted>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set errorEmitted>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get emitClose>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set emitClose>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get autoDestroy>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set autoDestroy>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get destroyed>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set destroyed>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get closed>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set closed>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get closeEmitted>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set closeEmitted>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get multiAwaitDrain>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set multiAwaitDrain>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get readingMore>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set readingMore>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get dataEmitted>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Readable.ReadableState.prototype.<set dataEmitted>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Readable.ReadableState.prototype.<get errored>	-	get	0	[length,name]	88:d65900b4:get() { return (this[kState] & kErrored) !
+stream.Readable.ReadableState.prototype.<set errored>	-	set	1	[length,name]	144:d7e476a4:set(value) { if (value) this[kErro
+stream.Readable.ReadableState.prototype.<get defaultEncoding>	-	get	0	[length,name]	110:f08961e7:get() { return (this[kState] & kDefaultUTF
+stream.Readable.ReadableState.prototype.<set defaultEncoding>	-	set	1	[length,name]	208:843179c3:set(value) { if (value === "utf8" || value
+stream.Readable.ReadableState.prototype.<get decoder>	-	get	0	[length,name]	88:2d6276b2:get() { return (this[kState] & kDecoder) !
+stream.Readable.ReadableState.prototype.<set decoder>	-	set	1	[length,name]	144:0faf9931:set(value) { if (value) this[kDeco
+stream.Readable.ReadableState.prototype.<get encoding>	-	get	0	[length,name]	90:7eddb8bc:get() { return (this[kState] & kEncoding) 
+stream.Readable.ReadableState.prototype.<set encoding>	-	set	1	[length,name]	147:29745cb2:set(value) { if (value) this[kEnco
+stream.Readable.ReadableState.prototype.<get flowing>	-	get	0	[length,name]	103:5f3e7d7b:get() { return (this[kState] & kHasFlowing
+stream.Readable.ReadableState.prototype.<set flowing>	-	set	1	[length,name]	239:a7f39680:set(value) { if (value == null) th
+stream.Readable.ReadableState.prototype.<get pipesCount>	-	get	0	[length,name]	45:1f99b3c8:get() { return this.pipes.length; }
+stream.Readable.ReadableState.prototype.<get paused>	-	get	0	[length,name]	58:2c59222e:get() { return (this[kState] & kPaused) !=
+stream.Readable.ReadableState.prototype.<set paused>	-	set	1	[length,name]	141:900b6e91:set(value) { if (this[kState] |= kHasPause
+stream.Readable._fromList	-	fromList	2	[length,name]	2152:a88f89c6:function fromList(n, state) { if (state.length
+stream.Readable.from	-		2	[length,name]	69:c8169b24:function(iterable, opts) { return from(Readabl
+stream.Readable.fromWeb	-		2	[length,name]	125:1fe5ea9a:function(readableStream, options) { return laz
+stream.Readable.toWeb	-		2	[length,name]	125:81b75aea:function(streamReadable, options) { return laz
+stream.Readable.wrap	-		2	[length,name]	235:9b14e0b0:function(src, options) { return new Readable({
+stream.Readable.prototype.destroy	-	destroy	2	[length,name]	540:632e0868:function destroy(err, cb) { let r = this._read
+stream.Readable.prototype._undestroy	-	undestroy	0	[length,name]	542:1224202c:function undestroy() { let r = this._readableS
+stream.Readable.prototype._destroy	-		2	[length,name]	32:5f6af628:function(err, cb) { cb(err); }
+stream.Readable.prototype.push	-		2	[length,name]	234:087a0a7b:function(chunk, encoding) { let state = this._
+stream.Readable.prototype.unshift	-		2	[length,name]	230:2e73783c:function(chunk, encoding) { let state = this._
+stream.Readable.prototype.isPaused	-		0	[length,name]	153:349d0d7e:function() { let state = this._readableState; 
+stream.Readable.prototype.setEncoding	-		1	[length,name]	416:33f85d5e:function(enc) { let state = this._readableStat
+stream.Readable.prototype.read	-		1	[length,name]	2084:8d49bd2f:function(n) { if (n === @undefined) n = Na
+stream.Readable.prototype._read	-		1	[length,name]	60:551e2901:function(_n) { throw @makeErrorWithCode(142, "
+stream.Readable.prototype.pipe	-		2	[length,name]	2676:cfcb400f:function(dest, pipeOpts) { let src = this, sta
+stream.Readable.prototype.unpipe	-		1	[length,name]	568:163c392b:function(dest) { let state = this._readableSta
+stream.Readable.prototype.on	-		2	[length,name]	720:75d4973f:function(ev, fn) { let res = Stream.prototype.
+stream.Readable.prototype.removeListener	-		2	[length,name]	306:4de09331:function(ev, fn) { let state = this._readableS
+stream.Readable.prototype.removeAllListeners	-		1	[length,name]	202:b9514647:function(ev) { let res = Stream.prototype.remo
+stream.Readable.prototype.resume	-		0	[length,name]	449:2da2d7b8:function() { let state = this._readableState; 
+stream.Readable.prototype.pause	-		0	[length,name]	310:4ed6ebf5:function() { let state = this._readableState; 
+stream.Readable.prototype.wrap	-		1	[length,name]	717:d4c80fca:function(stream) { let paused = !1; stream.o
+stream.Readable.prototype.iterator	-		1	[length,name]	138:09e6f05d:function(options) { if (options !== @undefined
+stream.Readable.prototype.compose	-	compose	2	[length,name]	449:04f81e96:function compose(stream, options) { if (option
+stream.Readable.prototype.<get readable>	-	get	0	[length,name]	139:6f21a720:get() { let r = this._readableState; 
+stream.Readable.prototype.<set readable>	-	set	1	[length,name]	104:81381336:set(val) { let state = this._readableState
+stream.Readable.prototype.<get readableDidRead>	-	get	0	[length,name]	64:6a92a011:function() { return this._readableState.da
+stream.Readable.prototype.<get readableAborted>	-	get	0	[length,name]	173:aa529baa:function() { return !!(this._readableState
+stream.Readable.prototype.<get readableHighWaterMark>	-	get	0	[length,name]	66:ce8fca33:function() { return this._readableState.hi
+stream.Readable.prototype.<get readableBuffer>	-	get	0	[length,name]	60:b2e1ce5e:function() { return this._readableState?.b
+stream.Readable.prototype.<get readableFlowing>	-	get	0	[length,name]	60:4d6ab1d1:function() { return this._readableState.fl
+stream.Readable.prototype.<set readableFlowing>	-	set	1	[length,name]	134:8909c16e:function(state) { let readableState = this
+stream.Readable.prototype.<get readableLength>	-	get	0	[length,name]	54:ba6c3371:get() { return this._readableState.length;
+stream.Readable.prototype.<get readableObjectMode>	-	get	0	[length,name]	85:57b00600:get() { return this._readableState ? this.
+stream.Readable.prototype.<get readableEncoding>	-	get	0	[length,name]	85:1ebcf5ec:get() { return this._readableState ? this.
+stream.Readable.prototype.<get errored>	-	get	0	[length,name]	84:6358f42e:get() { return this._readableState ? this.
+stream.Readable.prototype.<get closed>	-	get	0	[length,name]	81:87adc2d8:get() { return this._readableState ? this.
+stream.Readable.prototype.<get destroyed>	-	get	0	[length,name]	84:850d9583:get() { return this._readableState ? this.
+stream.Readable.prototype.<set destroyed>	-	set	1	[length,name]	111:bc569329:set(value) { if (!this._readableState) 
+stream.Readable.prototype.<get readableEnded>	-	get	0	[length,name]	85:6a091be3:get() { return this._readableState ? this.
+stream.Readable.prototype.drop	-	drop	1	[length,name]	136:63ea48ac:function(...args) { if (new.target) th
+stream.Readable.prototype.filter	-	filter	2	[length,name]	136:63ea48ac:function(...args) { if (new.target) th
+stream.Readable.prototype.flatMap	-	flatMap	2	[length,name]	136:63ea48ac:function(...args) { if (new.target) th
+stream.Readable.prototype.map	-	map	2	[length,name]	136:63ea48ac:function(...args) { if (new.target) th
+stream.Readable.prototype.take	-	take	1	[length,name]	136:63ea48ac:function(...args) { if (new.target) th
+stream.Readable.prototype.every	-	every	1	[length,name]	146:390e17b5:function(...args) { if (new.target) th
+stream.Readable.prototype.forEach	-	forEach	2	[length,name]	146:390e17b5:function(...args) { if (new.target) th
+stream.Readable.prototype.reduce	-	reduce	3	[length,name]	146:390e17b5:function(...args) { if (new.target) th
+stream.Readable.prototype.toArray	-	toArray	1	[length,name]	146:390e17b5:function(...args) { if (new.target) th
+stream.Readable.prototype.some	-	some	1	[length,name]	146:390e17b5:function(...args) { if (new.target) th
+stream.Readable.prototype.find	-	find	2	[length,name]	146:390e17b5:function(...args) { if (new.target) th
+stream.Writable	P	Writable	1	[length,name,prototype,WritableState,fromWeb,toWeb]	945:6c2b6309:function Writable(options) { if (!(this instan
+stream.Writable.WritableState	P	WritableState	3	[length,name,prototype]	1167:a6495152:function WritableState(options, stream, isDuplex
+stream.Writable.WritableState.prototype.<get objectMode>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set objectMode>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get finalCalled>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set finalCalled>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get needDrain>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set needDrain>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get ending>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set ending>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get ended>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set ended>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get finished>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set finished>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get destroyed>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set destroyed>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get decodeStrings>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set decodeStrings>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get writing>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set writing>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get sync>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set sync>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get bufferProcessing>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set bufferProcessing>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get constructed>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set constructed>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get prefinished>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set prefinished>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get errorEmitted>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set errorEmitted>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get emitClose>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set emitClose>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get autoDestroy>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set autoDestroy>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get closed>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set closed>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get closeEmitted>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set closeEmitted>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get allBuffers>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set allBuffers>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get allNoop>	-	get	0	[length,name]	54:a8c51f96:get() { return (this[kState] & bit) !== 0;
+stream.Writable.WritableState.prototype.<set allNoop>	-	set	1	[length,name]	105:62187fc7:set(value) { if (value) this[kStat
+stream.Writable.WritableState.prototype.<get errored>	-	get	0	[length,name]	88:d65900b4:get() { return (this[kState] & kErrored) !
+stream.Writable.WritableState.prototype.<set errored>	-	set	1	[length,name]	144:d7e476a4:set(value) { if (value) this[kErro
+stream.Writable.WritableState.prototype.<get writable>	-	get	0	[length,name]	111:94cad940:get() { return (this[kState] & kHasWritabl
+stream.Writable.WritableState.prototype.<set writable>	-	set	1	[length,name]	245:2cba291c:set(value) { if (value == null) th
+stream.Writable.WritableState.prototype.<get defaultEncoding>	-	get	0	[length,name]	110:f08961e7:get() { return (this[kState] & kDefaultUTF
+stream.Writable.WritableState.prototype.<set defaultEncoding>	-	set	1	[length,name]	208:843179c3:set(value) { if (value === "utf8" || value
+stream.Writable.WritableState.prototype.<get writecb>	-	get	0	[length,name]	87:f4784450:get() { return (this[kState] & kWriteCb) !
+stream.Writable.WritableState.prototype.<set writecb>	-	set	1	[length,name]	144:dd926da7:set(value) { if (this[kWriteCbValue] = val
+stream.Writable.WritableState.prototype.<get afterWriteTickInfo>	-	get	0	[length,name]	110:84932558:get() { return (this[kState] & kAfterWrite
+stream.Writable.WritableState.prototype.<set afterWriteTickInfo>	-	set	1	[length,name]	177:b7448927:set(value) { if (this[kAfterWriteTickInfoV
+stream.Writable.WritableState.prototype.<get buffered>	-	get	0	[length,name]	88:d19df9c3:get() { return (this[kState] & kBuffered) 
+stream.Writable.WritableState.prototype.<set buffered>	-	set	1	[length,name]	147:8bb3481a:set(value) { if (this[kBufferedValue] = va
+stream.Writable.WritableState.prototype.getBuffer	-	getBuffer	0	[length,name]	135:a9599546:function getBuffer() { return (this[kState] & 
+stream.Writable.WritableState.prototype.<get bufferedRequestCount>	-	get	0	[length,name]	111:b4a68d29:get() { return (this[kState] & kBuffered) ==
+stream.Writable.fromWeb	-		2	[length,name]	125:730f405a:function(writableStream, options) { return laz
+stream.Writable.toWeb	-		1	[length,name]	107:8bd5900a:function(streamWritable) { return lazyWebStrea
+stream.Writable.prototype.pipe	-		0	[length,name]	63:ff8dde69:function() { errorOrDestroy(this, @makeErrorWi
+stream.Writable.prototype.write	-		3	[length,name]	178:64d412dc:function(chunk, encoding, cb) { if (encoding !
+stream.Writable.prototype.cork	-		0	[length,name]	93:ef74f83d:function() { let state = this._writableState; 
+stream.Writable.prototype.uncork	-		0	[length,name]	221:d8ad9014:function() { let state = this._writableState; 
+stream.Writable.prototype.setDefaultEncoding	-	setDefaultEncoding	1	[length,name]	281:0568962e:function setDefaultEncoding(encoding) { if (ty
+stream.Writable.prototype._write	-		3	[length,name]	152:10b009ae:function(chunk, encoding, cb) { if (this._writ
+stream.Writable.prototype.end	-		3	[length,name]	1152:12a1ce6a:function(chunk, encoding, cb) { let state = th
+stream.Writable.prototype.<get closed>	-	get	0	[length,name]	100:083fde07:get() { return this._writableState ? (this
+stream.Writable.prototype.<get destroyed>	-	get	0	[length,name]	103:0c705a24:get() { return this._writableState ? (this
+stream.Writable.prototype.<set destroyed>	-	set	1	[length,name]	197:00c63f97:set(value) { if (!this._writableState) 
+stream.Writable.prototype.<get writable>	-	get	0	[length,name]	153:7325ab8f:get() { let w = this._writableState; 
+stream.Writable.prototype.<set writable>	-	set	1	[length,name]	104:d524691a:set(val) { let state = this._writableState
+stream.Writable.prototype.<get writableFinished>	-	get	0	[length,name]	113:97a42c07:get() { let state = this._writableState; 
+stream.Writable.prototype.<get writableObjectMode>	-	get	0	[length,name]	115:19ca5fe5:get() { let state = this._writableState; 
+stream.Writable.prototype.<get writableBuffer>	-	get	0	[length,name]	93:38442578:get() { let state = this._writableState; 
+stream.Writable.prototype.<get writableEnded>	-	get	0	[length,name]	111:87d9373c:get() { let state = this._writableState; 
+stream.Writable.prototype.<get writableNeedDrain>	-	get	0	[length,name]	148:12ea469d:get() { let state = this._writableState; 
+stream.Writable.prototype.<get writableHighWaterMark>	-	get	0	[length,name]	62:0da31c64:get() { return this._writableState?.highWa
+stream.Writable.prototype.<get writableCorked>	-	get	0	[length,name]	91:9a9625da:get() { let state = this._writableState; 
+stream.Writable.prototype.<get writableLength>	-	get	0	[length,name]	55:7de44ede:get() { return this._writableState?.length
+stream.Writable.prototype.<get errored>	-	get	0	[length,name]	95:3e5494d6:get() { let state = this._writableState; 
+stream.Writable.prototype.<get writableAborted>	-	get	0	[length,name]	221:b6bac68a:function() { let state = this._writableSta
+stream.Writable.prototype.destroy	-		2	[length,name]	238:d44660d1:function(err, cb) { let state = this._writable
+stream.Writable.prototype._destroy	-		2	[length,name]	32:5f6af628:function(err, cb) { cb(err); }
+stream.Duplex	P	Duplex	1	[length,name,prototype,fromWeb,toWeb,from]	1598:46615f83:function Duplex(options) { if (!(this instance
+stream.Duplex.fromWeb	-		2	[length,name]	109:9d9eef40:function(pair, options) { return lazyWebStream
+stream.Duplex.toWeb	-		2	[length,name]	107:aef6580c:function(duplex, options) { return lazyWebStre
+stream.Duplex.from	-		1	[length,name]	147:a0335973:function(body) { return duplexify ??= @getInte
+stream.Duplex.prototype.<get destroyed>	-	get	0	[length,name]	193:4a9f245e:get() { if (this._readableState === @undef
+stream.Duplex.prototype.<set destroyed>	-	set	1	[length,name]	220:2c6bc4d7:set(value) { let readableState = this._rea
+stream.Transform	P	Transform	1	[length,name,prototype]	727:bec9ff6c:function Transform(options) { if (!(this insta
+stream.Transform.prototype._final	-	final	1	[length,name]	373:e2076835:function final(cb) { if (typeof this._flush ==
+stream.Transform.prototype._transform	-		3	[length,name]	91:84970742:function(_chunk, _encoding, _callback) { throw
+stream.Transform.prototype._write	-		3	[length,name]	497:8af3a081:function(chunk, encoding, callback) { let rSta
+stream.Transform.prototype._read	-		0	[length,name]	119:024fd673:function() { if (this[kCallback]) { let ca
+stream.PassThrough	P	PassThrough	1	[length,name,prototype]	142:f84ee5e4:function PassThrough(options) { if (!(this ins
+stream.PassThrough.prototype._transform	-		3	[length,name]	52:0e4bd8b6:function(chunk, encoding, cb) { cb(null, chunk
+stream.duplexPair	-	duplexPair	1	[length,name]	189:c3df0fb5:function duplexPair(options) { let side0 = new
+stream.pipeline	-	pipeline	0	[length,name]	93:2b2a3710:function pipeline(...streams) { return pipelin
+stream.addAbortSignal	-	addAbortSignal	2	[length,name]	287:7d1bb2eb:function addAbortSignal(signal, stream) { if (
+stream.finished	-	eos	3	[length,name,finished,kEosNodeSynchronousCallback]	5232:5bb11ab0:function eos(stream, options, callback) { if (
+stream.finished.finished	-	finished	2	[length,name]	414:df1c43bd:function finished(stream, opts) { let autoClea
+stream.destroy	-	destroyer	2	[length,name]	697:e446d92e:function destroyer(stream, err) { if (!stream 
+stream.compose	-	compose	0	[length,name]	4042:82fb84c0:function compose(...streams) { if (streams.len
+stream.setDefaultHighWaterMark	-	setDefaultHighWaterMark	2	[length,name]	199:6cb5dbc7:function setDefaultHighWaterMark(objectMode, val
+stream.getDefaultHighWaterMark	-	getDefaultHighWaterMark	0	[length,name]	135:1f908a97:function getDefaultHighWaterMark(objectMode = !1
+stream.<get promises>	-	get	0	[length,name]	103:fc0ae9bd:get() { return @getInternalField(@internalMo
+stream.prototype.pipe	-		2	[length,name]	1393:6100ea37:function(dest, options) { let source = this; 
+stream.prototype.eventNames	-	eventNames	0	[length,name]	246:d081d28a:function eventNames() { let names = []; for 
+querystring.unescapeBuffer	-	unescapeBuffer	2	[length,name]	962:ac558a51:function unescapeBuffer(s, decodeSpaces) { l
+querystring.unescape	-	qsUnescape	2	[length,name]	177:94ca4704:function qsUnescape(s, decodeSpaces) { try {
+querystring.escape	-	qsEscape	1	[length,name]	201:4ec5a4da:function qsEscape(str) { if (typeof str !== 
+querystring.stringify	-	stringify	4	[length,name]	1115:f9567d00:function stringify(obj, sep, eq, options) { 
+querystring.parse	-	parse	4	[length,name]	3517:923ad024:function parse(qs, sep, eq, options) { let o
+timers.setTimeout	-	setTimeout	1	[length,name]	39:f7ae5353:function setTimeout() { [native code] }
+timers.clearTimeout	-	clearTimeout	1	[length,name]	41:f59d7014:function clearTimeout() { [native code] }
+timers.setInterval	-	setInterval	1	[length,name]	40:3fb77e53:function setInterval() { [native code] }
+timers.setImmediate	-	setImmediate	1	[length,name]	41:5a8a21cd:function setImmediate() { [native code] }
+timers.clearInterval	-	clearInterval	1	[length,name]	42:d27603da:function clearInterval() { [native code] }
+timers.clearImmediate	-	clearImmediate	1	[length,name]	43:f609519e:function clearImmediate() { [native code] }
+timers.<get promises>	-	get promises	0	[length,name]	138:ea07e1af:get promises() { return timersPromisesValue 
+timers.<set promises>	-	set promises	1	[length,name]	58:54affc1f:set promises(value) { timersPromisesValue = 
+timers.active	-	active	1	[length,name]	134:2cf825cf:active(timer) { if (@isCallable(timer?.refre
+timers.unenroll	-	unenroll	1	[length,name]	153:cf3005ec:unenroll(timer) { if (@isCallable(timer?.ref
+timers.enroll	-	enroll	2	[length,name]	153:70d86f11:enroll(timer, _msecs) { if (@isCallable(time
+timers/promises.setTimeout	-	setTimeout	0	[length,name]	1287:ef7c6672:function setTimeout(after = 1, value, options = 
+timers/promises.setImmediate	-	setImmediate	1	[length,name]	1083:3afe6676:function setImmediate(value, options = {}) { t
+timers/promises.setInterval	-	setInterval	0	[length,name]	2536:67243274:function setInterval(after = 1, value, options =
+string_decoder.StringDecoder	P	StringDecoder	0	[length,name,prototype]	42:e48f8c15:function StringDecoder() { [native code] }
+string_decoder.StringDecoder.prototype.<get lastChar>	-	get lastChar	0	[length,name]	37:97f6aad0:function lastChar() { [native code] }
+string_decoder.StringDecoder.prototype.<get lastNeed>	-	get lastNeed	0	[length,name]	37:e6455a04:function lastNeed() { [native code] }
+string_decoder.StringDecoder.prototype.<get lastTotal>	-	get lastTotal	0	[length,name]	38:61929698:function lastTotal() { [native code] }
+string_decoder.StringDecoder.prototype.<get encoding>	-	get encoding	0	[length,name]	37:80db0799:function encoding() { [native code] }
+string_decoder.StringDecoder.prototype.write	-	write	1	[length,name]	34:38775625:function write() { [native code] }
+string_decoder.StringDecoder.prototype.end	-	end	1	[length,name]	32:476d328f:function end() { [native code] }
+string_decoder.StringDecoder.prototype.text	-	text	2	[length,name]	33:fe68edab:function text() { [native code] }
+async_hooks.AsyncLocalStorage	P	AsyncLocalStorage	1	[length,name,prototype,bind,snapshot]	2355:1089b5c7:class AsyncLocalStorage { #defaultValue = @und
+async_hooks.AsyncLocalStorage.bind	-	bind	1	[length,name]	97:1a7e40f3:bind(fn, ...args) { return validateFunction(
+async_hooks.AsyncLocalStorage.snapshot	-	snapshot	0	[length,name]	223:359b6f63:snapshot() { var context = get(); return
+async_hooks.AsyncLocalStorage.prototype.enterWith	-	enterWith	1	[length,name]	72:3ce17903:enterWith(store) { set(push(without(get(), t
+async_hooks.AsyncLocalStorage.prototype.exit	-	exit	1	[length,name]	69:bbe316c3:exit(cb, ...args) { return this.run(@undefin
+async_hooks.AsyncLocalStorage.prototype.run	-	run	2	[length,name]	890:38b54333:run(store_value, callback, ...args) { var pr
+async_hooks.AsyncLocalStorage.prototype.disable	-	disable	0	[length,name]	169:2096b4db:disable() { var top = get(); if (top !==
+async_hooks.AsyncLocalStorage.prototype.<get name>	-	get name	0	[length,name]	45:88b8381c:get name() { return this.#name || ""; }
+async_hooks.AsyncLocalStorage.prototype.getStore	-	getStore	0	[length,name]	265:32ecfd27:getStore() { var start = get(); if (star
+async_hooks.AsyncLocalStorage.prototype.withScope	-	withScope	1	[length,name]	60:743eb7bd:withScope(store) { return new RunScope(this,
+async_hooks.AsyncLocalStorage.prototype._enable	-	_enable	0	[length,name]	12:ec9524ae:_enable() {}
+async_hooks.AsyncLocalStorage.prototype._propagate	-	_propagate	3	[length,name]	49:e9e5db3d:_propagate(_resource, _triggerResource, _type) {
+async_hooks.createHook	-	createHook	1	[length,name]	1885:b7d89608:function createHook(hook) { validateObject(hoo
+async_hooks.executionAsyncId	-	executionAsyncId	0	[length,name]	70:e5abb2b7:function executionAsyncId() { return execution
+async_hooks.triggerAsyncId	-	triggerAsyncId	0	[length,name]	41:23925560:function triggerAsyncId() { return 0; }
+async_hooks.executionAsyncResource	-	executionAsyncResource	0	[length,name]	94:e90d427f:function executionAsyncResource() { return exe
+async_hooks.AsyncResource	P	AsyncResource	2	[length,name,prototype,bind]	1610:eb771c9b:class AsyncResource { type; #snapshot; #tr
+async_hooks.AsyncResource.bind	-	bind	3	[length,name]	131:e53db8d8:bind(fn, type, thisArg) { return type = type
+async_hooks.AsyncResource.prototype.emitBefore	-	emitBefore	0	[length,name]	33:48d36d36:emitBefore() { return !0; }
+async_hooks.AsyncResource.prototype.emitAfter	-	emitAfter	0	[length,name]	32:41857e75:emitAfter() { return !0; }
+async_hooks.AsyncResource.prototype.asyncId	-	asyncId	0	[length,name]	29:257a2b28:asyncId() { return 0; }
+async_hooks.AsyncResource.prototype.triggerAsyncId	-	triggerAsyncId	0	[length,name]	55:fdf5e3c8:triggerAsyncId() { return this.#triggerAsync
+async_hooks.AsyncResource.prototype.emitDestroy	-	emitDestroy	0	[length,name]	16:cd7ed455:emitDestroy() {}
+async_hooks.AsyncResource.prototype.runInAsyncScope	-	runInAsyncScope	2	[length,name]	178:b54a6c71:runInAsyncScope(fn, thisArg, ...args) { var 
+async_hooks.AsyncResource.prototype.bind	-	bind	2	[length,name]	510:4eeb83e0:bind(fn, thisArg) { validateFunction(fn, "fn

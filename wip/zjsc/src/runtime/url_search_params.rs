@@ -21,7 +21,7 @@
 //! O estado das instâncias e o esqueleto de iterador, `forEach` e brand check são os de `web_iterable.rs`.
 
 use crate::host_function;
-use crate::runtime::array_buffer_prototype::put_native_getter;
+
 use crate::runtime::class_info::ClassInfo;
 use crate::runtime::collection_support::derived_structure;
 use crate::runtime::host_call::{HostCall, HostResult, Thrown};
@@ -35,7 +35,7 @@ use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_object::{JSFinalObject, JS_NON_FINAL_OBJECT_S_INFO};
 use crate::runtime::js_string::js_string;
 use crate::runtime::js_value::{js_number, JSValue};
-use crate::runtime::native_class_support::{create_native_class_with_length, install_global_with_attributes, instance_structure, throw_coded_type_error};
+use crate::runtime::native_class_support::{create_native_class_with_length, install_global_with_attributes, instance_structure, put_native_accessor, throw_coded_type_error};
 use crate::runtime::native_function::NativeFunction;
 use crate::runtime::property_attribute::DONT_ENUM;
 use crate::runtime::property_name::PropertyName;
@@ -374,8 +374,10 @@ pub fn install_url_search_params(global_object: &JSGlobalObject) {
         ("toJSON", 0, to_json_fn),
     ];
     put_enumerable_methods(global_object, &prototype, &methods);
-    put_native_getter(vm, global_object, &prototype, "length", size_fn, Intrinsic::NoIntrinsic, DONT_ENUM);
-    put_native_getter(vm, global_object, &prototype, "size", size_fn, Intrinsic::NoIntrinsic, 0);
+    // Atributos do WebCore (`CustomAccessor`): o `toString()` do getter é o nome puro (`function size() { [native code] }`),
+    // medido no bun 1.4.2, ao contrário do getter intrínseco do JSC (`function get byteLength() { ... }`).
+    put_native_accessor(vm, global_object, &prototype, "length", size_fn, None, DONT_ENUM);
+    put_native_accessor(vm, global_object, &prototype, "size", size_fn, None, 0);
     put_iterator_alias(global_object, &prototype);
     let inspect_function = JSFunction::create_native(
         vm,

@@ -576,6 +576,12 @@ impl FunctionExecutable {
         self.rare_data.as_mut().expect("m_rareData")
     }
 
+    /// Fixa o texto que `toString` devolve (o `m_asString` que `toStringSlow` calcularia do fonte). O bun mostra o fonte
+    /// empacotado dos módulos embutidos; ver `api::builtin_source_texts`.
+    pub fn override_as_string(this: &Rc<RefCell<FunctionExecutable>>, text: JSStringRef) {
+        this.borrow_mut().ensure_rare_data().as_string = Some(text);
+    }
+
     /// `toString(JSGlobalObject*)` (FunctionExecutableInlines.h). `None` é o `nullptr` com exceção pendente.
     pub fn to_string(this: &Rc<RefCell<FunctionExecutable>>, global_object: &JSGlobalObject) -> Option<JSStringRef> {
         let as_string = this.borrow_mut().ensure_rare_data().as_string.clone();

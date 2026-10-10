@@ -180,9 +180,13 @@ pub(crate) fn resolve(request: &str) -> Resolved<'static> {
     resolve_in(BUILTINS, request)
 }
 
-/// O objeto do módulo: do cache, ou recém-instalado (e guardado).
+/// O objeto do módulo: do cache, ou recém-instalado (e guardado, com o texto do bun nas funções dele).
 pub(crate) fn load(global_object: &JSGlobalObject, entry: &'static BuiltinEntry) -> HostResult {
-    cached(entry.name, || (entry.install)(global_object))
+    cached(entry.name, || {
+        let installed = (entry.install)(global_object)?;
+        crate::api::builtin_source_texts::apply(global_object, entry.name, installed);
+        Ok(installed)
+    })
 }
 
 /// O objeto de `name` guardado para o programa: `build` roda na primeira chamada (serve também aos auxiliares que não

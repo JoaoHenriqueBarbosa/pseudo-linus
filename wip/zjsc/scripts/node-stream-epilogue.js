@@ -8,7 +8,7 @@
     "internal/primordials": { SafeSet, SafeArrayIterator },
     // Nenhum hook de `async_hooks` está ligado (o módulo ainda não existe), então o `eos` não embrulha o callback.
     "internal/async_hooks": { enabledHooksExist: () => false },
-    "node:util/types": { isArrayBufferView: ArrayBuffer.isView, isUint8Array: value => value instanceof Uint8Array },
+    "node:util/types": host.requireBuiltin("node:util/types"),
   };
 
   const loaded = { __proto__: null };

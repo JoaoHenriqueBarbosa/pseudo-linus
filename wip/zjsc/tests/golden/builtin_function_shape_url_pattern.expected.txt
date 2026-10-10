@@ -1,0 +1,12 @@
+url.URLPattern	P	URLPattern	0	[length,name,prototype]	39:51bab415:function URLPattern() { [native code] }
+url.URLPattern.prototype.<get protocol>	-	get protocol	0	[length,name]	37:53f47154:function protocol() { [native code] }
+url.URLPattern.prototype.<get username>	-	get username	0	[length,name]	37:566b68b8:function username() { [native code] }
+url.URLPattern.prototype.<get password>	-	get password	0	[length,name]	37:051d3ea9:function password() { [native code] }
+url.URLPattern.prototype.<get hostname>	-	get hostname	0	[length,name]	37:5c80246d:function hostname() { [native code] }
+url.URLPattern.prototype.<get port>	-	get port	0	[length,name]	33:211a1473:function port() { [native code] }
+url.URLPattern.prototype.<get pathname>	-	get pathname	0	[length,name]	37:75006b6c:function pathname() { [native code] }
+url.URLPattern.prototype.<get search>	-	get search	0	[length,name]	35:adfdd630:function search() { [native code] }
+url.URLPattern.prototype.<get hash>	-	get hash	0	[length,name]	33:f0e95798:function hash() { [native code] }
+url.URLPattern.prototype.<get hasRegExpGroups>	-	get hasRegExpGroups	0	[length,name]	44:cef9cbb3:function hasRegExpGroups() { [native code] }
+url.URLPattern.prototype.test	-	test	0	[length,name]	33:8aac7984:function test() { [native code] }
+url.URLPattern.prototype.exec	-	exec	0	[length,name]	33:ab7cb4c5:function exec() { [native code] }

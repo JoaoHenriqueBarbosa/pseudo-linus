@@ -1,5 +1,6 @@
 //! API de alto nível (equivalente ao que `JSC::evaluate` oferece a quem embute o motor).
 pub mod builtin_modules;
+pub mod builtin_source_texts;
 pub mod browser_modules;
 pub mod bun_options;
 pub mod eval;

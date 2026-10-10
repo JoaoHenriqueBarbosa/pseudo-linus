@@ -446,6 +446,9 @@ impl StackFrame {
                 (line_column.line, line_column.column) = map.map(line_column.line, line_column.column);
             }
             let is_builtin = matches!(owner, ScriptExecutableRef::Function(function) if function.borrow().is_builtin_function());
+            // Um builtin com `sourceURL` (os módulos embutidos do bun, `node:events`) mostra a posição real no fonte dele;
+            // só o builtin do próprio JSC, sem URL, vira `native:1:11`.
+            let is_native_builtin = is_builtin && source_url.is_empty();
             // Medido no bun 1.4.2: o construtor padrão (`class B extends A {}`) tem o fonte sintético
             // `(function (...args) { super(...args); })` sem URL, e o frame sai `new B (unknown:1:28)`.
             let is_default_constructor =
@@ -459,7 +462,7 @@ impl StackFrame {
                 has_line_and_column_info: true,
                 construct_back_offset,
             };
-            if is_builtin { location.with_builtin_location() } else { location }
+            if is_native_builtin { location.with_builtin_location() } else { location }
         })
     }
 
