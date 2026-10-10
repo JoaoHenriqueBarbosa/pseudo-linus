@@ -43,6 +43,17 @@ pub struct Bridge {
     /// O documento veio com COOP e COEP num contexto seguro: `crossOriginIsolated`, `SharedArrayBuffer` e o relógio
     /// de 5 µs.
     pub cross_origin_isolated: bool,
+    /// As superfícies dos canvas 2D, pelo índice que o contexto guarda.
+    pub canvases: RefCell<Vec<crate::canvas::Surface>>,
+}
+
+/// Bytes em latin1 (um byte por unidade de código), o jeito de pixels cruzarem a ponte como string.
+fn latin1_bytes(text: &str) -> Vec<u8> {
+    text.chars().map(|c| c as u32 as u8).collect()
+}
+
+fn latin1_string(bytes: &[u8]) -> String {
+    bytes.iter().map(|&b| char::from(b)).collect()
 }
 
 /// As operações que leem o atributo `style` (e por isso o sincronizam): a lista inteira de atributos, a serialização,
@@ -177,6 +188,30 @@ impl Bridge {
                 m.append_children(parent, &nodes);
             }
         });
+    }
+
+    /// A imagem de um desenho no canvas, em bitmap premultiplicado: ['image', índice decodificado], ['canvas',
+    /// índice da superfície] ou ['rgba', largura, altura, pixels em latin1] (ImageData, ImageBitmap).
+    fn canvas_source(&self, spec: Option<&DomArg>) -> Option<std::sync::Arc<vello_cpu::Pixmap>> {
+        let Some(DomArg::List(spec)) = spec else { return None };
+        let at = |i: usize| match spec.get(i) {
+            Some(DomArg::Num(n)) => *n,
+            _ => 0.0,
+        };
+        let pixmap = match spec.first() {
+            Some(DomArg::Str(kind)) if kind == "image" => {
+                let images = self.images.borrow();
+                let image = images.get(at(1) as usize)?;
+                crate::canvas::premultiplied(image.width, image.height, &image.rgba)?
+            }
+            Some(DomArg::Str(kind)) if kind == "canvas" => return self.canvases.borrow_mut().get_mut(at(1) as usize)?.snapshot(),
+            Some(DomArg::Str(kind)) if kind == "rgba" => {
+                let Some(DomArg::Str(pixels)) = spec.get(3) else { return None };
+                crate::canvas::premultiplied(at(1) as u32, at(2) as u32, &latin1_bytes(pixels))?
+            }
+            _ => return None,
+        };
+        Some(std::sync::Arc::new(pixmap))
     }
 
     /// `fetch` e `XMLHttpRequest` da página: `[status, reason, url final, cabeçalhos (nome, valor, ...), corpo]`, ou
@@ -363,7 +398,7 @@ impl DomHost for Bridge {
             "fetch" => self.fetch(args),
             // Decodifica os bytes (em latin1, um byte por unidade) e devolve [índice, largura, altura], ou null.
             "decodeImage" => {
-                let bytes: Vec<u8> = str_arg(args, 0)?.chars().map(|c| c as u32 as u8).collect();
+                let bytes = latin1_bytes(str_arg(args, 0)?);
                 let Some(decoded) = crate::imaging::decode(&bytes) else { return Ok(DomArg::Null) };
                 let (width, height) = (decoded.width, decoded.height);
                 let mut images = self.images.borrow_mut();
@@ -372,7 +407,61 @@ impl DomHost for Bridge {
             }
             "measureText" => {
                 let font = crate::canvas_text::CanvasFont { family: &str_arg(args, 1)?, weight: num_arg(args, 2)? as f32, style: &str_arg(args, 3)?, size: num_arg(args, 4)? as f32 };
-                Ok(DomArg::List(crate::canvas_text::measure(&str_arg(args, 0)?, &font).into_iter().map(DomArg::Num).collect()))
+                Ok(DomArg::List(crate::canvas_text::measure(&str_arg(args, 0)?, &font, str_arg(args, 5)?).into_iter().map(DomArg::Num).collect()))
+            }
+            "canvasCreate" => {
+                let mut canvases = self.canvases.borrow_mut();
+                canvases.push(crate::canvas::Surface::new(num_arg(args, 0)? as u32, num_arg(args, 1)? as u32));
+                Ok(DomArg::Num((canvases.len() - 1) as f64))
+            }
+            "canvasResize" => {
+                let mut canvases = self.canvases.borrow_mut();
+                canvases.get_mut(num_arg(args, 0)? as usize).ok_or_else(illegal)?.resize(num_arg(args, 1)? as u32, num_arg(args, 2)? as u32);
+                Ok(DomArg::Undefined)
+            }
+            // [índice, comum, comando, fonte]: a fonte do `drawImage` ou do padrão vira bitmap antes do empréstimo
+            // da superfície de destino (desenhar o canvas nele mesmo é permitido).
+            "canvasDraw" => {
+                let source = self.canvas_source(args.get(3));
+                let (DomArg::List(common), DomArg::List(cmd)) = (args.get(1).ok_or_else(illegal)?, args.get(2).ok_or_else(illegal)?) else { return Err(illegal()) };
+                let mut canvases = self.canvases.borrow_mut();
+                canvases.get_mut(num_arg(args, 0)? as usize).ok_or_else(illegal)?.draw(common, cmd, source);
+                Ok(DomArg::Undefined)
+            }
+            "canvasRead" => {
+                let mut canvases = self.canvases.borrow_mut();
+                let surface = canvases.get_mut(num_arg(args, 0)? as usize).ok_or_else(illegal)?;
+                Ok(DomArg::Str(latin1_string(&surface.read(num_arg(args, 1)? as i64, num_arg(args, 2)? as i64, num_arg(args, 3)? as u32, num_arg(args, 4)? as u32))))
+            }
+            "canvasWrite" => {
+                let mut canvases = self.canvases.borrow_mut();
+                let surface = canvases.get_mut(num_arg(args, 0)? as usize).ok_or_else(illegal)?;
+                surface.write(num_arg(args, 1)? as i64, num_arg(args, 2)? as i64, num_arg(args, 3)? as u32, num_arg(args, 4)? as u32, &latin1_bytes(str_arg(args, 5)?));
+                Ok(DomArg::Undefined)
+            }
+            // Os pixels RGBA não premultiplicados de uma imagem decodificada ou de um canvas, em latin1.
+            "sourceRgba" => {
+                let Some(DomArg::List(spec)) = args.first() else { return Err(illegal()) };
+                let index = match spec.get(1) {
+                    Some(DomArg::Num(n)) => *n as usize,
+                    _ => return Err(illegal()),
+                };
+                let bytes = match spec.first() {
+                    Some(DomArg::Str(kind)) if kind == "image" => self.images.borrow().get(index).map(|i| i.rgba.clone()).unwrap_or_default(),
+                    Some(DomArg::Str(kind)) if kind == "canvas" => self.canvases.borrow_mut().get_mut(index).map(|c| c.rgba().2).unwrap_or_default(),
+                    _ => return Err(illegal()),
+                };
+                Ok(DomArg::Str(latin1_string(&bytes)))
+            }
+            // [índice da superfície ou null, largura, altura, mime, qualidade] → `mime;base64,...`; canvas sem
+            // contexto 2D codifica um bitmap transparente do tamanho dele.
+            "canvasEncode" => {
+                let (width, height) = (num_arg(args, 1)? as u32, num_arg(args, 2)? as u32);
+                let rgba = match args.first() {
+                    Some(DomArg::Num(index)) => self.canvases.borrow_mut().get_mut(*index as usize).ok_or_else(illegal)?.rgba().2,
+                    _ => vec![0; (width as usize) * (height as usize) * 4],
+                };
+                Ok(DomArg::Str(crate::imaging::encode(str_arg(args, 3)?, num_arg(args, 4).unwrap_or(-1.0), width, height, &rgba)))
             }
             "root" => Ok(num(self.doc.borrow().root_node().id)),
             "docElement" => {

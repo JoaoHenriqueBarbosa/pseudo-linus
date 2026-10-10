@@ -1,0 +1,14 @@
+<!doctype html><body><script>
+// toDataURL no oráculo, em cenas cujos pixels não dependem de antisserrilhado (o PNG e o JPEG têm de sair iguais).
+const make = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; if (draw) draw(c.getContext('2d')); return c; };
+const out = {
+  blank: make(5, 3).toDataURL(),
+  zero: make(0, 4).toDataURL(),
+  rect: make(16, 8, (c) => { c.fillStyle = '#c03'; c.fillRect(2, 1, 9, 5); c.fillStyle = 'rgba(0, 0, 255, 0.5)'; c.fillRect(6, 3, 8, 4); }).toDataURL(),
+  pattern: make(24, 24, (c) => { const o = make(6, 6, (oc) => { oc.fillStyle = 'black'; oc.fillRect(0, 0, 3, 3); }); c.fillStyle = c.createPattern(o, 'repeat'); c.fillRect(0, 0, 24, 24); }).toDataURL(),
+  jpeg: make(16, 16, (c) => { c.fillStyle = 'orange'; c.fillRect(0, 0, 16, 8); c.fillStyle = 'teal'; c.fillRect(0, 8, 16, 8); }).toDataURL('image/jpeg', 0.8),
+  jpegDefault: make(8, 8, (c) => { c.fillStyle = 'rgba(255, 0, 0, 0.5)'; c.fillRect(0, 0, 8, 8); }).toDataURL('image/jpeg'),
+  webp: make(4, 4).toDataURL('image/bogus'),
+};
+document.body.setAttribute('data-out', JSON.stringify(out));
+</script></body>

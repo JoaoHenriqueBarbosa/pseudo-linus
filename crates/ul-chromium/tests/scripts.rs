@@ -1,59 +1,9 @@
 //! Comportamento de scripts em páginas pequenas servidas da memória: o DOM despejado e o que o console recebeu.
 //! Cada caso fixa uma semântica do navegador que uma página real do conjunto da internet expôs.
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 mod common;
 
-use ul_chromium::fetch::Fetcher;
-use ul_chromium::page::Page;
-use ul_net::net::client::{FetchError, Response};
-use ul_net::net::url;
-
-#[derive(Debug, Default)]
-struct Capture(RefCell<String>);
-
-impl zjsc::runtime::console_host::ConsoleHost for Capture {
-    fn write_stdout(&self, bytes: &[u8]) {
-        self.0.borrow_mut().push_str(&String::from_utf8_lossy(bytes));
-    }
-    fn write_stderr(&self, bytes: &[u8]) {
-        self.0.borrow_mut().push_str(&String::from_utf8_lossy(bytes));
-    }
-    fn read_stdin_line(&self) -> Option<String> {
-        None
-    }
-    fn read_stdin_rest(&self) -> Vec<u8> {
-        Vec::new()
-    }
-}
-
-/// Serve `files` (caminho, corpo) em `http://t.test/`; o resto é 404.
-fn serve(files: &[(&str, &str)]) -> Fetcher {
-    let files: Vec<(String, String)> = files.iter().map(|(p, b)| ((*p).to_owned(), (*b).to_owned())).collect();
-    Rc::new(move |target: &str, _spec: &ul_net::net::client::RequestSpec<'_>| {
-        let parsed = url::parse(target, false).map_err(FetchError::InvalidUrl)?;
-        let found = files.iter().find(|(p, _)| *p == parsed.target());
-        let (status, body) = match found {
-            Some((p, b)) => (200, (p.clone(), b.clone())),
-            None => (404, (String::new(), String::new())),
-        };
-        let kind = if body.0.ends_with(".js") { "text/javascript" } else { "text/html; charset=utf-8" };
-        Ok(Response { status, reason: String::new(), headers: vec![(b"content-type".to_vec(), kind.as_bytes().to_vec())], body: body.1.into_bytes(), url: parsed })
-    })
-}
-
-fn run(files: &[(&str, &str)]) -> (String, String) {
-    common::install_image_fonts();
-    let mut page = Page::load("http://t.test/", serve(files)).unwrap();
-    let console = Rc::new(Capture::default());
-    page.console = console.clone();
-    page.run();
-    let dom = page.dump_dom();
-    let log = console.0.borrow().clone();
-    (dom, log)
-}
+use common::run;
 
 #[test]
 fn console_reaches_host() {

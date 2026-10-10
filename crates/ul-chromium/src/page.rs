@@ -126,6 +126,7 @@ impl Page {
             unsynced_styles: RefCell::new(Vec::new()),
             images: RefCell::new(Vec::new()),
             cross_origin_isolated: response.cross_origin_isolated,
+            canvases: RefCell::new(Vec::new()),
         };
         Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len() })
     }

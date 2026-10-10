@@ -7,6 +7,7 @@ use parley::{FontContext, FontFamily, FontStyle, FontWeight, Layout, LayoutConte
 use skrifa::instance::{LocationRef, Size};
 use skrifa::metrics::GlyphMetrics;
 use skrifa::outline::{DrawSettings, Engine, HintingInstance, HintingOptions, OutlinePen, SmoothMode, Target};
+use skrifa::raw::TableProvider;
 use skrifa::{FontRef, GlyphId, MetadataProvider};
 
 thread_local! {
@@ -30,12 +31,42 @@ pub struct PlacedGlyph {
     pub size: f32,
 }
 
-/// A forma de um texto: os glifos, a largura (soma dos avanços) e o ascendente e descendente da fonte primária.
+/// A forma de um texto: os glifos, a largura (soma dos avanços), o ascendente e descendente da fonte primária e a
+/// caixa em do OS/2 (o `sTypoAscender` e o `sTypoDescender` normalizados para o tamanho).
 pub struct Shaped {
     pub glyphs: Vec<PlacedGlyph>,
     pub width: f32,
     pub ascent: f32,
     pub descent: f32,
+    pub em_ascent: f64,
+    pub em_descent: f64,
+}
+
+/// A caixa em de uma fonte no tamanho pedido, em 1/64 de pixel como o LayoutUnit do Blink.
+fn em_box(data: &parley::FontData, size: f32) -> (f64, f64) {
+    let Some(os2) = FontRef::from_index(data.data.as_ref(), data.index).ok().and_then(|f| f.os2().ok()) else { return (0.0, 0.0) };
+    let (ascent, descent) = (f64::from(os2.s_typo_ascender()), f64::from(os2.s_typo_descender()).abs());
+    if ascent + descent == 0.0 {
+        return (0.0, 0.0);
+    }
+    let snap = |v: f64| (v * 64.0).round() / 64.0;
+    let size = f64::from(size);
+    (snap(size * ascent / (ascent + descent)), snap(size * descent / (ascent + descent)))
+}
+
+/// Quanto a linha de base alfabética desce em relação ao `y` pedido, para cada `textBaseline` (medido no oráculo):
+/// `top` e `bottom` são a caixa em, `middle` o meio dela, `hanging` 80% do ascendente arredondado (em f32) e
+/// `ideographic` o descendente arredondado.
+pub fn baseline_shift(shaped: &Shaped, baseline: &str) -> f64 {
+    let (ascent, descent) = (f64::from(shaped.ascent.round()), f64::from(shaped.descent.round()));
+    match baseline {
+        "top" => shaped.em_ascent,
+        "hanging" => f64::from((ascent * 0.8) as f32),
+        "middle" => (shaped.em_ascent - shaped.em_descent) / 2.0,
+        "ideographic" => -descent,
+        "bottom" => -shaped.em_descent,
+        _ => 0.0,
+    }
 }
 
 /// Escolhe as fontes e posiciona os glifos de `text` numa linha só, como o Blink faz para o canvas.
@@ -46,7 +77,7 @@ pub fn shape(text: &str, font: &CanvasFont<'_>) -> Shaped {
     }
     // Texto vazio: as métricas vêm da fonte primária mesmo sem glifo; um espaço a escolhe.
     let blank = shape_line(" ", font);
-    Shaped { ascent: blank.ascent, descent: blank.descent, ..shaped }
+    Shaped { ascent: blank.ascent, descent: blank.descent, em_ascent: blank.em_ascent, em_descent: blank.em_descent, ..shaped }
 }
 
 fn shape_line(text: &str, font: &CanvasFont<'_>) -> Shaped {
@@ -65,7 +96,7 @@ fn shape_line(text: &str, font: &CanvasFont<'_>) -> Shaped {
         builder.push_default(StyleProperty::FontStyle(style));
         let mut layout: Layout<()> = builder.build(text);
         layout.break_all_lines(None);
-        let mut shaped = Shaped { glyphs: Vec::new(), width: 0.0, ascent: 0.0, descent: 0.0 };
+        let mut shaped = Shaped { glyphs: Vec::new(), width: 0.0, ascent: 0.0, descent: 0.0, em_ascent: 0.0, em_descent: 0.0 };
         let mut primary = true;
         for line in layout.lines() {
             for item in line.items() {
@@ -74,6 +105,7 @@ fn shape_line(text: &str, font: &CanvasFont<'_>) -> Shaped {
                 if primary {
                     let metrics = run.run().metrics();
                     (shaped.ascent, shaped.descent) = (metrics.ascent, metrics.descent);
+                    (shaped.em_ascent, shaped.em_descent) = em_box(&data, size);
                     primary = false;
                 }
                 for glyph in run.glyphs() {
@@ -122,6 +154,23 @@ fn hinting(font: &FontRef<'_>, size: f32) -> Option<HintingInstance> {
     HintingInstance::new(&font.outline_glyphs(), Size::new(size), LocationRef::default(), options).ok()
 }
 
+/// Desenha o contorno de um glifo (em pixels, y para cima) na caneta. Com `scale`, o glifo sai com o hinting do
+/// tamanho no dispositivo (`size * scale`) e a caneta recebe as coordenadas do dispositivo; sem, o contorno puro.
+pub fn draw_glyph(glyph: &PlacedGlyph, scale: Option<f32>, pen: &mut impl OutlinePen) -> Option<()> {
+    let font = FontRef::from_index(glyph.font.data.as_ref(), glyph.font.index).ok()?;
+    let outline = font.outline_glyphs().get(GlyphId::new(glyph.id))?;
+    match scale {
+        Some(scale) => {
+            let instance = hinting(&font, glyph.size * scale)?;
+            outline.draw(DrawSettings::hinted(&instance, false), pen).ok()?;
+        }
+        None => {
+            outline.draw(DrawSettings::unhinted(Size::new(glyph.size), LocationRef::default()), pen).ok()?;
+        }
+    }
+    Some(())
+}
+
 /// A caixa de tinta de um glifo em pixels (y para cima): a horizontal do contorno sem hinting (o hinting leve não
 /// mexe no eixo x), a vertical do contorno com hinting; arredondadas para fora como o Skia entrega ao Blink.
 fn ink_box(glyph: &PlacedGlyph) -> Option<[f32; 4]> {
@@ -136,8 +185,9 @@ fn ink_box(glyph: &PlacedGlyph) -> Option<[f32; 4]> {
 }
 
 /// O `measureText`: [largura, actualBoundingBoxLeft, actualBoundingBoxRight, ascendente e descendente de tinta,
-/// ascendente e descendente da fonte], tudo relativo à linha de base alfabética e ao início do texto.
-pub fn measure(text: &str, font: &CanvasFont<'_>) -> [f64; 7] {
+/// ascendente e descendente da fonte, deslocamento da linha de base de `baseline`], relativos à linha de base
+/// alfabética e ao início do texto.
+pub fn measure(text: &str, font: &CanvasFont<'_>, baseline: &str) -> [f64; 8] {
     let shaped = shape(text, font);
     let (mut left, mut right, mut ascent, mut descent) = (0f32, 0f32, 0f32, 0f32);
     let mut first = true;
@@ -150,5 +200,6 @@ pub fn measure(text: &str, font: &CanvasFont<'_>) -> [f64; 7] {
             (left, right, ascent, descent) = (left.max(-x0), right.max(x1), ascent.max(y1), descent.max(-y0));
         }
     }
-    [shaped.width, left, right, ascent, descent, shaped.ascent.round(), shaped.descent.round()].map(|v| f64::from(v) + 0.0)
+    let shift = baseline_shift(&shaped, baseline);
+    [f64::from(shaped.width), f64::from(left), f64::from(right), f64::from(ascent), f64::from(descent), f64::from(shaped.ascent.round()), f64::from(shaped.descent.round()), shift].map(|v| v + 0.0)
 }

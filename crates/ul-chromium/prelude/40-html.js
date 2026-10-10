@@ -264,7 +264,14 @@ defineHtml('HTMLCanvasElement', ['canvas'], (cls) => {
       hidden(this, '__context', [kind, ctx]);
       return ctx;
     },
-    toDataURL() { return 'data:,'; }, toBlob(cb) { cb(null); }, transferControlToOffscreen() { throw new TypeError('not supported'); },
+    toDataURL(type, quality) { return canvasDataURL(this, type, quality); },
+    toBlob(callback, type, quality) {
+      if (typeof callback !== 'function') throw new TypeError("Failed to execute 'toBlob' on 'HTMLCanvasElement': The callback provided as parameter 1 is not a function.");
+      const url = canvasDataURL(this, type, quality);
+      const blob = url === 'data:,' ? null : new Blob([Uint8Array.from(atob(url.slice(url.indexOf(',') + 1)), (c) => c.charCodeAt(0))], { type: url.slice(5, url.indexOf(';')) });
+      setTimeout(() => callback(blob), 0);
+    },
+    transferControlToOffscreen() { throw new TypeError('not supported'); },
   });
 });
 for (const [name, tags] of [['HTMLVideoElement', ['video']], ['HTMLAudioElement', ['audio']]]) {

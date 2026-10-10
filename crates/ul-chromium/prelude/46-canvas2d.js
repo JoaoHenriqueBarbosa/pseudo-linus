@@ -146,7 +146,7 @@ const PathMethods = {
     }
     if (!pathFinite(...v)) return;
     const s = pathState(this);
-    s.ops.push(['R', ...v, list]);
+    s.ops.push(['R', ...v, list.map((r) => (typeof r === 'object' && r !== null ? [Number(r.x ?? 0), Number(r.y ?? 0)] : Number(r)))]);
     s.current = s.start = [v[0], v[1]];
   },
 };
@@ -306,14 +306,14 @@ const createImageBitmap = function createImageBitmap(source, ...rest) {
   return Promise.reject(new TypeError("Failed to execute 'createImageBitmap' on 'Window': The provided value is not of type '(Blob or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or ImageData or OffscreenCanvas or SVGImageElement or VideoFrame)'."));
 };
 
-// ---- Imagens decodificadas: a ponte guarda os pixels e devolve [alça, largura, altura]; aqui só as dimensões.
+// ---- Imagens decodificadas: a ponte guarda os pixels e devolve [alça, largura, altura]; os pixels (RGBA não
+// premultiplicado) só cruzam quando alguém precisa deles.
+const imagePixels = (handle) => bytesOf(op('sourceRgba', ['image', handle]));
 const decodeImageBytes = (bytes) => {
-  let latin1 = '';
-  for (let i = 0; i < bytes.length; i += 8192) latin1 += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
-  const result = op('decodeImage', latin1);
-  return result === null ? null : { width: result[1], height: result[2], pixels: null };
+  const result = op('decodeImage', latin1Of(bytes));
+  return result === null ? null : { width: result[1], height: result[2], pixels: imagePixels(result[0]) };
 };
-const decodedImage = (img) => { const image = img[P.__image]; return image ? { width: image[1], height: image[2], pixels: null } : null; };
+const decodedImage = (img) => { const image = img[P.__image]; return image ? { width: image[1], height: image[2], pixels: imagePixels(image[0]) } : null; };
 
 // ---- O contexto 2D.
 const CANVAS_COMPOSITE = new Set(['source-over', 'source-in', 'source-out', 'source-atop', 'destination-over', 'destination-in', 'destination-out', 'destination-atop', 'lighter', 'copy', 'xor', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity', 'plus-lighter']);
@@ -330,7 +330,7 @@ const canvas2dDefaults = () => ({
   shadowOffsetX: 0, shadowOffsetY: 0, shadowBlur: 0, shadowColor: [0, 0, 0, 0],
   font: parseCanvasFont('10px sans-serif'), textAlign: 'start', textBaseline: 'alphabetic', direction: 'ltr', letterSpacing: '0px', wordSpacing: '0px',
   fontKerning: 'auto', fontStretch: 'normal', fontVariantCaps: 'normal', textRendering: 'auto', lang: 'inherit',
-  imageSmoothingEnabled: true, imageSmoothingQuality: 'low', filter: 'none', clip: null,
+  imageSmoothingEnabled: true, imageSmoothingQuality: 'low', filter: 'none', clips: [],
 });
 const canvas2dStates = new WeakMap();
 const c2d = (ctx) => { const s = canvas2dStates.get(ctx); if (!s) throw new TypeError('Illegal invocation'); return s; };
@@ -361,45 +361,50 @@ const canvasStyle = (value) => {
   return parseCssColor(value);
 };
 const canvasTransformPoint = (t, x, y) => [t[0] * x + t[2] * y + t[4], t[1] * x + t[3] * y + t[5]];
-// Composição source-over de uma cor sólida com cobertura, em 8 bits pré-multiplicados como o Skia, e volta.
-const blendPixel = (pixels, at, [r, g, b, a], coverage) => {
-  const sa = a * coverage;
-  if (sa <= 0) return;
-  const da = pixels[at + 3] / 255;
-  const outA = sa + da * (1 - sa);
-  if (outA <= 0) { pixels.fill(0, at, at + 4); return; }
-  for (let c = 0; c < 3; c++) {
-    const src = [r, g, b][c] / 255;
-    const dst = pixels[at + c] / 255;
-    pixels[at + c] = Math.round(((src * sa + dst * da * (1 - sa)) / outA) * 255);
+// ---- O desenho vai à superfície da ponte (vello_cpu), que rasteriza quando a página lê os pixels.
+const latin1Of = (bytes) => { let out = ''; for (let i = 0; i < bytes.length; i += 8192) out += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192)); return out; };
+const bytesOf = (latin1) => { const out = new Uint8ClampedArray(latin1.length); for (let i = 0; i < latin1.length; i++) out[i] = latin1.charCodeAt(i); return out; };
+// A pintura de fillStyle/strokeStyle como a ponte a lê, e a fonte de imagem do padrão.
+const canvasPaint = (style) => {
+  if (Array.isArray(style)) return [['color', ...style], null];
+  if (style instanceof CanvasGradient) {
+    const g = style[P.__gradient];
+    const stops = g.stops.map((stop, i) => [stop, i]).sort((a, b) => a[0][0] - b[0][0] || a[1] - b[1]).map(([[o, c]]) => [o, ...c]);
+    return [[g.kind, ...g.points, stops], null];
   }
-  pixels[at + 3] = Math.round(outA * 255);
+  const p = style[P.__pattern];
+  const m = p.transform;
+  return [['pattern', p.repetition, m ? [m[0], m[1], m[4], m[5], m[12], m[13]] : []], p.source.spec];
 };
-// Retângulo alinhado aos eixos com cobertura de área (o AA analítico do Skia para retângulos).
-const fillAxisRect = (s, x0, y0, x1, y1, color) => {
-  const { width, height } = s;
-  if (x1 < x0) [x0, x1] = [x1, x0];
-  if (y1 < y0) [y0, y1] = [y1, y0];
-  const px0 = Math.max(0, Math.floor(x0)), px1 = Math.min(width, Math.ceil(x1));
-  const py0 = Math.max(0, Math.floor(y0)), py1 = Math.min(height, Math.ceil(y1));
-  for (let y = py0; y < py1; y++) {
-    const cy = Math.min(y + 1, y1) - Math.max(y, y0);
-    for (let x = px0; x < px1; x++) {
-      const cx = Math.min(x + 1, x1) - Math.max(x, x0);
-      blendPixel(s.pixels, (y * width + x) * 4, color, cx * cy);
-    }
-  }
+// O que vale para todo desenho: transformação, opacidade, composição, recortes, sombra e suavização de imagem.
+const canvasCommon = (s) => {
+  const st = s.state;
+  return [st.transform, st.globalAlpha, st.globalCompositeOperation, st.clips, [st.shadowColor, st.shadowBlur, st.shadowOffsetX, st.shadowOffsetY], st.imageSmoothingEnabled, st.imageSmoothingQuality];
 };
-const axisAligned = (t) => t[1] === 0 && t[2] === 0;
-const canvasEnsureBitmap = (s) => {
-  const width = s.canvas.width, height = s.canvas.height;
-  if (s.width !== width || s.height !== height) { s.width = width; s.height = height; s.pixels = new Uint8Array(width * height * 4); }
+const canvasDraw = (s, cmd, source = null) => op('canvasDraw', s.surface, canvasCommon(s), cmd, source);
+// O caminho a desenhar: o do contexto (já com a transformação de cada chamada) ou um Path2D na transformação atual.
+const canvasPathArg = (s, path) => (path instanceof Path2D ? [pathState(path).ops, s.state.transform] : [s.path.ops, []]);
+const canvasStrokeArg = (st) => [st.lineWidth, st.lineCap, st.lineJoin, st.miterLimit, st.lineDash, st.lineDashOffset];
+const canvasRectPath = (x, y, w, h) => [['M', x, y], ['L', x + w, y], ['L', x + w, y + h], ['L', x, y + h], ['Z']];
+const canvasFillRule = (method, pathOrRule, rule) => {
+  const fillRule = String(pathOrRule instanceof Path2D ? rule ?? 'nonzero' : pathOrRule ?? 'nonzero');
+  if (fillRule !== 'nonzero' && fillRule !== 'evenodd') throw new TypeError(`Failed to execute '${method}' on 'CanvasRenderingContext2D': The provided value '${fillRule}' is not a valid enum value of type CanvasFillRule.`);
+  return fillRule;
+};
+const canvasText = (s, method, text, x, y, maxWidth) => {
+  const v = [x, y].map(Number);
+  const max = maxWidth === undefined ? null : Number(maxWidth);
+  if (canvasNotFinite(...v) || (max !== null && !(Number.isFinite(max) && max > 0))) return;
+  const font = s.state.font;
+  const content = String(text).replace(/[\t\n\f\r]/g, ' ');
+  const [paint, source] = canvasPaint(method === 'fillText' ? s.state.fillStyle : s.state.strokeStyle);
+  canvasDraw(s, [method, [content, font.family, canvasFontWeight(font.weight), font.style, font.size, v[0], v[1], max, s.state.textAlign, s.state.textBaseline, s.state.direction === 'rtl' ? 'rtl' : 'ltr'], method === 'strokeText' ? canvasStrokeArg(s.state) : null, paint], source);
 };
 const canvasNotFinite = (...values) => !values.every((v) => Number.isFinite(v));
 const CANVAS_2D_IMPL = {
   save() { const s = c2d(this); s.stack.push({ ...s.state, transform: s.state.transform.slice(), lineDash: s.state.lineDash.slice() }); },
   restore() { const s = c2d(this); if (s.stack.length) s.state = s.stack.pop(); },
-  reset() { const s = c2d(this); s.state = canvas2dDefaults(); s.stack = []; s.path = { ops: [], current: null, start: null }; hidden(this, '__path', s.path); s.pixels = new Uint8Array(s.width * s.height * 4); },
+  reset() { const s = c2d(this); s.state = canvas2dDefaults(); s.stack = []; s.path = { ops: [], current: null, start: null }; hidden(this, '__path', s.path); op('canvasResize', s.surface, s.canvas.width, s.canvas.height); },
   isContextLost() { c2d(this); return false; },
   getContextAttributes() { const s = c2d(this); return { alpha: s.attrs.alpha, colorSpace: s.attrs.colorSpace, colorType: 'unorm8', desynchronized: s.attrs.desynchronized, toneMapping: { mode: 'standard' }, willReadFrequently: s.attrs.willReadFrequently }; },
   scale(x, y) { const s = c2d(this); [x, y] = [Number(x), Number(y)]; if (canvasNotFinite(x, y)) return; const t = s.state.transform; s.state.transform = [t[0] * x, t[1] * x, t[2] * y, t[3] * y, t[4], t[5]]; },
@@ -435,83 +440,54 @@ const CANVAS_2D_IMPL = {
   createPattern(image, repetition) {
     const rep = repetition === null || repetition === undefined || repetition === '' ? 'repeat' : String(repetition);
     if (!['repeat', 'repeat-x', 'repeat-y', 'no-repeat'].includes(rep)) throw domException(`Failed to execute 'createPattern' on 'CanvasRenderingContext2D': The provided type ('${repetition}') is not one of 'repeat', 'no-repeat', 'repeat-x', or 'repeat-y'.`, 'SyntaxError');
-    const source = canvasImageSource(image, 'createPattern');
+    const source = canvasImageSource(image, 'createPattern', true);
     if (source === null) return null;
     const p = Object.create(CanvasPattern.prototype); hidden(p, '__pattern', { source, repetition: rep, transform: null }); return p;
   },
   clearRect(x, y, w, h) {
     const s = c2d(this);
     const v = [x, y, w, h].map(Number);
-    if (canvasNotFinite(...v)) return;
-    canvasEnsureBitmap(s);
-    const t = s.state.transform;
-    if (!axisAligned(t)) return;
-    const [ax, ay] = canvasTransformPoint(t, v[0], v[1]);
-    const [bx, by] = canvasTransformPoint(t, v[0] + v[2], v[1] + v[3]);
-    const [x0, x1] = [Math.min(ax, bx), Math.max(ax, bx)];
-    const [y0, y1] = [Math.min(ay, by), Math.max(ay, by)];
-    for (let py = Math.max(0, Math.floor(y0)); py < Math.min(s.height, Math.ceil(y1)); py++) {
-      const cy = Math.min(py + 1, y1) - Math.max(py, y0);
-      for (let px = Math.max(0, Math.floor(x0)); px < Math.min(s.width, Math.ceil(x1)); px++) {
-        const cx = Math.min(px + 1, x1) - Math.max(px, x0);
-        const keep = 1 - cx * cy;
-        const at = (py * s.width + px) * 4;
-        if (keep <= 0) s.pixels.fill(0, at, at + 4);
-        else s.pixels[at + 3] = Math.round(s.pixels[at + 3] * keep);
-      }
-    }
+    if (canvasNotFinite(...v) || v[2] === 0 || v[3] === 0) return;
+    canvasDraw(s, ['clear', ...v]);
   },
   fillRect(x, y, w, h) {
     const s = c2d(this);
     const v = [x, y, w, h].map(Number);
     if (canvasNotFinite(...v) || v[2] === 0 || v[3] === 0) return;
-    canvasEnsureBitmap(s);
-    const t = s.state.transform;
-    const style = s.state.fillStyle;
-    if (!axisAligned(t) || !Array.isArray(style) || s.state.globalCompositeOperation !== 'source-over' || s.state.clip) return;
-    const [ax, ay] = canvasTransformPoint(t, v[0], v[1]);
-    const [bx, by] = canvasTransformPoint(t, v[0] + v[2], v[1] + v[3]);
-    fillAxisRect(s, ax, ay, bx, by, [style[0], style[1], style[2], style[3] * s.state.globalAlpha]);
+    const [paint, source] = canvasPaint(s.state.fillStyle);
+    canvasDraw(s, ['fill', [canvasRectPath(...v), s.state.transform], 'nonzero', paint], source);
   },
   strokeRect(x, y, w, h) {
     const s = c2d(this);
     const v = [x, y, w, h].map(Number);
-    if (canvasNotFinite(...v)) return;
-    canvasEnsureBitmap(s);
-    const t = s.state.transform;
-    const style = s.state.strokeStyle;
-    const half = s.state.lineWidth / 2;
-    if (!axisAligned(t) || t[0] !== t[3] || !Array.isArray(style) || s.state.globalCompositeOperation !== 'source-over' || s.state.clip || s.state.lineJoin !== 'miter' || s.state.lineDash.length) return;
-    const color = [style[0], style[1], style[2], style[3] * s.state.globalAlpha];
-    const [x0, y0] = canvasTransformPoint(t, v[0], v[1]);
-    const [x1, y1] = canvasTransformPoint(t, v[0] + v[2], v[1] + v[3]);
-    const h2 = half * Math.abs(t[0]);
-    const [l, r] = [Math.min(x0, x1), Math.max(x0, x1)];
-    const [tp, bt] = [Math.min(y0, y1), Math.max(y0, y1)];
-    fillAxisRect(s, l - h2, tp - h2, r + h2, tp + h2, color);
-    fillAxisRect(s, l - h2, bt - h2, r + h2, bt + h2, color);
-    fillAxisRect(s, l - h2, tp + h2, l + h2, bt - h2, color);
-    fillAxisRect(s, r - h2, tp + h2, r + h2, bt - h2, color);
+    if (canvasNotFinite(...v) || (v[2] === 0 && v[3] === 0)) return;
+    const [paint, source] = canvasPaint(s.state.strokeStyle);
+    canvasDraw(s, ['stroke', [canvasRectPath(...v), s.state.transform], canvasStrokeArg(s.state), paint], source);
   },
   beginPath() { const s = c2d(this); s.path = { ops: [], current: null, start: null }; hidden(this, '__path', s.path); },
   fill(pathOrRule, rule) {
     const s = c2d(this);
-    const fillRule = String(pathOrRule instanceof Path2D ? rule ?? 'nonzero' : pathOrRule ?? 'nonzero');
-    if (fillRule !== 'nonzero' && fillRule !== 'evenodd') throw new TypeError(`Failed to execute 'fill' on 'CanvasRenderingContext2D': The provided value '${fillRule}' is not a valid enum value of type CanvasFillRule.`);
-    canvasEnsureBitmap(s);
+    const fillRule = canvasFillRule('fill', pathOrRule, rule);
+    const [paint, source] = canvasPaint(s.state.fillStyle);
+    canvasDraw(s, ['fill', canvasPathArg(s, pathOrRule), fillRule, paint], source);
   },
-  stroke(path) { const s = c2d(this); if (path !== undefined && !(path instanceof Path2D)) throw new TypeError("Failed to execute 'stroke' on 'CanvasRenderingContext2D': parameter 1 is not of type 'Path2D'."); canvasEnsureBitmap(s); },
+  stroke(path) {
+    const s = c2d(this);
+    if (path !== undefined && !(path instanceof Path2D)) throw new TypeError("Failed to execute 'stroke' on 'CanvasRenderingContext2D': parameter 1 is not of type 'Path2D'.");
+    const [paint, source] = canvasPaint(s.state.strokeStyle);
+    canvasDraw(s, ['stroke', canvasPathArg(s, path), canvasStrokeArg(s.state), paint], source);
+  },
   clip(pathOrRule, rule) {
     const s = c2d(this);
-    const fillRule = String(pathOrRule instanceof Path2D ? rule ?? 'nonzero' : pathOrRule ?? 'nonzero');
-    if (fillRule !== 'nonzero' && fillRule !== 'evenodd') throw new TypeError(`Failed to execute 'clip' on 'CanvasRenderingContext2D': The provided value '${fillRule}' is not a valid enum value of type CanvasFillRule.`);
-    s.state.clip = { path: pathOrRule instanceof Path2D ? pathState(pathOrRule).ops.slice() : s.path.ops.slice(), rule: fillRule, transform: s.state.transform.slice() };
+    const fillRule = canvasFillRule('clip', pathOrRule, rule);
+    const [ops, t] = canvasPathArg(s, pathOrRule);
+    s.state.clips = [...s.state.clips, [ops.slice(), t.slice(), fillRule]];
   },
   isPointInPath() { c2d(this); return false; },
   isPointInStroke() { c2d(this); return false; },
   drawFocusIfNeeded() { c2d(this); },
-  fillText(text, x, y, maxWidth) { c2d(this); void text; void x; void y; void maxWidth; },
-  strokeText(text, x, y, maxWidth) { c2d(this); void text; void x; void y; void maxWidth; },
+  fillText(text, x, y, maxWidth) { canvasText(c2d(this), 'fillText', text, x, y, maxWidth); },
+  strokeText(text, x, y, maxWidth) { canvasText(c2d(this), 'strokeText', text, x, y, maxWidth); },
   measureText(text) {
     const s = c2d(this);
     const metrics = Object.create(TextMetrics.prototype);
@@ -531,22 +507,10 @@ const CANVAS_2D_IMPL = {
     if (![2, 4, 8].includes(args.length)) throw new TypeError(`Failed to execute 'drawImage' on 'CanvasRenderingContext2D': Valid arities are: [3, 5, 9], but ${args.length + 1} arguments provided.`);
     const source = canvasImageSource(image, 'drawImage');
     if (source === null) return;
-    canvasEnsureBitmap(s);
     const v = args.map(Number);
     if (canvasNotFinite(...v)) return;
     const [sx, sy, sw, sh, dx, dy, dw, dh] = v.length === 8 ? v : v.length === 4 ? [0, 0, source.width, source.height, ...v] : [0, 0, source.width, source.height, v[0], v[1], source.width, source.height];
-    const t = s.state.transform;
-    // Cópia exata: sem escala, alinhada a pixels inteiros, sem alfa global nem composição especial.
-    if (!source.pixels || sw !== dw || sh !== dh || t[0] !== 1 || t[1] !== 0 || t[2] !== 0 || t[3] !== 1 || s.state.clip || s.state.globalCompositeOperation !== 'source-over') return;
-    const ox = dx + t[4], oy = dy + t[5];
-    if (!Number.isInteger(ox) || !Number.isInteger(oy) || !Number.isInteger(sx) || !Number.isInteger(sy)) return;
-    for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
-      const tx = ox + x, ty = oy + y, fx = sx + x, fy = sy + y;
-      if (tx < 0 || ty < 0 || tx >= s.width || ty >= s.height || fx < 0 || fy < 0 || fx >= source.width || fy >= source.height) continue;
-      const from = (fy * source.width + fx) * 4;
-      const p = source.pixels;
-      blendPixel(s.pixels, (ty * s.width + tx) * 4, [p[from], p[from + 1], p[from + 2], (p[from + 3] / 255) * s.state.globalAlpha], 1);
-    }
+    canvasDraw(s, ['image', sx, sy, sw, sh, dx, dy, dw, dh], source.spec);
   },
   createImageData(a, b, settings) {
     c2d(this);
@@ -560,36 +524,34 @@ const CANVAS_2D_IMPL = {
     const s = c2d(this);
     const [x, y, w, h] = [sx, sy, sw, sh].map((v) => Math.trunc(Number(v)));
     if (w === 0 || h === 0) throw domException(`Failed to execute 'getImageData' on 'CanvasRenderingContext2D': The source ${w === 0 ? 'width' : 'height'} is 0.`, 'IndexSizeError');
-    canvasEnsureBitmap(s);
     const [x0, y0, ww, hh] = [w < 0 ? x + w : x, h < 0 ? y + h : y, Math.abs(w), Math.abs(h)];
     const out = new ImageData(ww, hh);
-    const data = out.data;
-    for (let row = 0; row < hh; row++) for (let col = 0; col < ww; col++) {
-      const fx = x0 + col, fy = y0 + row;
-      if (fx < 0 || fy < 0 || fx >= s.width || fy >= s.height) continue;
-      const from = (fy * s.width + fx) * 4;
-      data.set(s.pixels.subarray(from, from + 4), (row * ww + col) * 4);
-    }
+    out.data.set(bytesOf(op('canvasRead', s.surface, x0, y0, ww, hh)));
     return out;
   },
   putImageData(imagedata, dx, dy, dirtyX, dirtyY, dirtyWidth, dirtyHeight) {
     const s = c2d(this);
     if (!(imagedata instanceof ImageData)) throw new TypeError("Failed to execute 'putImageData' on 'CanvasRenderingContext2D': parameter 1 is not of type 'ImageData'.");
-    canvasEnsureBitmap(s);
     const src = imageDataOf(imagedata);
     let [x0, y0, w, h] = dirtyX === undefined ? [0, 0, src.width, src.height] : [dirtyX, dirtyY, dirtyWidth, dirtyHeight].map((v) => Math.trunc(Number(v)));
     if (w < 0) { x0 += w; w = -w; }
     if (h < 0) { y0 += h; h = -h; }
     [dx, dy] = [Math.trunc(Number(dx)), Math.trunc(Number(dy))];
-    for (let row = Math.max(0, y0); row < Math.min(src.height, y0 + h); row++) for (let col = Math.max(0, x0); col < Math.min(src.width, x0 + w); col++) {
-      const tx = dx + col, ty = dy + row;
-      if (tx < 0 || ty < 0 || tx >= s.width || ty >= s.height) continue;
-      const from = (row * src.width + col) * 4;
-      s.pixels.set(src.data.subarray(from, from + 4), (ty * s.width + tx) * 4);
-    }
+    // Só a parte suja que existe na imagem vai à ponte, uma linha por vez.
+    const [cx0, cy0] = [Math.max(0, x0), Math.max(0, y0)];
+    const [cx1, cy1] = [Math.min(src.width, x0 + w), Math.min(src.height, y0 + h)];
+    if (cx1 <= cx0 || cy1 <= cy0) return;
+    const region = new Uint8Array((cx1 - cx0) * (cy1 - cy0) * 4);
+    for (let row = cy0; row < cy1; row++) region.set(src.data.subarray((row * src.width + cx0) * 4, (row * src.width + cx1) * 4), (row - cy0) * (cx1 - cx0) * 4);
+    op('canvasWrite', s.surface, dx + cx0, dy + cy0, cx1 - cx0, cy1 - cy0, latin1Of(region));
   },
 };
-for (const name of ['closePath', 'moveTo', 'lineTo', 'quadraticCurveTo', 'bezierCurveTo', 'arcTo', 'arc', 'ellipse', 'rect', 'roundRect']) CANVAS_2D_IMPL[name] = function (...args) { c2d(this); return PathMethods[name].apply(this, args); };
+// No contexto, os pontos do caminho valem na transformação do momento da chamada: a troca entra no caminho como `X`.
+for (const name of ['closePath', 'moveTo', 'lineTo', 'quadraticCurveTo', 'bezierCurveTo', 'arcTo', 'arc', 'ellipse', 'rect', 'roundRect']) CANVAS_2D_IMPL[name] = function (...args) {
+  const s = c2d(this);
+  if (s.path.transform !== s.state.transform) { s.path.ops.push(['X', ...s.state.transform]); s.path.transform = s.state.transform; }
+  return PathMethods[name].apply(this, args);
+};
 // Membros na ordem medida, com o número de argumentos de cada método.
 {
   const members = CANVAS2D_SURFACE.classes.find((c) => c.name === 'CanvasRenderingContext2D').members;
@@ -609,21 +571,23 @@ for (const name of ['closePath', 'moveTo', 'lineTo', 'quadraticCurveTo', 'bezier
     Object.defineProperty(CanvasRenderingContext2D.prototype, name, { value: method, writable: true, enumerable: true, configurable: true });
   }
 }
-// A fonte de imagem de drawImage e createPattern: largura, altura e pixels (ou null para "não desenhar nada").
-const canvasImageSource = (image, method) => {
+// A fonte de imagem de drawImage e createPattern: largura, altura e como a ponte acha os pixels (null para "não
+// desenhar nada"). `snapshot` copia o canvas agora (o padrão guarda o bitmap do momento da criação).
+const canvasImageSource = (image, method, snapshot = false) => {
   if (image instanceof HTMLImageElement) {
-    const decoded = decodedImage(image);
-    if (!decoded) return null;
-    return decoded;
+    const handle = image[P.__image];
+    return handle ? { width: handle[1], height: handle[2], spec: ['image', handle[0]] } : null;
   }
   if (image instanceof HTMLCanvasElement) {
     if (image.width === 0 || image.height === 0) throw domException(`Failed to execute '${method}' on 'CanvasRenderingContext2D': The image argument is a canvas element with a width or height of 0.`, 'InvalidStateError');
-    return { width: image.width, height: image.height, pixels: canvasPixels(image) };
+    const context = canvasContextOf(image);
+    const live = context && canvas2dStates.has(context) && !snapshot ? ['canvas', canvas2dStates.get(context).surface] : null;
+    return { width: image.width, height: image.height, spec: live ?? ['rgba', image.width, image.height, latin1Of(canvasPixels(image))] };
   }
   if (image instanceof ImageBitmap) {
     const s = imageBitmapState(image);
     if (s.closed) throw domException(`Failed to execute '${method}' on 'CanvasRenderingContext2D': The image source is detached.`, 'InvalidStateError');
-    return { width: s.width, height: s.height, pixels: s.pixels };
+    return { width: s.width, height: s.height, spec: ['rgba', s.width, s.height, latin1Of(s.pixels)] };
   }
   if (image instanceof HTMLVideoElement || image instanceof SVGElement) return null;
   throw new TypeError(`Failed to execute '${method}' on 'CanvasRenderingContext2D': The provided value is not of type '(CSSImageValue or HTMLCanvasElement or HTMLImageElement or HTMLVideoElement or ImageBitmap or OffscreenCanvas or SVGImageElement or VideoFrame)'.`);
@@ -633,9 +597,8 @@ const canvasImageSource = (image, method) => {
 const canvasFontWeight = (weight) => ({ normal: 400, bold: 700, bolder: 700, lighter: 100 })[weight] ?? Number(weight);
 const canvasMeasureText = (s, text) => {
   const font = s.state.font;
-  const result = op('measureText', String(text), font.family, canvasFontWeight(font.weight), font.style, font.size);
-  const [width, left, right, ascent, descent, fontAscent, fontDescent] = result;
-  const baselineShift = { alphabetic: 0, top: fontAscent, hanging: fontAscent * 0.8, middle: (fontAscent - fontDescent) / 2, ideographic: -fontDescent, bottom: -fontDescent }[s.state.textBaseline];
+  const result = op('measureText', String(text), font.family, canvasFontWeight(font.weight), font.style, font.size, s.state.textBaseline);
+  const [width, left, right, ascent, descent, fontAscent, fontDescent, baselineShift] = result;
   return {
     width, actualBoundingBoxLeft: left, actualBoundingBoxRight: right,
     fontBoundingBoxAscent: fontAscent - baselineShift, fontBoundingBoxDescent: fontDescent + baselineShift,
@@ -651,7 +614,7 @@ const canvas2dGetContext = (canvas, attributes) => {
     if (attributes.desynchronized !== undefined) attrs.desynchronized = Boolean(attributes.desynchronized);
     if (attributes.willReadFrequently !== undefined) attrs.willReadFrequently = Boolean(attributes.willReadFrequently);
   }
-  const state = { canvas, attrs, state: canvas2dDefaults(), stack: [], path: { ops: [], current: null, start: null }, width: canvas.width, height: canvas.height, pixels: new Uint8Array(canvas.width * canvas.height * 4) };
+  const state = { canvas, attrs, state: canvas2dDefaults(), stack: [], path: { ops: [], current: null, start: null }, surface: op('canvasCreate', canvas.width, canvas.height) };
   canvas2dStates.set(context, state);
   hidden(context, '__path', state.path);
   return context;
@@ -660,8 +623,17 @@ const canvas2dGetContext = (canvas, attributes) => {
 const canvasContextOf = (canvas) => canvas[P.__context]?.[1];
 const canvasPixels = (canvas) => {
   const context = canvasContextOf(canvas);
-  if (context && canvas2dStates.has(context)) { const s = canvas2dStates.get(context); canvasEnsureBitmap(s); return s.pixels; }
+  if (context && canvas2dStates.has(context)) return new Uint8Array(bytesOf(op('canvasRead', canvas2dStates.get(context).surface, 0, 0, canvas.width, canvas.height)).buffer);
   return new Uint8Array(canvas.width * canvas.height * 4);
+};
+// O `toDataURL` do canvas: PNG ou JPEG pela ponte; canvas vazio (lado 0) é `data:,`.
+const canvasDataURL = (canvas, type, quality) => {
+  const [width, height] = [canvas.width, canvas.height];
+  if (width === 0 || height === 0) return 'data:,';
+  const context = canvasContextOf(canvas);
+  const surface = context && canvas2dStates.has(context) ? canvas2dStates.get(context).surface : null;
+  const q = typeof quality === 'number' && quality >= 0 && quality <= 1 ? quality : -1;
+  return 'data:' + op('canvasEncode', surface, width, height, type === undefined ? 'image/png' : String(type), q);
 };
 // O resize do canvas zera o bitmap e o estado do contexto 2D (a especificação manda reiniciar o contexto).
 const canvasResized = (canvas) => {
@@ -672,7 +644,6 @@ const canvasResized = (canvas) => {
     s.stack = [];
     s.path = { ops: [], current: null, start: null };
     hidden(context, '__path', s.path);
-    s.width = -1;
-    canvasEnsureBitmap(s);
+    op('canvasResize', s.surface, canvas.width, canvas.height);
   }
 };

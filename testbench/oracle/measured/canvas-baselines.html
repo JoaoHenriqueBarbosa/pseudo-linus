@@ -1,0 +1,15 @@
+<!doctype html><body><script>
+// Linhas de base do texto do canvas no oráculo: alphabeticBaseline de cada textBaseline, por fonte.
+const c = document.createElement('canvas').getContext('2d');
+const out = {};
+for (const font of ['10px sans-serif', 'bold 20px serif', '16px sans-serif', '13px monospace', '15px system-ui']) {
+  c.font = font;
+  out[font] = {};
+  for (const b of ['top', 'hanging', 'middle', 'alphabetic', 'ideographic', 'bottom']) {
+    c.textBaseline = b;
+    const m = c.measureText('Ag');
+    out[font][b] = [m.alphabeticBaseline, m.fontBoundingBoxAscent, m.fontBoundingBoxDescent, m.actualBoundingBoxAscent, m.emHeightAscent, m.emHeightDescent];
+  }
+}
+document.body.setAttribute('data-out', JSON.stringify(out));
+</script></body>
