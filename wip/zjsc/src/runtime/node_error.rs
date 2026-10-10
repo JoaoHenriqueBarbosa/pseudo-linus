@@ -90,11 +90,7 @@ fn coded_structure(global_object: &JSGlobalObject, kind: ErrorType, code: &str) 
     let parent = global_object.error_structure_for(kind).stored_prototype();
     let prototype_structure = JSFinalObject::create_structure(vm, Some(global_object), parent, JSFinalObject::DEFAULT_INLINE_CAPACITY);
     let prototype = JSFinalObject::create(vm, &prototype_structure);
-    let kind_name = match kind {
-        ErrorType::RangeError => "RangeError",
-        ErrorType::Error => "Error",
-        _ => "TypeError",
-    };
+    let kind_name = crate::runtime::error_type::error_type_name(kind);
     prototype.put_direct(vm, &property_key(vm, "name"), text_value(global_object, kind_name), 0);
     prototype.put_direct(vm, &property_key(vm, "code"), text_value(global_object, code), 0);
     put_direct_native_function_without_transition(
@@ -116,7 +112,7 @@ fn coded_structure(global_object: &JSGlobalObject, kind: ErrorType, code: &str) 
 
 /// Lança o erro de `kind` com `code` e devolve `Thrown::Pending`. A pilha nasce aqui, com o frame da função
 /// nativa que lança no topo (`vm.topCallFrame`), e as chaves `originalLine`...`stack` entram quando ela é lida.
-fn throw_coded(global_object: &JSGlobalObject, kind: ErrorType, message: &str, code: Option<&str>) -> Thrown {
+pub(crate) fn throw_coded(global_object: &JSGlobalObject, kind: ErrorType, message: &str, code: Option<&str>) -> Thrown {
     throw_coded_message(global_object, kind, WtfString::from_utf8(message.as_bytes()), code, &[])
 }
 

@@ -304,6 +304,41 @@
     return options;
   }
 
+  class NotImplementedError extends Error {
+    // O `code: string;` do TypeScript vira campo de classe: `code` nasce antes de `name` (medido: `code,name`).
+    code;
+    constructor(feature, issue, extra) {
+      super(
+        feature +
+          " is not yet implemented in Bun." +
+          (issue ? " Track the status & thumbs up the issue: https://github.com/oven-sh/bun/issues/" + issue : "") +
+          (extra ? ". " + extra : ""),
+      );
+      this.name = "NotImplementedError";
+      this.code = "ERR_NOT_IMPLEMENTED";
+
+      hideFromStack(NotImplementedError);
+    }
+    get ["constructor"]() {
+      return Error;
+    }
+  }
+
+  function throwNotImplemented(feature, issue, extra) {
+    hideFromStack(throwNotImplemented);
+
+    throw new NotImplementedError(feature, issue, extra);
+  }
+
+  // O bun esconde da pilha trocando o `name` da função.
+  function hideFromStack(...fns) {
+    for (const fn of fns) {
+      Object.defineProperty(fn, "name", {
+        value: "::bunternal::",
+      });
+    }
+  }
+
   function once(callback, { preserveReturnValue = false } = kEmptyObject) {
     let called = false;
     let returnValue;
@@ -361,6 +396,7 @@
     kEmptyObject,
     kResistStopPropagation,
     resistStopPropagation,
+    throwNotImplemented,
     once,
     addAbortListener,
     toClass,
