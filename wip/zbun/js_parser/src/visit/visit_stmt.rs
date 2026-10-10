@@ -203,7 +203,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // non-local symbols as errors in JavaScript.
                     if !TYPESCRIPT {
                         let r = js_lexer::range_of_identifier(p.source, item.name.loc);
-                        p.log().add_range_error_fmt(
+                        p.lexer.log.add_range_error_fmt(
                             Some(p.source),
                             r,
                             format_args!(
@@ -234,7 +234,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // non-local symbols as errors in JavaScript.
                     if !TYPESCRIPT {
                         let r = js_lexer::range_of_identifier(p.source, item.name.loc);
-                        p.log().add_range_error_fmt(
+                        p.lexer.log.add_range_error_fmt(
                             Some(p.source),
                             r,
                             format_args!(
@@ -1292,7 +1292,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             && !p.fn_or_arrow_data_visit.is_inside_switch
         {
             let r = js_lexer::range_of_identifier(p.source, stmt.loc);
-            p.log()
+            p.lexer.log
                 .add_range_error(Some(p.source), r, b"Cannot use \"break\" here");
         }
 
@@ -1312,7 +1312,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             label.ref_ = res.r#ref;
             if res.found && !res.is_loop {
                 let r = js_lexer::range_of_identifier(p.source, stmt.loc);
-                p.log().add_range_error_fmt(
+                p.lexer.log.add_range_error_fmt(
                     Some(p.source),
                     r,
                     format_args!("Cannot \"continue\" to label {}", bstr::BStr::new(name)),
@@ -1320,7 +1320,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
         } else if !p.fn_or_arrow_data_visit.is_inside_loop {
             let r = js_lexer::range_of_identifier(p.source, stmt.loc);
-            p.log()
+            p.lexer.log
                 .add_range_error(Some(p.source), r, b"Cannot use \"continue\" here");
         }
 
@@ -1586,7 +1586,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             };
 
             if where_.len > 0 {
-                p.log().add_range_error(
+                p.lexer.log.add_range_error(
                     Some(p.source),
                     where_,
                     b"Top-level return cannot be used inside an ECMAScript module",

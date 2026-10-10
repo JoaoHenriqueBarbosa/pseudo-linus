@@ -753,7 +753,7 @@ impl BinaryExpressionVisitor {
                             loc: e_.left.loc,
                             len: i32::try_from(name.len()).expect("int cast"),
                         };
-                        p.log().add_range_error_fmt(
+                        p.lexer.log.add_range_error_fmt(
                             Some(p.source),
                             r,
                             format_args!(

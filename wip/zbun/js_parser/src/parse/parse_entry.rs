@@ -36,7 +36,6 @@ pub struct Parser<'a> {
     /// cannot hold two live `&'a mut Log`, so both the parser- and lexer-side
     /// handles are `NonNull` and dereferenced at use sites (see `log_mut` /
     /// `Lexer::log()`). The pointee outlives `'a` (see `init`).
-    pub(crate) log: core::ptr::NonNull<bun_ast::Log>,
     pub(crate) source: &'a bun_ast::Source,
     pub(crate) define: &'a Define,
     pub(crate) bump: &'a Arena,
@@ -296,7 +295,7 @@ impl<'a> Options<'a> {
 impl<'a> Parser<'a> {
     pub fn init(
         options: Options<'a>,
-        log: &mut bun_ast::Log,
+        log: &'a mut bun_ast::Log,
         source: &'a bun_ast::Source,
         define: &'a Define,
         bump: &'a Arena,
@@ -309,16 +308,12 @@ impl<'a> Parser<'a> {
         lexer.track_react_suppressions = options.features.react_compiler.is_enabled();
         lexer.step();
         lexer.next()?;
-        // Copy the lexer's `NonNull<Log>` so both handles share one provenance
-        // chain (the `&'a mut Log` was consumed by `Lexer::init`).
-        let log_ptr = lexer.log;
         Ok(Parser {
             options,
             bump,
             lexer,
             define,
             source,
-            log: log_ptr,
             orig_error_count,
         })
     }
@@ -390,10 +385,7 @@ impl<'a> Parser<'a> {
             ),
         );
         let options = core::mem::take(&mut self.options);
-        // `P.log` and `Lexer.log` are both `NonNull<Log>` (see P.rs / lexer.rs
-        // field docs), so handing the same raw pointer to both is defined -
-        // no `&mut` is materialized.
-        let mut parser_box = <Pi<'_, TS>>::init(self.bump, self.log, self.source, self.define, lexer, options)?;
+        let mut parser_box = <Pi<'_, TS>>::init(self.bump, self.source, self.define, lexer, options)?;
         let p: &mut Pi<'_, TS> = &mut parser_box;
         p.import_records = crate::p::ImportRecordList::Borrowed(&mut scan_pass.import_records);
         p.named_imports = crate::p::NamedImportsType::Borrowed(&mut scan_pass.named_imports);
@@ -427,7 +419,7 @@ impl<'a> Parser<'a> {
             Err(e) => {
                 if e == crate::Error::StackOverflow {
                     // The lexer location won't be totally accurate, but it's kind of helpful.
-                    p.log().add_error(
+                    p.lexer.log.add_error(
                         Some(p.source),
                         p.lexer.loc(),
                         b"Maximum call stack size exceeded",
@@ -530,10 +522,7 @@ impl<'a> Parser<'a> {
             ),
         );
         let options = core::mem::take(&mut self.options);
-        // `P.log` and `Lexer.log` are both `NonNull<Log>` (see P.rs / lexer.rs
-        // field docs), so handing the same raw pointer to both is defined -
-        // no `&mut` is materialized.
-        let mut parser_box = <JavaScriptParser<'_>>::init(self.bump, self.log, self.source, self.define, lexer, options)?;
+        let mut parser_box = <JavaScriptParser<'_>>::init(self.bump, self.source, self.define, lexer, options)?;
         let p: &mut JavaScriptParser<'_> = &mut parser_box;
 
         // Instead of doing "should_fold_typescript_constant_expressions or features.minify_syntax"
@@ -729,17 +718,13 @@ impl<'a> Parser<'a> {
         let Parser {
             options,
             lexer,
-            log,
             source,
             define,
             bump,
             orig_error_count,
         } = self;
 
-        // `P.log` and `Lexer.log` are both `NonNull<Log>` (see P.rs / lexer.rs
-        // field docs), so handing the same raw pointer to both is defined -
-        // no `&mut` is materialized.
-        let mut parser_box = <P<'_, TS, false>>::init(bump, log, source, define, lexer, options)?;
+        let mut parser_box = <P<'_, TS, false>>::init(bump, source, define, lexer, options)?;
         let p: &mut P<'_, TS, false> = &mut parser_box;
 
         if p.options.features.hot_module_reloading {
@@ -764,7 +749,7 @@ impl<'a> Parser<'a> {
         }
 
         // The first token may already have logged an error; halt before the early returns below.
-        if p.log().errors > orig_error_count {
+        if p.lexer.log.errors > orig_error_count {
             return Err(crate::Error::SyntaxError);
         }
 
@@ -818,7 +803,7 @@ impl<'a> Parser<'a> {
                 parse_tracer.end();
                 if e == crate::Error::StackOverflow {
                     // The lexer location won't be totally accurate, but it's kind of helpful.
-                    p.log().add_error(
+                    p.lexer.log.add_error(
                         Some(p.source),
                         p.lexer.loc(),
                         b"Maximum call stack size exceeded",
@@ -839,7 +824,7 @@ impl<'a> Parser<'a> {
         // In a number of situations, we continue to parsing despite errors so that we can report more errors to the user
         //   Example where NOT halting causes a crash: A TS enum with a number literal as a member name
         //     https://discord.com/channels/876711213126520882/876711213126520885/1039325382488371280
-        if p.log().errors > orig_error_count {
+        if p.lexer.log.errors > orig_error_count {
             return Err(crate::Error::SyntaxError);
         }
 
@@ -1098,7 +1083,7 @@ impl<'a> Parser<'a> {
         visit_tracer.end();
 
         // If there were errors while visiting, also halt here
-        if p.log().errors > orig_error_count {
+        if p.lexer.log.errors > orig_error_count {
             return Err(crate::Error::SyntaxError);
         }
 
@@ -2204,7 +2189,7 @@ impl<'a> Parser<'a> {
                 &mut rc_stmts,
             );
             if let bun_react_compiler::CompileOutput::Error { error, .. } = result {
-                p.log().add_range_error_fmt(
+                p.lexer.log.add_range_error_fmt(
                     Some(p.source),
                     bun_ast::Range::NONE,
                     format_args!("React Compiler: {error}"),
@@ -2386,7 +2371,7 @@ impl<'a> Parser<'a> {
                     });
                 }
 
-                p.log().add_range_error_with_notes(
+                p.lexer.log.add_range_error_with_notes(
                     Some(p.source),
                     record.range,
                     b"Cannot use import statement with CommonJS-only features".as_slice(),
@@ -2396,7 +2381,7 @@ impl<'a> Parser<'a> {
         }
 
         // If there were errors during to_ast, also halt here
-        if p.log().errors > orig_error_count {
+        if p.lexer.log.errors > orig_error_count {
             return Err(crate::Error::SyntaxError);
         }
 

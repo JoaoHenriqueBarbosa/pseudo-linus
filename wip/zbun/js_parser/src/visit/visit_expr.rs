@@ -49,7 +49,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         if in_.assign_target != js_ast::AssignTarget::None && !self.is_valid_assignment_target(e) {
-            self.log()
+            self.lexer.log
                 .add_error(Some(self.source), e.loc, b"Invalid assignment target");
         }
 
@@ -225,7 +225,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 let is_error = p.const_values.contains_key(&result.r#ref) || p.options.bundle;
                 match is_error {
-                    true => p.log().add_range_error_fmt_with_notes(
+                    true => p.lexer.log.add_range_error_fmt_with_notes(
                         Some(p.source),
                         r,
                         notes,
@@ -235,7 +235,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         ),
                     ),
 
-                    false => p.log().add_range_error_fmt_with_notes(
+                    false => p.lexer.log.add_range_error_fmt_with_notes(
                         Some(p.source),
                         r,
                         notes,
@@ -723,14 +723,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         // this ordering incase someone wants to use a macro in a node_module conditionally
                         if p.options.features.no_macros {
-                            p.log()
+                            p.lexer.log
                                 .add_error(Some(p.source), tag.loc, b"Macros are disabled");
                             *e = p.new_expr(E::Undefined {}, p.store[e_].tag.unwrap().loc);
                             return;
                         }
 
                         if p.source.path.is_node_module() {
-                            p.log().add_error(
+                            p.lexer.log.add_error(
                                 Some(p.source),
                                 expr.loc,
                                 b"For security reasons, macros cannot be run from node_modules.",
@@ -757,7 +757,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // Reborrow via the field-disjoint `Lexer::log()` accessor
                         // so `&p.lexer` and `&mut p.options` split cleanly under
                         // borrowck.
-                        let log = p.lexer.log();
+                        let log = &mut *p.lexer.log;
                         let source = p.source;
                         let Ok(macro_result) = p
                             .options
@@ -924,7 +924,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         loc: e_.index.loc,
                         len: i32::try_from(name.len()).expect("int cast"),
                     };
-                    p.log().add_range_error_fmt(
+                    p.lexer.log.add_range_error_fmt(
                         Some(p.source),
                         r,
                         format_args!(
@@ -941,7 +941,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             loc: e_.index.loc,
                             len: i32::try_from(name.len()).expect("int cast"),
                         };
-                        p.log().add_range_warning_fmt(
+                        p.lexer.log.add_range_warning_fmt(
                             Some(p.source),
                             r,
                             format_args!(
@@ -957,7 +957,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             loc: e_.index.loc,
                             len: i32::try_from(name.len()).expect("int cast"),
                         };
-                        p.log().add_range_warning_fmt(
+                        p.lexer.log.add_range_warning_fmt(
                             Some(p.source),
                             r,
                             format_args!(
@@ -973,7 +973,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             loc: e_.index.loc,
                             len: i32::try_from(name.len()).expect("int cast"),
                         };
-                        p.log().add_range_warning_fmt(
+                        p.lexer.log.add_range_warning_fmt(
                             Some(p.source),
                             r,
                             format_args!(
@@ -1145,7 +1145,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .expect("infallible: variant checked")
                 .ref_;
             let r = js_lexer::range_of_identifier(p.source, p.store[e_].target.loc);
-            p.log().add_range_error_fmt(
+            p.lexer.log.add_range_error_fmt(
                 Some(p.source),
                 r,
                 format_args!(
@@ -1709,7 +1709,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 {
                     if has_proto {
                         let r = js_lexer::range_of_identifier(p.source, key.loc);
-                        p.log().add_range_error(
+                        p.lexer.log.add_range_error(
                             Some(p.source),
                             r,
                             b"Cannot specify the \"__proto__\" property more than once per object",
@@ -2210,7 +2210,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             if p.options.warn_about_unbundled_modules {
                 let r = js_lexer::range_of_identifier(p.source, p.store[e_].target.loc);
-                p.log()
+                p.lexer.log
                     .add_range_debug(
                         Some(p.source),
                         r,
@@ -2305,14 +2305,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 if p.options.features.no_macros {
-                    p.log()
+                    p.lexer.log
                         .add_error(Some(p.source), expr.loc, b"Macros are disabled");
                     *e = p.new_expr(E::Undefined {}, expr.loc);
                     return;
                 }
 
                 if p.source.path.is_node_module() {
-                    p.log().add_error(
+                    p.lexer.log.add_error(
                         Some(p.source),
                         expr.loc,
                         b"For security reasons, macros cannot be run from node_modules.",
@@ -2337,12 +2337,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     loc: expr.loc,
                     data: expr.data,
                 };
-                let start_error_count = p.log().msgs.len();
+                let start_error_count = p.lexer.log.msgs.len();
                 p.macro_call_count += 1;
                 // Reborrow via the field-disjoint `Lexer::log()` accessor
                 // so `&p.lexer` and `&mut p.options` split cleanly under
                 // borrowck.
-                let log = p.lexer.log();
+                let log = &mut *p.lexer.log;
                 let source = p.source;
                 let macro_result = match p
                     .options
@@ -2360,8 +2360,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     ) {
                     Ok(r) => r,
                     Err(_) => {
-                        if p.log().msgs.len() == start_error_count {
-                            p.log()
+                        if p.lexer.log.msgs.len() == start_error_count {
+                            p.lexer.log
                                 .add_error(Some(p.source), expr.loc, b"macro threw exception");
                         }
                         return;
@@ -2431,7 +2431,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if !strings::starts_with(p.source.path.pretty, b"node_modules")
                         && original_name == b"useState"
                     {
-                        p.log()
+                        p.lexer.log
                             .add_error(
                                 Some(p.source),
                                 expr.loc,
@@ -2514,7 +2514,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Validate: exactly one argument required
         if e_.args.len_u32() != 1 {
-            p.log().add_error(
+            p.lexer.log.add_error(
                 Some(p.source),
                 loc,
                 b"feature() requires exactly one string argument",
@@ -2526,7 +2526,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Validate: argument must be a string literal
         if !matches!(arg.data, Data::EString(..)) {
-            p.log().add_error(
+            p.lexer.log.add_error(
                 Some(p.source),
                 arg.loc,
                 b"feature() argument must be a string literal",
@@ -2539,7 +2539,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Feature flag names should be ASCII identifiers, so UTF-16 is unexpected.
         let flag_string = arg.data.e_string().expect("infallible: variant checked");
         if p.store[flag_string].is_utf16 {
-            p.log().add_error(
+            p.lexer.log.add_error(
                 Some(p.source),
                 arg.loc,
                 b"feature() flag name must be an ASCII string",
@@ -2549,7 +2549,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // feature() can only be used directly in an if statement or ternary condition
         if !p.in_branch_condition {
-            p.log()
+            p.lexer.log
                 .add_error(
                     Some(p.source),
                     loc,
@@ -2660,11 +2660,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if let Some(hook) = react_hook_data.as_mut() {
             'try_mark_hook: {
-                if p.nearest_stmt_list.is_none() {
+                if p.nearest_stmt_lists.is_empty() {
                     break 'try_mark_hook;
                 }
                 let decl = p.get_react_refresh_hook_signal_decl(hook.signature_cb);
-                p.nearest_stmt_list_mut().unwrap().push(decl);
+                p.nearest_stmt_lists.last_mut().unwrap().push(decl);
 
                 p.handle_react_refresh_post_visit_function_body(&mut stmts_list, hook);
                 p.store[e_].body.stmts = p.store.alloc_slice(stmts_list);
@@ -2738,11 +2738,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if let Some(hook) = react_hook_data.as_mut() {
             'try_mark_hook: {
-                if p.nearest_stmt_list.is_none() {
+                if p.nearest_stmt_lists.is_empty() {
                     break 'try_mark_hook;
                 }
                 let decl = p.get_react_refresh_hook_signal_decl(hook.signature_cb);
-                p.nearest_stmt_list_mut().unwrap().push(decl);
+                p.nearest_stmt_lists.last_mut().unwrap().push(decl);
                 final_expr = p.get_react_refresh_hook_signal_init(hook, expr);
                 replaced = true;
             }

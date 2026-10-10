@@ -324,7 +324,7 @@ impl<'a> ImportScanner<'a> {
                                 .get_member_with_hash(&p.store, name, js_ast::scope::Members::hash(name));
                             if let Some(member) = member {
                                 if member.ref_.eql(link) {
-                                    p.log().add_symbol_already_declared_error(
+                                    p.lexer.log.add_symbol_already_declared_error(
                                         p.source, name, member.loc, import_loc,
                                     );
                                 }
@@ -579,7 +579,7 @@ impl<'a> ImportScanner<'a> {
                                 p.arena_str(p.symbols[name.ref_.inner_index() as usize].original_name);
                             p.record_export(name.loc, original_name, name.ref_)?;
                         } else {
-                            p.log().add_range_error(
+                            p.lexer.log.add_range_error(
                                 Some(p.source),
                                 bun_ast::Range {
                                     loc: p.store[st].func.open_parens_loc,
@@ -597,7 +597,7 @@ impl<'a> ImportScanner<'a> {
                                 p.arena_str(p.symbols[name.ref_.inner_index() as usize].original_name);
                             p.record_export(name.loc, original_name, name.ref_)?;
                         } else {
-                            p.log().add_range_error(
+                            p.lexer.log.add_range_error(
                                 Some(p.source),
                                 bun_ast::Range {
                                     loc: p.store[st].class.body_loc,

@@ -121,7 +121,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 T::TDot | T::TQuestionDot => {
                     // The grammar for "DecoratorMemberExpression" currently forbids "?."
                     if p.lexer.token == T::TQuestionDot {
-                        p.log().add_range_error(
+                        p.lexer.log.add_range_error(
                             Some(p.source),
                             p.lexer.range(),
                             b"Optional chaining is not allowed in decorator expressions; wrap the expression in parentheses to use it as a decorator",
@@ -178,7 +178,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                     // The grammar for "DecoratorCallExpression" is terminal
                     if p.lexer.token == T::TDot {
-                        p.log().add_range_error(
+                        p.lexer.log.add_range_error(
                             Some(p.source),
                             p.lexer.range(),
                             b"A decorator call expression cannot be followed by a property access; wrap the expression in parentheses to use it as a decorator",

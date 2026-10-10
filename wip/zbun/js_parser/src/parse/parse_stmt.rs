@@ -354,7 +354,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut value: Option<js_ast::Expr> = None;
                 if p.lexer.token == T::TDefault {
                     if found_default {
-                        p.log().add_range_error(
+                        p.lexer.log.add_range_error(
                             Some(p.source),
                             p.lexer.range(),
                             b"Multiple default clauses are not allowed",
@@ -499,7 +499,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if is_for_await {
                 let await_range = p.lexer.range();
                 if p.fn_or_arrow_data_parse.allow_await != AwaitOrYield::AllowExpr {
-                    p.log().add_range_error(
+                    p.lexer.log.add_range_error(
                         Some(p.source),
                         await_range,
                         b"Cannot use \"await\" outside an async function",
@@ -622,7 +622,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // Detect for-of loops
             if p.lexer.is_contextual_keyword(b"of") || is_for_await {
                 if let Some(r) = bad_let_range {
-                    p.log().add_range_error(
+                    p.lexer.log.add_range_error(
                         Some(p.source),
                         r,
                         b"\"let\" must be wrapped in parentheses to be used as an expression here",
@@ -635,7 +635,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         loc: r.loc,
                         len: p.lexer.range().end().start - r.loc.start,
                     };
-                    p.log().add_range_error(
+                    p.lexer.log.add_range_error(
                         Some(p.source),
                         full,
                         b"For loop initializers cannot start with \"async of\"",
@@ -746,7 +746,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline]
     fn t_return(p: &mut Self, _: &mut ParseStatementOptions, loc: bun_ast::Loc) -> Result<Stmt> {
         if p.fn_or_arrow_data_parse.is_return_disallowed {
-            p.log().add_range_error(
+            p.lexer.log.add_range_error(
                 Some(p.source),
                 p.lexer.range(),
                 b"A return statement cannot be used here",
@@ -771,7 +771,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     fn t_throw(p: &mut Self, _: &mut ParseStatementOptions, loc: bun_ast::Loc) -> Result<Stmt> {
         p.lexer.next()?;
         if p.lexer.has_newline_before {
-            p.log().add_error(
+            p.lexer.log.add_error(
                 Some(p.source),
                 bun_ast::Loc {
                     start: loc.start + 5,
@@ -902,7 +902,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let async_range = p.lexer.range();
                     p.lexer.next()?;
                     if p.lexer.has_newline_before {
-                        p.log().add_range_error(
+                        p.lexer.log.add_range_error(
                             Some(p.source),
                             async_range,
                             b"Unexpected newline after \"async\"",
@@ -927,7 +927,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     && p.lexer.token != T::TOpenBrace
                                     && p.lexer.token != T::TAsterisk
                                 {
-                                    p.log().add_error_fmt(
+                                    p.lexer.log.add_error_fmt(
                                         Some(p.source),
                                         type_range.end(),
                                         format_args!("Unexpected newline after \"type\""),
@@ -1086,7 +1086,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // passes don't support.
                             _ => {
                                 let r = js_lexer::range_of_identifier(p.source, stmt.loc);
-                                p.log().add_range_error_fmt(
+                                p.lexer.log.add_range_error_fmt(
                                     Some(p.source),
                                     r,
                                     format_args!(
@@ -1176,7 +1176,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         && matches!(expr.data, js_ast::ExprData::EIdentifier(_))
                     {
                         let r = js_lexer::range_of_identifier(p.source, expr.loc);
-                        p.log()
+                        p.lexer.log
                             .add_range_error(Some(p.source), r, b"Unexpected \"abstract\"");
                         return Err(crate::Error::SyntaxError);
                     }
@@ -1244,13 +1244,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 ) };
 
                 if path.is_macro {
-                    p.log().add_error(
+                    p.lexer.log.add_error(
                         Some(p.source),
                         path.loc,
                         b"cannot use macro in export statement",
                     );
                 } else if path.import_tag != ImportRecordTag::None {
-                    p.log().add_error(
+                    p.lexer.log.add_error(
                         Some(p.source),
                         loc,
                         b"cannot use export statement with \"type\" attribute",
@@ -1299,13 +1299,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
 
                     if parsed_path.is_macro {
-                        p.log().add_error(
+                        p.lexer.log.add_error(
                             Some(p.source),
                             loc,
                             b"export from cannot be used with \"type\": \"macro\"",
                         );
                     } else if parsed_path.import_tag != ImportRecordTag::None {
-                        p.log().add_error(
+                        p.lexer.log.add_error(
                             Some(p.source),
                             loc,
                             b"export from cannot be used with \"type\" attribute",
@@ -1821,7 +1821,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // "export interface \n Foo {}"
                 if opts.is_export {
                     let r = js_lexer::range_of_identifier(p.source, loc);
-                    p.log()
+                    p.lexer.log
                         .add_range_error(Some(p.source), r, b"Unexpected \"interface\"");
                     return Err(crate::Error::SyntaxError);
                 }
@@ -1834,7 +1834,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 if opts.ts_decorators.is_some() {
                     let r = js_lexer::range_of_identifier(p.source, loc);
-                    p.log()
+                    p.lexer.log
                         .add_range_error(Some(p.source), r, b"Unexpected \"abstract\"");
                     return Err(crate::Error::SyntaxError);
                 }
@@ -1855,7 +1855,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if p.lexer.has_newline_before {
                     if opts.ts_decorators.is_some() {
                         let r = js_lexer::range_of_identifier(p.source, loc);
-                        p.log()
+                        p.lexer.log
                             .add_range_error(Some(p.source), r, b"Unexpected \"declare\"");
                         return Err(crate::Error::SyntaxError);
                     }
@@ -1898,7 +1898,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         | js_ast::StmtData::SLocal(_)
                         | js_ast::StmtData::SEmpty(_)
                 ) {
-                    p.log().add_range_error_fmt(
+                    p.lexer.log.add_range_error_fmt(
                         Some(p.source),
                         after_declare_range,
                         format_args!(

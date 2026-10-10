@@ -49,7 +49,6 @@ type ListManaged<'a, T> = BumpVec<'a, T>;
 /// touch is exposed.
 pub(crate) trait ParserLike<'a> {
     fn lexer(&mut self) -> &mut js_lexer::Lexer<'a>;
-    fn log_ptr(&self) -> core::ptr::NonNull<bun_ast::Log>;
     fn bump(&self) -> &'a Bump;
     fn source(&self) -> &'a bun_ast::Source;
     fn new_expr<T: js_ast::expr::IntoExprData>(&mut self, t: T, loc: bun_ast::Loc) -> Expr;
@@ -61,10 +60,6 @@ impl<'a, const TS: bool, const SCAN: bool> ParserLike<'a> for P<'a, TS, SCAN> {
     #[inline]
     fn lexer(&mut self) -> &mut js_lexer::Lexer<'a> {
         &mut self.lexer
-    }
-    #[inline]
-    fn log_ptr(&self) -> core::ptr::NonNull<bun_ast::Log> {
-        self.log
     }
     #[inline]
     fn bump(&self) -> &'a Bump {
@@ -242,10 +237,6 @@ pub struct P<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> {
     pub(crate) macro_: MacroState<'a>,
     pub(crate) arena: &'a Bump,
     pub(crate) options: ParserOptions<'a>,
-    /// Raw pointer alias of `lexer.log`. Rust cannot store two `&'a mut Log` to one allocation
-    /// (Stacked-Borrows UB), so this is a `NonNull` and reborrowed at use sites
-    /// via `P::log()`. The pointee outlives `'a` (enforced by `Parser::init`).
-    pub(crate) log: core::ptr::NonNull<bun_ast::Log>,
     pub(crate) define: &'a Define,
     /// O dono dos nós deste arquivo (README, "Arena tipada"). Nasce como cópia do `store` do `Define`, para os índices
     /// dos valores dos defines valerem aqui sem conversão.
@@ -710,7 +701,9 @@ pub struct P<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> {
     pub(crate) will_wrap_module_in_try_catch_for_using: bool,
 
     /// Used for react refresh, it must be able to insert `const _s = $RefreshSig$();`
-    pub(crate) nearest_stmt_list: Option<NonNull<ListManaged<'a, Stmt>>>,
+    /// Pilha das listas de comandos içados para antes do comando em visita, uma por `visit_stmts` aberto.
+    /// O upstream guarda um ponteiro para a lista `before` do quadro; aqui o quadro esvazia o topo nela.
+    pub(crate) nearest_stmt_lists: Vec<Vec<Stmt>>,
     // Lifetime caution: points at a stack local saved/restored across calls.
     /// Name from assignment context for anonymous decorated class expressions.
     /// Set before visitExpr, consumed by lowerStandardDecoratorsImpl.
@@ -755,44 +748,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.jsx_transform.is_enabled()
     }
 
-    /// Reborrow the shared `Log`. The `&self` receiver lets call sites pass
-    /// other `self.*` fields as arguments (`self.log().add_error(Some(self.source), …)`)
-    /// without a borrow-checker conflict; callers must not hold two results of
-    /// `log()` live at once.
-    #[inline]
-    #[allow(clippy::mut_from_ref)]
-    pub(crate) fn log(&self) -> &mut bun_ast::Log {
-        // SAFETY: `self.log` was created from an `&'a mut Log` that outlives
-        // `'a` (and therefore `self`). `self.lexer.log` aliases the same
-        // allocation as a `NonNull` (not `&mut`), so no long-lived Unique tag
-        // exists to be invalidated by this transient reborrow.
-        unsafe { &mut *self.log.as_ptr() }
-    }
-
-    pub(crate) fn report_stack_overflow(&self, loc: bun_ast::Loc) {
+    pub(crate) fn report_stack_overflow(&mut self, loc: bun_ast::Loc) {
         if self.reported_stack_overflow.get() {
             return;
         }
         self.reported_stack_overflow.set(true);
-        self.log()
+        self.lexer.log
             .add_error(Some(self.source), loc, b"Maximum call stack size exceeded");
-    }
-
-    /// Safe mutable projection of `nearest_stmt_list`.
-    ///
-    /// The pointer targets a `ListManaged` living on a parent
-    /// `visit_stmts_and_prepend_temp_refs` stack frame (saved/restored around
-    /// each visit), disjoint from `*self`, so a transient `&mut` tied to
-    /// `&mut self` cannot alias any other live borrow. Centralises the
-    /// `unsafe` so call sites stay safe.
-    #[inline]
-    pub(crate) fn nearest_stmt_list_mut(&mut self) -> Option<&mut ListManaged<'a, Stmt>> {
-        // SAFETY: `nearest_stmt_list` is a back-pointer to stack storage on
-        // the enclosing visit frame, set before recursion and restored before
-        // that frame returns. It is disjoint from `*self` and from any other
-        // `&mut` reachable through `self`. The `&mut self` receiver ensures no
-        // concurrent caller is projecting it.
-        self.nearest_stmt_list.map(|mut p| unsafe { p.as_mut() })
     }
 
     /// Shared borrow of the current scope.
@@ -971,7 +933,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         *c = b'*';
                     }
                 }
-                self.log().add_range_error_fmt_with_note(
+                self.lexer.log.add_range_error_fmt_with_note(
                         Some(self.source),
                         r,
                         format_args!(
@@ -986,7 +948,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         r,
                     );
             } else {
-                self.log().add_range_error_fmt_with_note(
+                self.lexer.log.add_range_error_fmt_with_note(
                         Some(self.source),
                         r,
                         format_args!(
@@ -1540,7 +1502,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if self.options.warn_about_unbundled_modules {
             // Use a debug log so people can see this if they want to
             let r = js_lexer::range_of_identifier(self.source, state.loc);
-            self.log()
+            self.lexer.log
                 .add_range_debug(
                     Some(self.source),
                     r,
@@ -1574,7 +1536,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if self.options.warn_about_unbundled_modules {
             // Use a debug log so people can see this if they want to
             let r = js_lexer::range_of_identifier(self.source, arg.loc);
-            self.log()
+            self.lexer.log
                 .add_range_debug(
                     Some(self.source),
                     r,
@@ -1986,7 +1948,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 ),
                 ..Default::default()
             }]);
-            self.log().add_range_error_fmt_with_notes(
+            self.lexer.log.add_range_error_fmt_with_notes(
                 Some(self.source),
                 js_lexer::range_of_identifier(self.source, loc),
                 notes,
@@ -2141,7 +2103,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn log_arrow_arg_errors(&mut self, errors: &mut DeferredArrowArgErrors) {
         if errors.invalid_expr_await.len > 0 {
             let r = errors.invalid_expr_await;
-            self.log().add_range_error(
+            self.lexer.log.add_range_error(
                 Some(self.source),
                 r,
                 b"Cannot use an \"await\" expression here",
@@ -2150,7 +2112,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if errors.invalid_expr_yield.len > 0 {
             let r = errors.invalid_expr_yield;
-            self.log().add_range_error(
+            self.lexer.log.add_range_error(
                 Some(self.source),
                 r,
                 b"Cannot use a \"yield\" expression here",
@@ -2196,7 +2158,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // SAFETY: original_name is an arena-owned slice valid for 'a.
             let original = self.store.str(self.symbols[ref_.inner_index() as usize]
                 .original_name);
-            self.log().add_range_error_fmt(
+            self.lexer.log.add_range_error_fmt(
                 Some(self.source),
                 r,
                 format_args!("Cannot assign to import \"{}\"", bstr::BStr::new(original)),
@@ -3301,7 +3263,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 text,
             ) {
                 Some(members) => self.options.jsx.factory = members,
-                None => self.log().add_range_warning_fmt(
+                None => self.lexer.log.add_range_warning_fmt(
                     Some(self.source),
                     factory.range,
                     format_args!("Invalid JSX factory: \"{}\"", bstr::BStr::new(text)),
@@ -3317,7 +3279,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 text,
             ) {
                 Some(members) => self.options.jsx.fragment = members,
-                None => self.log().add_range_warning_fmt(
+                None => self.lexer.log.add_range_warning_fmt(
                     Some(self.source),
                     fragment.range,
                     format_args!("Invalid JSX fragment: \"{}\"", bstr::BStr::new(text)),
@@ -3343,7 +3305,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             } else {
                 // make this a warning instead of an error because we don't support "preserve" right now
-                self.log().add_range_warning_fmt(
+                self.lexer.log.add_range_warning_fmt(
                     Some(self.source),
                     runtime.range,
                     format_args!("Unsupported JSX runtime: \"{}\"", bstr::BStr::new(text)),
@@ -3550,7 +3512,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             self.store.str(name_store),
                             hash.unwrap(),
                         ) {
-                            self.log().add_symbol_already_declared_error(
+                            self.lexer.log.add_symbol_already_declared_error(
                                 self.source,
                                 self.store.str(name_store),
                                 value.loc,
@@ -3706,7 +3668,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                                 r,
                                                 msg,
                                             )]);
-                                        self.log().add_range_error_fmt_with_notes(
+                                        self.lexer.log.add_range_error_fmt_with_notes(
                                             Some(self.source),
                                             js_lexer::range_of_identifier(
                                                 self.source,
@@ -3797,13 +3759,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // check is debug-only. Preserve that grouping here.
         let order_scope = order.scope;
         if (cfg!(debug_assertions) && order.loc.start != loc.start) || self.store[order_scope].kind != kind {
-            self.log().level = bun_ast::Level::Verbose;
-            let _ = self.log().add_debug_fmt(
+            self.lexer.log.level = bun_ast::Level::Verbose;
+            let _ = self.lexer.log.add_debug_fmt(
                 Some(self.source),
                 loc,
                 format_args!("Expected this scope (.{})", <&'static str>::from(kind)),
             );
-            let _ = self.log().add_debug_fmt(
+            let _ = self.lexer.log.add_debug_fmt(
                 Some(self.source),
                 order.loc,
                 format_args!(
@@ -3871,7 +3833,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // Enforce strictly increasing scope locations to catch parse/visit pass
             // mismatches. Skip once a parse error is logged: error recovery can push
             // two scopes at one loc and the visit pass won't run anyway.
-            if self.log().errors == 0 && !self.scopes_in_order.is_empty() {
+            if self.lexer.log.errors == 0 && !self.scopes_in_order.is_empty() {
                 let mut last_i = self.scopes_in_order.len() - 1;
                 while self.scopes_in_order[last_i].is_none() && last_i > 0 {
                     last_i -= 1;
@@ -3880,13 +3842,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // reshaped for borrowck: copy out loc before borrowing self mutably.
                 if let Some(prev_loc) = self.scopes_in_order[last_i].as_ref().map(|s| s.loc) {
                     if prev_loc.start >= loc.start {
-                        self.log().level = bun_ast::Level::Verbose;
-                        let _ = self.log().add_debug_fmt(
+                        self.lexer.log.level = bun_ast::Level::Verbose;
+                        let _ = self.lexer.log.add_debug_fmt(
                             Some(self.source),
                             prev_loc,
                             format_args!("Previous Scope"),
                         );
-                        let _ = self.log().add_debug_fmt(
+                        let _ = self.lexer.log.add_debug_fmt(
                             Some(self.source),
                             loc,
                             format_args!("Next Scope"),
@@ -4102,7 +4064,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if let Some(initial) = initializer {
             let equals_range = self.source.range_of_operator_before(initial.loc, b"=");
             if is_spread {
-                self.log().add_range_error(
+                self.lexer.log.add_range_error(
                     Some(self.source),
                     equals_range,
                     b"A rest argument cannot have a default initializer",
@@ -4120,7 +4082,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[cold]
     #[inline(never)]
     pub(crate) fn forbid_lexical_decl(&mut self, loc: bun_ast::Loc) {
-        self.log().add_error(
+        self.lexer.log.add_error(
             Some(self.source),
             loc,
             b"Cannot use a declaration in a single-statement context",
@@ -4140,12 +4102,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     pub(crate) fn log_expr_errors(&mut self, errors: &mut DeferredErrors) {
         if let Some(r) = errors.invalid_expr_default_value {
-            self.log()
+            self.lexer.log
                 .add_range_error(Some(self.source), r, b"Unexpected \"=\"");
         }
 
         if let Some(r) = errors.invalid_expr_after_question {
-            self.log().add_range_error_fmt(
+            self.lexer.log.add_range_error_fmt(
                 Some(self.source),
                 r,
                 format_args!(
@@ -4260,7 +4222,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if alias == b"feature" {
                     // Check for duplicate imports of feature
                     if self.bundler_feature_flag_ref.is_valid() {
-                        self.log().add_error(
+                        self.lexer.log.add_error(
                             Some(self.source),
                             item.alias_loc,
                             b"`feature` from \"bun:bundle\" may only be imported once",
@@ -4273,7 +4235,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         self.declare_symbol(js_ast::symbol::Kind::Other, item.name.loc, name)?;
                     self.bundler_feature_flag_ref = r#ref;
                 } else {
-                    self.log().add_error_fmt(
+                    self.lexer.log.add_error_fmt(
                         self.source,
                         item.alias_loc,
                         format_args!(
@@ -4565,7 +4527,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
                     let alias: &[u8] = self.store.str(item.alias);
                     if !(alias == b"default" || alias == b"db") {
-                        self.log().add_error(
+                        self.lexer.log.add_error(
                             Some(self.source),
                             item.name.loc,
                             b"sqlite imports only support the \"default\" or \"db\" imports",
@@ -4578,7 +4540,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 for item in self.store[stmt.items].iter() {
                     // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
                     if self.store.str(item.alias) != b"default" {
-                        self.log().add_error(
+                        self.lexer.log.add_error(
                             Some(self.source),
                             item.name.loc,
                             b"This loader type only supports the \"default\" import",
@@ -4757,7 +4719,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // statements with identifier bindings.
                         return Ok(());
                     }
-                    self.log().add_error_fmt(
+                    self.lexer.log.add_error_fmt(
                         Some(self.source),
                         value.loc,
                         format_args!(
@@ -4768,7 +4730,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
             _ => {
-                self.log().add_error_fmt(
+                self.lexer.log.add_error_fmt(
                     Some(self.source),
                     decls[0].binding.loc,
                     format_args!("for-{} loops must have a single declaration", loop_type),
@@ -4799,7 +4761,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
                         let name = self.store.str(self.symbols[ident_ref.inner_index() as usize]
                             .original_name);
-                        self.log().add_range_error_fmt(
+                        self.lexer.log.add_range_error_fmt(
                             Some(self.source),
                             r,
                             format_args!(
@@ -4811,7 +4773,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // return;/
                     }
                     _ => {
-                        self.log().add_error_fmt(
+                        self.lexer.log.add_error_fmt(
                             Some(self.source),
                             decl.binding.loc,
                             format_args!("This {} must be initialized", what),
@@ -4946,14 +4908,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // bun_ast::Data is !Copy (Cow): build the notes Box directly.
             let notes: Box<[bun_ast::Data]> =
                 Box::new([bun_ast::range_data(Some(self.source), where_, why.to_vec())]);
-            self.log().add_range_error_fmt_with_notes(
+            self.lexer.log.add_range_error_fmt_with_notes(
                 Some(self.source),
                 r,
                 notes,
                 format_args!("{} cannot be used in strict mode", bstr::BStr::new(text)),
             );
         } else if self.is_strict_mode_output_format() {
-            self.log().add_range_error_fmt(
+            self.lexer.log.add_range_error_fmt(
                 Some(self.source),
                 r,
                 format_args!(
@@ -5155,7 +5117,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // Entry already holds `existing`; leave it untouched.
                     // SAFETY: original_name is an arena-owned slice valid for 'a.
                     let orig = self.store.str(self.symbols[symbol_idx].original_name);
-                    self.log().add_symbol_already_declared_error(
+                    self.lexer.log.add_symbol_already_declared_error(
                         self.source,
                         orig,
                         loc,
@@ -5205,14 +5167,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .original_name);
 
             if func.flags.contains(Flags::Function::IsAsync) && original_name == b"await" {
-                self.log().add_range_error(
+                self.lexer.log.add_range_error(
                     Some(self.source),
                     js_lexer::range_of_identifier(self.source, name.loc),
                     b"An async function cannot be named \"await\"",
                 );
             } else if func.flags.contains(Flags::Function::IsGenerator) && original_name == b"yield"
             {
-                self.log().add_range_error(
+                self.lexer.log.add_range_error(
                     Some(self.source),
                     js_lexer::range_of_identifier(self.source, name.loc),
                     b"An generator function expression cannot be named \"yield\"",
@@ -5422,7 +5384,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // would make this location absolutely useless.
         let location = loc.unwrap_or_else(|| self.lexer.loc());
         if (location.start as usize) < self.lexer.source.contents.len() && !location.is_empty() {
-            let _ = self.log().add_range_error_fmt(
+            let _ = self.lexer.log.add_range_error_fmt(
                 Some(self.source),
                 bun_ast::Range {
                     loc: location,
@@ -5432,8 +5394,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             );
         }
 
-        self.log().level = bun_ast::Level::Verbose;
-        let _ = self.log().print(std::ptr::from_mut(Output::error_writer()));
+        self.lexer.log.level = bun_ast::Level::Verbose;
+        let _ = self.lexer.log.print(std::ptr::from_mut(Output::error_writer()));
 
         Output::panic(format_args!("{}\n{}", fmt, args));
     }
@@ -8072,7 +8034,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         let r = js_lexer::range_of_identifier(self.source, loc);
-        self.log().add_range_error_fmt(
+        self.lexer.log.add_range_error_fmt(
             Some(self.source),
             r,
             format_args!(
@@ -8185,7 +8147,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     /// expression can be undone with [`Self::restore_parser_snapshot`]. The
     /// lexer-only backtracking in `parse_skip_typescript.rs` only covers
     /// types: an expression also declares symbols, pushes scopes, records
-    /// dynamic imports and logs through `P::log()`, which ignores
+    /// dynamic imports and logs through `lexer.log`, which ignores
     /// `lexer.is_log_disabled`. Lists are captured as lengths and truncated
     /// on restore; the attempt's arena allocations just become unreachable.
     /// The legal comments waiting for the next statement are moved out
@@ -8194,7 +8156,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn parser_snapshot(&mut self) -> ParserSnapshot<'a> {
         let comments_to_preserve_before =
             core::mem::take(&mut self.lexer.comments_to_preserve_before);
-        let log = self.log();
+        let log = &*self.lexer.log;
         ParserSnapshot {
             lexer: self.lexer.snapshot(),
             comments_to_preserve_before,
@@ -8230,7 +8192,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.lexer.restore(&snapshot.lexer);
         self.lexer.comments_to_preserve_before = snapshot.comments_to_preserve_before;
 
-        let log = self.log();
+        let log = &mut *self.lexer.log;
         log.msgs.truncate(snapshot.log_msgs_len);
         log.errors = snapshot.log_errors;
         log.warnings = snapshot.log_warnings;
@@ -8368,7 +8330,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             js_ast::ExprData::EArray(mut arr) => {
                 for item in (&mut self.store[self.store[arr].items]) {
                     let js_ast::ExprData::EString(mut s) = item.data else {
-                        let _ = self.log().add_error(
+                        let _ = self.lexer.log.add_error(
                             Some(self.source),
                             item.loc,
                             Self::IMPORT_META_HOT_ACCEPT_ERR,
@@ -8403,7 +8365,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
             let _ = self
-                .log()
+                .lexer
+                .log
                 .add_error(Some(self.source), loc, Self::IMPORT_META_HOT_ACCEPT_ERR);
             return None;
         };
@@ -9419,7 +9382,6 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     /// `assume_init` que a escrita no lugar exigia.
     pub fn init(
         arena: &'a Bump,
-        log: core::ptr::NonNull<bun_ast::Log>,
         source: &'a bun_ast::Source,
         define: &'a Define,
         mut lexer: js_lexer::Lexer<'a>,
@@ -9533,7 +9495,6 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             import_records: ImportRecordList::Owned(BumpVec::new_in(arena)), // overwritten below for !SCAN_ONLY
             named_imports: NamedImportsType::Owned(Default::default()), // overwritten below for !SCAN_ONLY
             named_exports: Default::default(),
-            log,
             stack_check: bun_core::StackCheck::init(),
             reported_stack_overflow: core::cell::Cell::new(false),
             ts_infer_constraint_backtracks: Vec::new(),
@@ -9672,7 +9633,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             top_level_enums: BumpVec::new_in(arena),
             scopes_in_order_for_enum: Default::default(),
             will_wrap_module_in_try_catch_for_using: false,
-            nearest_stmt_list: None,
+            nearest_stmt_lists: Vec::new(),
             decorator_class_name: None,
 
             jsx_transform,

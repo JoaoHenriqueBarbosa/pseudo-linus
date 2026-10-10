@@ -528,7 +528,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Newlines are not allowed before "=>"
         if p.lexer.has_newline_before {
-            p.log().add_range_error(
+            p.lexer.log.add_range_error(
                 Some(p.source),
                 p.lexer.range(),
                 b"Unexpected newline before \"=>\"",

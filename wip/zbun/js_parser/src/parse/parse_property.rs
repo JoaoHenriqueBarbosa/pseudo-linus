@@ -50,25 +50,25 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::ExprData::EString(str_) => {
                     if !opts.is_static && str_.eql_comptime(b"constructor") {
                         if kind == PropertyKind::Get {
-                            p.log().add_range_error(
+                            p.lexer.log.add_range_error(
                                 Some(p.source),
                                 key_range,
                                 b"Class constructor cannot be a getter",
                             );
                         } else if kind == PropertyKind::Set {
-                            p.log().add_range_error(
+                            p.lexer.log.add_range_error(
                                 Some(p.source),
                                 key_range,
                                 b"Class constructor cannot be a setter",
                             );
                         } else if opts.is_async {
-                            p.log().add_range_error(
+                            p.lexer.log.add_range_error(
                                 Some(p.source),
                                 key_range,
                                 b"Class constructor cannot be an async function",
                             );
                         } else if opts.is_generator {
-                            p.log().add_range_error(
+                            p.lexer.log.add_range_error(
                                 Some(p.source),
                                 key_range,
                                 b"Class constructor cannot be a generator function",
@@ -77,7 +77,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             is_constructor = true;
                         }
                     } else if opts.is_static && str_.eql_comptime(b"prototype") {
-                        p.log().add_range_error(
+                        p.lexer.log.add_range_error(
                             Some(p.source),
                             key_range,
                             b"Invalid static method name \"prototype\"",
@@ -139,7 +139,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if args.len() > 0 {
                     let r = js_lexer::range_of_identifier(p.source, args[0].binding.loc);
                     let key_name = p.key_name_for_error(key);
-                    p.log().add_range_error_fmt(
+                    p.lexer.log.add_range_error_fmt(
                         Some(p.source),
                         r,
                         format_args!(
@@ -163,7 +163,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         r = js_lexer::range_of_identifier(p.source, args[1].binding.loc);
                     }
                     let key_name = p.key_name_for_error(key);
-                    p.log().add_range_error_fmt(
+                    p.lexer.log.add_range_error_fmt(
                         Some(p.source),
                         r,
                         format_args!(
@@ -206,7 +206,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 let name = p.load_name_from_ref(private.ref_);
                 if name == b"#constructor" {
-                    p.log().add_range_error(
+                    p.lexer.log.add_range_error(
                         Some(p.source),
                         key_range,
                         b"Invalid method name \"#constructor\"",
@@ -536,7 +536,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // Handle invalid identifiers in property names
                     // https://github.com/oven-sh/bun/issues/12039
                     if p.lexer.token == T::TSyntaxError {
-                        p.log().add_range_error_fmt(
+                        p.lexer.log.add_range_error_fmt(
                             Some(p.source),
                             name_range,
                             format_args!("Unexpected {}", bun_core::fmt::quote(name)),
@@ -563,13 +563,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 && name == b"yield")
                         {
                             if name == b"await" {
-                                p.log().add_range_error(
+                                p.lexer.log.add_range_error(
                                     Some(p.source),
                                     name_range,
                                     b"Cannot use \"await\" here",
                                 );
                             } else {
-                                p.log().add_range_error(
+                                p.lexer.log.add_range_error(
                                     Some(p.source),
                                     name_range,
                                     b"Cannot use \"yield\" here",
@@ -652,7 +652,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 || (opts.is_static && str_.eql_comptime(b"prototype"))
                             {
                                 // TODO: fmt error message to include string value.
-                                p.log().add_range_error(
+                                p.lexer.log.add_range_error(
                                     Some(p.source),
                                     key_range,
                                     b"Invalid field name",
@@ -681,7 +681,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if p.lexer.token == T::TEquals {
                     if Self::IS_TYPESCRIPT_ENABLED {
                         if !opts.declare_range.is_empty() {
-                            p.log().add_range_error(
+                            p.lexer.log.add_range_error(
                                 Some(p.source),
                                 p.lexer.range(),
                                 b"Class fields that use \"declare\" cannot be initialized",
@@ -708,7 +708,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     js_ast::ExprData::EPrivateIdentifier(private) => {
                         let name = p.load_name_from_ref(private.ref_);
                         if name == b"#constructor" {
-                            p.log().add_range_error(
+                            p.lexer.log.add_range_error(
                                 Some(p.source),
                                 key_range,
                                 b"Invalid field name \"#constructor\"",
@@ -751,7 +751,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Auto-accessor fields cannot be methods
             if kind == PropertyKind::AutoAccessor && p.lexer.token == T::TOpenParen {
-                p.log().add_range_error(
+                p.lexer.log.add_range_error(
                     Some(p.source),
                     key_range,
                     b"auto-accessor properties cannot have a method body",

@@ -746,7 +746,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // runtime. When the API is not validated in this
                             // way, the developer may unintentionally read or
                             // write internal fields of HMRModule.
-                            p.log().add_error_fmt(
+                            p.lexer.log.add_error_fmt(
                                 Some(p.source),
                                 loc,
                                 format_args!(
@@ -882,7 +882,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return;
         }
 
-        p.log().add_range_error(
+        p.lexer.log.add_range_error(
             Some(p.source),
             bun_ast::Range {
                 loc: comma_after_spread,

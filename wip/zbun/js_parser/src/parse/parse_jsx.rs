@@ -64,7 +64,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // <ListItem key>
                             if p.lexer.token != T::TEquals {
                                 // Unlike Babel, we're going to just warn here and move on.
-                                p.log().add_warning(
+                                p.lexer.log.add_warning(
                                     Some(p.source),
                                     key_range.loc,
                                     b"\"key\" prop ignored. Must be a string, number or symbol.",
@@ -169,7 +169,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     }
 
                                     // If we get here, it's invalid
-                                    p.log().add_error(
+                                    p.lexer.log.add_error(
                                         Some(p.source),
                                         expr.loc,
                                         b"Invalid JSX prop shorthand, must be identifier, dot or string",
@@ -225,7 +225,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 && p.options.jsx.runtime == options::JSXRuntime::Automatic
                 && !p.has_classic_runtime_warned
             {
-                p.log().add_warning(
+                p.lexer.log.add_warning(
                     Some(p.source),
                     spread_loc,
                     b"\"key\" prop after a {...spread} is deprecated in JSX. Falling back to classic runtime.",
@@ -253,7 +253,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         {
             let r = p.lexer.range();
             // Not dealing with this right now.
-            p.log().add_range_error(
+            p.lexer.log.add_range_error(
                 Some(p.source),
                 r,
                 b"Invalid JSX escape - use XML entity codes quotes or pass a JavaScript string instead",
@@ -345,7 +345,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let end_tag = JSXTag::parse(p)?;
 
                     if end_tag.name != tag.name {
-                        p.log().add_range_error_fmt_with_note(
+                        p.lexer.log.add_range_error_fmt_with_note(
                             Some(p.source),
                             end_tag.range,
                             format_args!(

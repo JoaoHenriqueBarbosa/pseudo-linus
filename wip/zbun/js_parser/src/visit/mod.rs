@@ -230,7 +230,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if let Some(strict_loc) = strict_loc
             && !has_simple_args
         {
-            self.log()
+            self.lexer.log
                 .add_range_error(
                     Some(self.source),
                     self.source.range_of_string(strict_loc),
@@ -821,7 +821,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 if let Some(dup) = duplicate_arg_check {
                     if dup.get_or_put_contains(name) {
-                        self.log().add_range_error_fmt(
+                        self.lexer.log.add_range_error_fmt(
                             Some(self.source),
                             js_lexer::range_of_identifier(self.source, binding.loc),
                             format_args!(
@@ -1537,12 +1537,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let mut visited: ListManaged<'a, Stmt> =
                 ListManaged::with_capacity_in(stmts.len(), p.arena);
 
-            let prev_nearest_stmt_list = p.nearest_stmt_list;
-            // BACKREF: `before` outlives this block; raw NonNull avoids
-            // the `&'a mut` borrow conflict. Derive via `addr_of_mut!` (no intermediate
-            // `&mut`) so the pointer shares the local's base tag and survives the
-            // direct `&mut before` reborrows in the loop below (Stacked Borrows).
-            p.nearest_stmt_list = NonNull::new(core::ptr::addr_of_mut!(before));
+            // As declarações que a visita içar para antes do comando corrente (`nearest_stmt_list` do
+            // upstream) caem no topo desta pilha e passam para `before` depois de cada comando visitado.
+            p.nearest_stmt_lists.push(Vec::new());
 
             let mut preprocessed_enum_i: usize = 0;
 
@@ -1566,7 +1563,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     .kind
                                     == SymbolKind::HoistedFunction
                             {
-                                break 'list_getter &mut before;
+                                let mut hoisted: ListManaged<'a, Stmt> = ListManaged::new_in(p.arena);
+                                p.visit_and_append_stmt(&mut hoisted, stmt)?;
+                                before.extend(p.nearest_stmt_lists.last_mut().unwrap().drain(..));
+                                before.extend_from_slice(&hoisted);
+                                continue 'stmt_loop;
                             }
                         }
                         StmtData::SEnum(_) => {
@@ -1584,6 +1585,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     break 'list_getter &mut visited;
                 };
                 p.visit_and_append_stmt(list, stmt)?;
+                before.extend(p.nearest_stmt_lists.last_mut().unwrap().drain(..));
             }
 
             // Transform block-level function declarations into variable declarations
@@ -1732,7 +1734,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             stmts.extend_from_slice(&after);
 
             // manual restore for the block-level `defer`s
-            p.nearest_stmt_list = prev_nearest_stmt_list;
+            p.nearest_stmt_lists.pop();
             p.is_control_flow_dead = old_is_control_flow_dead;
         }
 

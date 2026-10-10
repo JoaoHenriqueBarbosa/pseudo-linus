@@ -275,7 +275,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         left: &mut Expr,
     ) -> CResult {
         if old_optional_chain.is_some() {
-            p.log().add_range_error(
+            p.lexer.log.add_range_error(
                 Some(p.source),
                 p.lexer.range(),
                 b"Template literals cannot have an optional chain as a tag",
@@ -306,7 +306,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         left: &mut Expr,
     ) -> CResult {
         if old_optional_chain.is_some() {
-            p.log().add_range_error(
+            p.lexer.log.add_range_error(
                 Some(p.source),
                 p.lexer.range(),
                 b"Template literals cannot have an optional chain as a tag",

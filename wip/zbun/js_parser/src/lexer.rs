@@ -272,13 +272,6 @@ impl<'a> LexerLog<'a> for Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    /// O `Log` do chamador. No upstream o lexer e o parser guardam dois `NonNull<Log>` para o mesmo `Log`; no porte
-    /// o lexer é o único dono do `&mut Log`, e o parser chega a ele por `p.lexer.log()`.
-    #[inline]
-    pub(crate) fn log(&mut self) -> &mut Log {
-        self.log
-    }
-
     /// A `StoreStr` de uma fatia do código-fonte: o `StoreStr::new` do upstream aponta para dentro do fonte, e no
     /// porte o fonte ocupa o começo do vetor de bytes do `Store` (README, "Arena tipada"), então a faixa é o
     /// deslocamento da fatia no fonte.

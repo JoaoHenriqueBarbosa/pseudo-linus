@@ -2560,7 +2560,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     },
                     loc,
                 );
-                if let Some(stmt_list) = p.nearest_stmt_list_mut() {
+                if let Some(stmt_list) = p.nearest_stmt_lists.last_mut() {
                     stmt_list.push(var_decl_stmt);
                 }
             }

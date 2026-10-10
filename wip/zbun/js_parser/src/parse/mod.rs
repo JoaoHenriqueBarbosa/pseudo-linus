@@ -231,7 +231,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if let Some(key) = prop_key {
                         if let js_ast::expr::Data::EString(str_) = &key.data {
                             if str_.eql_comptime(b"constructor") {
-                                p.log().add_error(
+                                p.lexer.log.add_error(
                                     Some(p.source),
                                     first_decorator_loc,
                                     b"TypeScript does not allow decorators on class constructors",
@@ -583,7 +583,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // conversion errors
                 if !invalid_log.is_empty() {
                     for loc_ in invalid_log.iter() {
-                        loc_.add_error(p.log(), p.source);
+                        loc_.add_error(p.lexer.log, p.source);
                     }
                 }
                 let mut arrow = p.parse_arrow_body(args.into_vec(), &mut arrow_data)?;
@@ -601,7 +601,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // If this isn't an arrow function, then types aren't allowed
         if type_colon_range.len > 0 {
-            p.log()
+            p.lexer.log
                 .add_range_error(Some(p.source), type_colon_range, b"Unexpected \":\"");
             return Err(crate::Error::SyntaxError);
         }
@@ -631,7 +631,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if items.len() > 0 {
             p.log_expr_errors(&mut errors);
             if spread_range.len > 0 {
-                p.log()
+                p.lexer.log
                     .add_range_error(Some(p.source), type_colon_range, b"Unexpected \"...\"");
                 return Err(crate::Error::SyntaxError);
             }
@@ -696,7 +696,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if p.fn_or_arrow_data_parse.allow_await != AwaitOrYield::AllowIdent
                 && name_text == b"await"
             {
-                p.log().add_range_error(
+                p.lexer.log.add_range_error(
                     Some(p.source),
                     p.lexer.range(),
                     b"Cannot use \"await\" as an identifier here",
@@ -834,7 +834,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         } else if raw == b"using" {
             // Handle an "using" declaration
             if opts.is_export {
-                p.log().add_error(
+                p.lexer.log.add_error(
                     Some(p.source),
                     token_range.loc,
                     b"Cannot use \"export\" with a \"using\" declaration",
@@ -857,7 +857,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // Their bindings are also never declared as symbols, so
                     // require_initializers (which looks up the binding's symbol)
                     // must not run here.
-                    p.log().add_error(
+                    p.lexer.log.add_error(
                         Some(p.source),
                         token_range.loc,
                         b"Cannot use \"declare\" with a \"using\" declaration",
@@ -883,7 +883,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         {
             // Handle an "await using" declaration
             if opts.is_export {
-                p.log().add_error(
+                p.lexer.log.add_error(
                     Some(p.source),
                     token_range.loc,
                     b"Cannot use \"export\" with an \"await using\" declaration",
@@ -913,7 +913,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             p.parse_and_declare_decls(js_ast::symbol::Kind::Constant, opts)?;
                         let decls_slice = decls;
                         if opts.is_typescript_declare {
-                            p.log().add_error(
+                            p.lexer.log.add_error(
                                 Some(p.source),
                                 token_range.loc,
                                 b"Cannot use \"declare\" with an \"await using\" declaration",
@@ -1000,7 +1000,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         && name == b"yield")
                 {
                     // TODO: add fmt to addRangeError
-                    p.log().add_range_error(
+                    p.lexer.log.add_range_error(
                         Some(p.source),
                         p.lexer.range(),
                         b"Cannot use \"yield\" or \"await\" here.",
@@ -1057,7 +1057,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                             // Commas after spread elements are not allowed
                             if has_spread && p.lexer.token == T::TComma {
-                                p.log().add_range_error(
+                                p.lexer.log.add_range_error(
                                     Some(p.source),
                                     p.lexer.range(),
                                     b"Unexpected \",\" after rest pattern",
@@ -1113,7 +1113,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         // Commas after spread elements are not allowed
                         if is_spread && p.lexer.token == T::TComma {
-                            p.log().add_range_error(
+                            p.lexer.log.add_range_error(
                                 Some(p.source),
                                 p.lexer.range(),
                                 b"Unexpected \",\" after rest pattern",
@@ -1270,7 +1270,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if (kind == js_ast::symbol::Kind::Other || kind == js_ast::symbol::Kind::Constant)
                 && p.lexer.is_contextual_keyword(b"let")
             {
-                p.log().add_range_error(
+                p.lexer.log.add_range_error(
                     Some(p.source),
                     p.lexer.range(),
                     b"Cannot use \"let\" as an identifier here",
@@ -1534,7 +1534,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 if needs_check && return_without_semicolon_start != -1 {
                     if let js_ast::stmt::Data::SExpr(_) = &stmt.data {
-                        p.log().add_warning(
+                        p.lexer.log.add_warning(
                     Some(p.source),
                             bun_ast::Loc { start: return_without_semicolon_start + 6 },
                             b"The following expression is not returned because of an automatically-inserted semicolon",

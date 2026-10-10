@@ -40,7 +40,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             _ => {}
         }
 
-        p.log()
+        p.lexer.log
             .add_range_error(Some(p.source), super_range, b"Unexpected \"super\"");
         Ok(p.new_expr(E::Super {}, loc))
     }
@@ -98,7 +98,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     fn pfx_t_this(p: &mut Self) -> PResult<Expr> {
         let loc = p.lexer.loc();
         if p.fn_or_arrow_data_parse.is_this_disallowed {
-            p.log()
+            p.lexer.log
                 .add_range_error(Some(p.source), p.lexer.range(), b"Cannot use \"this\" here");
         }
         p.lexer.next()?;
@@ -157,7 +157,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             AsyncPrefixExpression::IsAwait => match p.fn_or_arrow_data_parse.allow_await {
                 AwaitOrYield::ForbidAll => {
-                    p.log().add_range_error(
+                    p.lexer.log.add_range_error(
                         Some(p.source),
                         name_range,
                         b"The keyword \"await\" cannot be used here",
@@ -165,7 +165,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 AwaitOrYield::AllowExpr => {
                     if AsyncPrefixExpression::find(raw) != AsyncPrefixExpression::IsAwait {
-                        p.log().add_range_error(
+                        p.lexer.log.add_range_error(
                             Some(p.source),
                             name_range,
                             b"The keyword \"await\" cannot be escaped",
@@ -198,7 +198,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             AsyncPrefixExpression::IsYield => {
                 match p.fn_or_arrow_data_parse.allow_yield {
                     AwaitOrYield::ForbidAll => {
-                        p.log().add_range_error(
+                        p.lexer.log.add_range_error(
                             Some(p.source),
                             name_range,
                             b"The keyword \"yield\" cannot be used here",
@@ -206,14 +206,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                     AwaitOrYield::AllowExpr => {
                         if AsyncPrefixExpression::find(raw) != AsyncPrefixExpression::IsYield {
-                            p.log().add_range_error(
+                            p.lexer.log.add_range_error(
                                 Some(p.source),
                                 name_range,
                                 b"The keyword \"yield\" cannot be escaped",
                             );
                         } else {
                             if level.gt(Level::Assign) {
-                                p.log().add_range_error(
+                                p.lexer.log.add_range_error(
                                     Some(p.source),
                                     name_range,
                                     b"Cannot use a \"yield\" here without parentheses",
@@ -242,7 +242,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 | T::TNumericLiteral
                                 | T::TBigIntegerLiteral
                                 | T::TStringLiteral => {
-                                    p.log().add_range_error(
+                                    p.lexer.log.add_range_error(
                                         Some(p.source),
                                         name_range,
                                         b"Cannot use \"yield\" outside a generator function",
@@ -402,7 +402,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     loc: value.loc,
                     len: i32::try_from(name.len()).expect("int cast"),
                 };
-                p.log().add_range_error_fmt(
+                p.lexer.log.add_range_error_fmt(
                     Some(p.source),
                     range,
                     format_args!(
@@ -558,7 +558,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if p.fn_or_arrow_data_parse.allow_await != AwaitOrYield::AllowIdent
                     && name_text == b"await"
                 {
-                    p.log().add_range_error(
+                    p.lexer.log.add_range_error(
                         Some(p.source),
                         p.lexer.range(),
                         b"Cannot use \"await\" as an identifier here",
@@ -621,7 +621,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if p.fn_or_arrow_data_parse.allow_await != AwaitOrYield::AllowIdent
                     && name_text == b"await"
                 {
-                    p.log().add_range_error(
+                    p.lexer.log.add_range_error(
                         Some(p.source),
                         p.lexer.range(),
                         b"Cannot use \"await\" as an identifier here",

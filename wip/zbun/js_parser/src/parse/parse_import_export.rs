@@ -31,7 +31,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if level.gt(Level::Call) {
             let r = js_lexer::range_of_identifier(p.source, loc);
-            p.log().add_range_error(
+            p.lexer.log.add_range_error(
                 Some(p.source),
                 r,
                 b"Cannot use an \"import\" expression here without parentheses",
@@ -185,7 +185,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         if is_eval_or_arguments(p.store.str(original_name)) {
                             let r = p.source.range_of_string(name.loc);
-                            p.log().add_range_error_fmt(
+                            p.lexer.log.add_range_error_fmt(
                                 Some(p.source),
                                 r,
                                 format_args!(
@@ -239,7 +239,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // Reject forbidden names
                 if is_eval_or_arguments(p.store.str(original_name)) {
                     let r = js_lexer::range_of_identifier(p.source, name.loc);
-                    p.log().add_range_error_fmt(
+                    p.lexer.log.add_range_error_fmt(
                         Some(p.source),
                         r,
                         format_args!(

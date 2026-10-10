@@ -45,7 +45,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // Forbid referencing "arguments" inside class bodies
                 if self.store[scope].forbid_arguments && !did_forbid_arguments && name == b"arguments" {
                     let r = js_lexer::range_of_identifier(self.source, loc);
-                    self.log().add_range_error_fmt(
+                    self.lexer.log.add_range_error_fmt(
                         Some(self.source),
                         r,
                         format_args!("Cannot access \"{}\" here", bstr::BStr::new(name)),
