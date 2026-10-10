@@ -1,0 +1,71 @@
+"""O módulo resource como usuário comum (o golden sai de um uid sem privilégio): constantes, getrlimit, setrlimit com os
+erros de tipo, de tamanho e de permissão, prlimit do próprio processo e getrusage."""
+
+import os
+import resource
+
+
+def attempt(label, fn):
+    try:
+        print(label, repr(fn()))
+    except BaseException as exc:
+        print(label, 'EXC', type(exc).__name__, exc.args, str(exc))
+
+
+R = resource
+print('consts', [(n, getattr(R, n)) for n in sorted(dir(R)) if n.startswith('RLIM') or n.startswith('RUSAGE')])
+print('dir', sorted(n for n in dir(R) if not n.startswith('__')))
+print('error', R.error is OSError, R.struct_rusage.__module__, R.struct_rusage.__name__)
+attempt('get_neg', lambda: R.getrlimit(-1))
+attempt('get_16', lambda: R.getrlimit(16))
+attempt('get_str', lambda: R.getrlimit('x'))
+attempt('get_float', lambda: R.getrlimit(1.5))
+attempt('get_none', lambda: R.getrlimit(None))
+attempt('get_core', lambda: R.getrlimit(R.RLIMIT_CORE))
+attempt('get_nofile_type', lambda: [type(v).__name__ for v in R.getrlimit(R.RLIMIT_NOFILE)])
+attempt('get_10', lambda: R.getrlimit(10))
+attempt('get_nargs', lambda: R.getrlimit())
+attempt('set_one', lambda: R.setrlimit(R.RLIMIT_CORE, (10,)))
+attempt('set_int', lambda: R.setrlimit(R.RLIMIT_CORE, 5))
+attempt('set_list', lambda: R.setrlimit(R.RLIMIT_CORE, [10, 20]))
+attempt('set_three', lambda: R.setrlimit(R.RLIMIT_CORE, (1, 2, 3)))
+attempt('set_str', lambda: R.setrlimit(R.RLIMIT_CORE, ('a', 'b')))
+attempt('set_float', lambda: R.setrlimit(R.RLIMIT_CORE, (1.5, 2)))
+attempt('set_inv_res', lambda: R.setrlimit(99, (1, 2)))
+attempt('set_big', lambda: R.setrlimit(R.RLIMIT_CORE, (2 ** 70, 2 ** 70)))
+attempt('set_cur_gt_max', lambda: R.setrlimit(R.RLIMIT_CORE, (20, 10)))
+attempt('set_ok', lambda: R.setrlimit(R.RLIMIT_CORE, (10, 20)))
+attempt('get_after', lambda: R.getrlimit(R.RLIMIT_CORE))
+attempt('raise_hard', lambda: R.setrlimit(R.RLIMIT_CORE, (10, 30)))
+attempt('lower_hard', lambda: R.setrlimit(R.RLIMIT_CORE, (5, 15)))
+attempt('get_final', lambda: R.getrlimit(R.RLIMIT_CORE))
+attempt('inf_soft', lambda: R.setrlimit(R.RLIMIT_CORE, (R.RLIM_INFINITY, 15)))
+attempt('neg_two', lambda: R.setrlimit(R.RLIMIT_CORE, (-2, 15)))
+attempt('prl_self', lambda: R.prlimit(0, R.RLIMIT_CORE))
+attempt('prl_pid', lambda: R.prlimit(os.getpid(), R.RLIMIT_CORE))
+attempt('prl_set', lambda: R.prlimit(0, R.RLIMIT_CORE, (4, 15)))
+attempt('prl_after', lambda: R.prlimit(0, R.RLIMIT_CORE))
+attempt('prl_nopid', lambda: R.prlimit(99999, R.RLIMIT_CORE))
+attempt('prl_bad_res', lambda: R.prlimit(0, 99))
+attempt('prl_bad_lim', lambda: R.prlimit(0, R.RLIMIT_CORE, (1,)))
+attempt('prl_str_pid', lambda: R.prlimit('x', R.RLIMIT_CORE))
+attempt('prl_neg_pid', lambda: R.prlimit(-1, R.RLIMIT_CORE))
+attempt('ru_self', lambda: type(R.getrusage(R.RUSAGE_SELF)).__name__)
+ru = R.getrusage(R.RUSAGE_SELF)
+attempt('ru_len', lambda: (len(ru), type(ru.ru_utime).__name__, type(ru.ru_maxrss).__name__, ru._fields if hasattr(ru, '_fields') else None))
+attempt('ru_fields', lambda: ru.n_fields)
+attempt('ru_seqf', lambda: (ru.n_sequence_fields, ru.n_unnamed_fields))
+attempt('ru_bad', lambda: R.getrusage(5))
+attempt('ru_str', lambda: R.getrusage('x'))
+attempt('ru_children', lambda: len(R.getrusage(R.RUSAGE_CHILDREN)))
+attempt('ru_thread', lambda: len(R.getrusage(R.RUSAGE_THREAD)))
+attempt('pagesize', lambda: R.getpagesize())
+attempt('struct_new', lambda: R.struct_rusage((1,) * 16)[0])
+attempt('struct_new_short', lambda: R.struct_rusage((1,) * 3))
+attempt('doc_get', lambda: R.getrlimit.__doc__)
+attempt('doc_set', lambda: R.setrlimit.__doc__)
+attempt('doc_prl', lambda: R.prlimit.__doc__)
+attempt('doc_ru', lambda: R.getrusage.__doc__)
+attempt('doc_ps', lambda: R.getpagesize.__doc__)
+attempt('doc_mod', lambda: R.__doc__)
+attempt('ru_repr', lambda: repr(R.struct_rusage((1, 2) + (0,) * 14)))

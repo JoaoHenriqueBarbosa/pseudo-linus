@@ -234,7 +234,7 @@ enum IterNode {
 /// Um iterador preguiçoso embutido (ver [`LazyParts`]) com os valores convertidos em itens.
 enum LazyNode {
     Seq { kind: &'static str, items: Vec<Item>, pos: usize, source: Option<Item>, exhausted: bool },
-    Reversed { kind: &'static str, items: Vec<Item>, next: usize },
+    Reversed { kind: &'static str, items: Vec<Item>, next: usize, source: Option<Item> },
     Map { func: Item, iters: Vec<IterNode> },
     Filter { func: Item, iter: IterNode },
     Zip { iters: Vec<IterNode>, strict: bool },
@@ -1029,7 +1029,9 @@ impl Encoder {
             LazyParts::Seq { kind, items, pos, source, exhausted } => {
                 LazyNode::Seq { kind, items: self.items(&items)?, pos, source: self.opt_item(source.as_ref())?, exhausted }
             }
-            LazyParts::Reversed { kind, items, next } => LazyNode::Reversed { kind, items: self.items(&items)?, next },
+            LazyParts::Reversed { kind, items, next, source } => {
+                LazyNode::Reversed { kind, items: self.items(&items)?, next, source: self.opt_item(source.as_ref())? }
+            }
             LazyParts::Map { func, iters } => LazyNode::Map { func: self.item(&func)?, iters: self.iters(iters)? },
             LazyParts::Filter { func, iter } => LazyNode::Filter { func: self.item(&func)?, iter: self.iter(iter)? },
             LazyParts::Zip { iters, strict } => LazyNode::Zip { iters: self.iters(iters)?, strict },
@@ -1668,8 +1670,8 @@ impl Rebuilt {
             LazyNode::Seq { kind, items, pos, source, exhausted } => {
                 LazyParts::Seq { kind: *kind, items: self.values_of(items)?, pos: *pos, source: self.opt(source)?, exhausted: *exhausted }
             }
-            LazyNode::Reversed { kind, items, next } => {
-                LazyParts::Reversed { kind: *kind, items: self.values_of(items)?, next: *next }
+            LazyNode::Reversed { kind, items, next, source } => {
+                LazyParts::Reversed { kind: *kind, items: self.values_of(items)?, next: *next, source: self.opt(source)? }
             }
             LazyNode::Map { func, iters } => LazyParts::Map { func: self.value(*func)?, iters: self.iters(iters)? },
             LazyNode::Filter { func, iter } => LazyParts::Filter { func: self.value(*func)?, iter: self.iter(iter)? },
@@ -1762,7 +1764,10 @@ fn lazy_deps(lazy: &LazyNode, out: &mut Vec<usize>) {
             items.iter().for_each(|i| push_dep(out, i));
             source.iter().for_each(|i| push_dep(out, i));
         }
-        LazyNode::Reversed { items, .. } => items.iter().for_each(|i| push_dep(out, i)),
+        LazyNode::Reversed { items, source, .. } => {
+            items.iter().for_each(|i| push_dep(out, i));
+            source.iter().for_each(|i| push_dep(out, i));
+        }
         LazyNode::Map { func, iters } => {
             push_dep(out, func);
             iters.iter().for_each(|it| iter_deps(it, out));

@@ -58,7 +58,7 @@ pub enum LazyParts {
     /// `iter(seq)`: a cópia dos itens, a posição, a origem e se já esgotou.
     Seq { kind: &'static str, items: Vec<Value>, pos: usize, source: Option<Value>, exhausted: bool },
     /// `reversed(seq)`: itens já invertidos e a posição.
-    Reversed { kind: &'static str, items: Vec<Value>, next: usize },
+    Reversed { kind: &'static str, items: Vec<Value>, next: usize, source: Option<Value> },
     Map { func: Value, iters: Vec<IterParts> },
     Filter { func: Value, iter: IterParts },
     Zip { iters: Vec<IterParts>, strict: bool },
@@ -75,8 +75,8 @@ pub(crate) fn lazy_from_parts(parts: LazyParts) -> Option<Value> {
     let many = |list: Vec<IterParts>| list.into_iter().map(iter_from_parts).collect::<Option<Vec<PyIter>>>();
     Some(match parts {
         LazyParts::Seq { kind, items, pos, source, exhausted } => crate::builtins::seq_iter(kind, items, pos, source, exhausted),
-        LazyParts::Reversed { kind, items, next } => {
-            Value::Ext(Rc::new(ReversedIter { kind, items, next: Cell::new(next) }))
+        LazyParts::Reversed { kind, items, next, source } => {
+            Value::Ext(Rc::new(ReversedIter { kind, items, next: Cell::new(next), source: RefCell::new(source) }))
         }
         LazyParts::Map { func, iters } => Value::Ext(Rc::new(MapIter { func, iters: RefCell::new(many(iters)?) })),
         LazyParts::Filter { func, iter } => Value::Ext(Rc::new(FilterIter { func, iter: RefCell::new(iter_from_parts(iter)?) })),
@@ -742,12 +742,15 @@ pub struct ReversedIter {
     kind: &'static str,
     items: Vec<Value>,
     next: Cell<usize>,
+    /// A sequência de origem (o `it_seq` do `listreviter`, o `di_dict` do `dictiter`): o que o `gc.get_referents`
+    /// mostra, até o `next` bater no fim e o CPython soltá-la. `None` onde o CPython não guarda a origem (`range`).
+    source: RefCell<Option<Value>>,
 }
 
 impl ReversedIter {
-    pub fn new(kind: &'static str, mut items: Vec<Value>) -> Value {
+    pub fn new(kind: &'static str, mut items: Vec<Value>, source: Option<Value>) -> Value {
         items.reverse();
-        Value::Ext(std::rc::Rc::new(ReversedIter { kind, items, next: Cell::new(0) }))
+        Value::Ext(std::rc::Rc::new(ReversedIter { kind, items, next: Cell::new(0), source: RefCell::new(source) }))
     }
 }
 
@@ -768,11 +771,30 @@ impl ExtObject for ReversedIter {
         true
     }
     fn image(&self) -> Option<ExtImage> {
-        Some(ExtImage::Lazy(LazyParts::Reversed { kind: self.kind, items: self.items.clone(), next: self.next.get() }))
+        Some(ExtImage::Lazy(LazyParts::Reversed {
+            kind: self.kind,
+            items: self.items.clone(),
+            next: self.next.get(),
+            source: self.source.borrow().clone(),
+        }))
+    }
+    fn referents(&self) -> Vec<Value> {
+        let mut out: Vec<Value> = self.source.borrow().clone().into_iter().collect();
+        // O `dict_reverseitemiterator` guarda também a tupla de resultado que reaproveita.
+        if self.kind == "dict_reverseitemiterator" {
+            out.push(Value::tuple(vec![Value::None, Value::None]));
+        }
+        out
     }
     fn iter_next(&self) -> PyResult<Option<Value>> {
         let i = self.next.get();
-        let Some(v) = self.items.get(i) else { return Ok(None) };
+        let Some(v) = self.items.get(i) else {
+            // O `listreviter` é o único que não solta a origem ao esgotar.
+            if self.kind != "list_reverseiterator" {
+                self.source.borrow_mut().take();
+            }
+            return Ok(None);
+        };
         self.next.set(i + 1);
         Ok(Some(v.clone()))
     }

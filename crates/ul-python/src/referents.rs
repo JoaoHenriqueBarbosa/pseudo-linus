@@ -142,6 +142,9 @@ fn class_referents(c: &Rc<ClassObj>) -> Vec<Value> {
 /// visitado como tipo e não tem campos de `__slots__`: os do shim são estado interno.
 fn instance_referents(vm: &mut Vm, i: &Rc<InstanceObj>) -> Vec<Value> {
     let class = i.class();
+    if let Some(out) = itertools_referents(i) {
+        return out;
+    }
     let heap = !class.emulates_c_type();
     let attrs = i.dict.borrow();
     let greenlet = attrs.get(GREENLET_STATE).cloned();
@@ -241,4 +244,64 @@ fn main_greenlet(state: &Rc<InstanceObj>) -> Option<Value> {
             None => return Some(parent),
         }
     }
+}
+
+/// O `tp_traverse` dos tipos do `itertools` (e do `_tee_dataobject`) do CPython 3.13: o tipo, depois os campos na
+/// ordem em que cada `*_traverse` os visita, sem os que estão `NULL`. O estado vive nos atributos privados das
+/// classes de `itertools.py`, que o programa não enxerga. `None` quando `i` não é de `itertools`.
+fn itertools_referents(i: &Rc<InstanceObj>) -> Option<Vec<Value>> {
+    let class = i.class();
+    if !matches!(class.dict.borrow().get("__module__"), Some(Value::Str(m)) if m.as_str() == "itertools") {
+        return None;
+    }
+    let attrs = i.dict.borrow();
+    // `_Nothing` marca o campo `NULL`; `None` do programa é um objeto como outro qualquer.
+    let set = |name: &str| attrs.get(name).cloned().filter(|v| !matches!(v, Value::Instance(n) if n.class().name == "_Nothing"));
+    let live = |name: &str| set(name).filter(|v| !matches!(v, Value::None));
+    let started = matches!(attrs.get("_started"), Some(Value::Bool(true)));
+    let result = || Value::tuple(vec![Value::None]);
+    let mut out = vec![Value::Class(class.clone())];
+    let fields: Vec<Option<Value>> = match class.name.as_ref() as &str {
+        // `count` em modo rápido (contador e passo `int` de passo 1) só guarda o passo.
+        "count" => match (set("_n"), set("_step")) {
+            (Some(Value::Int(_)), step @ Some(Value::Int(1))) => vec![step],
+            (n, step) => vec![n, step],
+        },
+        "repeat" => vec![set("_object")],
+        "cycle" => vec![live("_it"), set("_saved")],
+        "accumulate" => vec![live("_func"), set("_it"), set("_total"), set("_initial")],
+        "chain" => vec![live("_iterables"), live("_current")],
+        "compress" => vec![set("_data"), set("_selectors")],
+        "dropwhile" | "takewhile" | "filterfalse" | "starmap" => vec![set("_it"), set("_func")],
+        "groupby" => vec![set("_it"), set("_keyfunc"), set("_tgtkey"), set("_currkey"), set("_currvalue")],
+        "islice" | "batched" => vec![live("_it")],
+        "pairwise" => vec![live("_it"), set("_old"), Some(result())],
+        "product" => {
+            let pools = match set("_pools") {
+                Some(Value::List(l)) => Some(Value::tuple(l.borrow().clone())),
+                other => other,
+            };
+            vec![pools, started.then(result)]
+        }
+        "permutations" | "combinations" | "combinations_with_replacement" => vec![set("_pool"), started.then(result)],
+        "zip_longest" => {
+            let iterators = match set("_iterators") {
+                Some(Value::List(l)) => Some(Value::tuple(l.borrow().clone())),
+                other => other,
+            };
+            vec![iterators, Some(result()), set("_fill")]
+        }
+        "_tee" => vec![set("_data")],
+        "_tee_dataobject" => {
+            let mut fields = vec![set("_it")];
+            if let Some(Value::List(l)) = set("_values") {
+                fields.extend(l.borrow().iter().cloned().map(Some));
+            }
+            fields.push(live("_nextlink"));
+            fields
+        }
+        _ => return None,
+    };
+    out.extend(fields.into_iter().flatten());
+    Some(out)
 }

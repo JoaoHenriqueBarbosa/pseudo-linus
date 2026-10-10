@@ -56,6 +56,25 @@ fn to_set(items: Vec<Value>) -> Result<Set, PyException> {
     Ok(s)
 }
 
+/// O que `iter(view)` e `reversed(view)` precisam: o dicionário de origem e o tipo de cada iterador.
+pub(crate) struct ViewIters {
+    pub dict: Value,
+    pub forward: &'static str,
+    pub reverse: &'static str,
+}
+
+/// Os iteradores de `v` se `v` é uma view de dicionário.
+pub(crate) fn view_iters(v: &Value) -> Option<ViewIters> {
+    let Value::Ext(e) = v else { return None };
+    let view = e.as_any()?.downcast_ref::<DictView>()?;
+    let (forward, reverse) = match view.kind {
+        Kind::Keys => ("dict_keyiterator", "dict_reversekeyiterator"),
+        Kind::Values => ("dict_valueiterator", "dict_reversevalueiterator"),
+        Kind::Items => ("dict_itemiterator", "dict_reverseitemiterator"),
+    };
+    Some(ViewIters { dict: Value::Dict(view.dict.clone()), forward, reverse })
+}
+
 /// Refaz uma view a partir da imagem do heap (o inverso de [`ExtObject::image`]).
 pub(crate) fn restore_image(_tag: &str, state: &(dyn std::any::Any + Send + Sync), refs: Vec<Value>) -> Option<Value> {
     let kind = *state.downcast_ref::<Kind>()?;
@@ -70,6 +89,13 @@ impl ExtObject for DictView {
         self.name()
     }
 
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn referents(&self) -> Vec<Value> {
+        vec![Value::Dict(self.dict.clone())]
+    }
     fn image(&self) -> Option<crate::object::ExtImage> {
         crate::object::OpaqueImage::image("dict_view", self.kind, vec![Value::Dict(self.dict.clone())])
     }

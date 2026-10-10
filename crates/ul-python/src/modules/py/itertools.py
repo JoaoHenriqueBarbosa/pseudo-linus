@@ -5,7 +5,11 @@ from types import GenericAlias as _GenericAlias
 # Os iteradores do `itertools` são classes (tipos em C no CPython): cada uma valida os argumentos ao ser criada, como
 # o `tp_new`, e entrega os itens por um gerador privado, que só existe aqui dentro.
 
-_NOTHING = object()
+class _Nothing:
+    pass
+
+
+_NOTHING = _Nothing()
 
 
 def _same(a, b):
@@ -32,25 +36,32 @@ class count:
         return 'count(%r, %r)' % (self._n, self._step)
 
 
-def _cycle(it):
-    saved = []
-    for element in it:
-        yield element
-        saved.append(element)
-    while saved:
-        for element in saved:
-            yield element
-
-
 class cycle:
     def __init__(self, iterable, /):
-        self._gen = _cycle(iter(iterable))
+        self._it = iter(iterable)
+        self._saved = []
+        self._index = 0
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return next(self._gen)
+        # Como o `cycle_next`: lê do iterador até ele acabar (e então o solta), depois repete o que guardou.
+        if self._it is not None:
+            try:
+                element = next(self._it)
+            except StopIteration:
+                self._it = None
+            else:
+                self._saved.append(element)
+                return element
+        if not self._saved:
+            raise StopIteration
+        if self._index >= len(self._saved):
+            self._index = 0
+        element = self._saved[self._index]
+        self._index += 1
+        return element
 
 
 class repeat:
@@ -81,28 +92,24 @@ class repeat:
         return 'repeat(%r, %d)' % (self._object, self._times)
 
 
-def _accumulate(it, func, initial):
-    total = initial
-    if initial is None:
-        try:
-            total = next(it)
-        except StopIteration:
-            return
-    yield total
-    for element in it:
-        total = total + element if func is None else func(total, element)
-        yield total
-
-
 class accumulate:
     def __init__(self, iterable, func=None, *, initial=None):
-        self._gen = _accumulate(iter(iterable), func, initial)
+        self._it = iter(iterable)
+        self._func = func
+        self._initial = initial
+        self._total = _NOTHING
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return next(self._gen)
+        # Como o `accumulate_next`: o primeiro item é o `initial` (ou o primeiro do iterável), os outros somam.
+        if self._total is _NOTHING:
+            self._total = self._initial if self._initial is not None else next(self._it)
+            return self._total
+        element = next(self._it)
+        self._total = self._total + element if self._func is None else self._func(self._total, element)
+        return self._total
 
 
 class chain:
@@ -110,7 +117,7 @@ class chain:
 
     def __init__(self, *iterables):
         self._iterables = iter(iterables)
-        self._current = iter(())
+        self._current = None
 
     @classmethod
     def from_iterable(cls, iterables):
@@ -122,16 +129,28 @@ class chain:
         return self
 
     def __next__(self):
+        # Como o `chain_next`: acabou o iterável ativo, solta-o e pega o próximo; acabou a fonte, solta-a.
         while True:
+            if self._current is not None:
+                try:
+                    return next(self._current)
+                except StopIteration:
+                    self._current = None
+            if self._iterables is None:
+                raise StopIteration
             try:
-                return next(self._current)
+                following = next(self._iterables)
             except StopIteration:
-                self._current = iter(next(self._iterables))
+                self._iterables = None
+                raise
+            self._current = iter(following)
 
 
 class compress:
     def __init__(self, data, selectors):
-        self._gen = (d for d, s in zip(data, selectors) if s)
+        self._data = iter(data)
+        self._selectors = iter(selectors)
+        self._gen = (d for d, s in zip(self._data, self._selectors) if s)
 
     def __iter__(self):
         return self
@@ -151,7 +170,9 @@ def _dropwhile(predicate, it):
 
 class dropwhile:
     def __init__(self, predicate, iterable, /):
-        self._gen = _dropwhile(predicate, iter(iterable))
+        self._func = predicate
+        self._it = iter(iterable)
+        self._gen = _dropwhile(predicate, self._it)
 
     def __iter__(self):
         return self
@@ -170,7 +191,9 @@ def _takewhile(predicate, it):
 
 class takewhile:
     def __init__(self, predicate, iterable, /):
-        self._gen = _takewhile(predicate, iter(iterable))
+        self._func = predicate
+        self._it = iter(iterable)
+        self._gen = _takewhile(predicate, self._it)
 
     def __iter__(self):
         return self
@@ -189,7 +212,9 @@ def _filterfalse(predicate, it):
 
 class filterfalse:
     def __init__(self, function, iterable, /):
-        self._gen = _filterfalse(function, iter(iterable))
+        self._func = function
+        self._it = iter(iterable)
+        self._gen = _filterfalse(function, self._it)
 
     def __iter__(self):
         return self
@@ -341,25 +366,29 @@ but returns an iterator."""
         return item
 
 
-def _pairwise(it):
-    try:
-        a = next(it)
-    except StopIteration:
-        return
-    for b in it:
-        yield (a, b)
-        a = b
-
-
 class pairwise:
     def __init__(self, iterable, /):
-        self._gen = _pairwise(iter(iterable))
+        self._it = iter(iterable)
+        self._old = _NOTHING
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return next(self._gen)
+        # Como o `pairwise_next`: no fim solta o iterador e o item guardado.
+        if self._it is None:
+            raise StopIteration
+        try:
+            if self._old is _NOTHING:
+                self._old = next(self._it)
+            new = next(self._it)
+        except StopIteration:
+            self._it = None
+            self._old = _NOTHING
+            raise
+        old = self._old
+        self._old = new
+        return (old, new)
 
 
 def _starmap(function, it):
@@ -369,7 +398,9 @@ def _starmap(function, it):
 
 class starmap:
     def __init__(self, function, iterable, /):
-        self._gen = _starmap(function, iter(iterable))
+        self._func = function
+        self._it = iter(iterable)
+        self._gen = _starmap(function, self._it)
 
     def __iter__(self):
         return self
@@ -462,13 +493,18 @@ def _zip_longest(iterators, fillvalue):
 
 class zip_longest:
     def __init__(self, *iterables, fillvalue=None):
-        self._gen = _zip_longest([iter(it) for it in iterables], fillvalue)
+        self._iterators = [iter(it) for it in iterables]
+        self._fill = fillvalue
+        self._started = False
+        self._gen = _zip_longest(self._iterators, fillvalue)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return next(self._gen)
+        value = next(self._gen)
+        self._started = True
+        return value
 
 
 def _product(pools):
@@ -491,13 +527,17 @@ class product:
     def __init__(self, *iterables, repeat=1):
         if repeat < 0:
             raise ValueError('repeat argument cannot be negative')
-        self._gen = _product([tuple(pool) for pool in iterables] * repeat)
+        self._pools = [tuple(pool) for pool in iterables] * repeat
+        self._started = False
+        self._gen = _product(self._pools)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return next(self._gen)
+        value = next(self._gen)
+        self._started = True
+        return value
 
 
 def _permutations(pool, r):
@@ -528,13 +568,17 @@ class permutations:
         r = len(pool) if r is None else r
         if r < 0:
             raise ValueError('r must be non-negative')
+        self._pool = pool
+        self._started = False
         self._gen = _permutations(pool, r)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return next(self._gen)
+        value = next(self._gen)
+        self._started = True
+        return value
 
 
 def _combinations(pool, r):
@@ -560,13 +604,17 @@ class combinations:
         pool = tuple(iterable)
         if r < 0:
             raise ValueError('r must be non-negative')
+        self._pool = pool
+        self._started = False
         self._gen = _combinations(pool, r)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return next(self._gen)
+        value = next(self._gen)
+        self._started = True
+        return value
 
 
 def _combinations_with_replacement(pool, r):
@@ -590,13 +638,17 @@ class combinations_with_replacement:
         pool = tuple(iterable)
         if r < 0:
             raise ValueError('r must be non-negative')
+        self._pool = pool
+        self._started = False
         self._gen = _combinations_with_replacement(pool, r)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return next(self._gen)
+        value = next(self._gen)
+        self._started = True
+        return value
 
 
 def _batched(it, n, strict):
@@ -613,7 +665,8 @@ class batched:
     def __init__(self, iterable, n, *, strict=False):
         if n < 1:
             raise ValueError('n must be at least one')
-        self._gen = _batched(iter(iterable), n, strict)
+        self._it = iter(iterable)
+        self._gen = _batched(self._it, n, strict)
 
     def __iter__(self):
         return self
