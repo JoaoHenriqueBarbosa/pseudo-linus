@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>idb later</title>
+<script>
+// Segunda execução no mesmo perfil: reabre o db1 sem upgrade e escreve numa transação posterior (put novo, put que
+// troca um registro existente, delete).
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 200 && !done; i++) await fetch('/idb-later.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+const request = indexedDB.open('db1', 1);
+request.onsuccess = () => {
+  const db = request.result;
+  const tx = db.transaction('items', 'readwrite');
+  const store = tx.objectStore('items');
+  store.put({ id: 3, name: 'c' });
+  store.put({ id: 2, name: 'bb' });
+  store.delete(1);
+  tx.oncomplete = () => { db.close(); setTimeout(() => { done = true; document.title = 'done'; }, 200); };
+};
+</script>
+<body>idb later</body>

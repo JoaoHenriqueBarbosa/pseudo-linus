@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>idb types</title>
+<script>
+// Os tipos de valor além dos de idb-basic e idb-twobyte: cada um num registro com a chave inteira da ordem.
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 200 && !done; i++) await fetch('/idb-types.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+const request = indexedDB.open('db4', 1);
+request.onupgradeneeded = (event) => {
+  const store = event.target.result.createObjectStore('t', { autoIncrement: true });
+  const shared = { s: 1 };
+  const cyclic = { name: 'c' };
+  cyclic.self = cyclic;
+  store.put(/ab+c/gi);                                  // 1 RegExp
+  store.put(new Map([['a', 1], [2, 'b']]));             // 2 Map
+  store.put(new Set([1, 'x']));                         // 3 Set
+  store.put(new ArrayBuffer(3));                        // 4 ArrayBuffer
+  store.put(new Uint16Array([1, 2]));                   // 5 Uint16Array
+  store.put(new Float64Array([1.5]));                   // 6 Float64Array
+  store.put(new DataView(new ArrayBuffer(4), 1, 2));    // 7 DataView
+  store.put({ a: shared, b: shared });                  // 8 referência repetida
+  store.put(cyclic);                                    // 9 ciclo
+  store.put(new Boolean(true));                         // 10 wrapper
+  store.put(new Number(7));                             // 11 wrapper
+  store.put(new String('w'));                           // 12 wrapper
+  store.put(-0);                                        // 13 -0
+  store.put(NaN);                                       // 14 NaN
+  store.put(0.5);                                       // 15 double
+  store.put(-(2 ** 30) - 1);                            // 16 int fora de int32 do smi
+  store.put(new Error('boom'));                         // 17 Error
+  store.put(new RangeError('r'));                       // 18 RangeError
+  store.put('é');                                       // 19 Latin1 com byte alto
+  store.put({ 5: 'five', 'x y': 1 });                   // 20 chave que é índice
+  store.put(-1n);                                       // 21 BigInt negativo
+  store.put(2n ** 64n);                                 // 22 BigInt de duas palavras
+  store.put([]);                                        // 23 array vazio
+  store.put({});                                        // 24 objeto vazio
+  store.put(null);                                      // 25 null
+};
+request.onsuccess = () => { request.result.close(); setTimeout(() => { done = true; document.title = 'done'; }, 200); };
+</script>
+<body>idb types</body>

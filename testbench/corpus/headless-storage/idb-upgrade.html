@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>idb upgrade</title>
+<script>
+// Upgrade para a versão 2: apaga um índice, cria outro e cria um repositório novo com um registro.
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 200 && !done; i++) await fetch('/idb-upgrade.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+const request = indexedDB.open('db1', 2);
+request.onupgradeneeded = (event) => {
+  const store = event.target.transaction.objectStore('items');
+  store.deleteIndex('by_name');
+  store.createIndex('by_id2', 'id', { unique: true });
+  event.target.result.createObjectStore('extra', { keyPath: 'k' }).put({ k: 'x' });
+};
+request.onsuccess = () => { request.result.close(); setTimeout(() => { done = true; document.title = 'done'; }, 200); };
+</script>
+<body>idb upgrade</body>
