@@ -36,6 +36,10 @@ const PRECISE_ALLOCATION_CUTOFF: usize = 100_000;
 
 /// `Heap::m_minBytesPerCycle` do `HeapType::Large` medido no oráculo (ver o cabeçalho do módulo).
 pub const MIN_BYTES_PER_CYCLE: usize = 8 * 1024 * 1024;
+/// `sizeof(StackFrame)`: um `Variant<JSFrameData, WasmFrameData>` (callee, codeBlock, bytecodeIndex e a marca de
+/// async em 24 bytes mais o discriminante, alinhados a 32). `Exception::finishCreation` reporta
+/// `m_stack.size() * sizeof(StackFrame)` como memória extra.
+pub const STACK_FRAME_BYTES: usize = 32;
 /// `ramSize * Options::smallHeapRAMFraction` e `* mediumHeapRAMFraction` do ramSize efetivo de 32 MiB.
 const SMALL_HEAP_LIMIT: usize = 8 * 1024 * 1024;
 const MEDIUM_HEAP_LIMIT: usize = 16 * 1024 * 1024;
@@ -163,6 +167,8 @@ fn cell_bytes_with(entry: &CellEntry, with_auxiliary: bool) -> usize {
         CellEntry::CellButterfly(_) | CellEntry::TemplateObjectDescriptor(_) => 32,
         CellEntry::SymbolTable(_) => 64,
         CellEntry::Callee(_) => 32,
+        // `Exception` (célula de 48) mais o `m_stack` que `reportExtraMemoryAllocated` contou e o coletor visita.
+        CellEntry::Exception(exception) => 48 + exception.stack_len() * STACK_FRAME_BYTES,
         CellEntry::Promise(_) => 32,
         CellEntry::SlimPromiseReaction(_) => 32,
         CellEntry::FullPromiseReaction(_) | CellEntry::PromiseCombinatorsContext(_) | CellEntry::PromiseCombinatorsGlobalContext(_) => 64,

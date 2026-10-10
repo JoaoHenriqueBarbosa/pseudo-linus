@@ -64,8 +64,25 @@ fn run(source: &str) -> Result<String, String> {
     }
 }
 
+/// A pilha da thread que roda JS em produção (`WORKER_STACK_BYTES` do `worker_host`) e dos outros goldens: com a
+/// pilha de 1 MiB das threads de teste a profundidade dos programas que estouram a pilha seria decidida pelo
+/// orçamento nativo, não pelo limite lógico da `CLoopStack` que o bun tem.
+const THREAD_STACK_BYTES: usize = 256 * 1024 * 1024;
+
 #[test]
 fn runtime_errors_match_bun() {
+    std::thread::Builder::new()
+        .stack_size(THREAD_STACK_BYTES)
+        .spawn(|| {
+            zjsc::runtime::vm::VM::set_thread_stack_budget(THREAD_STACK_BYTES - 16 * 1024 * 1024);
+            runtime_errors_body();
+        })
+        .expect("thread")
+        .join()
+        .unwrap_or_else(|panic| std::panic::resume_unwind(panic));
+}
+
+fn runtime_errors_body() {
     // O golden sai de um bun em America/Sao_Paulo; o fuso é por thread.
     zjsc::runtime::process_time_zone::set_time_zone_spec_override(Some("America/Sao_Paulo"));
     let mut failures = Vec::new();

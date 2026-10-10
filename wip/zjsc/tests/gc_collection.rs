@@ -297,6 +297,33 @@ fn stack_overflow_in_generators_takes_the_text_path() {
     assert_eq!(stressed(program), "false,false,false,true");
 }
 
+/// Os mesmos três casos, sem estresse e na thread de pilha de produção: a coleta que leva o erro ao caminho de texto
+/// vem do volume de bytes. Cada nível de gerador relança (`catch (error) { throw error }` de `generatorResume`) e
+/// cada `throw` cria um `Exception` que captura até 100 frames (`Exception::finishCreation` reporta `m_stack` como
+/// memória extra, ~3,4 KB por nível); a ~2500 níveis o ciclo de 8 MiB acaba e o coletor roda antes da leitura de
+/// `stack`. Medido no bun 1.4.2: o corte fica entre 2400 e 2600 níveis, igual com o JIT desligado.
+#[test]
+fn generator_overflow_collects_by_exception_stack_bytes() {
+    const STACK: usize = 256 * 1024 * 1024;
+    std::thread::Builder::new()
+        .stack_size(STACK)
+        .spawn(|| {
+            zjsc::runtime::vm::VM::set_thread_stack_budget(STACK - 16 * 1024 * 1024);
+            let program = "function describe(src) { try { (0, eval)(src); } catch (e) { var t = String(e); return e.stack.slice(0, t.length) === t; } }
+                [describe('function* g() { yield* g() } g().next()'), describe('function* g() { yield* g() } [...g()]'),
+                 describe('var g = function* () { for (var x of g()); }; g().next()'), describe('function f() { f() } f()')].join()";
+            assert_eq!(run(program), "false,false,false,true");
+            // Uma recursão rasa (1500 níveis, ~5 MB) não esgota o ciclo: o erro mantém o caminho normal.
+            let shallow = "function* g(k) { if (k === 0) throw new RangeError('x'); yield* g(k - 1) }
+                var error; try { g(1500).next() } catch (e) { error = e }
+                String(error.stack).split('\\n')[0]";
+            assert_eq!(run(shallow), "RangeError: x");
+        })
+        .expect("thread")
+        .join()
+        .unwrap_or_else(|panic| std::panic::resume_unwind(panic));
+}
+
 /// As tabelas laterais por célula (o estado que no C++ é campo do objeto) seguram o que o objeto segura e saem
 /// com ele: `URL.searchParams`, `Request.headers` e `signal`, `Response.headers`, o `reason` e as origens de um
 /// `AbortSignal.any`. Sem adiar a coleta: o laço solta células enquanto elas existem.

@@ -108,10 +108,19 @@ impl Exception {
         self.stack_captured.get()
     }
 
-    /// Grava o `m_stack` capturado por `Interpreter::getStackTrace`.
+    /// Grava o `m_stack` capturado por `Interpreter::getStackTrace`. `Exception::finishCreation` reporta
+    /// `m_stack.sizeInBytes()` como memória extra: cada captura soma ao relógio de bytes do coletor, e é isso que faz
+    /// um desenrolar que relança por muitos frames (o `catch (error) { throw error }` de `generatorResume`, a cada
+    /// nível de uma recursão de geradores) alcançar o limite do ciclo.
     pub fn set_stack(&self, frames: Vec<StackFrame>) {
+        crate::runtime::heap_size::report_extra_memory(frames.len() * crate::runtime::heap_size::STACK_FRAME_BYTES);
         *self.stack.borrow_mut() = frames;
         self.stack_captured.set(true);
+    }
+
+    /// `m_stack.size()`, sem copiar os frames.
+    pub(crate) fn stack_len(&self) -> usize {
+        self.stack.try_borrow().map_or(0, |stack| stack.len())
     }
 }
 
