@@ -342,6 +342,30 @@ mod tests {
         assert_eq!(log, r#"[1700000000000,"0/0",0,"5/5","30/30"]"#);
     }
 
+    /// O tempo virtual de CPU: o relógio anda com as instruções executadas e com a fonte cobrada, sempre igual.
+    #[test]
+    fn cpu_cost_moves_the_virtual_clock_deterministically() {
+        let measure = |cost: bool| {
+            run_program(|| {
+                let (vm, global_object) = new_global_object();
+                let _finalizer = VmFinalizer::new(&vm);
+                crate::wtf::date_math::set_virtual_clock(1_700_000_000_000.0);
+                if cost {
+                    crate::runtime::cpu_clock::set_cpu_cost(1_000.0, 100.0);
+                    crate::runtime::cpu_clock::charge_source_bytes(20_000);
+                }
+                let script = "const a = performance.now(); let s = 0; for (let i = 0; i < 10000; i++) s += i; const b = performance.now(); \
+                              JSON.stringify([a, b > a, b])";
+                let value = evaluate(&global_object, &program_source(script)).expect("script");
+                String::from_utf8_lossy(&value.as_js_string().value().utf8(ConversionMode::LenientConversion)).into_owned()
+            })
+        };
+        let first = measure(true);
+        assert_eq!(first, measure(true));
+        assert!(first.starts_with("[2.0") && first.contains(",true,"), "{first}");
+        assert_eq!(measure(false), "[0,false,0]");
+    }
+
     #[test]
     fn dynamic_import_resolution_failure_has_the_short_message() {
         let (log, error) = run(
