@@ -79,7 +79,7 @@ class Document extends Node {
     const def = customByName.get(local);
     if (def) { try { const el = new def.ctor(); hidden(el, '__upgraded', true); return el; } catch (error) { reportError(error); } }
     const el = wrap(op('createElement', local, HTML_NS));
-    if (local === 'script') hidden(el, '__fresh', true);
+    if (local === 'script') { hidden(el, '__fresh', true); hidden(el, '__forceAsync', true); }
     return el;
   }
   createElementNS(ns, qualified) {

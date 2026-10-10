@@ -79,7 +79,13 @@ defineHtml('HTMLImageElement', ['img'], (cls) => {
   cls.prototype.decode = function () { return Promise.resolve(); };
 });
 defineHtml('HTMLScriptElement', ['script'], (cls) => {
-  reflect(cls, [['src', 'src', 'url'], ['type', 'type'], ['async', 'async', 'bool'], ['defer', 'defer', 'bool'], ['noModule', 'nomodule', 'bool'], ['crossOrigin', 'crossorigin', 'cors'], ['integrity', 'integrity'], ['charset', 'charset'], ['referrerPolicy', 'referrerpolicy'], ['fetchPriority', 'fetchpriority']]);
+  reflect(cls, [['src', 'src', 'url'], ['type', 'type'], ['defer', 'defer', 'bool'], ['noModule', 'nomodule', 'bool'], ['crossOrigin', 'crossorigin', 'cors'], ['integrity', 'integrity'], ['charset', 'charset'], ['referrerPolicy', 'referrerpolicy'], ['fetchPriority', 'fetchpriority']]);
+  // A flag "force async" do HTML: script criado por script é async até a página escrever `async`.
+  Object.defineProperty(cls.prototype, 'async', {
+    get() { return !!this[P.__forceAsync] || this.hasAttribute('async'); },
+    set(v) { hidden(this, '__forceAsync', false); if (v) this.setAttribute('async', ''); else this.removeAttribute('async'); },
+    configurable: true, enumerable: true,
+  });
   Object.defineProperty(cls.prototype, 'text', { get() { return this.textContent; }, set(v) { this.textContent = v; }, configurable: true, enumerable: true });
   cls.supports = (type) => ['classic', 'module', 'importmap'].includes(type);
 });
