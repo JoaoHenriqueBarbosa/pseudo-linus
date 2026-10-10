@@ -25,6 +25,27 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
   no `derive` que já existe), por ferramenta (`awk`), porque o `clone_in` do `Store` pede `T: Clone`. Nenhum outro
   texto muda.
 
+## Próximos passos (parser e printer)
+
+Medido no upstream: o `js_parser` tem 48,3 mil linhas (`p.rs` com 10,3 mil, `parse/` com 11 mil, `visit/` com 8,3
+mil, `lower/` com 3,4 mil) e o `js_printer` 9,8 mil (`lib.rs` com 8,3 mil, `renamer.rs` com 1,5 mil). O `P` de
+`p.rs` tem 25 trechos `unsafe`; `parse/` e `visit/` quase nenhum. A primeira AST de `const x: number = 1` passa por
+`Parser::init` (`parse/parse_entry.rs`), `parse_stmts_up_to`, a visita (`visit_stmts_and_prepend_temp_refs`) e
+`to_ast`, o que pede quase todo o `P`. Ordem:
+
+1. No `bun_ast`, o que o `P` usa e ainda falta: `import_record.rs` (o `Path` do `bun_paths` vira o subconjunto
+   que o transpilador lê), `known_global.rs`, `char_freq.rs`, `runtime.rs`, `ast_result.rs`, `part`, `flags`,
+   `DeclaredSymbol`, `ImportKind`, `fold_string_addition.rs`.
+2. `parser.rs`, `p.rs` e `parse/` por cópia, com o `P` dono do `Store` e os acessos `p.store[r]` no lugar do
+   `Deref` do `StoreRef`; o `log` vem de `p.lexer.log()`.
+3. `visit/` e `fold.rs`; `lower/` só o que os oito casos pedem (decorators e namespaces).
+4. O teste de cada caso compara a AST do parser com a de `ast/tests/ast_cases.rs`.
+5. `js_printer` e o golden de `bun build --no-bundle` gerado na imagem do oráculo.
+
+Ordem de mapa: a tabela de membros do escopo usa o `hashbrown` 0.15.5 do upstream com o mesmo hash, então a
+iteração (que o renamer e o `p.rs` percorrem) tem a ordem do upstream. O `wyhash` sem o `write_length_prefix` só
+muda o hash dos `HashMap` do porte, cuja ordem não sai na saída; isso se confere de novo quando o renamer entrar.
+
 ## Arena tipada: o lugar do `StoreRef` e do `StoreSlice`
 
 No upstream, os nós da AST vivem num bloco do mimalloc liberado de uma vez. `StoreRef<T>` é um `NonNull<T>` com
