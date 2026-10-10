@@ -1477,15 +1477,17 @@ impl URLParser {
                     let mut first_uppercase: Option<usize> = None;
                     while p != input.len() {
                         let unit = input[p] as u32;
-                        if is_valid_scheme_character(unit) {
+                        // A maiúscula também é caractere válido de esquema: precisa ser vista antes, senão o
+                        // esquema `HTTP:` passa sem baixar a caixa e não é reconhecido como especial.
+                        if is_ascii_upper(unit) {
+                            if first_uppercase.is_none() {
+                                first_uppercase = Some(p);
+                            }
                             p += 1;
                             continue;
                         }
-                        if !is_ascii_upper(unit) {
+                        if !is_valid_scheme_character(unit) {
                             break;
-                        }
-                        if first_uppercase.is_none() {
-                            first_uppercase = Some(p);
                         }
                         p += 1;
                     }
