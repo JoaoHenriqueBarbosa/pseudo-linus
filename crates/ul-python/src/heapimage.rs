@@ -337,7 +337,7 @@ enum FoldNode {
     Any,
     All,
     Extend { target: Item },
-    Sorted { key: Option<Item>, reverse: bool, items: Vec<Item>, pairs: Vec<(Item, Item)> },
+    Sorted { key: Option<Item>, reverse: bool, items: Vec<Item>, pairs: Vec<(Item, Item)>, target: Option<Item> },
 }
 
 /// `generator::Layer` com o iterador preguiçoso como item.
@@ -1167,12 +1167,18 @@ impl Encoder {
             Fold::Any => FoldNode::Any,
             Fold::All => FoldNode::All,
             Fold::Extend { target } => FoldNode::Extend { target: self.item(target)? },
-            Fold::Sorted { key, reverse, items, pairs } => {
+            Fold::Sorted { key, reverse, items, pairs, target } => {
                 let mut kept = Vec::with_capacity(pairs.len());
                 for (k, v) in pairs {
                     kept.push((self.item(k)?, self.item(v)?));
                 }
-                FoldNode::Sorted { key: self.opt_item(key.as_ref())?, reverse: *reverse, items: self.items(items)?, pairs: kept }
+                FoldNode::Sorted {
+                    key: self.opt_item(key.as_ref())?,
+                    reverse: *reverse,
+                    items: self.items(items)?,
+                    pairs: kept,
+                    target: self.opt_item(target.as_ref())?,
+                }
             }
         })
     }
@@ -1558,12 +1564,18 @@ impl Rebuilt {
             FoldNode::Any => Fold::Any,
             FoldNode::All => Fold::All,
             FoldNode::Extend { target } => Fold::Extend { target: self.value(*target)? },
-            FoldNode::Sorted { key, reverse, items, pairs } => {
+            FoldNode::Sorted { key, reverse, items, pairs, target } => {
                 let mut kept = Vec::with_capacity(pairs.len());
                 for (k, v) in pairs {
                     kept.push((self.value(*k)?, self.value(*v)?));
                 }
-                Fold::Sorted { key: self.opt(key)?, reverse: *reverse, items: self.values_of(items)?, pairs: kept }
+                Fold::Sorted {
+                    key: self.opt(key)?,
+                    reverse: *reverse,
+                    items: self.values_of(items)?,
+                    pairs: kept,
+                    target: self.opt(target)?,
+                }
             }
         })
     }

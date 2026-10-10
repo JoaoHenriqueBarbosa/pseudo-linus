@@ -979,8 +979,8 @@ mod rust_nest_tests {
         let mut machine = Vm::new();
         machine.globals.borrow_mut().insert("nest".into(), Value::NativeFn(Rc::new(NativeFn { name: "nest", f: nest })));
         assert!(machine.run(&code).is_ok());
-        // `list.sort(key=)` recursa (2); o `key=` de `sorted` roda em quadro do laço (1).
-        assert_eq!(ints(machine.globals.borrow().get("seen").expect("seen")), vec![1, 1, 2, 2, 1, 1, 1]);
+        // O `key=` de `list.sort` e o de `sorted` rodam em quadro do laço (1).
+        assert_eq!(ints(machine.globals.borrow().get("seen").expect("seen")), vec![1, 1, 1, 1, 1, 1, 1]);
         assert_eq!(machine.rust_nest.get(), 0);
     }
 }

@@ -6435,12 +6435,16 @@ except TypeError as e:
 
 #[test]
 fn fork_inside_a_callback_is_a_gap_not_a_wrong_copy() {
-    // Com um `run_loop` Rust aninhado (callback de `list.sort(key=)`) o estado não é dado: o pedido falha em vez de
-    // copiar errado. Sai deste teste quando a fatia G4 fechar o caminho.
+    // Com um `run_loop` Rust aninhado (o `__repr__` de usuário chamado pelo `repr()`) o estado não é dado: o pedido
+    // falha em vez de copiar errado. Sai deste teste quando a fatia G4 fechar o caminho.
     let src = "\
 import os
+class R:
+    def __repr__(self):
+        os.fork()
+        return 'r'
 try:
-    [1].sort(key=lambda x: os.fork())
+    repr(R())
 except RuntimeError as e:
     print(type(e).__name__)
 ";

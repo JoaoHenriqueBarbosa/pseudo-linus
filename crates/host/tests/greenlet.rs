@@ -79,6 +79,17 @@ fn eq_raise_scene_matches_the_oracle() {
     );
 }
 
+/// O `switch` dentro de código Python chamado por uma nativa (chave de `sorted` e `list.sort`, callbacks de `map`,
+/// `filter`, `reduce`, `property`, `__next__`, `__enter__`...) funciona como no CPython, que copia a pilha de C junto.
+#[test]
+fn gl_callbacks_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_callbacks",
+        include_str!("../../../testbench/oracle/automation/cases/gl_callbacks.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_callbacks.out"),
+    );
+}
+
 /// O estado interno não aparece em nada que o programa enxergue (`__dict__`, `vars`, `dir`, `__del__`, `__slots__`),
 /// o tipo é estático como no C e as funções de módulo são `builtin_function_or_method` de `greenlet._greenlet`.
 #[test]
