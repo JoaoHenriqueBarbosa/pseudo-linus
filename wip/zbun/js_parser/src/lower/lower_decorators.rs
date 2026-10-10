@@ -78,23 +78,17 @@ fn prop_copy(p: &Property) -> Property {
         ts_decorators: Vec::new(),
         key: p.key,
         value: p.value,
-        // SAFETY: this duplicates ownership of any heap allocation inside
-        // `Metadata` (`MDot` owns a global-heap `Vec<Ref>`), but the source
-        // `Property` is an arena-resident AST node whose `Drop` never runs
-        // (AST stores are bulk-freed without dropping: see the
-        // `bun_alloc::ast_alloc` module docs), so at most one of the two
-        // copies ever reaches drop glue; no double free.
-        ts_metadata: unsafe { core::ptr::read(&raw const p.ts_metadata) },
+        // No upstream, `ptr::read` (cópia rasa que aliava o `Vec` do `MDot`, seguro só porque a arena nunca roda o
+        // `Drop`). No porte o `Metadata` é dono dos seus vetores, e o `clone` dá o mesmo valor sem `unsafe`.
+        ts_metadata: p.ts_metadata.clone(),
     }
 }
 
 #[inline]
 fn prop_full_copy(p: &Property) -> Property {
     // Same as `prop_copy` but preserves `ts_decorators` (used for the "keep
-    // undecorated property as-is" path).
-    // SAFETY: Vec is repr-compatible with a (ptr,len,cap,origin) POD; the
-    // arena owns the buffer for the parser lifetime. Shallow copy via read.
-    let ts_decorators = unsafe { core::ptr::read(&raw const p.ts_decorators) };
+    // undecorated property as-is" path). `ts_decorators` é uma faixa `Copy` do `Store`.
+    let ts_decorators = p.ts_decorators;
     Property {
         initializer: p.initializer,
         kind: p.kind,
@@ -103,8 +97,7 @@ fn prop_full_copy(p: &Property) -> Property {
         ts_decorators,
         key: p.key,
         value: p.value,
-        // SAFETY: see `prop_copy`.
-        ts_metadata: unsafe { core::ptr::read(&raw const p.ts_metadata) },
+        ts_metadata: p.ts_metadata.clone(),
     }
 }
 
@@ -112,8 +105,7 @@ fn prop_full_copy(p: &Property) -> Property {
 fn class_copy(c: &G::Class) -> G::Class {
     G::Class {
         class_keyword: c.class_keyword,
-        // SAFETY: see `prop_full_copy`.
-        ts_decorators: unsafe { core::ptr::read(&raw const c.ts_decorators) },
+        ts_decorators: c.ts_decorators,
         class_name: c.class_name,
         extends: c.extends,
         body_loc: c.body_loc,
@@ -1257,8 +1249,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         value: None,
                     });
                 }
-                // SAFETY: shallow-reborrow arena Vec.
-                let items: ExprNodeList = unsafe { core::ptr::read(&raw const prop.ts_decorators) };
+                let items: ExprNodeList = prop.ts_decorators;
                 let arr = p.new_expr(
                     E::Array {
                         items,
@@ -1693,8 +1684,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let decorator_array = if let Some(dec_ref) = prop_dec_refs.get(&prop_idx).copied() {
                 p.use_ref(dec_ref, loc)
             } else {
-                // SAFETY: shallow-reborrow arena Vec.
-                let items: ExprNodeList = unsafe { core::ptr::read(&raw const prop.ts_decorators) };
+                let items: ExprNodeList = prop.ts_decorators;
                 p.new_expr(
                     E::Array {
                         items,

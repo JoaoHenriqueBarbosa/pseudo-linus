@@ -59,6 +59,14 @@ Estado do passo 1: feito (`import_record`, `ImportKind`, `part`, `runtime`, `ast
 - as assinaturas com tempo de vida (`Ast<'a>`, `import_record::List<'a>`) e o `ToExprWrapper` genérico do porte;
 - o `Macro` (FFI com o `bun_js_parser_jsc`), que fica fora.
 
+Estado dos ganchos (commit `cca3d157`): o `Macro` tem as constantes reais (`NAMESPACE`, `is_macro_path`) e o
+`MacroContext` é um tipo sem valor, então `options.macro_context` é sempre `None` e os caminhos que chamariam a macro
+são inalcançáveis pelo tipo. O `bun_react_compiler` e o `bun_crash_handler` ficam atrás das features
+`react_compiler` e `crash_handler`, que só se ligam depois de portar a crate. Aviso para quando a CLI entrar: o
+`bun build` aceita `--react-compiler`, e sem a crate essa flag não pode chegar ao parser calada. A CLI tem de
+recusá-la com a mesma saída e o mesmo código de saída que o bun dá quando não reconhece uma flag, medidos no
+oráculo (o bun 1.4.2 de lá tem o compilador, então a medida é a de flag desconhecida, não a de flag aceita).
+
 Depois da resolução vem a troca sistemática do `Deref` do `StoreRef` por `p.store[r]` em todo `p.rs`, `parse/` e
 `visit/`, que é o grosso do trabalho. Os `Define` guardam `ExprData` com índices: como cada arquivo tem o seu
 `Store`, o valor de um define precisa ser gravado no `Store` do arquivo quando o parser o usa.
