@@ -48,6 +48,7 @@ pub mod stdbuf;
 pub mod stdin;
 pub mod suggest;
 pub mod textcodec;
+mod replay;
 mod timsort;
 mod textcodec_tables;
 #[cfg(test)]

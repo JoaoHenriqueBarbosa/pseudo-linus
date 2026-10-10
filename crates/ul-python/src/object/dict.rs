@@ -61,7 +61,11 @@ impl Dict {
 
     /// `d[key]`; `None` quando ausente (o `KeyError` é do chamador). Chave sem hash é `TypeError`.
     pub fn get(&self, key: &Value) -> Result<Option<Value>, ObjError> {
-        let h = hash(key)?;
+        self.get_hashed(hash(key)?, key)
+    }
+
+    /// `_PyDict_GetItem_KnownHash`: como [`Dict::get`], com o hash já calculado pelo chamador.
+    pub fn get_hashed(&self, h: i64, key: &Value) -> Result<Option<Value>, ObjError> {
         Ok(self.find(h, key)?.and_then(|i| self.entries[i].as_ref().map(|(_, _, v)| v.clone())))
     }
 
@@ -73,7 +77,11 @@ impl Dict {
     /// `d[key] = value`. Chave já presente mantém o objeto-chave original e a posição, como o
     /// `insertdict` do CPython (`{1: 'a'}` seguido de `d[True] = 'b'` imprime `{1: 'b'}`).
     pub fn set(&mut self, key: Value, value: Value) -> Result<(), ObjError> {
-        let h = hash(&key)?;
+        self.set_hashed(hash(&key)?, key, value)
+    }
+
+    /// `_PyDict_SetItem_KnownHash`: como [`Dict::set`], com o hash já calculado pelo chamador.
+    pub fn set_hashed(&mut self, h: i64, key: Value, value: Value) -> Result<(), ObjError> {
         self.generation = GENERATION.fetch_add(1, Ordering::Relaxed);
         if let Some(i) = self.find(h, &key)? {
             if let Some((_, _, v)) = &mut self.entries[i] {

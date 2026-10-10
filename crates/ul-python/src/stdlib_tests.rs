@@ -6488,22 +6488,31 @@ except TypeError as e:
 }
 
 #[test]
-fn fork_inside_a_callback_is_a_gap_not_a_wrong_copy() {
-    // Com um `run_loop` Rust aninhado (o `__str__` de usuário chamado pela formatação com `%`) o estado não é
-    // dado: o pedido falha em vez de copiar errado. Sai deste teste quando a fatia G4 fechar o caminho.
+fn fork_inside_a_dunder_called_by_percent_format() {
+    // O `__str__` de usuário chamado pela formatação com `%` roda num quadro do laço (repetição da nativa), então o
+    // `fork` ali copia o processo inteiro: o filho termina a formatação com o próprio resultado. Saída do CPython 3.13
+    // do oráculo.
     let src = "\
 import os
 class R:
+    def __init__(self):
+        self.pid = None
     def __str__(self):
-        os.fork()
-        return 'r'
-try:
-    '%s' % R()
-except RuntimeError as e:
-    print(type(e).__name__)
+        self.pid = os.fork()
+        return 'child' if self.pid == 0 else 'parent'
+r = R()
+s = 'got %s!' % r
+if r.pid == 0:
+    print(s, flush=True)
+    os._exit(4)
+_, st = os.waitpid(r.pid, 0)
+print(s, os.WEXITSTATUS(st))
 ";
     let r = in_process(src);
-    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("RuntimeError\n", ""));
+    assert_eq!(
+        (r.stdout_str().as_str(), r.stderr_str().as_str(), r.status),
+        ("got child!\ngot parent! 4\n", "", exited(0))
+    );
 }
 
 /// `os.dup`, `os.dup2`, `os.get_inheritable`/`set_inheritable` e `os.get_blocking`/`set_blocking` sobre os fds do

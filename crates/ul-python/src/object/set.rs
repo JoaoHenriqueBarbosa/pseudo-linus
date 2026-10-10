@@ -174,13 +174,22 @@ impl Set {
     }
 
     pub fn contains(&self, key: &Value) -> Result<bool, ObjError> {
-        let h = hash(key)?;
+        self.contains_hashed(hash(key)?, key)
+    }
+
+    /// `set_contains_entry`: pertinência com o hash já conhecido (o guardado na entrada de outro `set` ou
+    /// `dict`), sem chamar o `__hash__` de novo, como o CPython faz entre conjuntos.
+    pub fn contains_hashed(&self, h: i64, key: &Value) -> Result<bool, ObjError> {
         Ok(self.probe(h, key)?.is_ok())
     }
 
     /// `set.add`.
     pub fn add(&mut self, key: Value) -> Result<(), ObjError> {
-        let h = hash(&key)?;
+        self.add_hashed(hash(&key)?, key)
+    }
+
+    /// `set_add_entry` com o hash já conhecido (ver [`Set::contains_hashed`]).
+    pub fn add_hashed(&mut self, h: i64, key: Value) -> Result<(), ObjError> {
         let Err(slot) = self.probe(h, &key)? else { return Ok(()) };
         // `set_add_entry`: a primeira posição removida da sequência de sondagem é reaproveitada.
         if let Some(free) = self.first_dummy(h, slot) {
@@ -199,7 +208,11 @@ impl Set {
 
     /// `set.discard`: devolve se a chave estava presente.
     pub fn discard(&mut self, key: &Value) -> Result<bool, ObjError> {
-        let h = hash(key)?;
+        self.discard_hashed(hash(key)?, key)
+    }
+
+    /// `set_discard_entry` com o hash já conhecido (ver [`Set::contains_hashed`]).
+    pub fn discard_hashed(&mut self, h: i64, key: &Value) -> Result<bool, ObjError> {
         match self.probe(h, key)? {
             Ok(slot) => {
                 self.table[slot] = Slot::Dummy;
@@ -249,10 +262,20 @@ impl Set {
 
     /// Elementos na ordem da tabela, que é a ordem de iteração do CPython.
     pub fn iter(&self) -> impl Iterator<Item = &Value> {
+        self.iter_hashed().map(|(_, k)| k)
+    }
+
+    /// Como [`Set::iter`], com o hash guardado de cada elemento.
+    pub fn iter_hashed(&self) -> impl Iterator<Item = (i64, &Value)> {
         self.table.iter().filter_map(|slot| match slot {
-            Slot::Active(_, k) => Some(k),
+            Slot::Active(h, k) => Some((*h, k)),
             _ => None,
         })
+    }
+
+    /// Os elementos com o hash, copiados (para iterar enquanto o próprio conjunto ou outro muda).
+    pub fn hashed_items(&self) -> Vec<(i64, Value)> {
+        self.iter_hashed().map(|(h, k)| (h, k.clone())).collect()
     }
 }
 
@@ -291,8 +314,8 @@ pub(super) fn set_eq(a: &Set, b: &Set) -> crate::vm::PyResult<bool> {
     if a.len() != b.len() {
         return Ok(false);
     }
-    for k in a.iter() {
-        if !b.contains(k)? {
+    for (h, k) in a.iter_hashed() {
+        if !b.contains_hashed(h, k)? {
             return Ok(false);
         }
     }

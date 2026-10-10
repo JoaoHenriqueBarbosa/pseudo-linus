@@ -14,6 +14,34 @@ use super::dictm::key_error;
 
 type SetRef = Rc<RefCell<Set>>;
 
+/// Um item com o hash já conhecido quando ele veio de um `set` ou das chaves de um `dict` (o CPython reaproveita o
+/// hash da entrada nessas origens e não chama o `__hash__` de novo).
+type Item = (Option<i64>, Value);
+
+/// Os itens de `src`, com o hash guardado quando a origem é `set`, `frozenset` ou `dict`.
+fn items_of(src: &Value) -> PyResult<Vec<Item>> {
+    Ok(match src {
+        Value::Set(s) => s.borrow().iter_hashed().map(|(h, k)| (Some(h), k.clone())).collect(),
+        Value::Dict(d) => d.borrow().iter_hashed().map(|(h, k, _)| (Some(h), k.clone())).collect(),
+        _ => iterate(src)?.into_iter().map(|v| (None, v)).collect(),
+    })
+}
+
+fn has(set: &Set, (h, v): &Item) -> PyResult<bool> {
+    Ok(match h {
+        Some(h) => set.contains_hashed(*h, v)?,
+        None => set.contains(v)?,
+    })
+}
+
+fn put(set: &mut Set, (h, v): Item) -> PyResult<()> {
+    match h {
+        Some(h) => set.add_hashed(h, v)?,
+        None => set.add(v)?,
+    }
+    Ok(())
+}
+
 fn this(args: &[Value]) -> PyResult<SetRef> {
     match args.first() {
         Some(Value::Set(s)) => Ok(s.clone()),
@@ -49,8 +77,8 @@ fn to_set(v: &Value) -> PyResult<Set> {
         return Ok(s.borrow().clone());
     }
     let mut out = Set::new();
-    for it in iterate(v)? {
-        out.add(it)?;
+    for it in items_of(v)? {
+        put(&mut out, it)?;
     }
     Ok(out)
 }
@@ -119,24 +147,21 @@ fn copy(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 /// Os itens de `src` e, quando a origem é um `dict` ou um `set`, quantos são: o CPython amplia a
 /// tabela uma única vez antes de inserir nesse caso (`set_update_internal`).
-pub(crate) fn gather(src: &Value) -> PyResult<(Vec<Value>, Option<usize>)> {
+pub(crate) fn gather(src: &Value) -> PyResult<(Vec<Item>, Option<usize>)> {
     let incoming = match src {
         Value::Dict(d) => Some(d.borrow().len()),
         Value::Set(s) => Some(s.borrow().len()),
         _ => None,
     };
-    Ok((iterate(src)?, incoming))
+    Ok((items_of(src)?, incoming))
 }
 
 /// Insere os itens de [`gather`] em `dst`.
-pub(crate) fn extend(dst: &mut Set, (items, incoming): (Vec<Value>, Option<usize>)) -> PyResult<()> {
+pub(crate) fn extend(dst: &mut Set, (items, incoming): (Vec<Item>, Option<usize>)) -> PyResult<()> {
     if let Some(n) = incoming {
         dst.presize(n);
     }
-    for it in items {
-        dst.add(it)?;
-    }
-    Ok(())
+    items.into_iter().try_for_each(|it| put(dst, it))
 }
 
 /// Acrescenta os itens de `src` a `dst`.
@@ -172,24 +197,17 @@ fn intersect_one(base: &Set, other: &Value) -> PyResult<Set> {
     let mut out = Set::new();
     if let Value::Set(o) = other {
         let o = o.borrow();
-        if o.len() > base.len() {
-            for k in base.iter() {
-                if o.contains(k)? {
-                    out.add(k.clone())?;
-                }
-            }
-        } else {
-            for k in o.iter() {
-                if base.contains(k)? {
-                    out.add(k.clone())?;
-                }
+        let (small, large) = if o.len() > base.len() { (base, &*o) } else { (&*o, base) };
+        for (h, k) in small.iter_hashed() {
+            if large.contains_hashed(h, k)? {
+                out.add_hashed(h, k.clone())?;
             }
         }
         return Ok(out);
     }
-    for it in iterate(other)? {
-        if base.contains(&it)? {
-            out.add(it)?;
+    for it in items_of(other)? {
+        if has(base, &it)? {
+            put(&mut out, it)?;
         }
     }
     Ok(out)
@@ -221,9 +239,9 @@ fn difference_of(args: &[Value]) -> PyResult<Set> {
     for other in &args[1..] {
         let o = to_set(other)?;
         let mut next = Set::new();
-        for k in cur.iter() {
-            if !o.contains(k)? {
-                next.add(k.clone())?;
+        for (h, k) in cur.iter_hashed() {
+            if !o.contains_hashed(h, k)? {
+                next.add_hashed(h, k.clone())?;
             }
         }
         cur = next;
@@ -247,13 +265,11 @@ fn difference_update(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> 
 fn symmetric_difference_of(name: &str, args: &[Value]) -> PyResult<Set> {
     argc(name, &args[1..], 1)?;
     let me = this(args)?;
-    let mine = snapshot(&me);
+    let mine = me.borrow().hashed_items();
     let mut out = to_set(&args[1])?;
-    for k in mine {
-        if out.contains(&k)? {
-            out.discard(&k)?;
-        } else {
-            out.add(k)?;
+    for (h, k) in mine {
+        if !out.discard_hashed(h, &k)? {
+            out.add_hashed(h, k)?;
         }
     }
     Ok(out)
@@ -275,10 +291,10 @@ fn symmetric_difference_update(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResu
 fn issubset(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("issubset", &kw)?;
     argc("issubset", &args[1..], 1)?;
-    let mine = snapshot(&this(&args)?);
+    let mine = this(&args)?.borrow().hashed_items();
     let other = to_set(&args[1])?;
-    for k in mine {
-        if !other.contains(&k)? {
+    for (h, k) in mine {
+        if !other.contains_hashed(h, &k)? {
             return Ok(Value::Bool(false));
         }
     }
@@ -289,8 +305,8 @@ fn issuperset(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("issuperset", &kw)?;
     argc("issuperset", &args[1..], 1)?;
     let s = this(&args)?;
-    for it in iterate(&args[1])? {
-        if !s.borrow().contains(&it)? {
+    for it in items_of(&args[1])? {
+        if !has(&s.borrow(), &it)? {
             return Ok(Value::Bool(false));
         }
     }
@@ -301,8 +317,8 @@ fn isdisjoint(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("isdisjoint", &kw)?;
     argc("isdisjoint", &args[1..], 1)?;
     let s = this(&args)?;
-    for it in iterate(&args[1])? {
-        if s.borrow().contains(&it)? {
+    for it in items_of(&args[1])? {
+        if has(&s.borrow(), &it)? {
             return Ok(Value::Bool(false));
         }
     }

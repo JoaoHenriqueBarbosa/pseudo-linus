@@ -1052,6 +1052,8 @@ fn b_pow(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 fn radix_str(fname: &str, args: Vec<Value>, kw: Kw, prefix: &str, radix: u32) -> PyResult<Value> {
     let v = one(fname, args, &kw)?;
+    // `PyNumber_Index`: o `__index__` de usuário vale.
+    let v = if matches!(v, Value::Instance(_)) { crate::vm::number_index(&v)? } else { v };
     let Some(n) = crate::bigint::as_big(&crate::vm::unwrap_payload(&v)) else {
         return Err(type_error(format!("'{}' object cannot be interpreted as an integer", v.type_name())));
     };
