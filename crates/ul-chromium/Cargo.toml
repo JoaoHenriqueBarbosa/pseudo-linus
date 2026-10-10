@@ -26,6 +26,8 @@ parley = { version = "0.11.1", default-features = false, features = ["std"] }
 skrifa = { version = "0.44", default-features = false, features = ["std"] }
 # O rasterizador do canvas 2D (caminhos, texto, gradientes e padrões com antisserrilhado), em CPU e sem unsafe nosso.
 vello_cpu = { version = "0.3", default-features = false, features = ["std", "u8_pipeline"] }
+# O traço e o tracejado do canvas como o Skia os expande (porte do `SkPathStroker` e do `SkDashPath`).
+tiny-skia-path = "0.12"
 # O motor de CSS do Servo (o mesmo que o Blitz usa): parse e serialização canônica do `style` escrito via CSSOM.
 stylo = "=0.20.0"
 # O parser de media query do `matchMedia` é o do stylo, que pede o tokenizador e os modos de parse dele.

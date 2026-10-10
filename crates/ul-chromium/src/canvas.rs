@@ -9,7 +9,7 @@ use std::sync::Arc;
 use skrifa::outline::OutlinePen;
 use vello_cpu::color::{AlphaColor, PremulRgba8, Srgb};
 use vello_cpu::filter_effects::{EdgeMode, Filter, FilterPrimitive};
-use vello_cpu::kurbo::{self, Affine, BezPath, Cap, Join, ParamCurveNearest, Point, Rect, Shape, Stroke, StrokeOpts, SvgArc, Vec2};
+use vello_cpu::kurbo::{self, Affine, BezPath, ParamCurveNearest, Point, Rect, Shape, SvgArc, Vec2};
 use vello_cpu::peniko::{BlendMode, Compose, Extend, Fill, Gradient, ImageAlphaType, ImageBrush, ImageQuality, ImageSampler, InterpolationAlphaSpace, Mix};
 use vello_cpu::{ImageSource, Mask, PaintType, PixelMetadata, Pixmap, RenderContext, Resources};
 use zjsc::runtime::dom_bridge::DomArg;
@@ -334,23 +334,63 @@ fn unpremultiply(px: PremulRgba8) -> [u8; 4] {
 }
 
 /// O traço do prelúdio: [largura, cap, join, miterLimit, traços, deslocamento].
-fn stroke_style(args: &[DomArg]) -> Stroke {
-    let cap = match text(args, 1) {
-        "round" => Cap::Round,
-        "square" => Cap::Square,
-        _ => Cap::Butt,
-    };
-    let join = match text(args, 2) {
-        "round" => Join::Round,
-        "bevel" => Join::Bevel,
-        _ => Join::Miter,
-    };
-    let dashes: Vec<f64> = list(args, 4).iter().filter_map(|d| if let DomArg::Num(n) = d { Some(*n) } else { None }).collect();
-    let mut stroke = Stroke::new(num(args, 0)).with_caps(cap).with_join(join).with_miter_limit(num(args, 3));
-    if !dashes.is_empty() {
-        stroke = stroke.with_dashes(num(args, 5), dashes);
+/// O contorno do traço como o Skia o calcula (`SkDashPath` e depois `SkPathStroker`, pelo porte do tiny-skia): o
+/// offset das curvas sai aproximado por quadráticas, como no Chromium, e não pela curva exata. `args` = [largura,
+/// cap, join, miterLimit, traços, deslocamento]; `user` está no espaço do usuário e `ctm` dá a escala de resolução
+/// (`SkStrokeRec::GetResScale`). `None` quando não há o que traçar.
+fn skia_stroke(user: &BezPath, args: &[DomArg], ctm: Affine) -> Option<BezPath> {
+    use tiny_skia_path as sk;
+    let width = num(args, 0);
+    if !(width > 0.0) {
+        return None;
     }
-    stroke
+    let mut builder = sk::PathBuilder::new();
+    for element in user.elements() {
+        let p = |q: Point| (q.x as f32, q.y as f32);
+        match *element {
+            kurbo::PathEl::MoveTo(a) => builder.move_to(p(a).0, p(a).1),
+            kurbo::PathEl::LineTo(a) => builder.line_to(p(a).0, p(a).1),
+            kurbo::PathEl::QuadTo(a, b) => builder.quad_to(p(a).0, p(a).1, p(b).0, p(b).1),
+            kurbo::PathEl::CurveTo(a, b, c) => builder.cubic_to(p(a).0, p(a).1, p(b).0, p(b).1, p(c).0, p(c).1),
+            kurbo::PathEl::ClosePath => builder.close(),
+        }
+    }
+    let path = builder.finish()?;
+    let [a, b, c, d, e, f] = ctm.as_coeffs().map(|v| v as f32);
+    let scale = sk::PathStroker::compute_resolution_scale(&sk::Transform::from_row(a, b, c, d, e, f));
+    let dashes: Vec<f32> = list(args, 4).iter().filter_map(|d| if let DomArg::Num(n) = d { Some(*n as f32) } else { None }).collect();
+    let path = match dashes.is_empty() {
+        true => path,
+        false => path.dash(&sk::StrokeDash::new(dashes, num(args, 5) as f32)?, scale)?,
+    };
+    let stroke = sk::Stroke {
+        width: width as f32,
+        miter_limit: num(args, 3) as f32,
+        line_cap: match text(args, 1) {
+            "round" => sk::LineCap::Round,
+            "square" => sk::LineCap::Square,
+            _ => sk::LineCap::Butt,
+        },
+        line_join: match text(args, 2) {
+            "round" => sk::LineJoin::Round,
+            "bevel" => sk::LineJoin::Bevel,
+            _ => sk::LineJoin::Miter,
+        },
+        dash: None,
+    };
+    let outline = path.stroke(&stroke, scale)?;
+    let mut out = BezPath::new();
+    let p = |q: sk::Point| Point::new(f64::from(q.x), f64::from(q.y));
+    for segment in outline.segments() {
+        match segment {
+            sk::PathSegment::MoveTo(a) => out.move_to(p(a)),
+            sk::PathSegment::LineTo(a) => out.line_to(p(a)),
+            sk::PathSegment::QuadTo(a, b) => out.quad_to(p(a), p(b)),
+            sk::PathSegment::CubicTo(a, b, c) => out.curve_to(p(a), p(b), p(c)),
+            sk::PathSegment::Close => out.close_path(),
+        }
+    }
+    Some(out)
 }
 
 /// Uma caneta que leva o contorno de um glifo (em pixels, y para cima) ao caminho, já posicionado.
@@ -437,9 +477,7 @@ pub fn hit(path: &[DomArg], rule: &str, stroke: &[DomArg], ctm: &[DomArg], x: f6
         return false;
     }
     let inverse = ctm.inverse();
-    let style = stroke_style(stroke);
-    let outline = kurbo::stroke(inverse * device, &style, &StrokeOpts::default(), 1e-4);
-    contains(&outline, inverse * point, Fill::NonZero)
+    skia_stroke(&(inverse * device), stroke, ctm).is_some_and(|outline| contains(&outline, inverse * point, Fill::NonZero))
 }
 
 impl Surface {
@@ -559,19 +597,16 @@ impl Surface {
         // O que desenhar, já em coordenadas do dispositivo: o traço se expande no espaço do usuário (a largura e os
         // traços acompanham a transformação) e tudo se achata em retas finas, para a cobertura das curvas ser a da
         // curva e não a das cordas do achatamento grosso do vello.
-        let tolerance = DEVICE_TOLERANCE / ctm.determinant().abs().sqrt().max(1e-9);
-        let stroked = |user: BezPath, style: &Stroke| -> Option<BezPath> {
-            (style.width > 0.0).then(|| ctm * kurbo::stroke(user, style, &StrokeOpts::default(), tolerance))
-        };
+        let stroked = |user: BezPath, style: &[DomArg]| skia_stroke(&user, style, ctm).map(|outline| ctm * outline);
         let (path, rule, image) = match kind {
             "fill" => (device_path(list(cmd, 1)), fill_rule(text(cmd, 2)), None),
             "stroke" => {
-                let Some(path) = stroked(ctm.inverse() * device_path(list(cmd, 1)), &stroke_style(list(cmd, 2))) else { return };
+                let Some(path) = stroked(ctm.inverse() * device_path(list(cmd, 1)), list(cmd, 2)) else { return };
                 (path, Fill::NonZero, None)
             }
             "fillText" => (ctm * text_path(list(cmd, 1), ctm), Fill::NonZero, None),
             "strokeText" => {
-                let Some(path) = stroked(text_path(list(cmd, 1), ctm), &stroke_style(list(cmd, 2))) else { return };
+                let Some(path) = stroked(text_path(list(cmd, 1), ctm), list(cmd, 2)) else { return };
                 (path, Fill::NonZero, None)
             }
             "image" => {

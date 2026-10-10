@@ -70,11 +70,8 @@ fn text_baselines_match_oracle() {
 /// A rasterização contra o oráculo: as cenas de `testbench/oracle/measured/canvas-raster.html` rodam aqui e os pixels
 /// se comparam com os do Chromium (`canvas-raster.json`). O antisserrilhado do vello não é o do Skia bit a bit, então
 /// a régua é a de quem olha a imagem: diferença média por canal até 1,5 e no máximo 2% dos canais fora de 40.
-/// Exceção conhecida, com régua própria: o traço fino de cúbica (`bezier`), em que o stroker do Skia aproxima o
-/// offset da curva por quadráticas e se afasta da curva exata que o kurbo expande (pendente: portar o `SkStroke`).
 #[test]
 fn raster_matches_oracle() {
-    const KNOWN: &[(&str, f64, f64)] = &[("bezier", 1.7, 0.012)];
     let scenes = include_str!("../../../testbench/oracle/measured/canvas-raster.html");
     let oracle = include_str!("canvas-raster.json");
     let compare = format!(
@@ -100,8 +97,7 @@ for (const [name, expected] of Object.entries(oracle)) {{
     for line in &scores {
         let parts: Vec<&str> = line.split(' ').collect();
         let (mean, bad): (f64, f64) = (parts[1].parse().unwrap(), parts[2].parse().unwrap());
-        let (max_mean, max_bad) = KNOWN.iter().find(|k| k.0 == parts[0]).map_or((1.5, 0.02), |k| (k.1, k.2));
-        if mean > max_mean || bad > max_bad {
+        if mean > 1.5 || bad > 0.02 {
             wrong.push((*line).to_owned());
         }
     }
