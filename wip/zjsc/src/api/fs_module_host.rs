@@ -32,8 +32,8 @@ fn is_path_like(specifier: &str) -> bool {
 impl ModuleHost for FsModuleHost {
     fn resolve(&self, specifier: &str, referrer: Option<&str>) -> Result<String, String> {
         // Embutido do registro (`node:path`, `path`): a chave é `node:<nome>`, e o módulo vem de `builtin_exports`.
-        if let Some(key) = builtin_modules::import_key(specifier) {
-            return Ok(key);
+        if let Some(resolved) = builtin_modules::resolve_import(specifier) {
+            return resolved;
         }
         let from = referrer.unwrap_or("/");
         let importer_dir = from.rsplit_once('/').map_or("", |(directory, _)| directory);

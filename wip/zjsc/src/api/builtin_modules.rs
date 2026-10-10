@@ -125,17 +125,20 @@ fn install_module_module(global_object: &JSGlobalObject) -> HostResult {
     Ok(module_object.as_value())
 }
 
-/// A chave canônica de um `import` embutido (`node:path`), ou `None` quando `specifier` não é embutido instalado.
-pub(crate) fn import_key(specifier: &str) -> Option<String> {
+/// O que o resolvedor do bun faz com um `import` de embutido, antes de olhar o disco: a chave canônica (`node:path`)
+/// do embutido instalado, a falha de `node:` fora da tabela (`ERR_UNKNOWN_BUILTIN_MODULE`), ou `None` quando
+/// `specifier` não é embutido e segue a resolução de arquivos.
+pub(crate) fn resolve_import(specifier: &str) -> Option<Result<String, String>> {
     match resolve(specifier) {
-        Resolved::Builtin(entry) => Some(format!("node:{}", entry.name)),
-        _ => None,
+        Resolved::Builtin(entry) => Some(Ok(format!("node:{}", entry.name))),
+        Resolved::UnknownNode => Some(Err(crate::runtime::js_module_loader::unknown_builtin_message(specifier))),
+        Resolved::NotBuiltin => None,
     }
 }
 
 /// Os exports do namespace de `import "node:X"`: `default` é o mesmo objeto do `require`, e cada propriedade própria
 /// enumerável dele vira export nomeado (medido: `import * as os from "node:os"` tem as chaves do `require("os")` mais
-/// `default`). `None` quando `key` não é uma chave de `import_key`.
+/// `default`). `None` quando `key` não é uma chave de `resolve_import`.
 pub(crate) fn import_exports(global_object: &JSGlobalObject, key: &str) -> Option<Result<(Vec<Identifier>, Vec<JSValue>), Thrown>> {
     let name = key.strip_prefix("node:")?;
     let entry = BUILTINS.iter().find(|entry| entry.name == name)?;

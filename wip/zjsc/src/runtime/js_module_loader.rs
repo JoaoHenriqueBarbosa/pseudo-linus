@@ -564,13 +564,20 @@ fn referrer_path(referrer: Option<&str>) -> String {
     }
 }
 
+/// A mensagem do resolvedor do bun para `node:` fora da tabela de embutidos (código `ERR_UNKNOWN_BUILTIN_MODULE`).
+pub(crate) fn unknown_builtin_message(specifier: &str) -> String {
+    format!("{UNKNOWN_BUILTIN_PREFIX}{specifier}")
+}
+
+const UNKNOWN_BUILTIN_PREFIX: &str = "No such built-in module: ";
+
 /// A mensagem e o código que o resolvedor do bun dá a `specifier` que não resolve: `node:` desconhecido é
 /// `ERR_UNKNOWN_BUILTIN_MODULE`, caminho (relativo, absoluto, `file:` ou com letra de unidade, `C:\x`) é `Cannot find
 /// module`, o resto (especificador "nu") é `Cannot find package`. Sem referrer (o `parent` vazio de
 /// `import.meta.resolve`) é sempre `Cannot find module '<especificador>' from ''` (medido no bun 1.4.2).
 fn unresolved_specifier_message(specifier: &str, referrer: &str) -> (String, &'static str, String) {
     if specifier.starts_with("node:") {
-        return (format!("No such built-in module: {specifier}"), "ERR_UNKNOWN_BUILTIN_MODULE", specifier.to_owned());
+        return (unknown_builtin_message(specifier), "ERR_UNKNOWN_BUILTIN_MODULE", specifier.to_owned());
     }
     let shown = specifier.strip_prefix("file://").unwrap_or(specifier);
     if referrer.is_empty() {
@@ -620,7 +627,7 @@ fn throw_unresolved(host: &dyn ModuleHost, global_object: &JSGlobalObject, speci
     if let Some(text) = build_message_text(specifier) {
         return throw_build_message(global_object, text);
     }
-    let code = if message.starts_with("No such built-in module") { "ERR_UNKNOWN_BUILTIN_MODULE" } else { "ERR_MODULE_NOT_FOUND" };
+    let code = if message.starts_with(UNKNOWN_BUILTIN_PREFIX) { "ERR_UNKNOWN_BUILTIN_MODULE" } else { "ERR_MODULE_NOT_FOUND" };
     throw_resolve_message(global_object, message, code, specifier, &referrer_path(referrer))
 }
 
@@ -663,7 +670,7 @@ pub(crate) fn throw_require_failure(global_object: &JSGlobalObject, argument: JS
         );
     }
     let (message, code) = if specifier.starts_with("node:") && !resolve {
-        (format!("No such built-in module: {specifier}"), "ERR_UNKNOWN_BUILTIN_MODULE")
+        (unknown_builtin_message(&specifier), "ERR_UNKNOWN_BUILTIN_MODULE")
     } else {
         (format!("Cannot find module '{specifier}'\nRequire stack:\n- {filename}"), "MODULE_NOT_FOUND")
     };

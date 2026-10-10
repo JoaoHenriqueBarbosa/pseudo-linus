@@ -130,15 +130,22 @@ impl ModuleHost for MemoryModuleHost {
     }
 }
 
-/// Começa a avaliar o arquivo principal `url` (fonte `source`) como módulo ES no global já montado, como o bun faz com
-/// `bun main.js` quando o arquivo não tem marcador de CommonJS. Os `import` resolvem pelo sistema de arquivos do global,
-/// quando há um. Devolve a promessa da avaliação; quem chama esvazia as microtarefas.
-pub(crate) fn start_main_module(global_object: &crate::runtime::js_global_object::JSGlobalObjectRef, source: &str, url: &str) -> crate::runtime::js_promise::JSPromiseRef {
+/// Instala o carregador de módulos do arquivo principal `url` (fonte `source`) no global já montado, como o bun faz
+/// com `bun main.js`: os `import` resolvem pelo sistema de arquivos do global, quando há um, e pelos embutidos. Serve
+/// ao principal módulo ES e ao `import()` do principal CommonJS, que no bun passa pelo mesmo carregador.
+pub(crate) fn install_main_module_loader(global_object: &crate::runtime::js_global_object::JSGlobalObjectRef, source: &str, url: &str) {
     let inner: Rc<dyn ModuleHost> = match global_object.module_fs() {
         Some(fs) => Rc::new(FsModuleHost::new(fs)),
         None => Rc::new(FileUrlHost { inner: MemoryModuleHost::new(Vec::<(String, String)>::new()) }),
     };
     install_module_loader(global_object, Rc::new(EntryHost { specifier: url.to_owned(), source: source.to_owned(), inner }));
+}
+
+/// Começa a avaliar o arquivo principal `url` (fonte `source`) como módulo ES no global já montado, como o bun faz com
+/// `bun main.js` quando o arquivo não tem marcador de CommonJS. Devolve a promessa da avaliação; quem chama esvazia as
+/// microtarefas.
+pub(crate) fn start_main_module(global_object: &crate::runtime::js_global_object::JSGlobalObjectRef, source: &str, url: &str) -> crate::runtime::js_promise::JSPromiseRef {
+    install_main_module_loader(global_object, source, url);
     load_and_evaluate_module(global_object, url)
 }
 
@@ -184,8 +191,8 @@ struct FileUrlHost {
 impl ModuleHost for FileUrlHost {
     /// Os embutidos (`node:path`, `path`) resolvem sempre, como no bun, mesmo sem sistema de arquivos.
     fn resolve(&self, specifier: &str, referrer: Option<&str>) -> Result<String, String> {
-        if let Some(key) = crate::api::builtin_modules::import_key(specifier) {
-            return Ok(key);
+        if let Some(resolved) = crate::api::builtin_modules::resolve_import(specifier) {
+            return resolved;
         }
         self.inner.resolve(specifier, referrer)
     }

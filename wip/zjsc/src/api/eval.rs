@@ -462,6 +462,8 @@ fn run_main_program(global_object: &JSGlobalObjectRef, source: &str, url: &str) 
                 Some(slash) => &url[..slash],
                 None => ".",
             };
+            // O `import()` do CommonJS principal passa pelo mesmo carregador do principal módulo ES.
+            crate::api::module::install_main_module_loader(global_object, source, url);
             run_commonjs_wrapper(global_object, &body, url, false, &[], dirname)
         }
     }

@@ -1,0 +1,4 @@
+node:path [object Module] true function a/b
+path true true
+node:events function true function
+node:nope ResolveMessage ERR_UNKNOWN_BUILTIN_MODULE No such built-in module: node:nope

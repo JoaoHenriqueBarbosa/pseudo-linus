@@ -54,5 +54,7 @@ console.log(types.isNativeError(watched), trapped);
   const cryptoKey = await crypto.subtle.generateKey({ name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   console.log(types.isCryptoKey(cryptoKey), types.isKeyObject(cryptoKey));
   // O `isKeyObject` de um `KeyObject` do `node:crypto` entra quando o porte instalar o `node:crypto`.
-  // O `isModuleNamespaceObject` de um namespace verdadeiro fica no golden de módulo ES: aqui o programa é CommonJS.
+  // O namespace de um `import()` no programa CommonJS.
+  const namespace = await import("node:path");
+  console.log(types.isModuleNamespaceObject(namespace), types.isModuleNamespaceObject(namespace.default));
 })();
