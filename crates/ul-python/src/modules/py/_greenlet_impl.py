@@ -19,6 +19,7 @@ __name__ = 'greenlet._greenlet'
 import sys as _sysmod
 import _sys
 import _gsched
+from _contextvars import Context as _Context
 
 CLOCKS_PER_SEC = 1000000
 GREENLET_USE_GC = 1
@@ -183,6 +184,11 @@ def _enter(target, payload, run, finishing):
     if not finishing:
         origin_state.frame = _sysmod._getframe(0)
     _box[0] = payload
+    # O `ts->context` da thread troca de dono: o de quem sai fica guardado no greenlet dele, e o de quem entra (vazio,
+    # num greenlet que ainda não rodou) passa a ser o corrente.
+    origin_state.context = green.ctx
+    green.ctx = state.context
+    state.context = None
     green.glet = target
     green.tid = state.tid
     state.frame = None
@@ -365,13 +371,19 @@ from ``g_raiser`` to ``g``.
 
     @property
     def gr_context(self):
+        # O do greenlet que roda é o contexto corrente da thread; o dos outros, o guardado na última troca.
+        if self is getattr(_thread(), 'glet', None):
+            return _thread().ctx
         return _st(self).context
 
     @gr_context.setter
     def gr_context(self, value):
-        if value is not None and type(value).__name__ != 'Context':
+        if value is not None and type(value) is not _Context:
             raise TypeError('greenlet context must be a contextvars.Context or None')
-        _st(self).context = value
+        if self is getattr(_thread(), 'glet', None):
+            _thread().ctx = value
+        else:
+            _st(self).context = value
 
     parent = property(_get_parent, _set_parent, _no_delete_parent)
     run = property(_get_run, _set_run, _del_run)

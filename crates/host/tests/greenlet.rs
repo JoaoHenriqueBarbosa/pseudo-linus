@@ -121,6 +121,17 @@ fn contextvars_api_scene_matches_the_oracle() {
     );
 }
 
+/// O `gr_context` do greenlet sobre o `contextvars`: o contexto troca a cada switch, um greenlet novo nasce sem
+/// contexto, o setter aceita `Context` ou `None`, e o suspenso guarda o dele (o `Token` do outro não vale aqui).
+#[test]
+fn gl_context_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_context",
+        include_str!("../../../testbench/oracle/automation/cases/gl_context.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_context.out"),
+    );
+}
+
 /// O estado interno não aparece em nada que o programa enxergue (`__dict__`, `vars`, `dir`, `__del__`, `__slots__`),
 /// o tipo é estático como no C e as funções de módulo são `builtin_function_or_method` de `greenlet._greenlet`.
 #[test]
