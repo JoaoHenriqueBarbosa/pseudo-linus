@@ -1,0 +1,18 @@
+3.13.5
+(2000, 10, 10) (20, 3, 0) True 0
+[{'collections': 3, 'collected': 24, 'uncollectable': 0}, {'collections': 0, 'collected': 0, 'uncollectable': 0}, {'collections': 0, 'collected': 0, 'uncollectable': 0}]
+0
+True True 5097 False
+(0, 0, 0)
+collect 20
+collect2 0
+collect3 2
+collect4 1
+collect5 2
+collect6 2
+collect closure 4
+[{'collections': 3, 'collected': 24, 'uncollectable': 0}, {'collections': 0, 'collected': 0, 'uncollectable': 0}, {'collections': 9, 'collected': 31, 'uncollectable': 0}]
+(6, 0, 0)
+(27, 0, 0)
+20 0 0
+[{'collections': 4, 'collected': 44, 'uncollectable': 0}, {'collections': 1, 'collected': 0, 'uncollectable': 0}, {'collections': 10, 'collected': 31, 'uncollectable': 0}]
