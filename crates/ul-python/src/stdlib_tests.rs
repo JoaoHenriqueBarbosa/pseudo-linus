@@ -7040,7 +7040,7 @@ fn compile_bytes_source_and_pytest_style_import_hook() {
     let src = r##"
 import sys, os, ast, tempfile, importlib.abc, importlib.machinery, importlib.util
 print(ast.parse(b'\xef\xbb\xbfx = 1\n').body[0].targets[0].id)
-print(ast.parse(b'# -*- coding: latin-1 -*-\ns = "\xe9"\n').body[1].value.value == '\xe9')
+print(ast.parse(b'# -*- coding: latin-1 -*-\ns = "\xe9"\n').body[0].value.value == '\xe9')
 d = tempfile.mkdtemp()
 with open(os.path.join(d, 'rwmod.py'), 'w') as f:
     f.write('def f(x):\n    assert x == 1, "bad"\n    return x\n')
@@ -7075,9 +7075,10 @@ try:
 except AssertionError as e:
     print(type(e).__name__, e.args)
 "##;
-    let o = crate::run_source(src);
-    assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(String::from_utf8(o.stdout).unwrap(), "x\nTrue\nHook True 1 True\nAssertionError ('bad',)\n");
+    // Arquivo e diretório temporário pedem um processo do sandbox: `in_process`, não `run_source`.
+    let o = in_process(src);
+    assert_eq!(o.stderr_str(), "");
+    assert_eq!(o.stdout_str(), "x\nTrue\nHook True 1 True\nAssertionError ('bad',)\n");
 }
 
 /// O `_TokenType(tuple)` do pygments: o `__init__` próprio não pode tirar o conteúdo do `tuple.__new__`.
