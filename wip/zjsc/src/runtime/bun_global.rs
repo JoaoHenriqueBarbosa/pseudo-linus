@@ -391,8 +391,9 @@ fn string_width_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRes
 host_function!(pub bun_string_width, string_width_body);
 
 /// `bunObjectTable` de `BunObject.cpp`, na ordem do `@begin`, só com as entradas portadas.
-static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 23] = [
+static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 25] = [
     lazy_entry_with_attributes("argv", DONT_DELETE, create_argv),
+    native_function_entry("connect", DONT_DELETE, crate::runtime::bun_http::bun_connect, 1, Intrinsic::NoIntrinsic),
     native_function_entry("deepEquals", DONT_DELETE, bun_deep_equals, 2, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("env", READ_ONLY | DONT_DELETE, create_env),
     native_function_entry("escapeHTML", DONT_DELETE, bun_escape_html, 2, Intrinsic::NoIntrinsic),
@@ -400,6 +401,7 @@ static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 23] = [
     native_function_entry("fileURLToPath", DONT_DELETE, bun_file_url_to_path, 1, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("hash", DONT_DELETE, create_hash),
     lazy_entry_with_attributes("inspect", DONT_DELETE, create_inspect),
+    native_function_entry("listen", DONT_DELETE, crate::runtime::bun_http::bun_listen, 1, Intrinsic::NoIntrinsic),
     custom_accessor_entry_with_attributes("main", DONT_DELETE, main_getter, main_setter),
     native_function_entry("nanoseconds", DONT_DELETE, bun_nanoseconds, 0, Intrinsic::NoIntrinsic),
     native_function_entry("pathToFileURL", DONT_DELETE, bun_path_to_file_url, 1, Intrinsic::NoIntrinsic),

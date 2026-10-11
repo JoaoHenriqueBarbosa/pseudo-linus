@@ -10,6 +10,7 @@ use crate::runtime::net_loop::NATIVES;
 use crate::runtime::string_regexp_support::get_object_property;
 
 const SOURCE: &str = include_str!("bun_http.js");
+const SOCKET_SOURCE: &str = include_str!("bun_socket.js");
 
 /// `refused(url)`: lança o `ConnectionRefused` do `fetch` (a conexão a `url` foi recusada).
 fn refused_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
@@ -33,8 +34,10 @@ fn report_error_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRes
 }
 host_function!(report_error_function, report_error_body);
 
-fn module(global_object: &JSGlobalObject) -> HostResult {
-    crate::api::builtin_modules::cached("internal:bun-http", || {
+/// Carrega (uma vez por programa) um programa escondido de rede e devolve os exports dele: `bun_http.js` (`serve`, `fetch`)
+/// e `bun_socket.js` (`listen`, `connect`), os dois sobre as mesmas funções `net*` do `Host`.
+fn module(global_object: &JSGlobalObject, cache_name: &'static str, source: &str) -> HostResult {
+    crate::api::builtin_modules::cached(cache_name, || {
         let mut natives: Vec<(&str, u32, NativeFunction)> = NATIVES.to_vec();
         natives.push(("responseWire", 1, crate::runtime::response::response_wire));
         natives.push(("markFetched", 3, crate::runtime::response::mark_fetched));
@@ -42,15 +45,20 @@ fn module(global_object: &JSGlobalObject) -> HostResult {
         natives.push(("fatal", 1, fatal_function));
         natives.push(("reportError", 2, report_error_function));
         let host = crate::api::node_js_host::module_host(global_object, &natives)?;
-        Ok(crate::api::node_js_host::run_native_factory(global_object, SOURCE, "bun-http", &host))
+        Ok(crate::api::node_js_host::run_native_factory(global_object, source, cache_name, &host))
     })
+}
+
+/// Chama o export `name` do programa `cache_name` com os argumentos do chamador.
+fn call_program(global_object: &JSGlobalObject, cache_name: &'static str, source: &str, name: &str, arguments: &[crate::runtime::js_value::JSValue]) -> HostResult {
+    let exports = module(global_object, cache_name, source)?;
+    let function = get_object_property(global_object, exports, &Identifier::from_span(global_object.vm(), name.as_bytes()))?;
+    crate::api::node_js_host::call_value(global_object, function, crate::runtime::js_value::JSValue::undefined(), arguments, "bun:http")
 }
 
 /// Chama `serve` ou `fetch` do `bun_http.js` com os argumentos do chamador.
 pub(crate) fn call_module(global_object: &JSGlobalObject, name: &str, arguments: &[crate::runtime::js_value::JSValue]) -> HostResult {
-    let exports = module(global_object)?;
-    let function = get_object_property(global_object, exports, &Identifier::from_span(global_object.vm(), name.as_bytes()))?;
-    crate::api::node_js_host::call_value(global_object, function, crate::runtime::js_value::JSValue::undefined(), arguments, "bun:http")
+    call_program(global_object, "internal:bun-http", SOURCE, name, arguments)
 }
 
 /// `Bun.serve(opções)`.
@@ -58,6 +66,17 @@ fn serve_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     call_module(global_object, "serve", call.arguments())
 }
 host_function!(pub bun_serve, serve_body);
+
+/// `Bun.listen(opções)` e `Bun.connect(opções)`: os sockets TCP do `bun_socket.js`.
+fn listen_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    call_program(global_object, "internal:bun-socket", SOCKET_SOURCE, "listen", call.arguments())
+}
+host_function!(pub bun_listen, listen_body);
+
+fn connect_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    call_program(global_object, "internal:bun-socket", SOCKET_SOURCE, "connect", call.arguments())
+}
+host_function!(pub bun_connect, connect_body);
 
 /// O texto do endereço é de loopback (`localhost` ou `127.x.x.x`): o `bun_http.js` atende; qualquer outro host segue
 /// o caminho de uma máquina sem rede.

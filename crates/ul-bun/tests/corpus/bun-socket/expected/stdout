@@ -1,0 +1,29 @@
+listen type [ "function", "listen", 1, "function", "connect", 1 ]
+listen noargs throws TypeError ERR_INVALID_ARG_TYPE Expected object
+listen empty throws TypeError ERR_INVALID_ARG_TYPE SocketOptions.socket is required
+listen nosocket throws TypeError ERR_INVALID_ARG_TYPE SocketOptions.socket is required
+listen nohost throws TypeError ERR_INVALID_ARG_TYPE Expected at least "data" or "drain" callback
+listen badport throws RangeError ERR_OUT_OF_RANGE SocketOptions.port must be in the range [0, 65535] (received -1)
+connect noargs throws TypeError ERR_INVALID_ARG_TYPE Expected options object
+connect nosocket throws TypeError ERR_INVALID_ARG_TYPE SocketOptions.socket is required
+connect empty throws TypeError ERR_INVALID_ARG_TYPE SocketOptions.socket is required
+listener data,fd,getsockname,hostname,port,ref,reload,stop,unix,unref 127.0.0.1 true {
+  tag: "srv",
+} Object
+listener keys []
+srv open string {
+  tag: "srv",
+} 1 true alpnProtocol,authorized,bytesWritten,close,data,disableRenegotiation,end,exportKeyingMaterial,fd,flush,getAuthorizationError,getCertificate,getCipher,getEphemeralKeyInfo,getPeerCertificate,getServername,getSession,getSharedSigalgs,getTLSFinishedMessage,getTLSPeerFinishedMessage,getTLSTicket,getTLSVersion,getTypeOfService,isSessionReused,listener,localAddress,localFamily,localPort,pause,readyState,ref,reload,remoteAddress,remoteFamily,remotePort,renegotiate,resume,resumeSNI,setKeepAlive,setKeyCert,setMaxSendFragment,setNoDelay,setServername,setSession,setTypeOfService,setVerifyMode,shutdown,terminate,timeout,unref,upgradeTLS,write
+cli open {
+  tag: "cli",
+} 1 alpnProtocol,authorized,bytesWritten,close,data,disableRenegotiation,end,exportKeyingMaterial,fd,flush,getAuthorizationError,getCertificate,getCipher,getEphemeralKeyInfo,getPeerCertificate,getServername,getSession,getSharedSigalgs,getTLSFinishedMessage,getTLSPeerFinishedMessage,getTLSTicket,getTLSVersion,getTypeOfService,isSessionReused,listener,localAddress,localFamily,localPort,pause,readyState,ref,reload,remoteAddress,remoteFamily,remotePort,renegotiate,resume,resumeSNI,setKeepAlive,setKeyCert,setMaxSendFragment,setNoDelay,setServername,setSession,setTypeOfService,setVerifyMode,shutdown,terminate,timeout,unref,upgradeTLS,write Object []
+write ret 4
+connect resolved Object function
+refused connectError Error ECONNREFUSED Failed to connect -111 connect
+refused rejected Error ECONNREFUSED Failed to connect
+srv data <Buffer 70 69 6e 67> Buffer
+srv close undefined
+cli data pong:ping
+cli end
+cli close undefined
+stopped
