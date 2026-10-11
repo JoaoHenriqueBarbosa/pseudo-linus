@@ -75,6 +75,9 @@ pub struct Browser {
     profiles: std::collections::HashMap<String, std::sync::Arc<crate::session::Profile>>,
     targets: Vec<Target>,
     sessions: Vec<Session>,
+    /// Mensagens que saem depois da resposta do comando que está sendo tratado (a resposta de `setAutoAttach` de uma
+    /// sessão sem `flatten` chega ao cliente antes do `receivedMessageFromTarget` dela).
+    after_reply: Vec<(u64, Json)>,
     conns: Vec<Conn>,
     next_key: u64,
     allowed_origins: Vec<String>,
@@ -158,6 +161,7 @@ impl Browser {
             profiles,
             targets: Vec::new(),
             sessions: Vec::new(),
+            after_reply: Vec::new(),
             conns: Vec::new(),
             next_key: 1,
             allowed_origins: options.allowed_origins.clone(),
@@ -407,20 +411,25 @@ impl Browser {
             Ok(result) => self.deliver(key, &Json::object([("id", id), ("result", result)])),
             Err((code, text)) => self.deliver(key, &error_message(Some(&id), code, &text, None)),
         }
+        for (to, event) in std::mem::take(&mut self.after_reply) {
+            self.deliver(to, &event);
+        }
+    }
+
+    /// O resultado dos comandos de `Target` que uma sessão de página responde no navegador. `None`: vai para a página.
+    fn session_target_result(&self, session: &str, method: &str) -> Option<Json> {
+        let target = self.sessions.iter().find(|s| s.id == session).map(|s| s.target.clone()).unwrap_or_default();
+        match method {
+            "Target.setAutoAttach" | "Target.setDiscoverTargets" | "Target.autoAttachRelated" => Some(Json::object([])),
+            "Target.getTargetInfo" => self.info(&target).map(|info| Json::object([("targetInfo", info)])),
+            _ => None,
+        }
     }
 
     /// Os comandos de `Target` que uma sessão de página responde no navegador. Falso: vai para a página.
     fn page_session_command(&mut self, key: u64, session: &str, id: &Json, method: &str) -> bool {
-        let target = self.sessions.iter().find(|s| s.id == session).map(|s| s.target.clone()).unwrap_or_default();
         let implicit = self.sessions.iter().any(|s| s.id == session && s.implicit);
-        let result = match method {
-            "Target.setAutoAttach" | "Target.setDiscoverTargets" | "Target.autoAttachRelated" => Json::object([]),
-            "Target.getTargetInfo" => match self.info(&target) {
-                Some(info) => Json::object([("targetInfo", info)]),
-                None => return false,
-            },
-            _ => return false,
-        };
+        let Some(result) = self.session_target_result(session, method) else { return false };
         let session_field = (!implicit).then(|| Json::str(session));
         let mut fields = vec![("id".to_owned(), id.clone()), ("result".to_owned(), result)];
         if let Some(session) = session_field {
@@ -544,7 +553,31 @@ impl Browser {
                 };
                 let inner = params.get("message").and_then(Json::as_str).unwrap_or_default();
                 match json::parse(inner) {
-                    Ok(inner) => self.forward(&session, &inner),
+                    Ok(inner) => {
+                        // Os comandos de `Target` de uma sessão sem `flatten` também são do navegador: a resposta
+                        // volta embrulhada em `receivedMessageFromTarget`, como a da página.
+                        let answered = match (inner.get("id").cloned(), inner.get("method").and_then(Json::as_str)) {
+                            (Some(inner_id), Some(inner_method)) => self.session_target_result(&session, inner_method).map(|r| (inner_id, r)),
+                            _ => None,
+                        };
+                        match answered {
+                            Some((inner_id, result)) => {
+                                let target = self.sessions.iter().find(|s| s.id == session).map(|s| s.target.clone()).unwrap_or_default();
+                                let reply = Json::object([("id", inner_id), ("result", result)]).to_compact();
+                                let event = Self::event(
+                                    "Target.receivedMessageFromTarget",
+                                    Json::object([("sessionId", Json::str(&session)), ("message", Json::str(reply)), ("targetId", Json::str(target))]),
+                                );
+                                // Só o `getTargetInfo` responde antes da confirmação; os demais (`setAutoAttach`...) depois.
+                                if inner.get("method").and_then(Json::as_str) == Some("Target.getTargetInfo") {
+                                    self.deliver(key, &event);
+                                } else {
+                                    self.after_reply.push((key, event));
+                                }
+                            }
+                            None => self.forward(&session, &inner),
+                        }
+                    }
                     Err(position) => return Err((-32700, format!("JSON: invalid token at position {position}"))),
                 }
                 Ok(Json::object([]))

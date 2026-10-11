@@ -2713,6 +2713,163 @@
    }
   }
  ],
+ "unflatten_target_commands": [
+  {
+   "out": {
+    "id": 1,
+    "method": "Target.getTargets"
+   }
+  },
+  {
+   "in": {
+    "id": 1,
+    "result": {
+     "targetInfos": [
+      {
+       "targetId": "9A587FCD508DE2DA8C6EF4EE1CFDA6E5",
+       "type": "browser_ui",
+       "title": "chrome://omnibox-popup.top-chrome",
+       "url": "chrome://omnibox-popup.top-chrome/",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "A1673527A30D6C08FD0AFA833173F463"
+      },
+      {
+       "targetId": "C0BDFB42EBEB311E08372C8FB480FCA9",
+       "type": "browser_ui",
+       "title": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+       "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "A1673527A30D6C08FD0AFA833173F463"
+      },
+      {
+       "targetId": "EF005A37E411C1EFE9707044A1EB6B63",
+       "type": "page",
+       "title": "about:blank",
+       "url": "about:blank",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "A1673527A30D6C08FD0AFA833173F463"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 2,
+    "method": "Target.attachToTarget",
+    "params": {
+     "targetId": "EF005A37E411C1EFE9707044A1EB6B63"
+    }
+   }
+  },
+  {
+   "in": {
+    "method": "Target.attachedToTarget",
+    "params": {
+     "sessionId": "7ED91F992E6F2AC34339FB6428F3CAD9",
+     "targetInfo": {
+      "targetId": "EF005A37E411C1EFE9707044A1EB6B63",
+      "type": "page",
+      "title": "about:blank",
+      "url": "about:blank",
+      "attached": true,
+      "canAccessOpener": false,
+      "browserContextId": "A1673527A30D6C08FD0AFA833173F463"
+     },
+     "waitingForDebugger": false
+    }
+   }
+  },
+  {
+   "in": {
+    "id": 2,
+    "result": {
+     "sessionId": "7ED91F992E6F2AC34339FB6428F3CAD9"
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 3,
+    "method": "Target.sendMessageToTarget",
+    "params": {
+     "sessionId": "7ED91F992E6F2AC34339FB6428F3CAD9",
+     "message": "{\"id\": 1, \"method\": \"Target.setAutoAttach\", \"params\": {\"autoAttach\": true, \"waitForDebuggerOnStart\": false}}"
+    }
+   }
+  },
+  {
+   "in": {
+    "id": 3,
+    "result": {}
+   }
+  },
+  {
+   "in": {
+    "method": "Target.receivedMessageFromTarget",
+    "params": {
+     "sessionId": "7ED91F992E6F2AC34339FB6428F3CAD9",
+     "message": "{\"id\":1,\"result\":{}}",
+     "targetId": "EF005A37E411C1EFE9707044A1EB6B63"
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 4,
+    "method": "Target.sendMessageToTarget",
+    "params": {
+     "sessionId": "7ED91F992E6F2AC34339FB6428F3CAD9",
+     "message": "{\"id\": 2, \"method\": \"Target.getTargetInfo\", \"params\": {}}"
+    }
+   }
+  },
+  {
+   "in": {
+    "method": "Target.receivedMessageFromTarget",
+    "params": {
+     "sessionId": "7ED91F992E6F2AC34339FB6428F3CAD9",
+     "message": "{\"id\":2,\"result\":{\"targetInfo\":{\"targetId\":\"EF005A37E411C1EFE9707044A1EB6B63\",\"type\":\"page\",\"title\":\"about:blank\",\"url\":\"about:blank\",\"attached\":true,\"canAccessOpener\":false,\"browserContextId\":\"A1673527A30D6C08FD0AFA833173F463\"}}}",
+     "targetId": "EF005A37E411C1EFE9707044A1EB6B63"
+    }
+   }
+  },
+  {
+   "in": {
+    "id": 4,
+    "result": {}
+   }
+  },
+  {
+   "out": {
+    "id": 5,
+    "method": "Target.sendMessageToTarget",
+    "params": {
+     "sessionId": "7ED91F992E6F2AC34339FB6428F3CAD9",
+     "message": "{\"id\": 3, \"method\": \"Runtime.evaluate\", \"params\": {\"expression\": \"1+1\"}}"
+    }
+   }
+  },
+  {
+   "in": {
+    "id": 5,
+    "result": {}
+   }
+  },
+  {
+   "in": {
+    "method": "Target.receivedMessageFromTarget",
+    "params": {
+     "sessionId": "7ED91F992E6F2AC34339FB6428F3CAD9",
+     "message": "{\"id\":3,\"result\":{\"result\":{\"type\":\"number\",\"value\":2,\"description\":\"2\"}}}",
+     "targetId": "EF005A37E411C1EFE9707044A1EB6B63"
+    }
+   }
+  }
+ ],
  "auto_attach_wait": [
   {
    "out": {

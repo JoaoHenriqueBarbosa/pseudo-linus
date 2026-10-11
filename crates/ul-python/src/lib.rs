@@ -252,6 +252,9 @@ pub(crate) static WARN_OPTIONS: std::sync::Mutex<Vec<String>> = std::sync::Mutex
 /// Nível de `-O` (0, 1 ou 2): com `-O` os `assert` somem e `__debug__` vira `False`.
 pub(crate) static OPTIMIZE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
 
+/// `-u` ou `PYTHONUNBUFFERED`: stdout e stderr sem buffer (cada escrita sai na hora, `write_through` verdadeiro).
+pub(crate) static UNBUFFERED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 /// Versão completa de `-VV` e de `sys.version`.
 pub const VERSION_LONG: &str = "3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]";
 
@@ -296,6 +299,7 @@ fn apply_flag(flags: &mut [i64; 18], letter: u8, optarg: Option<&[u8]>) {
 fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     WARN_OPTIONS.lock().unwrap().clear();
     OPTIMIZE.store(0, std::sync::atomic::Ordering::Relaxed);
+    UNBUFFERED.store(false, std::sync::atomic::Ordering::Relaxed);
     *CLI_FLAGS.lock().unwrap() = DEFAULT_FLAGS;
     let program = argv.first().map(|a| String::from_utf8_lossy(a.as_bytes()).into_owned());
     let program = program.unwrap_or_else(|| "python3".to_string());
@@ -314,6 +318,7 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
                 return 0;
             }
             Opt::Found(b'V') => print_version += 1,
+            Opt::Found(b'u') => UNBUFFERED.store(true, std::sync::atomic::Ordering::Relaxed),
             Opt::Found(b'O') => {
                 let n = OPTIMIZE.load(std::sync::atomic::Ordering::Relaxed);
                 OPTIMIZE.store(n.saturating_add(1).min(2), std::sync::atomic::Ordering::Relaxed);
@@ -338,7 +343,13 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
             }
         }
     }
-    let no_site = CLI_FLAGS.lock().unwrap()[6] != 0;
+    let (no_site, ignore_environment) = {
+        let flags = CLI_FLAGS.lock().unwrap();
+        (flags[6] != 0, flags[7] != 0)
+    };
+    if !ignore_environment && sys::try_current().and_then(|s| s.getenv(b"PYTHONUNBUFFERED")).is_some_and(|v| !v.is_empty()) {
+        UNBUFFERED.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
     let located = locate(&program, no_site);
     *LAYOUT.lock().unwrap() = Some(located);
     if print_version > 0 {

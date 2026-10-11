@@ -7305,6 +7305,17 @@ print(gc.collect() > 0, r() is None)\n";
     assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("True a True True True N True True True\nTrue True\n", ""));
 }
 
+/// Uma função embutida guardada como `__call__` de uma classe não liga o `self` (`typing.NewType`, que o `rich` do pip
+/// chama como `TaskID(0)`): a instância chamada passa só os argumentos dela.
+#[test]
+fn builtin_function_as_dunder_call_does_not_bind_self() {
+    let src = "from typing import NewType\n\
+T = NewType('T', int)\n\
+print(T(0), T(7), (lambda f: f(3))(T))\n";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("0 7 3\n", ""));
+}
+
 /// O registro do coletor só guarda `Weak`: um loop que cria e solta milhões de contêineres não o faz crescer (a poda dos
 /// mortos roda quando a geração passa do limite), e o que continua vivo continua visível em `gc.get_objects()`.
 #[test]

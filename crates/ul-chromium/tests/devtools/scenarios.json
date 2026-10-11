@@ -87,6 +87,13 @@
   {"method": "Target.attachToTarget", "params": {"targetId": "$TARGET"}, "save": "n", "save_field": "sessionId", "after": 0.3},
   {"method": "Target.sendMessageToTarget", "params": {"sessionId": "$n", "message": "{\"id\": 1, \"method\": \"Runtime.evaluate\", \"params\": {\"expression\": \"2+2\"}}"}, "after": 0.5}
  ]},
+ {"name": "unflatten_target_commands", "steps": [
+  {"method": "Target.getTargets", "after": 0.2},
+  {"method": "Target.attachToTarget", "params": {"targetId": "$TARGET"}, "save": "n", "save_field": "sessionId", "after": 0.3},
+  {"method": "Target.sendMessageToTarget", "params": {"sessionId": "$n", "message": "{\"id\": 1, \"method\": \"Target.setAutoAttach\", \"params\": {\"autoAttach\": true, \"waitForDebuggerOnStart\": false}}"}, "after": 0.3},
+  {"method": "Target.sendMessageToTarget", "params": {"sessionId": "$n", "message": "{\"id\": 2, \"method\": \"Target.getTargetInfo\", \"params\": {}}"}, "after": 0.3},
+  {"method": "Target.sendMessageToTarget", "params": {"sessionId": "$n", "message": "{\"id\": 3, \"method\": \"Runtime.evaluate\", \"params\": {\"expression\": \"1+1\"}}"}, "after": 0.3}
+ ]},
  {"name": "auto_attach_wait", "steps": [
   {"method": "Target.setDiscoverTargets", "params": {"discover": true}, "after": 0.3},
   {"method": "Target.setAutoAttach", "params": {"autoAttach": true, "waitForDebuggerOnStart": true, "flatten": true}, "after": 0.5},

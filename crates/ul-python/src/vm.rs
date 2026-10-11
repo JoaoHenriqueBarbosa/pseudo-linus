@@ -3140,6 +3140,8 @@ impl Vm {
                 }
             }
             Value::Instance(i) => match i.class().lookup("__call__") {
+                // Função embutida guardada na classe (`NewType.__call__ = _idfunc`): não liga o `self`.
+                Some(Value::Function(f)) if f.no_bind.get() => self.enter_function(&f, args, kwargs),
                 Some(Value::Function(f)) => {
                     args.insert(0, func.clone());
                     match self.enter_function(&f, args, kwargs)? {
@@ -5220,6 +5222,7 @@ impl Vm {
             Value::Class(c) => return self.instantiate(c, args, kwargs),
             Value::Instance(i) => {
                 return match i.class().lookup("__call__") {
+                    Some(Value::Function(f)) if f.no_bind.get() => self.call_function(&f, args, kwargs),
                     Some(Value::Function(f)) => {
                         let mut full = Vec::with_capacity(args.len() + 1);
                         full.push(func.clone());
@@ -5506,6 +5509,9 @@ impl Vm {
                 t
             }
         });
+        if crate::UNBUFFERED.load(std::sync::atomic::Ordering::Relaxed) {
+            return self.flush_stdout();
+        }
         if tty {
             if data.contains(&b'\n') {
                 self.flush_stdout()?;
@@ -6259,7 +6265,11 @@ impl Vm {
                             "newlines" => return Ok(Value::None),
                             // O tipo do `sys.stdout` é o `_io.TextIOWrapper` (tipo de heap em C, com `__module__` no dict).
                             "__module__" => return Ok(Value::str("_io")),
-                            "line_buffering" | "write_through" => return Ok(Value::Bool(false)),
+                            "line_buffering" => return Ok(Value::Bool(false)),
+                            "write_through" => {
+                                let out = matches!(f.kind, FileKind::Stdout | FileKind::Stderr);
+                                return Ok(Value::Bool(out && crate::UNBUFFERED.load(std::sync::atomic::Ordering::Relaxed)));
+                            }
                             "mode" => {
                                 return Ok(Value::str(if matches!(f.kind, FileKind::Stdin | FileKind::Read) { "r" } else { "w" }))
                             }
