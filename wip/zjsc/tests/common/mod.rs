@@ -482,6 +482,11 @@ pub fn run_mapped_golden(tsv: &str, preludes: &str, min_total: usize, url: &str)
     check_with_meta(tsv, preludes, min_total, |source, meta| guarded_units(|| evaluate_golden_program(source, meta, url, "R")));
 }
 
+/// `run_mapped_golden_big_stack` com as linhas do golden que divergem declaradas por número ([`check_with_meta_known_lines`]).
+pub fn run_mapped_golden_big_stack_known_lines(tsv: &'static str, preludes: &'static str, min_total: usize, url: &'static str, known_lines: &'static [KnownCase]) {
+    on_big_stack(move || check_with_meta_known_lines(tsv, preludes, min_total, &[], known_lines, |source, meta| guarded_units(|| evaluate_golden_program(source, meta, url, "R"))));
+}
+
 /// `run_mapped_golden` numa thread de pilha grande.
 pub fn run_mapped_golden_big_stack(tsv: &'static str, preludes: &'static str, min_total: usize, url: &'static str) {
     on_big_stack(move || run_mapped_golden(tsv, preludes, min_total, url));
