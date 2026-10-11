@@ -564,6 +564,11 @@ impl DateCache {
         DateCache::new(Box::new(UtcTimeZone))
     }
 
+    /// A geração do fuso de que os caches (e os desmembrados locais dos `DateInstance`) valem.
+    pub fn time_zone_generation(&self) -> u64 {
+        self.cached_time_zone_id.get()
+    }
+
     /// `hasTimeZoneChange()`.
     pub fn has_time_zone_change(&self) -> bool {
         self.cached_time_zone_id.get() != self.source.generation()

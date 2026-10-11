@@ -35,6 +35,8 @@ pub struct DateInstance {
     internal_number: Cell<f64>,
     /// `m_cachedGregorianDateTime`.
     cached_gregorian_date_time: Cell<PlainGregorianDateTime>,
+    /// A geração do fuso em que `cached_gregorian_date_time` foi calculado.
+    local_time_zone_generation: Cell<u64>,
     /// `m_cachedGregorianDateTimeUTC`.
     cached_gregorian_date_time_utc: Cell<PlainGregorianDateTime>,
 }
@@ -82,6 +84,7 @@ impl DateInstance {
             base: JSNonFinalObject::new(vm, structure),
             internal_number: Cell::new(internal_number),
             cached_gregorian_date_time: Cell::new(PlainGregorianDateTime::default()),
+            local_time_zone_generation: Cell::new(0),
             cached_gregorian_date_time_utc: Cell::new(PlainGregorianDateTime::default()),
         });
         object.set_cell_id(cell_id);
@@ -138,7 +141,8 @@ impl DateInstance {
     /// `gregorianDateTime(cache)`.
     pub fn gregorian_date_time(&self, cache: &DateCache) -> PlainGregorianDateTime {
         let cached = self.cached_gregorian_date_time.get();
-        if cached.is_valid() {
+        // O desmembrado local de antes de uma troca de fuso vale o fuso velho: recalcula.
+        if cached.is_valid() && self.local_time_zone_generation.get() == cache.time_zone_generation() {
             return cached;
         }
         self.calculate_gregorian_date_time(cache)
@@ -178,6 +182,7 @@ impl DateInstance {
             DateInstance::use_shared_cache_for(self.cached_gregorian_date_time.get()),
         );
         self.cached_gregorian_date_time.set(computed);
+        self.local_time_zone_generation.set(cache.time_zone_generation());
         cache.note_cached_local_gregorian_date_time();
         computed
     }

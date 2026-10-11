@@ -968,10 +968,16 @@ impl VM {
     }
 
     /// `dateCache`: o fuso é o do processo (`TZ`), resolvido na primeira leitura.
+    /// Se o fuso mudou desde a última leitura (`Emulation.setTimezoneOverride`, por exemplo), os caches são
+    /// limpos antes de devolvê-lo: o `hasTimeZoneChange` que o JSC confere na entrada do `VM`.
     pub fn date_cache(&self) -> &crate::runtime::js_date_math::DateCache {
-        self.date_cache.0.get_or_init(|| {
+        let cache = self.date_cache.0.get_or_init(|| {
             crate::runtime::js_date_math::DateCache::new(Box::new(crate::runtime::process_time_zone::ProcessTimeZone::new()))
-        })
+        });
+        if cache.has_time_zone_change() {
+            cache.clear_for_time_zone_change();
+        }
+        cache
     }
 
     /// `privateSymbolRegistry()`.
