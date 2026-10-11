@@ -23,6 +23,25 @@ pub struct TracebackObj {
 }
 
 impl TracebackObj {
+    /// As referências fortes que este nó guarda, para o coletor de ciclos. `false`: emprestado.
+    pub(crate) fn gc_children(&self, f: &mut dyn FnMut(crate::gccollect::Child)) -> bool {
+        let (Ok(next), Ok(frame)) = (self.next.try_borrow(), self.frame.try_borrow()) else { return false };
+        f(crate::gccollect::Child::Entries(&self.entries));
+        if let Some(v) = next.as_ref() {
+            f(crate::gccollect::Child::Val(v));
+        }
+        if let Some(v) = frame.as_ref() {
+            f(crate::gccollect::Child::Val(v));
+        }
+        true
+    }
+
+    /// Quantos objetos `traceback` do CPython este nó vale: ele e os seguintes que o CPython já teria criado.
+    pub(crate) fn gc_weight(&self) -> usize {
+        let materialized = self.next.try_borrow().map_or(true, |n| n.is_some());
+        1 + if materialized { 0 } else { self.entries.len().saturating_sub(self.idx + 1) }
+    }
+
     /// O traceback que começa no quadro mais externo de `entries`; `None` se estiver vazio.
     pub fn make(entries: Vec<crate::vm::TbEntry>, filename: &str) -> Value {
         if entries.is_empty() {

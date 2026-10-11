@@ -478,6 +478,21 @@ fn want_bool(v: &Value) -> PyResult<bool> {
     }
 }
 
+impl FrameObj {
+    /// As referências fortes que o objeto `frame` guarda, para o coletor de ciclos. `false`: emprestado.
+    pub(crate) fn gc_children(&self, f: &mut dyn FnMut(crate::gccollect::Child)) -> bool {
+        let (Ok(held), Ok(back), Ok(trace)) = (self.held.try_borrow(), self.back.try_borrow(), self.trace.try_borrow()) else {
+            return false;
+        };
+        if let Some(h) = held.as_ref() {
+            f(crate::gccollect::Child::Hold(h));
+        }
+        f(crate::gccollect::Child::Val(&back));
+        f(crate::gccollect::Child::Val(&trace));
+        true
+    }
+}
+
 impl ExtObject for FrameObj {
     fn type_name(&self) -> &'static str {
         "frame"

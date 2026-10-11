@@ -205,6 +205,17 @@ fn gl_context_scene_matches_the_oracle() {
     );
 }
 
+/// Exceção com traceback e gerador em ciclo (os quadros e escopos que o traceback e o gerador seguram): o que
+/// `gc.collect` devolve em cada forma e a memória de um loop de 20 mil ciclos. Como no oráculo.
+#[test]
+fn gc_frames_scene_matches_the_oracle() {
+    scene_matches(
+        "gc_frames",
+        include_str!("../../../testbench/oracle/automation/cases/gc_frames.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gc_frames.out"),
+    );
+}
+
 /// A finalização do lixo cíclico: o `__del__` uma vez e em ordem de criação, a ressurreição, as referências fracas
 /// (limpas antes, função de retorno antes do `__del__`), `DEBUG_SAVEALL` com `gc.garbage`, `gc.callbacks`, o erro do
 /// `__del__` e o `__del__` que aloca. Como no oráculo.

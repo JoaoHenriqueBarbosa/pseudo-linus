@@ -16,7 +16,10 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::gcreg::Live;
-use crate::object::{BoundMethod, Dict, Env, FuncObj, InstanceObj, Set, Value};
+use crate::frameobj::{FrameHold, FrameObj};
+use crate::object::{BoundMethod, Dict, Env, ExcObj, ExtObject, FuncObj, InstanceObj, Set, Value};
+use crate::tbobj::TracebackObj;
+use crate::vm::TbEntry;
 
 enum Handle {
     List(Rc<RefCell<Vec<Value>>>),
@@ -29,14 +32,41 @@ enum Handle {
     BoundFn(Rc<(Value, Rc<FuncObj>)>),
     Bound(Rc<BoundMethod>),
     Slice(Rc<(Value, Value, Value)>),
+    Exception(Rc<ExcObj>),
+    /// As entradas de um traceback (compartilhadas pelos nós `traceback` de uma mesma exceção).
+    Entries(Rc<Vec<TbEntry>>),
+    /// O quadro que um traceback ou um objeto `frame` segura vivo (o escopo, as variáveis).
+    Hold(Rc<FrameHold>),
+    /// Um objeto `traceback` do programa.
+    Traceback(Rc<dyn ExtObject>),
+    /// Um objeto `frame` do programa.
+    Frame(Rc<dyn ExtObject>),
 }
 
 /// Uma aresta de saída: o que um nó segura.
-enum Child<'a> {
+pub(crate) enum Child<'a> {
     Val(&'a Value),
     Env(&'a Rc<Env>),
     Dict(&'a Rc<RefCell<Dict>>),
     Func(&'a Rc<FuncObj>),
+    Entries(&'a Rc<Vec<TbEntry>>),
+    Hold(&'a Rc<FrameHold>),
+}
+
+fn ext_key(e: &Rc<dyn ExtObject>) -> usize {
+    Rc::as_ptr(e) as *const () as usize
+}
+
+/// O objeto nativo que o coletor sabe percorrer: `traceback` ou `frame`.
+fn ext_handle(e: &Rc<dyn ExtObject>) -> Option<Handle> {
+    let any = e.as_any()?;
+    if any.is::<TracebackObj>() {
+        Some(Handle::Traceback(e.clone()))
+    } else if any.is::<FrameObj>() {
+        Some(Handle::Frame(e.clone()))
+    } else {
+        None
+    }
 }
 
 impl Handle {
@@ -51,6 +81,8 @@ impl Handle {
             Value::BoundFn(x) => Handle::BoundFn(x.clone()),
             Value::Bound(x) => Handle::Bound(x.clone()),
             Value::Slice(x) => Handle::Slice(x.clone()),
+            Value::Exception(x) => Handle::Exception(x.clone()),
+            Value::Ext(e) => return ext_handle(e),
             _ => return None,
         })
     }
@@ -67,6 +99,10 @@ impl Handle {
             Handle::BoundFn(x) => Rc::as_ptr(x) as *const u8 as usize,
             Handle::Bound(x) => Rc::as_ptr(x) as *const u8 as usize,
             Handle::Slice(x) => Rc::as_ptr(x) as *const u8 as usize,
+            Handle::Exception(x) => Rc::as_ptr(x) as *const u8 as usize,
+            Handle::Entries(x) => Rc::as_ptr(x) as *const u8 as usize,
+            Handle::Hold(x) => Rc::as_ptr(x) as *const u8 as usize,
+            Handle::Traceback(x) | Handle::Frame(x) => ext_key(x),
         }
     }
 
@@ -82,12 +118,28 @@ impl Handle {
             Handle::BoundFn(x) => Rc::strong_count(x),
             Handle::Bound(x) => Rc::strong_count(x),
             Handle::Slice(x) => Rc::strong_count(x),
+            Handle::Exception(x) => Rc::strong_count(x),
+            Handle::Entries(x) => Rc::strong_count(x),
+            Handle::Hold(x) => Rc::strong_count(x),
+            Handle::Traceback(x) | Handle::Frame(x) => Rc::strong_count(x),
         }
     }
 
     /// Só os tipos que não se registram entram por travessia; os registrados vêm do registro, na geração certa.
     fn is_intermediate(&self) -> bool {
-        matches!(self, Handle::Tuple(_) | Handle::Function(_) | Handle::BoundFn(_) | Handle::Bound(_) | Handle::Slice(_))
+        matches!(
+            self,
+            Handle::Tuple(_)
+                | Handle::Function(_)
+                | Handle::BoundFn(_)
+                | Handle::Bound(_)
+                | Handle::Slice(_)
+                | Handle::Exception(_)
+                | Handle::Entries(_)
+                | Handle::Hold(_)
+                | Handle::Traceback(_)
+                | Handle::Frame(_)
+        )
     }
 
     /// Chama `f` em cada referência forte que o nó guarda. `false`: o nó está emprestado e não dá para percorrer.
@@ -150,6 +202,38 @@ impl Handle {
                 f(Child::Val(&s.1));
                 f(Child::Val(&s.2));
             }
+            Handle::Exception(e) => {
+                let (Ok(tb), Ok(chain), Ok(extra)) = (e.traceback.try_borrow(), e.chain.try_borrow(), e.extra.try_borrow()) else {
+                    return false;
+                };
+                e.args.iter().for_each(|v| f(Child::Val(v)));
+                if let Some(t) = tb.as_ref() {
+                    f(Child::Val(t));
+                }
+                if let Some(c) = chain.cause.as_ref() {
+                    f(Child::Val(c));
+                }
+                if let Some(c) = chain.context.as_ref() {
+                    f(Child::Val(c));
+                }
+                extra.iter().for_each(|(_, v)| f(Child::Val(v)));
+            }
+            Handle::Entries(entries) => {
+                for entry in entries.iter() {
+                    if let Some(h) = entry.4.as_ref() {
+                        f(Child::Hold(h));
+                    }
+                }
+            }
+            Handle::Hold(h) => f(Child::Env(&h.env)),
+            Handle::Traceback(t) => {
+                let Some(tb) = t.as_any().and_then(|a| a.downcast_ref::<TracebackObj>()) else { return false };
+                return tb.gc_children(f);
+            }
+            Handle::Frame(fr) => {
+                let Some(frame) = fr.as_any().and_then(|a| a.downcast_ref::<FrameObj>()) else { return false };
+                return frame.gc_children(f);
+            }
         }
         true
     }
@@ -197,6 +281,8 @@ impl Handle {
 
 fn child_handle(c: &Child) -> Option<Handle> {
     match c {
+        Child::Entries(e) => Some(Handle::Entries((*e).clone())),
+        Child::Hold(h) => Some(Handle::Hold((*h).clone())),
         Child::Val(v) => Handle::from_value(v),
         Child::Env(e) => Some(Handle::Env((*e).clone())),
         Child::Dict(d) => Some(Handle::Dict((*d).clone())),
@@ -216,8 +302,12 @@ fn child_key(c: &Child) -> Option<usize> {
             Value::BoundFn(x) => Some(Rc::as_ptr(x) as *const u8 as usize),
             Value::Bound(x) => Some(Rc::as_ptr(x) as *const u8 as usize),
             Value::Slice(x) => Some(Rc::as_ptr(x) as *const u8 as usize),
+            Value::Exception(x) => Some(Rc::as_ptr(x) as *const u8 as usize),
+            Value::Ext(e) => ext_handle(e).map(|h| h.key()),
             _ => None,
         },
+        Child::Entries(e) => Some(Rc::as_ptr(e) as *const u8 as usize),
+        Child::Hold(h) => Some(Rc::as_ptr(h) as *const u8 as usize),
         Child::Env(e) => Some(Rc::as_ptr(e) as *const u8 as usize),
         Child::Dict(d) => Some(Rc::as_ptr(d) as *const u8 as usize),
         Child::Func(f) => Some(Rc::as_ptr(f) as *const u8 as usize),
@@ -395,7 +485,9 @@ pub(crate) fn collect(vm: &mut crate::vm::Vm, generation: usize, options: &Optio
                     Handle::BoundFn(x) => Some(Value::BoundFn(x.clone())),
                     Handle::Bound(x) => Some(Value::Bound(x.clone())),
                     Handle::Slice(x) => Some(Value::Slice(x.clone())),
-                    Handle::Env(_) => None,
+                    Handle::Exception(x) => Some(Value::Exception(x.clone())),
+                    Handle::Traceback(x) | Handle::Frame(x) => Some(Value::Ext(x.clone())),
+                    Handle::Env(_) | Handle::Entries(_) | Handle::Hold(_) => None,
                 };
                 saved.extend(v);
             }
@@ -445,9 +537,15 @@ fn weight<'a>(handles: impl Iterator<Item = &'a Handle> + Clone) -> usize {
     }
     let mut total = 0;
     let mut cells = std::collections::HashSet::new();
+    let mut frames = std::collections::HashSet::new();
     for h in handles {
         total += match h {
-            Handle::Env(_) => 0,
+            Handle::Env(_) | Handle::Entries(_) | Handle::Frame(_) => 0,
+            // A exceção e a tupla dos `args` (que o CPython conta à parte), o `frame` (uma vez por quadro, mesmo
+            // compartilhado por vários tracebacks) e o(s) `traceback`.
+            Handle::Exception(e) => 1 + usize::from(!e.args.is_empty()),
+            Handle::Hold(h) => usize::from(frames.insert(Rc::as_ptr(&h.env) as usize)),
+            Handle::Traceback(t) => t.as_any().and_then(|a| a.downcast_ref::<TracebackObj>()).map_or(1, TracebackObj::gc_weight),
             Handle::Function(f) => {
                 if let (Some(env), false) = (f.closure.as_ref(), f.code.freevars.is_empty()) {
                     for name in &f.code.freevars {
