@@ -403,3 +403,14 @@ fn profile_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_profile.out"),
     );
 }
+
+/// O `settrace` roda do lado de quem chega (o alvo já é o corrente e a origem está suspensa): o erro dele no começo
+/// mata o greenlet novo e sobe ao pai, e na volta levanta no destino. Como no oráculo.
+#[test]
+fn trace_arrival_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_trace_arrival",
+        include_str!("../../../testbench/oracle/automation/cases/gl_trace_arrival.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_trace_arrival.out"),
+    );
+}
