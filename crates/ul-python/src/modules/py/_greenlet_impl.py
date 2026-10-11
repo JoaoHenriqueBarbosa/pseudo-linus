@@ -132,6 +132,11 @@ def _exited(owner):
     return owner is not _gsched.main and owner.thread is not None and not owner.thread.is_alive()
 
 
+def _main_gone(state):
+    """O greenlet principal de uma thread que já acabou: o C o dá por morto."""
+    return state.main and _exited(state.owner)
+
+
 def _check_thread(target):
     owner = _st(target).owner
     if owner is not _thread():
@@ -482,7 +487,7 @@ def _no_delete_parent(glet):
 def _check_context_thread(glet, verb):
     """O contexto de um greenlet que roda em outra thread não se lê nem se troca daqui."""
     owner = _st(glet).owner
-    if owner is not _thread() and getattr(owner, 'glet', None) is glet:
+    if owner is not _thread() and not _exited(owner) and getattr(owner, 'glet', None) is glet:
         raise ValueError('cannot %s context of a greenlet that is running in a different thread' % verb)
 
 
@@ -568,12 +573,12 @@ from ``g_raiser`` to ``g``.
 
     def __bool__(self):
         state = _st(self)
-        return state.started and not state.dead
+        return state.started and not state.dead and not _main_gone(state)
 
     @property
     def dead(self):
         state = _st(self)
-        return state.dead and not state.main
+        return (state.dead and not state.main) or _main_gone(state)
 
     @property
     def _stack_saved(self):
@@ -621,6 +626,9 @@ from ``g_raiser`` to ``g``.
         state = _st(self)
         name = _tp_name(self)
         otid = id(state.owner) & 0xffffffffffff
+        if _main_gone(state):
+            # O principal de uma thread que acabou: o C já zerou o `thread_state` dele (o `%p` do NULL).
+            return '<%s object at 0x%x (otid=0x(nil)) (thread exited) dead>' % (name, id(self) & 0xffffffffffff)
         if state.dead and not state.main:
             return '<%s object at 0x%x (otid=0x%x) %sdead>' % (
                 name, id(self) & 0xffffffffffff, otid, '(thread exited) ' if _exited(state.owner) else '')

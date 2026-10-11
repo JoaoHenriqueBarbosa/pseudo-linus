@@ -436,3 +436,14 @@ fn finalizer_frames_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_finalizer_frames.out"),
     );
 }
+
+/// O principal de uma thread que já acabou é dado por morto (`dead`, `bool` falso, `(thread exited) dead` no `repr`) e
+/// não recebe troca. Como no oráculo.
+#[test]
+fn main_gone_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_main_gone",
+        include_str!("../../../testbench/oracle/automation/cases/gl_main_gone.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_main_gone.out"),
+    );
+}
