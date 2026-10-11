@@ -1,0 +1,23 @@
+4 | (async () => {
+5 |   const server = Bun.serve({
+6 |     port: 0,
+7 |     fetch(req) {
+8 |       const path = new URL(req.url).pathname;
+9 |       if (path === '/throw') throw new Error('handler boom');
+                                           ^
+error: handler boom
+      at fetch (/app/main.js:9:40)
+GET - /throw failed
+ 5 |   const server = Bun.serve({
+ 6 |     port: 0,
+ 7 |     fetch(req) {
+ 8 |       const path = new URL(req.url).pathname;
+ 9 |       if (path === '/throw') throw new Error('handler boom');
+10 |       if (path === '/reject') return Promise.reject(new Error('handler reject'));
+                                                             ^
+error: handler reject
+      at fetch (/app/main.js:10:57)
+GET - /reject failed
+error: Expected a Response object, but received 'undefined'
+
+Bun v1.4.2 (Linux x64)

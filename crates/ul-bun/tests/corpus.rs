@@ -6,13 +6,13 @@
 
 use std::path::{Path, PathBuf};
 
-use sysabi::testkit::TestKit;
+use kernel::{Kernel, KernelConfig, RunRequest, SandboxConfig};
 use sysabi::WaitStatus;
 
 /// `(caso, causa medida no oráculo)`.
 const KNOWN: &[(&str, &str)] = &[
+    ("bun-serve-dev-errors", "em desenvolvimento o bun responde o erro do handler com a página de erro de uns 50 KB (text/html), escreve no stderr o trecho do fonte e a linha `GET - /caminho failed`, e uma resposta `undefined` termina o processo com código 1 (`Expected a Response object`); o zjsc responde uma página mínima, sem o trecho no stderr e sem o código 1"),
     ("fs-utf8-buffer", "o bun 1.4.2 lança TypeError em mergeBuf (Utf8Stream síncrono com contentMode buffer) com stack de fonte interno; o zjsc roda o mesmo código gerado e não reproduz o fonte interno do bun"),
-    ("http-server", "o zjsc ainda não tem Bun.serve nem a rede do fetch local"),
 ];
 
 fn collect(dir: &Path, base: &Path, out: &mut Vec<(String, Vec<u8>)>) {
@@ -33,26 +33,38 @@ fn run_case(case: &Path) -> Result<(), String> {
         // Um array JSON de strings; o corpus não usa escape além de `\"`, `\\` e `\n`.
         parse_json_strings(&text)
     };
-    let mut kit = TestKit::new().programs(ul_bun::programs()).dir("/app", 0o755).dir("/tmp", 0o1777).cwd("/app");
+    let kernel = Kernel::new(KernelConfig::default());
+    let sandbox = kernel
+        .create_sandbox(SandboxConfig { programs: ul_bun::programs(), cwd: b"/app".to_vec(), ..SandboxConfig::default() })
+        .expect("sandbox");
+    let fs = sandbox.fs();
+    fs.mkdir_all(b"/app", 0o755).expect("/app");
     let mut files = Vec::new();
     collect(&case.join("files"), &case.join("files"), &mut files);
     for (rel, data) in &files {
         if let Some((parent, _)) = rel.rsplit_once('/') {
-            kit = kit.dir(&format!("/app/{parent}"), 0o755);
+            fs.mkdir_all(format!("/app/{parent}").as_bytes(), 0o755).expect("diretório");
         }
-        kit = kit.file(&format!("/app/{rel}"), data, 0o644);
+        fs.write_file(format!("/app/{rel}").as_bytes(), data, 0o644).expect("arquivo");
     }
     let mut full = vec!["bun"];
     full.extend(argv.iter().map(String::as_str));
-    let result = kit.run(&full, b"");
+    let request = RunRequest {
+        argv: full.iter().map(|part| part.as_bytes().to_vec()).collect(),
+        cwd: Some(b"/app".to_vec()),
+        timeout: Some(std::time::Duration::from_secs(120)),
+        ..RunRequest::default()
+    };
+    let result = sandbox.run(request).expect("execução");
+    let (stdout, stderr) = (String::from_utf8_lossy(&result.stdout).into_owned(), String::from_utf8_lossy(&result.stderr).into_owned());
     let expected = |name: &str| std::fs::read_to_string(case.join("expected").join(name)).expect("esperado");
     let code: i32 = expected("code").trim().parse().expect("código");
     let mut problems = Vec::new();
-    if result.stdout_str() != expected("stdout") {
-        problems.push(format!("stdout\n--- esperado\n{}--- obtido\n{}", expected("stdout"), result.stdout_str()));
+    if stdout != expected("stdout") {
+        problems.push(format!("stdout\n--- esperado\n{}--- obtido\n{}", expected("stdout"), stdout));
     }
-    if result.stderr_str() != expected("stderr") {
-        problems.push(format!("stderr\n--- esperado\n{}--- obtido\n{}", expected("stderr"), result.stderr_str()));
+    if stderr != expected("stderr") {
+        problems.push(format!("stderr\n--- esperado\n{}--- obtido\n{}", expected("stderr"), stderr));
     }
     if result.status != WaitStatus::Exited(code) {
         problems.push(format!("saída: esperado {code}, obtido {:?}", result.status));

@@ -1272,6 +1272,16 @@ Declaradas e em backlog (todas de transpilador, exceto a última):
 - `Bun.file`, `Bun.write` e os métodos de arquivo do `Blob` (`blob_file.rs` e `bun_file.js`, caso `bun-file`): a leitura é síncrona sobre o `Host` e a promessa já nasce resolvida (o bun resolve depois da E/S); `Bun.write` e o `FileSink` rodam depois de um `setImmediate`. `FileSink.write` acumula e só grava em `flush` e `end` (o bun grava em blocos), `options.mode` é ignorado como no bun. Ainda ausentes: `Bun.stdin`, `Bun.stdout`, `Bun.stderr` e `Bun.file(...).formData()` com conteúdo urlencoded de arquivo (só o que o `Blob` já faz).
 - Caso `readable-stream-values` em KNOWN: `ReadableStream.prototype.values` (`for await` sobre um stream) é `Mode::Throw` em `streams/mod.rs`; `Bun.file(...).stream()` iterado assim herda a lacuna. Fatia própria.
 
+### Backlog do Bun.serve e do fetch em loopback (2026-10-11)
+
+Feito: `Bun.serve` (fetch, routes com `:param`, `/*` e objeto por método, error, reload, stop, fetch direto) e `fetch` de `http:` em `localhost` e `127.x.x.x`, em HTTP/1.1 escrito em `bun_http.js` sobre os `net_*` do `Host` (`net_loop.rs`), com o corpus rodando no kernel real (o TestKit não tem TCP). Falta:
+
+- Página de erro de desenvolvimento do bun (uns 50 KB), trecho do fonte e `GET - /caminho failed` no stderr, e o código de saída 1 de uma resposta `undefined` (caso `bun-serve-dev-errors` em KNOWN).
+- WebSocket (`upgrade`, `websocket`, `publish`), `tls`, `unix`, `idleTimeout`, `maxRequestBodySize`, `requestIP` real.
+- `fetch` de `https:`, de outros hosts e de `::1` (o `Host` só tem TCP em `127.0.0.1`); `Content-Encoding` na resposta (gzip, deflate, br, zstd), reuso de conexão (keep-alive), `proxy`, `unix`.
+- Corpo de resposta do servidor que vira chunked só decide por "terminou antes do próximo turno do laço"; a regra exata do bun não foi medida.
+- Bun.stdin, Bun.stdout e Bun.stderr (ordem do PLAN: depois do Bun.serve).
+
 ## Suíte completa em lotes, grupo 1 com o transpilador instalado (2026-10-11)
 
 Os goldens de `error`, `function_error` e `console_dir` guardavam o texto reimpresso e declaravam 55, 29 e 17 linhas com uma causa

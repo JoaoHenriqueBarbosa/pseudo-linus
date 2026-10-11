@@ -306,7 +306,17 @@ fn fetch_network(global_object: &JSGlobalObject, call: &HostCall, units: &[u16])
         _ => {}
     }
     abort_if_signaled(global_object, call)?;
+    let host = String::from_utf8_lossy(&url.host().utf8(ConversionMode::LenientConversion)).into_owned();
+    if protocol.trim_end_matches(':') == "http" && crate::runtime::bun_http::is_loopback_host(&host) {
+        return crate::runtime::bun_http::call_module(global_object, "fetch", call.arguments());
+    }
     Err(network_failure(global_object, &url))
+}
+
+/// A conexão a `path` foi recusada (medido no bun 1.4.2: `localhost` e IP de loopback sem ouvinte).
+pub(crate) fn connection_refused(global_object: &JSGlobalObject, path: &str) -> Thrown {
+    let properties = [("code", NetworkProperty::Text("ConnectionRefused")), ("path", NetworkProperty::Text(path)), ("errno", NetworkProperty::Number(0))];
+    throw_network_error(global_object, "Unable to connect. Is the computer able to access the url?", &properties)
 }
 
 /// A falha de rede de uma máquina SEM rede, medida no bun 1.4.2 com `unshare -rn` (`tests/golden/fetch_network_bun.tsv`):
@@ -318,8 +328,7 @@ fn network_failure(global_object: &JSGlobalObject, url: &URL) -> Thrown {
     let path = String::from_utf8_lossy(&url.string().utf8(ConversionMode::LenientConversion)).into_owned();
     let is_literal_ip = host.starts_with('[') || (!host.is_empty() && host.bytes().all(|byte| byte.is_ascii_digit() || byte == b'.'));
     if host == "localhost" {
-        let properties = [("code", NetworkProperty::Text("ConnectionRefused")), ("path", NetworkProperty::Text(&path)), ("errno", NetworkProperty::Number(0))];
-        throw_network_error(global_object, "Unable to connect. Is the computer able to access the url?", &properties)
+        connection_refused(global_object, &path)
     } else if is_literal_ip {
         let properties = [("code", NetworkProperty::Text("FailedToOpenSocket")), ("path", NetworkProperty::Text(&path)), ("errno", NetworkProperty::Number(0))];
         throw_network_error(global_object, "Was there a typo in the url or port?", &properties)

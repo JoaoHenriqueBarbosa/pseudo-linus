@@ -780,6 +780,7 @@ fn reset_program_state() {
     crate::runtime::node_fs::reset_for_program();
     crate::runtime::waiter_list_manager::reset_for_program();
     crate::runtime::timers::reset_for_program();
+    crate::runtime::net_loop::reset_for_program();
     crate::runtime::process_exit::reset_for_program();
     crate::runtime::process_shape::reset_for_program();
     crate::runtime::process_system::reset_for_program();

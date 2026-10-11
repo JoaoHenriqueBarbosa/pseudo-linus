@@ -379,7 +379,7 @@ fn string_width_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRes
 host_function!(pub bun_string_width, string_width_body);
 
 /// `bunObjectTable` de `BunObject.cpp`, na ordem do `@begin`, só com as entradas portadas.
-static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 19] = [
+static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 20] = [
     lazy_entry_with_attributes("argv", DONT_DELETE, create_argv),
     native_function_entry("deepEquals", DONT_DELETE, bun_deep_equals, 2, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("env", READ_ONLY | DONT_DELETE, create_env),
@@ -393,6 +393,7 @@ static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 19] = [
     native_function_entry("pathToFileURL", DONT_DELETE, bun_path_to_file_url, 1, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("peek", DONT_DELETE, create_peek),
     lazy_entry_with_attributes("revision", READ_ONLY | DONT_DELETE, create_revision),
+    native_function_entry("serve", DONT_DELETE, crate::runtime::bun_http::bun_serve, 1, Intrinsic::NoIntrinsic),
     native_function_entry("sleep", DONT_DELETE, bun_sleep, 1, Intrinsic::NoIntrinsic),
     native_function_entry("sleepSync", DONT_DELETE, bun_sleep_sync, 1, Intrinsic::NoIntrinsic),
     native_function_entry("stringWidth", DONT_DELETE, bun_string_width, 2, Intrinsic::NoIntrinsic),

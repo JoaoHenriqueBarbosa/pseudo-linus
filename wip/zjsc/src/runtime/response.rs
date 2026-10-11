@@ -79,6 +79,8 @@ pub(crate) struct ResponseState {
     pub(crate) url: Vec<u16>,
     /// Resposta do `fetch` ainda não lida: o `Content-Type` implícito sai dos cabeçalhos na primeira leitura (medido).
     fetched: bool,
+    /// A resposta veio depois de seguir um redirecionamento do `fetch` de rede.
+    redirected: bool,
 }
 
 static PROTOTYPE_S_INFO: ClassInfo =
@@ -189,7 +191,7 @@ fn build_state(extracted: Option<Extracted>, status: i64, status_text: Vec<u16>,
             append_default_header(headers, "content-type", &extracted.header_type);
         }
     }
-    ResponseState { status, status_text, headers, body: extracted.map(Extracted::into_body), kind, url: Vec::new(), fetched: false }
+    ResponseState { status, status_text, headers, body: extracted.map(Extracted::into_body), kind, url: Vec::new(), fetched: false, redirected: false }
 }
 
 /// A `Response` que o `fetch` devolve: status 200, `Content-Type` implícito (se `content_type` não é vazio), `url` dado.
@@ -198,7 +200,7 @@ pub(crate) fn make_fetched_response(global_object: &JSGlobalObject, status_text:
     if !content_type.is_empty() {
         append_default_header(headers, "content-type", content_type);
     }
-    let state = ResponseState { status: 200, status_text: status_text.encode_utf16().collect(), headers, body: Some(body), kind: "default", url, fetched: true };
+    let state = ResponseState { status: 200, status_text: status_text.encode_utf16().collect(), headers, body: Some(body), kind: "default", url, fetched: true, redirected: false };
     Ok(make_response(global_object, state))
 }
 
@@ -287,8 +289,7 @@ fn url_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 }
 
 fn redirected_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    accessor_state(call, "redirected")?;
-    Ok(JSValue::Bool(false))
+    Ok(JSValue::Bool(accessor_state(call, "redirected")?.redirected))
 }
 
 fn type_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
@@ -446,3 +447,56 @@ pub fn install_response(global_object: &JSGlobalObject) {
     RESPONSE_PROTOTYPE.with(|slot| *slot.borrow_mut() = Some(prototype.as_value()));
     install_global_with_attributes(global_object, "Response", constructor.as_value(), 0);
 }
+
+/// `markFetched(resposta, url, redirecionada)` para o `bun_http.js`: a `Response` que o `fetch` de rede devolve traz o
+/// `url` final e o `redirected` (o construtor de `Response` deixa o `url` vazio).
+fn mark_fetched_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let response = call.argument(0);
+    let url = units_of(_global_object, call.argument(1))?;
+    let redirected = call.argument(2).to_boolean();
+    INSTANCES.with(|instances| {
+        if let Some(stored) = instances.borrow_mut().get_mut(&response.encode()) {
+            stored.url = url;
+            stored.redirected = redirected;
+        }
+    });
+    Ok(JSValue::undefined())
+}
+host_function!(pub mark_fetched, mark_fetched_body);
+
+/// `responseWire(resposta)` para o `bun_http.js`: o corpo que vai para o fio. `undefined` sem corpo; senão
+/// `[bytes ou stream, tipo]` (o `ReadableStream` do usuário, ou os bytes e o tipo que a leitura herda). Marca o corpo
+/// como lido.
+fn response_wire_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let response = call.argument(0);
+    let Some(mut state) = state_of(response) else { return Ok(JSValue::undefined()) };
+    let Some(body) = state.body.as_mut() else { return Ok(JSValue::undefined()) };
+    if body.is_used() {
+        return Err(throw_coded_type_error(global_object, "Body already used", "ERR_BODY_ALREADY_USED"));
+    }
+    body.used = true;
+    let payload = match (body.from_stream, body.stream) {
+        (true, Some(stream)) => stream,
+        _ => {
+            let loaded;
+            let content: &[u8] = match &body.lazy_path {
+                Some(path) => {
+                    loaded = crate::runtime::fetch::read_file_body(global_object, path).unwrap_or_default();
+                    &loaded
+                }
+                None => &body.bytes,
+            };
+            let array = crate::runtime::uint8_array_base64::create_uint8_array(global_object, content.len())?;
+            array.with_vector_mut(|destination| destination[..content.len()].copy_from_slice(content));
+            array.as_value()
+        }
+    };
+    let kind = crate::runtime::process_shape::text_value(global_object.vm(), &String::from_utf8_lossy(&body.blob_type));
+    INSTANCES.with(|instances| {
+        if let Some(stored) = instances.borrow_mut().get_mut(&response.encode()) {
+            stored.body = state.body.clone();
+        }
+    });
+    Ok(crate::runtime::process_shape::array_value(global_object, &[payload, kind]))
+}
+host_function!(pub response_wire, response_wire_body);

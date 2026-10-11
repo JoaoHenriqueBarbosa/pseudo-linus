@@ -1,0 +1,26 @@
+server props ok ["number",true,"localhost","http://localhost:PORT/",true,0,0,"function","function","string"]
+text ok [200,"OK",true,"http://localhost:PORT/text",false,"default",[["content-length","5"],["content-type","text/plain;charset=utf-8"],["date","DATE"]],"hello"]
+empty ok [200,[["content-length","0"],["date","DATE"]],"\"\""]
+null 204 ok [204,"No Content",[["date","DATE"]],true]
+bytes ok [[["content-length","2"],["content-type","application/octet-stream"],["date","DATE"]],[104,105]]
+blob ok ["text/x-test","5","blob!"]
+json ok ["application/json;charset=utf-8",{"a":[1,2]}]
+status ok [404,"Not Found",false,"1","two","nope"]
+cookies ok [["a=1","b=2"],"c"]
+redirect follow ok [200,true,"http://localhost:PORT/text","hello"]
+redirect manual ok [302,false,"http://localhost:PORT/text",""]
+post echo ok "payload"
+post json ok {"k":1}
+post bytes ok "AB"
+post big ok 100000
+post stream ok "s1s2"
+stream ok [[["content-length","7"],["date","DATE"]],"one,two"]
+stream chunks ok ["one,two"]
+ct ok "application/x-custom"
+query ok "default /q"
+request class ok "hello"
+head ok [200,"5","\"\""]
+seen ok [["GET","/text",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/empty",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/null",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/bytes",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/blob",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/json",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/status",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/cookies",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/redirect",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/text",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/redirect",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["POST","/echo",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["content-length","7"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["POST","/echo-json",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["content-length","7"],["content-type","application/json"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["POST","/echo",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["content-length","2"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["POST","/echo",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["content-length","100000"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["POST","/echo",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["transfer-encoding","chunked"],["user-agent","Bun/1.4.2"]]],["GET","/stream",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/stream",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/ct",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["GET","/q?a=1&b=2",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]],["PUT","/text",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["content-length","0"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"],["x-req","yes"]]],["HEAD","/text",true,[["accept","*/*"],["accept-encoding","gzip, deflate, br, zstd"],["connection","keep-alive"],["host","localhost:PORT"],["user-agent","Bun/1.4.2"]]]]
+abort err AbortError 20 The operation was aborted.
+stop ok [0]
+after stop err TypeError ConnectionRefused Unable to connect. Is the computer able to access the url?

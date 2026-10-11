@@ -57,6 +57,9 @@ const MAX_DISPATCHES: usize = 1_000_000;
 /// Custo virtual, em ms, de uma volta do laço com immediates pendentes (potência de dois: a soma é exata).
 const LOOP_PASS_MS: f64 = 1.0 / 64.0;
 
+/// Quanto o laço espera a rede (tempo real) antes de adiantar o relógio virtual até o próximo timer.
+const NET_GRACE: std::time::Duration = std::time::Duration::from_millis(2);
+
 /// O maior atraso aceito (`2^31 - 1`).
 const MAX_DELAY: f64 = 2_147_483_647.0;
 
@@ -735,6 +738,12 @@ fn invoke(global_object: &JSGlobalObject, callback: &Callback, this_value: JSVal
     }
 }
 
+/// Chama `function` (um callback de descritor de rede) como uma tarefa do laço: exceção vai ao relatório de erro não
+/// capturado e as microtasks rodam depois.
+pub(crate) fn call_from_loop(global_object: &JSGlobalObject, function: JSValue, args: &[JSValue]) {
+    invoke(global_object, &Callback::Js(function), JSValue::undefined(), args, JSValue::undefined());
+}
+
 /// Uma exceção fatal foi relatada: o laço para antes do próximo callback (o processo vai sair com código 1).
 pub(crate) fn halt_event_loop() {
     STATE.with(|state| state.borrow_mut().halted = true);
@@ -904,7 +913,10 @@ pub fn run_event_loop_until_held(global_object: &JSGlobalObject) -> bool {
         if STATE.with(|state| state.borrow().alive()) {
             run_due_loads(global_object);
             run_due_timers(global_object, &mut budget);
+            crate::runtime::net_loop::dispatch(global_object, Some(std::time::Duration::ZERO));
             run_immediates(global_object, &mut budget);
+        } else if crate::runtime::net_loop::holds_event_loop() {
+            crate::runtime::net_loop::dispatch(global_object, Some(std::time::Duration::ZERO));
         }
         // O que os callbacks da volta enfileiraram: entregue depois dos timers e immediates dela, antes do salto
         // do relógio (medido: uma marca criada num `setTimeout(1)` chega depois do outro timer do mesmo instante e
@@ -942,8 +954,18 @@ pub fn run_event_loop_until_held(global_object: &JSGlobalObject) -> bool {
         }
         let next_timer = if alive { earliest } else { None };
         let next_waiter = waiter_list_manager::next_deadline();
+        // Um timer pendente só dispara depois de dar à rede uma chance real de responder (o relógio é virtual, a
+        // rede não): uma espera curta antes de adiantar o relógio.
+        if next_timer.is_some() && crate::runtime::net_loop::holds_event_loop() && crate::runtime::net_loop::dispatch(global_object, Some(NET_GRACE)) {
+            continue;
+        }
         match (next_timer, next_waiter) {
             (None, None) => {
+                // Servidor ou conexão com `ref`: espera o próximo evento de rede, sem prazo.
+                if crate::runtime::net_loop::holds_event_loop() {
+                    crate::runtime::net_loop::dispatch(global_object, None);
+                    continue;
+                }
                 // Worker vivo e com `ref`: o filho roda de verdade em paralelo, então o laço espera a mensagem dele
                 // (acorda a cada milissegundo para olhar o canal) em vez de terminar ou parar. O `beforeExit` só sai
                 // com o laço realmente vazio, por isso esta espera vem antes dele.

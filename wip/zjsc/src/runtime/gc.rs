@@ -234,6 +234,7 @@ pub fn register_host_roots(visit: fn(&mut Marker)) {
 fn visit_host_roots(marker: &mut Marker) {
     use crate::runtime as rt;
     rt::timers::visit_gc_roots(marker);
+    rt::net_loop::visit_gc_roots(marker);
     rt::process_object::visit_gc_roots(marker);
     rt::process_stdio::visit_gc_roots(marker);
     rt::js_web_assembly::visit_gc_roots(marker);

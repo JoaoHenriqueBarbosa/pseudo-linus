@@ -1,0 +1,5 @@
+redirect error err TypeError UnexpectedRedirect UnexpectedRedirect fetching "http://localhost:PORT/redirect". For more information, pass `verbose: true` in the second argument to fetch()
+redirect follow off ok 302
+refused err TypeError ConnectionRefused Unable to connect. Is the computer able to access the url?
+refused localhost closed port err TypeError ConnectionRefused Unable to connect. Is the computer able to access the url?
+refused 127 err TypeError ConnectionRefused Unable to connect. Is the computer able to access the url?
