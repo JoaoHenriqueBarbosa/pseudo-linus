@@ -71,7 +71,7 @@ use crate::runtime::js_object::{JSFinalObject, JSObject, JS_NON_FINAL_OBJECT_S_I
 use crate::runtime::js_string::js_string;
 use crate::runtime::js_value::{js_null, js_number, js_undefined, EncodedJSValue, JSValue};
 use crate::runtime::native_class_support::{
-    create_native_class, create_native_subclass, install_global, instance_structure, put_native_accessor, throw_coded_type_error, throw_native_type_error,
+    create_native_class, create_native_class_with_length, create_native_subclass, install_global, instance_structure, put_native_accessor, throw_coded_type_error, throw_native_type_error,
 };
 use crate::runtime::native_function::NativeFunction;
 use crate::runtime::object_constructor::construct_empty_object;
@@ -778,6 +778,11 @@ host_function!(performance_mark_resource_timing, mark_resource_timing_body);
 host_function!(timing_to_json, timing_to_json_body);
 
 pub(crate) fn put_method(global_object: &JSGlobalObject, object: &JSObject, name: &str, length: u32, function: NativeFunction) {
+    put_method_with_attributes(global_object, object, name, length, function, 0);
+}
+
+/// [`put_method`] com os atributos dados (`DONT_ENUM` para o `toJSON` de `PerformanceMark` e `PerformanceMeasure`).
+fn put_method_with_attributes(global_object: &JSGlobalObject, object: &JSObject, name: &str, length: u32, function: NativeFunction, attributes: u32) {
     let vm = global_object.vm();
     put_direct_native_function_without_transition(
         vm,
@@ -788,7 +793,7 @@ pub(crate) fn put_method(global_object: &JSGlobalObject, object: &JSObject, name
         function,
         ImplementationVisibility::Public,
         Intrinsic::NoIntrinsic,
-        0,
+        attributes,
     );
 }
 
@@ -816,11 +821,12 @@ pub fn install_performance(global_object: &JSGlobalObject) {
     crate::runtime::streams::put_inspect_custom_named(global_object, &entry_prototype, "[nodejs.util.inspect.custom]", entry_inspect);
 
     // PerformanceMark e PerformanceMeasure, filhos de PerformanceEntry.
-    let (mark_prototype, mark_constructor) = create_native_class(
+    let (mark_prototype, mark_constructor) = create_native_class_with_length(
         global_object,
         &MARK_PROTOTYPE_S_INFO,
         &CONSTRUCTOR_S_INFO,
         "PerformanceMark",
+        1,
         call_mark as NativeFunction,
         construct_mark as NativeFunction,
     );
@@ -833,10 +839,10 @@ pub fn install_performance(global_object: &JSGlobalObject) {
     mark_prototype.put_direct(vm, &constructor_key, mark_constructor.as_value(), DONT_ENUM);
     measure_prototype.put_direct(vm, &constructor_key, measure_constructor.as_value(), DONT_ENUM);
     put_native_accessor(vm, global_object, &mark_prototype, "detail", mark_detail as NativeFunction, None, 0);
-    put_method(global_object, &mark_prototype, "toJSON", 0, mark_to_json as NativeFunction);
+    put_method_with_attributes(global_object, &mark_prototype, "toJSON", 0, mark_to_json as NativeFunction, DONT_ENUM);
     put_to_string_tag(vm, &mark_prototype, "PerformanceMark");
     put_native_accessor(vm, global_object, &measure_prototype, "detail", measure_detail as NativeFunction, None, 0);
-    put_method(global_object, &measure_prototype, "toJSON", 0, measure_to_json as NativeFunction);
+    put_method_with_attributes(global_object, &measure_prototype, "toJSON", 0, measure_to_json as NativeFunction, DONT_ENUM);
     put_to_string_tag(vm, &measure_prototype, "PerformanceMeasure");
 
     // Performance.

@@ -97,7 +97,7 @@ struct Observer {
     types: Vec<&'static str>,
     queue: Vec<Entry>,
     callback: JSValue,
-    /// Ordem de criação: a entrega percorre os observadores nela.
+    /// Ordem de registro (o primeiro `observe` que escolhe um tipo suportado): a entrega percorre os observadores nela.
     serial: u64,
 }
 
@@ -158,7 +158,7 @@ fn call_observer_callback(global_object: &JSGlobalObject, observer: JSValue, cal
 }
 
 /// A tarefa do host que entrega as filas pendentes (chamada por `timers.rs`): cada observador com entradas, na
-/// ordem de criação, recebe o callback e as microtasks esvaziam depois de cada um.
+/// ordem de registro, recebe o callback e as microtasks esvaziam depois do último.
 pub(crate) fn deliver_pending(global_object: &JSGlobalObject) {
     let mut pending: Vec<(u64, EncodedJSValue)> = OBSERVERS.with(|observers| {
         observers.borrow().iter().filter(|(_, observer)| !observer.queue.is_empty()).map(|(key, observer)| (observer.serial, *key)).collect()
@@ -170,9 +170,9 @@ pub(crate) fn deliver_pending(global_object: &JSGlobalObject) {
         });
         if let Some((callback, entries)) = taken {
             call_observer_callback(global_object, JSValue::decode(key), callback, &entries);
-            global_object.vm().drain_microtasks();
         }
     }
+    global_object.vm().drain_microtasks();
 }
 
 /// Entrega `entry` à fila de cada observador registrado para o tipo dela (`takeRecords`).
@@ -208,12 +208,8 @@ fn construct_observer_body(global_object: &JSGlobalObject, call: &HostCall) -> H
     }
     let structure = derived_structure(global_object, call, instance_structure)?;
     let object = JSFinalObject::create(global_object.vm(), &structure).as_value();
-    let serial = NEXT_SERIAL.with(|next| {
-        next.set(next.get() + 1);
-        next.get()
-    });
     OBSERVERS.with(|observers| {
-        observers.borrow_mut().insert(object.encode(), Observer { mode: Mode::None, types: Vec::new(), queue: Vec::new(), callback: call.argument(0), serial })
+        observers.borrow_mut().insert(object.encode(), Observer { mode: Mode::None, types: Vec::new(), queue: Vec::new(), callback: call.argument(0), serial: 0 })
     });
     Ok(object)
 }
@@ -294,7 +290,6 @@ fn observe_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
         if observer.mode != Mode::None && observer.mode != wanted {
             return false;
         }
-        observer.mode = wanted;
         match (entry_types.as_deref(), single_type.as_ref()) {
             (Some(names), _) => observer.types = supported_in(names),
             (None, Some(name)) => {
@@ -305,6 +300,16 @@ fn observe_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
                 }
             }
             (None, None) => {}
+        }
+        // Só um tipo suportado registra o observador (e fixa o modo): `entryTypes: []` ou `type: 'foo'` não registram.
+        if observer.types.is_empty() {
+            observer.mode = Mode::None;
+        } else if observer.mode == Mode::None {
+            observer.mode = wanted;
+            observer.serial = NEXT_SERIAL.with(|next| {
+                next.set(next.get() + 1);
+                next.get()
+            });
         }
         true
     });
