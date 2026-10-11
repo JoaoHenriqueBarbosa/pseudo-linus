@@ -1,0 +1,101 @@
+# Roadmap vivo: estado medido contra os critérios do `roadmap.md`
+
+Este arquivo complementa o `roadmap.md` (o PRD, com as fases e os critérios de saída). Aqui fica o estado real de cada
+critério, com a fonte de cada número. **Regra de manutenção: confira e atualize este arquivo a cada VIGIA e a cada
+integração de fatia.** Número sem fonte não entra; critério que nunca foi medido aparece como "NÃO MEDIDO", nunca como
+estimativa disfarçada.
+
+Convenção da coluna "Fonte": **eu** = medido pelo coordenador com comando próprio (git, grep, ls); **fork** = reportado
+por um fork na saída do container dele, não recompilado pelo coordenador; **vigente** = valor herdado de um arquivo
+versionado, com a data do arquivo.
+
+Última verificação: 2026-10-11 14:30 (CEST).
+
+## Ritmo medido
+
+Commits por dia, contados no git (`git log --format=%ad --date=short -- <caminho>`), fonte **eu**:
+
+| Caminho | 05/10 | 06/10 | 07/10 | 08/10 | 09/10 | 10/10 | 11/10 (parcial) | Total |
+|---|---|---|---|---|---|---|---|---|
+| `wip/zjsc` | | | | 24 | 73 | 151 | 75 | 323 |
+| `wip/zbun` | | | | | | 60 | 68 | 128 |
+| `crates/ul-bun` | | | | | | | 17 | 17 |
+| `crates/ul-chromium` (branch chromium-headless) | | | | | 4 | 70 | 23 | 97 |
+| `crates/ul-python` | 53 | 105 | 42 | 12 | | 16 | 41 | 269 |
+
+Tamanho (linhas de `.rs`, fonte **eu**): `wip/zjsc/src` 598 719 (inclui dado gerado de Intl), `wip/zbun` 139 027,
+`crates/ul-chromium/src` 20 860, `crates/ul-bun/src` 782. O ritmo com 4 forks Opus em paralelo é de 100 a 150 commits
+por dia no zjsc e 60 a 70 no zbun.
+
+## Critérios de saída da fase 5 (navegador headless com JavaScriptCore e Blitz)
+
+| Marco | Critério do PRD | Estado medido | Fonte |
+|---|---|---|---|
+| M5.1 | JavaScriptCore passando 80% do test262 | **NÃO MEDIDO.** Não há harness de test262 no repositório (busca em todo o git: só menções no fonte vendorizado do JSC). A suíte de 447 arquivos de teste do zjsc é outra coisa: goldens medidos no bun 1.4.2 | eu |
+| M5.2 | `node` com CommonJS e ESM, `fs`, `path`, `http` e `npm install` | Direção trocada para o bun: `bun` é programa do userland, com CJS e ESM, `node:fs` completo, `Bun.serve` e `fetch` em loopback, `Bun.file`, streams, CLI parcial. Comando `node` e `npm install`: não existem (só `bun` está registrado) | eu |
+| M5.3 | `--dump-dom` correto em páginas com scripts simples | Cumprido além do critério: 42 de 42 páginas da internet idênticas ao Chromium 154 (meta do goal era 95% por grupo) | fork |
+| M5.4 | Recorte do Web Platform Tests acima de 90% | **NÃO MEDIDO.** Não há recorte de WPT no repositório | eu |
+| M5.5 | `--screenshot` e `--print-to-pdf` com diferença perceptual baixa | **NÃO EXISTE.** O `cli.rs` do `ul-chromium` só trata `--dump-dom`; `Page.captureScreenshot` responde "wasn't found". Pintura de página não existe (o `vello_cpu` só serve ao canvas 2D). O alvo é diferença perceptual, não byte a byte | eu |
+| M5.6 | CDP completo para Puppeteer e Playwright; test262 acima de 95% | CDP: 290 de 326 no placar (89%). pyppeteer: pip install, launch, goto (com `Response`), title, evaluate e close funcionam com saída igual ao oráculo. Playwright: nada implementado, só mapeado. test262: NÃO MEDIDO | fork |
+
+## Estado por frente
+
+### zjsc (JavaScriptCore em Rust)
+- Funcional fechado (runtime Web, módulos `node:`, goldens). `function_error` 915 de 915; `error` 2791 de 2797 (as 6 restantes declaradas).
+- Suíte completa de 439 binários: na última leitura completa, 223 terminados e 39 vermelhos, sem pânico (fork). Intl e datas: 21 binários vermelhos no baseline; `datetime_range` de 5147 para 3679 divergências e `gaps` de 1220 para 778 (fork).
+- Declarados e abertos: coluna do frame de `new X()` (4 colunas), `call_edge` (JIT), `global_semantics`, `error_api`, `dom_exception`, recursão de apply de Proxy, ordem de `ownKeys`.
+
+### bun (zbun e `ul-bun`)
+- Transpilador portado: golden do printer 360 de 360, `react_compiler` compila, 0 `unsafe`. Corpus do `ul-bun`: 53 casos medidos no bun 1.4.2, rodando no kernel real (fork).
+- Falta: `bun run` com `package.json`, `-p`/`--print`, opções de execução (`--cwd`, `--preload`, `--env-file`, `--define`), subcomandos `test` e `x`, WebSocket, tls/https, inotify, `Bun.Glob`.
+
+### chromium (Blitz, Stylo)
+- Perfil em disco: History (inclusive pelo DevTools), Session Storage, Sessions, Cache, Preferences, QuotaManager, Network Persistent State, `shared_proto_db`, `ul-leveldb`.
+- Network do documento http completo (ExtraInfo, redirect, favicon): cenário `network_http` 49 de 49 (fork).
+- Falta: redirecionamento e navegações posteriores à inicial no DevTools, UKM, IndexedDB em iframe, interior da página de erro (25 dos 74 do `network_navigate`), timing real de rede.
+
+### chromium para Puppeteer e Playwright
+- pyppeteer: ver M5.6. Playwright: precisa do driver Node rodando no bun do plinus (não medido), `Browser.setWindowBounds`, `Page.createIsolatedWorld`, `addScriptToEvaluateOnNewDocument`, `DOM.*`, `Input.*`.
+
+### Python (fases 1 a 4 do PRD)
+- Fora do foco desta sessão. Placar vigente da bancada: 9320 de 9527 estrito (97,8%), de 06/10 (`docs/conformance.md`).
+  Coletor de ciclos e greenlet avançaram em 10 e 11/10 (13 testes do greenlet ainda declarados). Estado das fases de
+  pip, numpy e pandas: NÃO RELIDO nesta atualização.
+
+## Fila priorizada
+
+1. **Medir test262 e um recorte de WPT** (M5.1, M5.4, M5.6): sem isso não se sabe o estado real do motor contra o critério. Primeiro passo: runner do test262 sobre o zjsc, com o commit do test262 fixado.
+2. CDP e Playwright (M5.6): fechar a lista de métodos, depois o driver Node no bun.
+3. `--screenshot` e `--print-to-pdf` (M5.5): pintura de página (`blitz-paint` sobre `vello_cpu`), PNG e PDF, medido por diferença perceptual.
+4. bun/node (M5.2): `bun run`, `-p`, opções, `test`, `x`; decidir se o comando `node` e o `npm install` entram.
+5. Cauda de Intl nos locales de uso real, depois ja e zh; calendários nativos por último.
+
+## Estimativas otimistas
+
+Método: ritmo medido acima, aplicado a itens com escopo conhecido. Item sem baseline não recebe estimativa.
+
+| Item | Estimativa otimista | Base |
+|---|---|---|
+| Runner de test262 e primeira medição | 1 dia | hipótese; depende do formato do harness e de rede para clonar o test262 |
+| Fechar o que o test262 apontar para 80% | sem estimativa até a primeira medição | |
+| CDP completo e pyppeteer sem screenshot | 1 dia | 36 cenários faltando, ritmo de 40 a 70 por dia |
+| Playwright | 2 a 3 dias | o driver Node no bun é a incógnita |
+| Screenshot e PDF perceptuais | 2 a 4 dias | pintura não existe |
+| bun: `run`, `-p`, opções, `test`, `x` | 1 a 2 dias | |
+| Intl nos locales de uso real | 1 a 2 dias | ritmo de um commit de causa raiz por hora |
+
+A estimativa dada ao user em 2026-10-11 (5 a 7 dias sem screenshot, 7 a 11 com) omitia M5.1, M5.4 e M5.5 como critérios
+formais; este arquivo a substitui. Corrigido também: o PRD pede screenshot por diferença perceptual, não byte a byte.
+
+## Frentes ativas (2026-10-11)
+
+| Frente | Fork | Última integração |
+|---|---|---|
+| Printer, zbun, `ul-bun` | `ad4a1a75f3d5455f0` | `0775d66d` (CLI do bun), checkout principal |
+| Suíte do zjsc e Intl | `a7c6a4d11a2d73979` | `46da9666` (formatRange), checkout principal |
+| Greenlet, pyppeteer, Playwright | `adccaf30202b0bde1` | `acdd7bba` (Network http), worktree chromium-headless |
+| CDP e perfil | `a1f2c7757966af6bf` | `eb2bd184` (Sessions ao vivo), worktree chromium-headless |
+
+## Registro de atualizações
+
+- 2026-10-11 14:30: arquivo criado. Achados: test262 e WPT nunca foram medidos; `--screenshot` e `--print-to-pdf` não existem; o alvo de screenshot é perceptual.
