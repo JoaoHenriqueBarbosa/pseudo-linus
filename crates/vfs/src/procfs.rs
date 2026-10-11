@@ -201,6 +201,7 @@ enum Ent {
     OomScoreAdj = 24,
     Mountinfo = 25,
     Net = 26,
+    SmapsRollup = 27,
 }
 
 impl Ent {
@@ -233,6 +234,7 @@ impl Ent {
             24 => Ent::OomScoreAdj,
             25 => Ent::Mountinfo,
             26 => Ent::Net,
+            27 => Ent::SmapsRollup,
             _ => return None,
         })
     }
@@ -258,6 +260,7 @@ const PID_ENTRIES: &[(&str, Ent)] = &[
     ("mounts", Ent::Mounts),
     ("mountinfo", Ent::Mountinfo),
     ("smaps", Ent::Smaps),
+    ("smaps_rollup", Ent::SmapsRollup),
     ("wchan", Ent::Wchan),
     ("schedstat", Ent::Schedstat),
     ("cpuset", Ent::Cpuset),
@@ -287,6 +290,7 @@ const TASK_ENTRIES: &[(&str, Ent)] = &[
     ("mounts", Ent::Mounts),
     ("mountinfo", Ent::Mountinfo),
     ("smaps", Ent::Smaps),
+    ("smaps_rollup", Ent::SmapsRollup),
     ("wchan", Ent::Wchan),
     ("schedstat", Ent::Schedstat),
     ("cpuset", Ent::Cpuset),
@@ -638,6 +642,7 @@ impl Procfs {
             }
             Some(Ent::Maps) => Ok(maps::maps(self.layout(cx, &p).as_ref())),
             Some(Ent::Smaps) => Ok(maps::smaps(self.layout(cx, &p).as_ref())),
+            Some(Ent::SmapsRollup) => Ok(maps::smaps_rollup(self.layout(cx, &p).as_ref())),
             Some(Ent::Statm) => Ok(render::statm(&p)),
             Some(Ent::Status) => Ok(render::status(&p)),
             Some(Ent::Limits) => Ok(render::limits(&p)),
@@ -946,7 +951,7 @@ impl FileSystem for Procfs {
                 if kind == KIND_PID || kind == KIND_TASK {
                     let e = Ent::from_u32(if kind == KIND_PID { n } else { n & 0xff });
                     // `proc_mem_open` do `maps` e do `smaps`: só quem pode inspecionar o processo.
-                    if matches!(e, Some(Ent::Maps | Ent::Smaps)) && !may_read_mm(cx, info.uid) {
+                    if matches!(e, Some(Ent::Maps | Ent::Smaps | Ent::SmapsRollup)) && !may_read_mm(cx, info.uid) {
                         return Err(Errno::EACCES);
                     }
                 }
@@ -1230,6 +1235,10 @@ mod tests {
         assert_eq!(pos(PID_ENTRIES, "smaps"), pos(PID_ENTRIES, "mountinfo") + 1);
         assert_eq!(pos(TASK_ENTRIES, "maps") + 1, pos(TASK_ENTRIES, "children"));
         assert_eq!(pos(TASK_ENTRIES, "smaps"), pos(TASK_ENTRIES, "mountinfo") + 1);
+        assert_eq!(pos(PID_ENTRIES, "smaps_rollup"), pos(PID_ENTRIES, "smaps") + 1);
+        assert_eq!(pos(TASK_ENTRIES, "smaps_rollup"), pos(TASK_ENTRIES, "smaps") + 1);
+        assert_eq!(ent_shape(Ent::SmapsRollup), (Shape::File, 0o444));
+        assert_eq!(Ent::from_u32(Ent::SmapsRollup as u32), Some(Ent::SmapsRollup));
         assert_eq!(ent_shape(Ent::Maps), (Shape::File, 0o444));
         assert_eq!(ent_shape(Ent::Smaps), (Shape::File, 0o444));
         assert_eq!(Ent::from_u32(Ent::Smaps as u32), Some(Ent::Smaps));
