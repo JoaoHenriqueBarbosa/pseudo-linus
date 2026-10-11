@@ -26,6 +26,7 @@ fn short() -> Snapshot {
         guids: guids(["1e36173c-6b07-4dd3-8601-d92c2b6dbce1", "15c60ffd-e649-4919-a641-5d19d06e6c83", "b9cf18a4-5e8e-45f1-8794-c5a43accb926", "f528c112-5567-4102-9c5c-b082f1ed85e3"]),
         sequence: 0x65d875c815c45,
         url: "http://127.0.0.1:8000/ss-none.html".to_owned(),
+        original_url: "http://127.0.0.1:8000/ss-none.html".to_owned(),
         title: "ss none".to_owned(),
     }
 }
@@ -43,6 +44,7 @@ fn long() -> Snapshot {
         guids: guids(["30d62d26-81ad-4992-8b25-d6ee4d6fd031", "b6ca584f-aabb-4533-9d98-5dcab2213406", "2c06d249-e1e5-4e85-960c-4a3e039df731", "8853eeea-a680-4460-a9e9-7915a58bfba0"]),
         sequence: 0x65d88c172561d,
         url: "http://127.0.0.1:8000/ss-none-with-a-much-longer-name-for-the-session-state.html".to_owned(),
+        original_url: "http://127.0.0.1:8000/ss-none-with-a-much-longer-name-for-the-session-state.html".to_owned(),
         title: "ss none".to_owned(),
     }
 }
@@ -98,10 +100,10 @@ mod live {
         // Os parâmetros sorteados saem do estado do oráculo: a sequência (dois i64 em 0x6C) e os dois GUIDs UTF-16.
         let sequence = i64::from_le_bytes(parts.state[0x6C..0x74].try_into().unwrap());
         let guids = [utf16(&parts.state[0x1D4..0x1D4 + 72]), utf16(&parts.state[0x234..0x234 + 72])];
-        assert_eq!(live_session(&oracle, &parts.url, &guids, sequence, parts.time).unwrap(), oracle);
+        assert_eq!(live_session(&oracle, &parts.url, &parts.original_url, &guids, sequence, parts.time).unwrap(), oracle);
         // Sobre o molde `about:blank` o mesmo parâmetro troca só a entrada: o arquivo cresce 96 bytes (808 contra 712).
         let blank = fixture("live-blank-session");
-        let rebuilt = live_session(&blank, &parts.url, &guids, sequence, parts.time).unwrap();
+        let rebuilt = live_session(&blank, &parts.url, &parts.original_url, &guids, sequence, parts.time).unwrap();
         assert_eq!(rebuilt.len(), blank.len() + 96);
         assert_eq!(rebuilt.len(), oracle.len());
     }
@@ -123,5 +125,22 @@ mod live {
         let window_time = i64::from_le_bytes(oracle[27..35].try_into().unwrap());
         let tabs = live_tabs(&session, "", window_time + 17_000).unwrap();
         assert_eq!(without_close_times(tabs), without_close_times(oracle));
+    }
+
+    /// Uma página que o servidor redirecionou (`301` de `/redir` para `/redir/`): a entrada leva o endereço final e, em
+    /// `original_request_url`, o pedido.
+    #[test]
+    fn a_redirected_page_keeps_the_requested_address_in_the_entry() {
+        let oracle = fixture("live-redirect-session");
+        let parts = decode_entry(&command_of(&oracle, 6)).unwrap();
+        assert_eq!((parts.url.as_str(), parts.original_url.as_str()), ("http://127.0.0.1:8000/redir/", "http://127.0.0.1:8000/redir"));
+        let sequence = i64::from_le_bytes(parts.state[0x6C..0x74].try_into().unwrap());
+        // O endereço final tem 28 caracteres, 16 bytes a menos de matriz que o do molde (34): os GUIDs sobem 16.
+        let guids = [utf16(&parts.state[0x1D4 - 16..0x1D4 - 16 + 72]), utf16(&parts.state[0x234 - 16..0x234 - 16 + 72])];
+        assert_eq!(live_session(&fixture("live-redirect-session"), &parts.url, &parts.original_url, &guids, sequence, parts.time).unwrap(), oracle);
+        let tabs = fixture("live-redirect-tabs");
+        let window_time = i64::from_le_bytes(tabs[27..35].try_into().unwrap());
+        let rebuilt = live_tabs(&oracle, "ss none", window_time + 17_000).unwrap();
+        assert_eq!(without_close_times(rebuilt), without_close_times(tabs));
     }
 }

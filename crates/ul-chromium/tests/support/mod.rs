@@ -8,7 +8,8 @@ use sysabi::*;
 use serde_json::Value;
 use ul_chromium::devtools::websocket::{self, Decoder, Incoming};
 
-/// Responde toda requisição com a página, em HTTP/1.0 como o `http.server` do Python.
+/// Responde toda requisição com a página, em HTTP/1.0 como o `http.server` do Python; `/redir` (um diretório sem a barra
+/// final, no `http.server`) leva um `301` para `/redir/`.
 pub fn serve(listener: Fd, page: &'static str) -> i32 {
     let s = sys::current();
     loop {
@@ -21,7 +22,12 @@ pub fn serve(listener: Fd, page: &'static str) -> i32 {
                 Ok(n) => request.extend_from_slice(&buffer[..n]),
             }
         }
-        let response = format!("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\n\r\n{page}", page.len());
+        let moved = request.starts_with(b"GET /redir HTTP");
+        let response = if moved {
+            "HTTP/1.0 301 Moved Permanently\r\nLocation: /redir/\r\nContent-Length: 0\r\n\r\n".to_owned()
+        } else {
+            format!("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\n\r\n{page}", page.len())
+        };
         let _ = sys::write_all(fd, response.as_bytes());
         let _ = sys::close(fd);
     }

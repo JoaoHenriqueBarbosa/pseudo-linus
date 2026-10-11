@@ -185,6 +185,11 @@ impl Page {
         self.bridge.url.borrow().clone()
     }
 
+    /// Os endereços que o documento pediu antes do final, um por redirecionamento do servidor, na ordem.
+    pub fn redirects(&self) -> Vec<String> {
+        self.net.as_ref().map(|meta| meta.redirects.iter().map(|hop| hop.url.clone()).collect()).unwrap_or_default()
+    }
+
     /// A resposta do documento como o `Network` do DevTools a mostra (`about:blank`, `file:` e a página de erro não têm).
     pub fn net_meta(&self) -> Option<&crate::netmeta::NetMeta> {
         self.net.as_ref()

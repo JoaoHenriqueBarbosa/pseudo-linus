@@ -6,8 +6,10 @@
 //! Uma cadeia de navegações da aba (a da linha de comando e as redirecionadas pela página com `location.href`) vira:
 //! uma linha de `urls` por endereço (todas com o título da última página da cadeia), uma de `visits` por navegação
 //! (a primeira digitada, as seguintes redirecionamento do cliente), o `segments`/`segment_usage` da primeira, a
-//! `content_annotations` da última, uma `context_annotations` por visita e, nas redirecionadas, a `visited_links` que
-//! guarda de onde o link foi seguido.
+//! `content_annotations` da última, uma `context_annotations` por navegação e, nas redirecionadas, a `visited_links`
+//! que guarda de onde o link foi seguido. O redirecionamento do servidor (um `301`) dá uma visita a mais por endereço
+//! da cadeia, medido no oráculo com um salto: a primeira é a digitada com o início da cadeia, a última leva o
+//! redirecionamento de servidor e o fim da cadeia, só a última tem `context_annotations` e só a primeira, segmento.
 
 use rusqlite::{params, OpenFlags};
 use ul_common::time::WEBKIT_EPOCH_US;
@@ -18,6 +20,7 @@ const TRANSITION_TYPED: i64 = 1;
 const CHAIN_START: i64 = 0x1000_0000;
 const CHAIN_END: i64 = 0x2000_0000;
 const CLIENT_REDIRECT: i64 = 0x4000_0000;
+const SERVER_REDIRECT: i64 = 0x8000_0000;
 /// O bit a mais que a navegação do `--dump-dom` carrega (as do DevTools não têm).
 const DUMP_QUALIFIER: i64 = 0x0800_0000;
 /// Os motivos de fim de página das `context_annotations`: a página deixada por uma navegação e a que o processo fechou.
@@ -27,7 +30,10 @@ const END_REASON_CLOSE: i64 = 6;
 /// Uma navegação concluída da aba.
 #[derive(Debug, Clone)]
 pub struct Navigation {
+    /// O endereço final, depois dos redirecionamentos do servidor.
     pub url: String,
+    /// Os endereços pedidos antes dele, na ordem (o primeiro é o que a navegação pediu), um por redirecionamento.
+    pub redirected_from: Vec<String>,
     pub title: String,
     /// Relógio de parede (microssegundos desde 1970) em que a navegação começou.
     pub start_us: i64,
@@ -98,43 +104,59 @@ pub fn write(path: &str, navigations: &[Navigation], process: Process) -> Result
         let time = nav.start_us + WEBKIT_EPOCH_US;
         let end_us = navigations.get(index + 1).map_or(process.exit_us, |next| next.start_us);
         let duration = end_us - nav.start_us;
-        let known: Option<i64> = tx.query_row("SELECT id FROM urls WHERE url = ?1", params![nav.url], |row| row.get(0)).ok();
-        let url_id = match known {
-            Some(id) => {
-                tx.execute("UPDATE urls SET visit_count = visit_count + 1, typed_count = typed_count + ?1, last_visit_time = ?2 WHERE id = ?3", params![i64::from(typed), time, id]).map_err(sql)?;
-                id
+        // Os endereços pedidos antes do final e o final: uma visita para cada um, todas no instante da navegação.
+        let chain: Vec<&String> = nav.redirected_from.iter().chain(std::iter::once(&nav.url)).collect();
+        for (hop, address) in chain.iter().enumerate() {
+            let first = typed && hop == 0;
+            let ends_nav = hop == chain.len() - 1;
+            let known: Option<i64> = tx.query_row("SELECT id FROM urls WHERE url = ?1", params![address], |row| row.get(0)).ok();
+            let url_id = match known {
+                Some(id) => {
+                    tx.execute("UPDATE urls SET visit_count = visit_count + 1, typed_count = typed_count + ?1, last_visit_time = ?2 WHERE id = ?3", params![i64::from(first), time, id]).map_err(sql)?;
+                    id
+                }
+                None => {
+                    tx.execute("INSERT INTO urls(url, title, visit_count, typed_count, last_visit_time, hidden) VALUES (?1, '', 1, ?2, ?3, 0)", params![address, i64::from(first), time]).map_err(sql)?;
+                    tx.last_insert_rowid()
+                }
+            };
+            // Todos os endereços da cadeia ficam com o título da última página.
+            tx.execute("UPDATE urls SET title = ?1 WHERE id = ?2", params![final_title, url_id]).map_err(sql)?;
+            let dump_qualifier = if process.ending == Ending::Dump { DUMP_QUALIFIER } else { 0 };
+            let mut transition = match (typed, hop) {
+                (true, 0) => TRANSITION_TYPED | CHAIN_START | dump_qualifier,
+                (true, _) => TRANSITION_TYPED | SERVER_REDIRECT | dump_qualifier,
+                (false, 0) => CLIENT_REDIRECT,
+                (false, _) => SERVER_REDIRECT,
+            };
+            if index == last && ends_nav {
+                transition |= CHAIN_END;
             }
-            None => {
-                tx.execute("INSERT INTO urls(url, title, visit_count, typed_count, last_visit_time, hidden) VALUES (?1, '', 1, ?2, ?3, 0)", params![nav.url, i64::from(typed), time]).map_err(sql)?;
-                tx.last_insert_rowid()
+            // A navegação seguida por redirecionamento do cliente aponta a visita anterior e a `visited_links` dela.
+            let link_id = if !typed && hop == 0 { visited_link(&tx, url_id, &navigations[index - 1].url).map_err(sql)? } else { 0 };
+            let segment_id = if first { segment(&tx, address, url_id, time).map_err(sql)? } else { 0 };
+            let open = index == last && ends_nav && process.ending == Ending::Live;
+            tx.execute(
+                "INSERT INTO visits VALUES (NULL, ?1, ?2, ?3, '', ?4, ?5, ?6, ?7, 0, '', 0, 0, 0, 0, 1, ?8, '')",
+                params![url_id, time, previous_visit, i64::from(transition as i32), segment_id, if ends_nav && !open { duration } else { 0 }, i64::from(first), link_id],
+            )
+            .map_err(sql)?;
+            let visit_id = tx.last_insert_rowid();
+            previous_visit = visit_id;
+            last_visit = visit_id;
+            // Só a visita que fecha a navegação tem o contexto de página.
+            if !ends_nav {
+                continue;
             }
-        };
-        // Todos os endereços da cadeia ficam com o título da última página.
-        tx.execute("UPDATE urls SET title = ?1 WHERE id = ?2", params![final_title, url_id]).map_err(sql)?;
-        let mut transition = if typed { TRANSITION_TYPED | CHAIN_START | if process.ending == Ending::Dump { DUMP_QUALIFIER } else { 0 } } else { CLIENT_REDIRECT };
-        if index == last {
-            transition |= CHAIN_END;
+            let foreground = if open { -1_000_000 } else if typed { end_us - process.start_us.min(nav.start_us) } else { duration + 15_000 };
+            let (root, parent) = if typed { (time, -1) } else { (-1, time) };
+            let end_reason = if open { 0 } else if index == last { END_REASON_CLOSE } else { END_REASON_NAVIGATION };
+            tx.execute(
+                "INSERT INTO context_annotations VALUES (?1, 0, -1000000, ?2, ?3, 1, ?4, ?5, ?6, ?7, ?8, 200)",
+                params![visit_id, end_reason, foreground, process.window_id, process.window_id + 1, time, root, parent],
+            )
+            .map_err(sql)?;
         }
-        // A navegação seguida por redirecionamento do cliente aponta a visita anterior e a `visited_links` dela.
-        let link_id = if typed { 0 } else { visited_link(&tx, url_id, &navigations[index - 1].url).map_err(sql)? };
-        let segment_id = if typed { segment(&tx, &nav.url, url_id, time).map_err(sql)? } else { 0 };
-        tx.execute(
-            "INSERT INTO visits VALUES (NULL, ?1, ?2, ?3, '', ?4, ?5, ?6, ?7, 0, '', 0, 0, 0, 0, 1, ?8, '')",
-            params![url_id, time, previous_visit, transition, segment_id, if index < last || process.ending != Ending::Live { duration } else { 0 }, i64::from(typed), link_id],
-        )
-        .map_err(sql)?;
-        let visit_id = tx.last_insert_rowid();
-        let open = index == last && process.ending == Ending::Live;
-        let foreground = if open { -1_000_000 } else if typed { end_us - process.start_us.min(nav.start_us) } else { duration + 15_000 };
-        let (root, parent) = if typed { (time, -1) } else { (-1, time) };
-        let end_reason = if open { 0 } else if index == last { END_REASON_CLOSE } else { END_REASON_NAVIGATION };
-        tx.execute(
-            "INSERT INTO context_annotations VALUES (?1, 0, -1000000, ?2, ?3, 1, ?4, ?5, ?6, ?7, ?8, 200)",
-            params![visit_id, end_reason, foreground, process.window_id, process.window_id + 1, time, root, parent],
-        )
-        .map_err(sql)?;
-        previous_visit = visit_id;
-        last_visit = visit_id;
     }
     tx.execute("INSERT INTO content_annotations VALUES (?1, -1, NULL, '', -1, 0, '', '', '', '', '', '', 1, 0)", params![last_visit]).map_err(sql)?;
     tx.commit().map_err(sql)?;
@@ -220,6 +242,16 @@ impl HistoryLog {
     pub fn record(&self, navigation: Navigation) {
         if navigation.url != "about:blank" {
             self.state().navigation.get_or_insert(navigation);
+        }
+    }
+
+    /// A página que o servidor redirecionou: os endereços pedidos antes do final e o final, que a aba anuncia depois de carregar.
+    pub fn set_redirects(&self, redirects: &[String], final_url: &str) {
+        if let Some(navigation) = &mut self.state().navigation {
+            if !redirects.is_empty() {
+                navigation.redirected_from = redirects.to_vec();
+                navigation.url = final_url.to_owned();
+            }
         }
     }
 

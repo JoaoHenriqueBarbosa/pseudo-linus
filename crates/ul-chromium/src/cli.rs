@@ -93,7 +93,7 @@ fn load(ctx: &mut Ctx, options: &Options, first: &str, disk: &DiskProfile) -> i3
             page.budget_ms = budget;
         }
         page.run();
-        disk.record_navigation(Navigation { url: page.url(), title: page.title(), start_us: started_us });
+        disk.record_navigation(Navigation { url: page.url(), redirected_from: page.redirects(), title: page.title(), start_us: started_us });
         if let Some(captured) = page.captured() {
             disk.record_resource(&page.url(), captured.clone());
         }

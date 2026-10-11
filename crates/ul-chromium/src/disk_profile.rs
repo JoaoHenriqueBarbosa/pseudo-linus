@@ -511,6 +511,7 @@ impl DiskProfile {
             tabs_time: page_end - 900,
             guids: [[guid(0), guid(1)], [guid(2), guid(3)]],
             sequence: (0x65d8 << 36) | random(),
+            original_url: page.redirected_from.first().unwrap_or(&page.url).clone(),
             url: page.url,
             title: page.title,
         };

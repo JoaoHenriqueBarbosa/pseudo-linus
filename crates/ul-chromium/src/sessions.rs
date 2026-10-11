@@ -7,8 +7,8 @@
 //! caracteres, `tests/sessions.rs`).
 //!
 //! Cobre a forma da execução com uma navegação para uma página (a entrada `about:blank` e a da página) e a do navegador
-//! de pé com o DevTools (`SessionsLog`). O que mais o Chromium grava (redirecionamentos, POST, recarga, páginas de
-//! erro) ainda não foi medido.
+//! de pé com o DevTools (`SessionsLog`). O redirecionamento do servidor muda só o `original_request_url` da entrada (e o
+//! tamanho do endereço final). O que mais o Chromium grava (POST, recarga, páginas de erro) ainda não foi medido.
 
 /// O estado de página da entrada `about:blank` que tem uma navegação depois dela.
 static BLANK_STATE: &[u8] = include_bytes!("../profile/session-state-blank.bin");
@@ -49,6 +49,8 @@ pub struct Snapshot {
     /// O número de sequência da primeira entrada; a da página tem dois a mais.
     pub sequence: i64,
     pub url: String,
+    /// O endereço pedido antes dos redirecionamentos do servidor (o `original_request_url` da entrada).
+    pub original_url: String,
     pub title: String,
 }
 
@@ -107,9 +109,10 @@ fn utf16_array(text: &str) -> Vec<u8> {
     out
 }
 
-fn patch_u32(state: &mut [u8], at: usize, delta: usize) {
+/// Soma `delta` (que pode ser negativo, de um endereço mais curto que o do molde) ao `u32` em `at`.
+fn patch_u32(state: &mut [u8], at: usize, delta: isize) {
     let value = u32::from_le_bytes(state[at..at + 4].try_into().expect("quatro bytes"));
-    state[at..at + 4].copy_from_slice(&(value + delta as u32).to_le_bytes());
+    state[at..at + 4].copy_from_slice(&value.wrapping_add_signed(delta as i32).to_le_bytes());
 }
 
 /// O estado de página: o molde com o endereço (`None` mantém o do molde), os GUIDs e a sequência.
@@ -118,12 +121,12 @@ fn page_state(template: &[u8], url: Option<&str>, guids: &[String; 2], sequence:
     let mut delta = 0;
     if let Some(url) = url {
         let array = utf16_array(url);
-        delta = array.len() - TEMPLATE_URL_ARRAY_LEN;
+        delta = array.len() as isize - TEMPLATE_URL_ARRAY_LEN as isize;
         state.splice(URL_ARRAY_AT..URL_ARRAY_AT + TEMPLATE_URL_ARRAY_LEN, array);
         for at in CROSSING_POINTERS {
             let value = u64::from_le_bytes(state[at..at + 8].try_into().expect("oito bytes"));
             if value != 0 {
-                state[at..at + 8].copy_from_slice(&(value + delta as u64).to_le_bytes());
+                state[at..at + 8].copy_from_slice(&value.wrapping_add_signed(delta as i64).to_le_bytes());
             }
         }
         patch_u32(&mut state, 0, delta);
@@ -134,7 +137,8 @@ fn page_state(template: &[u8], url: Option<&str>, guids: &[String; 2], sequence:
     }
     for (at, guid) in GUID_AT.into_iter().zip(guids) {
         let units: Vec<u8> = guid.encode_utf16().flat_map(|unit| unit.to_le_bytes()).collect();
-        state[at + delta..at + delta + units.len()].copy_from_slice(&units);
+        let at = at.wrapping_add_signed(delta);
+        state[at..at + units.len()].copy_from_slice(&units);
     }
     state
 }
@@ -144,6 +148,8 @@ struct Entry<'a> {
     tab: i32,
     index: i32,
     url: &'a str,
+    /// O endereço pedido, antes dos redirecionamentos do servidor.
+    original_url: &'a str,
     title: &'a str,
     state: Vec<u8>,
     transition: i32,
@@ -167,7 +173,7 @@ impl Entry<'_> {
         put_i32(&mut body, 0);
         put_str(&mut body, b"");
         put_i32(&mut body, 2);
-        put_str(&mut body, self.url.as_bytes());
+        put_str(&mut body, self.original_url.as_bytes());
         put_i32(&mut body, 0);
         put_i64(&mut body, self.time);
         put_str16(&mut body, "");
@@ -189,11 +195,12 @@ impl Entry<'_> {
 fn entries(snapshot: &Snapshot, tab: i32, in_tabs: bool) -> [Vec<u8>; 2] {
     let blank_state = page_state(BLANK_STATE, None, &snapshot.guids[0], snapshot.sequence);
     let page_state = page_state(PAGE_STATE, Some(&snapshot.url), &snapshot.guids[1], snapshot.sequence + 2);
-    let blank = Entry { tab, index: 0, url: "about:blank", title: "", state: blank_state, transition: TRANSITION_AUTO_TOPLEVEL, status: 0, tasks: [snapshot.blank_time, -1, snapshot.blank_time], time: snapshot.blank_time };
+    let blank = Entry { tab, index: 0, url: "about:blank", original_url: "about:blank", title: "", state: blank_state, transition: TRANSITION_AUTO_TOPLEVEL, status: 0, tasks: [snapshot.blank_time, -1, snapshot.blank_time], time: snapshot.blank_time };
     let page = Entry {
         tab,
         index: 1,
         url: &snapshot.url,
+        original_url: &snapshot.original_url,
         title: if in_tabs { &snapshot.title } else { "" },
         state: page_state,
         transition: TRANSITION_TYPED_FROM_API,
@@ -271,6 +278,7 @@ pub struct EntryParts {
     pub tab: i32,
     pub index: i32,
     pub url: String,
+    pub original_url: String,
     pub state: Vec<u8>,
     pub transition: i32,
     pub status: i32,
@@ -328,12 +336,12 @@ pub fn decode_entry(payload: &[u8]) -> Option<EntryParts> {
     cursor.i32()?;
     cursor.string()?;
     cursor.i32()?;
-    cursor.string()?;
+    let original_url = String::from_utf8(cursor.string()?.to_vec()).ok()?;
     cursor.i32()?;
     let time = cursor.i64()?;
     cursor.string16()?;
     let status = cursor.i32()?;
-    Some(EntryParts { tab, index, url, state, transition, status, time })
+    Some(EntryParts { tab, index, url, original_url, state, transition, status, time })
 }
 
 /// Os comandos de um arquivo SNSS, na ordem, como (id, conteúdo).
@@ -359,11 +367,11 @@ const LIVE_TRANSITION: i32 = 6;
 
 /// O `Session_` do navegador de pé com a página da linha de comando: a entrada única do molde (`about:blank`) dá lugar à
 /// da página (índice 0, transição 6, status 200, sem título), na aba que o molde já tem.
-pub fn live_session(template: &[u8], url: &str, guids: &[String; 2], sequence: i64, time: i64) -> Option<Vec<u8>> {
+pub fn live_session(template: &[u8], url: &str, original_url: &str, guids: &[String; 2], sequence: i64, time: i64) -> Option<Vec<u8>> {
     let mut commands = commands_of(template)?;
     let position = commands.iter().position(|(id, _)| *id == 6)?;
     let blank = decode_entry(&commands[position].1)?;
-    let entry = Entry { tab: blank.tab, index: 0, url, title: "", state: page_state(PAGE_STATE, Some(url), guids, sequence), transition: LIVE_TRANSITION, status: 200, tasks: [-1; 3], time };
+    let entry = Entry { tab: blank.tab, index: 0, url, original_url, title: "", state: page_state(PAGE_STATE, Some(url), guids, sequence), transition: LIVE_TRANSITION, status: 200, tasks: [-1; 3], time };
     commands[position].1 = entry.encode();
     Some(rebuilt(commands))
 }
@@ -381,6 +389,7 @@ pub fn live_tabs(session: &[u8], title: &str, closed: i64) -> Option<Vec<u8>> {
         tab,
         index: 0,
         url: &parts.url,
+        original_url: &parts.original_url,
         title,
         state: parts.state,
         transition: parts.transition,
@@ -408,11 +417,14 @@ pub struct SessionsLog {
     guids: [String; 2],
     sequence: i64,
     title: std::sync::Mutex<String>,
+    /// O instante (relógio WebKit) em que a página abriu e se o `Session_` já recebeu o endereço redirecionado.
+    started: std::sync::Mutex<Option<i64>>,
+    redirected: std::sync::atomic::AtomicBool,
 }
 
 impl SessionsLog {
     pub fn new(folder: String, guids: [String; 2], sequence: i64) -> SessionsLog {
-        SessionsLog { folder, guids, sequence, title: std::sync::Mutex::default() }
+        SessionsLog { folder, guids, sequence, title: std::sync::Mutex::default(), started: std::sync::Mutex::default(), redirected: std::sync::atomic::AtomicBool::new(false) }
     }
 
     fn find(&self, prefix: &str) -> Option<String> {
@@ -421,14 +433,26 @@ impl SessionsLog {
     }
 
     /// A página da linha de comando abriu: reescreve o `Session_` do molde (sem efeito para `about:blank`).
-    pub fn start(&self, url: &str, time: i64) {
+    pub fn start(&self, url: &str, original_url: &str, time: i64) {
         if url == "about:blank" {
             return;
         }
+        *self.started.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(time);
         let Some(path) = self.find("Session_") else { return };
         let Ok(template) = sysabi::sys::read_file(path.as_bytes()) else { return };
-        if let Some(file) = live_session(&template, url, &self.guids, self.sequence, time) {
+        if let Some(file) = live_session(&template, url, original_url, &self.guids, self.sequence, time) {
             let _ = sysabi::util::write_file(path.as_bytes(), &file, 0o600);
+        }
+    }
+
+    /// A página abriu redirecionada pelo servidor: o `Session_` passa a levar o endereço final e o pedido (uma vez só).
+    pub fn set_redirects(&self, redirects: &[String], final_url: &str) {
+        let Some(first) = redirects.first() else { return };
+        let started = *self.started.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(time) = started {
+            if !self.redirected.swap(true, std::sync::atomic::Ordering::Relaxed) {
+                self.start(final_url, first, time);
+            }
         }
     }
 

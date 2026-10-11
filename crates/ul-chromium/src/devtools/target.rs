@@ -117,6 +117,8 @@ struct Tab {
     closed: bool,
     /// A navegação que a aba nova ainda vai fazer.
     held: Option<String>,
+    /// Os endereços pedidos antes do final, um por redirecionamento do servidor (o `TargetInfo` do navegador os leva ao History).
+    redirects: Vec<String>,
     /// Pausada até o `Runtime.runIfWaitingForDebugger`.
     waiting: bool,
     /// Os marcos de rede ociosa pendentes: (quando saem, o `timestamp` deles, se houve pintura).
@@ -237,6 +239,7 @@ impl Tab {
             context: None,
             closed: false,
             held: None,
+            redirects: Vec::new(),
             waiting: false,
             idle: None,
             session: std::rc::Rc::new(crate::session::Tab::new(profile)),
@@ -441,6 +444,7 @@ impl Tab {
         self.emu.loads += 1;
         self.emu.swap = self.emu.loads >= 3 && next_url != "about:blank" && (opaque(&next_url) || security_origin(&self.url) != security_origin(&next_url));
         self.network_document(&url, page.net_meta(), error.as_deref());
+        self.redirects = page.redirects();
         self.url = if error.is_some() { "chrome-error://chromewebdata/".to_owned() } else { page.bridge.url.borrow().clone() };
         if let Some(request) = &request {
             let mut result = vec![("frameId", Json::str(&self.target_id)), ("loaderId", Json::str(&self.loader_id))];
@@ -698,7 +702,8 @@ impl Tab {
     fn announce(&self) {
         let url = self.held.as_deref().unwrap_or(&self.url);
         let title = if self.title.is_empty() { url } else { &self.title };
-        self.write_line('I', &Json::object([("url", Json::str(url)), ("title", Json::str(title))]).to_compact());
+        let redirects = Json::Array(self.redirects.iter().map(|hop| Json::str(hop)).collect());
+        self.write_line('I', &Json::object([("url", Json::str(url)), ("title", Json::str(title)), ("redirects", redirects)]).to_compact());
     }
 
     /// Os marcos de rede ociosa e a primeira pintura significativa, que o Chromium só decide depois de um tempo sem

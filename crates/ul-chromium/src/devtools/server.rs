@@ -35,6 +35,8 @@ struct Target {
     kind: &'static str,
     title: String,
     url: String,
+    /// Os endereços pedidos antes do final (redirecionamentos do servidor).
+    redirects: Vec<String>,
     link: Link,
     window_id: i64,
     /// A janela da aba: largura, altura e estado (`normal`, `minimized`...), como o `getWindowForTarget` os devolve.
@@ -195,6 +197,10 @@ impl Browser {
     fn sync_history_title(&self, history: &crate::history::HistoryLog) {
         if let Some(page) = self.targets.iter().find(|target| target.kind == "page") {
             history.set_title(&page.title);
+            history.set_redirects(&page.redirects, &page.url);
+            if let Some(sessions) = &self.default_profile().sessions {
+                sessions.set_redirects(&page.redirects, &page.url);
+            }
         }
     }
 
@@ -261,7 +267,7 @@ impl Browser {
         let id = token();
         let Ok(link) = target::spawn(id.clone(), url.to_owned(), startup, wait, profile.clone()) else { return id };
         let window_id = (super::random_i64() & 0x7FFF_FFFF).max(1);
-        let mut entry = Target { id: id.clone(), kind, title: title.to_owned(), url: url.to_owned(), link, window_id, bounds: (780, 580, "normal".to_owned()), profile, pending: Vec::new(), inbox: Vec::new() };
+        let mut entry = Target { id: id.clone(), kind, title: title.to_owned(), url: url.to_owned(), redirects: Vec::new(), link, window_id, bounds: (780, 580, "normal".to_owned()), profile, pending: Vec::new(), inbox: Vec::new() };
         if kind == "browser_ui" {
             Self::settle(&mut entry);
         }
@@ -767,12 +773,14 @@ impl Browser {
             "I" => {
                 let title = message.get("title").and_then(Json::as_str).unwrap_or_default().to_owned();
                 let url = message.get("url").and_then(Json::as_str).unwrap_or_default().to_owned();
+                let redirects = redirects_of(&message);
                 let Some(entry) = self.targets.iter_mut().find(|t| t.id == target) else { return };
-                if entry.title == title && entry.url == url {
+                if entry.title == title && entry.url == url && entry.redirects == redirects {
                     return;
                 }
                 entry.title = title;
                 entry.url = url;
+                entry.redirects = redirects;
                 if let Some(info) = self.info(target) {
                     self.broadcast_discovery("Target.targetInfoChanged", Json::object([("targetInfo", info)]));
                 }
@@ -946,6 +954,7 @@ impl Browser {
                     Some(info) => {
                         entry.title = info.get("title").and_then(Json::as_str).unwrap_or_default().to_owned();
                         entry.url = info.get("url").and_then(Json::as_str).unwrap_or_default().to_owned();
+                        entry.redirects = redirects_of(&info);
                     }
                     None => rest.extend_from_slice(&line),
                 }
@@ -1054,6 +1063,14 @@ impl Browser {
     }
 }
 
+/// Os endereços pedidos antes do final que o alvo anuncia no `TargetInfo` interno.
+fn redirects_of(info: &Json) -> Vec<String> {
+    match info.get("redirects") {
+        Some(Json::Array(items)) => items.iter().filter_map(|item| item.as_str().map(str::to_owned)).collect(),
+        _ => Vec::new(),
+    }
+}
+
 /// O navegador com DevTools remoto: abre a primeira aba em `url`, anuncia o endereço no stderr e serve até o
 /// `Browser.close`. Com o perfil em disco (`--user-data-dir`), o `localStorage` e o `sessionStorage` do contexto padrão persistem nele; devolve
 /// como o navegador saiu.
@@ -1079,10 +1096,10 @@ pub fn run(ctx: &mut Ctx, options: &Options, url: &str, default_profile: crate::
     let started_us = (ul_common::time::realtime_nanos() / 1000) as i64;
     browser.open_target(url, true, false, None);
     if let Some(history) = &browser.default_profile().history {
-        history.record(crate::history::Navigation { url: url.to_owned(), title: String::new(), start_us: started_us });
+        history.record(crate::history::Navigation { url: url.to_owned(), redirected_from: Vec::new(), title: String::new(), start_us: started_us });
     }
     if let Some(sessions) = &browser.default_profile().sessions {
-        sessions.start(url, started_us + ul_common::time::WEBKIT_EPOCH_US);
+        sessions.start(url, url, started_us + ul_common::time::WEBKIT_EPOCH_US);
     }
     browser.serve(listener);
     let exit = browser.quit.unwrap_or(Exit::Signal);
