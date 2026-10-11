@@ -71,6 +71,7 @@ pub mod url_search_params;
 pub mod form_data;
 pub mod mime;
 pub mod myers_diff;
+pub mod partial_deep_equals;
 pub mod form_data_parse;
 pub mod mime_table;
 pub mod headers;

@@ -1,0 +1,128 @@
+function ok 0 AssertionError,CallTracker,ok,fail,equal,notEqual,deepEqual,notDeepEqual,deepStrictEqual,notDeepStrictEqual,strictEqual,notStrictEqual,partialDeepStrictEqual,match,doesNotMatch,throws,rejects,doesNotThrow,doesNotReject,ifError,strict,Assert
+function strict true true AssertionError,CallTracker,ok,fail,equal,notEqual,deepEqual,notDeepEqual,deepStrictEqual,notDeepStrictEqual,strictEqual,notStrictEqual,partialDeepStrictEqual,match,doesNotMatch,throws,rejects,doesNotThrow,doesNotReject,ifError,Assert,strict
+true true
+AssertionError function Assert
+ok ok2 0 true
+equal equal 3 false
+deepStrictEqual deepStrictEqual 3 true
+partialDeepStrictEqual partialDeepStrictEqual 3 true
+throws throws 1 true
+rejects rejects 1 true
+match match 3 true
+ifError ifError 1 true
+fail fail 5 true
+true true
+ok ok 
+ok false throws AssertionError ERR_ASSERTION "0 == true"
+   true == number boolean
+ok none throws AssertionError ERR_ASSERTION "No value argument passed to `assert.ok()`"
+   true == undefined boolean
+ok msg throws AssertionError ERR_ASSERTION "custom message"
+   false == boolean boolean
+ok error throws RangeError undefined "boom"
+equal ok 
+equal fail throws AssertionError ERR_ASSERTION "1 == 2"
+   true == number number
+notEqual throws AssertionError ERR_ASSERTION "1 != 1"
+   true != number number
+strictEqual throws AssertionError ERR_ASSERTION "Expected values to be strictly equal:\n\n1 !== '1'\n"
+   true strictEqual number string
+strictEqual str throws AssertionError ERR_ASSERTION "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'hello world'\n- 'hello there'\n         ^\n"
+   true strictEqual string string
+strictEqual lines throws AssertionError ERR_ASSERTION "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'a\\nb\\nc'\n- 'a\\nB\\nc'\n      ^\n"
+   true strictEqual string string
+strictEqual NaN ok 
+notStrictEqual throws AssertionError ERR_ASSERTION "Expected \"actual\" to be strictly unequal to: 2"
+   true notStrictEqual number number
+deepEqual throws AssertionError ERR_ASSERTION "Expected values to be loosely deep-equal:\n\n{\n  a: 1\n}\n\nshould loosely deep-equal\n\n{\n  a: '1'\n}"
+   true deepEqual object object
+deepEqual fail throws AssertionError ERR_ASSERTION "Expected values to be loosely deep-equal:\n\n{\n  a: 1\n}\n\nshould loosely deep-equal\n\n{\n  a: 2\n}"
+   true deepEqual object object
+deepStrictEqual ok 
+deepStrictEqual fail throws AssertionError ERR_ASSERTION "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    a: 1,\n    b: [\n      1,\n+     2,\n-     5,\n      3\n    ]\n  }\n"
+   true deepStrictEqual object object
+deepStrictEqual long throws AssertionError ERR_ASSERTION "Expected values to be strictly deep-equal:\n+ actual - expected\n... Skipped lines\n\n  [\n    0,\n    1,\n    2,\n    3,\n...\n    19,\n+   20,\n-   -1,\n    21,\n    22,\n    23,\n    24,\n    25,\n"
+   true deepStrictEqual object object
+deepStrictEqual proto throws AssertionError ERR_ASSERTION "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [Object: null prototype] {}\n- {}\n"
+   true deepStrictEqual object object
+notDeepStrictEqual throws AssertionError ERR_ASSERTION "Expected \"actual\" not to be strictly deep-equal to:\n\n[\n  1\n]\n"
+   true notDeepStrictEqual object object
+notDeepEqual throws AssertionError ERR_ASSERTION "Expected \"actual\" not to be loosely deep-equal to:\n\n{\n  a: 1\n}"
+   true notDeepEqual object object
+fail throws AssertionError ERR_ASSERTION "Failed"
+   true fail undefined undefined
+fail msg throws AssertionError ERR_ASSERTION "nope"
+   false fail undefined undefined
+fail error throws TypeError undefined "t"
+ifError null ok 
+ifError throws AssertionError ERR_ASSERTION "ifError got unwanted exception: inner"
+   false ifError object object
+ifError value throws AssertionError ERR_ASSERTION "ifError got unwanted exception: 'x'"
+   false ifError string object
+match ok 
+match fail throws AssertionError ERR_ASSERTION "The input did not match the regular expression /z/. Input:\n\n'abc'\n"
+   true match string object
+match bad throws AssertionError ERR_ASSERTION "The \"string\" argument must be of type string. Received type number (1)"
+   true match number object
+doesNotMatch throws AssertionError ERR_ASSERTION "The input was expected to not match the regular expression /b/. Input:\n\n'abc'\n"
+   true doesNotMatch string object
+missing args throws TypeError ERR_MISSING_ARGS "The \"actual\" and \"expected\" arguments must be specified"
+missing args 2 throws TypeError ERR_MISSING_ARGS "The \"actual\" and \"expected\" arguments must be specified"
+partial ok ok 
+partial fail throws AssertionError ERR_ASSERTION "Expected values to be partially and strictly deep-equal:\n+ actual - expected\n\n  {\n+   a: 1\n-   a: 2\n  }\n"
+   true partialDeepStrictEqual object object
+partial array ok 
+partial array order throws AssertionError ERR_ASSERTION "Expected values to be partially and strictly deep-equal:\n+ actual - expected\n\n  [\n+   1,\n+   2,\n    3,\n-   1\n  ]\n"
+   true partialDeepStrictEqual object object
+partial set ok 
+partial map ok 
+partial map fail throws AssertionError ERR_ASSERTION "Expected values to be partially and strictly deep-equal:\n+ actual - expected\n\n  Map(1) {\n+   'a' => 1\n-   'b' => 1\n  }\n"
+   true partialDeepStrictEqual object object
+partial typed ok 
+partial float NaN throws AssertionError ERR_ASSERTION "Expected values to be partially and strictly deep-equal:\n+ actual - expected\n\n  Float64Array(2) [\n    NaN,\n+   0\n-   -0\n  ]\n"
+   true partialDeepStrictEqual object object
+partial error ok 
+partial date ok 
+partial zero throws AssertionError ERR_ASSERTION "Expected values to be partially and strictly deep-equal:\n+ actual - expected\n\n  {\n+   a: 0\n-   a: -0\n  }\n"
+   true partialDeepStrictEqual object object
+partial boxed ok 
+partial cycle ok 
+throws ok 
+throws regexp ok 
+throws object ok 
+throws object fail throws AssertionError ERR_ASSERTION "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  Comparison {\n+   message: 'bad'\n-   message: 'good'\n  }\n"
+   true throws object object
+throws none throws AssertionError ERR_ASSERTION "Missing expected exception."
+   false throws undefined undefined
+throws none msg throws AssertionError ERR_ASSERTION "Missing expected exception: should throw"
+   false throws undefined undefined
+throws wrong type throws AssertionError ERR_ASSERTION "The error is expected to be an instance of \"TypeError\". Received \"RangeError\"\n\nError message:\n\nr"
+   true throws object function
+throws validate ok 
+throws ambiguous throws TypeError ERR_AMBIGUOUS_ARGUMENT "The \"error/message\" argument is ambiguous. The error message \"same\" is identical to the message."
+throws bad arg throws TypeError ERR_INVALID_ARG_TYPE "The \"error\" argument must be of type function or an instance of Error, RegExp, or Object. Received type number (5)"
+throws empty throws TypeError ERR_INVALID_ARG_VALUE "The argument 'error' may not be an empty object. Received {}"
+doesNotThrow ok 
+doesNotThrow fail throws AssertionError ERR_ASSERTION "Got unwanted exception.\nActual message: \"x\""
+   false doesNotThrow object undefined
+doesNotThrow fail msg throws AssertionError ERR_ASSERTION "Got unwanted exception: msg\nActual message: \"x\""
+   false doesNotThrow object undefined
+AssertionError ERR_ASSERTION 1 2 strictEqual true "Expected values to be strictly equal:\n\n1 !== 2\n"
+generatedMessage,actual,expected,operator,code,diff AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+plain false undefined
+AssertionError bad throws TypeError ERR_INVALID_ARG_TYPE "The \"options\" argument must be of type object. Received type number (5)"
+Assert loose ok 
+Assert no new throws TypeError ERR_CONSTRUCT_CALL_REQUIRED "Class constructor Assert cannot be invoked without `new`"
+Assert diff throws TypeError ERR_INVALID_ARG_VALUE "The property 'options.diff' must be one of: 'simple', 'full'. Received 'x'"
+Expected the calls function to be executed 2 time(s) but was executed 1 time(s).|1|2
+verify throws AssertionError ERR_ASSERTION "Expected the calls function to be executed 2 time(s) but was executed 1 time(s)."
+   false undefined undefined undefined
+verify ok ok 
+calls bad throws RangeError ERR_OUT_OF_RANGE "The value of \"expected\" is out of range. It must be >= 1 && <= 4294967295. Received 0"
+rejects ok
+rejects fn ok
+rejects none rejects AssertionError ERR_ASSERTION "Missing expected rejection."
+rejects bad rejects TypeError ERR_INVALID_ARG_TYPE "The \"promiseFn\" argument must be of type function or an instance of Promise. Received type number (5)"
+rejects bad return rejects TypeError ERR_INVALID_RETURN_VALUE "Expected instance of Promise to be returned from the \"promiseFn\" function but got type number (5)."
+doesNotReject ok
+doesNotReject fail rejects AssertionError ERR_ASSERTION "Got unwanted rejection.\nActual message: \"no\""

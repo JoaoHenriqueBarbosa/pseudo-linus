@@ -31,7 +31,7 @@
 
   function determineSpecificType(value) {
     if (value == null) return "" + value;
-    if (typeof value === "function" && value.name) return `function ${value.name}`;
+    if (typeof value === "function") return `function ${value.name}`;
     if (typeof value === "object") {
       if (value.constructor?.name) return `an instance of ${value.constructor.name}`;
       return host.inspect(value, { depth: -1 });
@@ -119,11 +119,14 @@
       const type = name.includes(".") ? "property" : "argument";
       return makeError("TypeError", "ERR_INVALID_ARG_VALUE", `The ${type} '${name}' ${reason}. Received ${inspected}`);
     },
+    // O `$ERR_INVALID_RETURN_VALUE` do bun descreve o valor com o determineSpecificType (`type number (5)`, `an instance
+    // of Object`, `null`), não com o `instance of X` do Node; medido no bun 1.4.2.
     INVALID_RETURN_VALUE(input, name, value) {
-      let type;
-      if (value?.constructor?.name) type = `instance of ${value.constructor.name}`;
-      else type = `type ${typeof value}`;
-      return makeError("TypeError", "ERR_INVALID_RETURN_VALUE", `Expected ${input} to be returned from the "${name}" function but got ${type}.`);
+      return makeError(
+        "TypeError",
+        "ERR_INVALID_RETURN_VALUE",
+        `Expected ${input} to be returned from the "${name}" function but got ${determineSpecificType(value)}.`,
+      );
     },
     MISSING_ARGS(...args) {
       let message = "The ";
@@ -143,6 +146,9 @@
       }
       return makeError("TypeError", "ERR_MISSING_ARGS", `${message} must be specified`);
     },
+    AMBIGUOUS_ARGUMENT: (name, reason) => makeError("TypeError", "ERR_AMBIGUOUS_ARGUMENT", `The "${name}" argument is ambiguous. ${reason}`),
+    UNAVAILABLE_DURING_EXIT: () => makeError("Error", "ERR_UNAVAILABLE_DURING_EXIT", "Cannot call function in process exit handler"),
+    CONSTRUCT_CALL_REQUIRED: message => makeError("TypeError", "ERR_CONSTRUCT_CALL_REQUIRED", message),
     ILLEGAL_CONSTRUCTOR: () => makeError("TypeError", "ERR_ILLEGAL_CONSTRUCTOR", "Illegal constructor"),
     // Os de URL do bun: a mensagem é o argumento como veio (`$ERR_INVALID_URL_SCHEME("file")` dá a mensagem "file").
     INVALID_URI: () => makeError("URIError", "ERR_INVALID_URI", "URI malformed"),
@@ -218,6 +224,13 @@
     }
   }
 
+  function validateUint32(value, name, positive = false) {
+    if (typeof value !== "number") throw invalidArgType(name, "number", value);
+    if (value % 1 !== 0) throw outOfRange(name, "an integer", value);
+    const min = positive ? 1 : 0;
+    if (value < min || value > 4294967295) throw outOfRange(name, `>= ${min} && <= 4294967295`, value);
+  }
+
   function validateInteger(value, name, min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER) {
     if (typeof value !== "number") throw invalidArgType(name, "number", value);
     if (!NumberIsInteger(value)) throw outOfRange(name, "an integer", value);
@@ -267,6 +280,7 @@
     kValidateObjectAllowFunction,
     validateObject,
     validateInteger,
+    validateUint32,
     validateNumber,
     validateString,
     validateFunction,

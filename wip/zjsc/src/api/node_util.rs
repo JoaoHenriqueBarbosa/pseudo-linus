@@ -197,7 +197,7 @@ fn is_deep_strict_equal_body(global_object: &JSGlobalObject, call: &HostCall) ->
     let mode = Mode { strict: true, skip_prototype_identity: call.argument(2).to_boolean(), check_prototypes: true };
     Ok(js_boolean(deep_equals(global_object, mode, call.argument(0), call.argument(1))?))
 }
-host_function!(is_deep_strict_equal, is_deep_strict_equal_body);
+host_function!(pub is_deep_strict_equal, is_deep_strict_equal_body);
 
 /// `$isJSArray(valor)`: `ArrayType` ou `DerivedArrayType`, sem olhar o `Proxy`.
 fn is_js_array_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
@@ -259,6 +259,27 @@ fn parse_env_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult
 }
 host_function!(parse_env, parse_env_body);
 
+/// O nome em `builtin_modules::cached` dos internos que o `util` entrega (`primordials`, `colors`, `inspect`,
+/// `deprecate`).
+const UTIL_INTERNALS: &str = "internal:util";
+
+/// `host.registerInternals(objeto)`: o `util` entrega ao hospedeiro as instâncias dos internos dele.
+fn register_internals_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let internals = call.argument(0);
+    crate::api::builtin_modules::cached(UTIL_INTERNALS, || Ok(internals))?;
+    Ok(JSValue::undefined())
+}
+host_function!(register_internals, register_internals_body);
+
+/// `host.utilInternal(nome)`: o interno `nome` do `util` (o mesmo objeto, como no registro único do bun), carregando o
+/// `util` se ainda não foi carregado.
+fn util_internal_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let internals = crate::api::builtin_modules::registered_by(global_object, "util", UTIL_INTERNALS, || Thrown::type_error("util internals"))?;
+    let name = PropertyName::from_identifier(&Identifier::from_string(global_object.vm(), &call.argument(0).to_wtf_string()));
+    pending_or(global_object, internals.as_object().get(global_object, &name))
+}
+host_function!(pub util_internal, util_internal_body);
+
 /// Instalador de `node:util`.
 pub(crate) fn install_util_module(global_object: &JSGlobalObject) -> HostResult {
     let host = module_host(
@@ -281,6 +302,7 @@ pub(crate) fn install_util_module(global_object: &JSGlobalObject) -> HostResult 
             ("isJSArray", 1, is_js_array),
             ("jsFunctionIsError", 1, is_error),
             ("parseEnv", 1, parse_env),
+            ("registerInternals", 1, register_internals),
             ("parseArgs", 1, crate::api::node_parse_args::parse_args),
             ("requireInternal", 1, crate::api::node_stream::require_internal),
             ("stringWidth", 1, crate::runtime::bun_global::bun_string_width),

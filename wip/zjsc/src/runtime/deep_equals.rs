@@ -82,7 +82,7 @@ pub(crate) struct Mode {
 type Stack = Vec<(JSValue, JSValue)>;
 
 /// Os dois lados de cada par como raiz enquanto o JS de getters e traps pode rodar o coletor.
-fn root_pairs(pairs: &[(JSValue, JSValue)]) -> RootScope {
+pub(crate) fn root_pairs(pairs: &[(JSValue, JSValue)]) -> RootScope {
     RootScope::new(&pairs.iter().flat_map(|(left, right)| [*left, *right]).collect::<Vec<JSValue>>())
 }
 
@@ -202,7 +202,7 @@ fn is_well_known_constructor(value: JSValue) -> bool {
 }
 
 /// O valor de um slot já achado, com a exceção do getter pendente (`slot.getValue` seguido de `RETURN_IF_EXCEPTION`).
-fn slot_value(global_object: &JSGlobalObject, slot: &PropertySlot, name: &PropertyName) -> Result<JSValue, Thrown> {
+pub(crate) fn slot_value(global_object: &JSGlobalObject, slot: &PropertySlot, name: &PropertyName) -> Result<JSValue, Thrown> {
     let value = slot.get_value_for(name);
     pending_or(global_object, value)
 }
@@ -284,7 +284,7 @@ fn non_index_own_properties_equal(global_object: &JSGlobalObject, mode: Mode, st
 }
 
 /// `o->methodTable()->getOwnPropertyNames(o, globalObject, names, DontEnumPropertiesMode::Exclude)`: só as chaves próprias.
-fn own_property_names(global_object: &JSGlobalObject, object: &ObjectRef) -> Result<Vec<Identifier>, Thrown> {
+pub(crate) fn own_property_names(global_object: &JSGlobalObject, object: &ObjectRef) -> Result<Vec<Identifier>, Thrown> {
     let mut names = PropertyNameArrayBuilder::new(global_object.vm(), PropertyNameMode::StringsAndSymbols, PrivateSymbolMode::Exclude);
     object_get_own_property_names(global_object, object, &mut names, DontEnumPropertiesMode::Exclude)?;
     Ok(names.iter().cloned().collect())
@@ -607,7 +607,7 @@ fn errors_equal(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack, l
 }
 
 /// `NaN` e zero de um número de ponto flutuante de `width` bytes (little-endian), pelos bits.
-fn float_bits(bytes: &[u8]) -> (bool, bool) {
+pub(crate) fn float_bits(bytes: &[u8]) -> (bool, bool) {
     let bits = bytes.iter().rev().fold(0u64, |acc, byte| (acc << 8) | u64::from(*byte));
     let (exponent_bits, mantissa_bits) = match bytes.len() {
         2 => (5, 10),
@@ -728,7 +728,7 @@ fn is_dom_object(object: &ObjectRef) -> bool {
 }
 
 /// O valor interno dos invólucros `Symbol` e `BigInt` (no JSC são `ObjectType` comuns).
-fn wrapper_kind(object: &ObjectRef) -> Option<(bool, JSValue)> {
+pub(crate) fn wrapper_kind(object: &ObjectRef) -> Option<(bool, JSValue)> {
     let value = object.as_value();
     if let Some(wrapper) = SymbolObject::from_value(&value) {
         return Some((true, wrapper.internal_value()));

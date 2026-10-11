@@ -8,6 +8,7 @@ pub mod fs_module_host;
 pub mod main_module_kind;
 pub mod module;
 pub mod module_probe;
+pub mod node_assert;
 pub mod node_async_hooks;
 pub mod node_events;
 pub mod node_js_host;

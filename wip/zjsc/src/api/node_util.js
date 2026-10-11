@@ -2791,6 +2791,7 @@ return {
 };
 
 })();
+host.registerInternals({ primordials, colors: colorsModule, inspect: inspectModule, deprecate: deprecateModule });
 const types = host.requireBuiltin("node:util/types");
 const { promisify } = promisifyModule;
 const {

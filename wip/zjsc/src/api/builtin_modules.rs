@@ -52,6 +52,8 @@ pub(crate) enum Resolved<'a> {
 
 /// Os módulos instalados. Acrescentar aqui, na ordem alfabética.
 pub(crate) static BUILTINS: &[BuiltinEntry] = &[
+    BuiltinEntry { name: "assert", scheme: Scheme::Both, install: crate::api::node_assert::install_assert_module },
+    BuiltinEntry { name: "assert/strict", scheme: Scheme::Both, install: crate::api::node_assert::install_assert_strict_module },
     BuiltinEntry { name: "async_hooks", scheme: Scheme::Both, install: crate::api::node_async_hooks::install_async_hooks_module },
     BuiltinEntry { name: "buffer", scheme: Scheme::Both, install: crate::runtime::node_buffer::install_buffer_module },
     BuiltinEntry { name: "events", scheme: Scheme::Both, install: crate::api::node_events::install_events_module },
@@ -200,6 +202,14 @@ pub(crate) fn cached(name: &'static str, build: impl FnOnce() -> HostResult) -> 
     let installed = build()?;
     CACHE.with(|cache| cache.borrow_mut().push((name, installed.clone())));
     Ok(installed)
+}
+
+/// O que o módulo embutido `owner` entregou ao hospedeiro em `key` ao ser montado (o `require` interno do `stream`, os
+/// internos do `util`): carrega `owner` se ainda não foi carregado; `missing` é o erro de quando nada foi entregue.
+pub(crate) fn registered_by(global_object: &JSGlobalObject, owner: &str, key: &'static str, missing: impl FnOnce() -> Thrown) -> HostResult {
+    let Resolved::Builtin(entry) = resolve(owner) else { unreachable!("{owner} consta em BUILTINS") };
+    load(global_object, entry)?;
+    cached(key, || Err(missing()))
 }
 
 /// Fim do programa (`eval::reset_for_program`): o cache é do programa.

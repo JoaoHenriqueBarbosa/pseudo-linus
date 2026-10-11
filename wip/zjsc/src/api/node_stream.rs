@@ -3,7 +3,7 @@
 //! gerado por `scripts/gen-node-stream.js` a partir dos fontes do stream do bun, `node_querystring.js`, o
 //! `querystring.ts` do bun, e `node_timers.js` e `node_timers_promises.js`, os `timers*.ts` do bun).
 
-use crate::api::builtin_modules::{cached, load, resolve, Resolved};
+use crate::api::builtin_modules::{cached, registered_by};
 use crate::api::node_js_host::{install_js_module, module_host, run_factory};
 use crate::host_function;
 use crate::runtime::host_call::{HostCall, HostResult, Thrown};
@@ -34,9 +34,7 @@ host_function!(register_require, register_require_body);
 /// módulos. Carrega `node:stream` se ainda não foi carregado e resolve `nome` no `require` interno dele.
 fn require_internal_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let name = rust_string(&call.argument(0).to_wtf_string());
-    let Resolved::Builtin(entry) = resolve("stream") else { unreachable!("o módulo stream consta em BUILTINS") };
-    load(global_object, entry)?;
-    let require = cached(STREAM_REQUIRE, || Err(throw_coded_error(global_object, &format!("Cannot find module '{name}'"), "MODULE_NOT_FOUND")))?;
+    let require = registered_by(global_object, "stream", STREAM_REQUIRE, || throw_coded_error(global_object, &format!("Cannot find module '{name}'"), "MODULE_NOT_FOUND"))?;
     call_function(global_object, require, JSValue::undefined(), &[call.argument(0)]).ok_or(Thrown::Pending)
 }
 host_function!(pub require_internal, require_internal_body);

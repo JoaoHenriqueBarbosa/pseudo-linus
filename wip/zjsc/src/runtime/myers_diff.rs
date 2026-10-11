@@ -361,9 +361,9 @@ fn print_myers_diff_body(global_object: &JSGlobalObject, call: &HostCall) -> Hos
     Ok(result.as_value())
 }
 
-host_function!(myers_diff, myers_diff_body);
-host_function!(print_simple_myers_diff, print_simple_myers_diff_body);
-host_function!(print_myers_diff, print_myers_diff_body);
+host_function!(pub myers_diff, myers_diff_body);
+host_function!(pub print_simple_myers_diff, print_simple_myers_diff_body);
+host_function!(pub print_myers_diff, print_myers_diff_body);
 
 #[cfg(test)]
 mod tests {

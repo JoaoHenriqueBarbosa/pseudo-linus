@@ -121,6 +121,8 @@ out += scoped("colorsModule", "internal/util/colors");
 out += scoped("inspectModule", "internal/util/inspect.js");
 out += scoped("promisifyModule", "internal/promisify");
 out += scoped("deprecateModule", "internal/util/deprecate");
+// O registro interno de módulos do bun é um só: o `assert` recebe estas mesmas instâncias por `host.utilInternal`.
+out += "host.registerInternals({ primordials, colors: colorsModule, inspect: inspectModule, deprecate: deprecateModule });\n";
 out += convert("node/util.ts");
 out += "\n})\n";
 process.stdout.write(out);
