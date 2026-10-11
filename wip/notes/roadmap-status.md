@@ -9,7 +9,7 @@ Convenção da coluna "Fonte": **eu** = medido pelo coordenador com comando pró
 por um fork na saída do container dele, não recompilado pelo coordenador; **vigente** = valor herdado de um arquivo
 versionado, com a data do arquivo.
 
-Última verificação: 2026-10-11 19:50 (CEST).
+Última verificação: 2026-10-11 18:05 (CEST). Os horários do Registro de atualizações são os dos commits deste arquivo (`git log`); uma versão anterior trazia horários errados, adiantados.
 
 ## Ritmo medido
 
@@ -64,7 +64,7 @@ por dia no zjsc e 60 a 70 no zbun.
 
 ## Fila priorizada
 
-1. **Medir um recorte de WPT** (M5.4). test262 medido (M5.1 e M5.6 cumpridos); resta fechar o corredor (fixtures em memória, `createRealm`), os 8 crashes e 2 timeouts, depois `Atomics` (68,4%), `module-code` (81,8%) e `import source/defer`.
+1. **Subir o WPT de 49,0% para 90%** (M5.4, `wip/notes/wpt-baseline.md`). Causas medidas: `assert_equals` genérico (2388), arquivos sem resultado (1619), seletor inválido (1008), `getComputedStyle` (756), interfaces XML ausentes (1167), `type-change` de input week/month (280). Do test262 sobram só faltas do motor (`$262.agent`, `import source/defer`, ArrayBuffer imutável, `Promise.allKeyed`, async de módulo).
 2. CDP e Playwright (M5.6): fechar a lista de métodos, depois o driver Node no bun.
 3. `--screenshot` e `--print-to-pdf` (M5.5): pintura de página (`blitz-paint` sobre `vello_cpu`), PNG e PDF, medido por diferença perceptual.
 4. bun/node (M5.2): `bun run`, `-p`, opções, `test`, `x`; decidir se o comando `node` e o `npm install` entram.
@@ -72,7 +72,7 @@ por dia no zjsc e 60 a 70 no zbun.
 
 ## Riscos sem medição
 
-- **Desempenho do interpretador:** 1 milhão de iterações de `decodeURI` leva 19,9 s no zjsc (fork, test262). O PRD pede `import numpy` abaixo de 200 ms e não fixa meta de desempenho do motor JavaScript; ainda assim a velocidade não foi medida em benchmark. Sem estimativa.
+- **Desempenho do interpretador:** 1 milhão de iterações de `decodeURI` leva 19,9 s no zjsc (fork, test262). O PRD pede `import numpy` abaixo de 200 ms e não fixa meta de desempenho do motor JavaScript; ainda assim a velocidade não foi medida em benchmark. Sem estimativa. Baseline a medir (sugestão de revisão externa): tempo do `bun cli.js --version` (driver do Playwright), do `--dump-dom` de uma SPA e de um laço clássico (richards ou deltablue) contra o JSC do bun real; o tempo dos 42 sites da internet não está registrado. A velocidade do JSC de produção com JIT (dezenas de ms para 1 milhão de `decodeURI`) é conhecimento geral, não medição desta bancada.
 
 ## Estimativas otimistas
 
@@ -90,32 +90,32 @@ Método: ritmo medido acima, aplicado a itens com escopo conhecido. Item sem bas
 A estimativa dada ao user em 2026-10-11 (5 a 7 dias sem screenshot, 7 a 11 com) omitia M5.1, M5.4 e M5.5 como critérios
 formais; este arquivo a substitui. Corrigido também: o PRD pede screenshot por diferença perceptual, não byte a byte.
 
-## Frentes ativas (2026-10-11)
+## Frentes ativas (2026-10-11, 18:05 CEST)
 
-| Frente | Fork | Última integração |
-|---|---|---|
-| Printer, zbun, `ul-bun` | `ad4a1a75f3d5455f0` | `0775d66d` (CLI do bun), checkout principal |
-| Suíte do zjsc e Intl | `a7c6a4d11a2d73979` | `46da9666` (formatRange), checkout principal |
-| Greenlet, pyppeteer, Playwright | `adccaf30202b0bde1` | `acdd7bba` (Network http), worktree chromium-headless |
-| CDP e perfil | `a1f2c7757966af6bf` | `eb2bd184` (Sessions ao vivo), worktree chromium-headless |
+| Frente | Fork | Última integração | Em andamento |
+|---|---|---|---|
+| Printer, zbun, `ul-bun`, driver do Playwright | `ad4a1a75f3d5455f0` | `8be24a85` (Bun.listen e Bun.connect), checkout principal | `node:net` gerado do `net.ts` (fatia B), depois o erro seguinte de `cli.js --version` |
+| Motor zjsc (fuso, locale, Intl) | `a7c6a4d11a2d73979` | `e320930e`, nos dois checkouts | ocioso; WPT e Intl a retomar |
+| Greenlet, pyppeteer, Playwright | `adccaf30202b0bde1` | `1de9433c` (fuso e locale vivos), worktree chromium-headless | `Fetch.*` e `Network.getResponseBody`, depois diálogos |
+| CDP e perfil | `a1f2c7757966af6bf` | `d8c51329` (árvore do Browser.close), worktree chromium-headless | iframe: spike de dois globais no mesmo VM passou; acesso cruzado e realm por frame |
 
 ## Registro de atualizações
 
-- 2026-10-11 14:30: arquivo criado. Achados: test262 e WPT nunca foram medidos; `--screenshot` e `--print-to-pdf` não existem; o alvo de screenshot é perceptual.
-- 2026-10-11 14:45: test262 clonado (commit `2e0a5676`, 53 910 testes); runner e baseline ainda não existem. Os 4 forks rodando.
-- 2026-10-11 15:05: CDP reportado em 347 de 379 e `playwright_handshake` 53 de 53, pendentes de commit (fork do greenlet).
-- 2026-10-11 15:25: driver Node do Playwright medido (`playwright-driver.md`). `bun run` com package.json integrado (`90460435`).
-- 2026-10-11 16:00: replay do Playwright real em 245 de 664 (36,9%), primeira medida direta do M5.6 para o Playwright. Faltam `Target.createTarget` com contexto, `DOM.*`, `Input.*` e o que o log completo do replay listar.
-- 2026-10-11 16:25: replay do Playwright corrigido para 402 de 664 (60,5%): o harness enviava o script injetado como texto literal. `DOM.*` e `Input.*` implementados (fork), placar novo pendente. test262 em 29 500 de 52 017 testes rodados, sem baseline ainda.
-- 2026-10-11 17:00: test262 medido: 97,5% (M5.1 e a parte de test262 do M5.6 cumpridos). Corredor validado com 6 controles. Próxima lacuna de medição: WPT (M5.4).
-- 2026-10-11 17:30: replay do Playwright em 725 de 1151 (cinco cenas). `bun run` e `node:tty` integrados; driver do Playwright parado em `crypto`. Corpus do `ul-bun` em 216 casos.
-- 2026-10-11 17:45: 8 crashes do test262 fechados (`2653b961`); desempenho do interpretador registrado como risco sem medição.
-- 2026-10-11 18:00: suíte completa do chromium verde em `eb2bd184` (288 testes, 0 falhas). Redirecionamento (301) do perfil em andamento no fork do CDP.
-- 2026-10-11 18:15: DOM.* e Input.* e o replay das cinco cenas integrados no worktree do chromium-headless (`96a72904`). Playwright em 725 de 1151.
-- 2026-10-11 19:30: métodos baratos do CDP integrados (`4db26cb8`): CDP em 501 de 564 (o denominador cresceu com o cenário `playwright_state`). Regressão pós-rebase pendente.
-- 2026-10-11 19:50: test262 em 98,6% com o corredor fechado (`0a6c80c9`, `c07fb25f`). Restos são falta do motor. Corredor novo ainda sem revalidação por controle.
-- 2026-10-11 20:20: redirecionamento de servidor (301) no History e nas Sessions do CDP integrado no worktree do chromium-headless (`5a8d0fbc`, do `2a03eb49` do fork). Medido por mim em container: dump_redirect 1, history_devtools 6, sessions 6, sessions_devtools 3, todos ok (devtools e conformance saíram com exit 0). Fora do medido: cadeias de mais de um salto. Achado do fork: a saída por Browser.close deixa uma árvore (cache, DIPS, Shortcuts, GCM Store, Network Persistent State, ukm_db) bem maior que a do SIGTERM, além do UKM.
+- 2026-10-11 14:31: arquivo criado. Achados: test262 e WPT nunca foram medidos; `--screenshot` e `--print-to-pdf` não existem; o alvo de screenshot é perceptual.
+- 2026-10-11 14:41: test262 clonado (commit `2e0a5676`, 53 910 testes); runner e baseline ainda não existem. Os 4 forks rodando.
+- 2026-10-11 14:45: CDP reportado em 347 de 379 e `playwright_handshake` 53 de 53, pendentes de commit (fork do greenlet).
+- 2026-10-11 14:50: driver Node do Playwright medido (`playwright-driver.md`). `bun run` com package.json integrado (`90460435`).
+- 2026-10-11 14:56: replay do Playwright real em 245 de 664 (36,9%), primeira medida direta do M5.6 para o Playwright. Faltam `Target.createTarget` com contexto, `DOM.*`, `Input.*` e o que o log completo do replay listar.
+- 2026-10-11 15:02: replay do Playwright corrigido para 402 de 664 (60,5%): o harness enviava o script injetado como texto literal. `DOM.*` e `Input.*` implementados (fork), placar novo pendente. test262 em 29 500 de 52 017 testes rodados, sem baseline ainda.
+- 2026-10-11 15:07: test262 medido: 97,5% (M5.1 e a parte de test262 do M5.6 cumpridos). Corredor validado com 6 controles. Próxima lacuna de medição: WPT (M5.4).
+- 2026-10-11 15:09: replay do Playwright em 725 de 1151 (cinco cenas). `bun run` e `node:tty` integrados; driver do Playwright parado em `crypto`. Corpus do `ul-bun` em 216 casos.
+- 2026-10-11 15:10: 8 crashes do test262 fechados (`2653b961`); desempenho do interpretador registrado como risco sem medição.
+- 2026-10-11 15:13: suíte completa do chromium verde em `eb2bd184` (288 testes, 0 falhas). Redirecionamento (301) do perfil em andamento no fork do CDP.
+- 2026-10-11 15:34: DOM.* e Input.* e o replay das cinco cenas integrados no worktree do chromium-headless (`96a72904`). Playwright em 725 de 1151.
+- 2026-10-11 15:37: métodos baratos do CDP integrados (`4db26cb8`): CDP em 501 de 564 (o denominador cresceu com o cenário `playwright_state`). Regressão pós-rebase pendente.
+- 2026-10-11 16:07: test262 em 98,6% com o corredor fechado (`0a6c80c9`, `c07fb25f`). Restos são falta do motor. Corredor novo ainda sem revalidação por controle.
+- 2026-10-11 16:09: redirecionamento de servidor (301) no History e nas Sessions do CDP integrado no worktree do chromium-headless (`5a8d0fbc`, do `2a03eb49` do fork). Medido por mim em container: dump_redirect 1, history_devtools 6, sessions 6, sessions_devtools 3, todos ok (devtools e conformance saíram com exit 0). Fora do medido: cadeias de mais de um salto. Achado do fork: a saída por Browser.close deixa uma árvore (cache, DIPS, Shortcuts, GCM Store, Network Persistent State, ukm_db) bem maior que a do SIGTERM, além do UKM.
 
-- 2026-10-11 20:40: WPT medido pela primeira vez (M5.4): 49,0% contra meta de 90%. Runner e worker integrados no worktree do chromium-headless (`754dcdd4`, do `dc55d53c`; removi da nota o caminho do home). Número do fork, ainda sem controle meu. A lacuna do M5.4 é grande: pesam seletores inválidos, getComputedStyle e as interfaces XML.- 2026-10-11 21:30: integrados e medidos por mim em container: node:crypto (`0c6a936b`) com o corpus do ul-bun em 220 casos ok em checkout limpo (`cd6e518f` corrige dois defeitos antigos de fixture: files/ vazio e node_modules do tsx-automatic ignorado pelo git); fuso vivo do motor (`92f9ee00`, process_time_zone 6 testes ok); Network de subrecurso do CDP (`c7799d48` no chromium-headless: devtools, conformance, history_devtools, dump_redirect ok). Driver do Playwright no nosso bun parou em `Cannot find module net` (printer segue com node:net). Pendentes: locale padrão do motor, Cookie por redirect, UKM e árvore do Browser.close do CDP.
-- 2026-10-11 22:50: suíte completa do ul-chromium medida por mim em container no chromium-headless em `1de9433c` (Cookie por redirect, fuso e locale vivos sobre o Network de subrecurso): 25 binários ok, 183 testes, 0 falhas (o internet levou 28 min). Número do fork para o mesmo estado: CDP 636 de 717, playwright_cookies 45 de 51, playwright_locale 37 de 37 (fork, não revalidado). UKM do --dump-dom integrado (`433d7395`, do `e78c5a4c`), ainda sem a suíte completa neste HEAD. Pendentes: árvore do Browser.close (fork do CDP, clean-s22), Fetch.* e getResponseBody (greenlet), node:net do driver do Playwright (printer).
-- 2026-10-11 23:55: árvore da saída do Browser.close integrada no chromium-headless (`d8c51329`, do `14511b6d`); medido por mim em container: close_profile, disk_profile (7), dump_profile (3), dump_redirect, history_devtools (6), sessions (6), sessions_devtools (3), devtools e conformance, todos ok (9 binários, 0 falhas). Fatia A do node:net (Bun.listen e Bun.connect, `8be24a85` no checkout principal): corpus do ul-bun ok, 221 casos. Fork do CDP abriu a frente de iframe por decisão minha (serve a M5.6, M5.3 e M5.4): risco de motor declarado, um global zjsc por run_page, frame exige vários globais no mesmo VM. Fork do printer na fatia B do node:net (net.ts gerado) rumo ao driver do Playwright.
+- 2026-10-11 16:21: WPT medido pela primeira vez (M5.4): 49,0% contra meta de 90%. Runner e worker integrados no worktree do chromium-headless (`754dcdd4`, do `dc55d53c`; removi da nota o caminho do home). Número do fork, ainda sem controle meu. A lacuna do M5.4 é grande: pesam seletores inválidos, getComputedStyle e as interfaces XML.- 2026-10-11 21:30: integrados e medidos por mim em container: node:crypto (`0c6a936b`) com o corpus do ul-bun em 220 casos ok em checkout limpo (`cd6e518f` corrige dois defeitos antigos de fixture: files/ vazio e node_modules do tsx-automatic ignorado pelo git); fuso vivo do motor (`92f9ee00`, process_time_zone 6 testes ok); Network de subrecurso do CDP (`c7799d48` no chromium-headless: devtools, conformance, history_devtools, dump_redirect ok). Driver do Playwright no nosso bun parou em `Cannot find module net` (printer segue com node:net). Pendentes: locale padrão do motor, Cookie por redirect, UKM e árvore do Browser.close do CDP.
+- 2026-10-11 17:12: suíte completa do ul-chromium medida por mim em container no chromium-headless em `1de9433c` (Cookie por redirect, fuso e locale vivos sobre o Network de subrecurso): 25 binários ok, 183 testes, 0 falhas (o internet levou 28 min). Número do fork para o mesmo estado: CDP 636 de 717, playwright_cookies 45 de 51, playwright_locale 37 de 37 (fork, não revalidado). UKM do --dump-dom integrado (`433d7395`, do `e78c5a4c`), ainda sem a suíte completa neste HEAD. Pendentes: árvore do Browser.close (fork do CDP, clean-s22), Fetch.* e getResponseBody (greenlet), node:net do driver do Playwright (printer).
+- 2026-10-11 17:55: árvore da saída do Browser.close integrada no chromium-headless (`d8c51329`, do `14511b6d`); medido por mim em container: close_profile, disk_profile (7), dump_profile (3), dump_redirect, history_devtools (6), sessions (6), sessions_devtools (3), devtools e conformance, todos ok (9 binários, 0 falhas). Fatia A do node:net (Bun.listen e Bun.connect, `8be24a85` no checkout principal): corpus do ul-bun ok, 221 casos. Fork do CDP abriu a frente de iframe por decisão minha (serve a M5.6, M5.3 e M5.4): risco de motor declarado, um global zjsc por run_page, frame exige vários globais no mesmo VM. Fork do printer na fatia B do node:net (net.ts gerado) rumo ao driver do Playwright.
