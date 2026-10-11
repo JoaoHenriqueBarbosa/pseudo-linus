@@ -17,7 +17,6 @@ fn builtin_function_shapes_match_bun() {
 /// O mesmo passeio só pelo `URLPattern` (`url.URLPattern`), que o zjsc ainda não tem: a dívida fica registrada aqui, e
 /// não fora do golden.
 #[test]
-#[ignore = "o zjsc ainda não tem o URLPattern"]
 fn url_pattern_shapes_match_bun() {
     let probe = PROBE.replace("const URL_PATTERN = \"skip\";", "const URL_PATTERN = \"only\";");
     main_golden::assert_main_script_matches(&probe, include_str!("golden/builtin_function_shape_url_pattern.expected.txt"));

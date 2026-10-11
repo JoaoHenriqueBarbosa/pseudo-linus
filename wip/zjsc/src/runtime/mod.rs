@@ -67,6 +67,7 @@ pub mod fetch;
 pub mod file;
 pub mod web_iterable;
 pub mod url;
+pub mod url_pattern;
 pub mod url_search_params;
 pub mod form_data;
 pub mod mime;

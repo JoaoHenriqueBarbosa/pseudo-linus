@@ -759,6 +759,7 @@ fn reset_program_state() {
     crate::runtime::text_encoder::reset_for_program();
     crate::runtime::web_iterable::reset_for_program();
     crate::runtime::url::reset_for_program();
+    crate::runtime::url_pattern::reset_for_program();
     crate::runtime::blob::reset_for_program();
     crate::runtime::response::reset_for_program();
     crate::runtime::request::reset_for_program();

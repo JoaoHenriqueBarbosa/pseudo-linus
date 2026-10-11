@@ -134,6 +134,7 @@ fn visit_side_tables(marker: &mut Marker, phase: SidePhase) -> bool {
     let mut progressed = false;
     for visit in [
         rt::url::visit_side_table,
+        rt::url_pattern::visit_side_table,
         rt::request::visit_side_table,
         rt::mime::visit_side_table,
         rt::response::visit_side_table,

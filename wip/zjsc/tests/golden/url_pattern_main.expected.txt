@@ -1,0 +1,603 @@
+function URLPattern 0 length,name,prototype
+true true true
+true
+true true
+constructor value:function:true false true
+protocol get:function:set:undefined true true
+username get:function:set:undefined true true
+password get:function:set:undefined true true
+hostname get:function:set:undefined true true
+port get:function:set:undefined true true
+pathname get:function:set:undefined true true
+search get:function:set:undefined true true
+hash get:function:set:undefined true true
+hasRegExpGroups get:function:set:undefined true true
+test value:function:true true true
+exec value:function:true true true
+Symbol(Symbol.toStringTag) value:string:false false true
+true [object URLPattern] URLPattern
+throws TypeError:ERR_ILLEGAL_CONSTRUCTOR:Use `new URLPattern(...)` instead of `URLPattern(...)`
+throws TypeError:ERR_ILLEGAL_CONSTRUCTOR:Use `new URLPattern(...)` instead of `URLPattern(...)`
+protocol throws TypeError:undefined:The URLPattern.protocol getter can only be used on instances of URLPattern throws TypeError:undefined:The URLPattern.protocol getter can only be used on instances of URLPattern
+username throws TypeError:undefined:The URLPattern.username getter can only be used on instances of URLPattern throws TypeError:undefined:The URLPattern.username getter can only be used on instances of URLPattern
+password throws TypeError:undefined:The URLPattern.password getter can only be used on instances of URLPattern throws TypeError:undefined:The URLPattern.password getter can only be used on instances of URLPattern
+hostname throws TypeError:undefined:The URLPattern.hostname getter can only be used on instances of URLPattern throws TypeError:undefined:The URLPattern.hostname getter can only be used on instances of URLPattern
+port throws TypeError:undefined:The URLPattern.port getter can only be used on instances of URLPattern throws TypeError:undefined:The URLPattern.port getter can only be used on instances of URLPattern
+pathname throws TypeError:undefined:The URLPattern.pathname getter can only be used on instances of URLPattern throws TypeError:undefined:The URLPattern.pathname getter can only be used on instances of URLPattern
+search throws TypeError:undefined:The URLPattern.search getter can only be used on instances of URLPattern throws TypeError:undefined:The URLPattern.search getter can only be used on instances of URLPattern
+hash throws TypeError:undefined:The URLPattern.hash getter can only be used on instances of URLPattern throws TypeError:undefined:The URLPattern.hash getter can only be used on instances of URLPattern
+hasRegExpGroups throws TypeError:undefined:The URLPattern.hasRegExpGroups getter can only be used on instances of URLPattern throws TypeError:undefined:The URLPattern.hasRegExpGroups getter can only be used on instances of URLPattern
+throws TypeError:ERR_INVALID_THIS:Can only call URLPattern.test on instances of URLPattern throws TypeError:ERR_INVALID_THIS:Can only call URLPattern.exec on instances of URLPattern
+[object URLPattern] 0 0 true
+[object URLPattern] {}
+URLPattern {
+  protocol: "https",
+  username: "*",
+  password: "*",
+  hostname: "example.com",
+  port: "",
+  pathname: "/:a/:b?",
+  search: "*",
+  hash: "*",
+  hasRegExpGroups: false,
+  test: [Function: test],
+  exec: [Function: exec],
+}
+URLPattern {}
+[
+  URLPattern {
+    protocol: "https",
+    username: "*",
+    password: "*",
+    hostname: "example.com",
+    port: "",
+    pathname: "/:a/:b?",
+    search: "*",
+    hash: "*",
+    hasRegExpGroups: false,
+    test: [Function: test],
+    exec: [Function: exec],
+  }
+]
+{
+  p: URLPattern {
+    protocol: "https",
+    username: "*",
+    password: "*",
+    hostname: "example.com",
+    port: "",
+    pathname: "/:a/:b?",
+    search: "*",
+    hash: "*",
+    hasRegExpGroups: false,
+    test: [Function: test],
+    exec: [Function: exec],
+  },
+}
+URLPattern {
+  protocol: "https",
+  username: "*",
+  password: "*",
+  hostname: "example.com",
+  port: "",
+  pathname: "/:a/:b?",
+  search: "*",
+  hash: "*",
+  hasRegExpGroups: false,
+  test: [Function: test],
+  exec: [Function: exec],
+}
+{
+  inputs: [ "https://example.com/x/y" ],
+  protocol: {
+    input: "https",
+    groups: {},
+  },
+  username: {
+    input: "",
+    groups: {
+      "0": "",
+    },
+  },
+  password: {
+    input: "",
+    groups: {
+      "0": "",
+    },
+  },
+  hostname: {
+    input: "example.com",
+    groups: {},
+  },
+  port: {
+    input: "",
+    groups: {},
+  },
+  pathname: {
+    input: "/x/y",
+    groups: {
+      a: "x",
+      b: "y",
+    },
+  },
+  search: {
+    input: "",
+    groups: {
+      "0": "",
+    },
+  },
+  hash: {
+    input: "",
+    groups: {
+      "0": "",
+    },
+  },
+}
+inputs,protocol,username,password,hostname,port,pathname,search,hash input,groups true
+a,b true
+{
+  inputs: [ "https://example.com/x" ],
+  protocol: {
+    input: "https",
+    groups: {},
+  },
+  username: {
+    input: "",
+    groups: {
+      "0": "",
+    },
+  },
+  password: {
+    input: "",
+    groups: {
+      "0": "",
+    },
+  },
+  hostname: {
+    input: "example.com",
+    groups: {},
+  },
+  port: {
+    input: "",
+    groups: {},
+  },
+  pathname: {
+    input: "/x",
+    groups: {
+      a: "x",
+      b: undefined,
+    },
+  },
+  search: {
+    input: "",
+    groups: {
+      "0": "",
+    },
+  },
+  hash: {
+    input: "",
+    groups: {
+      "0": "",
+    },
+  },
+}
+null
+true true /s/* true true
+true
+["*","*","*","*","*","*","*","*",false]
+["*","*","*","*","*","*","*","*",false]
+["*","*","*","*","*","*","*","*",false]
+["*","*","*","*","*","*","*","*",false]
+["https","*","*","a","","/42","*","*",false]
+["https","*","*","a","","/true","*","*",false]
+["https","*","*","a","","/","*","*",false]
+["https","*","*","a","","/","*","*",false]
+["https","*","*","a","","/","*","*",false]
+["https","*","*","a","","/x","*","*",false]
+throws TypeError:undefined:Relative constructor string must have additional baseURL argument.
+throws TypeError:undefined:Constructor with a URLPatternInit should have a null baseURL argument.
+throws TypeError:undefined:Constructor with a URLPatternInit should have a null baseURL argument.
+["https","*","*","a","","/","*","*",false]
+["https","*","*","a","","/x","*","*",false]
+throws TypeError:undefined:Invalid baseURL.
+throws TypeError:undefined:Type error
+throws TypeError:undefined:Invalid baseURL.
+throws TypeError:undefined:Constructor with a URLPatternInit should have a null baseURL argument.
+throws TypeError:undefined:Cannot convert a Symbol value to a string
+throws TypeError:undefined:Cannot convert a Symbol value to a string
+throws RangeError:undefined:boom
+["*","*","*","*","*","/t","*","*",false]
+["*","*","*","*","*","/%EF%BF%BD","*","*",false]
+["https","*","*","a","","/%EF%BF%BD","*","*",false]
+["https","*","*","*","","*","*","*",false]
+["https","*","*","h.example","8080","/a/b","q","f",false]
+throws TypeError:undefined:Invalid baseURL.
+throws TypeError:undefined:Name position 2 is less than name start 2
+throws TypeError:undefined:Invalid input to canonicalize a URL port string.
+throws TypeError:undefined:Invalid input to canonicalize a URL protocol string.
+throws TypeError:undefined:Current open token does not have a corresponding close token.
+throws TypeError:undefined:Duplicate name token produced when adding to parser part list.
+throws TypeError:undefined:Current open token does not have a corresponding close token.
+throws TypeError:undefined:Unable to create RegExp object regular expression from provided URLPattern string.
+false null
+false null
+false null
+false null
+true {"inputs":["https://a/x"],"protocol":{"input":"https","groups":{"0":"https"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"a","groups":{"0":"a"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/x","groups":{"x":"x"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+true {"inputs":["/x","https://a/"],"protocol":{"input":"https","groups":{"0":"https"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"a","groups":{"0":"a"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/x","groups":{"x":"x"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+false null
+false null
+throws TypeError:undefined:Base URL string is provided with a URLPatternInit. If URLPatternInit is provided, please use URLPatternInit.baseURL property instead throws TypeError:undefined:Base URL string is provided with a URLPatternInit. If URLPatternInit is provided, please use URLPatternInit.baseURL property instead
+true {"inputs":[{"baseURL":"https://a/","pathname":"/x"}],"protocol":{"input":"https","groups":{"0":"https"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"a","groups":{"0":"a"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/x","groups":{"x":"x"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+false null
+true {"inputs":[{"pathname":"/y"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/y","groups":{"x":"y"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+false null
+true true false
+0,1,2,name {"0":"a","1":"b","2":"rest","name":"n"}
+throws TypeError:undefined:Regex cannot start with modifier.
+throws TypeError:undefined:Regex cannot start with modifier.
+{"inputs":[{"hostname":"a.example.com"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"a.example.com","groups":{"sub":"a"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+"/:été"
+throws TypeError:undefined:Name position 2 is less than name start 2
+throws TypeError:undefined:Current codepoint is not ascii
+throws TypeError:undefined:No character is provided after escape.
+"/()"
+"/a()"
+throws TypeError:undefined:Current open token does not have a corresponding close token.
+"/((?:a))"
+throws TypeError:undefined:Required OtherModifier token is not provided in regex.
+throws TypeError:undefined:Regex cannot start with modifier.
+"/[a-z]"
+throws TypeError:undefined:Unable to create RegExp object regular expression from provided URLPattern string.
+{"inputs":[{"pathname":"/abc"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/abc","groups":{"0":"abc"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+"a%20b"
+null
+#0 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#1 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | false | null
+#2 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | false | null
+#3 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | false | null
+#4 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":["https://example.com/foo/bar"],"protocol":{"input":"https","groups":{"0":"https"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{"0":"example.com"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#5 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | false | null
+#6 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"hostname":"example.com","pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{"0":"example.com"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#7 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | false | null
+#8 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"baseURL":"https://example.com","pathname":"/foo/bar"}],"protocol":{"input":"https","groups":{"0":"https"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{"0":"example.com"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#9 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | false | null
+#10 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | false | null
+#11 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | false | null
+#12 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"hostname":"example.com","pathname":"/foo/bar","protocol":"https"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#13 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"hostname":"example.com","pathname":"/foo/bar","protocol":"https"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#14 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | false | null
+#15 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"hash":"otherhash","hostname":"example.com","pathname":"/foo/bar","protocol":"https","search":"otherquery"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"otherquery","groups":{"0":"otherquery"}},"hash":{"input":"otherhash","groups":{"0":"otherhash"}}}
+#16 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"hash":"otherhash","hostname":"example.com","pathname":"/foo/bar","protocol":"https","search":"otherquery"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"otherquery","groups":{"0":"otherquery"}},"hash":{"input":"otherhash","groups":{"0":"otherhash"}}}
+#17 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"hash":"otherhash","hostname":"example.com","pathname":"/foo/bar","protocol":"https","search":"otherquery"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"otherquery","groups":{"0":"otherquery"}},"hash":{"input":"otherhash","groups":{"0":"otherhash"}}}
+#18 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":["https://example.com/foo/bar"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#19 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":["https://example.com/foo/bar?otherquery#otherhash"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"otherquery","groups":{"0":"otherquery"}},"hash":{"input":"otherhash","groups":{"0":"otherhash"}}}
+#20 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":["https://example.com/foo/bar?query#hash"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"query","groups":{"0":"query"}},"hash":{"input":"hash","groups":{"0":"hash"}}}
+#21 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | false | null
+#22 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | false | null
+#23 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | false | null
+#24 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"baseURL":"https://example.com","pathname":"/foo/bar"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#25 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"baseURL":"https://example.com?query#hash","pathname":"/foo/bar"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#26 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | false | null
+#27 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | false | null
+#28 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | false | null
+#29 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"bar":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#30 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/([^\/]+?) ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"0":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#31 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/index.html"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/index.html","groups":{"bar":"index.html"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#32 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar ¦ * ¦ * | false | false | null
+#33 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar ¦ * ¦ * | false | false | null
+#34 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"0":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#35 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"0":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#36 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/baz","groups":{"0":"bar/baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#37 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/baz","groups":{"0":"bar/baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#38 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#39 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#40 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/* ¦ * ¦ * | false | false | null
+#41 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/* ¦ * ¦ * | false | false | null
+#42 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar(.*) ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"bar":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#43 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar(.*) ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/baz","groups":{"bar":"bar/baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#44 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar(.*) ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/","groups":{"bar":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#45 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar(.*) ¦ * ¦ * | false | false | null
+#46 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"bar":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#47 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{"bar":"<undef>"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#48 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar? ¦ * ¦ * | false | false | null
+#49 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar? ¦ * ¦ * | false | false | null
+#50 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar? ¦ * ¦ * | false | false | null
+#51 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar+ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"bar":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#52 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar+ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/baz","groups":{"bar":"bar/baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#53 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar+ ¦ * ¦ * | false | false | null
+#54 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar+ ¦ * ¦ * | false | false | null
+#55 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar+ ¦ * ¦ * | false | false | null
+#56 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"bar":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#57 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/baz","groups":{"bar":"bar/baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#58 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{"bar":"<undef>"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#59 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar* ¦ * ¦ * | false | false | null
+#60 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/:bar* ¦ * ¦ * | false | false | null
+#61 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"0":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#62 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"0":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#63 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/baz","groups":{"0":"bar/baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#64 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/baz","groups":{"0":"bar/baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#65 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{"0":"<undef>"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#66 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{"0":"<undef>"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#67 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#68 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#69 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | false | null
+#70 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | false | null
+#71 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | false | null
+#72 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*? ¦ * ¦ * | false | false | null
+#73 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"0":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#74 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"0":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#75 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/baz","groups":{"0":"bar/baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#76 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/baz","groups":{"0":"bar/baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#77 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | false | null
+#78 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | false | null
+#79 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#80 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#81 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | false | null
+#82 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | false | null
+#83 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | false | null
+#84 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/*+ ¦ * ¦ * | false | false | null
+#85 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"0":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#86 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{"0":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#87 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/baz","groups":{"0":"bar/baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#88 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/baz","groups":{"0":"bar/baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#89 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{"0":"<undef>"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#90 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{"0":"<undef>"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#91 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#92 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#93 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | false | null
+#94 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | false | null
+#95 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | false | null
+#96 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/** ¦ * ¦ * | false | false | null
+#97 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#98 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | false | null
+#99 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | false | null
+#100 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | false | null
+#101 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#102 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}? ¦ * ¦ * | false | false | null
+#103 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#104 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}? ¦ * ¦ * | false | false | null
+#105 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}+ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#106 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}+ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#107 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}+ ¦ * ¦ * | false | false | null
+#108 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}+ ¦ * ¦ * | false | false | null
+#109 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}+ ¦ * ¦ * | false | false | null
+#110 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#111 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#112 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}* ¦ * ¦ * | false | false | null
+#113 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#114 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo{/bar}* ¦ * ¦ * | false | false | null
+#115 | ctor TypeError:undefined:Current codepoint is not ascii
+#116 | ctor TypeError:undefined:Current codepoint is not ascii
+#117 | ctor TypeError:undefined:Current codepoint is not ascii
+#118 | ctor TypeError:undefined:Current codepoint is not ascii
+#119 | ctor TypeError:undefined:Current codepoint is not ascii
+#120 | ctor TypeError:undefined:Current codepoint is not ascii
+#121 | ctor TypeError:undefined:Current codepoint is not ascii
+#122 | :café ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"protocol":"foo"}],"protocol":{"input":"foo","groups":{"café":"foo"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#123 | * ¦ :café ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"username":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"foo","groups":{"café":"foo"}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#124 | * ¦ * ¦ :café ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"password":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"foo","groups":{"café":"foo"}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#125 | * ¦ * ¦ * ¦ :café ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"foo","groups":{"café":"foo"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#126 | * ¦ * ¦ * ¦ * ¦ * ¦ /:café ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{"café":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#127 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ :café ¦ * | false | true | {"inputs":[{"search":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"foo","groups":{"café":"foo"}},"hash":{"input":"","groups":{"0":""}}}
+#128 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ :café | false | true | {"inputs":[{"hash":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"foo","groups":{"café":"foo"}}}
+#129 | :℘ ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"protocol":"foo"}],"protocol":{"input":"foo","groups":{"℘":"foo"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#130 | * ¦ :℘ ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"username":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"foo","groups":{"℘":"foo"}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#131 | * ¦ * ¦ :℘ ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"password":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"foo","groups":{"℘":"foo"}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#132 | * ¦ * ¦ * ¦ :℘ ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"foo","groups":{"℘":"foo"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#133 | * ¦ * ¦ * ¦ * ¦ * ¦ /:℘ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{"℘":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#134 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ :℘ ¦ * | false | true | {"inputs":[{"search":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"foo","groups":{"℘":"foo"}},"hash":{"input":"","groups":{"0":""}}}
+#135 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ :℘ | false | true | {"inputs":[{"hash":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"foo","groups":{"℘":"foo"}}}
+#136 | :㐀 ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"protocol":"foo"}],"protocol":{"input":"foo","groups":{"㐀":"foo"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#137 | * ¦ :㐀 ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"username":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"foo","groups":{"㐀":"foo"}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#138 | * ¦ * ¦ :㐀 ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"password":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"foo","groups":{"㐀":"foo"}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#139 | * ¦ * ¦ * ¦ :㐀 ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"foo","groups":{"㐀":"foo"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#140 | * ¦ * ¦ * ¦ * ¦ * ¦ /:㐀 ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{"㐀":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#141 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ :㐀 ¦ * | false | true | {"inputs":[{"search":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"foo","groups":{"㐀":"foo"}},"hash":{"input":"","groups":{"0":""}}}
+#142 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ :㐀 | false | true | {"inputs":[{"hash":"foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"foo","groups":{"㐀":"foo"}}}
+#143 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | false | null
+#144 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"protocol":"cafe"}],"protocol":{"input":"cafe","groups":{"0":"cafe"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#145 | foo-bar ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"protocol":"foo-bar"}],"protocol":{"input":"foo-bar","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#146 | * ¦ caf%C3%A9 ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"username":"café"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"caf%C3%A9","groups":{}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#147 | * ¦ caf%C3%A9 ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"username":"café"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"caf%C3%A9","groups":{}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#148 | * ¦ caf%c3%a9 ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | false | null
+#149 | * ¦ * ¦ caf%C3%A9 ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"password":"café"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"caf%C3%A9","groups":{}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#150 | * ¦ * ¦ caf%C3%A9 ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"password":"café"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"caf%C3%A9","groups":{}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#151 | * ¦ * ¦ caf%c3%a9 ¦ * ¦ * ¦ * ¦ * ¦ * | false | false | null
+#152 | * ¦ * ¦ * ¦ xn--caf-dma.com ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"café.com"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"xn--caf-dma.com","groups":{}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#153 | * ¦ * ¦ * ¦ xn--caf-dma.com ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"café.com"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"xn--caf-dma.com","groups":{}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#154 | http ¦ * ¦ * ¦ xn--h78h.com ¦  ¦ / ¦ * ¦ * | false | true | {"inputs":["http://🚲.com/"],"protocol":{"input":"http","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"xn--h78h.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#155 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#156 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#157 | * ¦ * ¦ * ¦ * ¦ * ¦ %EF%BF%BD%20%EF%BF%BD ¦ * ¦ * | false | false | null
+#158 | ctor TypeError:undefined:Name position 1 is less than name start 1
+#159 | * ¦ * ¦ * ¦ * ¦ * ¦ :a󠄀b ¦ * ¦ * | false | false | null
+#160 | * ¦ * ¦ * ¦ * ¦ * ¦ test/:a𐑐b ¦ * ¦ * | false | true | {"inputs":[{"pathname":"test/foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"test/foo","groups":{"a𐑐b":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#161 | ctor TypeError:undefined:Name position 1 is less than name start 1
+#162 | * ¦ * ¦ * ¦ * ¦  ¦ * ¦ * ¦ * | false | true | {"inputs":[{"port":"80","protocol":"http"}],"protocol":{"input":"http","groups":{"0":"http"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#163 | http ¦ * ¦ * ¦ * ¦  ¦ * ¦ * ¦ * | false | true | {"inputs":[{"port":"80","protocol":"http"}],"protocol":{"input":"http","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#164 | http ¦ * ¦ * ¦ * ¦ 80{20}? ¦ * ¦ * ¦ * | false | false | null
+#165 | http ¦ * ¦ * ¦ * ¦ 80 ¦ * ¦ * ¦ * | false | false | null
+#166 | ctor TypeError:undefined:Invalid input to canonicalize a URL port string.
+#167 | * ¦ * ¦ * ¦ * ¦ 80 ¦ * ¦ * ¦ * | false | false | null
+#168 | http{s}? ¦ * ¦ * ¦ * ¦ 80 ¦ * ¦ * ¦ * | false | false | null
+#169 | * ¦ * ¦ * ¦ * ¦ 80 ¦ * ¦ * ¦ * | false | true | {"inputs":[{"port":"80"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"80","groups":{}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#170 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | false | null
+#171 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/./bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#172 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/baz ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo/bar/../baz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/baz","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#173 | * ¦ * ¦ * ¦ * ¦ * ¦ /caf%C3%A9 ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/café"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/caf%C3%A9","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#174 | * ¦ * ¦ * ¦ * ¦ * ¦ /caf%C3%A9 ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/café"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/caf%C3%A9","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#175 | * ¦ * ¦ * ¦ * ¦ * ¦ /caf%c3%a9 ¦ * ¦ * | false | false | null
+#176 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | false | null
+#177 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"baseURL":"https://example.com","pathname":"foo/bar"}],"protocol":{"input":"https","groups":{"0":"https"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{"0":"example.com"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#178 | * ¦ * ¦ * ¦ * ¦ * ¦ /bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#179 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"baseURL":"https://example.com","pathname":"foo/bar"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#180 | https ¦ * ¦ * ¦ example.com ¦  ¦ / ¦ * ¦ * | false | true | {"inputs":[{"baseURL":"https://example.com","pathname":"/"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#181 | https ¦ * ¦ * ¦ example.com ¦  ¦ /bar ¦ * ¦ * | false | false | null
+#182 | https ¦ * ¦ * ¦ example.com ¦  ¦ /bar ¦ * ¦ * | false | false | null
+#183 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/b ¦ * ¦ * | false | true | {"inputs":[{"baseURL":"https://example.com/foo/","pathname":"./b"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/b","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#184 | * ¦ * ¦ * ¦ * ¦ * ¦ foo/bar ¦ * ¦ * | false | false | null
+#185 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":["https://example.com/foo/bar"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#186 | https ¦ * ¦ * ¦ example.com ¦  ¦ /:name.html ¦ * ¦ * | false | true | {"inputs":["https://example.com/foo.html"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo.html","groups":{"name":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#187 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ q=caf%C3%A9 ¦ * | false | true | {"inputs":[{"search":"q=café"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"q=caf%C3%A9","groups":{}},"hash":{"input":"","groups":{"0":""}}}
+#188 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ q=caf%C3%A9 ¦ * | false | true | {"inputs":[{"search":"q=café"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"q=caf%C3%A9","groups":{}},"hash":{"input":"","groups":{"0":""}}}
+#189 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ q=caf%c3%a9 ¦ * | false | false | null
+#190 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ caf%C3%A9 | false | true | {"inputs":[{"hash":"café"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"caf%C3%A9","groups":{}}}
+#191 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ caf%C3%A9 | false | true | {"inputs":[{"hash":"café"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"caf%C3%A9","groups":{}}}
+#192 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ caf%c3%a9 | false | false | null
+#193 | about ¦ * ¦ * ¦ * ¦ * ¦ (blank|sourcedoc) ¦ * ¦ * | true | true | {"inputs":["about:blank"],"protocol":{"input":"about","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"blank","groups":{"0":"blank"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#194 | data ¦ * ¦ * ¦ * ¦ * ¦ :number([0-9]+) ¦ * ¦ * | true | true | {"inputs":["data:8675309"],"protocol":{"input":"data","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"8675309","groups":{"number":"8675309"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#195 | ctor TypeError:undefined:Unable to create RegExp object regular expression from provided URLPattern string.
+#196 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo! ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo!"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo!","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#197 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo\: ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo:"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo:","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#198 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo%7B ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo{"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo%7B","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#199 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo\( ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/foo("}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo(","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#200 | javascript ¦ * ¦ * ¦ * ¦ * ¦ var x = 1; ¦ * ¦ * | false | true | {"inputs":[{"pathname":"var x = 1;","protocol":"javascript"}],"protocol":{"input":"javascript","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"var x = 1;","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#201 | * ¦ * ¦ * ¦ * ¦ * ¦ var%20x%20=%201; ¦ * ¦ * | false | false | null
+#202 | javascript ¦ * ¦ * ¦ * ¦ * ¦ var x = 1; ¦ * ¦ * | false | true | {"inputs":[{"baseURL":"javascript:var x = 1;"}],"protocol":{"input":"javascript","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"var x = 1;","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#203 | (data|javascript) ¦ * ¦ * ¦ * ¦ * ¦ var x = 1; ¦ * ¦ * | true | true | {"inputs":[{"pathname":"var x = 1;","protocol":"javascript"}],"protocol":{"input":"javascript","groups":{"0":"javascript"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"var x = 1;","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#204 | (https|javascript) ¦ * ¦ * ¦ * ¦ * ¦ var%20x%20=%201; ¦ * ¦ * | true | false | null
+#205 | * ¦ * ¦ * ¦ * ¦ * ¦ var%20x%20=%201; ¦ * ¦ * | false | true | {"inputs":[{"pathname":"var x = 1;"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"var%20x%20=%201;","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#206 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":["./foo/bar","https://example.com"],"protocol":{"input":"https","groups":{"0":"https"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{"0":"example.com"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#207 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | throws TypeError:undefined:Base URL string is provided with a URLPatternInit. If URLPatternInit is provided, please use URLPatternInit.baseURL property instead | throws TypeError:undefined:Base URL string is provided with a URLPatternInit. If URLPatternInit is provided, please use URLPatternInit.baseURL property instead
+#208 | https ¦ * ¦ * ¦ example.com ¦ 8080 ¦ /foo ¦ bar ¦ baz | false | true | {"inputs":[{"baseURL":"https://example.com:8080","hash":"baz","pathname":"/foo","search":"bar"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"8080","groups":{}},"pathname":{"input":"/foo","groups":{}},"search":{"input":"bar","groups":{}},"hash":{"input":"baz","groups":{}}}
+#209 | https ¦ * ¦ * ¦ example.com ¦ 8080 ¦ /foo ¦ bar ¦ baz | false | true | {"inputs":[{"baseURL":"https://example.com:8080","hash":"baz","pathname":"/foo","search":"bar"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"8080","groups":{}},"pathname":{"input":"/foo","groups":{}},"search":{"input":"bar","groups":{}},"hash":{"input":"baz","groups":{}}}
+#210 | ctor TypeError:undefined:Relative constructor string must have additional baseURL argument.
+#211 | ctor TypeError:undefined:Relative constructor string must have additional baseURL argument.
+#212 | http{s}? ¦ * ¦ * ¦ {*.}?example.com ¦  ¦ /:product/:endpoint ¦ * ¦ * | false | true | {"inputs":["https://sub.example.com/foo/bar"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"sub.example.com","groups":{"0":"sub"}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{"product":"foo","endpoint":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#213 | https ¦ * ¦ * ¦ example.com ¦  ¦ / ¦ foo ¦ * | false | true | {"inputs":["https://example.com/?foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"foo","groups":{}},"hash":{"input":"","groups":{"0":""}}}
+#214 | https ¦ * ¦ * ¦ example.com ¦  ¦ / ¦  ¦ foo | false | true | {"inputs":["https://example.com/#foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"","groups":{}},"hash":{"input":"foo","groups":{}}}
+#215 | https ¦ * ¦ * ¦ example.com ¦ 8080 ¦ / ¦ foo ¦ * | false | true | {"inputs":["https://example.com:8080/?foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"8080","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"foo","groups":{}},"hash":{"input":"","groups":{"0":""}}}
+#216 | https ¦ * ¦ * ¦ example.com ¦ 8080 ¦ / ¦  ¦ foo | false | true | {"inputs":["https://example.com:8080/#foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"8080","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"","groups":{}},"hash":{"input":"foo","groups":{}}}
+#217 | https ¦ * ¦ * ¦ example.com ¦  ¦ / ¦ foo ¦ * | false | true | {"inputs":["https://example.com/?foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"foo","groups":{}},"hash":{"input":"","groups":{"0":""}}}
+#218 | https ¦ * ¦ * ¦ example.com ¦  ¦ / ¦  ¦ foo | false | true | {"inputs":["https://example.com/#foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"","groups":{}},"hash":{"input":"foo","groups":{}}}
+#219 | https ¦ * ¦ * ¦ example.com ¦  ¦ /*?foo ¦ * ¦ * | false | false | null
+#220 | https ¦ * ¦ * ¦ example.com ¦  ¦ /* ¦ foo ¦ * | false | true | {"inputs":["https://example.com/?foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{"0":""}},"search":{"input":"foo","groups":{}},"hash":{"input":"","groups":{"0":""}}}
+#221 | https ¦ * ¦ * ¦ example.com ¦  ¦ /:name?foo ¦ * ¦ * | false | false | null
+#222 | https ¦ * ¦ * ¦ example.com ¦  ¦ /:name ¦ foo ¦ * | false | true | {"inputs":["https://example.com/bar?foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/bar","groups":{"name":"bar"}},"search":{"input":"foo","groups":{}},"hash":{"input":"","groups":{"0":""}}}
+#223 | https ¦ * ¦ * ¦ example.com ¦  ¦ /(bar)?foo ¦ * ¦ * | true | false | null
+#224 | https ¦ * ¦ * ¦ example.com ¦  ¦ /(bar) ¦ foo ¦ * | true | true | {"inputs":["https://example.com/bar?foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/bar","groups":{"0":"bar"}},"search":{"input":"foo","groups":{}},"hash":{"input":"","groups":{"0":""}}}
+#225 | https ¦ * ¦ * ¦ example.com ¦  ¦ /{bar}?foo ¦ * ¦ * | false | false | null
+#226 | https ¦ * ¦ * ¦ example.com ¦  ¦ /bar ¦ foo ¦ * | false | true | {"inputs":["https://example.com/bar?foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/bar","groups":{}},"search":{"input":"foo","groups":{}},"hash":{"input":"","groups":{"0":""}}}
+#227 | https ¦ * ¦ * ¦ example.com ¦  ¦ / ¦ * ¦ * | false | false | null
+#228 | ctor TypeError:undefined:Relative constructor string must have additional baseURL argument.
+#229 | data ¦ * ¦ * ¦  ¦  ¦ foobar ¦ * ¦ * | false | true | {"inputs":["data:foobar"],"protocol":{"input":"data","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"foobar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#230 | https ¦ * ¦ * ¦ {sub.}?example.com ¦  ¦ /foo ¦ * ¦ * | false | true | {"inputs":["https://example.com/foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#231 | https ¦ * ¦ * ¦ {sub.}?example.com ¦  ¦ * ¦ * ¦ * | false | true | {"inputs":["https://example.com/foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo","groups":{"0":"/foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#232 | ctor TypeError:undefined:Relative constructor string must have additional baseURL argument.
+#233 | https ¦ * ¦ * ¦ (sub.)?example.com ¦  ¦ /foo ¦ * ¦ * | true | true | {"inputs":["https://example.com/foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{"0":"<undef>"}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#234 | https ¦ * ¦ * ¦ (sub.)?example(.com/)foo ¦  ¦ * ¦ * ¦ * | true | false | null
+#235 | ctor TypeError:undefined:Relative constructor string must have additional baseURL argument.
+#236 | ctor TypeError:undefined:Null token was produced when consuming a required token.
+#237 | https ¦ * ¦ * ¦ (sub(?:.))?example.com ¦  ¦ /foo ¦ * ¦ * | true | true | {"inputs":["https://example.com/foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{"0":"<undef>"}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#238 | file ¦ * ¦ * ¦  ¦  ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":["file:///foo/bar"],"protocol":{"input":"file","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo/bar","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#239 | data ¦ * ¦ * ¦  ¦  ¦  ¦ * ¦ * | false | true | {"inputs":["data:"],"protocol":{"input":"data","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#240 | foo ¦ * ¦ * ¦ bar ¦  ¦ * ¦ * ¦ * | false | false | null
+#241 | ctor TypeError:undefined:Current codepoint is not ascii
+#242 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo ¦ bar ¦ baz | false | false | null
+#243 | http{s}? ¦ * ¦ * ¦ * ¦ * ¦ * ¦ bar ¦ baz | false | true | {"inputs":["http://example.com/foo?bar#baz"],"protocol":{"input":"http","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{"0":"example.com"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/foo","groups":{"0":"/foo"}},"search":{"input":"bar","groups":{}},"hash":{"input":"baz","groups":{}}}
+#244 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo ¦ bar ¦ baz | false | true | {"inputs":["?bar#baz","https://example.com/foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo","groups":{}},"search":{"input":"bar","groups":{}},"hash":{"input":"baz","groups":{}}}
+#245 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo ¦ bar ¦ * | false | true | {"inputs":["?bar","https://example.com/foo#snafu"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo","groups":{}},"search":{"input":"bar","groups":{}},"hash":{"input":"","groups":{"0":""}}}
+#246 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo ¦ bar ¦ baz | false | true | {"inputs":["#baz","https://example.com/foo?bar"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo","groups":{}},"search":{"input":"bar","groups":{}},"hash":{"input":"baz","groups":{}}}
+#247 | https ¦ * ¦ * ¦ example.com ¦  ¦ /foo ¦  ¦ baz | false | true | {"inputs":["#baz","https://example.com/foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/foo","groups":{}},"search":{"input":"","groups":{}},"hash":{"input":"baz","groups":{}}}
+#248 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | false | null
+#249 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | false | null
+#250 | https ¦ foo ¦ bar ¦ example.com ¦  ¦ * ¦ * ¦ * | false | true | {"inputs":["https://foo:bar@example.com"],"protocol":{"input":"https","groups":{}},"username":{"input":"foo","groups":{}},"password":{"input":"bar","groups":{}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{"0":"/"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#251 | https ¦ foo ¦ * ¦ example.com ¦  ¦ * ¦ * ¦ * | false | true | {"inputs":["https://foo@example.com"],"protocol":{"input":"https","groups":{}},"username":{"input":"foo","groups":{}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{"0":"/"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#252 | https ¦  ¦ bar ¦ example.com ¦  ¦ * ¦ * ¦ * | false | true | {"inputs":["https://:bar@example.com"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{}},"password":{"input":"bar","groups":{}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{"0":"/"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#253 | https ¦ :user ¦ :pass ¦ example.com ¦  ¦ * ¦ * ¦ * | false | true | {"inputs":["https://foo:bar@example.com"],"protocol":{"input":"https","groups":{}},"username":{"input":"foo","groups":{"user":"foo"}},"password":{"input":"bar","groups":{"pass":"bar"}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{"0":"/"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#254 | https ¦ foo ¦ bar ¦ example.com ¦  ¦ * ¦ * ¦ * | false | true | {"inputs":["https:foo:bar@example.com"],"protocol":{"input":"https","groups":{}},"username":{"input":"foo","groups":{}},"password":{"input":"bar","groups":{}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{"0":"/"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#255 | data ¦ * ¦ * ¦  ¦  ¦ foo\:bar@example.com ¦ * ¦ * | false | true | {"inputs":["data:foo:bar@example.com"],"protocol":{"input":"data","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"foo:bar@example.com","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#256 | https ¦ foo%3Abar ¦ * ¦ example.com ¦  ¦ * ¦ * ¦ * | false | false | null
+#257 | https ¦ * ¦ * ¦ example.com ¦  ¦ /data\:channel.html ¦ * ¦ * | false | true | {"inputs":["https://example.com/data:channel.html"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/data:channel.html","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#258 | http ¦ * ¦ * ¦ [\:\:1] ¦  ¦ / ¦ * ¦ * | false | true | {"inputs":["http://[::1]/"],"protocol":{"input":"http","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"[::1]","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#259 | http ¦ * ¦ * ¦ [\:\:1] ¦ 8080 ¦ / ¦ * ¦ * | false | true | {"inputs":["http://[::1]:8080/"],"protocol":{"input":"http","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"[::1]","groups":{}},"port":{"input":"8080","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#260 | http ¦ * ¦ * ¦ [\:\:a] ¦  ¦ / ¦ * ¦ * | false | true | {"inputs":["http://[::a]/"],"protocol":{"input":"http","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"[::a]","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#261 | http ¦ * ¦ * ¦ [:address] ¦  ¦ / ¦ * ¦ * | false | true | {"inputs":["http://[::1]/"],"protocol":{"input":"http","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"[::1]","groups":{"address":"::1"}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#262 | http ¦ * ¦ * ¦ [\:\:ab\::num] ¦  ¦ / ¦ * ¦ * | false | true | {"inputs":["http://[::ab:1]/"],"protocol":{"input":"http","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"[::ab:1]","groups":{"num":"1"}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#263 | * ¦ * ¦ * ¦ [\:\:ab\::num] ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"[::ab:1]"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"[::ab:1]","groups":{"num":"1"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#264 | ctor TypeError:undefined:Invalid input to canonicalize a URL IPv6 host string.
+#265 | * ¦ * ¦ * ¦ {[\:\:ab\::num]} ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"[::ab:1]"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"[::ab:1]","groups":{"num":"1"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#266 | ctor TypeError:undefined:Invalid input to canonicalize a URL IPv6 host string.
+#267 | * ¦ * ¦ * ¦ {[\:\::num\:1]} ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"[::ab:1]"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"[::ab:1]","groups":{"num":"ab"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#268 | ctor TypeError:undefined:Invalid input to canonicalize a URL IPv6 host string.
+#269 | * ¦ * ¦ * ¦ [*\:1] ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"[::ab:1]"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"[::ab:1]","groups":{"0":"::ab"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#270 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#271 | ctor TypeError:undefined:Null token was produced when consuming a required token.
+#272 | ctor TypeError:undefined:Null token was produced when consuming a required token.
+#273 | data ¦ * ¦ * ¦  ¦  ¦ text/javascript,let x = 100/:tens?5; ¦ * ¦ * | false | true | {"inputs":["data:text/javascript,let x = 100/5;"],"protocol":{"input":"data","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"text/javascript,let x = 100/5;","groups":{"tens":"<undef>"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#274 | ctor TypeError:undefined:Duplicate name token produced when adding to parser part list.
+#275 | ctor TypeError:undefined:Invalid baseURL.
+#276 | ctor TypeError:undefined:Invalid baseURL.
+#277 | ctor TypeError:undefined:Constructor with a URLPatternInit should have a null baseURL argument.
+#278 | * ¦ * ¦ * ¦ * ¦ * ¦ :name* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobar","groups":{"name":"foobar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#279 | * ¦ * ¦ * ¦ * ¦ * ¦ :name+ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobar","groups":{"name":"foobar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#280 | * ¦ * ¦ * ¦ * ¦ * ¦ :name ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobar","groups":{"name":"foobar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#281 | :name* ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"protocol":"foobar"}],"protocol":{"input":"foobar","groups":{"name":"foobar"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#282 | :name+ ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"protocol":"foobar"}],"protocol":{"input":"foobar","groups":{"name":"foobar"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#283 | :name ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"protocol":"foobar"}],"protocol":{"input":"foobar","groups":{"name":"foobar"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#284 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#285 | * ¦ * ¦ * ¦ bad ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"bad"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"bad","groups":{}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#286 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#287 | * ¦ * ¦ * ¦ bad ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"bad"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"bad","groups":{}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#288 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#289 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#290 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#291 | ctor TypeError:undefined:Null token was produced when consuming a required token.
+#292 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#293 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#294 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#295 | * ¦ * ¦ * ¦ bad ¦ * ¦ * ¦ * ¦ * | false | false | null
+#296 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#297 | ctor TypeError:undefined:Invalid input to canonicalize a URL host string.
+#298 | * ¦ * ¦ * ¦ badhostname ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"badhostname"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"badhostname","groups":{}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#299 | * ¦ * ¦ * ¦ badhostname ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"badhostname"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"badhostname","groups":{}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#300 | * ¦ * ¦ * ¦ badhostname ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"hostname":"badhostname"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"badhostname","groups":{}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#301 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":["https://example.com/"],"protocol":{"input":"https","groups":{"0":"https"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{"0":"example.com"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/","groups":{"0":"/"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#302 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":["https://example.com/"],"protocol":{"input":"https","groups":{"0":"https"}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{"0":"example.com"}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/","groups":{"0":"/"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#303 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#304 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"","groups":{"0":""}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#305 | * ¦ * ¦ * ¦ * ¦ * ¦ (foo)(.*) ¦ * ¦ * | true | true | {"inputs":[{"pathname":"foobarbaz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobarbaz","groups":{"0":"foo","1":"barbaz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#306 | * ¦ * ¦ * ¦ * ¦ * ¦ {(foo)bar}(.*) ¦ * ¦ * | true | true | {"inputs":[{"pathname":"foobarbaz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobarbaz","groups":{"0":"foo","1":"baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#307 | * ¦ * ¦ * ¦ * ¦ * ¦ (foo)?* ¦ * ¦ * | true | true | {"inputs":[{"pathname":"foobarbaz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobarbaz","groups":{"0":"foo","1":"barbaz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#308 | * ¦ * ¦ * ¦ * ¦ * ¦ {:foo}(.*) ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobarbaz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobarbaz","groups":{"0":"oobarbaz","foo":"f"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#309 | * ¦ * ¦ * ¦ * ¦ * ¦ {:foo}(barbaz) ¦ * ¦ * | true | true | {"inputs":[{"pathname":"foobarbaz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobarbaz","groups":{"0":"barbaz","foo":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#310 | * ¦ * ¦ * ¦ * ¦ * ¦ {:foo}(.*) ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobarbaz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobarbaz","groups":{"0":"oobarbaz","foo":"f"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#311 | * ¦ * ¦ * ¦ * ¦ * ¦ :foo{*bar} ¦ * ¦ * | false | false | null
+#312 | * ¦ * ¦ * ¦ * ¦ * ¦ :foo{bar*} ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobarbaz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobarbaz","groups":{"0":"baz","foo":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#313 | * ¦ * ¦ * ¦ * ¦ * ¦ :foo:bar(.*) ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobarbaz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobarbaz","groups":{"foo":"f","bar":"oobarbaz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#314 | * ¦ * ¦ * ¦ * ¦ * ¦ :foo?* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobarbaz"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobarbaz","groups":{"0":"oobarbaz","foo":"f"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#315 | * ¦ * ¦ * ¦ * ¦ * ¦ {:foo\bar} ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobar","groups":{"foo":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#316 | * ¦ * ¦ * ¦ * ¦ * ¦ {:foo.bar} ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foo.bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foo.bar","groups":{"foo":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#317 | * ¦ * ¦ * ¦ * ¦ * ¦ {:foo(foo)bar} ¦ * ¦ * | true | true | {"inputs":[{"pathname":"foobar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobar","groups":{"foo":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#318 | * ¦ * ¦ * ¦ * ¦ * ¦ {:foo}bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobar","groups":{"foo":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#319 | * ¦ * ¦ * ¦ * ¦ * ¦ {:foo}bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobar","groups":{"foo":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#320 | * ¦ * ¦ * ¦ * ¦ * ¦ {:foo}(.*) ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobar","groups":{"0":"oobar","foo":"f"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#321 | * ¦ * ¦ * ¦ * ¦ * ¦ {:foo}bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobar","groups":{"foo":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#322 | * ¦ * ¦ * ¦ * ¦ * ¦ {:foo}bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobar","groups":{"foo":"foo"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#323 | * ¦ * ¦ * ¦ * ¦ * ¦ *(.*)? ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foobar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foobar","groups":{"0":"foobar","1":"<undef>"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#324 | * ¦ * ¦ * ¦ * ¦ * ¦ :foo(baz)(.*) ¦ * ¦ * | true | true | {"inputs":[{"pathname":"bazbar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"bazbar","groups":{"0":"bar","foo":"baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#325 | * ¦ * ¦ * ¦ * ¦ * ¦ :foo(baz)bar ¦ * ¦ * | true | true | {"inputs":[{"pathname":"bazbar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"bazbar","groups":{"foo":"baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#326 | * ¦ * ¦ * ¦ * ¦ * ¦ */* ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foo/bar","groups":{"0":"foo","1":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#327 | * ¦ * ¦ * ¦ * ¦ * ¦ */{*} ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foo/bar","groups":{"0":"foo","1":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#328 | * ¦ * ¦ * ¦ * ¦ * ¦ */{*} ¦ * ¦ * | false | true | {"inputs":[{"pathname":"foo/bar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"foo/bar","groups":{"0":"foo","1":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#329 | * ¦ * ¦ * ¦ * ¦ * ¦ *//* ¦ * ¦ * | false | false | null
+#330 | * ¦ * ¦ * ¦ * ¦ * ¦ /:foo. ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/bar."}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/bar.","groups":{"foo":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#331 | * ¦ * ¦ * ¦ * ¦ * ¦ /:foo.. ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/bar.."}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/bar..","groups":{"foo":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#332 | * ¦ * ¦ * ¦ * ¦ * ¦ ./foo ¦ * ¦ * | false | true | {"inputs":[{"pathname":"./foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"./foo","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#333 | * ¦ * ¦ * ¦ * ¦ * ¦ ../foo ¦ * ¦ * | false | true | {"inputs":[{"pathname":"../foo"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"../foo","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#334 | * ¦ * ¦ * ¦ * ¦ * ¦ :foo./ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"bar./"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"bar./","groups":{"foo":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#335 | * ¦ * ¦ * ¦ * ¦ * ¦ :foo../ ¦ * ¦ * | false | true | {"inputs":[{"pathname":"bar../"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"bar../","groups":{"foo":"bar"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#336 | * ¦ * ¦ * ¦ * ¦ * ¦ {/:foo}bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/bazbar"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/bazbar","groups":{"foo":"baz"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#337 | * ¦ * ¦ * ¦ * ¦ * ¦ /foo/bar ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/FOO/BAR"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/FOO/BAR","groups":{}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#338 | * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * ¦ * | false | true | {"inputs":[{"pathname":"/FOO/BAR"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/FOO/BAR","groups":{"0":"/FOO/BAR"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#339 | https ¦ * ¦ * ¦ example.com ¦ 8080 ¦ /foo ¦ bar ¦ baz | false | true | {"inputs":[{"baseURL":"https://example.com:8080","hash":"BAZ","pathname":"/FOO","search":"BAR"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"8080","groups":{}},"pathname":{"input":"/FOO","groups":{}},"search":{"input":"BAR","groups":{}},"hash":{"input":"BAZ","groups":{}}}
+#340 | https ¦ * ¦ * ¦ example.com ¦ 8080 ¦ /foo ¦ bar ¦ baz | false | true | {"inputs":[{"baseURL":"https://example.com:8080","hash":"BAZ","pathname":"/FOO","search":"BAR"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"8080","groups":{}},"pathname":{"input":"/FOO","groups":{}},"search":{"input":"BAR","groups":{}},"hash":{"input":"BAZ","groups":{}}}
+#341 | ctor TypeError:undefined:Type error
+#342 | https ¦ * ¦ * ¦ example.com ¦  ¦ /a/\+/b ¦ foo ¦ * | false | true | {"inputs":[{"baseURL":"https://example.com/a/+/b","search":"foo"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/a/+/b","groups":{}},"search":{"input":"foo","groups":{}},"hash":{"input":"","groups":{"0":""}}}
+#343 | https ¦ * ¦ * ¦ example.com ¦  ¦ / ¦ q=\*&v=\?&hmm=\{\}&umm=\(\) ¦ foo | false | true | {"inputs":[{"baseURL":"https://example.com/?q=*&v=?&hmm={}&umm=()","hash":"foo"}],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"q=*&v=?&hmm={}&umm=()","groups":{}},"hash":{"input":"foo","groups":{}}}
+#344 | https ¦ * ¦ * ¦ example.com ¦  ¦ / ¦ q=\*&v=\?&hmm=\{\}&umm=\(\) ¦ foo | false | true | {"inputs":["https://example.com/?q=*&v=?&hmm={}&umm=()#foo"],"protocol":{"input":"https","groups":{}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"example.com","groups":{}},"port":{"input":"","groups":{}},"pathname":{"input":"/","groups":{}},"search":{"input":"q=*&v=?&hmm={}&umm=()","groups":{}},"hash":{"input":"foo","groups":{}}}
+#345 | * ¦ * ¦ * ¦ * ¦ * ¦ /([[a-z]--a]) ¦ * ¦ * | true | false | null
+#346 | * ¦ * ¦ * ¦ * ¦ * ¦ /([[a-z]--a]) ¦ * ¦ * | true | true | {"inputs":[{"pathname":"/z"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/z","groups":{"0":"z"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#347 | * ¦ * ¦ * ¦ * ¦ * ¦ /([\d&&[0-1]]) ¦ * ¦ * | true | true | {"inputs":[{"pathname":"/0"}],"protocol":{"input":"","groups":{"0":""}},"username":{"input":"","groups":{"0":""}},"password":{"input":"","groups":{"0":""}},"hostname":{"input":"","groups":{"0":""}},"port":{"input":"","groups":{"0":""}},"pathname":{"input":"/0","groups":{"0":"0"}},"search":{"input":"","groups":{"0":""}},"hash":{"input":"","groups":{"0":""}}}
+#348 | * ¦ * ¦ * ¦ * ¦ * ¦ /([\d&&[0-1]]) ¦ * ¦ * | true | false | null

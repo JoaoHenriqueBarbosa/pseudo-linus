@@ -557,6 +557,7 @@ impl JSGlobalObject {
         crate::runtime::performance::install_performance(&global_object);
         crate::runtime::url_search_params::install_url_search_params(&global_object);
         crate::runtime::url::install_url(&global_object);
+        crate::runtime::url_pattern::install_url_pattern(&global_object);
         crate::runtime::blob::install_blob(&global_object);
         crate::runtime::file::install_file(&global_object);
         crate::runtime::form_data::install_form_data(&global_object);

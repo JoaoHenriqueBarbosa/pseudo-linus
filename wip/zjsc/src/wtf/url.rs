@@ -51,6 +51,21 @@ impl URL {
         URLParser::parse_url(absolute_url, &URL::default(), QueryEncoding::None)
     }
 
+    /// `URL::user()`: o usuário com os `%XX` desfeitos.
+    pub fn user(&self) -> WtfString {
+        decode_escape_sequences_from_parsed_url(&self.encoded_user())
+    }
+
+    /// `URL::password()`: a senha com os `%XX` desfeitos.
+    pub fn password(&self) -> WtfString {
+        decode_escape_sequences_from_parsed_url(&self.encoded_password())
+    }
+
+    /// `URL::hasOpaquePath()`.
+    pub fn has_opaque_path(&self) -> bool {
+        self.has_opaque_path
+    }
+
     /// `URL::strippedForUseAsReport()`: tira as credenciais, a consulta e o fragmento.
     pub fn stripped_for_use_as_report(&self) -> WtfString {
         if !self.is_valid {
