@@ -149,9 +149,9 @@ impl http::Browser for Browser {
 }
 
 impl Browser {
-    pub fn new(options: &Options, local_storage: Option<std::sync::Arc<crate::local_storage::LocalStorageStore>>) -> Browser {
+    pub fn new(options: &Options, local_storage: Option<std::sync::Arc<crate::local_storage::LocalStorageStore>>, indexed_db: Option<std::sync::Arc<crate::idb::disk::IndexedDbStore>>) -> Browser {
         let context_id = token();
-        let default_profile = local_storage.clone().map_or_else(crate::session::Profile::default, crate::session::Profile::with_local_storage);
+        let default_profile = crate::session::Profile::on_disk(local_storage.clone(), indexed_db);
         let profiles = std::collections::HashMap::from([(context_id.clone(), std::sync::Arc::new(default_profile))]);
         Browser {
             browser_id: uuid(),
@@ -868,8 +868,8 @@ impl Browser {
 
 /// O navegador com DevTools remoto: abre a primeira aba em `url`, anuncia o endereço no stderr e serve até o
 /// `Browser.close`. Com `local_storage` (o banco do `--user-data-dir`), o `localStorage` do contexto padrão persiste nele.
-pub fn run(ctx: &mut Ctx, options: &Options, url: &str, local_storage: Option<std::sync::Arc<crate::local_storage::LocalStorageStore>>) -> i32 {
-    let mut browser = Browser::new(options, local_storage);
+pub fn run(ctx: &mut Ctx, options: &Options, url: &str, local_storage: Option<std::sync::Arc<crate::local_storage::LocalStorageStore>>, indexed_db: Option<std::sync::Arc<crate::idb::disk::IndexedDbStore>>) -> i32 {
+    let mut browser = Browser::new(options, local_storage, indexed_db);
     let listener = match options.port {
         Some(port) if !options.pipe => sysabi::sys::tcp_listen_at(std::net::IpAddr::from([127, 0, 0, 1]), port, 128, true, true).ok().map(|(fd, bound)| {
             let _ = ctx.stderr().write_all(format!("\nDevTools listening on ws://127.0.0.1:{bound}/devtools/browser/{}\n", browser.browser_id).as_bytes());

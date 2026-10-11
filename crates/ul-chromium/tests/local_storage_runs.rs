@@ -28,7 +28,7 @@ fn browser(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
         _ => READ_ALL,
     };
     let disk = DiskProfile::start(Some(b"/tmp/profile"));
-    let profile = Profile::with_local_storage(disk.local_storage().expect("o banco do Local Storage abriu"));
+    let profile = Profile::on_disk(Some(disk.local_storage().expect("o banco do Local Storage abriu")), disk.indexed_db());
     let tab = Rc::new(Tab::new(Arc::new(profile)));
     let log = common::run_in_tab("http://127.0.0.1:8000/", &[("/", page)], tab);
     disk.finish();

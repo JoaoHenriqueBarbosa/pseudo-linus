@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use ul_common::hash::rapidhash::{wtf_string_hash, DEFAULT_SEED};
 
+use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
 
 /// Um balde da tabela.
@@ -191,35 +192,14 @@ impl Areas {
 #[derive(Debug, Default)]
 pub struct Profile {
     pub local: Mutex<Areas>,
-    /// Os bancos do IndexedDB de cada origem, cada um serializado pelo prelúdio (nome e texto), na ordem de criação.
-    pub databases: Mutex<HashMap<String, Vec<(String, String)>>>,
+    /// O IndexedDB do contexto: no leveldb de cada origem, como o Chromium o grava.
+    pub indexed_db: Arc<IndexedDbStore>,
 }
 
 impl Profile {
-    /// O perfil cujo `localStorage` persiste no banco do `--user-data-dir`.
-    pub fn with_local_storage(store: Arc<LocalStorageStore>) -> Profile {
-        Profile { local: Mutex::new(Areas { map: HashMap::new(), store: Some(store) }), databases: Mutex::default() }
-    }
-
-    /// Os bancos de `origin`.
-    pub fn databases_of(&self, origin: &str) -> Vec<(String, String)> {
-        self.databases.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get(origin).cloned().unwrap_or_default()
-    }
-
-    /// Grava o banco `name` de `origin` (o que já existia fica na posição dele).
-    pub fn save_database(&self, origin: &str, name: &str, text: &str) {
-        let mut all = self.databases.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        let list = all.entry(origin.to_owned()).or_default();
-        match list.iter_mut().find(|(existing, _)| existing == name) {
-            Some((_, saved)) => *saved = text.to_owned(),
-            None => list.push((name.to_owned(), text.to_owned())),
-        }
-    }
-
-    pub fn delete_database(&self, origin: &str, name: &str) {
-        if let Some(list) = self.databases.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get_mut(origin) {
-            list.retain(|(existing, _)| existing != name);
-        }
+    /// O perfil do `--user-data-dir`: o `localStorage` e o IndexedDB persistem nos bancos dele.
+    pub fn on_disk(local_storage: Option<Arc<LocalStorageStore>>, indexed_db: Option<Arc<IndexedDbStore>>) -> Profile {
+        Profile { local: Mutex::new(Areas { map: HashMap::new(), store: local_storage }), indexed_db: indexed_db.unwrap_or_default() }
     }
 }
 

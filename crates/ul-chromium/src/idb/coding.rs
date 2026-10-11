@@ -2,26 +2,22 @@
 //! `KeyPrefix` (banco, repositório de objetos, índice) seguido do tipo e dos campos. Só descreve bytes; quem decide
 //! quais chaves um lote leva é a camada de transação.
 
-/// Escreve `value` como varint (LEB128), como `EncodeVarInt` do Chromium.
-pub fn varint(out: &mut Vec<u8>, mut value: u64) {
-    loop {
-        let byte = (value & 0x7f) as u8;
-        value >>= 7;
-        if value == 0 {
-            out.push(byte);
-            return;
-        }
-        out.push(byte | 0x80);
-    }
-}
+use ul_leveldb::coding::Input;
+/// O `EncodeVarInt` do Chromium é o varint do leveldb.
+pub use ul_leveldb::coding::put_varint64 as varint;
 
 /// Os bytes de um inteiro sem sinal na menor largura em bytes (little-endian), como `EncodeInt`.
-fn int_bytes(value: u64) -> Vec<u8> {
+pub fn encode_int(value: u64) -> Vec<u8> {
     let mut bytes = value.to_le_bytes().to_vec();
     while bytes.len() > 1 && bytes.last() == Some(&0) {
         bytes.pop();
     }
     bytes
+}
+
+/// O inverso de [`encode_int`].
+pub fn decode_int(bytes: &[u8]) -> u64 {
+    bytes.iter().rev().fold(0, |value, byte| (value << 8) | u64::from(*byte))
 }
 
 /// Texto em UTF-16 big-endian, sem o tamanho (`EncodeString`).
@@ -37,15 +33,25 @@ pub fn string_with_length(out: &mut Vec<u8>, units: &[u16]) {
     string(out, units);
 }
 
+/// O inverso de [`string_with_length`]: os bytes UTF-16BE do texto (que se ordenam como as unidades).
+pub fn read_string_bytes<'a>(input: &mut Input<'a>) -> Option<&'a [u8]> {
+    let length = input.varint64().ok()? as usize;
+    input.take(length.checked_mul(2)?).ok()
+}
+
+pub fn read_string(input: &mut Input) -> Option<Vec<u16>> {
+    Some(read_string_bytes(input)?.chunks_exact(2).map(|pair| u16::from_be_bytes([pair[0], pair[1]])).collect())
+}
+
 pub fn units(text: &str) -> Vec<u16> {
     text.encode_utf16().collect()
 }
 
 /// O prefixo de toda chave: o primeiro byte guarda a largura (menos um) de cada id, depois os três ids.
 pub fn key_prefix(database_id: u64, object_store_id: u64, index_id: u64) -> Vec<u8> {
-    let database = int_bytes(database_id);
-    let store = int_bytes(object_store_id);
-    let index = int_bytes(index_id);
+    let database = encode_int(database_id);
+    let store = encode_int(object_store_id);
+    let index = encode_int(index_id);
     let mut out = vec![(((database.len() - 1) << 5) | ((store.len() - 1) << 2) | (index.len() - 1)) as u8];
     out.extend(database);
     out.extend(store);
@@ -286,16 +292,6 @@ mod tests {
         assert_eq!(key_prefix(1, 1, 1), hex("00 01 01 01"));
         assert_eq!(key_prefix(1, 1, 31), hex("00 01 01 1f"));
         assert_eq!(key_prefix(300, 1, 1), hex("20 2c 01 01 01"));
-    }
-
-    #[test]
-    fn varints_follow_leb128() {
-        let mut out = Vec::new();
-        varint(&mut out, 0);
-        varint(&mut out, 127);
-        varint(&mut out, 128);
-        varint(&mut out, 300);
-        assert_eq!(out, hex("00 7f 80 01 ac 02"));
     }
 
     /// Lotes seq=1, 2 e 4 do oráculo: as chaves globais e o nome `db1` da origem `http_127.0.0.1_8000@1`.

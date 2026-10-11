@@ -6,6 +6,8 @@
 //! segunda ocorrência vira `Ref`. O [`Value`] guarda só o número da referência; quem o monta (a ponte com o JavaScript
 //! do prelúdio, em `js_value`) calcula esses números na ordem do V8.
 
+use ul_leveldb::coding::Input;
+
 use super::coding::varint;
 
 /// O envelope do Blink: `ff 15`, a marca `fe` do trailer e 12 bytes zero (deslocamento e tamanho do trailer vazio).
@@ -253,48 +255,33 @@ pub fn wire_value(value: &Value) -> Vec<u8> {
     out
 }
 
-struct Reader<'a> {
-    data: &'a [u8],
-    position: usize,
-}
+/// O leitor: o `Input` do leveldb, sem os erros.
+struct Reader<'a>(Input<'a>);
 
-impl Reader<'_> {
+impl<'a> Reader<'a> {
     fn byte(&mut self) -> Option<u8> {
-        let byte = *self.data.get(self.position)?;
-        self.position += 1;
-        Some(byte)
+        Some(self.take(1)?[0])
     }
 
     /// A próxima marca, pulando o preenchimento (`\0`) que alinha as strings de dois bytes.
     fn peek_tag(&mut self) -> Option<u8> {
-        while self.data.get(self.position) == Some(&0) {
-            self.position += 1;
+        while self.0.remaining().first() == Some(&0) {
+            self.byte()?;
         }
-        self.data.get(self.position).copied()
+        self.0.remaining().first().copied()
     }
 
     fn tag(&mut self) -> Option<u8> {
-        let tag = self.peek_tag()?;
-        self.position += 1;
-        Some(tag)
+        self.peek_tag()?;
+        self.byte()
     }
 
     fn varint(&mut self) -> Option<u64> {
-        let mut value = 0u64;
-        for shift in (0..70).step_by(7) {
-            let byte = self.byte()?;
-            value |= u64::from(byte & 0x7f).checked_shl(shift)?;
-            if byte & 0x80 == 0 {
-                return Some(value);
-            }
-        }
-        None
+        self.0.varint64().ok()
     }
 
-    fn take(&mut self, length: usize) -> Option<&[u8]> {
-        let bytes = self.data.get(self.position..self.position.checked_add(length)?)?;
-        self.position += length;
-        Some(bytes)
+    fn take(&mut self, length: usize) -> Option<&'a [u8]> {
+        self.0.take(length).ok()
     }
 
     fn double(&mut self) -> Option<f64> {
@@ -302,7 +289,12 @@ impl Reader<'_> {
     }
 
     fn string(&mut self) -> Option<Vec<u16>> {
-        match self.tag()? {
+        let tag = self.tag()?;
+        self.string_body(tag)
+    }
+
+    fn string_body(&mut self, tag: u8) -> Option<Vec<u16>> {
+        match tag {
             b'"' => {
                 let length = self.varint()? as usize;
                 Some(self.take(length)?.iter().map(|byte| u16::from(*byte)).collect())
@@ -344,10 +336,7 @@ impl Reader<'_> {
             b'U' => Value::Number(self.varint()? as u32 as f64),
             b'N' => Value::Number(self.double()?),
             b'Z' => self.bigint_body()?,
-            b'"' | b'c' | b'S' => {
-                self.position -= 1;
-                Value::String(self.string()?)
-            }
+            b'"' | b'c' | b'S' => Value::String(self.string_body(tag)?),
             b'D' => Value::Date(self.double()?),
             b'R' => {
                 let source = self.string()?;
@@ -463,12 +452,12 @@ impl Reader<'_> {
 /// O inverso de [`wire_value`]: `None` quando os bytes não são um valor que o IndexedDB do Chromium grava.
 pub fn read_wire_value(bytes: &[u8]) -> Option<Value> {
     let body = bytes.strip_prefix(&BLINK_ENVELOPE)?;
-    let mut reader = Reader { data: body, position: 0 };
+    let mut reader = Reader(Input::new(body));
     if reader.byte()? != 0xff || reader.byte()? != V8_VERSION {
         return None;
     }
     let value = reader.value()?;
-    (reader.position == body.len()).then_some(value)
+    reader.0.is_empty().then_some(value)
 }
 
 #[cfg(test)]

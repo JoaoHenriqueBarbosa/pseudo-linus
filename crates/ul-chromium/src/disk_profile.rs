@@ -19,6 +19,7 @@ use sysabi::{sys, AtFlags, Errno, Fd, Mode};
 use ul_common::fsutil::mkdir_p;
 use ul_common::time::Civil;
 
+use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
 use crate::sys_env::SysEnv;
 
@@ -27,6 +28,8 @@ static PACK: &[u8] = include_bytes!("../profile/template.pack");
 /// O diretório do banco do Local Storage no perfil: o molde o traz (de uma execução do oráculo), mas quem o grava é o
 /// leveldb próprio, com o log, o MANIFEST e o `LOG` de verdade.
 const LOCAL_STORAGE_DB: &[u8] = b"Default/Local Storage/leveldb";
+/// O diretório do IndexedDB no perfil: só existe depois que uma página o usa.
+const INDEXED_DB_DIR: &[u8] = b"Default/IndexedDB";
 
 /// Delimitador dos marcadores (U+E000 em UTF-8).
 const MARK: [u8; 3] = [0xEE, 0x80, 0x80];
@@ -262,6 +265,13 @@ impl DiskProfile {
             _ => [home.as_slice(), b"/.config"].concat(),
         };
         DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, local_storage: None }
+    }
+
+    /// O IndexedDB do perfil (`Default/IndexedDB`): cada origem ganha o leveldb dela no primeiro uso.
+    pub fn indexed_db(&self) -> Option<Arc<IndexedDbStore>> {
+        let dir = [self.user_data_dir.as_deref()?, b"/", INDEXED_DB_DIR].concat();
+        let thread_id = sys::current().gettid() as u64;
+        Some(Arc::new(IndexedDbStore::new(Arc::new(SysEnv::new()), &String::from_utf8_lossy(&dir), thread_id)))
     }
 
     /// O banco do Local Storage do perfil, para o contexto de navegação padrão do navegador.
