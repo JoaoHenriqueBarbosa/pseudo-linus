@@ -159,6 +159,21 @@ são inalcançáveis pelo tipo. O `bun_react_compiler` e o `bun_crash_handler` f
 que entra na fila do porte depois do printer e do golden. Se a CLI for ligada antes disso, a flag fica aceita e sem
 efeito até a crate entrar.
 
+Estado do passo 5 (printer, medido em 2026-10-11): o `js_printer` do upstream (`lib.rs`, `renamer.rs`, `error.rs`, 9,8
+mil linhas, travessões trocados na cópia) entra em `js_printer/` atrás da feature `printer` (`#![cfg(feature =
+"printer")]`, como o `parser`), e `cargo check -p bun_js_printer --features printer` mede 72 erros de resolução, antes
+de chegar aos tipos. O que falta, por grupo:
+
+- `bun_core`: `MutableString`, `printer` (o que o printer lê do `Output`), `env_var`, `FeatureFlags`, `fmt::{ItoaBuf,
+  itoa, hex2_upper, pow10_exp_1e4_to_1e9}`, `vec`, e `strings::{write_wtf8_as_utf16le,
+  index_of_needs_escape_for_java_script_string, contains_non_bmp_code_point_or_is_invalid_identifier}`;
+- `bun_collections`: `hashbrown` reexportado e `AutoBitSet`; `bun_alloc`: `AstAlloc` (sai, como no parser);
+- `bun_ast`: `Indentation` e `IndentationCharacter`, `E::{JsonValue, ObjectJSON, ArrayJSON}` e `symbol::Map`;
+- crates que o printer importa e o porte ainda não tem: `bun_io` (o `Write`), `bun_sourcemap` (o construtor de mapa de
+  posições, que o golden compara), `bun_ptr` e `bun_crash_handler` (este fora por decisão da coordenação);
+- 14 usos de `unsafe` (e 6 `unsafe impl`) e o `#![feature(adt_const_params)]`, que pede trocar os parâmetros
+  const de enum (`Encoding`) por `u8` ou por argumento de execução.
+
 Depois da resolução vem a troca sistemática do `Deref` do `StoreRef` por `p.store[r]` em todo `p.rs`, `parse/` e
 `visit/`, que é o grosso do trabalho. Os `Define` guardam `ExprData` com índices: como cada arquivo tem o seu
 `Store`, o valor de um define precisa ser gravado no `Store` do arquivo quando o parser o usa.

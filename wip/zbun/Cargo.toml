@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["ast", "bun_alloc", "bun_collections", "bun_core", "bun_core_macros", "bun_wyhash", "js_parser", "options_types", "paths"]
+members = ["ast", "bun_alloc", "bun_collections", "bun_core", "bun_core_macros", "bun_wyhash", "js_parser", "js_printer", "options_types", "paths"]
 
 [workspace.package]
 edition = "2024"
