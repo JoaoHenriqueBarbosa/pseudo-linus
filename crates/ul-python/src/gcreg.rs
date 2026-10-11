@@ -55,7 +55,36 @@ struct Registry {
     limit: usize,
 }
 
+/// A configuração e as contas do coletor (`gc.set_threshold`, `gc.get_count`, `gc.get_stats`).
+struct State {
+    enabled: bool,
+    threshold: [usize; 3],
+    /// Contêineres registrados desde a última coleta da geração 0 (o `count[0]` do CPython sem o desconto das mortes).
+    allocated: usize,
+    /// Coletas da geração 0 desde a última da 1, e da 1 desde a última da 2 (o `count[1]` e o `count[2]`).
+    since: [usize; 2],
+    /// Por geração: coletas feitas e objetos achados.
+    collections: [usize; 3],
+    collected: [usize; 3],
+    /// Há coleta automática esperando o ponto seguro.
+    due: bool,
+    /// Uma coleta está rodando: a que vier por dentro dela (o `__del__` que aloca) espera.
+    running: bool,
+}
+
 thread_local! {
+    static STATE: RefCell<State> = const {
+        RefCell::new(State {
+            enabled: true,
+            threshold: [2000, 10, 10],
+            allocated: 0,
+            since: [0, 0],
+            collections: [0; 3],
+            collected: [0; 3],
+            due: false,
+            running: false,
+        })
+    };
     static REGISTRY: RefCell<Registry> =
         const { RefCell::new(Registry { generations: [Vec::new(), Vec::new(), Vec::new()], frozen: Vec::new(), limit: 1024 }) };
     /// Dentro de uma poda ou de uma varredura o registro está emprestado: um objeto nascido ali (o `Weak` de um objeto
@@ -74,6 +103,14 @@ fn track(t: Tracked) {
             r.limit = (r.generations[0].len() * 2).max(1024);
         }
         r.generations[0].push(t);
+    });
+    let _ = STATE.try_with(|s| {
+        let Ok(mut s) = s.try_borrow_mut() else { return };
+        s.allocated += 1;
+        if s.enabled && !s.running && !s.due && s.allocated > s.threshold[0] {
+            s.due = true;
+            crate::finalize::request_safe_point();
+        }
     });
 }
 
@@ -143,6 +180,116 @@ pub(crate) fn is_tracked(v: &Value) -> bool {
     }
 }
 
+/// Os objetos vivos das gerações `0..=generation`, em ordem de criação.
+pub(crate) fn live_up_to(generation: usize) -> Vec<Live> {
+    let mut out = Vec::new();
+    for g in 0..=generation.min(2) {
+        out.extend(live(Some(g)));
+    }
+    out
+}
+
+/// Depois de coletar `generation`: os sobreviventes das gerações coletadas passam para a seguinte (a 2 fica na 2), os
+/// mortos saem do registro e as contas andam como as do CPython (`count[0..=g]` zeram, `count[g+1]` cresce).
+fn advance(generation: usize, found: usize) {
+    let _ = REGISTRY.try_with(|r| {
+        let Ok(mut r) = r.try_borrow_mut() else { return };
+        let target = (generation + 1).min(2);
+        let mut moved = Vec::new();
+        for g in 0..=generation.min(2) {
+            moved.extend(std::mem::take(&mut r.generations[g]).into_iter().filter(Tracked::alive));
+        }
+        // A geração de destino mantém a ordem de criação: os que já estavam nela vêm antes dos promovidos.
+        let mut kept = std::mem::take(&mut r.generations[target]);
+        kept.extend(moved);
+        r.generations[target] = kept;
+        r.limit = (r.generations[0].len() * 2).max(1024);
+    });
+    let _ = STATE.try_with(|s| {
+        let Ok(mut s) = s.try_borrow_mut() else { return };
+        s.collections[generation] += 1;
+        s.collected[generation] += found;
+        s.allocated = 0;
+        for g in 0..generation.min(2) {
+            s.since[g] = 0;
+        }
+        if generation < 2 {
+            s.since[generation] += 1;
+        }
+    });
+}
+
+/// `gc.collect(generation)`: devolve quantos objetos inalcançáveis achou.
+pub(crate) fn collect_generation(generation: usize) -> usize {
+    let _ = STATE.try_with(|s| s.try_borrow_mut().map(|mut s| s.running = true));
+    let found = crate::gccollect::collect(generation);
+    advance(generation, found);
+    let _ = STATE.try_with(|s| {
+        s.try_borrow_mut().map(|mut s| {
+            s.running = false;
+            s.due = false;
+        })
+    });
+    found
+}
+
+/// O ponto seguro do laço: se o limiar da geração 0 venceu, coleta a geração mais velha que também venceu
+/// (a 2 depois de `threshold[2]` coletas da 1, a 1 depois de `threshold[1]` da 0).
+pub(crate) fn collect_if_due() {
+    let generation = STATE
+        .try_with(|s| {
+            let s = s.try_borrow().ok()?;
+            if !s.due || s.running || !s.enabled {
+                return None;
+            }
+            Some(if s.since[1] > s.threshold[2] {
+                2
+            } else if s.since[0] > s.threshold[1] {
+                1
+            } else {
+                0
+            })
+        })
+        .ok()
+        .flatten();
+    match generation {
+        Some(g) => {
+            collect_generation(g);
+        }
+        None => {
+            let _ = STATE.try_with(|s| s.try_borrow_mut().map(|mut s| s.due = false));
+        }
+    }
+}
+
+/// `gc.get_count()`.
+pub(crate) fn counts() -> [usize; 3] {
+    STATE.try_with(|s| s.try_borrow().map_or([0; 3], |s| [s.allocated, s.since[0], s.since[1]])).unwrap_or([0; 3])
+}
+
+/// `gc.get_stats()`: por geração, coletas, objetos achados.
+pub(crate) fn stats() -> [(usize, usize); 3] {
+    STATE
+        .try_with(|s| s.try_borrow().map_or([(0, 0); 3], |s| [0, 1, 2].map(|g| (s.collections[g], s.collected[g]))))
+        .unwrap_or([(0, 0); 3])
+}
+
+/// `gc.enable`/`disable`/`set_threshold` (com `None`: só lê).
+pub(crate) fn configure(enabled: Option<bool>, threshold: Option<[usize; 3]>) -> (bool, [usize; 3]) {
+    STATE
+        .try_with(|s| {
+            let Ok(mut s) = s.try_borrow_mut() else { return (true, [2000, 10, 10]) };
+            if let Some(e) = enabled {
+                s.enabled = e;
+            }
+            if let Some(t) = threshold {
+                s.threshold = t;
+            }
+            (s.enabled, s.threshold)
+        })
+        .unwrap_or((true, [2000, 10, 10]))
+}
+
 /// Quantos objetos vivos há na geração `generation`.
 pub(crate) fn count(generation: usize) -> usize {
     REGISTRY
@@ -152,6 +299,10 @@ pub(crate) fn count(generation: usize) -> usize {
 
 /// `gc.freeze()`: tudo o que está registrado passa para a geração permanente.
 pub(crate) fn freeze() {
+    let _ = STATE.try_with(|s| s.try_borrow_mut().map(|mut s| {
+        s.allocated = 0;
+        s.since = [0, 0];
+    }));
     let _ = REGISTRY.try_with(|r| {
         let Ok(mut r) = r.try_borrow_mut() else { return };
         let r = &mut *r;

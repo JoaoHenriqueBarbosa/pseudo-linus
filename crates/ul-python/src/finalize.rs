@@ -114,6 +114,11 @@ pub(crate) fn frame_closed(floor: u64) {
     let _ = PENDING.try_with(|p| p.set(waiting));
 }
 
+/// Pede o ponto seguro do laço (a coleta de ciclos vencida espera nele, como a fila de finalização).
+pub(crate) fn request_safe_point() {
+    let _ = PENDING.try_with(|p| p.set(true));
+}
+
 /// Entrega à fila da thread um objeto ressuscitado pelo `Drop`. Com a fila fora de uso (thread em
 /// desmontagem), o objeto cai junto e fica sem finalizar.
 pub(crate) fn enqueue(obj: Rc<InstanceObj>) {
@@ -168,6 +173,7 @@ impl Vm {
     /// Esvazia a fila de finalização: chama o `__del__` de cada objeto, inclusive dos que a própria
     /// finalização enfileirar. É o ponto seguro: só roda entre instruções.
     pub(crate) fn run_finalizers(&mut self) {
+        crate::gcreg::collect_if_due();
         loop {
             PENDING.with(|p| p.set(false));
             let batch = QUEUE
@@ -186,6 +192,7 @@ impl Vm {
     /// laço (`Dunder::Finalize`) para poder trocar de greenlet; o resto da fila espera o próximo ponto seguro. O
     /// gerador, a referência fraca e o `__del__` que não é função rodam aqui mesmo, como em `run_finalizers`.
     pub(crate) fn finalizer_frame(&mut self) -> Option<Callee> {
+        crate::gcreg::collect_if_due();
         loop {
             let floor = FLOORS.try_with(|f| f.try_borrow().ok().and_then(|f| f.last().copied())).ok().flatten().unwrap_or(0);
             let next = QUEUE

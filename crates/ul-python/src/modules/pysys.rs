@@ -268,13 +268,41 @@ fn gc_is_tracked(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::Bool(args.first().is_some_and(crate::gcreg::is_tracked)))
 }
 
-/// `_gc_count(generation)`: quantos objetos vivos a geração tem (o primeiro número do `gc.get_count()`).
-fn gc_count(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+/// `_gc_count()`: o `gc.get_count()`.
+fn gc_count(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(Value::tuple(crate::gcreg::counts().iter().map(|n| Value::Int(*n as i64)).collect()))
+}
+
+/// `_gc_collect(generation)`: `gc.collect`, devolve os objetos inalcançáveis achados.
+fn gc_collect(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     let generation = match args.first() {
-        Some(Value::Int(g)) if *g >= 0 => *g as usize,
-        _ => 0,
+        Some(Value::Int(g)) if (0..=2).contains(g) => *g as usize,
+        _ => return Err(exc("ValueError", "invalid generation")),
     };
-    Ok(Value::Int(crate::gcreg::count(generation) as i64))
+    Ok(Value::Int(crate::gcreg::collect_generation(generation) as i64))
+}
+
+/// `_gc_stats()`: o `gc.get_stats()`, uma tupla `(collections, collected)` por geração.
+fn gc_stats(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let rows = crate::gcreg::stats().iter().map(|(c, f)| Value::tuple(vec![Value::Int(*c as i64), Value::Int(*f as i64)])).collect();
+    Ok(Value::tuple(rows))
+}
+
+/// `_gc_config(enabled, threshold)`: aplica (ou só lê, com `None`) e devolve `(enabled, (t0, t1, t2))`.
+fn gc_config(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let enabled = match args.first() {
+        Some(Value::Bool(b)) => Some(*b),
+        _ => None,
+    };
+    let threshold = match args.get(1) {
+        Some(Value::Tuple(t)) if t.len() == 3 => {
+            let n = |v: &Value| if let Value::Int(i) = v { (*i).max(0) as usize } else { 0 };
+            Some([n(&t[0]), n(&t[1]), n(&t[2])])
+        }
+        _ => None,
+    };
+    let (enabled, t) = crate::gcreg::configure(enabled, threshold);
+    Ok(Value::tuple(vec![Value::Bool(enabled), Value::tuple(t.iter().map(|n| Value::Int(*n as i64)).collect())]))
 }
 
 /// `_gc_freeze(on)`: `gc.freeze()` (verdadeiro) e `gc.unfreeze()` (falso); devolve o `gc.get_freeze_count()` de depois.
@@ -440,6 +468,9 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_gc_objects", gc_objects)
         .func("_gc_referrers", gc_referrers)
         .func("_gc_count", gc_count)
+        .func("_gc_collect", gc_collect)
+        .func("_gc_stats", gc_stats)
+        .func("_gc_config", gc_config)
         .func("_gc_is_tracked", gc_is_tracked)
         .func("_gc_freeze", gc_freeze)
         .func("_task_reserve", task_reserve)

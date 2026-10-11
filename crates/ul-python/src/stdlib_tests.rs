@@ -7282,6 +7282,29 @@ fn frame_objects_survive_thread_teardown() {
     assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("2\nok\n", ""));
 }
 
+/// A coleta nunca leva o que algum dono de fora ainda segura: ciclos presos a uma variável, a um global, a uma closure
+/// viva, a uma tupla, a um dict de módulo e a uma instância seguem intactos depois de coletar várias vezes.
+#[test]
+fn gc_collect_keeps_everything_still_referenced() {
+    let src = "import gc, weakref, sys\n\
+class N:\n    pass\n\
+a = N(); b = N(); a.o = b; b.o = a; a.tag = 'a'\n\
+ring = [[], []]; ring[0].append(ring[1]); ring[1].append(ring[0])\n\
+holder = (a,)\n\
+def make():\n    x = []\n    def f():\n        return x\n    x.append(f)\n    return f\n\
+g = make()\n\
+d = {}; d['self'] = d; d['n'] = N()\n\
+class K:\n    def __init__(self):\n        self.me = self\n        self.items = [self]\n\
+k = K()\n\
+r = weakref.ref(k)\n\
+for _ in range(3):\n    gc.collect(0); gc.collect(1); gc.collect(2)\n\
+print(a.o.o is a, a.tag, ring[0][0][0] is ring[0], g()[0] is g, d['self'] is d, type(d['n']).__name__, r() is k, k.items[0] is k, holder[0] is a)\n\
+del a, b, holder, ring, g, d, k\n\
+print(gc.collect() > 0, r() is None)\n";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("True a True True True N True True True\nTrue True\n", ""));
+}
+
 /// O registro do coletor só guarda `Weak`: um loop que cria e solta milhões de contêineres não o faz crescer (a poda dos
 /// mortos roda quando a geração passa do limite), e o que continua vivo continua visível em `gc.get_objects()`.
 #[test]
