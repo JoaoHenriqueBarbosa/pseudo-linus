@@ -1162,6 +1162,28 @@ Falta: `bun`/`bun:*` (esquema exato, sem `node:`: acrescentar `Scheme::Bun` quan
 - O bun reimprime todo arquivo `.js`, `.ts` e `.jsx` pelo impressor do transpilador antes de entregá-lo ao JSC. É por isso que, num erro de arquivo, o texto das mensagens do motor mostra o fonte já impresso: identificadores e literais fora do ASCII escapados (`日`, `\u{65e5}`, `\xE9`), `void 0` no lugar de `undefined` e `const` dobrado quando o impressor o dobra. Pelo `eval` e por `new Function`, que o transpilador não toca, o oráculo cita o fonte cru, e o zjsc já bate (golden `engine_error_text_escape`).
 - O zjsc ainda passa o fonte de arquivo direto ao motor. Quando o impressor do `zbun` existir (ver `wip/zbun`, fase do printer e do golden contra `bun build --no-bundle`), o carregador de arquivos do zjsc precisa passar o fonte por ele. Os goldens de erro de arquivo (texto de mensagem com identificador fora do ASCII, `Error.stack` com colunas, `toString` de função de arquivo) dependem disso e não fecham antes.
 
+## Backlog de divergências conhecidas de erro (diretiva do user, 2026-10-11)
+
+Erro que estoura com informação para depurar e sem vazamento da simulação já é funcional. As divergências abaixo ficam
+declaradas e não se perseguem até o printer do zbun alimentar o zjsc (as de reimpressão) ou até aparecer um vazamento.
+
+- `error_stack_bun_golden`, 19 de 954 (era 93): 8 de callback nativo (`toString` por coerção, `for-of`, template
+  marcado: linha ou coluna do frame de fora), 4 de IIFE `function(){}()` (6 colunas a mais no frame de fora), 4 de frame
+  `async` (a linha sai uma a mais, 7:17 onde o bun dá 6:16), 3 do transpilador do bun (`const c=1; c=2`, o regex sobre
+  `f().stack`, `(void 0).p`) e 1 de `Function` com `sourceURL`.
+- `module_bun_golden`, 72 de 445 (era 81): 53 `BuildMessage`, 8 de reimpressão do texto (`a_default`), 3 de hoisting de
+  `export let`, 3 de `this` no topo (os quatro grupos são do transpilador), 4 de sintaxe (tipo ou texto) e 1 frame
+  `at a.mjs` sem o caminho absoluto (o `MemoryModuleHost` usa chaves relativas).
+- `cjs_require`, 2 de 65: colunas de pilha do `x.js`, contadas no texto reimpresso.
+- `iter_protocol_bun_golden`, 18 de texto de mensagem: o spread de `null`/`undefined` perde o sufixo
+  `(evaluating '...X')`.
+- Desvio de timing sem golden que o pegue: depois do abort do sinal, o `pipeTo` rejeita 1 tempo depois do oráculo (5
+  contra 4).
+
+Fechados por comportamento nesta rodada (não são backlog): `streams_bun_golden` 408 de 408, resolução de especificador
+do `MemoryModuleHost`, `URLPattern`, `node:assert`, `node:util` completo, pilha única com `forEach`, `map` e
+`Array.from` em igualdade exata.
+
 ## Pilha única e divergências abertas da régua (2026-10-11)
 
 - Fechado: a pilha do JS e a nativa são uma só, como no bun (`VM::stack_used`, `VM::enter_vm`, `stack_cost`). Cada entrada no VM desconta da `CLoopStack` os frames nativos que o C++ empilha (`PROGRAM_ENTRY` na primeira, `VM_REENTRY` para `vmEntryToJavaScript`, `VM_NATIVE_REENTRY` para `vmEntryToNative`); as chamadas genéricas de `op_iterator_open`, `op_iterator_next` e `op_async_iterator_next` são o `callHelper` do LLInt e não entram no VM (`Interpreter::call_from_llint`, frame em `cfr - stackOffset`). `executeCall` desembrulha um nível de `JSBoundFunction`. `arraySpeciesWatchpointIsValid` evita o getter de `@@species` em `map`, `filter` e `flatMap`.
