@@ -446,6 +446,10 @@ impl DomHost for Bridge {
                         let _ = profile.indexed_db.commit(&origin, str_arg(args, 1)?, str_arg(args, 2)?);
                         Ok(DomArg::Undefined)
                     }
+                    "open" => {
+                        profile.indexed_db.opened(&origin);
+                        Ok(DomArg::Undefined)
+                    }
                     "delete" => {
                         let _ = profile.indexed_db.delete(&origin, str_arg(args, 1)?);
                         Ok(DomArg::Undefined)

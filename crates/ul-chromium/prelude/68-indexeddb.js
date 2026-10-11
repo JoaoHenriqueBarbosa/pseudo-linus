@@ -1365,6 +1365,8 @@ class IDBFactory {
     // Origem opaca (documento `data:`): o Blink recusa depois de validar a versão (medido no oráculo).
     if (pageState.url.startsWith('data:')) throw domException(`${failed('open', 'IDBFactory')}access to the Indexed Database API is denied in this context.`, 'SecurityError');
     const request = new IDBOpenDBRequest(ILLEGAL);
+    loadDatabases();
+    op('idb', 'open');
     enqueueConnectionRequest(text, (next) => openDatabase(text, requested, request, next));
     return request;
   }

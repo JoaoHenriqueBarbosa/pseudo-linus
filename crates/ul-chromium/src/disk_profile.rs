@@ -22,6 +22,7 @@ use ul_common::time::{Civil, WEBKIT_EPOCH_US};
 use crate::history::{self, Navigation};
 use crate::http_cache::{self, Captured};
 use crate::preferences;
+use crate::quota_manager;
 use crate::sessions;
 use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
@@ -43,6 +44,8 @@ const SESSION_STORAGE_DB: &[u8] = b"Default/Session Storage";
 const KEPT_ACROSS_RUNS: [&[u8]; 2] = [b"Default/History", b"Default/History-journal"];
 /// Os bancos que o molde traz mas que o leveldb próprio grava.
 const OWN_DBS: [&[u8]; 2] = [LOCAL_STORAGE_DB, SESSION_STORAGE_DB];
+/// O QuotaManager de uma execução sem buckets (medido no oráculo): o esquema 11 e três chaves de `meta`.
+const QUOTA_MANAGER_TEMPLATE: &[u8] = include_bytes!("../profile/quota-manager.db");
 /// O diretório do IndexedDB no perfil: só existe depois que uma página o usa.
 const INDEXED_DB_DIR: &[u8] = b"Default/IndexedDB";
 
@@ -269,6 +272,8 @@ pub struct DiskProfile {
     local_storage: Option<Arc<LocalStorageStore>>,
     /// O banco do Session Storage (`Default/Session Storage`), recriado a cada início.
     session_storage: Option<Arc<SessionStorageStore>>,
+    /// O IndexedDB do perfil, criado na primeira vez que o navegador o pede.
+    indexed_db: OnceLock<Arc<IndexedDbStore>>,
     /// As navegações da aba nesta execução, para o History.
     navigations: Mutex<Vec<Navigation>>,
     /// As respostas que o navegador buscou nesta execução, cada uma com a página de topo, para o cache de disco.
@@ -300,14 +305,14 @@ impl DiskProfile {
             Some(path) if !path.is_empty() => path,
             _ => [home.as_slice(), b"/.config"].concat(),
         };
-        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None, navigations: Mutex::new(Vec::new()), resources: Mutex::new(Vec::new()), window_id: random_below(1 << 31) as i64 }
+        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None, indexed_db: OnceLock::new(), navigations: Mutex::new(Vec::new()), resources: Mutex::new(Vec::new()), window_id: random_below(1 << 31) as i64 }
     }
 
     /// O IndexedDB do perfil (`Default/IndexedDB`): cada origem ganha o leveldb dela no primeiro uso.
     pub fn indexed_db(&self) -> Option<Arc<IndexedDbStore>> {
         let dir = [self.user_data_dir.as_deref()?, b"/", INDEXED_DB_DIR].concat();
         let thread_id = sys::current().gettid() as u64;
-        Some(Arc::new(IndexedDbStore::new(Arc::new(SysEnv::new()), &String::from_utf8_lossy(&dir), thread_id)))
+        Some(self.indexed_db.get_or_init(|| Arc::new(IndexedDbStore::new(Arc::new(SysEnv::new()), &String::from_utf8_lossy(&dir), thread_id))).clone())
     }
 
     /// O banco do Local Storage do perfil, para o contexto de navegação padrão do navegador.
@@ -360,6 +365,27 @@ impl DiskProfile {
             }
         }
         let _ = sysabi::util::write_file(&index_path, &http_cache::index_file(&index, ul_common::time::webkit_now_micros() - 30_000), 0o600);
+    }
+
+    /// O QuotaManager da saída do `--dump-dom` de uma navegação: o banco nasce do molde (esquema 11 sem buckets) e
+    /// ganha o bucket de cada origem que usou o IndexedDB. As chaves `IsBucketsBootstrapped` e
+    /// `IsMediaLicenseDatabaseRemoved` vêm junto do bucket sempre; sem bucket aparecem em cerca de metade das execuções,
+    /// porque a gravação do bootstrap corre contra a saída (10 de 20 execuções de `ss-none` no oráculo, sem relação
+    /// com a duração da execução), e aqui o sorteio faz a mesma conta.
+    fn write_quota(&self) {
+        let Some(dir) = &self.user_data_dir else { return };
+        if self.navigations.lock().unwrap_or_else(PoisonError::into_inner).is_empty() {
+            return;
+        }
+        let folder = [dir.as_slice(), b"/Default/WebStorage"].concat();
+        let path = [folder.as_slice(), b"/QuotaManager"].concat();
+        let _ = mkdir_p(&folder, 0o700);
+        if sys::lstat(&path).is_err() {
+            let _ = sysabi::util::write_file(&path, QUOTA_MANAGER_TEMPLATE, 0o600);
+        }
+        let uses = self.indexed_db.get().map(|store| store.bucket_uses()).unwrap_or_default();
+        let bootstrapped = !uses.is_empty() || random_below(2) == 1;
+        let _ = quota_manager::write(&String::from_utf8_lossy(&path), &uses, bootstrapped);
     }
 
     /// O `Preferences` da saída do `--dump-dom` com o engajamento de cada site visitado.
@@ -440,6 +466,7 @@ impl DiskProfile {
         let _ = self.write_layer(template(self.run), LAYER_EXIT);
         if self.run == Run::DumpDom {
             self.write_preferences(previous_preferences);
+            self.write_quota();
             self.write_history();
             self.write_sessions();
             self.write_cache();
