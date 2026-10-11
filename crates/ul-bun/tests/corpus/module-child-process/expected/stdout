@@ -1,0 +1,20 @@
+keys ChildProcess,spawn,execFile,exec,fork,spawnSync,execFileSync,execSync
+names spawn exec fork ChildProcess
+spawn no args throws TypeError ERR_INVALID_ARG_TYPE The "file" argument must be of type string. Received undefined
+spawn number throws TypeError ERR_INVALID_ARG_TYPE The "file" argument must be of type string. Received type number (1)
+spawn empty throws TypeError ERR_INVALID_ARG_VALUE The argument 'file' cannot be empty. Received ''
+spawn args throws TypeError ERR_INVALID_ARG_TYPE The "args" argument must be of type object. Received type number (5)
+spawn options throws TypeError ERR_INVALID_ARG_TYPE The "options" argument must be of type object. Received type number (5)
+spawn cwd throws TypeError ERR_INVALID_ARG_TYPE The "options.cwd" property must be of type string or an instance of Buffer or URL. Received type number (5)
+spawn shell throws TypeError ERR_INVALID_ARG_TYPE The "options.shell" property must be one of type boolean or string. Received type number (5)
+spawn timeout throws RangeError ERR_OUT_OF_RANGE The value of "timeout" is out of range. It must be an unsigned integer. Received -1
+spawn killSignal throws TypeError ERR_UNKNOWN_SIGNAL Unknown signal: NOPE
+spawn stdio throws TypeError ERR_INVALID_OPT_VALUE The value "nope" is invalid for option "stdio"
+exec no args throws TypeError ERR_INVALID_ARG_TYPE The "command" argument must be of type string. Received undefined
+execFile no args throws TypeError ERR_INVALID_ARG_TYPE The "file" argument must be of type string. Received undefined
+fork bad throws TypeError ERR_INVALID_ARG_TYPE The "modulePath" argument must be of type string or an instance of Buffer or URL. Received type number (5)
+execSync no args throws TypeError ERR_INVALID_ARG_TYPE The "command" argument must be of type string. Received undefined
+spawnSync no args throws TypeError ERR_INVALID_ARG_TYPE The "file" argument must be of type string. Received undefined
+child undefined false null null undefined undefined
+connected throws TypeError
+kill unspawned ok boolean

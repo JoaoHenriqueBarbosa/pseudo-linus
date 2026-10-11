@@ -28,6 +28,16 @@ const httpCommon = [
   [/\$newRustFunction\("node_http_binding\.rs", "newDetachedSocket", 1\)/, 'notImplemented("http.Server")'],
 ];
 
+// `Bun.spawn` e `Bun.spawnSync` (o processo filho de verdade) ainda não existem: lançam "not implemented" no ponto de uso.
+const childProcess = [
+  [/\bBun\.spawnSync\(/g, 'notImplemented("child_process.spawnSync")('],
+  [/\bBun\.spawn\(/g, 'notImplemented("child_process.spawn")('],
+  // `$debug` sem chamada é a flag `DEBUG_CHILD_PROCESS`, desligada.
+  [/\$debug(?!\()/g, "false"],
+  [/\$newRustFunction\("node_util_binding\.rs", "etimedoutErrorCode", 0\)/, "(() => -110)"],
+  [/\$newRustFunction\("node_util_binding\.rs", "enobufsErrorCode", 0\)/, "(() => -105)"],
+];
+
 // [nome do módulo embutido, arquivo, substituições próprias, o que o `export` final vira]
 const modules = [
   ["diagnostics_channel", "node/diagnostics_channel.ts", []],
@@ -39,6 +49,7 @@ const modules = [
   ["_http_server", "node/_http_server.ts", httpCommon],
   ["http", "node/http.ts", httpCommon],
   ["https", "node/https.ts", httpCommon],
+  ["child_process", "node/child_process.ts", childProcess],
 ];
 
 const prologue = `  "use strict";

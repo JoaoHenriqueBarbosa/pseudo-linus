@@ -62,6 +62,7 @@ pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "assert/strict", scheme: Scheme::Both, install: crate::api::node_assert::install_assert_strict_module },
     BuiltinEntry { name: "async_hooks", scheme: Scheme::Both, install: crate::api::node_async_hooks::install_async_hooks_module },
     BuiltinEntry { name: "buffer", scheme: Scheme::Both, install: crate::runtime::node_buffer::install_buffer_module },
+    BuiltinEntry { name: "child_process", scheme: Scheme::Both, install: crate::runtime::node_http::install_child_process_module },
     BuiltinEntry { name: "crypto", scheme: Scheme::Both, install: crate::runtime::node_crypto::install_crypto_module },
     BuiltinEntry { name: "diagnostics_channel", scheme: Scheme::Both, install: crate::runtime::node_http::install_diagnostics_channel_module },
     BuiltinEntry { name: "events", scheme: Scheme::Both, install: crate::api::node_events::install_events_module },
