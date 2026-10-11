@@ -77,6 +77,7 @@ use crate::runtime::math_common::max_safe_integer_as_uint64;
 use crate::runtime::operations::{same_value_zero, strict_equal};
 use crate::runtime::property_attribute::{DONT_DELETE, DONT_ENUM, READ_ONLY};
 use crate::runtime::property_name::PropertyName;
+use crate::runtime::property_offset::INVALID_OFFSET;
 use crate::runtime::put_property_slot::{PutContext, PutPropertySlot};
 use crate::runtime::structure::{Structure, StructureRef};
 use crate::runtime::vm::VM;
@@ -797,12 +798,74 @@ pub fn array_proto_func_join(call: &ArrayCall) -> ArrayResult {
     join_with_separator(call, &object, length, &separator, element_to_wtf_string)
 }
 
+/// O valor de `name` é a função nativa `host` primordial (a identidade que o watchpoint do C++ vigia).
+fn is_original_native(value: JSValue, host: crate::runtime::native_function::NativeFunction) -> bool {
+    matches!(
+        get_call_data(value),
+        crate::runtime::call_data::CallData::Native { function, .. } if function == crate::runtime::native_function::to_tagged(host)
+    )
+}
+
+/// `canUseDefaultArrayJoinForToString(thisObject)` (ArrayPrototype.cpp): o `arrayJoinWatchpointSet` (o `join` de
+/// `Array.prototype` é o original) e a `Structure` original de array (sem propriedade própria, `Array.prototype` de
+/// protótipo). O porte confere as propriedades direto, como o `array_species_watchpoint_is_valid`.
+fn can_use_default_array_join_for_to_string(global_object: &JSGlobalObject, this_value: JSValue) -> bool {
+    let vm = global_object.vm();
+    let Some(object) = JSObject::from_value(&this_value) else { return false };
+    if !is_js_array(&this_value) || !global_object.is_original_array_structure(&object.structure()) {
+        return false;
+    }
+    let Some(array_prototype) = JSObject::from_value(&global_object.array_structure().stored_prototype()) else { return false };
+    let join = array_prototype.get_direct_by_name(vm, &PropertyName::from_identifier(&vm.property_names.join));
+    is_original_native(join, array_proto_func_join_host)
+}
+
+/// `JSArray::isToPrimitiveFastAndNonObservable()` (JSArray.cpp): além do `join`, que `toString`, `valueOf` e
+/// `@@toPrimitive` não foram redefinidos nem aparecem em `Array.prototype` ou `Object.prototype`, e que a cadeia
+/// de protótipos é a original. Com isso `toPrimitive` e `toString` do array são o `fastToString`, sem chamada.
+pub fn is_to_primitive_fast_and_non_observable(global_object: &JSGlobalObject, this_value: JSValue) -> bool {
+    if !can_use_default_array_join_for_to_string(global_object, this_value) {
+        return false;
+    }
+    let vm = global_object.vm();
+    let names = &vm.property_names;
+    let Some(array_prototype) = JSObject::from_value(&global_object.array_structure().stored_prototype()) else { return false };
+    let object_prototype = global_object.object_prototype();
+    if array_prototype.get_prototype_direct() != object_prototype.as_value() {
+        return false;
+    }
+    let absent = |object: &JSObject, name: &Identifier| object.get_direct_offset(vm, &PropertyName::from_identifier(name)) == INVALID_OFFSET;
+    let to_string = array_prototype.get_direct_by_name(vm, &PropertyName::from_identifier(&names.to_string));
+    let value_of = object_prototype.get_direct_by_name(vm, &PropertyName::from_identifier(&names.value_of));
+    is_original_native(to_string, array_proto_func_to_string_host)
+        && is_original_native(value_of, crate::runtime::object_prototype::object_proto_func_value_of)
+        && absent(&array_prototype, &names.value_of)
+        && absent(&array_prototype, &names.to_primitive_symbol)
+        && absent(&object_prototype, &names.to_primitive_symbol)
+}
+
+/// `JSArray::fastToString(globalObject)`: o `join` com a vírgula, sem passar por `call()` (e sem entrada no VM), com
+/// a mesma proteção de ciclo e de pilha do `join`. `None` com a exceção pendente.
+pub fn fast_to_string(global_object: &JSGlobalObject, array: JSValue) -> Option<JSValue> {
+    let call = ArrayCall { vm: global_object.vm(), global_object, this_value: array, args: &[], new_target: JSValue::undefined() };
+    match array_proto_func_join(&call) {
+        Ok(value) => Some(value),
+        Err(error) => {
+            throw_array_error(global_object, error);
+            None
+        }
+    }
+}
+
 /// `arrayProtoFuncToString`: o `join` do objeto (`Get(array, "join")`); sem `join` chamável é o
-/// `Object.prototype.toString` (passo 3). DIVERGÊNCIA: o atalho `canUseDefaultArrayJoinForToString`
-/// (`fastToString`, `arrayJoinWatchpointSet`) não existe; o `join` original também é chamado.
+/// `Object.prototype.toString` (passo 3). Com `canUseDefaultArrayJoinForToString` é o `fastToString` direto.
 pub fn array_proto_func_to_string(call: &ArrayCall) -> ArrayResult {
     // 1. Let array be the result of calling ToObject on the this value.
     let object = call.this_object()?;
+
+    if can_use_default_array_join_for_to_string(call.global_object, call.this_value) {
+        return fast_to_string(call.global_object, call.this_value).ok_or(ArrayError::Put(PutError::Pending));
+    }
 
     // 2. Let func be the result of calling the [[Get]] internal method of array with argument "join".
     let function = object.get(call.vm, &PropertyName::from_identifier(&call.vm.property_names.join));

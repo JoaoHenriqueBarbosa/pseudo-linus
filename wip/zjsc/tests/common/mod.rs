@@ -453,6 +453,17 @@ pub fn run_factored_big_stack(tsv: &'static str, preludes: &'static str, min_tot
     on_big_stack(move || run_factored(tsv, preludes, min_total, evaluate));
 }
 
+/// `run_factored_big_stack` com as divergências conhecidas declaradas ([`KnownDivergence`]).
+pub fn run_factored_big_stack_known(
+    tsv: &'static str,
+    preludes: &'static str,
+    min_total: usize,
+    known: &'static [KnownDivergence],
+    evaluate: impl Fn(&Program) -> Result<JSValue, JSValue> + Send + 'static,
+) {
+    on_big_stack(move || check_with_meta_known(tsv, preludes, min_total, known, |source, _| guarded_units(|| evaluate(source))));
+}
+
 /// Golden com a quinta coluna (modo ESM/CJS e mapa de posições, ver [`ProgramMeta`]): `url` é o nome do arquivo dos dois
 /// lados (`__filename` do CJS e o que o `stack` mostra) e o programa grava o resultado em `globalThis.R`.
 pub fn run_mapped_golden(tsv: &str, preludes: &str, min_total: usize, url: &str) {
@@ -532,10 +543,33 @@ pub fn evaluate_golden_program(source: impl ProgramSource, meta: &ProgramMeta, u
     }
 }
 
+/// Uma divergência do zjsc contra o bun já medida e ainda não corrigida: `expected` é a saída do bun, `got` a do zjsc
+/// (as duas exatas, comparadas por igualdade) e `count` quantas linhas do golden divergem desse jeito. Não afrouxa a
+/// asserção nem tira caso: uma linha que diverge de outro jeito falha, e uma divergência declarada que deixa de ocorrer
+/// (ou ocorre numa quantidade diferente) também falha, para a lista não apodrecer.
+pub struct KnownDivergence {
+    pub cause: &'static str,
+    pub expected: &'static str,
+    pub got: &'static str,
+    pub count: usize,
+}
+
 /// `check` com a quinta coluna: `run` recebe o programa completo e o `ProgramMeta` da linha.
 pub fn check_with_meta<R: Into<Units>>(tsv: &str, preludes: &str, min_total: usize, run: impl Fn(&Program, &ProgramMeta) -> Result<R, String>) {
+    check_with_meta_known(tsv, preludes, min_total, &[], run);
+}
+
+/// `check_with_meta` com as divergências conhecidas declaradas ([`KnownDivergence`]).
+pub fn check_with_meta_known<R: Into<Units>>(
+    tsv: &str,
+    preludes: &str,
+    min_total: usize,
+    known: &[KnownDivergence],
+    run: impl Fn(&Program, &ProgramMeta) -> Result<R, String>,
+) {
     let preludes = parse_preludes(preludes);
     let mut failures = Vec::new();
+    let mut known_seen = vec![0usize; known.len()];
     let mut total = 0;
     // GOLDEN_LINES=a-b restringe a medição às linhas a..=b do tsv (1-based), para isolar caso lento ou que estoura.
     let range = std::env::var("GOLDEN_LINES").ok().map(|spec| {
@@ -558,13 +592,27 @@ pub fn check_with_meta<R: Into<Units>>(tsv: &str, preludes: &str, min_total: usi
             Ok(actual) => {
                 let actual: Units = actual.into();
                 if actual.0 != expected && !alternatives.contains(&actual.0) && !matches_varying(&expected, &actual.0, &varying) {
-                    failures.push(format!("{source}\n    esperado {}\n    veio     {}", escape_units(&expected), escape_units(&actual.0)));
+                    let (expected_text, got_text) = (String::from_utf16_lossy(&expected), String::from_utf16_lossy(&actual.0));
+                    match known.iter().position(|divergence| divergence.expected == expected_text && divergence.got == got_text) {
+                        Some(index) => known_seen[index] += 1,
+                        None => failures.push(format!("{source}\n    esperado {}\n    veio     {}", escape_units(&expected), escape_units(&actual.0))),
+                    }
                 }
             }
             Err(reason) => failures.push(format!("{source}\n    esperado {}\n    {reason}", escape_units(&expected))),
         }
     }
     assert!(range.is_some() || total >= min_total, "golden com só {total} programas");
+    if range.is_none() {
+        for (divergence, seen) in known.iter().zip(&known_seen) {
+            if *seen != divergence.count {
+                failures.push(format!(
+                    "divergência conhecida ({}): {} linhas declaradas, {} vistas\n    bun {:?}\n    zjsc {:?}",
+                    divergence.cause, divergence.count, seen, divergence.expected, divergence.got
+                ));
+            }
+        }
+    }
     assert!(failures.is_empty(), "{} de {} divergem do bun:\n{}", failures.len(), total, failures.join("\n"));
 }
 

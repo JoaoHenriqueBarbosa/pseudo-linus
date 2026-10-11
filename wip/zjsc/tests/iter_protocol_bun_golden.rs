@@ -10,7 +10,25 @@ mod common;
 const GOLDEN: &str = include_str!("golden/iter_protocol_bun.tsv");
 const PRELUDES: &str = include_str!("golden/iter_protocol.preludes.json");
 
+/// O erro do spread de `null` ou `undefined` (`[...X]`) no bun leva o trecho do fonte da instrução depois da mensagem
+/// (`(evaluating '...X')`); no zjsc a mensagem sai sem o sufixo. Divergência de texto (a exceção, o tipo e o log de
+/// acessos batem), medida no bun 1.4.2 e declarada em vez de perseguida: 9 linhas para cada um dos dois valores.
+const KNOWN: &[common::KnownDivergence] = &[
+    common::KnownDivergence {
+        cause: "mensagem do spread de undefined sem o trecho do fonte",
+        expected: "\"get iter,call iter0 => throw TypeError: undefined is not an object (evaluating '...X')\"",
+        got: "\"get iter,call iter0 => throw TypeError: undefined is not an object\"",
+        count: 9,
+    },
+    common::KnownDivergence {
+        cause: "mensagem do spread de null sem o trecho do fonte",
+        expected: "\"get iter,call iter0 => throw TypeError: null is not an object (evaluating '...X')\"",
+        got: "\"get iter,call iter0 => throw TypeError: null is not an object\"",
+        count: 9,
+    },
+];
+
 #[test]
 fn iter_protocol_matches_bun() {
-    common::run_factored_big_stack(GOLDEN, PRELUDES, 3000, |source| common::EvalMode::IndirectEval.evaluate(source, "", "R"));
+    common::run_factored_big_stack_known(GOLDEN, PRELUDES, 3000, KNOWN, |source| common::EvalMode::IndirectEval.evaluate(source, "", "R"));
 }

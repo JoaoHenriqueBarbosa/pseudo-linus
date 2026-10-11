@@ -7,8 +7,10 @@
 //!
 //! DIVERGÊNCIAS:
 //!
-//! - Os atalhos de desempenho sem efeito observável não foram portados: `isToPrimitiveFastAndNonObservable`
-//!   do `JSArray` (`fastToString`), `defaultToPrimitiveFastAndNonObservable` da `Structure` e o
+//! - `isToPrimitiveFastAndNonObservable` do `JSArray` (`fastToString`) está portado, conferindo direto as
+//!   propriedades que os watchpoints do C++ vigiam: o atalho é observável na pilha (o `toString` e o `join` do
+//!   ciclo de arrays aninhados não entram no VM no bun, só recursam em C++). Os outros atalhos de desempenho sem
+//!   efeito observável não foram portados: `defaultToPrimitiveFastAndNonObservable` da `Structure` e o
 //!   `cachedSpecialProperty` (o cache de `@@toPrimitive`, `toString` e `valueOf`). O caminho geral
 //!   (`getPropertySlot` e `call`) dá o mesmo resultado. O atalho `function == objectProtoValueOfFunction`
 //!   também some: o `valueOf` primordial devolve o próprio objeto, que o teste `isObject` descarta do
@@ -16,6 +18,7 @@
 //! - O resultado é `Option<JSValue>`: `None` é o `JSValue()` vazio com a exceção pendente no `VM`.
 
 use crate::llint::LLIntFailure;
+use crate::runtime::array_prototype::{fast_to_string, is_to_primitive_fast_and_non_observable};
 use crate::runtime::call_data::{call, get_call_data};
 use crate::runtime::host_function_support::{throw_vm_type_error, ObjectRef};
 use crate::runtime::identifier::Identifier;
@@ -140,6 +143,10 @@ pub fn ordinary_to_primitive(global_object: &JSGlobalObject, object: &ObjectRef,
 
 /// `JSObject::toPrimitive(globalObject, preferredType)`: `None` com a exceção pendente.
 pub fn object_to_primitive(global_object: &JSGlobalObject, object: &ObjectRef, hint: PreferredPrimitiveType) -> Option<JSValue> {
+    // `isJSArray(this) && array->isToPrimitiveFastAndNonObservable()`: `fastToString`, sem `call()`.
+    if is_to_primitive_fast_and_non_observable(global_object, object.as_value()) {
+        return fast_to_string(global_object, object.as_value());
+    }
     let to_primitive_symbol = &global_object.vm().property_names.to_primitive_symbol;
     match call_to_primitive_function(global_object, object, to_primitive_symbol, Some(hint)) {
         Step::Exception => return None,

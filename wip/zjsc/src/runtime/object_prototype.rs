@@ -53,7 +53,7 @@ fn this_object(global_object: &JSGlobalObject, call_frame: &NativeCallFrame<'_>)
 }
 
 /// `objectProtoFuncValueOf`.
-fn object_proto_func_value_of(global_object: &JSGlobalObject, call_frame: &mut NativeCallFrame<'_>) -> EncodedJSValue {
+pub(crate) fn object_proto_func_value_of(global_object: &JSGlobalObject, call_frame: &mut NativeCallFrame<'_>) -> EncodedJSValue {
     match this_object(global_object, call_frame) {
         Some(value_obj) => value_obj.as_value().encode(),
         None => JSValue::empty().encode(),

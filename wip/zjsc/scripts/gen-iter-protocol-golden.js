@@ -116,6 +116,10 @@ const aipConsumers = [
   "new Map(X)", "new Set(X)", "Object.fromEntries(X)", "Promise.all(X).catch(()=>{})", "Promise.allSettled(X).catch(()=>{})", "Promise.any(X).catch(()=>{})",
   "Promise.race(X).catch(()=>{})", "Math.max(...X)", "Uint8Array.from(X)", "new Uint8Array(X)", "Map.groupBy(X,v=>v)", "new WeakSet(X)", "new WeakMap(X)",
   "(()=>{var [[a]]=X;return a})()",
+  // Callback que lança no meio da iteração: o iterador é fechado (`return` de %ArrayIteratorPrototype%, se existir),
+  // inclusive na via rápida de array do `forEachInIterable`.
+  "Array.from(X,()=>{throw new RangeError('mx')})", "new (class extends Set{add(v){throw new RangeError('ax')}})(X)",
+  "new (class extends Map{set(k,v){throw new RangeError('ax')}})(X)", "new (class extends WeakSet{add(v){throw new RangeError('ax')}})(X)",
 ];
 for (const [name, install] of Object.entries(overrides)) for (const src of sources) for (const c of aipConsumers) {
   add(

@@ -292,7 +292,9 @@ pub fn for_each_in_iterable_with_method(
 }
 
 /// O corpo do `forEachInIterable` com o `@@iterator` lido: o `IterationMode::FastArray` percorre os índices
-/// sem criar o iterador nem chamar `next` (o iterador de array não tem `return`, então não há `iteratorClose`).
+/// sem criar o iterador nem chamar `next`. Se o callback falha, o `iteratorClose` roda sobre um `JSArrayIterator`
+/// criado na hora, posicionado depois do elemento: o `return` de `%ArrayIteratorPrototype%` pode ter sido definido
+/// pelo usuário (o iterador de array primordial não tem), e o JSC o chama.
 fn for_each_in_iterable_with_method_unchecked(
     global_object: &JSGlobalObject,
     iterable: JSValue,
@@ -310,6 +312,11 @@ fn for_each_in_iterable_with_method_unchecked(
             }
             if let Err(thrown) = callback(value) {
                 throw_thrown(global_object, thrown);
+                let iterated_object = JSObject::from_value(&iterable).expect("isJSArray(iterable)");
+                let iterator = JSArrayIterator::create(vm, &global_object.array_iterator_structure(), &iterated_object, IterationKind::Values);
+                iterator.set_index(i64::from(index) + 1);
+                let _iterator = crate::runtime::gc::RootScope::new(&[iterator.as_value()]);
+                iterator_close(global_object, iterator.as_value());
                 return Err(Thrown::Pending);
             }
             index += 1;
