@@ -24,7 +24,7 @@ const PORT: u16 = 9222;
 const GOLDEN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../testbench/oracle/automation/golden/");
 
 /// As cenas com o Playwright, da mais simples à mais cheia.
-const SCENES: [&str; 3] = ["pw_evaluate", "pw_locators", "pw_actions"];
+const SCENES: [&str; 5] = ["pw_evaluate", "pw_locators", "pw_actions", "pw_context", "pw_navigation"];
 
 /// Os textos grandes que a gravação guardou em `blobs/<sha256>.txt` (`<sha256:HEX len=N>`) voltam ao lugar, nas mensagens
 /// que o cliente mandou: o script injetado do Playwright é um deles.
@@ -69,7 +69,7 @@ fn learn(map: &mut HashMap<String, String>, windows: &mut HashMap<i64, i64>, ora
         (Value::String(o), Value::String(a)) if o != a && (is_token(o) || is_id_key(key)) => {
             map.entry(o.clone()).or_insert_with(|| a.clone());
         }
-        (Value::Number(o), Value::Number(a)) if key == "windowId" && o != a => {
+        (Value::Number(o), Value::Number(a)) if (key == "windowId" || key == "backendNodeId") && o != a => {
             windows.entry(o.as_i64().unwrap_or(0)).or_insert_with(|| a.as_i64().unwrap_or(0));
         }
         (Value::Object(o), Value::Object(a)) => {
@@ -92,7 +92,7 @@ fn learn(map: &mut HashMap<String, String>, windows: &mut HashMap<i64, i64>, ora
 fn translate(map: &HashMap<String, String>, windows: &HashMap<i64, i64>, value: &Value, key: &str) -> Value {
     match value {
         Value::String(s) => Value::String(map.get(s).cloned().unwrap_or_else(|| s.clone())),
-        Value::Number(n) if key == "windowId" => Value::from(windows.get(&n.as_i64().unwrap_or(0)).copied().unwrap_or(n.as_i64().unwrap_or(0))),
+        Value::Number(n) if key == "windowId" || key == "backendNodeId" => Value::from(windows.get(&n.as_i64().unwrap_or(0)).copied().unwrap_or(n.as_i64().unwrap_or(0))),
         Value::Object(o) => Value::Object(o.iter().map(|(k, v)| (k.clone(), translate(map, windows, v, k))).collect()),
         Value::Array(a) => Value::Array(a.iter().map(|v| translate(map, windows, v, key)).collect()),
         other => other.clone(),

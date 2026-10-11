@@ -43,6 +43,11 @@ const devtoolsAgent = (() => {
     isolateId: '0',
     contextId: 1,
     worlds: new Set(),
+    // O contexto em que a mensagem corrente roda: o `objectId` leva o id dele (`isolado.contexto.n`).
+    active: 1,
+    backend: new Map(),
+    backendIds: new WeakMap(),
+    nextBackend: 1,
     uniqueId: '',
     frameId: '',
     origin: '://',
@@ -124,7 +129,7 @@ const devtoolsAgent = (() => {
   };
 
   const register = (value, group) => {
-    const objectId = state.isolateId + '.' + state.contextId + '.' + state.nextObject++;
+    const objectId = state.isolateId + '.' + state.active + '.' + state.nextObject++;
     state.objects.set(objectId, value);
     if (group !== undefined) {
       if (!state.groups.has(group)) state.groups.set(group, []);
@@ -546,6 +551,150 @@ const devtoolsAgent = (() => {
     },
   };
 
+  // ---- DOM: o `backendNodeId` é um contador do processo, atribuído na primeira vez que o cliente pergunta pelo nó.
+  const backendOf = (node) => {
+    let id = state.backendIds.get(node);
+    if (id === undefined) { id = state.nextBackend++; state.backendIds.set(node, id); state.backend.set(id, node); }
+    return id;
+  };
+  const nodeOf = (message, params) => {
+    if (params.objectId !== undefined) {
+      const found = lookup(message, params.objectId);
+      if (!found.found) return null;
+      if (!isNode(found.value)) { fail(message, -32000, 'Object id doesn\'t reference a Node'); return null; }
+      return found.value;
+    }
+    if (params.backendNodeId !== undefined) {
+      const node = state.backend.get(params.backendNodeId);
+      if (node === undefined) { fail(message, -32000, 'No node with given id found'); return null; }
+      return node;
+    }
+    fail(message, -32000, 'Either nodeId, backendNodeId or objectId must be specified');
+    return null;
+  };
+  const describe = (node, depth) => {
+    const out = { nodeId: 0, backendNodeId: backendOf(node), nodeType: node.nodeType, nodeName: node.nodeName, localName: node.nodeType === 1 ? node.localName : '', nodeValue: node.nodeType === 3 || node.nodeType === 8 ? node.nodeValue : '' };
+    if (node.nodeType === 1 || node.nodeType === 9 || node.nodeType === 11) out.childNodeCount = node.childNodes.length;
+    if (node.nodeType === 1) {
+      out.attributes = [];
+      for (const attr of node.attributes) out.attributes.push(attr.name, attr.value);
+      if (node.localName === 'li' && depth === 0) out.pseudoElements = [{ nodeId: 0, backendNodeId: state.nextBackend++, nodeType: 1, nodeName: '::marker', localName: '::marker', nodeValue: '', childNodeCount: 0, attributes: [], pseudoType: 'marker' }];
+    }
+    return out;
+  };
+  const px = (value) => Number.parseFloat(value) || 0;
+  // As caixas do elemento (borda, preenchimento, conteúdo e margem) em quadriláteros `[x1,y1,x2,y1,x2,y2,x1,y2]`.
+  const boxes = (node) => {
+    const b = node.nodeType === 1 ? boxOf(node) : null;
+    if (b === null) return null;
+    const cs = getComputedStyle(node);
+    const quad = (l, t, r, bt) => [l, t, r, t, r, bt, l, bt];
+    const [bt, br, bb, bl] = b.border, [pt, pr, pb, pl] = b.padding;
+    const x1 = b.x, y1 = b.y, x2 = b.x + b.width, y2 = b.y + b.height;
+    const margin = quad(x1 - px(cs.marginLeft), y1 - px(cs.marginTop), x2 + px(cs.marginRight), y2 + px(cs.marginBottom));
+    const border = quad(x1, y1, x2, y2);
+    const padding = quad(x1 + bl, y1 + bt, x2 - br, y2 - bb);
+    const content = quad(x1 + bl + pl, y1 + bt + pt, x2 - br - pr, y2 - bb - pb);
+    return { content, padding, border, margin, width: Math.round(b.width), height: Math.round(b.height) };
+  };
+  commands['DOM.describeNode'] = (message, params) => {
+    const node = nodeOf(message, params);
+    if (node !== null) reply(message, { node: describe(node, 0) });
+  };
+  commands['DOM.resolveNode'] = (message, params) => {
+    const node = nodeOf(message, params);
+    if (node !== null) reply(message, { object: remoteObject(node, { group: params.objectGroup }) });
+  };
+  commands['DOM.getBoxModel'] = (message, params) => {
+    const node = nodeOf(message, params);
+    if (node === null) return;
+    const model = boxes(node);
+    if (model === null) fail(message, -32000, 'Could not compute box model.'); else reply(message, { model });
+  };
+  commands['DOM.getContentQuads'] = (message, params) => {
+    const node = nodeOf(message, params);
+    if (node === null) return;
+    const model = boxes(node);
+    reply(message, { quads: model === null ? [] : [model.border] });
+  };
+  commands['DOM.scrollIntoViewIfNeeded'] = (message, params) => {
+    const node = nodeOf(message, params);
+    if (node === null) return;
+    const b = node.nodeType === 1 ? boxOf(node) : null;
+    if (b === null) { fail(message, -32000, 'Node does not have a layout object'); return; }
+    if (b.y < 0 || b.y + b.height > windowMetrics.innerHeight) node.scrollIntoView?.({ block: 'center', inline: 'center' });
+    reply(message, {});
+  };
+
+  // ---- Input: eventos de ponteiro e de teclado sobre o elemento sob o ponto e o elemento em foco.
+  const pointer = { target: null, x: 0, y: 0 };
+  const mouseInit = (params) => ({ bubbles: true, cancelable: true, composed: true, clientX: params.x, clientY: params.y, screenX: params.x, screenY: params.y, button: { left: 0, middle: 1, right: 2, back: 3, forward: 4 }[params.button] ?? 0, buttons: params.buttons || 0, detail: params.clickCount || 0, ctrlKey: !!(params.modifiers & 2), shiftKey: !!(params.modifiers & 8), altKey: !!(params.modifiers & 1), metaKey: !!(params.modifiers & 4) });
+  commands['Input.dispatchMouseEvent'] = (message, params) => {
+    const target = document.elementFromPoint(params.x, params.y);
+    const init = mouseInit(params);
+    if (params.type === 'mouseMoved') {
+      if (pointer.target !== target) {
+        if (pointer.target) pointer.target.dispatchEvent(new MouseEvent('mouseout', init));
+        if (target) target.dispatchEvent(new MouseEvent('mouseover', init));
+        pointer.target = target;
+      }
+      if (target) target.dispatchEvent(new MouseEvent('mousemove', init));
+    } else if (params.type === 'mousePressed') {
+      if (target) {
+        target.dispatchEvent(new MouseEvent('mousedown', init));
+        let focusable = target;
+        while (focusable && !(focusable.tabIndex >= 0 || /^(input|textarea|select|button|a)$/.test(focusable.localName))) focusable = focusable.parentElement;
+        if (focusable) focusable.focus?.();
+      }
+      pointer.down = target;
+    } else if (params.type === 'mouseReleased') {
+      if (target) {
+        target.dispatchEvent(new MouseEvent('mouseup', init));
+        if (pointer.down === target && init.button === 0) target.click?.();
+        else if (pointer.down === target && init.button === 2) target.dispatchEvent(new MouseEvent('contextmenu', init));
+      }
+      pointer.down = null;
+    } else if (params.type === 'mouseWheel') {
+      if (target) target.dispatchEvent(new WheelEvent('wheel', { ...init, deltaX: params.deltaX || 0, deltaY: params.deltaY || 0 }));
+    }
+    reply(message, {});
+  };
+  // O texto entra no elemento editável em foco (`input`, `textarea` ou `contenteditable`) com `beforeinput` e `input`.
+  const insert = (text) => {
+    const el = document.activeElement;
+    if (!el) return;
+    const editable = (el.localName === 'input' || el.localName === 'textarea') && !el.readOnly && !el.disabled;
+    if (!editable && !el.isContentEditable) return;
+    if (!el.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, composed: true, data: text, inputType: 'insertText' }))) return;
+    if (editable) {
+      const start = el.selectionStart ?? el.value.length, end = el.selectionEnd ?? start;
+      el.value = el.value.slice(0, start) + text + el.value.slice(end);
+      el.selectionStart = el.selectionEnd = start + text.length;
+    } else {
+      el.textContent += text;
+    }
+    el.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true, data: text, inputType: 'insertText' }));
+  };
+  commands['Input.insertText'] = (message, params) => { insert(String(params.text)); reply(message, {}); };
+  commands['Input.dispatchKeyEvent'] = (message, params) => {
+    const target = document.activeElement || document.body;
+    const init = { bubbles: true, cancelable: true, composed: true, key: params.key || '', code: params.code || '', location: params.location || 0, repeat: !!params.autoRepeat, ctrlKey: !!(params.modifiers & 2), shiftKey: !!(params.modifiers & 8), altKey: !!(params.modifiers & 1), metaKey: !!(params.modifiers & 4) };
+    if (params.type === 'keyUp') {
+      target.dispatchEvent(new KeyboardEvent('keyup', init));
+    } else if (params.type === 'keyDown' || params.type === 'rawKeyDown' || params.type === 'char') {
+      const proceed = params.type === 'char' ? true : target.dispatchEvent(new KeyboardEvent('keydown', init));
+      if (proceed && params.text) {
+        if (params.type !== 'rawKeyDown') target.dispatchEvent(new KeyboardEvent('keypress', init));
+        if (params.text === '\r') {
+          if (target.localName === 'input') { const form = target.form; if (form) form.requestSubmit?.(); } else if (target.localName === 'button') target.click();
+        } else {
+          insert(params.text);
+        }
+      }
+    }
+    reply(message, {});
+  };
+
   return {
     // Um marco do carregamento (`DOMContentLoaded`, `load`) para os eventos de `Page`, com o título do documento e se
     // ele tem o que pintar (os `first*Paint` do Chromium só saem com conteúdo).
@@ -576,6 +725,9 @@ const devtoolsAgent = (() => {
     dispatch(text) {
       const message = jsonParse(text);
       const handler = commands[message.method];
+      const params = message.params || {};
+      const fromObject = typeof params.objectId === 'string' ? Number(params.objectId.split('.')[1]) : NaN;
+      state.active = params.executionContextId !== undefined ? params.executionContextId : (fromObject === fromObject ? fromObject : state.contextId);
       if (handler === undefined) { fail(message, -32601, "'" + message.method + "' wasn't found"); return; }
       // Toda mensagem tem resposta: um cliente esperando uma que nunca vem trava.
       try { handler(message, message.params || {}); } catch (error) { fail(message, -32000, String(error && error.message)); }

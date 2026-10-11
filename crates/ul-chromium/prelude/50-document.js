@@ -112,8 +112,20 @@ class Document extends Node {
   getElementsByName(name) { return liveList(NodeList.prototype, () => Array.from(document.querySelectorAll('[name]')).filter((e) => e.getAttribute('name') === String(name))); }
   hasFocus() { return true; }
   getSelection() { return selection; }
-  elementFromPoint() { return null; }
-  elementsFromPoint() { return []; }
+  // O elemento sob o ponto: a pilha, do mais fundo (último na ordem do documento) ao mais raso, dos elementos com
+  // caixa que contêm o ponto. Sem z-index nem recorte de rolagem, e `pointer-events: none` fica de fora.
+  elementsFromPoint(x, y) {
+    const hits = [];
+    for (const el of this.querySelectorAll('*')) {
+      const b = boxOf(el);
+      if (b === null || b.width <= 0 || b.height <= 0) continue;
+      if (x < b.x || x >= b.x + b.width || y < b.y || y >= b.y + b.height) continue;
+      if (getComputedStyle(el).pointerEvents === 'none') continue;
+      hits.push(el);
+    }
+    return hits.reverse();
+  }
+  elementFromPoint(x, y) { return this.elementsFromPoint(x, y)[0] ?? null; }
   execCommand() { return false; }
   queryCommandSupported() { return false; }
   queryCommandEnabled() { return false; }

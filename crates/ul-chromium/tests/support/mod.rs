@@ -227,6 +227,8 @@ pub fn normalize(value: &Value, key: &str) -> Value {
         // O `requestId` de subrecurso é `pid.n`.
         Value::String(s) if key == "requestId" && s.split_once('.').is_some_and(|(a, b)| !a.is_empty() && a.bytes().all(|c| c.is_ascii_digit()) && b.bytes().all(|c| c.is_ascii_digit())) => Value::String("<requestId>".into()),
         Value::Number(_) if key == "windowId" => Value::String("<windowId>".into()),
+        // O `backendNodeId` é um contador do processo, atribuído quando o cliente pergunta pelo nó.
+        Value::Number(_) if key == "backendNodeId" => Value::String("<backendNodeId>".into()),
         Value::String(s) if token(s) => Value::String("<token>".into()),
         Value::String(s) if uuid(s) => Value::String("<uuid>".into()),
         Value::String(s) if key == "objectId" => Value::String(format!("<isolate>.{}", s.split_once('.').map(|(_, rest)| rest).unwrap_or_default())),
