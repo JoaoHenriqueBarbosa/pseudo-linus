@@ -40,6 +40,39 @@ impl Language {
 /// `DefaultLocale()`: o locale do ICU de um processo sem `LANG` do Debian.
 pub const DEFAULT_LOCALE: &str = "en-US";
 
+thread_local! {
+    /// O locale padrão posto pelo hospedeiro (`Emulation.setLocaleOverride` do CDP), já canônico e com dados.
+    static DEFAULT_LOCALE_OVERRIDE: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
+}
+
+/// O gancho do hospedeiro: troca o locale padrão do `Intl` (`DateTimeFormat`, `NumberFormat`, `Collator`,
+/// `PluralRules`..., e `toLocaleString`, `localeCompare`, `toLocaleUpperCase` sem `locales`) nesta thread, que é a
+/// do realm da página, ou volta ao `en-US` com `None`. Vale já para o código que roda depois da chamada. A tag
+/// inválida, ou sem dados, deixa o padrão como estava e devolve `false`.
+pub fn set_default_locale(tag: Option<&str>) -> bool {
+    let chosen = match tag {
+        None => None,
+        Some(tag) => {
+            let Some(canonical) = canonicalize_tag(tag) else { return false };
+            let Some(parsed) = parse_language_tag(&canonical) else { return false };
+            let Some(found) = best_available_locale(&parsed.base_name()) else { return false };
+            Some(found)
+        }
+    };
+    DEFAULT_LOCALE_OVERRIDE.with(|cell| *cell.borrow_mut() = chosen);
+    true
+}
+
+/// `DefaultLocale()` em vigor: o do hospedeiro, ou `en-US`.
+pub fn default_locale() -> String {
+    DEFAULT_LOCALE_OVERRIDE.with(|cell| cell.borrow().clone()).unwrap_or_else(|| DEFAULT_LOCALE.to_string())
+}
+
+/// Se o hospedeiro trocou o locale padrão (os atalhos de `en-US` deixam de valer).
+pub fn default_locale_is_overridden() -> bool {
+    DEFAULT_LOCALE_OVERRIDE.with(|cell| cell.borrow().is_some())
+}
+
 /// Se `language` está na lista de `intlAvailableLocales` medida no bun
 /// (`intl_available_locales_data::AVAILABLE_LANGUAGES`, gerada por `scripts/gen-available-locales.js`).
 /// É o único conjunto de locales disponíveis das classes do Intl (o Collator tem o seu, em
@@ -413,7 +446,9 @@ pub fn resolve_locale(requested: &[String], relevant_keys: &[&str]) -> ResolvedL
             return ResolvedLocale { locale: found, language, keywords };
         }
     }
-    ResolvedLocale { locale: DEFAULT_LOCALE.to_string(), language: Language::English, keywords: Vec::new() }
+    let locale = default_locale();
+    let language = Language::of_locale(&locale);
+    ResolvedLocale { locale, language, keywords: Vec::new() }
 }
 
 /// A região usada para os dados por região (`getWeekInfo`, `getCalendars`, `getTimeZones`): a da tag ou
@@ -764,5 +799,47 @@ mod tests {
             resolve_key(Some("emoji"), None, &collations, None),
             ResolvedKey { value: Some("emoji".to_string()), keep_extension: true }
         );
+    }
+
+    /// O resultado do script, lido de `R`, no realm vivo.
+    fn read(global_object: &crate::runtime::js_global_object::JSGlobalObjectRef, source: &str) -> String {
+        use crate::api::eval::{evaluate, program_source, read_global_result};
+        let _ = evaluate(global_object, &program_source(source));
+        let value = read_global_result(global_object, "R").unwrap_or_else(|_| panic!("leitura de R"));
+        String::from_utf8_lossy(&value.to_wtf_string().utf8(crate::wtf::text::conversion_mode::ConversionMode::LenientConversion)).into_owned()
+    }
+
+    /// Medido no bun 1.4.2 com o locale pedido explícito (o padrão posto pelo hospedeiro tem de dar o mesmo
+    /// que pedir o locale em cada chamada, no realm que já estava vivo).
+    #[test]
+    fn default_locale_changed_with_the_realm_alive_equals_asking_for_it() {
+        const SCRIPT: &str = "var d = new Date(Date.UTC(2026, 0, 15, 15, 4, 5)); var R = [ \
+            new Intl.DateTimeFormat(undefined, { timeZone: 'UTC' }).resolvedOptions().locale, new Intl.NumberFormat().resolvedOptions().locale, \
+            new Intl.Collator().resolvedOptions().locale, new Intl.PluralRules().resolvedOptions().locale, \
+            (1234567.891).toLocaleString(), (1234567n).toLocaleString(), d.toLocaleString(undefined, { timeZone: 'UTC' }), \
+            d.toLocaleDateString(undefined, { timeZone: 'UTC' }), ['b', 'a', 'ä', 'z'].sort((a, b) => a.localeCompare(b)).join(), \
+            'I'.toLocaleLowerCase(), new Intl.NumberFormat(undefined, { style: 'currency', currency: 'BRL' }).format(12.5)].join('|')";
+        crate::runtime::cell_registry::run_program(|| {
+            let (vm, global_object) = crate::api::eval::new_global_object();
+            let _finalizer = crate::api::eval::VmFinalizer::new(&vm);
+            assert_eq!(
+                read(&global_object, SCRIPT),
+                "en-US|en-US|en-US|en-US|1,234,567.891|1,234,567|1/15/2026, 3:04:05 PM|1/15/2026|a,ä,b,z|i|R$12.50"
+            );
+            assert!(set_default_locale(Some("pt-BR")));
+            assert_eq!(
+                read(&global_object, SCRIPT),
+                "pt-BR|pt-BR|pt|pt-BR|1.234.567,891|1.234.567|15/01/2026, 15:04:05|15/01/2026|a,ä,b,z|i|R$\u{a0}12,50"
+            );
+            assert!(set_default_locale(Some("tr")));
+            assert_eq!(
+                read(&global_object, SCRIPT),
+                "tr|tr|tr|tr|1.234.567,891|1.234.567|15.01.2026 15:04:05|15.01.2026|a,ä,b,z|ı|R$12,50"
+            );
+            assert!(!set_default_locale(Some("not a tag")));
+            assert_eq!(default_locale(), "tr");
+            assert!(set_default_locale(None));
+            assert_eq!(default_locale(), "en-US");
+        });
     }
 }

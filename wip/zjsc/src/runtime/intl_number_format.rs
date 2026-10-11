@@ -470,7 +470,7 @@ pub fn to_locale_string(
     options: JSValue,
     input: &NumericInput,
 ) -> Result<String, Thrown> {
-    if locales.is_undefined() && options.is_undefined() {
+    if locales.is_undefined() && options.is_undefined() && !crate::runtime::intl_locale_data::default_locale_is_overridden() {
         return Ok(format_to_string(&NumberSettings::defaults(Language::English), input));
     }
     let state = initialize(global_object, locales, options)?;
