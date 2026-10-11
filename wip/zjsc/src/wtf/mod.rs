@@ -3,7 +3,7 @@ pub mod ascii_ctype;
 pub mod data_log;
 pub mod dragonbox;
 pub mod dtoa;
-pub mod fast_float;
+pub use ul_common::js_number::fast_float;
 pub mod unicode;
 pub mod text;
 pub mod url;

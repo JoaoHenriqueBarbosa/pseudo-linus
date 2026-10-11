@@ -4,10 +4,8 @@
 //! e `{}+1` precisam: `toNumber`, `toInt32`, `toUInt32`, `toIntegerOrInfinity`, `toBoolean`, `toPrimitive`,
 //! `toNumeric`, `toString`, `toWTFString`.
 //!
-//! Também mora aqui o `jsToNumber(StringView)` de `JSGlobalObjectFunctions.cpp` (`toDouble`,
-//! `jsStrDecimalLiteral`, `jsHexIntegerLiteral`, `jsOctalIntegerLiteral`, `jsBinaryIntegerLiteral`),
-//! porque `JSString::toNumber` o chama e o módulo `js_global_object_functions` ainda não existe.
-//! Quando ele nascer, estas funções sobem para lá e este módulo as importa.
+//! O `jsToNumber` de `JSGlobalObjectFunctions.cpp` (`toDouble`, `jsStrDecimalLiteral` e os literais
+//! com base) mora em `ul_common::js_number`, que o zbun também usa; este módulo o reexporta.
 //!
 //! Também o ramo `radix == 10` de `int32ToString` e `numberToString` (`NumberPrototype.cpp`), que é o
 //! único que `toStringSlowCase` usa. Os outros radix entram com `NumberPrototype`.
@@ -40,14 +38,8 @@ use crate::runtime::js_type::JSType;
 use crate::runtime::js_value::{js_number, pnan, JSValue};
 use crate::runtime::math_common;
 use crate::runtime::object_to_primitive::{object_to_primitive, PreferredPrimitiveType};
-use crate::runtime::parse_int::{is_str_white_space, parse_int_overflow, MANTISSA_OVERFLOW_LOWER_BOUND};
 use crate::runtime::vm::VM;
-use crate::wtf::ascii_ctype::{
-    is_ascii_binary_digit, is_ascii_digit, is_ascii_hex_digit, is_ascii_octal_digit, to_ascii_hex_value,
-};
-use crate::wtf::fast_float::parse_double;
 use crate::wtf::math_extras::truncate_double_to_int32;
-use crate::wtf::text::string_impl::CharType;
 use crate::wtf::text::string_view::{StringView, StringViewData};
 use crate::wtf::text::wtf_string::String as WtfString;
 
@@ -93,210 +85,10 @@ pub(crate) fn cell_masquerades_as_undefined(value: &JSValue) -> bool {
 // JSGlobalObjectFunctions.cpp: jsToNumber
 // ---------------------------------------------------------------------------------------------
 
-const SIZE_OF_INFINITY: usize = 8;
-
 /// `maxSafeInteger()`: 2^53 - 1.
 const MAX_SAFE_INTEGER: f64 = 9007199254740991.0;
 
-/// `skip(data, n)` de `ParsingUtilities.h`.
-fn skip<'a, C>(data: &mut &'a [C], n: usize) {
-    let current: &'a [C] = *data;
-    *data = &current[n..];
-}
-
-/// `consume(data)` de `ParsingUtilities.h`.
-fn consume<'a, C: Copy>(data: &mut &'a [C]) -> C {
-    let current: &'a [C] = *data;
-    *data = &current[1..];
-    current[0]
-}
-
-/// `skipWhile<isStrWhiteSpace>(data)`.
-pub(crate) fn skip_str_white_space<'a, C: CharType>(data: &mut &'a [C]) {
-    while let Some(&c) = data.first() {
-        if !is_str_white_space(c) {
-            break;
-        }
-        skip(data, 1);
-    }
-}
-
-/// `isInfinity`.
-fn is_infinity<C: CharType>(data: &[C]) -> bool {
-    data.len() >= SIZE_OF_INFINITY
-        && b"Infinity".iter().zip(data).all(|(&expected, &actual)| actual.to_u16() == expected as u16)
-}
-
-/// `jsBinaryIntegerLiteral` (ECMA-262 6th 11.8.3).
-fn js_binary_integer_literal<'a, C: CharType>(data: &mut &'a [C]) -> f64 {
-    // Binary number.
-    skip(data, 2);
-    let first_digit_position: &'a [C] = *data;
-    let mut number = 0.0;
-    loop {
-        number = number * 2.0 + (consume(data).to_u16() - '0' as u16) as f64;
-        if data.is_empty() {
-            break;
-        }
-        if !is_ascii_binary_digit(data[0].to_u16()) {
-            break;
-        }
-    }
-    if number >= MANTISSA_OVERFLOW_LOWER_BOUND {
-        let consumed = first_digit_position.len() - data.len();
-        number = parse_int_overflow(&first_digit_position[..consumed], 2);
-    }
-    number
-}
-
-/// `jsOctalIntegerLiteral` (ECMA-262 6th 11.8.3).
-fn js_octal_integer_literal<'a, C: CharType>(data: &mut &'a [C]) -> f64 {
-    // Octal number.
-    skip(data, 2);
-    let first_digit_position: &'a [C] = *data;
-    let mut number = 0.0;
-    loop {
-        number = number * 8.0 + (consume(data).to_u16() - '0' as u16) as f64;
-        if data.is_empty() {
-            break;
-        }
-        if !is_ascii_octal_digit(data[0].to_u16()) {
-            break;
-        }
-    }
-    if number >= MANTISSA_OVERFLOW_LOWER_BOUND {
-        let consumed = first_digit_position.len() - data.len();
-        number = parse_int_overflow(&first_digit_position[..consumed], 8);
-    }
-    number
-}
-
-/// `jsHexIntegerLiteral` (ECMA-262 6th 11.8.3).
-fn js_hex_integer_literal<'a, C: CharType>(data: &mut &'a [C]) -> f64 {
-    // Hex number.
-    skip(data, 2);
-    let first_digit_position: &'a [C] = *data;
-    let mut number = 0.0;
-    loop {
-        number = number * 16.0 + to_ascii_hex_value(consume(data).to_u16()) as f64;
-        if data.is_empty() {
-            break;
-        }
-        if !is_ascii_hex_digit(data[0].to_u16()) {
-            break;
-        }
-    }
-    if number >= MANTISSA_OVERFLOW_LOWER_BOUND {
-        let consumed = first_digit_position.len() - data.len();
-        number = parse_int_overflow(&first_digit_position[..consumed], 16);
-    }
-    number
-}
-
-/// `jsStrDecimalLiteral` (ECMA-262 6th 11.8.3).
-pub(crate) fn js_str_decimal_literal<'a, C: CharType>(data: &mut &'a [C]) -> f64 {
-    // RELEASE_ASSERT(!data.empty())
-    assert!(!data.is_empty());
-
-    let mut parsed_length = 0usize;
-    let current: &'a [C] = *data;
-    let number = parse_double(current, &mut parsed_length);
-    if parsed_length != 0 {
-        skip(data, parsed_length);
-        return number;
-    }
-
-    // Check for [+-]?Infinity
-    match data[0].to_u16() {
-        0x49 /* 'I' */ => {
-            if is_infinity(&data[..]) {
-                skip(data, SIZE_OF_INFINITY);
-                return f64::INFINITY;
-            }
-        }
-        0x2b /* '+' */ => {
-            if is_infinity(&data[1..]) {
-                skip(data, SIZE_OF_INFINITY + 1);
-                return f64::INFINITY;
-            }
-        }
-        0x2d /* '-' */ => {
-            if is_infinity(&data[1..]) {
-                skip(data, SIZE_OF_INFINITY + 1);
-                return f64::NEG_INFINITY;
-            }
-        }
-        _ => {}
-    }
-
-    // Not a number.
-    pnan()
-}
-
-/// `toDouble(std::span<const CharacterType>)`.
-fn to_double<C: CharType>(characters: &[C]) -> f64 {
-    let mut characters = characters;
-
-    // Skip leading white space.
-    skip_str_white_space(&mut characters);
-
-    // Empty string.
-    if characters.is_empty() {
-        return 0.0;
-    }
-
-    let number = if characters[0].to_u16() == '0' as u16 && characters.len() > 2 {
-        let radix_marker = characters[1].to_u16() | 0x20;
-        let first_digit = characters[2].to_u16();
-        if radix_marker == 'x' as u16 && is_ascii_hex_digit(first_digit) {
-            js_hex_integer_literal(&mut characters)
-        } else if radix_marker == 'o' as u16 && is_ascii_octal_digit(first_digit) {
-            js_octal_integer_literal(&mut characters)
-        } else if radix_marker == 'b' as u16 && is_ascii_binary_digit(first_digit) {
-            js_binary_integer_literal(&mut characters)
-        } else {
-            js_str_decimal_literal(&mut characters)
-        }
-    } else {
-        js_str_decimal_literal(&mut characters)
-    };
-
-    // Allow trailing white space.
-    skip_str_white_space(&mut characters);
-
-    if !characters.is_empty() {
-        return pnan();
-    }
-
-    number
-}
-
-/// `jsToNumber(std::span<const CharacterType>)` (ECMA-262 6th 11.8.3).
-pub(crate) fn js_to_number_characters<C: CharType>(characters: &[C]) -> f64 {
-    if characters.len() == 1 {
-        let c = characters[0].to_u16();
-        if is_ascii_digit(c) {
-            return (c - '0' as u16) as f64;
-        }
-        if is_str_white_space(characters[0]) {
-            return 0.0;
-        }
-        return pnan();
-    }
-
-    if characters.len() == 2 && characters[0].to_u16() == '-' as u16 {
-        let c = characters[1].to_u16();
-        if c == '0' as u16 {
-            return -0.0;
-        }
-        if is_ascii_digit(c) {
-            return -((c - '0' as u16) as i32) as f64;
-        }
-        return pnan();
-    }
-
-    to_double(characters)
-}
+pub(crate) use ul_common::js_number::{js_str_decimal_literal, js_to_number_characters, skip_str_white_space};
 
 /// `jsToNumber(StringView)`: o `StringToNumber` de ECMA-262. A visão nula é de 8 bits e vazia, como
 /// no C++, e dá 0.

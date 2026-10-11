@@ -26,7 +26,7 @@ use super::bigint::{bigint, limb};
 use super::float_common::{
     adjusted_mantissa, int_cmp_len, to_float, BinaryFormat, INVALID_AM_BIAS,
 };
-use crate::wtf::text::string_impl::CharType;
+use crate::js_number::CharType;
 
 /// `std::bit_cast<equiv_uint_t<T>>(value)`, devolvido como `u64`: os bits de `f32` (nos 32 bits
 /// baixos) ou de `f64`.

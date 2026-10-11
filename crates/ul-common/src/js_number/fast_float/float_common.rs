@@ -20,7 +20,7 @@
 //! - Constantes viram `pub const` em maiúsculas (`invalid_am_bias` vira `INVALID_AM_BIAS`).
 #![allow(non_camel_case_types, non_upper_case_globals)]
 
-use crate::wtf::text::string_impl::CharType;
+use crate::js_number::CharType;
 use std::ops::{
     BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, Index, Mul, Neg, Not,
 };

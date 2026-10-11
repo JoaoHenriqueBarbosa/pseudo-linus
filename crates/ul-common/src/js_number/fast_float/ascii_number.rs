@@ -25,12 +25,12 @@
 //! - A aritmética sem sinal que estoura no C++ (`i = i * 10 + digit`) vira `wrapping_*`.
 #![allow(non_camel_case_types, non_upper_case_globals)]
 
-use crate::wtf::fast_float::float_common::detail::{adjust_for_feature_macros, basic_fortran_fmt};
-use crate::wtf::fast_float::float_common::{
+use crate::js_number::fast_float::float_common::detail::{adjust_for_feature_macros, basic_fortran_fmt};
+use crate::js_number::fast_float::float_common::{
     ch_to_digit, chars_format, countr_zero_32, errc, from_chars_result_t, max_digits_u64,
     min_safe_u64, parse_options_t, span,
 };
-use crate::wtf::text::string_impl::CharType;
+use crate::js_number::CharType;
 use std::ops::Range;
 
 /// `UC('c')`: o caractere ASCII `c` no tipo de caractere da entrada.

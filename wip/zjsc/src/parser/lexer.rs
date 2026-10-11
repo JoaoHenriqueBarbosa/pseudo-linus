@@ -93,18 +93,7 @@ pub enum NumberParseResult {
 }
 
 /// `constinit const WTF::BitSet<256> whiteSpaceTable`.
-pub static WHITE_SPACE_TABLE: [bool; 256] = make_white_space_table();
-
-const fn make_white_space_table() -> [bool; 256] {
-    let mut table = [false; 256];
-    let mut i = 0;
-    while i < 256 {
-        let ch = i as u8;
-        table[i] = ch == b' ' || ch == b'\t' || ch == 0xB || ch == 0xC || ch == 0xA0;
-        i += 1;
-    }
-    table
-}
+pub use ul_common::js_number::WHITE_SPACE_TABLE;
 
 /// `isLexerKeyword(const Identifier&)`.
 pub fn is_lexer_keyword(identifier: &Identifier) -> bool {

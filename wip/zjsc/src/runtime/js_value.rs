@@ -30,16 +30,11 @@ pub type EncodedJSValueWithRepresentation = (
 );
 
 // PureNaN.h
-pub const PNAN_AS_BITS: u64 = 0x7ff8000000000000;
+pub use ul_common::js_number::{pnan, PNAN_AS_BITS};
 pub const IMPURE_NAN_AS_BITS: u64 = 0xffff000000000000;
 pub const JS_VALUE_DOUBLE_ENCODE_OFFSET_BIT: usize = 49;
 pub const JS_VALUE_DOUBLE_ENCODE_OFFSET: u64 = 1u64 << JS_VALUE_DOUBLE_ENCODE_OFFSET_BIT;
 pub const JS_VALUE_NUMBER_TAG: u64 = 0xfffe000000000000;
-
-/// `PNaN`.
-pub fn pnan() -> f64 {
-    f64::from_bits(PNAN_AS_BITS)
-}
 
 /// `isImpureNaN`: o NaN cuja codificação não passaria no teste de "é double".
 pub fn is_impure_nan(value: f64) -> bool {

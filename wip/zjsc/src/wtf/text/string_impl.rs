@@ -48,17 +48,9 @@ const CPP_TAIL_OFFSET_POINTER: usize = 24;
 // ---------------------------------------------------------------------------------------------
 
 /// O parâmetro de template `CharacterType` do C++ (`LChar` ou `UChar`).
-pub trait CharType: Copy + Into<u32> + Eq + Ord + 'static {
-    /// `sizeof(CharacterType)`.
-    const SIZE: usize;
-
-    /// O caractere como unidade de código de 16 bits.
-    fn to_u16(self) -> u16;
-
-    /// Constrói a partir de uma unidade de 16 bits (trunca no tipo de 8 bits, como a conversão
-    /// implícita do C++ onde o chamador já garantiu Latin1).
-    fn from_u16(character: u16) -> Self;
-
+/// A parte numérica (`SIZE`, `to_u16`, `from_u16`) é a de `ul_common::js_number::CharType`, que o
+/// `fast_float` e o `jsToNumber` usam.
+pub trait CharType: ul_common::js_number::CharType {
     /// `StringImpl::span<CharacterType>()`.
     fn span_of(string: &StringImpl) -> &[Self];
 
@@ -73,16 +65,6 @@ pub trait CharType: Copy + Into<u32> + Eq + Ord + 'static {
 }
 
 impl CharType for u8 {
-    const SIZE: usize = 1;
-
-    fn to_u16(self) -> u16 {
-        self as u16
-    }
-
-    fn from_u16(character: u16) -> Self {
-        character as u8
-    }
-
     fn span_of(string: &StringImpl) -> &[u8] {
         string.span8()
     }
@@ -101,16 +83,6 @@ impl CharType for u8 {
 }
 
 impl CharType for u16 {
-    const SIZE: usize = 2;
-
-    fn to_u16(self) -> u16 {
-        self
-    }
-
-    fn from_u16(character: u16) -> Self {
-        character
-    }
-
     fn span_of(string: &StringImpl) -> &[u16] {
         string.span16()
     }

@@ -8,57 +8,12 @@
 //!   `JSString::view`, `DECLARE_THROW_SCOPE` e `RETURN_IF_EXCEPTION`; vive na camada do `JSValue`
 //!   e do `VM`, junto de `JSString`.
 
-use crate::parser::lexer::Lexer;
 use crate::runtime::math_common::max_safe_integer;
-use crate::wtf::ascii_ctype::{is_ascii_digit, is_ascii_lower, is_ascii_upper};
+use crate::wtf::ascii_ctype::is_ascii_digit;
 use crate::wtf::fast_float::parse_double;
 use crate::wtf::text::string_impl::CharType;
 
-pub const MANTISSA_OVERFLOW_LOWER_BOUND: f64 = 9007199254740992.0;
-
-pub fn parse_digit(c: u16, radix: i32) -> i32 {
-    let mut digit: i32 = -1;
-
-    if is_ascii_digit(c) {
-        digit = c as i32 - '0' as i32;
-    } else if is_ascii_upper(c) {
-        digit = c as i32 - 'A' as i32 + 10;
-    } else if is_ascii_lower(c) {
-        digit = c as i32 - 'a' as i32 + 10;
-    }
-
-    if digit >= radix {
-        return -1;
-    }
-    digit
-}
-
-/// As duas sobrecargas de `parseIntOverflow` (`Latin1Character` e `char16_t`).
-pub fn parse_int_overflow<C: CharType>(s: &[C], radix: i32) -> f64 {
-    let mut number = 0.0;
-    let mut radix_multiplier = 1.0;
-
-    for p in s.iter().rev() {
-        if radix_multiplier == f64::INFINITY {
-            if p.to_u16() != '0' as u16 {
-                number = f64::INFINITY;
-                break;
-            }
-        } else {
-            let digit = parse_digit(p.to_u16(), radix);
-            number += digit as f64 * radix_multiplier;
-        }
-
-        radix_multiplier *= radix as f64;
-    }
-
-    number
-}
-
-pub fn is_str_white_space<C: CharType>(c: C) -> bool {
-    // https://tc39.github.io/ecma262/#sec-tonumber-applied-to-the-string-type
-    Lexer::<C>::is_white_space(c) || Lexer::<C>::is_line_terminator(c)
-}
+pub use ul_common::js_number::{is_str_white_space, parse_digit, parse_int_overflow, MANTISSA_OVERFLOW_LOWER_BOUND};
 
 pub fn parse_int_double(n: f64) -> Option<f64> {
     // Optimized handling for numbers:

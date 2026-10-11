@@ -36,14 +36,14 @@ use super::float_common::detail::{adjust_for_feature_macros, basic_json_fmt};
 use super::float_common::{
     chars_format, errc, from_chars_result_t, is_space, parse_options_t, to_float, BinaryFormat,
 };
-use crate::wtf::text::string_impl::CharType;
+use crate::js_number::CharType;
 
 pub mod detail {
     use super::super::float_common::{
         chars_format, errc, fastfloat_strncasecmp3, fastfloat_strncasecmp5, from_chars_result_t,
         str_const_inf, str_const_nan, BinaryFormat,
     };
-    use crate::wtf::text::string_impl::CharType;
+    use crate::js_number::CharType;
 
     fn uc<UC: CharType>(c: u8) -> UC {
         UC::from_u16(c as u16)
