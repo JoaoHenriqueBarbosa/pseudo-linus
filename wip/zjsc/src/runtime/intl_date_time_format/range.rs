@@ -135,12 +135,17 @@ fn full_parts(state: &DateTimeFormatState, moment: &Moment) -> Vec<Part> {
     if state.fields.has_date() {
         return parts_with_fields(state, &state.fields, moment);
     }
-    let mut fields = state.fields;
-    fields.year = Some(Digits2::Numeric);
-    fields.month = Some(Month::Numeric);
-    fields.day = Some(Digits2::Numeric);
-    let fields = resolve_fields(state.language, state.hour_cycle.unwrap_or(HourCycle::H23), fields);
-    let parts = parts_with_fields(state, &fields, moment);
+    // O estado com a data pedida também em `user_fields`: é dele que o padrão medido do locale (`data_key`) tira a chave, e sem
+    // isso a data prefixada saía pelo molde de `date_parts` (`05/03/2024, 07:08` em fr, onde o locale diz `05/03/2024 07:08`).
+    let mut dated = state.clone();
+    for fields in [&mut dated.fields, &mut dated.user_fields] {
+        fields.year = Some(Digits2::Numeric);
+        fields.month = Some(Month::Numeric);
+        fields.day = Some(Digits2::Numeric);
+    }
+    dated.fields = resolve_fields(state.language, state.hour_cycle.unwrap_or(HourCycle::H23), dated.fields);
+    let fields = dated.fields;
+    let parts = parts_with_fields(&dated, &fields, moment);
     // A largura da hora vem do padrão de intervalo do idioma (`7:08` em es e ja, `07:08` em pt, medido em
     // `range|days_time|hourpad`), e não do `format`.
     match intl_date_time_data::locale_data_for(&state.locale) {
