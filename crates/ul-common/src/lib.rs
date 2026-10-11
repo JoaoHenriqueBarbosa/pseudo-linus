@@ -14,6 +14,7 @@ pub mod js_number;
 pub mod libm;
 pub mod quote;
 pub mod signal;
+pub mod thread;
 pub mod time;
 pub mod width;
 mod width_table;

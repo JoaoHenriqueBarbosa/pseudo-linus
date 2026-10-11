@@ -696,24 +696,10 @@ fn run_main(
     })
 }
 
-/// Roda `job` na thread do interpretador: pilha de 1 GiB (reservada, não comprometida) para o limite de
-/// recursão de 1000 chamadas caber, e o pseudo-processo de quem chama instalado nela (uma thread nova não
-/// o herda; `open`, stdin e stderr dependem dele). Os desvios de controle do kernel (`execve`, `_exit`,
-/// morte por sinal) desempilham a thread e seguem até o pseudo-processo, que é quem troca o programa ou
-/// termina; um panic de bug (mensagem `&str`/`String`) vira `None`.
+/// Roda `job` na thread do interpretador: pilha de 1 GiB (reservada, não comprometida) para o limite de recursão de
+/// 1000 chamadas caber, com o pseudo-processo de quem chama instalado nela (`ul_common::thread::run_with_stack`).
 pub(crate) fn on_interpreter_thread<T: Send + 'static>(job: impl FnOnce() -> T + Send + 'static) -> Option<T> {
-    let current = sys::try_current();
-    let spawned = std::thread::Builder::new().stack_size(1 << 30).spawn(move || {
-        if let Some(c) = current {
-            sys::install(c);
-        }
-        job()
-    });
-    match spawned.map(|h| h.join()) {
-        Ok(Ok(value)) => Some(value),
-        Ok(Err(payload)) if !payload.is::<&'static str>() && !payload.is::<String>() => std::panic::resume_unwind(payload),
-        _ => None,
-    }
+    ul_common::thread::run_with_stack(1 << 30, job)
 }
 
 /// As globais que o `pymain` do CPython dá ao `__main__`: `__package__`, `__loader__`, `__spec__`,
