@@ -99,7 +99,7 @@ fn cdp_client(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
         if let Some(params) = step.get("params") {
             let mut text = params.to_string().replace("$TARGET", saved.get("target").map(String::as_str).unwrap_or(""));
             for (key, value) in &saved {
-                text = text.replace(&format!("\"${key}\""), &Value::String(value.clone()).to_string());
+                text = text.replace(&format!("\"${key}\""), &if let Ok(number) = value.parse::<i64>() { Value::from(number) } else { Value::String(value.clone()) }.to_string());
             }
             message["params"] = serde_json::from_str(&text).unwrap();
         }
@@ -115,7 +115,7 @@ fn cdp_client(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
                 saved.insert("target".into(), page["targetId"].as_str().unwrap().to_owned());
             }
             if let (Some(key), Some(field)) = (step.get("save").and_then(Value::as_str), step.get("save_field").and_then(Value::as_str)) {
-                saved.insert(key.to_owned(), result[field].as_str().unwrap().to_owned());
+                saved.insert(key.to_owned(), result[field].as_str().map_or_else(|| result[field].to_string(), str::to_owned));
             }
         }
         if let Some(seconds) = step.get("after").and_then(Value::as_f64) {
@@ -237,7 +237,7 @@ fn score(name: &str) -> (usize, usize) {
 fn transcripts_match_the_oracle() {
     let mut same = 0;
     let mut total = 0;
-    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics", "network_http"] {
+    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics", "network_http", "playwright_handshake"] {
         let (s, t) = score(name);
         same += s;
         total += t;

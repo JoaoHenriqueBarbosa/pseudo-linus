@@ -640,6 +640,15 @@ impl DomHost for Bridge {
                 self.serve_resources();
                 Ok(document::computed_value(&mut self.doc.borrow_mut(), id, name).map_or(DomArg::Null, DomArg::Str))
             }
+            "setViewport" => {
+                // A janela que o `Emulation` e o `Browser.setWindowBounds` dão à página: em pixels físicos, com a escala.
+                let (w, h, scale) = (num_arg(args, 0)?, num_arg(args, 1)?, num_arg(args, 2)?);
+                let dark = matches!(args.get(3), Some(DomArg::Bool(true)));
+                let scheme = if dark { blitz_traits::shell::ColorScheme::Dark } else { blitz_traits::shell::ColorScheme::Light };
+                let scale = scale.max(0.1) as f32;
+                self.doc.borrow_mut().set_viewport(blitz_traits::shell::Viewport::new((w * f64::from(scale)).round() as u32, (h * f64::from(scale)).round() as u32, scale, scheme));
+                Ok(DomArg::Undefined)
+            }
             "matchMedia" => {
                 self.serve_resources();
                 Ok(DomArg::Bool(document::media_matches(&mut self.doc.borrow_mut(), str_arg(args, 0)?)))

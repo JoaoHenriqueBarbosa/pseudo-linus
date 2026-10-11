@@ -39,7 +39,7 @@ const afterNetwork = (fn, delaysLoad = false) => {
 const VIEWPORT = Object.freeze({ width: 780, height: 493, outerWidth: 0, outerHeight: 0 });
 const pageState = { url: op('pageUrl') };
 // O que o `Emulation` sobrepõe na janela: os pontos de toque do navegador.
-const emulation = { touchPoints: 0 };
+const emulation = { touchPoints: 0, media: '', features: {} };
 
 class Location {
   constructor() { throw new TypeError('Illegal constructor'); }
@@ -256,8 +256,22 @@ const getComputedStyle = (el) => {
   });
 };
 
+// O `Emulation.setEmulatedMedia`: o tipo de mídia (`print`/`screen`) e as características `prefers-*`, `forced-colors`
+// valem pelo valor emulado (padrões do Chromium sem emulação); cada um vira uma condição de largura sempre verdadeira
+// ou sempre falsa, que o avaliador do stylo entende dentro de `and`, `or` e `not`.
+const MEDIA_TRUE = '(min-width: 0px)', MEDIA_FALSE = '(min-width: 99999999px)';
+const MEDIA_DEFAULTS = { 'prefers-color-scheme': 'light', 'prefers-reduced-motion': 'no-preference', 'forced-colors': 'none', 'prefers-contrast': 'no-preference' };
+const emulateQuery = (query) => {
+  let text = query.replace(/\(\s*(prefers-color-scheme|prefers-reduced-motion|forced-colors|prefers-contrast)\s*(?::\s*([a-z-]+))?\s*\)/gi, (all, name, value) => {
+    const current = emulation.features[name.toLowerCase()] ?? MEDIA_DEFAULTS[name.toLowerCase()];
+    return (value === undefined ? current !== MEDIA_DEFAULTS[name.toLowerCase()] : current === value.toLowerCase()) ? MEDIA_TRUE : MEDIA_FALSE;
+  });
+  const printing = emulation.media === 'print';
+  text = text.replace(/(^|[\s,(])(?:only\s+)?(print|screen)(?![\w-])/gi, (all, lead, type) => lead + ((type.toLowerCase() === 'print') === printing ? 'all' : 'not all'));
+  return text;
+};
 const matchMedia = (query) => {
-  const matches = op('matchMedia', String(query));
+  const matches = op('matchMedia', emulateQuery(String(query)));
   return Object.assign(Object.create(EventTarget.prototype), { matches, media: String(query), onchange: null, addListener() {}, removeListener() {} });
 };
 

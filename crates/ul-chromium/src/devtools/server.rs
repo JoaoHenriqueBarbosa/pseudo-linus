@@ -37,6 +37,8 @@ struct Target {
     url: String,
     link: Link,
     window_id: i64,
+    /// A janela da aba: largura, altura e estado (`normal`, `minimized`...), como o `getWindowForTarget` os devolve.
+    bounds: (i64, i64, String),
     /// Comandos à espera de espaço no pipe da página (o laço do navegador nunca bloqueia escrevendo).
     pending: Vec<u8>,
     inbox: Vec<u8>,
@@ -257,7 +259,7 @@ impl Browser {
         let id = token();
         let Ok(link) = target::spawn(id.clone(), url.to_owned(), startup, wait, profile) else { return id };
         let window_id = (super::random_i64() & 0x7FFF_FFFF).max(1);
-        let mut entry = Target { id: id.clone(), kind, title: title.to_owned(), url: url.to_owned(), link, window_id, pending: Vec::new(), inbox: Vec::new() };
+        let mut entry = Target { id: id.clone(), kind, title: title.to_owned(), url: url.to_owned(), link, window_id, bounds: (780, 580, "normal".to_owned()), pending: Vec::new(), inbox: Vec::new() };
         if kind == "browser_ui" {
             Self::settle(&mut entry);
         }
@@ -408,7 +410,7 @@ impl Browser {
             // A conexão da página fala direto com ela, por uma sessão implícita criada no aperto de mão.
             let implicit = self.sessions.iter().find(|s| s.conn == key && s.implicit && s.target == *target).map(|s| s.id.clone());
             if let Some(implicit) = implicit {
-                if !self.page_session_command(key, &implicit, &id, &method) {
+                if !self.session_browser_command(key, &implicit, &id, &method, &message) && !self.page_session_command(key, &implicit, &id, &method) {
                     self.forward(&implicit, &message);
                 }
             }
@@ -421,7 +423,7 @@ impl Browser {
                 return;
             }
             let session_id = session_id.to_owned();
-            if !self.page_session_command(key, &session_id, &id, &method) {
+            if !self.session_browser_command(key, &session_id, &id, &method, &message) && !self.page_session_command(key, &session_id, &id, &method) {
                 self.forward(&session_id, &message);
             }
             return;
@@ -444,6 +446,71 @@ impl Browser {
             "Target.getTargetInfo" => self.info(&target).map(|info| Json::object([("targetInfo", info)])),
             _ => None,
         }
+    }
+
+    /// A janela de uma aba como o `Browser.getWindowForTarget` a devolve: id, moldura de 10x10 e as medidas guardadas.
+    fn window_json(&self, target: &str) -> Json {
+        let Some(t) = self.target(target) else { return Json::object([]) };
+        let (width, height, state) = &t.bounds;
+        Json::object([
+            ("windowId", Json::Number(t.window_id as f64)),
+            ("bounds", Json::object([("left", Json::Number(10.0)), ("top", Json::Number(10.0)), ("width", Json::Number(*width as f64)), ("height", Json::Number(*height as f64)), ("windowState", Json::str(state))])),
+        ])
+    }
+
+    /// `Browser.setWindowBounds`: acha a aba pelo `windowId`, guarda as medidas e avisa a aba para a página redimensionar
+    /// (a janela ganha a moldura de 143 de altura que o conteúdo perde). `windowId` desconhecido é erro, como no oráculo.
+    fn set_window_bounds(&mut self, params: &Json) -> Result<(), (i64, String)> {
+        let window = params.get("windowId").and_then(Json::as_f64).unwrap_or(0.0) as i64;
+        let bounds = params.get("bounds").cloned().unwrap_or(Json::Object(Vec::new()));
+        let Some(index) = self.targets.iter().position(|t| t.window_id == window) else {
+            return Err((-32000, "Browser window not found".to_owned()));
+        };
+        let target = &mut self.targets[index];
+        if let Some(width) = bounds.get("width").and_then(Json::as_int) {
+            target.bounds.0 = width;
+        }
+        if let Some(height) = bounds.get("height").and_then(Json::as_int) {
+            target.bounds.1 = height;
+        }
+        if let Some(state) = bounds.get("windowState").and_then(Json::as_str) {
+            target.bounds.2 = state.to_owned();
+        }
+        Ok(())
+    }
+
+    /// Os comandos de `Browser` que uma sessão de página responde no navegador (a janela é da aba, a sessão a nomeia).
+    fn session_browser_command(&mut self, key: u64, session: &str, id: &Json, method: &str, message: &Json) -> bool {
+        let params = message.get("params").cloned().unwrap_or(Json::Object(Vec::new()));
+        let params = &params;
+        let Some(target) = self.sessions.iter().find(|s| s.id == session).map(|s| s.target.clone()) else { return false };
+        let reply = match method {
+            "Browser.getWindowForTarget" => Ok(self.window_json(&target)),
+            // A aba responde (o `Page.frameResized` sai antes do resultado): o servidor só valida a janela e repassa.
+            "Browser.setWindowBounds" => match self.set_window_bounds(params) {
+                Ok(()) => {
+                    self.forward(session, message);
+                    return true;
+                }
+                Err(error) => Err(error),
+            },
+            "Browser.setDownloadBehavior" => Ok(Json::object([])),
+            _ => return false,
+        };
+        let implicit = self.sessions.iter().any(|s| s.id == session && s.implicit);
+        let session_field = (!implicit).then(|| Json::str(session));
+        let mut fields = match reply {
+            Ok(result) => vec![("id".to_owned(), id.clone()), ("result".to_owned(), result)],
+            Err((code, text)) => match error_message(Some(id), code, &text, None) {
+                Json::Object(fields) => fields,
+                _ => return true,
+            },
+        };
+        if let Some(session) = session_field {
+            fields.push(("sessionId".to_owned(), session));
+        }
+        self.deliver(key, &Json::Object(fields));
+        true
     }
 
     /// Os comandos de `Target` que uma sessão de página responde no navegador. Falso: vai para a página.
@@ -478,14 +545,14 @@ impl Browser {
                 Ok(Json::object([]))
             }
             "Browser.getWindowForTarget" => match target_id {
-                // A janela da aba: id aleatório e a moldura medida no headless do oráculo.
-                Some(id) if self.target(&id).is_some() => Ok(Json::object([
-                    ("windowId", Json::Number(self.target(&id).map_or(0, |t| t.window_id) as f64)),
-                    ("bounds", Json::object([("left", Json::Number(10.0)), ("top", Json::Number(10.0)), ("width", Json::Number(780.0)), ("height", Json::Number(580.0)), ("windowState", Json::str("normal"))])),
-                ])),
+                Some(id) if self.target(&id).is_some() => Ok(self.window_json(&id)),
                 Some(_) => not_found(),
                 None => Err((-32000, "No web contents in the target".to_owned())),
             },
+            // O Playwright manda o comportamento de download no navegador, antes de qualquer página; sem download real
+            // no sandbox, o comando só vale a resposta.
+            "Browser.setDownloadBehavior" => Ok(Json::object([])),
+            "Browser.setWindowBounds" => self.set_window_bounds(params).map(|_| Json::object([])),
             "Target.getTargets" => {
                 let types: Option<Vec<(bool, String)>> = params.get("filter").and_then(|f| match f {
                     Json::Array(entries) => Some(

@@ -42,6 +42,7 @@ const devtoolsAgent = (() => {
     // O id do isolate (um `int64` aleatório do V8) e o contexto corrente; cada navegação cria um contexto novo.
     isolateId: '0',
     contextId: 1,
+    worlds: new Set(),
     uniqueId: '',
     frameId: '',
     origin: '://',
@@ -288,7 +289,7 @@ const devtoolsAgent = (() => {
   };
 
   // O contexto pedido (`contextId` ou `uniqueContextId`) existe nesta página; ausente vale o contexto padrão.
-  const contextMatches = (id, unique) => (id === undefined || id === state.contextId) && (unique === undefined || unique === state.uniqueId);
+  const contextMatches = (id, unique) => (id === undefined || id === state.contextId || state.worlds.has(id)) && (unique === undefined || unique === state.uniqueId);
 
   const evaluate = (message, params) => {
     if (!contextMatches(params.contextId, params.uniqueContextId)) { fail(message, -32000, 'Cannot find context with specified id'); return; }
@@ -506,21 +507,24 @@ const devtoolsAgent = (() => {
       state.enabled.delete(message.sessionId === undefined ? '' : message.sessionId);
       reply(message, {});
     },
-    'Emulation.setDeviceMetricsOverride': (message, params) => {
-      if (params.width > 0) windowMetrics.innerWidth = params.width;
-      if (params.height > 0) windowMetrics.innerHeight = params.height;
-      if (params.deviceScaleFactor > 0) windowMetrics.devicePixelRatio = params.deviceScaleFactor;
-      reply(message, {});
+    // O estado do `Emulation`, da janela e dos mundos que o hospedeiro guarda na aba e manda a cada documento novo.
+    '__emulation': (message, params) => {
+      const [outerWidth, outerHeight] = params.window;
+      windowMetrics.outerWidth = outerWidth;
+      windowMetrics.outerHeight = outerHeight;
+      const override = params.override;
+      windowMetrics.innerWidth = override ? override.width : outerWidth;
+      windowMetrics.innerHeight = override ? override.height : outerHeight - 143;
+      windowMetrics.devicePixelRatio = override ? override.scale : 1;
+      for (const key of ['innerWidth', 'innerHeight', 'outerWidth', 'outerHeight', 'devicePixelRatio']) globalThis[key] = windowMetrics[key];
+      emulation.touchPoints = params.touch;
+      emulation.media = params.media;
+      emulation.features = params.features;
+      state.worlds = new Set(params.worlds);
+      op('setViewport', windowMetrics.innerWidth, windowMetrics.innerHeight, windowMetrics.devicePixelRatio, emulation.features['prefers-color-scheme'] === 'dark');
     },
-    'Emulation.clearDeviceMetricsOverride': (message) => {
-      windowMetrics.innerWidth = VIEWPORT.width;
-      windowMetrics.innerHeight = VIEWPORT.height;
-      windowMetrics.devicePixelRatio = 1;
-      reply(message, {});
-    },
-    'Emulation.setTouchEmulationEnabled': (message, params) => {
-      emulation.touchPoints = params.enabled === true ? (params.maxTouchPoints > 0 ? params.maxTouchPoints : 1) : 0;
-      reply(message, {});
+    '__runScript': (message, params) => {
+      try { evalGlobal(params.source, ''); } catch { /* o erro do script de documento novo não chega ao cliente */ }
     },
     'Runtime.evaluate': evaluate,
     'Runtime.callFunctionOn': callFunctionOn,

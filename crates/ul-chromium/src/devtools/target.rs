@@ -68,6 +68,10 @@ struct Tab {
     /// O `dataReceived` e o `loadingFinished` do documento, que saem depois do contexto de execução novo: os bytes
     /// do corpo e os do fio.
     finishing: Option<(usize, usize)>,
+    /// O que o `Emulation`, a janela e os mundos da aba guardam entre os documentos.
+    emu: Emulation,
+    /// Os ids de contexto dos mundos isolados do documento corrente.
+    world_ids: Vec<i64>,
     /// Quantos `favicon.ico` esta aba já pediu (o contador do `requestId` `pid.n`).
     favicon_requests: u32,
     security_enabled: Vec<String>,
@@ -91,6 +95,59 @@ const NETWORK_QUIET_SECONDS: f64 = 1.0;
 /// Quanto o laço da página espera por comando antes de deixar o relógio andar.
 const TICK_MS: u64 = 4;
 
+/// O estado da aba que sobrevive à navegação: a janela (`Browser.setWindowBounds`), o `Emulation`, os scripts de documento
+/// novo e os mundos isolados. O agente de JS recebe o que lhe interessa a cada documento (`__emulation`).
+struct Emulation {
+    /// O tamanho da janela, com a moldura: 780x580 no headless do oráculo (o conteúdo é a janela menos 143 de altura).
+    window: (i64, i64),
+    /// `Emulation.setDeviceMetricsOverride`: largura, altura e escala do conteúdo.
+    metrics: Option<(i64, i64, f64)>,
+    touch: i64,
+    media: String,
+    features: Vec<(String, String)>,
+    /// `Page.addScriptToEvaluateOnNewDocument`: identificador, fonte e mundo (vazio é o principal).
+    scripts: Vec<(String, String, String)>,
+    next_script: u32,
+    /// Os mundos de `Page.createIsolatedWorld`, que sobrevivem à navegação no mesmo processo.
+    created: Vec<String>,
+    /// O documento novo troca de processo (sai de um documento que não é `about:blank`): os ids de contexto recomeçam e
+    /// os mundos criados caem (medido no oráculo, `playwright_handshake`).
+    swap: bool,
+    /// Quantos documentos a aba já carregou (o `about:blank` inicial conta).
+    loads: u32,
+}
+
+impl Default for Emulation {
+    fn default() -> Self {
+        Emulation { window: (780, 580), metrics: None, touch: 0, media: String::new(), features: Vec::new(), scripts: Vec::new(), next_script: 1, created: Vec::new(), swap: false, loads: 0 }
+    }
+}
+
+impl Emulation {
+    /// Os nomes dos mundos do documento novo: os dos scripts registrados e depois os criados, sem repetição.
+    fn world_names(&self) -> Vec<String> {
+        let mut names: Vec<String> = Vec::new();
+        for name in self.scripts.iter().map(|(_, _, world)| world).chain(&self.created) {
+            if !name.is_empty() && !names.contains(name) {
+                names.push(name.clone());
+            }
+        }
+        names
+    }
+
+    fn json(&self, worlds: &[i64]) -> Json {
+        let metrics = self.metrics.map_or(Json::Null, |(w, h, scale)| Json::object([("width", Json::Number(w as f64)), ("height", Json::Number(h as f64)), ("scale", Json::Number(scale))]));
+        Json::object([
+            ("window", Json::Array(vec![Json::Number(self.window.0 as f64), Json::Number(self.window.1 as f64)])),
+            ("override", metrics),
+            ("touch", Json::Number(self.touch as f64)),
+            ("media", Json::str(&self.media)),
+            ("features", Json::Object(self.features.iter().map(|(k, v)| (k.clone(), Json::str(v))).collect())),
+            ("worlds", Json::Array(worlds.iter().map(|id| Json::Number(*id as f64)).collect())),
+        ])
+    }
+}
+
 fn message_session(message: &Json) -> String {
     message.get("sessionId").and_then(Json::as_str).unwrap_or_default().to_owned()
 }
@@ -113,6 +170,8 @@ impl Tab {
             runtime_enabled: Vec::new(),
             network_enabled: Vec::new(),
             finishing: None,
+            emu: Emulation::default(),
+            world_ids: Vec::new(),
             favicon_requests: 0,
             security_enabled: Vec::new(),
             lifecycle: Vec::new(),
@@ -146,6 +205,15 @@ impl Tab {
 
     fn reply(&self, request: &Json, result: Json) {
         let mut fields = vec![("id".to_owned(), request.get("id").cloned().unwrap_or(Json::Null)), ("result".to_owned(), result)];
+        if let Some(session) = request.get("sessionId") {
+            fields.push(("sessionId".to_owned(), session.clone()));
+        }
+        self.send(&Json::Object(fields));
+    }
+
+    fn fail(&self, request: &Json, code: i64, text: &str) {
+        let error = Json::object([("code", Json::Number(code as f64)), ("message", Json::str(text))]);
+        let mut fields = vec![("id".to_owned(), request.get("id").cloned().unwrap_or(Json::Null)), ("error".to_owned(), error)];
         if let Some(session) = request.get("sessionId") {
             fields.push(("sessionId".to_owned(), session.clone()));
         }
@@ -252,6 +320,13 @@ impl Tab {
             }
         };
         page.enter_tab(self.session.clone());
+        let next_url = if error.is_some() { "chrome-error://chromewebdata/".to_owned() } else { page.bridge.url.borrow().clone() };
+        // Troca de processo (medido no oráculo): a primeira navegação da aba fica no processo do `about:blank` inicial, o
+        // `about:blank` nunca troca, e o resto troca quando o documento novo tem origem opaca (data, página de erro) ou
+        // outra origem (http para http da mesma origem não).
+        let opaque = |url: &str| security_origin(url) == "://";
+        self.emu.loads += 1;
+        self.emu.swap = self.emu.loads >= 3 && next_url != "about:blank" && (opaque(&next_url) || security_origin(&self.url) != security_origin(&next_url));
         self.network_document(&url, page.net_meta(), error.as_deref());
         self.url = if error.is_some() { "chrome-error://chromewebdata/".to_owned() } else { page.bridge.url.borrow().clone() };
         if let Some(request) = &request {
@@ -288,10 +363,19 @@ impl Tab {
         self.emit(&self.page_enabled.clone(), "Page.frameNavigated", &navigated);
         self.emit(&self.network_enabled.clone(), "Network.policyUpdated", &Json::object([]));
         self.emit_security_state(&self.security_enabled.clone());
+        if std::mem::take(&mut self.emu.swap) {
+            self.next_context = 1;
+            self.emu.created.clear();
+        }
         let id = self.next_context;
         self.next_context += 1;
         let unique = format!("{}.{}", random_i64(), random_i64());
         self.context = Some((id, unique.clone()));
+        let worlds: Vec<(String, i64)> = self.emu.world_names().into_iter().map(|name| {
+            let world = self.next_context;
+            self.next_context += 1;
+            (name, world)
+        }).collect();
         let config = Json::object([
             ("isolateId", Json::str(&self.isolate_id)),
             ("contextId", Json::Number(id as f64)),
@@ -301,6 +385,19 @@ impl Tab {
             ("enabled", Json::Array(self.runtime_enabled.iter().map(Json::str).collect())),
         ]);
         let _ = runner.call_hidden(hook, &[HostArg::Str("cdpInit"), HostArg::Str(&config.to_compact())]);
+        self.world_ids = worlds.iter().map(|(_, id)| *id).collect();
+        self.push_emulation(runner, hook);
+        self.drain(runner, hook);
+        let sessions = self.runtime_enabled.clone();
+        for (name, world) in &worlds {
+            self.emit_world(&sessions, name, *world);
+        }
+        for (_, source, world) in self.emu.scripts.clone() {
+            if world.is_empty() {
+                let message = Json::object([("method", Json::str("__runScript")), ("params", Json::object([("source", Json::str(source))]))]);
+                let _ = runner.call_hidden(hook, &[HostArg::Str("cdp"), HostArg::Str(&message.to_compact())]);
+            }
+        }
         self.drain(runner, hook);
         if let Some((data, encoded)) = self.finishing.take() {
             let sessions = self.network_enabled.clone();
@@ -312,6 +409,29 @@ impl Tab {
         }
         self.title.clear();
         self.announce();
+    }
+
+    /// Manda ao agente o estado da aba (janela, `Emulation`, mundos).
+    fn push_emulation(&self, runner: &PageRunner, hook: &HostHandle) {
+        let message = Json::object([("method", Json::str("__emulation")), ("params", self.emu.json(&self.world_ids))]);
+        let _ = runner.call_hidden(hook, &[HostArg::Str("cdp"), HostArg::Str(&message.to_compact())]);
+    }
+
+    /// O `Runtime.executionContextCreated` de um mundo isolado.
+    fn emit_world(&self, sessions: &[String], name: &str, id: i64) {
+        let context = Json::object([
+            ("id", Json::Number(id as f64)),
+            ("origin", Json::str(security_origin(&self.url))),
+            ("name", Json::str(name)),
+            ("uniqueId", Json::str(format!("{}.{}", random_i64(), random_i64()))),
+            ("auxData", Json::object([("isDefault", Json::Bool(false)), ("type", Json::str("isolated")), ("frameId", Json::str(&self.target_id))])),
+        ]);
+        self.emit(sessions, "Runtime.executionContextCreated", &Json::object([("context", context)]));
+    }
+
+    /// Reenvia o estado ao agente depois de uma mudança; `request` é a mensagem sintética que não leva resposta.
+    fn apply_emulation(&self, runner: &PageRunner, hook: &HostHandle) {
+        self.push_emulation(runner, hook);
     }
 
     /// Os eventos de `Network` do pedido do documento: `requestWillBeSent` (um por redirecionamento), os `ExtraInfo` do
@@ -581,6 +701,78 @@ impl Tab {
                     self.emit_security_state(std::slice::from_ref(&session));
                 }
                 self.reply(&message, Json::object([]));
+            }
+            "Browser.setWindowBounds" => {
+                let bounds = params.get("bounds").cloned().unwrap_or(Json::Object(Vec::new()));
+                let before = self.emu.window;
+                let size = |key: &str, current: i64| bounds.get(key).and_then(Json::as_int).unwrap_or(current);
+                self.emu.window = (size("width", before.0), size("height", before.1));
+                self.apply_emulation(runner, hook);
+                if self.emu.window != before {
+                    self.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
+                }
+                self.reply(&message, Json::object([]));
+            }
+            "Emulation.setDeviceMetricsOverride" => {
+                let number = |key: &str| params.get(key).and_then(Json::as_f64).unwrap_or(0.0);
+                self.emu.metrics = Some((number("width") as i64, number("height") as i64, if number("deviceScaleFactor") > 0.0 { number("deviceScaleFactor") } else { 1.0 }));
+                self.apply_emulation(runner, hook);
+                self.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
+                self.reply(&message, Json::object([]));
+            }
+            "Emulation.clearDeviceMetricsOverride" => {
+                self.emu.metrics = None;
+                self.apply_emulation(runner, hook);
+                for _ in 0..3 {
+                    self.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
+                }
+                self.reply(&message, Json::object([]));
+            }
+            "Emulation.setTouchEmulationEnabled" => {
+                self.emu.touch = if params.get("enabled").and_then(Json::as_bool) == Some(true) { params.get("maxTouchPoints").and_then(Json::as_int).filter(|n| *n > 0).unwrap_or(1) } else { 0 };
+                self.apply_emulation(runner, hook);
+                self.reply(&message, Json::object([]));
+            }
+            "Emulation.setEmulatedMedia" => {
+                self.emu.media = params.get("media").and_then(Json::as_str).unwrap_or_default().to_owned();
+                self.emu.features = match params.get("features") {
+                    Some(Json::Array(features)) => features.iter().filter_map(|f| Some((f.get("name")?.as_str()?.to_owned(), f.get("value")?.as_str()?.to_owned()))).collect(),
+                    _ => Vec::new(),
+                };
+                self.apply_emulation(runner, hook);
+                self.reply(&message, Json::object([]));
+            }
+            "Emulation.setFocusEmulationEnabled" | "Page.setFontFamilies" => self.reply(&message, Json::object([])),
+            "Page.addScriptToEvaluateOnNewDocument" => {
+                let text = |key: &str| params.get(key).and_then(Json::as_str).unwrap_or_default().to_owned();
+                let identifier = self.emu.next_script.to_string();
+                self.emu.next_script += 1;
+                self.emu.scripts.push((identifier.clone(), text("source"), text("worldName")));
+                self.reply(&message, Json::object([("identifier", Json::str(identifier))]));
+            }
+            "Page.removeScriptToEvaluateOnNewDocument" => {
+                let identifier = params.get("identifier").and_then(Json::as_str).unwrap_or_default();
+                match self.emu.scripts.iter().position(|(id, _, _)| id == identifier) {
+                    Some(index) => {
+                        self.emu.scripts.remove(index);
+                        self.reply(&message, Json::object([]));
+                    }
+                    None => self.fail(&message, -32000, "Script not found"),
+                }
+            }
+            "Page.createIsolatedWorld" => {
+                if params.get("frameId").and_then(Json::as_str) != Some(self.target_id.as_str()) {
+                    self.fail(&message, -32602, "No frame for given id found");
+                } else {
+                    let name = params.get("worldName").and_then(Json::as_str).unwrap_or_default().to_owned();
+                    let id = self.next_context;
+                    self.next_context += 1;
+                    self.emu.created.push(name.clone());
+                    self.world_ids.push(id);
+                    self.emit_world(&self.runtime_enabled.clone(), &name, id);
+                    self.apply_emulation(runner, hook);
+                    self.reply(&message, Json::object([("executionContextId", Json::Number(id as f64))]));
+                }
             }
             "Page.getFrameTree" => self.reply(&message, Json::object([("frameTree", Json::object([("frame", self.frame(None))]))])),
             "Page.setLifecycleEventsEnabled" => {

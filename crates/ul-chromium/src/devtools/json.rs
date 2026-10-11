@@ -44,6 +44,14 @@ impl Json {
         }
     }
 
+    /// O número, inteiro ou não.
+    pub fn as_f64(&self) -> Option<f64> {
+        match self {
+            Json::Number(n) => Some(*n),
+            _ => None,
+        }
+    }
+
     /// Objeto a partir de pares, na ordem dada.
     pub fn object<const N: usize>(fields: [(&str, Json); N]) -> Json {
         Json::Object(fields.into_iter().map(|(k, v)| (k.to_owned(), v)).collect())
