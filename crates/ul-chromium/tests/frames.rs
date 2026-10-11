@@ -40,7 +40,11 @@ console.log(JSON.stringify(r)); }, 50); });</script>";
 
 #[test]
 fn an_iframe_with_src_and_srcdoc_loads_its_own_document() {
-    let (_, log) = run(&[("/", PARENT), ("/child.html", CHILD)]);
+    let (dom, log) = run(&[("/", PARENT), ("/child.html", CHILD)]);
+    // O `--dump-dom` do pai não leva o conteúdo do filho: o iframe sai vazio e o `srcdoc` sai escapado (medido no oráculo).
+    assert!(dom.contains("<iframe id=\"fa\" src=\"/child.html\"></iframe>"), "{dom}");
+    assert!(dom.contains("<iframe id=\"fb\" srcdoc=\"&lt;title&gt;sd&lt;/title&gt;&lt;p id=q&gt;x&lt;/p&gt;\"></iframe>"), "{dom}");
+    assert!(!dom.contains("dentro"), "{dom}");
     let result: serde_json::Value = serde_json::from_str(log.trim()).unwrap_or_else(|e| panic!("{e}: {log}"));
     assert_eq!(result["frames"], 2, "{log}");
     assert_eq!(result["w0"], true);
