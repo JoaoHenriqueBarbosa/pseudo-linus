@@ -23,6 +23,7 @@ pub const ENOENT: Errno = 2;
 pub const ESRCH: Errno = 3;
 pub const EACCES: Errno = 13;
 pub const ENOSYS: Errno = 38;
+pub const EAGAIN: Errno = 11;
 
 /// O `struct stat` inteiro, com os tempos em (segundos, nanossegundos).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -95,6 +96,34 @@ impl std::io::Write for HostWriter {
 
     fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
+    }
+}
+
+/// O que se espera de um descritor de rede em [`Host::net_poll`].
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct NetWatch {
+    pub fd: i32,
+    /// Pronto para `net_recv` (ou `net_accept`, num ouvinte).
+    pub read: bool,
+    /// Pronto para `net_send`.
+    pub write: bool,
+}
+
+/// O que o `poll(2)` achou de um descritor: um [`NetWatch`] respondido, na mesma posição.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct NetReady {
+    pub readable: bool,
+    pub writable: bool,
+    /// O outro lado fechou (`POLLHUP`).
+    pub hangup: bool,
+    /// `POLLERR` ou `POLLNVAL`.
+    pub error: bool,
+}
+
+impl NetReady {
+    /// Algum evento aconteceu.
+    pub fn any(&self) -> bool {
+        self.readable || self.writable || self.hangup || self.error
     }
 }
 
@@ -211,6 +240,36 @@ pub trait Host {
     }
     /// `realpath(3)`.
     fn fs_realpath(&self, _path: &str) -> Result<String, Errno> {
+        Err(ENOSYS)
+    }
+
+    // ---- rede (TCP de loopback, sem bloqueio; o descritor fecha com `fs_close`) ----
+    /// `socket` + `bind` + `listen` em `127.0.0.1`; a porta 0 sorteia uma efêmera. Devolve o descritor e a porta.
+    fn net_listen(&self, _port: u16, _backlog: u32) -> Result<(i32, u16), Errno> {
+        Err(ENOSYS)
+    }
+    /// `accept4`: a conexão e a porta de quem conectou; `EAGAIN` sem conexão na fila.
+    fn net_accept(&self, _fd: i32) -> Result<(i32, u16), Errno> {
+        Err(ENOSYS)
+    }
+    /// `socket` + `connect` a `127.0.0.1:port`: a conexão e a porta local; `ECONNREFUSED` sem ouvinte.
+    fn net_connect(&self, _port: u16) -> Result<(i32, u16), Errno> {
+        Err(ENOSYS)
+    }
+    /// `recv` de até `max` bytes; vazio é o fim da conexão e `EAGAIN` é nada a ler por enquanto.
+    fn net_recv(&self, _fd: i32, _max: usize) -> Result<Vec<u8>, Errno> {
+        Err(ENOSYS)
+    }
+    /// `send`; devolve os bytes aceitos (`EAGAIN` com o buffer cheio, `EPIPE` com o outro lado fechado).
+    fn net_send(&self, _fd: i32, _bytes: &[u8]) -> Result<usize, Errno> {
+        Err(ENOSYS)
+    }
+    /// `shutdown(2)` da leitura, da escrita ou das duas.
+    fn net_shutdown(&self, _fd: i32, _read: bool, _write: bool) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    /// `poll(2)` de `watch`, esperando até `timeout` (`None` espera sem prazo); a resposta tem o tamanho de `watch`.
+    fn net_poll(&self, _watch: &[NetWatch], _timeout: Option<std::time::Duration>) -> Result<Vec<NetReady>, Errno> {
         Err(ENOSYS)
     }
 }

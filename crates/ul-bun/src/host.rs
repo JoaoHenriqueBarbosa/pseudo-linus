@@ -3,8 +3,8 @@
 
 use std::io::Write;
 
-use sysabi::{sys, AccessMode, AtFlags, Errno, Fd, ID_UNCHANGED, KillTarget, Mode, OFlags, RenameFlags, SetTime, Signal, Stat, TimeSpec};
-use zjsc::runtime::host::{FsDirEntry, FsStat, FsStatFs, FsTime, Host, HostFile, HostStat};
+use sysabi::{sys, AccessMode, AtFlags, Errno, Fd, ID_UNCHANGED, KillTarget, MsgFlags, Mode, OFlags, PollEvents, PollFd, RenameFlags, SetTime, Signal, Stat, TimeSpec};
+use zjsc::runtime::host::{FsDirEntry, FsStat, FsStatFs, FsTime, Host, HostFile, HostStat, NetReady, NetWatch};
 
 fn errno(error: std::io::Error) -> i32 {
     error.raw_os_error().unwrap_or(Errno::EIO.0)
@@ -202,6 +202,37 @@ impl Host for SysabiHost {
             ffree: stat.ffree,
         })
     });
+
+    syscall_method!(net_listen(port: u16, backlog: u32) -> (i32, u16), |s| {
+        s.tcp_listen_at(std::net::Ipv4Addr::LOCALHOST.into(), port, backlog, true, true).map(|(fd, port)| (fd.0, port))
+    });
+    syscall_method!(net_accept(fd: i32) -> (i32, u16), |s| s.tcp_accept(Fd(fd), true, true).map(|(fd, port)| (fd.0, port)));
+    syscall_method!(net_connect(port: u16) -> (i32, u16), |s| s.tcp_connect(port, true, true).map(|(fd, port)| (fd.0, port)));
+    syscall_method!(net_recv(fd: i32, max: usize) -> Vec<u8>, |s| s.sock_recv(Fd(fd), max, MsgFlags::DONTWAIT));
+    syscall_method!(net_send(fd: i32, bytes: &[u8]) -> usize, |s| s.sock_send(Fd(fd), bytes, MsgFlags::DONTWAIT | MsgFlags::NOSIGNAL));
+    syscall_method!(net_shutdown(fd: i32, read: bool, write: bool) -> (), |s| s.tcp_shutdown(Fd(fd), read, write));
+
+    fn net_poll(&self, watch: &[NetWatch], timeout: Option<std::time::Duration>) -> Result<Vec<NetReady>, i32> {
+        let mut fds: Vec<PollFd> = watch
+            .iter()
+            .map(|entry| {
+                let mut events = PollEvents::empty();
+                events.set(PollEvents::IN, entry.read);
+                events.set(PollEvents::OUT, entry.write);
+                PollFd { fd: Fd(entry.fd), events, revents: PollEvents::empty() }
+            })
+            .collect();
+        sys::current().poll(&mut fds, timeout).map_err(|error| error.0)?;
+        Ok(fds
+            .iter()
+            .map(|entry| NetReady {
+                readable: entry.revents.contains(PollEvents::IN),
+                writable: entry.revents.contains(PollEvents::OUT),
+                hangup: entry.revents.contains(PollEvents::HUP),
+                error: entry.revents.intersects(PollEvents::ERR | PollEvents::NVAL),
+            })
+            .collect())
+    }
 
     fn fs_realpath(&self, path: &str) -> Result<String, i32> {
         sysio::fs::canonicalize(path).map(|resolved| resolved.to_string_lossy().into_owned()).map_err(errno)

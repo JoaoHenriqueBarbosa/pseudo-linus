@@ -18,6 +18,7 @@ bun_transpile = { path = "../../wip/zbun/transpile" }
 
 [dev-dependencies]
 sysabi = { workspace = true, features = ["testkit"] }
+kernel = { workspace = true }
 
 [lints]
 workspace = true
