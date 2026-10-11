@@ -132,6 +132,11 @@ def _exited(owner):
     return owner is not _gsched.main and owner.thread is not None and not owner.thread.is_alive()
 
 
+def _main_gone(state):
+    """O greenlet principal de uma thread que já acabou: o C o dá por morto."""
+    return state.main and _exited(state.owner)
+
+
 def _check_thread(target):
     owner = _st(target).owner
     if owner is not _thread():
@@ -424,6 +429,9 @@ def _entry(state, run):
         # O rastreador roda no greenlet novo, antes do `run`: um erro dele o mata e sobe ao pai, como o do `run`.
         _trace(payload[0], origin, _thread().glet)
         del origin
+        # O `inner_bootstrap` solta o `run` guardado antes de rodar: o `__del__` dele roda aqui e pode trocar de greenlet
+        # antes de o `run` começar (quando o `__getattribute__` de uma subclasse devolveu outro `run`).
+        state.run = _NO_RUN
         if payload[0] == 'throw':
             raise payload[1]
         result = ('switch', (run(*payload[1], **payload[2]),), {})
@@ -445,8 +453,6 @@ def _entry(state, run):
         except BaseException as exc:
             # O pai não pôde receber (sem `run`): a falha sobe ao avô, como a propagação do C.
             result = ('throw', exc)
-            parent_state.started = True
-            parent_state.dead = True
             target = _resolve(parent_state.parent)
     del me
     _enter(target, result, run, True)
@@ -479,7 +485,7 @@ def _no_delete_parent(glet):
 def _check_context_thread(glet, verb):
     """O contexto de um greenlet que roda em outra thread não se lê nem se troca daqui."""
     owner = _st(glet).owner
-    if owner is not _thread() and getattr(owner, 'glet', None) is glet:
+    if owner is not _thread() and not _exited(owner) and getattr(owner, 'glet', None) is glet:
         raise ValueError('cannot %s context of a greenlet that is running in a different thread' % verb)
 
 
@@ -565,12 +571,12 @@ from ``g_raiser`` to ``g``.
 
     def __bool__(self):
         state = _st(self)
-        return state.started and not state.dead
+        return state.started and not state.dead and not _main_gone(state)
 
     @property
     def dead(self):
         state = _st(self)
-        return state.dead and not state.main
+        return (state.dead and not state.main) or _main_gone(state)
 
     @property
     def _stack_saved(self):
@@ -618,6 +624,9 @@ from ``g_raiser`` to ``g``.
         state = _st(self)
         name = _tp_name(self)
         otid = id(state.owner) & 0xffffffffffff
+        if _main_gone(state):
+            # O principal de uma thread que acabou: o C já zerou o `thread_state` dele (o `%p` do NULL).
+            return '<%s object at 0x%x (otid=0x(nil)) (thread exited) dead>' % (name, id(self) & 0xffffffffffff)
         if state.dead and not state.main:
             return '<%s object at 0x%x (otid=0x%x) %sdead>' % (
                 name, id(self) & 0xffffffffffff, otid, '(thread exited) ' if _exited(state.owner) else '')

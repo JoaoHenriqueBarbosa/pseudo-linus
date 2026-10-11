@@ -26,11 +26,12 @@
 //! formam ciclo com as próprias globais, então é esse o caminho de quase todo script).
 
 use std::cell::{Cell, RefCell};
+use std::collections::VecDeque;
 use std::rc::{Rc, Weak};
 
 use crate::generator::GenCore;
 use crate::object::{InstanceObj, Value};
-use crate::vm::{PyException, Vm};
+use crate::vm::{Callee, Dunder, Entered, PyException, Vm};
 
 /// Teto de rodadas da finalização na saída: um `__del__` que cria sempre mais objetos finalizáveis não
 /// prende o desligamento para sempre.
@@ -78,7 +79,14 @@ struct Registry {
 thread_local! {
     static PENDING: Cell<bool> = const { Cell::new(false) };
     static FINALIZING: Cell<bool> = const { Cell::new(false) };
-    static QUEUE: RefCell<Vec<Doomed>> = const { RefCell::new(Vec::new()) };
+    /// A fila, em ordem de chegada, cada objeto com o número de sequência dela.
+    static QUEUE: RefCell<VecDeque<(u64, Doomed)>> = const { RefCell::new(VecDeque::new()) };
+    /// O último número de sequência dado.
+    static SEQ: Cell<u64> = const { Cell::new(0) };
+    /// Os pisos dos quadros de finalização abertos (o `SEQ` de quando cada um começou): enquanto um deles roda, só
+    /// começam objetos que entraram na fila depois dele, e os irmãos que já esperavam ficam para depois que ele
+    /// voltar. É o que o `Drop` em sequência do C faz, e evita um `__del__` empilhado em cima do outro.
+    static FLOORS: RefCell<Vec<u64>> = const { RefCell::new(Vec::new()) };
     static LIVE: RefCell<Registry> = const { RefCell::new(Registry { items: Vec::new(), limit: 1024 }) };
 }
 
@@ -91,6 +99,19 @@ pub(crate) fn is_finalizing() -> bool {
 #[inline]
 pub(crate) fn pending() -> bool {
     PENDING.with(Cell::get)
+}
+
+/// O quadro de finalização de piso `floor` voltou: os irmãos que esperavam por ele podem começar.
+pub(crate) fn frame_closed(floor: u64) {
+    let _ = FLOORS.try_with(|f| {
+        if let Ok(mut f) = f.try_borrow_mut() {
+            if let Some(at) = f.iter().rposition(|x| *x == floor) {
+                f.remove(at);
+            }
+        }
+    });
+    let waiting = QUEUE.try_with(|q| q.try_borrow().map(|q| !q.is_empty()).unwrap_or(false)).unwrap_or(false);
+    let _ = PENDING.try_with(|p| p.set(waiting));
 }
 
 /// Entrega à fila da thread um objeto ressuscitado pelo `Drop`. Com a fila fora de uso (thread em
@@ -110,9 +131,13 @@ pub(crate) fn enqueue_weakref(r: Rc<crate::modules::weakrefmod::WeakRef>) {
 }
 
 fn push(obj: Doomed) {
+    let seq = SEQ.try_with(|s| {
+        s.set(s.get() + 1);
+        s.get()
+    });
     let _ = QUEUE.try_with(|q| {
-        if let Ok(mut q) = q.try_borrow_mut() {
-            q.push(obj);
+        if let (Ok(mut q), Ok(seq)) = (q.try_borrow_mut(), seq) {
+            q.push_back((seq, obj));
         }
     });
     let _ = PENDING.try_with(|p| p.set(true));
@@ -151,8 +176,54 @@ impl Vm {
             if batch.is_empty() {
                 return;
             }
-            for obj in &batch {
+            for (_, obj) in &batch {
                 self.finalize_doomed(obj);
+            }
+        }
+    }
+
+    /// O ponto seguro do laço: finaliza o que está na fila até achar um `__del__` em Python, que volta como quadro do
+    /// laço (`Dunder::Finalize`) para poder trocar de greenlet; o resto da fila espera o próximo ponto seguro. O
+    /// gerador, a referência fraca e o `__del__` que não é função rodam aqui mesmo, como em `run_finalizers`.
+    pub(crate) fn finalizer_frame(&mut self) -> Option<Callee> {
+        loop {
+            let floor = FLOORS.try_with(|f| f.try_borrow().ok().and_then(|f| f.last().copied())).ok().flatten().unwrap_or(0);
+            let next = QUEUE
+                .try_with(|q| {
+                    let mut q = q.try_borrow_mut().ok()?;
+                    let at = q.partition_point(|(seq, _)| *seq <= floor);
+                    q.remove(at).map(|(_, obj)| obj)
+                })
+                .ok()
+                .flatten();
+            let Some(obj) = next else {
+                PENDING.with(|p| p.set(false));
+                return None;
+            };
+            let Doomed::Instance(inst) = &obj else {
+                self.finalize_doomed(&obj);
+                continue;
+            };
+            inst.finalized.set(true);
+            let Some(Value::Function(f)) = inst.class().finalizer() else {
+                self.finalize_doomed(&obj);
+                continue;
+            };
+            let del = Value::Function(f.clone());
+            let handled = self.handled.borrow().len();
+            let this = Value::Instance(inst.clone());
+            match self.enter_function(&f, vec![this], Vec::new()) {
+                Ok(Entered::Frame(mut callee)) => {
+                    let floor = SEQ.with(Cell::get);
+                    let _ = FLOORS.try_with(|f| f.try_borrow_mut().map(|mut f| f.push(floor)));
+                    callee.link.then = Some(Dunder::Finalize { del, handled, floor });
+                    return Some(callee);
+                }
+                Ok(Entered::Done(_)) => self.handled.borrow_mut().truncate(handled),
+                Err(e) => {
+                    self.handled.borrow_mut().truncate(handled);
+                    self.write_unraisable(&del, e);
+                }
             }
         }
     }

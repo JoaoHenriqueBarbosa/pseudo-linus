@@ -1,0 +1,6 @@
+RESULTS [('G.__getattribute__', 'run'), ('RunCallable', '__del__'), ('main: g.switch()', 'from RunCallable'), ('run_func', 'enter')]
+['A start', ('del', 'inner'), 'A end', 'A start', ('del', 'inner'), 'A end', ('del', 'plain'), 'after del']
+1500 ('del', 0) ('del', 1499)
+[('ValueError', 'boom', 'function')]
+RuntimeError
+returned [('del', 'in function')]

@@ -425,3 +425,36 @@ fn deleteme_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_deleteme.out"),
     );
 }
+
+/// O `__del__` como quadro do laço: troca de greenlet, irmãos em sequência (sem empilhar), o que morre dentro de um
+/// `__del__` roda dentro dele, o erro vai ao `unraisablehook`. Como no oráculo.
+#[test]
+fn finalizer_frames_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_finalizer_frames",
+        include_str!("../../../testbench/oracle/automation/cases/gl_finalizer_frames.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_finalizer_frames.out"),
+    );
+}
+
+/// O principal de uma thread que já acabou é dado por morto (`dead`, `bool` falso, `(thread exited) dead` no `repr`) e
+/// não recebe troca. Como no oráculo.
+#[test]
+fn main_gone_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_main_gone",
+        include_str!("../../../testbench/oracle/automation/cases/gl_main_gone.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_main_gone.out"),
+    );
+}
+
+/// O pai que ainda não começou e não tem `run` (o `__getattribute__` levanta): o erro sobe ao avô e o pai segue
+/// pendente, então cada troca para o filho morto levanta de novo. Como no oráculo.
+#[test]
+fn perverse_parent_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_perverse_parent",
+        include_str!("../../../testbench/oracle/automation/cases/gl_perverse_parent.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_perverse_parent.out"),
+    );
+}
