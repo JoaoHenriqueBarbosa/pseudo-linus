@@ -1,0 +1,16 @@
+492 |       n = buf.subarray(0, n).toString().length;
+493 |     }
+494 |   }
+495 |   return len = Math.max(len - n, 0), writingBuf = writingBuf.slice(n), { writingBuf, len };
+496 | }
+497 |   if (bufs.length === 0)
+                ^
+TypeError: undefined is not an object (evaluating 'bufs')
+      at mergeBuf (internal:streams/fast-utf8-stream:497:11)
+      at #actualWriteBuffer (internal:streams/fast-utf8-stream:320:101)
+      at #release (internal:streams/fast-utf8-stream:230:24)
+      at #actualWriteBuffer (internal:streams/fast-utf8-stream:323:22)
+      at #writeBuffer (internal:streams/fast-utf8-stream:466:24)
+      at <anonymous> (/app/main.js:5:30)
+
+Bun v1.4.2 (Linux x64)

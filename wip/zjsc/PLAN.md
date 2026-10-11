@@ -1263,3 +1263,9 @@ Declaradas e em backlog (todas de transpilador, exceto a última):
 ### Backlog do printer do zbun (2026-10-11)
 
 - Golden contra `bun build --no-bundle` do bun 1.4.2: 299 de 305 casos batem e o mapa de posições bate 12 de 12. As 6 divergências ficam em `KNOWN_DIVERGENCES` (`ie6.ts`, `ie7.ts` e `typescript-import-equals.ts`, em `.minify-identifiers` e `.minify`): `import x = require(...)` com namespace sob `--minify-identifiers`, o oráculo dá `s` ao alias e o porte dá `t`. Causa não isolada, o `assign_nested_scope_slots` é igual ao do upstream, o desvio está noutro ponto do `MinifyRenamer`. Texto reimpresso, sem vazamento: backlog.
+
+### Backlog do node:fs (2026-10-11)
+
+- `fs.watch`, `fs.watchFile` e `fs.promises.watch`: o sysabi (e o `kernel`) não tem inotify (conferido por busca em `crates/sysabi` e `crates/kernel`; só o `tail` vendorizado do coreutils o menciona). O observador do zjsc (`scripts/node-fs-watch-prelude.js`) compara `stat` e `readdir` a cada 50 ms: `change` quando o conteúdo ou os atributos mudam, `rename` quando um nome aparece ou some. Um mesmo gesto gera os eventos de uma comparação, não a fila do kernel (o bun no Linux emite, por exemplo, vários `change` por `writeFileSync`). Fechar de verdade pede `inotify_init1`, `inotify_add_watch` e `inotify_rm_watch` no sysabi (testkit e kernel) e um `Host::fs_watch`; fatia própria, só depois que a fase corrente deixar.
+- `Bun.Glob` não existe: o `ignore` por texto do `fs.watch` usa o minimatch do `fs.glob`.
+- Caso `fs-utf8-buffer` em KNOWN: o bun 1.4.2 lança TypeError em `mergeBuf` no `Utf8Stream` síncrono com `contentMode: 'buffer'`; reproduzir a stack de fonte interno não faz sentido, e a divergência fica declarada.
