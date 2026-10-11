@@ -12,7 +12,7 @@ RUN apt-get update \
 # Versões medidas em 2026-10-10. O pyppeteer 2.0.0 (2024-02) é a última release; ele fixa websockets antigo, por
 # isso mora num venv próprio, longe do websockets do sistema que o gravador de fitas usa.
 RUN python3 -m venv /opt/playwright \
- && /opt/playwright/bin/pip install --no-cache-dir playwright==1.63.0 pytest-playwright \
+ && /opt/playwright/bin/pip install --no-cache-dir playwright==1.63.0 pytest-playwright psutil objgraph \
  && python3 -m venv /opt/pyppeteer \
  && /opt/pyppeteer/bin/pip install --no-cache-dir pyppeteer==2.0.0
 
