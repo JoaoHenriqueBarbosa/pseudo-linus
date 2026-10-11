@@ -220,6 +220,9 @@ pub struct JSGlobalObject {
     pub(crate) console_client: RefCell<Option<std::rc::Weak<dyn crate::runtime::console_object::ConsoleClient>>>,
     /// O console do processo hospedeiro (`console_host.rs`); `None` descarta a saída e deixa o stdin em EOF.
     pub(crate) console_host: RefCell<Option<std::rc::Rc<dyn crate::runtime::console_host::ConsoleHost>>>,
+    /// O hospedeiro do DOM deste global (`dom_bridge.rs`): cada frame tem o seu documento.
+    pub(crate) self_ref: RefCell<std::rc::Weak<JSGlobalObject>>,
+    pub(crate) dom_host: RefCell<Option<std::rc::Rc<dyn crate::runtime::dom_bridge::DomHost>>>,
     /// O sistema de arquivos do processo hospedeiro (`module_fs.rs`); `None`: o `fetch('file://...')` não acha arquivo.
     pub(crate) module_fs: RefCell<Option<std::rc::Rc<dyn crate::runtime::module_fs::ModuleFs>>>,
     /// A `Structure` dos `CallSite` que `Error.prepareStackTrace` recebe (a do `Bun`, no `ZigGlobalObject`;
@@ -420,6 +423,8 @@ impl JSGlobalObject {
             stack_trace_limit: Cell::new(Some(crate::runtime::options_list::Options::default_error_stack_trace_limit())),
             console_client: RefCell::new(None),
             console_host: RefCell::new(None),
+            dom_host: RefCell::new(None),
+            self_ref: RefCell::new(std::rc::Weak::new()),
             module_fs: RefCell::new(None),
             call_site_structure: RefCell::new(None),
             generator_prototype: RefCell::new(None),
@@ -862,6 +867,11 @@ impl JSGlobalObject {
             code_generation_mode.add(CodeGenerationMode::Debugger);
         }
         code_generation_mode
+    }
+
+    /// O próprio global como `Rc`, para o código que só recebe `&JSGlobalObject` (um host function de frame).
+    pub fn to_ref(&self) -> Option<JSGlobalObjectRef> {
+        self.self_ref.borrow().upgrade()
     }
 
     /// `globalThis()`.

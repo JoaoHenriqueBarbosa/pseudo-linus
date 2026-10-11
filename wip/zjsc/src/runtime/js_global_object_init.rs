@@ -100,6 +100,7 @@ impl JSGlobalObject {
 
         let global_structure = JSGlobalObject::create_structure(vm, js_null());
         let global_object = JSGlobalObject::create(vm, global_structure, function_prototype.as_value());
+        *global_object.self_ref.borrow_mut() = Rc::downgrade(&global_object);
         // `NaN`, `Infinity` e `undefined` vivem só na `SymbolTable` do global (`init_static_globals`), como no
         // C++; a `Structure` do global não os tem. O realm vai na `Structure` atual do `Function.prototype` e
         // na raiz.

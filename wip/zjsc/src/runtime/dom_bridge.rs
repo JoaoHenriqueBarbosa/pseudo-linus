@@ -43,18 +43,15 @@ pub trait DomHost {
     fn call(&self, op: &str, args: &[DomArg]) -> Result<DomArg, DomError>;
 }
 
-thread_local! {
-    static DOM_HOST: RefCell<Option<Rc<dyn DomHost>>> = const { RefCell::new(None) };
-}
-
-/// Fim do programa: o hospedeiro é do programa.
-pub(crate) fn reset_for_program() {
-    let _ = DOM_HOST.try_with(|host| host.borrow_mut().take());
+impl std::fmt::Debug for dyn DomHost {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("DomHost")
+    }
 }
 
 /// Instala o hospedeiro e a função global `__pl_dom`.
 pub fn install(global_object: &JSGlobalObject, host: Rc<dyn DomHost>) {
-    DOM_HOST.with(|slot| *slot.borrow_mut() = Some(host));
+    *global_object.dom_host.borrow_mut() = Some(host);
     install_global_function_with_visibility(global_object, "__pl_dom", 1, pl_dom, ImplementationVisibility::Private);
 }
 
@@ -90,7 +87,7 @@ fn to_value(global_object: &JSGlobalObject, arg: &DomArg) -> JSValue {
 }
 
 fn pl_dom_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let host = DOM_HOST.with(|slot| slot.borrow().clone());
+    let host = global_object.dom_host.borrow().clone();
     let Some(host) = host else { return Ok(JSValue::undefined()) };
     let op = rust_string(&call.argument(0).to_wtf_string());
     let args: Vec<DomArg> = (1..call.argument_count()).map(|index| to_arg(global_object, call.argument(index))).collect();

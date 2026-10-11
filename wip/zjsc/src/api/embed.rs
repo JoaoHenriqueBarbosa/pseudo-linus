@@ -25,19 +25,13 @@ use crate::runtime::native_class_support::install_global_function_with_visibilit
 use crate::runtime::program_executable::ProgramExecutable;
 use crate::runtime::vm::VM;
 
-thread_local! {
-    /// O global da página, para o `__pl_eval` (que roda no escopo global, com `let` e `const` de topo visíveis aos
-    /// scripts seguintes, como um `<script>` clássico).
-    static PAGE_GLOBAL: RefCell<Option<JSGlobalObjectRef>> = const { RefCell::new(None) };
-}
-
-/// `__pl_eval(fonte, url)`: avalia `fonte` como script clássico no global da página e devolve o valor de completude
+/// `__pl_eval(fonte, url)`: avalia `fonte` como script clássico no global que chamou e devolve o valor de completude
 /// (o que o `Runtime.evaluate` do DevTools entrega). A exceção do script segue pendente para o chamador JavaScript,
 /// que a relata como erro de página.
 fn pl_eval_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let source = rust_string(&call.argument(0).to_wtf_string());
     let url = rust_string(&call.argument(1).to_wtf_string());
-    let Some(global) = PAGE_GLOBAL.with(|slot| slot.borrow().clone()) else { return Ok(JSValue::undefined()) };
+    let Some(global) = global_object.to_ref() else { return Ok(JSValue::undefined()) };
     let executable = ProgramExecutable::create(&global, &named_program_source(&source, &url));
     let vm = global_object.vm();
     let completion = vm.interpreter().execute_program(&executable, &global);
@@ -250,12 +244,10 @@ pub fn run_page<T>(console: Rc<dyn ConsoleHost>, dom: Rc<dyn DomHost>, document_
         );
         let modules = Rc::new(UrlModuleHost::new(document_url, fetch));
         install_url_module_loader(&global_object, modules.clone());
-        PAGE_GLOBAL.with(|slot| *slot.borrow_mut() = Some(global_object.clone()));
         crate::runtime::timers::enable_event_loop();
         let runner = PageRunner { vm, global_object, modules };
         let result = body(&runner);
         crate::runtime::console_client::set_console_observer(None);
-        PAGE_GLOBAL.with(|slot| slot.borrow_mut().take());
         result
     })
 }

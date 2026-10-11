@@ -839,7 +839,6 @@ pub(crate) fn reset_for_program() {
     let _ = CJS_FILENAME.try_with(|name| name.borrow_mut().clear());
     let _ = CJS_FS.try_with(|fs| fs.borrow_mut().take());
     crate::api::builtin_modules::reset_for_program();
-    crate::runtime::dom_bridge::reset_for_program();
     let taken = CJS_STATE.try_with(|state| state.borrow_mut().take());
     drop(taken);
 }
