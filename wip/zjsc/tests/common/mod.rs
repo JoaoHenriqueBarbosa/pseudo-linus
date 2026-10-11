@@ -574,6 +574,13 @@ pub fn assert_only_known(failures: &[String], known: &[KnownCase]) {
     }
 }
 
+/// O fuso em que o bun gerou os goldens (`America/Sao_Paulo`): `new Date(0)` é "Wed Dec 31 1969" e `new Date(2020, 0, 1, 12)`
+/// é `15:00Z`. O motor sozinho (sem pseudo-processo) resolve UTC, e o gancho vale por thread; o teste que mede outro fuso
+/// o troca depois, no próprio avaliador.
+pub fn golden_time_zone() {
+    zjsc::runtime::process_time_zone::set_time_zone_spec_override(Some("America/Sao_Paulo"));
+}
+
 /// `check` com a quinta coluna: `run` recebe o programa completo e o `ProgramMeta` da linha.
 pub fn check_with_meta<R: Into<Units>>(tsv: &str, preludes: &str, min_total: usize, run: impl Fn(&Program, &ProgramMeta) -> Result<R, String>) {
     check_with_meta_known(tsv, preludes, min_total, &[], run);
@@ -587,6 +594,7 @@ pub fn check_with_meta_known<R: Into<Units>>(
     known: &[KnownDivergence],
     run: impl Fn(&Program, &ProgramMeta) -> Result<R, String>,
 ) {
+    golden_time_zone();
     let preludes = parse_preludes(preludes);
     let mut failures = Vec::new();
     let mut known_seen = vec![0usize; known.len()];
