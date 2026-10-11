@@ -10,6 +10,8 @@ const wrap = (id) => {
   if (kind === 1) proto = elementPrototype(op('name', id), op('ns', id));
   else if (kind === 3) proto = Text.prototype;
   else if (kind === 8) proto = Comment.prototype;
+  else if (kind === 7) proto = ProcessingInstruction.prototype;
+  else if (kind === 4) proto = CDATASection.prototype;
   else if (kind === 11) proto = DocumentFragment.prototype;
   else proto = Document.prototype;
   node = Object.create(proto);
@@ -87,8 +89,8 @@ class Node extends EventTarget {
     if (kind === 1) return this.tagName;
     return op('name', id);
   }
-  get nodeValue() { const kind = this.nodeType; return kind === 3 || kind === 8 ? op('data', idOf(this)) : null; }
-  set nodeValue(value) { const kind = this.nodeType; if (kind === 3 || kind === 8) this[P.__setData](toStr(value)); }
+  get nodeValue() { const kind = this.nodeType; return kind === 3 || kind === 8 || kind === 7 || kind === 4 ? op('data', idOf(this)) : null; }
+  set nodeValue(value) { const kind = this.nodeType; if (kind === 3 || kind === 8 || kind === 7 || kind === 4) this[P.__setData](toStr(value)); }
   [P.__setData](value) {
     const old = op('data', idOf(this));
     op('setData', idOf(this), value);
@@ -97,13 +99,13 @@ class Node extends EventTarget {
   get textContent() {
     const kind = this.nodeType;
     if (kind === 9) return null;
-    if (kind === 3 || kind === 8) return op('data', idOf(this));
+    if (kind === 3 || kind === 8 || kind === 7 || kind === 4) return op('data', idOf(this));
     return op('textContent', idOf(this));
   }
   set textContent(value) {
     const kind = this.nodeType;
     const text = value === null || value === undefined ? '' : String(value);
-    if (kind === 3 || kind === 8) return this[P.__setData](text);
+    if (kind === 3 || kind === 8 || kind === 7 || kind === 4) return this[P.__setData](text);
     if (kind === 9) return;
     const removed = this.childNodes.length ? Array.from(this.childNodes) : [];
     op('setTextContent', idOf(this), text);
@@ -189,7 +191,8 @@ class Node extends EventTarget {
     if (!isNode(other) || other.nodeType !== this.nodeType) return false;
     const kind = this.nodeType;
     if (kind === 1) return this.outerHTML === other.outerHTML;
-    if (kind === 3 || kind === 8) return this.nodeValue === other.nodeValue;
+    if (kind === 7) return this.target === other.target && this.data === other.data;
+    if (kind === 3 || kind === 8 || kind === 4) return this.nodeValue === other.nodeValue;
     const a = Array.from(this.childNodes);
     const b = Array.from(other.childNodes);
     return a.length === b.length && a.every((child, i) => child.isEqualNode(b[i]));
@@ -294,9 +297,18 @@ class Text extends CharacterData {
     ids.set(this, id);
     wrappers.set(id, this);
   }
-  get wholeText() { return this.data; }
+  get wholeText() {
+    const textLike = (n) => n && (n.nodeType === 3 || n.nodeType === 4);
+    let first = this;
+    while (textLike(first.previousSibling)) first = first.previousSibling;
+    let out = '';
+    for (let n = first; textLike(n); n = n.nextSibling) out += n.data;
+    return out;
+  }
   splitText(offset) {
-    const tail = document.createTextNode(this.data.slice(offset));
+    offset = offset >>> 0;
+    if (offset > this.length) throw domException("Failed to execute 'splitText' on 'Text': The offset " + offset + ' is larger than the Text node\'s length.', 'IndexSizeError');
+    const tail = this.nodeType === 4 ? wrap(op('createSpecial', 4, '', this.data.slice(offset))) : document.createTextNode(this.data.slice(offset));
     this.data = this.data.slice(0, offset);
     if (this.parentNode) this.parentNode.insertBefore(tail, this.nextSibling);
     return tail;
@@ -312,6 +324,10 @@ class Comment extends CharacterData {
   }
 }
 tag(Comment, 'Comment');
+class ProcessingInstruction extends CharacterData {
+  get target() { return op('name', idOf(this)); }
+}
+tag(ProcessingInstruction, 'ProcessingInstruction');
 class CDATASection extends Text {}
 tag(CDATASection, 'CDATASection');
 

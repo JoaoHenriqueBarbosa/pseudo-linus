@@ -1,0 +1,48 @@
+<!doctype html>
+<body><pre id=out></pre>
+<script>
+const d = document;
+const pi = d.createProcessingInstruction('a', 'b');
+const x = d.implementation.createDocument(null, 'r');
+const cd = x.createCDATASection('c');
+const pi2 = x.createProcessingInstruction('t', 'd');
+x.documentElement.append(cd, pi2, x.createComment('k'));
+const div = d.createElement('div');
+div.append('x', pi, d.createComment('k'));
+const count = (root, mask, which) => { const w = which === 'it' ? d.createNodeIterator(root, mask) : d.createTreeWalker(root, mask); const names = []; let node; while ((node = w.nextNode())) names.push(node.nodeName); return names.join('+'); };
+const out = [];
+const t = (name, f) => { try { out.push(name + '=' + String(f())); } catch (e) { out.push(name + '=!' + e.name); } };
+t('innerHTML', () => div.innerHTML);
+t('outerHTML', () => div.outerHTML);
+t('xmlser div', () => new XMLSerializer().serializeToString(div));
+t('xmlser xml', () => new XMLSerializer().serializeToString(x));
+t('xml root outerHTML', () => x.documentElement.outerHTML);
+t('textContent', () => div.textContent);
+t('xml textContent', () => x.documentElement.textContent);
+t('pi data/value/name/type', () => [pi.data, pi.nodeValue, pi.nodeName, pi.nodeType, pi.target, pi.length].join('/'));
+t('cd data/value/name/type', () => [cd.data, cd.nodeValue, cd.nodeName, cd.nodeType, cd.length].join('/'));
+t('childNodes', () => Array.from(div.childNodes).map((n) => n.nodeType + ':' + n.nodeName).join(','));
+t('xml childNodes', () => Array.from(x.documentElement.childNodes).map((n) => n.nodeType + ':' + n.nodeName).join(','));
+t('firstChild/lastChild', () => div.firstChild.nodeType + ',' + div.lastChild.nodeType);
+t('tw comment div', () => count(div, NodeFilter.SHOW_COMMENT, 'tw'));
+t('tw pi div', () => count(div, NodeFilter.SHOW_PROCESSING_INSTRUCTION, 'tw'));
+t('it comment div', () => count(div, NodeFilter.SHOW_COMMENT, 'it'));
+t('it pi div', () => count(div, NodeFilter.SHOW_PROCESSING_INSTRUCTION, 'it'));
+t('tw comment xml', () => count(x.documentElement, NodeFilter.SHOW_COMMENT, 'tw'));
+t('tw cdata xml', () => count(x.documentElement, NodeFilter.SHOW_CDATA_SECTION, 'tw'));
+t('tw text xml', () => count(x.documentElement, NodeFilter.SHOW_TEXT, 'tw'));
+t('clone pi', () => { const c = pi.cloneNode(); return [c.nodeType, c.target, c.data, c instanceof ProcessingInstruction, c instanceof Comment].join('/'); });
+t('clone cd', () => { const c = cd.cloneNode(); return [c.nodeType, c.data, c instanceof CDATASection, c instanceof Text, c instanceof Comment].join('/'); });
+t('clone div deep', () => div.cloneNode(true).innerHTML);
+t('importNode pi', () => { const c = d.importNode(pi); return [c.nodeType, c.target, c.data].join('/'); });
+t('importNode cd', () => { const c = d.importNode(cd); return [c.nodeType, c.data].join('/'); });
+t('importNode xml root deep', () => new XMLSerializer().serializeToString(d.importNode(x.documentElement, true)));
+t('instanceof', () => [pi instanceof Comment, pi instanceof CharacterData, cd instanceof Text, cd instanceof Comment, Object.prototype.toString.call(pi), Object.prototype.toString.call(cd)].join(','));
+t('isEqualNode', () => [pi.isEqualNode(d.createComment('b')), pi.isEqualNode(d.createProcessingInstruction('a', 'b'))].join(','));
+t('compareDocumentPosition', () => div.compareDocumentPosition(pi));
+t('splitText cd', () => cd.splitText ? cd.splitText(0).nodeType : 'none');
+t('wholeText cd', () => cd.wholeText);
+t('data set pi', () => { pi.data = 'zz'; return pi.data + '/' + div.innerHTML; });
+document.getElementById('out').textContent = out.join('\n');
+document.body.append(d.createProcessingInstruction('p', 'q'), d.createComment('z'));
+</script>

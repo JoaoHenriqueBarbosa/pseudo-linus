@@ -311,7 +311,11 @@ impl Bridge {
         match data {
             Some(NodeData::Element(element)) => m.create_element(element.name.clone(), element.attrs.iter().cloned().collect()),
             Some(NodeData::Text(text)) => m.create_text_node(&text.content),
-            Some(NodeData::Comment { contents }) => m.create_comment_node(&contents),
+            Some(NodeData::Comment { contents }) => {
+                let copy = m.create_comment_node(&contents);
+                document::copy_special_node(id, copy);
+                copy
+            }
             _ => m.create_comment_node(""),
         }
     }
@@ -602,6 +606,9 @@ impl DomHost for Bridge {
             "kind" => {
                 let doc = self.doc.borrow();
                 let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
+                if let Some((kind, _)) = document::special_node(node.id) {
+                    return Ok(DomArg::Num(f64::from(kind)));
+                }
                 Ok(DomArg::Num(match &node.data {
                     NodeData::Element(e) if &*e.name.local == FRAGMENT => 11.0,
                     NodeData::Element(e) if &*e.name.local == SUBDOCUMENT => 9.0,
@@ -614,6 +621,9 @@ impl DomHost for Bridge {
             "name" => {
                 let doc = self.doc.borrow();
                 let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
+                if let Some((kind, target)) = document::special_node(node.id) {
+                    return Ok(DomArg::Str(if kind == 7 { target } else { "#cdata-section".to_owned() }));
+                }
                 Ok(DomArg::Str(match &node.data {
                     NodeData::Element(e) => e.name.local.to_string(),
                     NodeData::Text(_) => "#text".to_owned(),
@@ -784,6 +794,13 @@ impl DomHost for Bridge {
                 })))
             }
             "createText" => Ok(num(self.mutate(|m| m.create_text_node(str_arg(args, 0).unwrap_or(""))))),
+            "createSpecial" => {
+                let kind = if matches!(args.first(), Some(DomArg::Num(k)) if *k == 7.0) { 7 } else { 4 };
+                let target = str_arg(args, 1)?.to_owned();
+                let id = self.mutate(|m| m.create_comment_node(str_arg(args, 2).unwrap_or("")));
+                document::mark_special_node(id, kind, target);
+                Ok(num(id))
+            }
             "createComment" => Ok(num(self.mutate(|m| m.create_comment_node(str_arg(args, 0).unwrap_or(""))))),
             "append" => {
                 let (parent, child) = (id_arg(args, 0)?, id_arg(args, 1)?);
@@ -854,7 +871,7 @@ impl DomHost for Bridge {
             }
             "textContent" => {
                 let doc = self.doc.borrow();
-                Ok(DomArg::Str(doc.get_node(id_arg(args, 0)?).map(|n| n.text_content()).unwrap_or_default()))
+                Ok(DomArg::Str(document::text_content(&doc, id_arg(args, 0)?)))
             }
             "setTextContent" => {
                 let id = id_arg(args, 0)?;

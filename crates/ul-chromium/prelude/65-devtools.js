@@ -591,7 +591,7 @@ const devtoolsAgent = (() => {
     return null;
   };
   const describe = (node, depth) => {
-    const out = { nodeId: 0, backendNodeId: backendOf(node), nodeType: node.nodeType, nodeName: node.nodeName, localName: node.nodeType === 1 ? node.localName : '', nodeValue: node.nodeType === 3 || node.nodeType === 8 ? node.nodeValue : '' };
+    const out = { nodeId: 0, backendNodeId: backendOf(node), nodeType: node.nodeType, nodeName: node.nodeName, localName: node.nodeType === 1 ? node.localName : '', nodeValue: node.nodeType === 3 || node.nodeType === 8 || node.nodeType === 7 || node.nodeType === 4 ? node.nodeValue : '' };
     if (node.nodeType === 1 || node.nodeType === 9 || node.nodeType === 11) out.childNodeCount = node.childNodes.length;
     if (node.nodeType === 1) {
       out.attributes = [];

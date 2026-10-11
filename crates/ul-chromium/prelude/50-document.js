@@ -92,10 +92,16 @@ class Document extends Node {
   }
   createTextNode(data) { return new Text(toStr(data)); }
   createComment(data) { return new Comment(toStr(data)); }
-  createCDATASection(data) { return new Text(toStr(data)); }
+  createCDATASection() { throw domException('This operation is not supported for HTML documents.', 'NotSupportedError'); }
   createDocumentFragment() { return new DocumentFragment(); }
   createAttribute(name) { return makeAttr(null, lower(name), ''); }
-  createProcessingInstruction() { throw domException('Processing instructions are not supported.', 'NotSupportedError'); }
+  createProcessingInstruction(target, data) {
+    if (arguments.length < 2) throw new TypeError("Failed to execute 'createProcessingInstruction' on 'Document': 2 arguments required, but only " + arguments.length + ' present.');
+    target = toStr(target); data = toStr(data);
+    if (!XML_NAME.test(target)) throw domException("Failed to execute 'createProcessingInstruction' on 'Document': The target provided ('" + target + "') is not a valid name.", 'InvalidCharacterError');
+    if (data.includes('?>')) throw domException("Failed to execute 'createProcessingInstruction' on 'Document': The data provided ('" + data + "') contains '?>'", 'InvalidCharacterError');
+    return wrap(op('createSpecial', 7, target, data));
+  }
   createEvent(type) {
     const t = lower(type).replace(/s$/, '');
     const cls = { event: Event, htmlevent: Event, customevent: CustomEvent, uievent: UIEvent, mouseevent: MouseEvent, keyboardevent: KeyboardEvent, focusevent: FocusEvent, messageevent: MessageEvent, hashchangeevent: HashChangeEvent }[t];
@@ -158,10 +164,36 @@ function documentWrite(html) {
   parent.insertBefore(fragment, current ? current.nextSibling : null);
 }
 
+// O `Name` do XML (aproximado: letras, `_` e `:` no início; depois também dígitos, `-` e `.`).
+const XML_NAME = /^[A-Za-z_:\u00C0-\uFFFF][-A-Za-z0-9_:.\u00B7\u00C0-\uFFFF]*$/u;
+
+class XMLDocument extends Document {
+  get [P.__html]() { return false; }
+  get contentType() { return this[P.__contentType] || 'application/xml'; }
+  createCDATASection(data) {
+    data = toStr(data);
+    if (data.includes(']]>')) throw domException("Failed to execute 'createCDATASection' on 'Document': String contains the CDATA termination sequence ']]>'", 'InvalidCharacterError');
+    return wrap(op('createSpecial', 4, '', data));
+  }
+}
+tag(XMLDocument, 'XMLDocument');
+const XML_CONTENT_TYPES = { 'http://www.w3.org/1999/xhtml': 'application/xhtml+xml', 'http://www.w3.org/2000/svg': 'image/svg+xml' };
+
 class DOMImplementation {
   constructor() { throw new TypeError('Illegal constructor'); }
   createHTMLDocument(title) { return wrap(op('createDocument', title === undefined ? null : String(title))); }
-  createDocument() { return wrap(op('createDocument', null)); }
+  createDocument(namespace, qualifiedName, doctype = null) {
+    if (arguments.length < 2) throw new TypeError("Failed to execute 'createDocument' on 'DOMImplementation': 2 arguments required, but only " + arguments.length + ' present.');
+    const doc = wrap(op('createDocument', null));
+    Object.setPrototypeOf(doc, XMLDocument.prototype);
+    while (doc.firstChild) doc.removeChild(doc.firstChild);
+    namespace = namespace === null || namespace === undefined ? null : String(namespace);
+    hidden(doc, '__contentType', XML_CONTENT_TYPES[namespace] || 'application/xml');
+    if (doctype !== null && doctype !== undefined && !(doctype instanceof DocumentType)) throw new TypeError("Failed to execute 'createDocument' on 'DOMImplementation': parameter 3 is not of type 'DocumentType'.");
+    const name = qualifiedName === null || qualifiedName === undefined ? '' : String(qualifiedName);
+    if (name !== '') doc.appendChild(doc.createElementNS(namespace, name));
+    return doc;
+  }
   createDocumentType(name, publicId, systemId) {
     const o = Object.create(DocumentType.prototype);
     ids.set(o, -2);

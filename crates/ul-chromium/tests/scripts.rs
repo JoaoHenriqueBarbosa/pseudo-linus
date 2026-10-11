@@ -790,3 +790,30 @@ fn has_and_nth_child_of_selectors_parse_and_match() {
     let (_, log) = run(&[("/", &page)]);
     assert_eq!(log, "a,c,true,true,a,l3,0\n");
 }
+
+/// `ProcessingInstruction`, `CDATASection` e `XMLDocument`: o `createProcessingInstruction` do documento HTML, o
+/// `createCDATASection` só no XML, e o `createDocument` com o namespace (o WPT `dom/nodes` os usa em 170 subtestes).
+#[test]
+fn processing_instruction_cdata_and_xml_document() {
+    let script = "const pi = document.createProcessingInstruction('a', 'b'); const xml = document.implementation.createDocument(null, 'x'); \
+        const cd = xml.createCDATASection('c'); let html = 'sem erro'; try { document.createCDATASection('c'); } catch (e) { html = e.name; } \
+        let bad = 'sem erro'; try { document.createProcessingInstruction('a b', 'c'); } catch (e) { bad = e.name; } \
+        console.log([pi.nodeType, pi.target, pi.data, pi.nodeName, pi instanceof ProcessingInstruction, pi.cloneNode().target, \
+        cd.nodeType, cd.nodeName, cd instanceof CDATASection, xml instanceof XMLDocument, xml.contentType, xml.documentElement.localName, html, bad].join(','))";
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    assert_eq!(log, "7,a,b,a,true,a,4,#cdata-section,true,true,application/xml,x,NotSupportedError,InvalidCharacterError\n");
+}
+
+/// A instrução de processamento e a seção CDATA vivem como comentário no DOM do Blitz; nada disso pode aparecer. O
+/// Chromium 154 do oráculo (`pl-oracle-chromium`, `--dump-dom` de `fixtures/pi_cdata_probe.html`) deu o dump de
+/// `fixtures/pi_cdata_oracle.txt`: serialização (`innerHTML`, `outerHTML`, `XMLSerializer`, o `--dump-dom` com a instrução
+/// no corpo), `textContent`, `data`, `nodeValue`, `nodeName`, `nodeType`, `childNodes`, TreeWalker e NodeIterator com
+/// SHOW_COMMENT, SHOW_PROCESSING_INSTRUCTION e SHOW_CDATA_SECTION, `cloneNode`, `importNode`, `isEqualNode`, `splitText` e
+/// `wholeText`. A linha `xmlser div` fica de fora: o `XMLSerializer` ainda não escreve o `xmlns` do XHTML (divergência
+/// anterior, sem relação com a marca).
+#[test]
+fn processing_instruction_and_cdata_never_leak_the_comment_they_are_stored_as() {
+    let (dom, _) = run(&[("/", include_str!("fixtures/pi_cdata_probe.html"))]);
+    let strip = |text: &str| text.lines().filter(|line| !line.starts_with("xmlser div=")).collect::<Vec<_>>().join("\n");
+    assert_eq!(strip(dom.trim_end()), strip(include_str!("fixtures/pi_cdata_oracle.txt").trim_end()));
+}

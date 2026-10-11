@@ -23,7 +23,10 @@ class DOMParser {
 }
 tag(DOMParser, 'DOMParser');
 class XMLSerializer {
-  serializeToString(node) { return node.nodeType === 1 ? node.outerHTML : node.nodeType === 11 || node.nodeType === 9 ? Array.from(node.childNodes).map((c) => (c.nodeType === 1 ? c.outerHTML : c.textContent)).join('') : node.textContent; }
+  serializeToString(node) {
+    const one = (c) => (c.nodeType === 1 ? c.outerHTML : c.nodeType === 7 ? '<?' + c.target + ' ' + c.data + '?>' : c.nodeType === 8 ? '<!--' + c.data + '-->' : c.nodeType === 4 ? '<![CDATA[' + c.data + ']]>' : c.textContent);
+    return node.nodeType === 11 || node.nodeType === 9 ? Array.from(node.childNodes).map(one).join('') : one(node);
+  }
 }
 tag(XMLSerializer, 'XMLSerializer');
 
@@ -33,7 +36,7 @@ const windowGlobals = {
   customElements,
   getComputedStyle, matchMedia, fetch: realFetch, Request, XMLHttpRequest, MutationObserver, MutationRecord, ResizeObserver, ResizeObserverEntry, IntersectionObserver, IntersectionObserverEntry, TextTrack, TextTrackList, PerformanceObserver,
   WebGLRenderingContext, WebGL2RenderingContext, WebGLObject, WebGLBuffer, WebGLFramebuffer, WebGLProgram, WebGLQuery, WebGLRenderbuffer, WebGLSampler, WebGLShader, WebGLSync, WebGLTexture, WebGLTransformFeedback, WebGLVertexArrayObject, WebGLUniformLocation, WebGLActiveInfo, WebGLShaderPrecisionFormat, WebGLContextEvent,
-  Node, Element, HTMLElement, HTMLUnknownElement, SVGElement, SVGGraphicsElement, SVGSVGElement, MathMLElement, Text, Comment, CDATASection, CharacterData, DocumentFragment, ShadowRoot, DocumentType, Document, Attr, NamedNodeMap, NodeList, HTMLCollection,
+  Node, Element, HTMLElement, HTMLUnknownElement, SVGElement, SVGGraphicsElement, SVGSVGElement, MathMLElement, Text, Comment, CDATASection, ProcessingInstruction, XMLDocument, CharacterData, DocumentFragment, ShadowRoot, DocumentType, Document, Attr, NamedNodeMap, NodeList, HTMLCollection,
   DOMTokenList, CSSStyleDeclaration, CSSStyleSheet, DOMRect, DOMRectReadOnly, DOMPoint, DOMPointReadOnly, DOMQuad, DOMMatrix, DOMMatrixReadOnly, CanvasRenderingContext2D, Path2D, CanvasGradient, CanvasPattern, ImageData, TextMetrics, ImageBitmap, createImageBitmap, Range, Selection, TreeWalker, NodeIterator, DOMParser, XMLSerializer, DOMImplementation, XPathEvaluator, XPathExpression, XPathResult, SVGAnimatedString, Location, History, Navigator, Storage, CustomElementRegistry,
   EventTarget, Event, CustomEvent, UIEvent, MouseEvent, PointerEvent, WheelEvent, KeyboardEvent, FocusEvent, InputEvent, ErrorEvent, MessageEvent, HashChangeEvent, PopStateEvent, ProgressEvent, TouchEvent, AnimationEvent, TransitionEvent, PageTransitionEvent, SubmitEvent, PromiseRejectionEvent,
   HTMLDocument: Document,

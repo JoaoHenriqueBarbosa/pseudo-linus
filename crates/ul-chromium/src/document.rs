@@ -589,6 +589,51 @@ fn write_children(doc: &BaseDocument, id: NodeId, out: &mut String) {
     }
 }
 
+thread_local! {
+    /// Os nós que o DOM do Blitz guarda como comentário mas a página vê como `ProcessingInstruction` (tipo 7, com o
+    /// alvo) ou `CDATASection` (tipo 4): o Blitz não tem esses dois tipos de nó. Todo leitor de nó que distingue
+    /// comentário (a serialização, o `textContent`, o tipo e o nome) consulta esta tabela.
+    static SPECIAL_NODES: std::cell::RefCell<std::collections::HashMap<NodeId, (u8, String)>> = std::cell::RefCell::new(std::collections::HashMap::new());
+}
+
+/// O tipo (7 ou 4) e o alvo do nó que a página vê como `ProcessingInstruction` ou `CDATASection`.
+pub fn special_node(id: NodeId) -> Option<(u8, String)> {
+    SPECIAL_NODES.with(|nodes| nodes.borrow().get(&id).cloned())
+}
+
+/// Marca `id` como instrução de processamento (7, com o alvo) ou seção CDATA (4).
+pub fn mark_special_node(id: NodeId, kind: u8, target: String) {
+    SPECIAL_NODES.with(|nodes| nodes.borrow_mut().insert(id, (kind, target)));
+}
+
+/// Copia a marca de `from` para `to` (o `cloneNode` de uma instrução de processamento ou de uma seção CDATA).
+pub fn copy_special_node(from: NodeId, to: NodeId) {
+    if let Some((kind, target)) = special_node(from) {
+        mark_special_node(to, kind, target);
+    }
+}
+
+/// O `textContent` de um elemento ou fragmento: o texto e as seções CDATA dos descendentes, sem comentários nem
+/// instruções de processamento.
+pub fn text_content(doc: &BaseDocument, id: NodeId) -> String {
+    fn collect(doc: &BaseDocument, id: NodeId, out: &mut String) {
+        let Some(node) = doc.get_node(id) else { return };
+        match &node.data {
+            NodeData::Text(text) => out.push_str(&text.content),
+            NodeData::Comment { contents } if special_node(id).is_some_and(|(kind, _)| kind == 4) => out.push_str(contents),
+            NodeData::Comment { .. } => {}
+            _ => node.children.iter().for_each(|&child| collect(doc, child, out)),
+        }
+    }
+    let mut out = String::new();
+    let Some(node) = doc.get_node(id) else { return out };
+    if matches!(node.data, NodeData::Text(_) | NodeData::Comment { .. }) {
+        return node.text_content();
+    }
+    node.children.iter().for_each(|&child| collect(doc, child, &mut out));
+    out
+}
+
 fn write_node(doc: &BaseDocument, id: NodeId, out: &mut String) {
     let Some(node) = doc.get_node(id) else { return };
     match &node.data {
@@ -612,11 +657,25 @@ fn write_node(doc: &BaseDocument, id: NodeId, out: &mut String) {
             }
         }
         NodeData::Text(text) => escape(out, &text.content, false),
-        NodeData::Comment { contents } => {
-            out.push_str("<!--");
-            out.push_str(contents);
-            out.push_str("-->");
-        }
+        NodeData::Comment { contents } => match special_node(id) {
+            Some((7, target)) => {
+                out.push_str("<?");
+                out.push_str(&target);
+                out.push(' ');
+                out.push_str(contents);
+                out.push_str("?>");
+            }
+            Some(_) => {
+                out.push_str("<![CDATA[");
+                out.push_str(contents);
+                out.push_str("]]>");
+            }
+            None => {
+                out.push_str("<!--");
+                out.push_str(contents);
+                out.push_str("-->");
+            }
+        },
         NodeData::Document(_) => write_children(doc, id, out),
         NodeData::AnonymousBlock(_) => {}
     }
