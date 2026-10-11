@@ -11,7 +11,7 @@
 use icu_normalizer::{ComposingNormalizerBorrowed, DecomposingNormalizerBorrowed};
 
 use crate::runtime::host_call::Thrown;
-use crate::runtime::intl_locale_data::{best_available_by, parse_language_tag, DEFAULT_LOCALE};
+use crate::runtime::intl_locale_data::{best_available_by, default_locale, parse_language_tag};
 use crate::runtime::intl_support::{canonicalize_locale_list, map_utf16_segments};
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_value::JSValue;
@@ -23,7 +23,7 @@ const CASING_LOCALES: [&str; 4] = ["az", "el", "lt", "tr"];
 /// O locale de `toLocaleCase` (`None` é a raiz, o `"und"` do C++).
 fn casing_locale(global_object: &JSGlobalObject, locales: JSValue) -> Result<Option<String>, Thrown> {
     let requested = canonicalize_locale_list(global_object, locales)?;
-    let first = requested.first().map_or_else(|| DEFAULT_LOCALE.to_string(), Clone::clone);
+    let first = requested.first().map_or_else(default_locale, Clone::clone);
     // `removeUnicodeLocaleExtension`: a tag sem extensões.
     let base = parse_language_tag(&first).map_or(first, |tag| tag.base_name());
     Ok(best_available_by(&base, |candidate| candidate.len() == 2 && CASING_LOCALES.contains(&candidate)))

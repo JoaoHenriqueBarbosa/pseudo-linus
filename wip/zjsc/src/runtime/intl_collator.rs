@@ -95,10 +95,15 @@ impl CollatorSettings {
     }
 }
 
+/// O locale do colador para um pedido sem cobertura: o padrão do hospedeiro se o colador o conhece, senão `en-US`.
+fn collator_default_locale() -> String {
+    collator_locale(&crate::runtime::intl_locale_data::default_locale()).unwrap_or_else(|| "en-US".to_string())
+}
+
 impl Default for CollatorSettings {
     /// `defaultCollator()`: `Intl.Collator` sem `locales` nem `options`.
     fn default() -> CollatorSettings {
-        CollatorSettings::new("en-US", Sensitivity::Variant, CaseFirst::False, false, false)
+        CollatorSettings::new(&collator_default_locale(), Sensitivity::Variant, CaseFirst::False, false, false)
     }
 }
 
@@ -144,7 +149,7 @@ fn initialize(global_object: &JSGlobalObject, locales: JSValue, options_value: J
     resolved.locale = requested
         .iter()
         .find_map(|tag| parse_language_tag(tag).and_then(|parsed| collator_locale(&parsed.base_name())))
-        .unwrap_or_else(|| "en-US".to_string());
+        .unwrap_or_else(|| collator_default_locale());
     resolved.language = Language::of_locale(&resolved.locale);
     let language = resolved.locale.split('-').next().unwrap_or("en").to_string();
     let options = coerce_options_to_object(global_object, options_value)?;
@@ -229,6 +234,9 @@ pub fn locale_compare(
     options: JSValue,
 ) -> Result<i32, Thrown> {
     if locales.is_undefined() && options.is_undefined() {
+        if crate::runtime::intl_locale_data::default_locale_is_overridden() {
+            return Ok(compare_strings(&CollatorSettings::default(), this, that));
+        }
         return Ok(DEFAULT_SETTINGS.with(|settings| compare_strings(settings, this, that)));
     }
     let state = initialize(global_object, locales, options)?;
