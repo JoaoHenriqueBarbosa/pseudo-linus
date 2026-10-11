@@ -4,6 +4,7 @@
 //! (o gerador tira o prefixo da pasta temporária das strings), e `main.mjs` roda como `/app/main.mjs`. Os arquivos
 //! com `file://` escrevem `/app` onde o gerador usa `__ROOT__`.
 mod common;
+mod zbun_transpiler;
 
 use std::rc::Rc;
 
@@ -46,6 +47,7 @@ fn tree() -> MemoryFs {
 
 #[test]
 fn esm_module_load_matches_bun() {
+    zbun_transpiler::install();
     let mut failures = Vec::new();
     let mut total = 0;
     for line in GOLDEN.lines().filter(|line| !line.is_empty()) {

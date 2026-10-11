@@ -15,10 +15,6 @@ const GOLDEN: &str = include_str!("golden/error_stack_originals_bun.tsv");
 /// pedir a remoção dela.
 const KNOWN: &[(&str, &str)] = &[
     (
-        "const c = 1; c = 2",
-        "o parser do bun recusa `c = 2` sobre `const` na visita (`Cannot assign to const`) e o arquivo nem roda (`<undefined>`); o parser do zbun não registra esse erro e o motor lança o TypeError em execução. Backlog do zbun",
-    ),
-    (
         ".test(f().stack.split('\\n')[1])",
         "o oráculo roda o arquivo num diretório temporário e o frame sai `(/diretório/error_stack_case.js:L:C)` (medido: `at <anonymous> (/w/b.js:2:68)`), então o regex ancorado em `(error_stack_case.js` dá `false`; o gerador só limpa o diretório do texto da pilha, não de um `test()`. O porte roda com URL relativa e dá `true`. Artefato do gerador",
     ),

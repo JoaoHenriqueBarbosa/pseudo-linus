@@ -34,9 +34,9 @@ motor recebia o fonte cru, que não escapa `日`, não dobra `const` nem tira co
 - linhas e colunas de `Error.stack` do arquivo principal, ESM, CJS (wrapper do impressor) e `.ts`.
 
 Também ligado: módulo ES importado pelo `FsModuleHost` e pelo `MemoryModuleHost` (reimpresso, com mapa; o arquivo que o
-transpilador recusa vira `BuildMessage` ou `AggregateError`, como no bun). Fica de fora: `module._compile` e `require` de
+transpilador recusa vira `BuildMessage` ou `AggregateError`, como no bun, inclusive o principal; o CommonJS importado roda no wrapper). Fica de fora: `module._compile` e `require` de
 arquivo seguem com o fonte cru embrulhado (o transpilador do `_compile` do bun reimprime o corpo e as colunas de `cjs_require`
-dependem do texto dele; ver backlog), e o `CommonJS` importado por `import` segue cru. O texto do runtime do `zbun` bate com
+dependem do texto dele; ver backlog), O texto do runtime do `zbun` bate com
 `bun build --no-bundle --target=bun --minify-syntax` em 60 de 61 entradas (a divergência é `using c = null` que o porte não
 funde no `mangle_stmts`).
 
@@ -1183,21 +1183,25 @@ declaradas e não se perseguem até o printer do zbun alimentar o zjsc (as de re
   medição não muda. A medição que vale é a dos programas ORIGINAIS rodados pelo `bun run`, `error_stack_originals_bun_golden`
   (`tests/golden/error_stack_originals_bun.tsv`, gerado por `ORIGINALS=1 scripts/gen-error-stack-golden.js`) com o transpilador
   instalado: 955 de 957 batem. As 19 do golden de texto canônico deixaram de ser o que se mede (callback nativo, IIFE e frame
-  `async` fecharam com o texto reimpresso e o mapa exato). Declaradas no teste, com causa: `const c = 1; c = 2` (o parser do
-  bun recusa o arquivo na visita, o do zbun não registra o erro de atribuição a `const` e o motor lança o `TypeError` em
-  execução) e o regex ancorado em `(error_stack_case.js` sobre `f().stack` (artefato do gerador: o oráculo roda num diretório
-  temporário e o frame traz o caminho absoluto, medido `at <anonymous> (/w/b.js:2:68)`; o porte roda com URL relativa).
-- `module_bun_golden`, 72 de 445 antes, 5 de 445 com o transpilador instalado no harness (`MemoryModuleHost` e `FsModuleHost`
-  passam o módulo ES pelo `ReprintedModules`, que guarda o mapa e os erros por chave). Fecharam: os 53 `BuildMessage` e
-  `AggregateError` (o arquivo que o transpilador recusa sai como o bun o relata, `BuildMessage` com o texto do parser, ou
-  `AggregateError` `N errors building "arquivo"` com os `BuildMessage` em `errors`; foi preciso o zbun deixar de somar o sufixo
-  `(token: ...)` do build de debug, aceitar o literal ainda não lido em `parse_path` e devolver as mensagens do log quando o erro
-  vem do `Parser::init`), as 8 de reimpressão (`a_default`), as de hoisting de `export let` e as de sintaxe. Declaradas no teste,
-  com causa: 4 de arquivo sem sintaxe ESM, que o bun roda como CommonJS (`this` é `module.exports`, `with` vale; o zbun já o
-  classifica como CommonJS, falta o carregador ES importar CommonJS) e 1 frame `at a.mjs` sem o caminho absoluto (o
-  `MemoryModuleHost` usa chaves relativas; o gerador roda num diretório temporário).
-- `module_edge_bun_golden` (1 de 500 e 38 de 600) e `module_more_bun_golden` (273 de 1699): o harness ainda não instala o
-  transpilador; medir com ele é a próxima passada.
+  `async` fecharam com o texto reimpresso e o mapa exato). 956 de 957 com o diagnóstico do `const` reatribuído corrigido (o parser do zbun já o recusava, `Cannot assign to "c" because it is a
+  constant`, igual ao bun; o defeito era o programa principal cair no texto cru quando o transpilador recusa o arquivo, e agora ele
+  falha com `BuildMessage`/`AggregateError`). Fica declarada no teste uma, artefato do gerador: o regex ancorado em
+  `(error_stack_case.js` sobre `f().stack` (o oráculo roda num diretório temporário e o frame traz o caminho absoluto, medido
+  `at <anonymous> (/w/b.js:2:68)`; o porte roda com URL relativa).
+- Módulos ES com o transpilador instalado nos harnesses (`module_bun`, `module_more_bun`, `module_edge_bun`, `esm_module_load`):
+  `module_bun` 72 para 1 de 445, `module_more_bun` 273 para 0 de 1699, `module_edge_bun` 39 para 0 de 1100, `esm_module_load` 1 para 0
+  de 44. `MemoryModuleHost` e `FsModuleHost` passam o módulo pelo `ReprintedModules`, que guarda mapa, erros e CommonJS por chave. O
+  arquivo que o transpilador recusa sai como o bun o relata (`BuildMessage`, ou `AggregateError` `N errors building "arquivo"`).
+  O arquivo que o bun roda como CommonJS (sem sintaxe ESM, ou com `exports`/`module`) virou módulo sintético: `default` é
+  `module.exports` e os nomeados são os que o parser achou (`commonjs_named_exports`), com o wrapper rodando na avaliação do grafo
+  (`ModuleRecordExt::lazy_evaluation`), então a ordem é a do grafo. Consertos de motor que a medição apontou: `own_descriptor`
+  engolia o `ReferenceError` de TDZ do namespace (`getOwnPropertyDescriptors` lançava pela chave errada), a asserção de status
+  em `get_module_namespace` recusava o ciclo legítimo com `export * as n`, o JSON com BOM, e o identificador com escape
+  (`export { x as aw\u0061it }`) no parser do zbun. Declarada em `module_bun`, uma: o frame `at a.mjs` sem o caminho absoluto
+  (artefato do harness, chaves relativas). Limites do import de CommonJS, não medidos pelos goldens: `__esModule` não muda o
+  `default` e um segundo CommonJS importado no mesmo programa reinicia o estado do carregador CJS (`CJS_STATE`).
+- `node_modules_resolve_bun_golden` (2 de 59) e `package_exports_bun_golden` (2 de 115): resolução de `exports` de pacote, fora do
+  escopo do transpilador (já divergiam).
 - `cjs_require`, 2 de 65, declaradas em `REPRINTED` no teste (medido no oráculo): `stack_compiled` dá `x.js:1:119` onde o
   porte dá `1:115` e `stack_sites` dá a coluna 55 onde o porte dá 64. Causa: o `module._compile` do bun reimprime o corpo
   (`remove_cjs_module_wrapper`, sem mapa, cabeçalho do wrapper na mesma linha, `function f(){}()` vira `(function f() {})()`); ligar

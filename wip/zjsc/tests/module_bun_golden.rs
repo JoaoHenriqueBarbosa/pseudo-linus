@@ -16,16 +16,7 @@ fn module_graphs_match_bun() {
     check_module_golden_with_known(include_str!("golden/module_bun.tsv"), 200, LogPoint::NextTimeout, KNOWN);
 }
 
-/// O bun roda como CommonJS o arquivo sem sintaxe ESM que o `import` puxa (o zbun já o classifica assim): `this` é o
-/// `module.exports` (`typeof this` dá `object`) e o texto é sloppy (`with` vale). O carregador ES do porte ainda não
-/// importa CommonJS, então o texto reimpresso (a função de wrapper) fica de fora e o arquivo roda como módulo.
-const NOT_ESM: &str = "o bun roda como CommonJS o arquivo sem sintaxe ESM (medido: `this` é `module.exports`, `with` vale); o carregador ES do porte ainda não importa CommonJS";
-
 const KNOWN: &[(&str, &str)] = &[
-    ("L(typeof this); L(typeof globalThis.x); L(this === undefined);", NOT_ESM),
-    ("\"a.mjs\":\"with (x) {}\"", NOT_ESM),
-    ("\"a.mjs\":\"'use strict'; L(typeof this);\"", NOT_ESM),
-    ("\"a.mjs\":\"L((() => typeof this)());\"", NOT_ESM),
     (
         "L(new Error('x').stack.split('\\\\n')[1].replace(",
         "artefato do harness: o gerador roda os arquivos num diretório temporário e o frame do módulo sai `at /diretório/a.mjs:1:7`, de onde o `replace` tira o diretório; o porte tem a chave relativa `a.mjs` e o frame sai `    at a.mjs:1:7`, sem barra para o `replace` cortar",
