@@ -146,6 +146,14 @@ fn module_factory(realm: &JSGlobalObject, source: &str, name: &str, visibility: 
     JSFunction::create(vm, realm, &executable, realm.global_scope()).as_value()
 }
 
+/// O `stack` de um valor lançado (vazio se não for um erro com pilha).
+fn error_stack(global_object: &JSGlobalObject, value: JSValue) -> String {
+    let identifier = crate::runtime::identifier::Identifier::from_span(global_object.vm(), b"stack");
+    crate::runtime::string_regexp_support::get_object_property(global_object, value, &identifier)
+        .map(|stack| crate::runtime::js_module_loader::rust_string(&stack.to_wtf_string()))
+        .unwrap_or_default()
+}
+
 /// Cria a fábrica do módulo `node:<name>` e a chama com `host`. Falhar aqui é defeito do fonte embutido, não do programa
 /// do usuário.
 pub(crate) fn run_factory(global_object: &JSGlobalObject, source: &str, name: &str, host: &JSObjectRef) -> JSValue {
@@ -166,7 +174,12 @@ fn run_factory_with(global_object: &JSGlobalObject, source: &str, name: &str, ho
             crate::runtime::js_promise_host::Thrown::Value(value) => describe_exception(value),
             _ => global_object.vm().exception().map_or_else(|| format!("{thrown:?}"), |exception| describe_exception(&exception.value())),
         };
-        panic!("node:{name}: a fábrica lançou {detail}")
+        // Defeito do fonte embutido: a pilha do erro (as linhas do texto gerado) acompanha a mensagem.
+        let stack = match &thrown {
+            crate::runtime::js_promise_host::Thrown::Value(value) => error_stack(global_object, *value),
+            _ => global_object.vm().exception().map_or_else(String::new, |exception| error_stack(global_object, exception.value())),
+        };
+        panic!("node:{name}: a fábrica lançou {detail}\n{stack}")
     })
 }
 

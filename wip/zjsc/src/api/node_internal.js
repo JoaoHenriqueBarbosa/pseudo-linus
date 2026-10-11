@@ -221,7 +221,30 @@
     TLS_RENEGOTIATION_DISABLED: () => makeError("Error", "ERR_TLS_RENEGOTIATION_DISABLED", "TLS session renegotiation disabled for this socket"),
     TLS_RENEGOTIATION_UNSUPPORTED: () => makeError("Error", "ERR_TLS_RENEGOTIATION_UNSUPPORTED", "TLS session renegotiation is unsupported by this TLS implementation"),
     TLS_SNI_FROM_SERVER: () => makeError("Error", "ERR_TLS_SNI_FROM_SERVER", "Cannot issue SNI from a TLS server-side socket"),
+    // Os de `node:http` (ErrorCode.cpp do bun 1.4.2); o que não tem molde lá leva o primeiro argumento como mensagem.
+    HTTP_BODY_NOT_ALLOWED: () => makeError("Error", "ERR_HTTP_BODY_NOT_ALLOWED", "Adding content for this request method or response status is not allowed."),
+    HTTP_CONTENT_LENGTH_MISMATCH: message => makeError("Error", "ERR_HTTP_CONTENT_LENGTH_MISMATCH", String(message)),
+    HTTP_HEADERS_SENT: action => makeError("Error", "ERR_HTTP_HEADERS_SENT", `Cannot ${action} headers after they are sent to the client`),
+    HTTP_INVALID_HEADER_VALUE: (value, name) => makeError("TypeError", "ERR_HTTP_INVALID_HEADER_VALUE", `Invalid value "${value}" for header "${name}"`),
+    HTTP_INVALID_STATUS_CODE: code => makeError("RangeError", "ERR_HTTP_INVALID_STATUS_CODE", `Invalid status code: ${code}`),
+    HTTP_REQUEST_TIMEOUT: message => makeError("Error", "ERR_HTTP_REQUEST_TIMEOUT", String(message)),
+    HTTP_SOCKET_ASSIGNED: () => makeError("Error", "ERR_HTTP_SOCKET_ASSIGNED", "Socket already assigned"),
+    HTTP_TRAILER_INVALID: message => makeError("Error", "ERR_HTTP_TRAILER_INVALID", String(message)),
+    INVALID_CHAR: (what, value) => makeError("TypeError", "ERR_INVALID_CHAR", `Invalid character in ${what}${value === undefined ? "" : ` ["${value}"]`}`),
+    INVALID_HTTP_TOKEN: (name, value) => makeError("TypeError", "ERR_INVALID_HTTP_TOKEN", `${name} must be a valid HTTP token ["${value}"]`),
+    INVALID_PROTOCOL: (actual, expected) => makeError("TypeError", "ERR_INVALID_PROTOCOL", `Protocol "${actual}" not supported. Expected "${expected}"`),
+    PROXY_INVALID_CONFIG: message => makeError("Error", "ERR_PROXY_INVALID_CONFIG", String(message)),
+    PROXY_TUNNEL: message => makeError("Error", "ERR_PROXY_TUNNEL", String(message)),
+    UNESCAPED_CHARACTERS: name => makeError("TypeError", "ERR_UNESCAPED_CHARACTERS", `${name} contains unescaped characters`),
   };
+  // Os erros do analisador HTTP (`HPE_*`): o argumento é a mensagem.
+  for (const name of [
+    "CHUNK_EXTENSIONS_OVERFLOW", "CLOSED_CONNECTION", "HEADER_OVERFLOW", "INTERNAL", "INVALID_CHUNK_SIZE", "INVALID_CONSTANT",
+    "INVALID_CONTENT_LENGTH", "INVALID_EOF_STATE", "INVALID_HEADER_TOKEN", "INVALID_METHOD", "INVALID_TRANSFER_ENCODING",
+    "INVALID_VERSION", "LF_EXPECTED", "PAUSED_H2_UPGRADE", "STRICT", "UNEXPECTED_CONTENT_LENGTH",
+  ]) {
+    codes[`HPE_${name}`] = message => makeError("Error", `HPE_${name}`, String(message));
+  }
   // Os que o bun declara só com a mensagem pronta (`$ERR_FS_CP_EEXIST(message)`): o argumento é a mensagem.
   for (const [name, kind] of [
     ["FS_CP_DIR_TO_NON_DIR", "Error"],
@@ -334,6 +357,45 @@
     }
   }
 
+  // `checkIsHttpToken` e `validateLinkHeaderValue` do `internal/validators.ts` do bun 1.4.2.
+  const tokenRegExp = /^[\^_`a-zA-Z\-0-9!#$%&'*+.|~]+$/;
+  function checkIsHttpToken(val) {
+    return tokenRegExp.exec(val) !== null;
+  }
+
+  const linkValueRegExp = /^(?:<[^>]*>)(?:\s*;\s*[^;"\s=]+(?:=(")?[^;"\s]*\1)?)*$/;
+  const linkValueForbiddenCharsRegExp = /[\r\n]/;
+  function validateLinkHeaderFormat(value, name) {
+    if (typeof value === "undefined" || !linkValueRegExp.exec(value) || linkValueForbiddenCharsRegExp.exec(value) !== null) {
+      throw codes.INVALID_ARG_VALUE(name, value, `must be an array or string of format "</styles.css>; rel=preload; as=style"`);
+    }
+  }
+
+  function validateLinkHeaderValue(hints) {
+    if (typeof hints === "string") {
+      validateLinkHeaderFormat(hints, "hints");
+      return hints;
+    }
+    if (ArrayIsArray(hints)) {
+      let result = "";
+      for (let i = 0; i < hints.length; i++) {
+        validateLinkHeaderFormat(hints[i], "hints");
+        result += hints[i];
+        if (i !== hints.length - 1) result += ", ";
+      }
+      return result;
+    }
+    throw codes.INVALID_ARG_VALUE("hints", hints, `must be an array or string of format "</styles.css>; rel=preload; as=style"`);
+  }
+
+  // `jsFunction_validateBuffer` (NodeValidator.cpp): indefinido passa; o resto precisa ser view de buffer.
+  function validateBuffer(buffer, name) {
+    if (buffer !== undefined && !ArrayBuffer.isView(buffer)) {
+      const label = name === undefined ? "buffer" : `${name}`;
+      throw makeError("TypeError", "ERR_INVALID_ARG_TYPE", `The "${label}" argument must be an instance of Buffer, TypedArray, or DataView. Received ${determineSpecificType(buffer)}`);
+    }
+  }
+
   function validateArray(value, name, minLength = 0) {
     if (!ArrayIsArray(value)) throw invalidArgType(name, "Array", value);
     if (value.length < minLength) {
@@ -387,6 +449,10 @@
     validateAbortSignal,
     validatePort,
     validateArray,
+    checkIsHttpToken,
+    validateLinkHeaderValue,
+    validateBuffer,
+    isUint8Array: value => value instanceof Uint8Array,
     validateOneOf,
     getValidatedPath,
     throwIfNullBytesInFileName,

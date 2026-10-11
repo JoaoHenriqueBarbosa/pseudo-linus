@@ -57,14 +57,7 @@ ${commonPrologue}  const socketInternals = host.socketInternals();
       return autoSelectFamilyAttemptTimeoutDefault;
     },
   };
-  const require = name => {
-    if (name === "internal/validators") return validators;
-    if (name === "internal/streams/duplex" || name === "internal/streams/state" || name === "internal/abort_listener") return host.requireInternal(name);
-    // Nenhuma categoria de trace está ligada: o \`isCategoryGroupEnabled\` responde que não e nada é emitido.
-    if (name === "internal/trace_events") return { isCategoryGroupEnabled: () => false, emitEvent() {}, emitEventWithArgs() {} };
-    if (name.startsWith("internal/")) return host.internalModule(name);
-    return host.requireBuiltin(name);
-  };
+  const require = name => (name.startsWith("internal/") || name.startsWith("native/") ? host.internalModule(name) : host.requireBuiltin(name));
 `;
 
 process.stdout.write(

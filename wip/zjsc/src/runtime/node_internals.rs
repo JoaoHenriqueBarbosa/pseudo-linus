@@ -12,7 +12,14 @@ const INTERNALS: &str = include_str!("../api/node_internals.js");
 /// O `require(nome)` do registro (avaliado uma vez por programa).
 fn registry(global_object: &JSGlobalObject) -> HostResult {
     crate::api::builtin_modules::cached("internal:node-internals", || {
-        let host_object = crate::api::node_js_host::module_host(global_object, &[])?;
+        let host_object = crate::api::node_js_host::module_host(
+            global_object,
+            &[
+                ("requireInternal", 1, crate::api::node_stream::require_internal),
+                ("getAsyncContext", 0, crate::api::node_async_hooks::get_async_context),
+                ("setAsyncContext", 1, crate::api::node_async_hooks::set_async_context),
+            ],
+        )?;
         Ok(crate::api::node_js_host::run_factory(global_object, INTERNALS, "internals", &host_object))
     })
 }

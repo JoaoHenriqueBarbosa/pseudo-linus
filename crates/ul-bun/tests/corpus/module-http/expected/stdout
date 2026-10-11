@@ -1,0 +1,29 @@
+http keys Agent,Server,METHODS,STATUS_CODES,createServer,ServerResponse,IncomingMessage,request,get,maxHeaderSize,validateHeaderName,validateHeaderValue,setMaxIdleHTTPParsers,setGlobalProxyFromEnv,globalAgent,ClientRequest,OutgoingMessage,WebSocket,CloseEvent,MessageEvent
+https keys Agent,globalAgent,Server,createServer,get,request
+methods 35 ACL,BIND,CHECKOUT,CONNECT,COPY,DELETE UNSUBSCRIBE
+status 63 Not Found I'm a Teapot
+maxHeaderSize 16384
+set maxHeaderSize -1 throws TypeError ERR_INVALID_ARG_TYPE The "maxHeaderSize" argument must be of type non-negative integer. Received type number (-1)
+set maxHeaderSize x throws TypeError ERR_INVALID_ARG_TYPE The "maxHeaderSize" argument must be of type non-negative integer. Received type string ('x')
+set maxHeaderSize 8192 8192
+validateHeaderName ok undefined
+validateHeaderName bad throws TypeError ERR_INVALID_HTTP_TOKEN Header name must be a valid HTTP token ["x a"]
+validateHeaderName empty throws TypeError ERR_INVALID_HTTP_TOKEN Header name must be a valid HTTP token [""]
+validateHeaderValue undefined throws TypeError ERR_HTTP_INVALID_HEADER_VALUE Invalid value "undefined" for header "x"
+validateHeaderValue bad throws TypeError ERR_INVALID_CHAR Invalid character in header content ["x"]
+agent true 3 256 80 http: [] true
+global agent true true Infinity 443 https:
+headers content-type,x-a text/plain true [Object: null prototype] {
+  'content-type': 'text/plain',
+  'x-a': [ '1', '2' ]
+}
+after remove content-type false true false
+setHeader bad throws TypeError ERR_INVALID_HTTP_TOKEN Header name must be a valid HTTP token ["bad name"]
+setHeader undefined throws TypeError ERR_HTTP_INVALID_HEADER_VALUE Invalid value "undefined" for header "x"
+incoming null {} false null  null
+request bad protocol throws TypeError ERR_INVALID_PROTOCOL Protocol "ftp:" not supported. Expected "http:"
+request bad method throws TypeError ERR_INVALID_HTTP_TOKEN Method must be a valid HTTP token ["bad method"]
+request bad header throws TypeError ERR_INVALID_HTTP_TOKEN Header name must be a valid HTTP token ["bad name"]
+server false 0 5000 60000 300000 null 0
+dc zz false false
+dc publish [ { a: 1 }, 'zz' ] true

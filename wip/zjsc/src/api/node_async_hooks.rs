@@ -15,14 +15,14 @@ const SOURCE: &str = include_str!("node_async_hooks.js");
 fn get_async_context_body(global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
     Ok(global_object.vm().async_context())
 }
-host_function!(get_async_context, get_async_context_body);
+host_function!(pub get_async_context, get_async_context_body);
 
 /// `host.setAsyncContext(frame)`: `$putInternalField($asyncContext, 0, frame)`.
 fn set_async_context_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     global_object.vm().set_async_context(call.argument(0));
     Ok(JSValue::undefined())
 }
-host_function!(set_async_context, set_async_context_body);
+host_function!(pub set_async_context, set_async_context_body);
 
 /// `host.setAsyncHooksEnabled(ligado)`: `jsSetAsyncHooksEnabled` (`NodeAsyncHooks.cpp`).
 fn set_async_hooks_enabled_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {

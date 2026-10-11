@@ -30,8 +30,18 @@ const common = [
   [/\$makeAbortError\(/g, "makeAbortError("],
   [/\$isArray\(/g, "Array.isArray("],
   [/\$isObject\(/g, "isObject("],
-  [/Promise\.\$resolve\(/g, "Promise.resolve("],
+  [/\$(HPE_[A-Z_0-9]+)\(/g, "codes.$1("],
+  [/\$newPromise\(\)/g, "newPromise()"],
+  [/\$resolvePromise(?:WithFirstResolvingFunctionCallCheck)?\(/g, "resolvePromise("],
+  [/\.\$then\(/g, ".then("],
+  [/\.\$has\(/g, ".has("],
+  [/Promise\.\$resolve\b/g, "Promise.resolve"],
+  [/Promise\.\$reject\b/g, "Promise.reject"],
+  [/\$arrayPush\(/g, "Array.prototype.push.call("],
   [/\$assert\(/g, "assert("],
+  [/\$inheritsBlob\(/g, "isBlob("],
+  [/\$isCallable\(([^()]*)\)/g, '(typeof $1 === "function")'],
+  [/\$isJSArray\(/g, "Array.isArray("],
   [/\$isTypedArrayView\(([^()]*)\)/g, "(ArrayBuffer.isView($1) && !($1 instanceof DataView))"],
   [/\$isUndefinedOrNull\(([^()]*)\)/g, "($1 == null)"],
 ];
@@ -41,6 +51,17 @@ const commonPrologue = `  const { validators, toClass, codes, makeAbortError } =
   const debug = () => {};
   const assert = () => {};
   const isObject = value => value !== null && (typeof value === "object" || typeof value === "function");
+  // \`$newPromise()\` e \`$resolvePromise()\` do JSC: uma promessa sem executor, resolvida de fora.
+  const promiseResolvers = new WeakMap();
+  const newPromise = () => {
+    let resolve;
+    const promise = new Promise(settle => {
+      resolve = settle;
+    });
+    promiseResolvers.set(promise, resolve);
+    return promise;
+  };
+  const resolvePromise = (promise, value) => promiseResolvers.get(promise)(value);
   const isBlob = value => typeof Blob === "function" && value instanceof Blob;
   // O que ainda não existe (TLS, \`BlockList\`...): lança no ponto de uso, nunca finge.
   const notImplemented = what => () => host.internal.throwNotImplemented(what);

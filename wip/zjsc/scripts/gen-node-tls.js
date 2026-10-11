@@ -120,12 +120,7 @@ ${commonPrologue}  // O \`NodeTLS.cpp\` do bun. A lista de cifras é a de \`defa
       defaultCiphers = value;
     },
   };
-  const require = name => {
-    if (name === "internal/validators") return validators;
-    if (name === "internal/streams/duplex") return host.requireInternal(name);
-    if (name.startsWith("internal/") || name.startsWith("native/")) return host.internalModule(name);
-    return host.requireBuiltin(name);
-  };
+  const require = name => (name.startsWith("internal/") || name.startsWith("native/") ? host.internalModule(name) : host.requireBuiltin(name));
 `;
 
 process.stdout.write(

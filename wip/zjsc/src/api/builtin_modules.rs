@@ -52,14 +52,23 @@ pub(crate) enum Resolved<'a> {
 
 /// Os módulos instalados. Acrescentar aqui, na ordem alfabética.
 pub(crate) static BUILTINS: &[BuiltinEntry] = &[
+    BuiltinEntry { name: "_http_agent", scheme: Scheme::Both, install: crate::runtime::node_http::install_http_agent_module },
+    BuiltinEntry { name: "_http_client", scheme: Scheme::Both, install: crate::runtime::node_http::install_http_client_module },
+    BuiltinEntry { name: "_http_common", scheme: Scheme::Both, install: crate::runtime::node_http::install_http_common_module },
+    BuiltinEntry { name: "_http_incoming", scheme: Scheme::Both, install: crate::runtime::node_http::install_http_incoming_module },
+    BuiltinEntry { name: "_http_outgoing", scheme: Scheme::Both, install: crate::runtime::node_http::install_http_outgoing_module },
+    BuiltinEntry { name: "_http_server", scheme: Scheme::Both, install: crate::runtime::node_http::install_http_server_module },
     BuiltinEntry { name: "assert", scheme: Scheme::Both, install: crate::api::node_assert::install_assert_module },
     BuiltinEntry { name: "assert/strict", scheme: Scheme::Both, install: crate::api::node_assert::install_assert_strict_module },
     BuiltinEntry { name: "async_hooks", scheme: Scheme::Both, install: crate::api::node_async_hooks::install_async_hooks_module },
     BuiltinEntry { name: "buffer", scheme: Scheme::Both, install: crate::runtime::node_buffer::install_buffer_module },
     BuiltinEntry { name: "crypto", scheme: Scheme::Both, install: crate::runtime::node_crypto::install_crypto_module },
+    BuiltinEntry { name: "diagnostics_channel", scheme: Scheme::Both, install: crate::runtime::node_http::install_diagnostics_channel_module },
     BuiltinEntry { name: "events", scheme: Scheme::Both, install: crate::api::node_events::install_events_module },
     BuiltinEntry { name: "fs", scheme: Scheme::Both, install: crate::runtime::node_fs::install_fs_module },
     BuiltinEntry { name: "fs/promises", scheme: Scheme::Both, install: crate::runtime::node_fs::install_fs_promises_module },
+    BuiltinEntry { name: "http", scheme: Scheme::Both, install: crate::runtime::node_http::install_http_module },
+    BuiltinEntry { name: "https", scheme: Scheme::Both, install: crate::runtime::node_http::install_https_module },
     BuiltinEntry { name: "module", scheme: Scheme::Both, install: install_module_module },
     BuiltinEntry { name: "net", scheme: Scheme::Both, install: crate::runtime::node_net::install_net_module },
     BuiltinEntry { name: "os", scheme: Scheme::Both, install: crate::runtime::node_os::install_os_module },
