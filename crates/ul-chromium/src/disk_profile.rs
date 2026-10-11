@@ -20,6 +20,7 @@ use ul_common::fsutil::mkdir_p;
 use ul_common::time::Civil;
 
 use crate::history::{self, Navigation};
+use crate::sessions;
 use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
 use crate::session_storage::{Exit, SessionStorageStore};
@@ -326,6 +327,10 @@ impl DiskProfile {
 
     /// Anota uma navegação concluída da aba: o History a grava na saída.
     pub fn record_navigation(&self, navigation: Navigation) {
+        // O `about:blank` não entra no History nem na sessão: o molde já tem a forma dele.
+        if navigation.url == "about:blank" {
+            return;
+        }
         self.navigations.lock().unwrap_or_else(PoisonError::into_inner).push(navigation);
     }
 
@@ -336,6 +341,38 @@ impl DiskProfile {
         let navigations = self.navigations.lock().unwrap_or_else(PoisonError::into_inner);
         let process = history::Process { start_us: self.start_us, exit_us: (ul_common::time::realtime_nanos() / 1000) as i64, window_id: self.window_id, dump: self.run == Run::DumpDom };
         let _ = history::write(&path, &navigations, process);
+    }
+
+    /// Os arquivos de sessão da saída do `--dump-dom` com uma navegação: o `Session_*` e o `Tabs_*` que o molde criou
+    /// ganham as entradas da página (os nomes ficam; deles vem o relógio da saída).
+    fn write_sessions(&self) {
+        let Some(dir) = &self.user_data_dir else { return };
+        let Some(page) = self.navigations.lock().unwrap_or_else(PoisonError::into_inner).last().cloned() else { return };
+        let folder = [dir.as_slice(), b"/Default/Sessions"].concat();
+        let found = |prefix: &[u8]| sys::read_dir(&folder).unwrap_or_default().into_iter().find(|e| e.name.starts_with(prefix)).map(|e| e.name);
+        let (Some(session), Some(tabs)) = (found(b"Session_"), found(b"Tabs_")) else { return };
+        let exit_time: i64 = String::from_utf8_lossy(&session["Session_".len()..]).parse().unwrap_or_default();
+        let created = self.start_us + WEBKIT_EPOCH_US;
+        let page_end = exit_time - 20_500;
+        let random = || (random_below(1 << 36)) as i64;
+        let guid = |_| crate::devtools::uuid();
+        let snapshot = sessions::Snapshot {
+            window_id: self.window_id as u32,
+            tab_guid: crate::devtools::uuid().replace('-', "_"),
+            created,
+            blank_time: created + 10_000,
+            page_time: page.start_us + WEBKIT_EPOCH_US,
+            page_end,
+            closed: page_end + 5,
+            tabs_time: page_end - 900,
+            guids: [[guid(0), guid(1)], [guid(2), guid(3)]],
+            sequence: (0x65d8 << 36) | random(),
+            url: page.url,
+            title: page.title,
+        };
+        for (name, content) in [(session, sessions::session_file(&snapshot)), (tabs, sessions::tabs_file(&snapshot))] {
+            let _ = sysabi::util::write_file(&[folder.as_slice(), b"/", &name].concat(), &content, 0o600);
+        }
     }
 
     /// A saída: o que o Chromium só grava ao encerrar (`Preferences`, o `Local State` completo), depois do commit do
@@ -350,6 +387,7 @@ impl DiskProfile {
         let _ = self.write_layer(template(self.run), LAYER_EXIT);
         if self.run == Run::DumpDom {
             self.write_history();
+            self.write_sessions();
             self.remove_singletons();
         }
     }
