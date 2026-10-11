@@ -104,8 +104,13 @@ pub struct Config {
     /// O texto é o corpo de `module._compile`: o parser não o embrulha na função de wrapper (o runtime do bun liga
     /// `remove_cjs_module_wrapper`) e o impressor o imprime como programa comum; quem chama põe o cabeçalho.
     pub compile_body: bool,
-    /// O `bun build` sem `--minify-syntax`: sem inlining nem dobra de constante (o `if (false)` perde o corpo mesmo assim, medido).
+    /// O `bun build` sem `--minify-syntax`: sem a dobra de constante (o `if (false)` perde o corpo mesmo assim, medido).
     pub no_minify_syntax: bool,
+    /// O `bun build` sem `--target=bun`: o inlining dos `const` é do alvo `bun`, não do `--minify-syntax` (medido).
+    pub no_inlining: bool,
+    /// O `bun build --no-bundle` sem `--target=bun`: sem `tree_shaking` o topo é uma parte só, e o `mangle_stmts` junta as
+    /// declarações adjacentes (`const a = f(), b = g();`); com ele cada instrução de topo é visitada sozinha (medido).
+    pub no_tree_shaking: bool,
 }
 
 /// Transpila `source` (o arquivo `path`) como o runtime do bun faz antes de entregá-lo ao JSC.
@@ -119,13 +124,13 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
     let source = Source::init_path_string(interned_path(path), source.to_vec());
     let arena = Arena::default();
     let mut log = bun_ast::Log::default();
-    let define = Define::default();
+    let define = Define::with_pure_globals();
     let mut pragma = options::JSX::Pragma::default();
     pragma.parse = loader.is_jsx();
     let mut opts = ParseOptions::init(pragma, loader);
     opts.keep_names = true;
     opts.suppress_warnings_about_weird_code = true;
-    opts.tree_shaking = true;
+    opts.tree_shaking = !config.no_tree_shaking;
     // `warn_about_unbundled_modules` é `!target.is_bun()`.
     opts.warn_about_unbundled_modules = false;
     opts.features.allow_runtime = true;
@@ -135,7 +140,7 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
     // O JSC implementa `using` e `await using`: com o alvo `bun` nada se rebaixa.
     opts.features.lower_using = false;
     opts.features.trim_unused_imports = loader.is_typescript();
-    opts.features.inlining = !config.no_minify_syntax;
+    opts.features.inlining = !config.no_inlining;
     opts.features.minify_syntax = !config.no_minify_syntax;
     opts.features.dead_code_elimination = true;
     opts.features.commonjs_at_runtime = !config.like_build;

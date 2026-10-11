@@ -1,0 +1,20 @@
+console.log(50);
+function f1() {
+  console.log(50);
+}
+function f2() {
+  console.log(50);
+}
+function f3() {
+  return 51;
+}
+console.log("s");
+{
+  const a6 = g();
+  console.log(a6);
+}
+{
+  a7 = 1;
+  console.log(a7);
+}
+var a7;

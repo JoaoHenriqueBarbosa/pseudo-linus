@@ -1,0 +1,10 @@
+console.log(50);
+function f() {
+  return g().y;
+}
+function k() {
+  let q = h();
+  console.log(q);
+}
+if (z)
+  console.log(7);

@@ -13,10 +13,12 @@ fn build(args: &[String]) -> i32 {
     let mut file = None;
     let mut outfile = None;
     let mut minify_syntax = false;
+    let mut target_bun = false;
     let mut iter = args.iter();
     while let Some(arg) = iter.next() {
         match arg.as_str() {
             "--minify-syntax" => minify_syntax = true,
+            "--target=bun" => target_bun = true,
             "--outfile" => outfile = iter.next().cloned(),
             other if other.starts_with("--outfile=") => outfile = Some(other["--outfile=".len()..].to_owned()),
             other if other.starts_with("--") => {}
@@ -32,7 +34,7 @@ fn build(args: &[String]) -> i32 {
         eprintln!("Error resolving \"{}\": ModuleNotFound", absolute.display());
         return 0;
     };
-    let config = bun_transpile::Config { like_build: true, no_minify_syntax: !minify_syntax, ..Default::default() };
+    let config = bun_transpile::Config { like_build: true, no_minify_syntax: !minify_syntax, no_inlining: !target_bun, no_tree_shaking: !target_bun, ..Default::default() };
     match bun_transpile::transpile_with(&absolute.to_string_lossy(), &source, config) {
         Ok(done) => {
             match outfile {

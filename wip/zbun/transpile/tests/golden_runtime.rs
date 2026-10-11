@@ -6,10 +6,7 @@
 use std::path::Path;
 
 /// `(entrada, causa medida no oráculo)`.
-const KNOWN_DIVERGENCES: &[(&str, &str)] = &[(
-    "using.js",
-    "`using c = null, d = undefined` vira `let` sob minify_syntax e o oráculo inlina os dois no `console.log` seguinte (`null, void 0`); o porte deixa o `let c = null, d = void 0;`: o `mangle_stmts` não funde o `let` vindo de `using` com o uso seguinte, backlog do zbun",
-)];
+const KNOWN_DIVERGENCES: &[(&str, &str)] = &[];
 
 fn first_difference(expected: &str, actual: &str) -> String {
     let (e, a): (Vec<&str>, Vec<&str>) = (expected.lines().collect(), actual.lines().collect());

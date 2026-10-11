@@ -422,6 +422,26 @@ pub mod defines {
     }
 
     impl Define {
+        /// O passo do `Define.init` do upstream que carrega a lista de acessos globais sem efeito colateral
+        /// (`console.log`, `Math.floor`...: referenciar sem chamar pode ser reordenado e removido) e a das chamadas que
+        /// podem sair se não usadas e seguras para `toString` (`Symbol.for`). Sem os defines do usuário.
+        pub fn with_pure_globals() -> Define {
+            use crate::defines_table::{GLOBAL_NO_SIDE_EFFECT_FUNCTION_CALLS_SAFE_FOR_TO_STRING, GLOBAL_NO_SIDE_EFFECT_PROPERTY_ACCESSES};
+            let mut define = Define::default();
+            // As chamadas primeiro: `merge` guarda os flags do que já está na tabela.
+            for (chains, unwrap) in [
+                (GLOBAL_NO_SIDE_EFFECT_FUNCTION_CALLS_SAFE_FOR_TO_STRING, E::CallUnwrap::IfUnusedAndToStringSafe),
+                (GLOBAL_NO_SIDE_EFFECT_PROPERTY_ACCESSES, E::CallUnwrap::Never),
+            ] {
+                for chain in chains {
+                    let key = chain.join(&b'.');
+                    let data = DefineData::init(Options { valueless: true, can_be_removed_if_unused: true, call_can_be_unwrapped_if_unused: unwrap, ..Default::default() });
+                    define.insert(&key, data).expect("oom");
+                }
+            }
+            define
+        }
+
         /// The dot defines whose last part is `name` (`NODE_ENV` for
         /// `process.env.NODE_ENV`).
         #[inline]

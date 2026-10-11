@@ -1,0 +1,4 @@
+{ const a = 50; console.log(a); }
+function f() { const x = g(); return x.y; }
+function k() { let q = h(); console.log(q); }
+if (z) { const w = 7; console.log(w); }

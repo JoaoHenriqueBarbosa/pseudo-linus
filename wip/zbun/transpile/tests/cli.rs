@@ -9,34 +9,50 @@ fn zbun(args: &[&str]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_zbun")).args(args).output().expect("rodar o zbun")
 }
 
-/// O corpus do `golden_runtime` (esperado de `--target=bun --minify-syntax`) pela CLI com `--minify-syntax`.
+/// O corpus do `golden_runtime` (esperado de `--target=bun --minify-syntax`) pela CLI.
 #[test]
-fn build_with_minify_syntax_matches_the_runtime_corpus() {
+fn build_with_target_bun_and_minify_syntax_matches_the_runtime_corpus() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/golden");
-    let mut checked = 0;
     for name in ["arrows.js", "classes.js", "asi.js", "comments.js"] {
-        let out = zbun(&["build", "--no-bundle", "--minify-syntax", dir.join(name).to_str().unwrap()]);
+        let out = zbun(&["build", "--no-bundle", "--target=bun", "--minify-syntax", dir.join(name).to_str().unwrap()]);
         assert_eq!(out.status.code(), Some(0), "{name}");
         assert_eq!(out.stdout, std::fs::read(dir.join(format!("{name}.expected.runtime"))).unwrap(), "{name}");
-        checked += 1;
     }
-    assert_eq!(checked, 4);
 }
 
-/// Medido no oráculo: sem `--minify-syntax` o `bun build` não dobra nem inlina, mas o `if (false)` perde o corpo.
+/// Os quatro modos (`bun build --no-bundle` com e sem `--minify-syntax` e `--target=bun`) sobre `tests/cli`, esperados
+/// do oráculo (`scripts/gen_cli_golden.sh`): dobra, inlining de `const` (número, template, negação), `let`, `var`, laço,
+/// closure, sombra e bloco.
 #[test]
-fn build_without_minify_syntax_keeps_dead_code() {
-    let dir = std::env::temp_dir().join("zbun-cli-test");
-    std::fs::create_dir_all(&dir).unwrap();
-    let input = dir.join("m1.js");
-    std::fs::write(&input, "const a = 1 + 2; if (false) { x() } console.log(a, !!a)\n").unwrap();
-    let plain = zbun(&["build", "--no-bundle", input.to_str().unwrap()]);
-    assert_eq!(String::from_utf8_lossy(&plain.stdout), "const a = 1 + 2;\nif (false) {}\nconsole.log(a, !!a);\n");
-    // Divergência declarada (medida): com `--minify-syntax` o oráculo dá `const a = 3;\nconsole.log(a, !!a);\n` (dobra o
-    // `1 + 2` mas não inlina `a` nem dobra `!!a`); o porte, com o `inlining` ligado que o corpus do runtime exige, dá
-    // `console.log(3, !0)`. Backlog do zbun: a regra de quando o `const` dobrado vira valor inlinado.
-    let folded = zbun(&["build", "--no-bundle", "--minify-syntax", input.to_str().unwrap()]);
-    assert_eq!(String::from_utf8_lossy(&folded.stdout), "const a = 3;\nconsole.log(3, !0);\n");
+fn build_modes_match_bun() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/cli");
+    let modes: [(&str, &[&str]); 4] = [
+        ("build", &[]),
+        ("minify", &["--minify-syntax"]),
+        ("target", &["--target=bun"]),
+        ("both", &["--target=bun", "--minify-syntax"]),
+    ];
+    let mut failures = Vec::new();
+    let mut total = 0;
+    for entry in std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok()) {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !name.ends_with(".js") {
+            continue;
+        }
+        for (suffix, flags) in modes {
+            let mut args = vec!["build", "--no-bundle"];
+            args.extend_from_slice(flags);
+            args.push(dir.join(&name).to_str().unwrap().to_owned().leak());
+            let out = zbun(&args);
+            let expected = std::fs::read_to_string(dir.join(format!("{name}.expected.{suffix}"))).unwrap();
+            total += 1;
+            if String::from_utf8_lossy(&out.stdout) != expected {
+                failures.push(format!("{name} [{suffix}]\n--- esperado\n{expected}--- obtido\n{}", String::from_utf8_lossy(&out.stdout)));
+            }
+        }
+    }
+    assert!(total >= 8, "o corpus da CLI tem só {total} combinações");
+    assert!(failures.is_empty(), "{} de {} divergem do bun:\n{}", failures.len(), total, failures.join("\n"));
 }
 
 #[test]

@@ -1,0 +1,15 @@
+const a = 3, n = -a, s = `t${a}`;
+let b = 4;
+b++;
+let e = 7;
+var v = 8, w = 9;
+const o = { k: a }, big = 8, t = !0, u = void 0, z = null;
+function h(a2) {
+  return 100 + a2;
+}
+function k() {
+  return e + v;
+}
+console.log(50);
+console.log(a, n, s, b, e, v, w, o, big, t, u, z, h(1), k(), typeof a, a > 2 ? "y" : "n");
+w = 11;

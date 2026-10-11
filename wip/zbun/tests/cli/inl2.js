@@ -1,0 +1,18 @@
+const a = 1 + 2;
+const n = -a;
+const s = `t${a}`;
+let b = 4;
+b++;
+let e = 7;
+var v = 8;
+var w = 9;
+const o = { k: a };
+const big = 2 ** 3;
+const t = true;
+const u = undefined;
+const z = null;
+function h(a2) { const a = 100; return a + a2; }
+function k() { return e + v; }
+{ const a = 50; console.log(a); }
+console.log(a, n, s, b, e, v, w, o, big, t, u, z, h(1), k(), typeof a, a > 2 ? "y" : "n");
+w = 11;

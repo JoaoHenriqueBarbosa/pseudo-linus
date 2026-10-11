@@ -1,0 +1,13 @@
+const a = 3;
+let b = 4;
+var c = 5;
+const d = "x";
+function f() {
+  return a + b + c + d;
+}
+for (let i = 0;i < a; i++)
+  console.log(a, b, c, d, !!a, i);
+const g = () => a * 2;
+console.log(a, b, c, d, f(), g(), !!a, String(f));
+b = 9;
+c = 10;

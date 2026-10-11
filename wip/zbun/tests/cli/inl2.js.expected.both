@@ -1,0 +1,22 @@
+const a = 3;
+const n = -3;
+const s = "t3";
+let b = 4;
+b++;
+let e = 7;
+var v = 8;
+var w = 9;
+const o = { k: 3 };
+const big = 8;
+const t = !0;
+const u = void 0;
+const z = null;
+function h(a2) {
+  return 100 + a2;
+}
+function k() {
+  return e + v;
+}
+console.log(50);
+console.log(3, -3, "t3", b, e, v, w, o, big, t, u, z, h(1), k(), "number", "y");
+w = 11;

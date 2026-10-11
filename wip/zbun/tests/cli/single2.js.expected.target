@@ -1,0 +1,29 @@
+{
+  let a1 = 50;
+  console.log(a1);
+}
+function f1() {
+  const a2 = 50;
+  console.log(50);
+}
+function f2() {
+  let a3 = 50;
+  console.log(a3);
+}
+function f3() {
+  const a4 = 50;
+  return 51;
+}
+{
+  const a5 = "s";
+  console.log("s");
+}
+{
+  const a6 = g();
+  console.log(a6);
+}
+{
+  a7 = 1;
+  console.log(a7);
+}
+var a7;
