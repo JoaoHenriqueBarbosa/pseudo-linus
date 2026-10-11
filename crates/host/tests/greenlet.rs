@@ -414,3 +414,14 @@ fn trace_arrival_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_trace_arrival.out"),
     );
 }
+
+/// O greenlet que outra thread soltou morre na thread dona dele, na próxima consulta ao greenlet corrente (o
+/// `deleteme` do C), com o `GreenletExit` e o `__del__` do que ele segura. Como no oráculo.
+#[test]
+fn deleteme_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_deleteme",
+        include_str!("../../../testbench/oracle/automation/cases/gl_deleteme.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_deleteme.out"),
+    );
+}
