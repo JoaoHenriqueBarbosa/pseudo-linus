@@ -2453,20 +2453,20 @@ fn bare_statement_namespace(
     value: js_ast::ExprData,
 ) -> BareStatementNamespace {
     let (awaited, mut e) = match value {
-        js_ast::ExprData::EAwait(aw) => (true, aw.value.data),
+        js_ast::ExprData::EAwait(aw) => (true, store[aw].value.data),
         e => (false, e),
     };
     // `.catch` / `.finally` on the import() promise, not on a namespace.
     if let js_ast::ExprData::ECall(call) = e
-        && let js_ast::ExprData::EDot(dot) = call.target.data
-        && matches!(store.str(dot.name), b"catch" | b"finally")
-        && matches!(dot.target.data, js_ast::ExprData::EImport(_))
+        && let js_ast::ExprData::EDot(dot) = store[call].target.data
+        && matches!(store.str(store[dot].name), b"catch" | b"finally")
+        && matches!(store[dot].target.data, js_ast::ExprData::EImport(_))
     {
-        e = dot.target.data;
+        e = store[dot].target.data;
     }
     match e {
-        js_ast::ExprData::EImport(im) if im.namespace_ref.is_valid() => {
-            BareStatementNamespace::Import(im.namespace_ref)
+        js_ast::ExprData::EImport(im) if store[im].namespace_ref.is_valid() => {
+            BareStatementNamespace::Import(store[im].namespace_ref)
         }
         js_ast::ExprData::ERequireString(req) => BareStatementNamespace::Require(req, awaited),
         _ => BareStatementNamespace::None,

@@ -54,7 +54,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 // Is the symbol a member of this scope?
-                if let Some(member) = scope.get_member_with_hash(name, hash) {
+                if let Some(member) = self.store[scope].get_member_with_hash(name, hash) {
                     declare_loc = member.loc;
                     // Unbound globals live in the module scope.
                     scope_use = self.track_scope_uses

@@ -139,6 +139,11 @@ impl<'a, T> ArenaVec<'a, T> {
         Self { arena, vec: Vec::with_capacity(capacity) }
     }
 
+    /// Adota um `Vec` já montado (o upstream adota o buffer da arena sem copiar).
+    pub fn from_vec_in(vec: Vec<T>, arena: &'a Arena) -> Self {
+        Self { arena, vec }
+    }
+
     /// O `Vec` de dentro, para quem copia a lista para o `Store`.
     pub fn into_vec(self) -> Vec<T> {
         self.vec

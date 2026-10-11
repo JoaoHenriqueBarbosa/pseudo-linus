@@ -1670,7 +1670,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             && spread_item_count > 0
             && in_.assign_target == js_ast::AssignTarget::None
         {
-            if let Ok(items) = e_.inline_spread_of_array_literals(p.arena, spread_item_count) {
+            if let Ok(items) = p.store[e_].inline_spread_of_array_literals(p.arena, spread_item_count) {
                 p.store[e_].items = items;
             }
         }
@@ -1704,7 +1704,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         .data
                         .e_string()
                         .expect("infallible: variant checked")]
-                        .eql_comptime(b"__proto__")
+                        .eql_comptime(&p.store, b"__proto__")
                 {
                     if has_proto {
                         let r = js_lexer::range_of_identifier(p.source, key.loc);
@@ -1868,7 +1868,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     ),
                 import_options: p.store[e_].options,
                 loc: p.store[e_].expr.loc,
-                import_loader: e_.import_record_loader(),
+                import_loader: p.store[e_].import_record_loader(),
                 ..Default::default()
             };
 

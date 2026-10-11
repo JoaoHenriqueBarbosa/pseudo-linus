@@ -24,7 +24,8 @@ from collections import defaultdict
 FIELD_RE = re.compile(r"^no field `([^`]+)` on type `(&(?:mut )?)?StoreRef<")
 NODE_METHODS = {
     "eql_comptime", "eql_string", "is_utf8", "is_present", "order", "can_be_moved", "is_identifier", "string",
-    "slice", "resolve_rope_if_needed", "put", "items", "properties",
+    "slice", "resolve_rope_if_needed", "put", "items", "properties", "get_member_with_hash", "can_merge_with",
+    "inline_spread_of_array_literals", "import_record_loader", "as_property",
 }
 PRIVATE_FIELD_RE = re.compile(r"^field `([^`]+)` of struct `StoreRef` is private")
 INDEX_RE = re.compile(r"^the type `Store` cannot be indexed by `&(?:mut )?(?:StoreRef|StoreSlice)<")
@@ -221,12 +222,21 @@ def collect(diagnostics):
     return wanted
 
 
+# `--default-store p.store`: o Store das funções em que `p` é um local (`let p = &mut *parser_box;`), que a assinatura
+# não revela
+DEFAULT_STORE = next((sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == "--default-store"), None)
+# `--only ARQUIVO`: restringe as trocas a um arquivo (pode repetir), para usar o `--default-store` só onde ele vale
+ONLY = {sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == "--only"}
+
+
 def main():
     diagnostics, root = sys.argv[1], sys.argv[2]
     apply = "--apply" in sys.argv
     totals = defaultdict(int)
     skipped = 0
     for name, edits in sorted(collect(diagnostics).items()):
+        if ONLY and name not in ONLY:
+            continue
         path = f"{root}/{name}"
         data = open(path, "rb").read()
         lines = data.splitlines(keepends=True)
@@ -240,7 +250,7 @@ def main():
         for byte_start, (rule, byte_end) in edits.items():
             kind, member, ref, _ = rule
             line_index = max(i for i, st in enumerate(starts) if st <= byte_start)
-            store = store_name(lines, line_index)
+            store = store_name(lines, line_index) or DEFAULT_STORE
             if kind == "self_to_p":
                 # método de um auxiliar (não o P) que recebe `p`: o Store é o do `p`
                 if data[byte_start - 5 : byte_start] == b"self.":

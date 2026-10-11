@@ -453,8 +453,7 @@ impl<'a> Parser<'a> {
                 .as_mut()
                 .expect("set above for TS")
                 .iterator();
-            while let Some(entry) = iter.next() {
-                let val = entry.value_ptr;
+            while let Some((_, val)) = iter.next() {
                 if val.used {
                     import_records[val.import_record_index as usize]
                         .flags
@@ -518,8 +517,8 @@ impl<'a> Parser<'a> {
         // If we added to `p.symbols` it's going to fuck up all the indices
         // in the `symbols` array.
         debug_assert!(p.symbols.len() == 0);
-        // The buffer is already arena-backed, so this is a plain move.
-        p.symbols = symbols;
+        // Adota o `Vec` sem copiar, como o upstream adota o buffer da arena.
+        p.symbols = bun_alloc::ArenaVec::from_vec_in(symbols, p.arena);
 
         p.prepare_for_visit_pass()?;
 
@@ -762,7 +761,6 @@ impl<'a> Parser<'a> {
                     || strings::has_suffix_comptime(name.filename, b".tsx");
                 if cache.get(
                     p.source,
-                    core::ptr::NonNull::from(&p.options).cast::<()>(),
                     p.options.jsx.parse && (!is_node_module || is_jsx_file),
                 ) {
                     return Ok(crate::Result::Cached);
@@ -1012,7 +1010,7 @@ impl<'a> Parser<'a> {
                         // Move class export statements to the top of the file if we can
                         // This automatically resolves some cyclical import issues
                         // https://github.com/kysely-org/kysely/issues/412
-                        let should_move = !p.options.bundle && class.class.can_be_moved();
+                        let should_move = !p.options.bundle && p.store[*class].class.can_be_moved();
 
                         let sliced = [*stmt];
                         p.append_part(&mut parts, &sliced)?;
@@ -1026,7 +1024,7 @@ impl<'a> Parser<'a> {
                         // We move export default statements when we can
                         // This automatically resolves some cyclical import issues in packages like luxon
                         // https://github.com/oven-sh/bun/issues/1961
-                        let should_move = !p.options.bundle && value.can_be_moved();
+                        let should_move = !p.options.bundle && p.store[*value].can_be_moved();
                         let sliced = [*stmt];
                         p.append_part(&mut parts, &sliced)?;
 
@@ -1208,7 +1206,7 @@ impl<'a> Parser<'a> {
                         tracked == 0
                     }) || symbol.must_not_be_renamed()
                         || symbol.has_link()
-                        || scope.is_some_and(|s| s.contains_direct_eval)
+                        || scope.is_some_and(|s| p.store[s].contains_direct_eval)
                         || p.dynamic_import_escaped_records
                             .contains_key(&import_record_id)
                 };
@@ -1439,7 +1437,7 @@ impl<'a> Parser<'a> {
                 for (part_idx, part) in parts.iter().enumerate() {
                     // `Part.stmts` is a `StoreSlice<Stmt>` (arena-owned). It is
                     // only ever populated from bump-allocated slices in this fn.
-                    for s in part.stmts.iter() {
+                    for s in p.store[part.stmts].iter() {
                         match s.data {
                             js_ast::StmtData::SComment(_)
                             | js_ast::StmtData::SDirective(_)
@@ -1462,15 +1460,15 @@ impl<'a> Parser<'a> {
                 if p.symbols.as_slice()[p.module_ref.inner_index() as usize].use_count_estimate == 1
                 {
                     if let js_ast::StmtData::SExpr(s_expr) = &stmt.data {
-                        let value: Expr = s_expr.value;
+                        let value: Expr = p.store[*s_expr].value;
 
                         if let js_ast::ExprData::EBinary(bin) = &value.data {
-                            let left = bin.left;
-                            let right = bin.right;
-                            if bin.op == js_ast::op::Code::BinAssign
+                            let left = p.store[*bin].left;
+                            let right = p.store[*bin].right;
+                            if p.store[*bin].op == js_ast::op::Code::BinAssign
                                 && matches!(&left.data, js_ast::ExprData::EDot(d)
-                                    if d.name == b"exports"
-                                        && matches!(&d.target.data, js_ast::ExprData::EIdentifier(id)
+                                    if p.store.str(p.store[*d].name) == b"exports"
+                                        && matches!(&p.store[*d].target.data, js_ast::ExprData::EIdentifier(id)
                                             if id.ref_.eql(p.module_ref)))
                             {
                                 let redirect_import_record_index: Option<u32> = 'inner_brk: {
@@ -1512,11 +1510,11 @@ impl<'a> Parser<'a> {
                                 {
                                     part.symbol_uses = Default::default();
                                     return Ok(crate::Result::Ast(Box::new(js_ast::Ast {
-                                        import_records: p.import_records.move_to_baby_list(p.arena),
+                                        import_records: p.import_records.move_to_baby_list(p.arena).into_vec(),
                                         redirect_import_record_index: Some(id),
                                         named_imports: core::mem::take(&mut *p.named_imports),
                                         named_exports: core::mem::take(&mut p.named_exports),
-                                        ..js_ast::Ast::empty_in(p.arena)
+                                        ..Default::default()
                                     })));
                                 }
                             }
@@ -1553,31 +1551,31 @@ impl<'a> Parser<'a> {
 
             let found: Option<ModuleExportsOfNamespace> = 'search: {
                 for (part_idx, part) in parts.iter().enumerate() {
-                    for (stmt_idx, stmt) in part.stmts.iter().enumerate() {
+                    for (stmt_idx, stmt) in p.store[part.stmts].iter().enumerate() {
                         let js_ast::StmtData::SExpr(s_expr) = &stmt.data else {
                             continue;
                         };
-                        let value: Expr = s_expr.value;
+                        let value: Expr = p.store[*s_expr].value;
                         let (leading, assign): (Option<Expr>, Expr) = match value.data {
                             js_ast::ExprData::EBinary(bin)
-                                if bin.op == js_ast::op::Code::BinComma =>
+                                if p.store[bin].op == js_ast::op::Code::BinComma =>
                             {
-                                (Some(bin.left), bin.right)
+                                (Some(p.store[bin].left), p.store[bin].right)
                             }
                             _ => (None, value),
                         };
                         let js_ast::ExprData::EBinary(bin) = assign.data else {
                             continue;
                         };
-                        if bin.op != js_ast::op::Code::BinAssign
-                            || !matches!(&bin.left.data, js_ast::ExprData::EDot(d)
-                                if d.name == b"exports"
-                                    && matches!(&d.target.data, js_ast::ExprData::EIdentifier(id)
+                        if p.store[bin].op != js_ast::op::Code::BinAssign
+                            || !matches!(&p.store[bin].left.data, js_ast::ExprData::EDot(d)
+                                if p.store.str(p.store[*d].name) == b"exports"
+                                    && matches!(&p.store[*d].target.data, js_ast::ExprData::EIdentifier(id)
                                         if id.ref_.eql(p.module_ref)))
                         {
                             continue;
                         }
-                        let js_ast::ExprData::EIdentifier(id) = &bin.right.data else {
+                        let js_ast::ExprData::EIdentifier(id) = &p.store[bin].right.data else {
                             continue;
                         };
                         let Some(deferred) = p
@@ -1883,13 +1881,13 @@ impl<'a> Parser<'a> {
 
             for item in p.import_records.items() {
                 // skip if they did import it
-                if item.path.text == b"bun:test"
-                    || item.path.text == b"@jest/globals"
-                    || item.path.text == b"vitest"
+                if p.store.str(item.path.text) == b"bun:test"
+                    || p.store.str(item.path.text) == b"@jest/globals"
+                    || p.store.str(item.path.text) == b"vitest"
                 {
                     if let Some(cache) = p.options.features.runtime_transpiler_cache.as_deref_mut() {
                         // If we rewrote import paths, we need to disable the runtime transpiler cache
-                        if item.path.text != b"bun:test" {
+                        if p.store.str(item.path.text) != b"bun:test" {
                             cache.input_hash = None;
                         }
                     }

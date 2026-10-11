@@ -6378,7 +6378,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     for index in 0..parts.len() {
                         let value = self.store[parts][index].value;
                         if !self.expr_can_be_removed_if_unused_without_dce_check(&value)
-                            || value.data.known_primitive() == js_ast::KnownPrimitive::Unknown
+                            || value.data.known_primitive(&self.store) == js_ast::KnownPrimitive::Unknown
                         {
                             return false;
                         }
@@ -9150,9 +9150,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // into the `Ast` and leave the parser-side slot empty: a pointer move,
         // no realloc/memcpy. `Ast.{symbols,parts,import_records}` are now
         // `ArenaVec<'a, T>` so the move is type-checked.
-        let symbols = core::mem::replace(&mut self.symbols, BumpVec::new_in(arena));
-        let parts_list = core::mem::replace(parts, BumpVec::new_in(arena));
-        let import_records = self.import_records.move_to_baby_list(arena);
+        let symbols = core::mem::replace(&mut self.symbols, BumpVec::new_in(arena)).into_vec();
+        let parts_list = core::mem::replace(parts, BumpVec::new_in(arena)).into_vec();
+        let import_records = self.import_records.move_to_baby_list(arena).into_vec();
 
         let force_cjs_to_esm = self.unwrap_all_requires
             || exports_kind == js_ast::ExportsKind::EsmWithDynamicFallbackFromCjs;
@@ -9327,7 +9327,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         return true;
                     }
                     js_ast::StmtData::SExportDefault(ed) => {
-                        if !self.store[*ed].can_be_moved() {
+                        if !self.store[*ed].can_be_moved(&self.store) {
                             return true;
                         }
                     }

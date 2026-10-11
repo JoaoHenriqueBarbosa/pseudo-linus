@@ -599,7 +599,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = p.store[vals[0]].order((&p.store[vals[1]]));
+                        let ord = p.store[vals[0]].order(&p.store, (&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: ord == Ordering::Less,
@@ -624,7 +624,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = p.store[vals[0]].order((&p.store[vals[1]]));
+                        let ord = p.store[vals[0]].order(&p.store, (&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: ord == Ordering::Greater,
@@ -649,7 +649,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = p.store[vals[0]].order((&p.store[vals[1]]));
+                        let ord = p.store[vals[0]].order(&p.store, (&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: matches!(ord, Ordering::Equal | Ordering::Less),
@@ -674,7 +674,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = p.store[vals[0]].order((&p.store[vals[1]]));
+                        let ord = p.store[vals[0]].order(&p.store, (&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: matches!(ord, Ordering::Equal | Ordering::Greater),

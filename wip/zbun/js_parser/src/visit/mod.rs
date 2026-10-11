@@ -644,7 +644,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let mut end: u32 = 0;
                         for property in bound_object.properties(&self.store) {
                             if let Some(name) = property.key.as_string_literal(self.arena) {
-                                if let Some(query) = object.as_property(name) {
+                                if let Some(query) = self.store[object].as_property(name) {
                                     match query.expr.data {
                                         ExprData::EObject(_) | ExprData::EArray(_) => {
                                             self.visit_binding_and_expr_for_macro(
@@ -1986,7 +1986,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_idx = output.len() - 1;
                         let prev_stmt = &mut output[prev_idx];
                         if let StmtData::SLocal(mut prev_local) = prev_stmt.data {
-                            if local.can_merge_with(&prev_local) {
+                            if p.store[local].can_merge_with(&prev_local) {
                                 // `G::Decl` é `Copy`: as declarações do statement atual entram no fim da lista do
                                 // anterior (`append` do `Store`, que cresce no lugar ou copia para o fim).
                                 let merging: Vec<G::Decl> = p.store[p.store[local].decls].to_vec();
