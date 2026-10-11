@@ -465,6 +465,17 @@ pub fn run_factored_big_stack_known(
     on_big_stack(move || check_with_meta_known(tsv, preludes, min_total, known, |source, _| guarded_units(|| evaluate(source))));
 }
 
+/// `run_factored_big_stack` com as linhas do golden que divergem declaradas por número ([`check_with_meta_known_lines`]).
+pub fn run_factored_big_stack_known_lines(
+    tsv: &'static str,
+    preludes: &'static str,
+    min_total: usize,
+    known_lines: &'static [KnownCase],
+    evaluate: impl Fn(&Program) -> Result<JSValue, JSValue> + Send + 'static,
+) {
+    on_big_stack(move || check_with_meta_known_lines(tsv, preludes, min_total, &[], known_lines, |source, _| guarded_units(|| evaluate(source))));
+}
+
 /// Golden com a quinta coluna (modo ESM/CJS e mapa de posições, ver [`ProgramMeta`]): `url` é o nome do arquivo dos dois
 /// lados (`__filename` do CJS e o que o `stack` mostra) e o programa grava o resultado em `globalThis.R`.
 pub fn run_mapped_golden(tsv: &str, preludes: &str, min_total: usize, url: &str) {
@@ -594,6 +605,20 @@ pub fn check_with_meta_known<R: Into<Units>>(
     known: &[KnownDivergence],
     run: impl Fn(&Program, &ProgramMeta) -> Result<R, String>,
 ) {
+    check_with_meta_known_lines(tsv, preludes, min_total, known, &[], run);
+}
+
+/// `check_with_meta_known` com as linhas do golden que divergem declaradas por número (1-based, o `label` do [`KnownCase`]): a
+/// falha de cada linha abre com `[linha]`, e uma linha fora da lista, ou da lista que deixou de divergir, falha. É o jeito de
+/// declarar dezenas de casos que divergem pela mesma causa (a reimpressão do transpilador) sem listar um texto por caso.
+pub fn check_with_meta_known_lines<R: Into<Units>>(
+    tsv: &str,
+    preludes: &str,
+    min_total: usize,
+    known: &[KnownDivergence],
+    known_lines: &[KnownCase],
+    run: impl Fn(&Program, &ProgramMeta) -> Result<R, String>,
+) {
     golden_time_zone();
     let preludes = parse_preludes(preludes);
     let mut failures = Vec::new();
@@ -605,7 +630,8 @@ pub fn check_with_meta_known<R: Into<Units>>(
         (start.parse::<usize>().expect("início"), end.parse::<usize>().expect("fim"))
     });
     let selected = tsv.lines().enumerate().filter(|(index, _)| range.is_none_or(|(start, end)| (start..=end).contains(&(index + 1))));
-    for line in selected.map(|(_, line)| line).filter(|line| !line.is_empty()) {
+    for (index, line) in selected.filter(|(_, line)| !line.is_empty()) {
+        let line_number = index + 1;
         let mut columns = line.split('\t');
         let suffix = json_units(columns.next().expect("sufixo"));
         let expected = json_units(columns.next().expect("resultado"));
@@ -623,11 +649,11 @@ pub fn check_with_meta_known<R: Into<Units>>(
                     let (expected_text, got_text) = (String::from_utf16_lossy(&expected), String::from_utf16_lossy(&actual.0));
                     match known.iter().position(|divergence| divergence.expected == expected_text && divergence.got == got_text) {
                         Some(index) => known_seen[index] += 1,
-                        None => failures.push(format!("{source}\n    esperado {}\n    veio     {}", escape_units(&expected), escape_units(&actual.0))),
+                        None => failures.push(format!("[{line_number}] {source}\n    esperado {}\n    veio     {}", escape_units(&expected), escape_units(&actual.0))),
                     }
                 }
             }
-            Err(reason) => failures.push(format!("{source}\n    esperado {}\n    {reason}", escape_units(&expected))),
+            Err(reason) => failures.push(format!("[{line_number}] {source}\n    esperado {}\n    {reason}", escape_units(&expected))),
         }
     }
     assert!(range.is_some() || total >= min_total, "golden com só {total} programas");
@@ -641,7 +667,11 @@ pub fn check_with_meta_known<R: Into<Units>>(
             }
         }
     }
-    assert!(failures.is_empty(), "{} de {} divergem do bun:\n{}", failures.len(), total, failures.join("\n"));
+    if known_lines.is_empty() {
+        assert!(failures.is_empty(), "{} de {} divergem do bun:\n{}", failures.len(), total, failures.join("\n"));
+    } else {
+        assert_only_known(&failures, known_lines);
+    }
 }
 
 /// Uma linha dos goldens de exceção não capturada (`uncaught_bun.tsv`, `post_message_uncaught_bun.tsv`, escritos por

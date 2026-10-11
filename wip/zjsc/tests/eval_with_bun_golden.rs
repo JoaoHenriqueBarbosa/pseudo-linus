@@ -13,10 +13,10 @@ const PRELUDES: &str = include_str!("golden/eval_with.preludes.json");
 
 #[test]
 fn eval_with_matches_bun() {
-    // O filho do oráculo imprime `String(globalThis.R)` depois do programa. Um `var globalThis=1` em eval indireto troca o
-    // `globalThis` por `1` (propriedade própria writable do global), então lá o `R` lido é `undefined`; ler `R` como
-    // identificador esconderia isso. O resultado é avaliado como o oráculo o lê.
+    // O filho do oráculo captura o `globalThis` antes do programa e imprime `String(R)` depois dele (o `RESULT_PRELOAD` dos
+    // geradores). Um `delete globalThis` ou um `var globalThis=1` no programa não muda de onde ele lê `R`, e ler pela
+    // propriedade `globalThis` depois do programa lançaria `ReferenceError`: o modo drenado lê pelo `this` do topo.
     common::check(GOLDEN, PRELUDES, 3000, |source| {
-        common::guarded_units(|| common::EvalMode::IndirectEval.evaluate(source, "eval_with_case.js", "String(globalThis.R)"))
+        common::guarded_units(|| common::EvalMode::IndirectEvalDrained.evaluate(source, "eval_with_case.js", "R"))
     });
 }

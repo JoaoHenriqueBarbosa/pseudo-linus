@@ -13,5 +13,5 @@ const PRELUDES: &str = include_str!("golden/eval_forin.preludes.json");
 
 #[test]
 fn eval_forin_matches_bun() {
-    common::run_factored(GOLDEN, PRELUDES, 3000, |source| evaluate_named_script_result(source, "eval_forin_case.js", "R"));
+    common::run_factored_big_stack(GOLDEN, PRELUDES, 3000, |source| evaluate_named_script_result(source, "eval_forin_case.js", "R"));
 }

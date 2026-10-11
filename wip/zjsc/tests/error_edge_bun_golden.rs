@@ -17,17 +17,9 @@ const CALLER: &str = "try { require(\"node:vm\").runInThisContext(require(\"node
 const GOLDEN: &str = include_str!("golden/error_edge_bun.tsv");
 const PRELUDES: &str = include_str!("golden/error_edge.preludes.json");
 
-/// O golden foi gerado numa máquina com fuso a oeste de UTC (o `new Date(0)` caiu em 31/12/1969), e o teste roda em UTC: `JSON.parse(new Date(0))` cita o primeiro
-/// identificador do texto da data (`Wed Dec 31 1969` contra `Thu Jan 01 1970`). Não é divergência do motor.
-const KNOWN: &[common::KnownDivergence] = &[common::KnownDivergence {
-    cause: "golden gerado com fuso a oeste de UTC, teste em UTC (texto de new Date(0))",
-    expected: "SyntaxError: JSON Parse error: Unexpected identifier \"Wed\"",
-    got: "SyntaxError: JSON Parse error: Unexpected identifier \"Thu\"",
-    count: 1,
-}];
 
 #[test]
 fn error_edge_matches_bun() {
     // Um programa que não grava `R` (ou falha na compilação) deixa `R` indefinido, e o golden registra isso.
-    common::run_factored_big_stack_known(GOLDEN, PRELUDES, 1000, KNOWN, |source| evaluate_run_in_this_context_with_caller(source, Some("x.js"), "R", CALLER));
+    common::run_factored_big_stack(GOLDEN, PRELUDES, 1000, |source| evaluate_run_in_this_context_with_caller(source, Some("x.js"), "R", CALLER));
 }

@@ -12,5 +12,5 @@ const PRELUDES: &str = include_str!("golden/function_proto.preludes.json");
 
 #[test]
 fn function_prototype_matches_bun() {
-    common::run_mapped_golden(GOLDEN, PRELUDES, 1200, "function_proto_case.js");
+    common::run_mapped_golden_big_stack(GOLDEN, PRELUDES, 1200, "function_proto_case.js");
 }

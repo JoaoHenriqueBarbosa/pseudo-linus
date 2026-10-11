@@ -12,5 +12,5 @@ const PRELUDES: &str = include_str!("golden/function_error.preludes.json");
 
 #[test]
 fn function_and_error_match_bun() {
-    common::run_mapped_golden(GOLDEN, PRELUDES, 400, "function_error_case.js");
+    common::run_mapped_golden_big_stack(GOLDEN, PRELUDES, 400, "function_error_case.js");
 }
