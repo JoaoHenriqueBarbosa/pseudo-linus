@@ -209,6 +209,16 @@ for (const era of ["short", "long"]) {
   dateSkeletons.push({ era, year: "numeric", month: "numeric", day: "numeric" });
   dateSkeletons.push({ era, year: "numeric", month: "long", day: "numeric" });
 }
+// Data com o fuso e sem hora (`5 mars 2024, UTC−3`): as pontas do `formatRange` com `timeZoneName` e só data são o `format` disso. O
+// fuso de deslocamento (`shortOffset`, `longOffset`) não tem efeito sem hora.
+for (const timeZoneName of ["short", "long", "shortGeneric", "longGeneric"]) {
+  dateSkeletons.push({ year: "numeric", month: "short", day: "numeric", timeZoneName });
+  dateSkeletons.push({ year: "numeric", month: "long", day: "numeric", timeZoneName });
+  dateSkeletons.push({ weekday: "short", year: "numeric", month: "short", day: "numeric", timeZoneName });
+  // As línguas em que as pontas do intervalo usam o mês numérico (`ends = num`: ja, zh, fi, cs).
+  dateSkeletons.push({ year: "numeric", month: "numeric", day: "numeric", timeZoneName });
+  dateSkeletons.push({ weekday: "short", year: "numeric", month: "numeric", day: "numeric", timeZoneName });
+}
 const timeSkeletons = [];
 for (const hour of ["numeric", "2-digit"]) {
   timeSkeletons.push({ hour });
