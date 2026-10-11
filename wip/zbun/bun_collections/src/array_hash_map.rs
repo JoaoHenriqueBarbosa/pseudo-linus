@@ -87,6 +87,10 @@ impl<K: Hash + Eq + Clone, V> ArrayHashMap<K, V> {
         self.keys.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.keys.is_empty()
+    }
+
     pub fn get_index<Q: ?Sized + Hash + Eq>(&self, key: &Q) -> Option<usize>
     where
         K: Borrow<Q>,

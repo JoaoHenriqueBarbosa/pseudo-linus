@@ -96,7 +96,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // that field is widened to `ExprNodeList` we copy into the arena (Expr is `Copy`) and
             // let `ts_decorators` drop normally: no `mem::forget` / `from_raw_parts` lifetime
             // laundering (forbidden per PORTING.md §Forbidden patterns).
-            let ts_decorators_slice: &'a [Expr] = p.arena.alloc_slice_copy((&p.store[ts_decorators]));
+            let ts_decorators_slice: &'a [Expr] = ((&p.store[ts_decorators])).to_vec();
             opts.ts_decorators = Some(DeferredTsDecorators {
                 values: ts_decorators_slice,
                 scope_index,
@@ -1903,7 +1903,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         after_declare_range,
                         format_args!(
                             "Unexpected {}",
-                            bun_core::fmt::quote(p.source.text_for_range(after_declare_range))
+                            bun_core::fmt::QuotedFormatter { text: p.source.text_for_range(after_declare_range) }
                         ),
                     );
                     return Err(crate::Error::SyntaxError);

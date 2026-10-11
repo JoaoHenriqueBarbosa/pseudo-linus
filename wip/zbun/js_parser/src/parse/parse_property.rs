@@ -539,7 +539,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         p.lexer.log.add_range_error_fmt(
                             Some(p.source),
                             name_range,
-                            format_args!("Unexpected {}", bun_core::fmt::quote(name)),
+                            format_args!("Unexpected {}", bun_core::fmt::QuotedFormatter { text: name }),
                         );
                         return Err(crate::Error::SyntaxError);
                     }

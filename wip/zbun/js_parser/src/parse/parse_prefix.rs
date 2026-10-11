@@ -650,7 +650,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // `ExprNodeList` we copy into the arena (Expr is `Copy`) and let `ts_decorators` drop
         // normally: no `mem::forget` / `from_raw_parts` lifetime laundering (forbidden per
         // PORTING.md §Forbidden patterns; would leak heap when origin is `Owned`).
-        let ts_decorators_slice: &'a [Expr] = p.arena.alloc_slice_copy((&p.store[ts_decorators]));
+        let ts_decorators_slice: &'a [Expr] = ((&p.store[ts_decorators])).to_vec();
 
         let class = p.parse_class(
             class_keyword,

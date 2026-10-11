@@ -53,6 +53,8 @@ pub(crate) trait ParserLike<'a> {
     fn source(&self) -> &'a bun_ast::Source;
     fn new_expr<T: js_ast::expr::IntoExprData>(&mut self, t: T, loc: bun_ast::Loc) -> Expr;
     fn store_name_in_ref(&mut self, name: &'a [u8]) -> Ref;
+    /// O `Store` do arquivo (README, "Arena tipada").
+    fn store(&mut self) -> &mut bun_ast::Store;
 }
 // Trait + impl defined so Expr methods can bound on it. Method bodies
 // forward to the inherent impls.
@@ -76,6 +78,10 @@ impl<'a, const TS: bool, const SCAN: bool> ParserLike<'a> for P<'a, TS, SCAN> {
     #[inline]
     fn store_name_in_ref(&mut self, name: &'a [u8]) -> Ref {
         P::store_name_in_ref(self, name)
+    }
+    #[inline]
+    fn store(&mut self) -> &mut bun_ast::Store {
+        &mut self.store
     }
 }
 
@@ -759,13 +765,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     /// Shared borrow of the current scope.
     ///
-    /// `current_scope` is a [`StoreRef`](js_ast::StoreRef) into the parser
-    /// arena: initialised to a valid arena-allocated Scope in `init()` and
-    /// every reassignment (push/pop scope) stores another arena-owned handle;
-    /// the pointee outlives `'a` and is never freed during parsing.
+    /// `current_scope` is a [`StoreRef`](js_ast::StoreRef) into the file's
+    /// `Store`, resolved here on every access.
     #[inline]
     pub(crate) fn current_scope(&self) -> &js_ast::Scope {
-        &self.current_scope
+        &self.store[self.current_scope]
     }
 
     /// Unique borrow of the current scope. Takes `&mut self` so two live
@@ -774,20 +778,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     /// when the two handles alias (top level).
     #[inline]
     pub(crate) fn current_scope_mut(&mut self) -> &mut js_ast::Scope {
-        &mut self.current_scope
+        &mut self.store[self.current_scope]
     }
 
     /// Shared borrow of the module (top-level) scope.
     #[inline]
     pub(crate) fn module_scope(&self) -> &js_ast::Scope {
-        &self.module_scope
+        &self.store[self.module_scope]
     }
 
     /// Unique borrow of the module scope. Takes `&mut self` (see
     /// `current_scope_mut`).
     #[inline]
     pub(crate) fn module_scope_mut(&mut self) -> &mut js_ast::Scope {
-        &mut self.module_scope
+        &mut self.store[self.module_scope]
     }
 
     /// `current_scope` as an arena-backed [`StoreRef`](js_ast::StoreRef) handle.
@@ -837,7 +841,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     }
 
     #[inline]
-    pub(crate) fn s<T>(&self, t: T, loc: bun_ast::Loc) -> Stmt
+    pub(crate) fn s<T>(&mut self, t: T, loc: bun_ast::Loc) -> Stmt
     where
         T: js_ast::stmt::StatementData,
     {
@@ -847,10 +851,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn load_name_from_ref(&self, r#ref: Ref) -> &'a [u8] {
         use js_ast::base::RefTag;
         match r#ref.tag() {
-            // SAFETY: original_name is an arena-owned slice valid for 'a (Symbol is created
-            // from p.arena / source.contents in this same parse).
-            RefTag::Symbol => self.store.str(self.symbols[r#ref.inner_index() as usize]
-                .original_name),
+            // O nome mora no `Store`; a cópia na arena dá o `&'a [u8]` sem prender o `Store` (ver `arena_str`).
+            RefTag::Symbol => self.arena_str(self.symbols[r#ref.inner_index() as usize].original_name),
             RefTag::SourceContentsSlice => {
                 let start = r#ref.source_index() as usize;
                 let end = start + r#ref.inner_index() as usize;
@@ -1370,7 +1372,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         .try_track_dynamic_import_destructure(
                             self.store[im].namespace_ref,
                             &[self.store[im].import_record_index],
-                            self.store[obj].properties(),
+                            &self.store[self.store[obj].properties].to_vec(),
                             false,
                         )
                         .is_some()
@@ -1789,7 +1791,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let file = ScopeUseSpan::whole_file;
         let mut spans: Vec<ScopeUseSpan> = Vec::with_capacity(self.span_uses.len() + 2);
         for &(scope, symbol) in &self.span_uses {
-            spans.push(match scope.and_then(|scope| scope.visit_span()) {
+            spans.push(match scope.and_then(|scope| self.store[scope].visit_span()) {
                 Some((first, last)) => ScopeUseSpan {
                     symbol,
                     first,
@@ -1804,17 +1806,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         spans.push(file(self.module_ref.inner_index()));
         // The parser may print a temporary or helper it generated in a deeper
         // scope than it referenced it in; not so its generated import items.
-        fn generated(symbols: &[Symbol], scope: &Scope, spans: &mut Vec<ScopeUseSpan>) {
+        fn generated(store: &bun_ast::Store, symbols: &[Symbol], scope: &Scope, spans: &mut Vec<ScopeUseSpan>) {
             for ref_ in scope.generated.as_slice() {
                 if symbols[ref_.inner_index() as usize].kind != js_ast::symbol::Kind::Import {
                     spans.push(ScopeUseSpan::whole_file(ref_.inner_index()));
                 }
             }
             for child in scope.children.as_slice() {
-                generated(symbols, child, spans);
+                generated(store, symbols, &store[*child], spans);
             }
         }
-        generated(self.symbols.as_slice(), self.module_scope(), &mut spans);
+        generated(&self.store, self.symbols.as_slice(), self.module_scope(), &mut spans);
         spans.sort_unstable();
         spans.dedup();
 
@@ -1874,7 +1876,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             for child in scope.children.as_slice() {
-                visit(store, symbols, char_freq, child);
+                visit(store, symbols, char_freq, &store[*child]);
             }
         }
         visit(&self.store, self.symbols.as_slice(), &mut freq, self.module_scope());
@@ -1897,7 +1899,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     where
         T: js_ast::binding::BindingAlloc,
     {
-        Binding::alloc(self.arena, t, loc)
+        Binding::alloc(&mut self.store, t, loc)
     }
 
     pub(crate) fn record_exported_binding(&mut self, binding: Binding) {
@@ -2184,17 +2186,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .as_ref()
                 .map(|a| (a.namespace_ref, a.alias));
             if let Some((ns_ref, alias_ptr)) = ns_alias_opt {
-                let alias: &'a [u8] = self.store.str(alias_ptr);
                 if let Some(&js_ast::ts::Data::Namespace(ns)) =
                     self.ref_to_ts_namespace_member.get(&ns_ref)
                 {
-                    let ns_map: &js_ast::TSNamespaceMemberMap = &ns;
-                    if let Some(member) = ns_map.get(alias) {
-                        match member.data {
+                    let member_data = self.store[ns].get(self.store.str(alias_ptr)).map(|member| member.data);
+                    if let Some(member_data) = member_data {
+                        match member_data {
                             js_ast::ts::Data::EnumNumber(num) => {
-                                // SAFETY: arena-owned original_name slice.
-                                let name = self.store.str(self.symbols[ref_.inner_index() as usize]
-                                    .original_name);
+                                let name = self.symbols[ref_.inner_index() as usize].original_name;
                                 return self.wrap_inlined_enum(
                                     Expr {
                                         loc,
@@ -2204,10 +2203,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 );
                             }
                             js_ast::ts::Data::EnumString(str_ptr) => {
-                                // SAFETY: arena-owned original_name slice.
-                                let name = self.store.str(self.symbols[ref_.inner_index() as usize]
-                                    .original_name);
-                                let value = self.new_expr(&self.store[str_ptr], loc);
+                                let name = self.symbols[ref_.inner_index() as usize].original_name;
+                                let string = self.store[str_ptr];
+                                let value = self.new_expr(string, loc);
                                 return self.wrap_inlined_enum(value, name);
                             }
                             js_ast::ts::Data::Namespace(map) => {
@@ -2215,7 +2213,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 let expr = self.new_expr(
                                     E::Dot {
                                         target,
-                                        name: self.store.alloc_str(alias),
+                                        name: alias_ptr,
                                         name_loc: loc,
                                         ..Default::default()
                                     },
@@ -2249,9 +2247,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 match member_data {
                     js_ast::ts::Data::EnumNumber(num) => {
                         let num = *num;
-                        // SAFETY: arena-owned original_name slice.
-                        let name = self.store.str(self.symbols[ref_.inner_index() as usize]
-                            .original_name);
+                        let name = self.symbols[ref_.inner_index() as usize].original_name;
                         return self.wrap_inlined_enum(
                             Expr {
                                 loc,
@@ -2262,10 +2258,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                     js_ast::ts::Data::EnumString(str_ptr) => {
                         let str_ptr = *str_ptr;
-                        // SAFETY: arena-owned original_name slice.
-                        let name = self.store.str(self.symbols[ref_.inner_index() as usize]
-                            .original_name);
-                        let value = self.new_expr(&self.store[str_ptr], loc);
+                        let name = self.symbols[ref_.inner_index() as usize].original_name;
+                        let string = self.store[str_ptr];
+                        let value = self.new_expr(string, loc);
                         return self.wrap_inlined_enum(value, name);
                     }
                     js_ast::ts::Data::Namespace(map) => {
@@ -2286,16 +2281,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Substitute a namespace export reference now if appropriate
             if let Some(ns_ref) = self.is_exported_inside_namespace.get(&ref_).copied() {
-                // SAFETY: arena-owned original_name slice.
-                let name: &'a [u8] = self.store.str(self.symbols[ref_.inner_index() as usize]
-                    .original_name);
+                let name = self.symbols[ref_.inner_index() as usize].original_name;
 
                 self.record_usage(ns_ref);
                 let target = self.new_expr(E::Identifier::init(ns_ref), loc);
                 let prop = self.new_expr(
                     E::Dot {
                         target,
-                        name: self.store.alloc_str(name),
+                        name,
                         name_loc: loc,
                         ..Default::default()
                     },
@@ -2450,10 +2443,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // pattern as `transpose_require` above).
         let import_path_identifier: &'a [u8] = {
             use core::fmt::Write as _;
-            let base = self.import_records.items()[import_record_i as usize]
-                .path
-                .name()
-                .non_unique_name_string_base();
+            let text = self.import_records.items()[import_record_i as usize].path.text;
+            let base = fs::PathName::init(self.store.str(text)).non_unique_name_string_base();
             let mut buf = bun_alloc::ArenaString::new_in(arena);
             write!(&mut buf, "{}", bun_core::fmt::fmt_identifier(base)).expect("unreachable");
             buf.into_bump_str().as_bytes()
@@ -2827,7 +2818,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::ExprData::ENew(mut new) => {
                     let child = self.store[new].target;
                     if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                        child,                    ) {
+                        child,
+                        expr,
+                        r#ref,
+                        replacement,
+                        replacement_can_be_removed,
+                    ) {
                         self.store[new].target = child;
                         return done;
                     }
@@ -2837,7 +2833,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         for index in 0..list.len() {
                             let arg = self.store[list][index];
                             if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                                arg,                        ) {
+                                arg,
+                                expr,
+                                r#ref,
+                                replacement,
+                                replacement_can_be_removed,
+                            ) {
                                 self.store[list][index] = child;
                                 return done;
                             }
@@ -2847,7 +2848,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::ExprData::ESpread(mut spread) => {
                     let child = self.store[spread].value;
                     if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                        child,                    ) {
+                        child,
+                        expr,
+                        r#ref,
+                        replacement,
+                        replacement_can_be_removed,
+                    ) {
                         self.store[spread].value = child;
                         return done;
                     }
@@ -2855,7 +2861,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::ExprData::EAwait(mut await_expr) => {
                     let child = self.store[await_expr].value;
                     if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                        child,                    ) {
+                        child,
+                        expr,
+                        r#ref,
+                        replacement,
+                        replacement_can_be_removed,
+                    ) {
                         self.store[await_expr].value = child;
                         return done;
                     }
@@ -2879,7 +2890,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::ExprData::EImport(mut import) => {
                     let child = self.store[import].expr;
                     if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                        child,                    ) {
+                        child,
+                        expr,
+                        r#ref,
+                        replacement,
+                        replacement_can_be_removed,
+                    ) {
                         self.store[import].expr = child;
                         return done;
                     }
@@ -2907,7 +2923,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         _ => {
                             let child = self.store[e].value;
                             if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                                child,                            ) {
+                                child,
+                                expr,
+                                r#ref,
+                                replacement,
+                                replacement_can_be_removed,
+                            ) {
                                 self.store[e].value = child;
                                 return done;
                             }
@@ -2917,7 +2938,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::ExprData::EDot(mut e) => {
                     let child = self.store[e].target;
                     if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                        child,                    ) {
+                        child,
+                        expr,
+                        r#ref,
+                        replacement,
+                        replacement_can_be_removed,
+                    ) {
                         self.store[e].target = child;
                         return done;
                     }
@@ -2927,7 +2953,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if js_ast::op::Code::binary_assign_target(self.store[e].op) == js_ast::AssignTarget::None {
                         let child = self.store[e].left;
                         if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                            child,                        ) {
+                            child,
+                            expr,
+                            r#ref,
+                            replacement,
+                            replacement_can_be_removed,
+                        ) {
                             self.store[e].left = child;
                             return done;
                         }
@@ -2958,7 +2989,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // replacement past the left operand into the right operand.
                     let child = self.store[e].right;
                     if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                        child,                    ) {
+                        child,
+                        expr,
+                        r#ref,
+                        replacement,
+                        replacement_can_be_removed,
+                    ) {
                         self.store[e].right = child;
                         return done;
                     }
@@ -2966,7 +3002,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::ExprData::EIf(mut e) => {
                     let child = self.store[e].test;
                     if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                        child,                    ) {
+                        child,
+                        expr,
+                        r#ref,
+                        replacement,
+                        replacement_can_be_removed,
+                    ) {
                         self.store[e].test = child;
                         return done;
                     }
@@ -3014,7 +3055,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::ExprData::EIndex(mut index) => {
                     let child = self.store[index].target;
                     if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                        child,                    ) {
+                        child,
+                        expr,
+                        r#ref,
+                        replacement,
+                        replacement_can_be_removed,
+                    ) {
                         self.store[index].target = child;
                         return done;
                     }
@@ -3024,7 +3070,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if replacement_can_be_removed || self.store[index].optional_chain.is_none() {
                         let child = self.store[index].index;
                         if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                            child,                        ) {
+                            child,
+                            expr,
+                            r#ref,
+                            replacement,
+                            replacement_can_be_removed,
+                        ) {
                             self.store[index].index = child;
                             return done;
                         }
@@ -3044,7 +3095,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                     let child = self.store[e].target;
                     if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                        child,                    ) {
+                        child,
+                        expr,
+                        r#ref,
+                        replacement,
+                        replacement_can_be_removed,
+                    ) {
                         self.store[e].target = child;
                         return done;
                     }
@@ -3056,7 +3112,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         for index in 0..list.len() {
                             let arg = self.store[list][index];
                             if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                                arg,                        ) {
+                                arg,
+                                expr,
+                                r#ref,
+                                replacement,
+                                replacement_can_be_removed,
+                            ) {
                                 self.store[list][index] = child;
                                 return done;
                             }
@@ -3068,7 +3129,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     for index in 0..list.len() {
                         let item = self.store[list][index];
                         if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
-                            item,                    ) {
+                            item,
+                            expr,
+                            r#ref,
+                            replacement,
+                            replacement_can_be_removed,
+                        ) {
                             self.store[list][index] = child;
                             return done;
                         }
@@ -3423,7 +3489,6 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // shared borrow is dropped) and the post-loop `children` walk.
         let scope_ref = &self.store[scope];
         if !scope_ref.kind_stops_hoisting() {
-            let arena = self.arena;
             // Re-borrow `self.symbols` after each `new_symbol` call.
 
             // Check for collisions that would prevent to hoisting "var" symbols up to the enclosing function scope
@@ -3432,14 +3497,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // The loop below never inserts into `scope.members` itself (only ancestors), so
                 // snapshotting `(name_ptr, Member)` pairs up front preserves iteration semantics
                 // and lets us re-borrow `*scope` mutably inside the body.
-                let member_snapshot: BumpVec<'a, (js_ast::StoreStr, js_ast::scope::Member)> = {
-                    let members = &scope_ref.members;
-                    let mut v = BumpVec::with_capacity_in(members.count(), arena);
-                    for (k, m) in members.iter() {
-                        v.push((self.store.alloc_str(self.store.str(k)), *m));
-                    }
-                    v
-                };
+                let member_snapshot: Vec<(js_ast::StoreStr, js_ast::scope::Member)> =
+                    scope_ref.members.iter().map(|(name, member)| (name, *member)).collect();
                 // `scope_ref` (shared borrow of the `StoreRef` local) must end
                 // before the `DerefMut` write to `scope.generated` inside the
                 // loop; NLL drops it at last use (the snapshot block above).
@@ -3473,7 +3532,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
                     }
 
-                    if !self.symbols[symbol_idx].is_hoisted() {
+                    if !self.symbols[symbol_idx].kind.is_hoisted() {
                         continue;
                     }
 
@@ -3508,11 +3567,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         //   f();
                         //
                         if self.will_use_renamer() {
-                            // `Symbol.original_name` is an arena-owned `StoreStr` valid for 'a.
-                            let original_name: &'a [u8] =
-                                self.store.str(self.symbols[symbol_idx].original_name);
+                            let original_name = self.store.str(self.symbols[symbol_idx].original_name).to_vec();
                             let hoisted_ref =
-                                self.new_symbol(js_ast::symbol::Kind::Hoisted, original_name);
+                                self.new_symbol(js_ast::symbol::Kind::Hoisted, &original_name);
                             // No live `&` borrow of `scope` exists here (the members
                             // snapshot was taken by value); `StoreRef` `DerefMut`.
                             self.store[scope].generated.push(hoisted_ref);
@@ -3565,7 +3622,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // Is this unbound (i.e. a global access) or also hoisted?
                             if existing_kind == js_ast::symbol::Kind::Unbound
                                 || existing_kind == js_ast::symbol::Kind::Hoisted
-                                || (Symbol::is_kind_function(existing_kind)
+                                || (existing_kind.is_function()
                                     && (scope_kind == js_ast::scope::Kind::Entry
                                         || scope_kind == js_ast::scope::Kind::FunctionBody))
                             {
@@ -3586,7 +3643,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 if _scope_ptr == self.module_scope
                                     && self.symbols[symbol_idx].kind
                                         == js_ast::symbol::Kind::Hoisted
-                                    && Symbol::is_kind_function(existing_kind)
+                                    && existing_kind.is_function()
                                 {
                                     self.has_top_level_function_merged_with_var = true;
                                 }
@@ -3863,7 +3920,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // p.markSyntaxFeature(Destructing)
                 let mut items = BumpVec::with_capacity_in(self.store[ex].items.len_u32() as usize, self.arena);
                 let mut is_spread = false;
-                for i in 0..ex.items.len_u32() as usize {
+                for i in 0..self.store[ex].items.len_u32() as usize {
                     let mut item = (&self.store[self.store[ex].items])[i];
                     if matches!(item.data, js_ast::ExprData::ESpread(_)) {
                         is_spread = true;
@@ -4121,18 +4178,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 )?;
             }
 
-            // arena-owned `StoreSlice<ClauseItem>` valid for parser 'a.
-            for item in self.store[stmt.items].iter() {
+            for index in 0..stmt.items.len() {
+                let item = self.store[stmt.items][index];
                 let name = self.load_name_from_ref(item.name.ref_);
                 let r#ref =
                     self.declare_symbol(js_ast::symbol::Kind::Other, item.name.loc, name)?;
                 self.is_import_item.insert(r#ref, ());
-                // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
+                let alias = self.arena_str(item.alias);
                 self.macro_.refs.put(
                     &r#ref,
                     crate::parser::MacroRefData {
                         import_record_id: id,
-                        name: Some(self.store.str(item.alias)),
+                        name: Some(alias),
                     },
                 )?;
             }
@@ -4143,18 +4200,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Handle `import { feature } from "bun:bundle"` - this is a special import
         // that provides static feature flag checking at bundle time.
         // We handle it here at parse time (similar to macros) rather than at visit time.
-        if path.text == b"bun:bundle" {
+        if self.store.str(path.text) == b"bun:bundle" {
             // Look for the "feature" import and validate specifiers
-            // arena-owned `StoreSlice<ClauseItem>` valid for parser 'a;
-            // loop body only reads from `item`, so a shared borrow suffices and
-            // avoids holding a unique borrow across `&mut self` method calls.
-            for item in self.store[stmt.items].iter() {
+            for index in 0..stmt.items.len() {
+                let item = self.store[stmt.items][index];
                 // In ClauseItem from parseImportClause:
                 // - alias is the name from the source module ("feature")
                 // - original_name is the local binding name
                 // - name.ref is the ref for the local binding
-                // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
-                let alias: &'a [u8] = self.store.str(item.alias);
+                let alias = self.arena_str(item.alias);
                 if alias == b"feature" {
                     // Check for duplicate imports of feature
                     if self.bundler_feature_flag_ref.is_valid() {
@@ -4283,7 +4337,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 if let Some(remap) = macro_remap {
-                    if let Some(remapped_path) = remap.get(b"default") {
+                    if let Some(remapped_path) = remap.get(&b"default"[..]) {
                         let new_import_id =
                             self.add_import_record(ImportKind::Stmt, path.loc, remapped_path);
                         self.macro_.refs.put(
@@ -4334,17 +4388,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
         let mut end: usize = 0;
 
-        let items_slice: &mut [js_ast::ClauseItem] = (&mut self.store[stmt.items]);
-        for i in 0..items_slice.len() {
-            // `ClauseItem` é `Copy` (todos os campos são índices ou números).
-            let mut item = items_slice[i];
+        // O upstream compacta a lista no lugar e encurta a faixa; aqui a mesma faixa do `Store` é reescrita por índice
+        // (`ClauseItem` é `Copy`), sem empréstimo de pé durante as chamadas a `self`.
+        let items = stmt.items;
+        for i in 0..items.len() {
+            let mut item = self.store[items][i];
             let name = self.load_name_from_ref(item.name.ref_);
             let r#ref = self.declare_symbol(js_ast::symbol::Kind::Import, item.name.loc, name)?;
             item.name.ref_ = r#ref;
 
             self.is_import_item.insert(r#ref, ());
-            // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
-            let alias: &'a [u8] = self.store.str(item.alias);
+            let alias = self.arena_str(item.alias);
             self.check_for_non_bmp_code_point(item.alias_loc, alias);
 
             // ensure every e_import_identifier holds the namespace
@@ -4353,7 +4407,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if symbol.namespace_alias.is_none() {
                     symbol.namespace_alias = Some(Box::new(js_ast::NamespaceAlias {
                         namespace_ref: stmt.namespace_ref,
-                        alias: self.store.alloc_str(alias),
+                        alias: item.alias,
                         import_record_index: stmt.import_record_index,
                         was_originally_property_access: false,
                     }));
@@ -4404,11 +4458,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
 
-            item_refs.put(alias, item.name);
-            items_slice[end] = item;
+            item_refs.put(alias, item.name)?;
+            self.store[items][end] = item;
             end += 1;
         }
-        stmt.items = self.store.alloc_slice(&mut items_slice[..end]);
+        stmt.items.truncate(end);
 
         // If we remapped the entire import away
         // i.e. import {graphql} "react-relay"
@@ -4566,22 +4620,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     }
 
     pub(crate) fn discard_scopes_up_to(&mut self, scope_index: usize) {
-        // Remove any direct children from their parent. `StoreRef` is `Copy` and
-        // does not borrow `self`, so the immutable iter over `scopes_in_order`
-        // can run while `children` is held `&mut` through the handle.
-        let mut cur = self.current_scope_ref();
-        let current_scope_ptr: *mut js_ast::Scope = cur.as_ptr();
-        let children = &mut self.store[cur].children;
+        // Remove any direct children from their parent. A igualdade de `StoreRef` é a do índice, como a do upstream
+        // é a do endereço.
+        let cur = self.current_scope_ref();
 
-        for _child in &self.scopes_in_order[scope_index..] {
-            let Some(child) = _child else { continue };
+        for index in scope_index..self.scopes_in_order.len() {
+            let Some(child) = self.scopes_in_order[index] else { continue };
 
             let parent = self.store[child.scope].parent;
-            if parent.map(|p| p.as_ptr()) == Some(current_scope_ptr) {
-                let mut i: usize = (children.len_u32() - 1) as usize;
+            if parent == Some(cur) {
+                let children = &mut self.store[cur].children;
+                let mut i: usize = children.len() - 1;
                 loop {
-                    if children.mut_(i).as_ptr() == child.scope {
-                        let _ = children.ordered_remove(i);
+                    if children[i] == child.scope {
+                        let _ = children.remove(i);
                         break;
                     }
                     if i == 0 {
@@ -4747,7 +4799,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // Merge with a sibling namespace from a different scope
             if is_export {
                 if let Some(ns) = self.current_scope().ts_namespace {
-                    let exported: &js_ast::TSNamespaceMemberMap = &self.store[ns].exported_members;
+                    let exported: &js_ast::TSNamespaceMemberMap = &self.store[self.store[ns].exported_members];
                     if let Some(member) = exported.get(name) {
                         if let js_ast::ts::Data::Namespace(m) = member.data {
                             break 'brk Some(m);
@@ -5137,15 +5189,21 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
             js_ast::b::B::BArray(bind) => {
-                for item in bind.items_mut().iter_mut() {
-                    self.declare_binding(kind, &mut item.binding, opts)
+                let items = self.store[*bind].items;
+                for index in 0..items.len() {
+                    let mut item_binding = self.store[items][index].binding;
+                    self.declare_binding(kind, &mut item_binding, opts)
                         .expect("unreachable");
+                    self.store[items][index].binding = item_binding;
                 }
             }
             js_ast::b::B::BObject(bind) => {
-                for prop in bind.properties_mut().iter_mut() {
-                    self.declare_binding(kind, &mut prop.value, opts)
+                let properties = self.store[*bind].properties;
+                for index in 0..properties.len() {
+                    let mut value = self.store[properties][index].value;
+                    self.declare_binding(kind, &mut value, opts)
                         .expect("unreachable");
+                    self.store[properties][index].value = value;
                 }
             }
         }
@@ -5461,7 +5519,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.declared_symbols.append(DeclaredSymbol {
                         ref_,
                         is_top_level: true,
-                    })?;
+                    });
                 }
             }
             self.relocated_top_level_vars.clear();
@@ -5490,7 +5548,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         &mut self.import_records_for_current_part,
                         BumpVec::new_in(self.arena),
                     );
-                    self.store.alloc_slice((v.as_slice()).to_vec())
+                    v.as_slice().to_vec()
                 },
                 scopes: core::mem::take(&mut self.scopes_for_current_part),
                 can_be_removed_if_unused,
@@ -5544,7 +5602,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if !matches!(value.data, js_ast::ExprData::EArray(_)) {
                     return false;
                 }
-                for item in (&self.store[self.store[bi].items]) {
+                let items = self.store[bi].items;
+                for index in 0..items.len() {
+                    let item = self.store[items][index].clone();
                     if !matches!(
                         item.binding.data,
                         js_ast::b::B::BIdentifier(_) | js_ast::b::B::BMissing(_)
@@ -5562,13 +5622,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Every key of the pattern must name a data property of the literal.
             js_ast::b::B::BObject(bo) => {
-                let js_ast::ExprData::EObject(literal) = &value.data else {
+                let js_ast::ExprData::EObject(literal) = value.data else {
                     return false;
                 };
-                if !Self::object_literal_has_only_plain_keys(&self.store, literal) {
+                if !Self::object_literal_has_only_plain_keys(&self.store, &self.store[literal]) {
                     return false;
                 }
-                for property in (&self.store[self.store[bo].properties]) {
+                let properties = self.store[bo].properties;
+                for index in 0..properties.len() {
+                    let property = self.store[properties][index].clone();
                     if property.flags.contains(Flags::Property::IsSpread)
                         || property.flags.contains(Flags::Property::IsComputed)
                     {
@@ -5579,10 +5641,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             return false;
                         }
                     }
-                    let js_ast::ExprData::EString(key) = &property.key.data else {
+                    let js_ast::ExprData::EString(key) = property.key.data else {
                         return false;
                     };
-                    let Some(matched) = Self::object_literal_data_property(&self.store, literal, key) else {
+                    let key = self.store[key];
+                    let Some(matched) = Self::object_literal_data_property(&self.store, &self.store[literal], &key) else {
                         return false;
                     };
                     if !self.pattern_can_be_removed_if_unused_without_dce_check(
@@ -5787,8 +5850,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     .get_or_put_value(&self.exports_ref, Default::default())
                     .expect("OOM")
                     .value_ptr
-                    .get_or_put_value(name, Default::default())
-                    .expect("OOM");
+                    .entry(Box::from(name))
+                    .or_default();
                 call.count_estimate += 1;
                 call.is_call_target = true;
             }
@@ -5827,7 +5890,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let Some(uses) = part.import_symbol_property_uses.as_mut() else {
                 continue;
             };
-            let Some(calls) = uses.remove(&self.exports_ref) else {
+            let Some(calls) = uses.fetch_swap_remove(&self.exports_ref).map(|entry| entry.value) else {
                 continue;
             };
             if uses.is_empty() {
@@ -6311,9 +6374,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             },
             js_ast::ExprData::ETemplate(templ) => {
                 if self.store[*templ].tag.is_none() {
-                    for part in templ.parts().iter() {
-                        if !self.expr_can_be_removed_if_unused_without_dce_check(&part.value)
-                            || part.value.data.known_primitive() == js_ast::KnownPrimitive::Unknown
+                    let parts = self.store[*templ].parts;
+                    for index in 0..parts.len() {
+                        let value = self.store[parts][index].value;
+                        if !self.expr_can_be_removed_if_unused_without_dce_check(&value)
+                            || value.data.known_primitive() == js_ast::KnownPrimitive::Unknown
                         {
                             return false;
                         }
@@ -6533,10 +6598,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             .import_symbol_property_uses
             .get_or_put_value(&base, Default::default())
             .expect("unreachable");
-        let inner_use = gop
-            .value_ptr
-            .get_or_put_value(name, Default::default())
-            .expect("unreachable");
+        let inner_use = gop.value_ptr.entry(Box::from(name)).or_default();
         inner_use.count_estimate += 1;
         inner_use.is_call_target |= opts.is_call_target() || opts.is_template_tag();
         true
@@ -6704,7 +6766,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let block_stmts: &[Stmt] = (&self.store[self.store[*block].stmts]);
             let mut keep_block = false;
             for stmt in block_stmts {
-                if statement_cares_about_scope(stmt) {
+                if statement_cares_about_scope(&self.store, stmt) {
                     keep_block = true;
                     break;
                 }
@@ -6715,11 +6777,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
         }
 
-        if statement_cares_about_scope(&body) {
-            let block_stmts = self.arena.alloc_slice_copy(&[body]);
+        if statement_cares_about_scope(&self.store, &body) {
+            let block_stmts = vec![body];
             stmts.push(self.s(
                 S::Block {
-                    stmts: block_stmts.into(),
+                    stmts: self.store.alloc_slice(block_stmts),
                     close_brace_loc: bun_ast::Loc::EMPTY,
                 },
                 body.loc,
@@ -6939,19 +7001,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     #[cold]
     #[inline(never)]
-    pub(crate) fn wrap_inlined_enum(&mut self, value: Expr, comment: &'a [u8]) -> Expr {
-        if strings::contains(comment, b"*/") {
+    /// `comment` é o nome do símbolo (o `original_name`, já no `Store`), guardado sem cópia como no upstream.
+    pub(crate) fn wrap_inlined_enum(&mut self, value: Expr, comment: js_ast::StoreStr) -> Expr {
+        if strings::contains(self.store.str(comment), b"*/") {
             // Don't wrap with a comment
             return value;
         }
         // Wrap with a comment
         let loc = value.loc;
-        { let arg_a = E::InlinedEnum {
-                value,
-                comment: self.store.alloc_str(comment),
-            }; self.new_expr( arg_a,
-            loc,
-        ) }
+        self.new_expr(E::InlinedEnum { value, comment }, loc)
     }
 
     pub(crate) fn runtime_identifier_ref(&mut self, name: &'static [u8]) -> Ref {
@@ -7041,7 +7099,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                     // Intermediates must be dot expressions
                     let last = parts.len() - 1;
-                    let is_tail_match = strings::eql(&parts[last], &self.store[ex].name);
+                    let is_tail_match = strings::eql(&parts[last], self.store.str(self.store[ex].name));
                     return is_tail_match && self.is_dot_define_match(self.store[ex].target, &parts[..last]);
                 }
             }
@@ -7060,7 +7118,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 return false;
                             }
                             let last = parts.len() - 1;
-                            let is_tail_match = strings::eql(&parts[last], self.store[s].slice(self.arena));
+                            let mut node = self.store[s];
+                            let text = node.slice(&mut self.store);
+                            self.store[s] = node;
+                            let is_tail_match = strings::eql(&parts[last], self.store.str(text));
                             return is_tail_match
                                 && self.is_dot_define_match(self.store[index].target, &parts[..last]);
                         }
@@ -7168,7 +7229,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut static_members = BumpVec::<Stmt>::new_in(self.arena);
                 let mut class_properties = BumpVec::<G::Property>::new_in(self.arena);
 
-                for prop in (&mut self.store[self.store[s_class].class.properties]).iter_mut() {
+                let properties = self.store[s_class].class.properties;
+                for prop_index in 0..properties.len() {
+                    // A propriedade sai do `Store` aqui; o upstream a move para `class_properties` no fim da volta, e
+                    // a faixa antiga é substituída logo depois do laço.
+                    let mut owned_prop = core::mem::take(&mut self.store[properties][prop_index]);
+                    let prop = &mut owned_prop;
                     // merge parameter decorators with method decorators
                     if prop.flags.contains(Flags::Property::IsMethod) {
                         if let Some(prop_value) = prop.value {
@@ -7180,31 +7246,29 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         constructor_function = Some(func);
                                     }
 
-                                    // arena-owned `StoreSlice<Arg>` valid for parser 'a.
-                                    for (i, arg) in self.store[self.store[func].func.args].iter().enumerate() {
-                                        for arg_decorator in (&self.store[arg.ts_decorators]) {
+                                    let func_args = self.store[func].func.args;
+                                    for i in 0..func_args.len() {
+                                        let arg_decorators = self.store[func_args][i].ts_decorators;
+                                        for decorator_index in 0..arg_decorators.len() {
+                                            let arg_decorator = self.store[arg_decorators][decorator_index];
                                             let arg0 = self.new_expr(
                                                 E::Number::new(i as f64),
                                                 arg_decorator.loc,
                                             );
-                                            let args = self
-                                                .arena
-                                                .alloc_slice_copy(&[arg0, *arg_decorator]);
-                                            let args = self.store.alloc_slice((args).to_vec());
+                                            let args = self.store.alloc_slice([arg0, arg_decorator]);
                                             let call = self.call_runtime(
                                                 arg_decorator.loc,
                                                 b"__legacyDecorateParamTS",
                                                 args,
                                             );
-                                            let decorators = if is_constructor {
-                                                // `prop` borrows the (separate) properties arena
-                                                // slice, not the `S::Class` allocation, so this
-                                                // fresh `DerefMut` does not alias it.
-                                                &mut self.store[s_class].class.ts_decorators
+                                            // A lista cresce no `Store` (`append` copia a faixa para o fim quando
+                                            // ela não termina lá).
+                                            if is_constructor {
+                                                let list = self.store[s_class].class.ts_decorators;
+                                                self.store[s_class].class.ts_decorators = self.store.append(list, call);
                                             } else {
-                                                &mut prop.ts_decorators
-                                            };
-                                            decorators.push(call);
+                                                prop.ts_decorators = self.store.append(prop.ts_decorators, call);
+                                            }
                                         }
                                     }
                                 }
@@ -7267,13 +7331,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             },
                             loc,
                         );
-                        let args_slice = self.arena.alloc_slice_copy(&[
-                            array_expr,
-                            target,
-                            descriptor_key,
-                            descriptor_kind,
-                        ]);
-                        let args = self.store.alloc_slice((args_slice).to_vec());
+                        let args = self.store.alloc_slice([array_expr, target, descriptor_key, descriptor_kind]);
 
                         let decorator = self.call_runtime(
                             prop.key.expect("infallible: prop has key").loc,
@@ -7489,15 +7547,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // design:paramtypes
                             let constructor_args: &[G::Arg] = (&self.store[self.store[cf].func.args]);
                             let args1 = if !constructor_args.is_empty() {
-                                let param_array = self
-                                    .arena
-                                    .alloc_slice_fill_default::<Expr>(constructor_args.len());
+                                let mut param_array = vec![Expr::default(); constructor_args.len()];
                                 for (i, ca) in constructor_args.iter().enumerate() {
                                     param_array[i] = self
                                         .serialize_metadata(ca.ts_metadata.clone())
                                         .expect("unreachable");
                                 }
-                                let items = self.store.alloc_slice((param_array).to_vec());
+                                let items = self.store.alloc_slice(param_array);
                                 self.new_expr(
                                     E::Array {
                                         items,
@@ -7516,8 +7572,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             };
                             let paramtypes_text = E::EString::from_static(&mut self.store, b"design:paramtypes");
                             let label = self.new_expr(paramtypes_text, bun_ast::Loc::EMPTY);
-                            let args_slice = self.arena.alloc_slice_copy(&[label, args1]);
-                            let args = self.store.alloc_slice((args_slice).to_vec());
+                            let args_slice = vec![label, args1];
+                            let args = self.store.alloc_slice(args_slice);
                             array.push(self.call_runtime(stmt.loc, b"__legacyMetadataTS", args));
                         }
                     }
@@ -7533,8 +7589,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         stmt.loc,
                     );
                     let class_ident = self.new_expr(E::Identifier::init(class_ref), class_name.loc);
-                    let args_slice = self.arena.alloc_slice_copy(&[array_expr, class_ident]);
-                    let args = self.store.alloc_slice((args_slice).to_vec());
+                    let args_slice = vec![array_expr, class_ident];
+                    let args = self.store.alloc_slice(args_slice);
 
                     let lhs = self.new_expr(E::Identifier::init(class_ref), class_name.loc);
                     let rhs = self.call_runtime(stmt.loc, b"__legacyDecorateClassTS", args);
@@ -7574,8 +7630,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let label_text = E::EString::from_static(&mut self.store, $label);
                 let label = self.new_expr(label_text, bun_ast::Loc::EMPTY);
                 let value = $value;
-                let args = self.arena.alloc_slice_copy(&[label, value]);
-                let args = self.store.alloc_slice((args).to_vec());
+                let args = vec![label, value];
+                let args = self.store.alloc_slice(args);
                 array.push(self.call_runtime(loc, b"__legacyMetadataTS", args));
             }};
         }
@@ -7599,15 +7655,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // arena-owned `StoreSlice<Arg>` valid for parser 'a.
                         let method_args: &[G::Arg] = (&self.store[self.store[func].func.args]);
                         {
-                            let args_array = self
-                                .arena
-                                .alloc_slice_fill_default::<Expr>(method_args.len());
+                            let mut args_array = vec![Expr::default(); method_args.len()];
                             for (entry, method_arg) in args_array.iter_mut().zip(method_args) {
                                 *entry = self
                                     .serialize_metadata(method_arg.ts_metadata.clone())
                                     .expect("unreachable");
                             }
-                            let items = self.store.alloc_slice((args_array).to_vec());
+                            let items = self.store.alloc_slice(args_array);
                             let arr = self.new_expr(
                                 E::Array {
                                     items,
@@ -7666,15 +7720,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // arena-owned `StoreSlice<Arg>` valid for parser 'a.
                         let method_args: &[G::Arg] = (&self.store[self.store[func].func.args]);
                         {
-                            let args_array = self
-                                .arena
-                                .alloc_slice_fill_default::<Expr>(method_args.len());
+                            let mut args_array = vec![Expr::default(); method_args.len()];
                             for (entry, method_arg) in args_array.iter_mut().zip(method_args) {
                                 *entry = self
                                     .serialize_metadata(method_arg.ts_metadata.clone())
                                     .expect("unreachable");
                             }
-                            let items = self.store.alloc_slice((args_array).to_vec());
+                            let items = self.store.alloc_slice(args_array);
                             let arr = self.new_expr(
                                 E::Array {
                                     items,
@@ -7917,7 +7969,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             };
         }
 
-        if stmts.len() == 1 && !statement_cares_about_scope(&stmts[0]) {
+        if stmts.len() == 1 && !statement_cares_about_scope(&self.store, &stmts[0]) {
             // "let" and "const" must be put in a block when in a single-statement context
             return stmts[0];
         }
@@ -8455,8 +8507,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .append(DeclaredSymbol {
                     is_top_level: true,
                     ref_: signature_cb,
-                })
-                .expect("oom");
+                });
         }
         let ctx: &mut crate::HookContext = ctx_storage.as_mut().unwrap();
 
@@ -8627,7 +8678,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             args.push(self.new_expr(
                 E::Arrow {
                     body: G::FnBody {
-                        stmts: self.store.alloc_slice(self.arena.alloc_slice_copy(&[ret])),
+                        stmts: self.store.alloc_slice(vec![ret]),
                         loc,
                     },
                     prefer_expr: true,
@@ -8754,7 +8805,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     kept_import_equals = kept_import_equals || result.kept_import_equals;
                     removed_import_equals = removed_import_equals || result.removed_import_equals;
 
-                    part.stmts = self.store.alloc_slice(result.stmts);
+                    part.stmts = self.store.alloc_slice(result.stmts.iter().copied());
                     if !part.stmts.is_empty() {
                         if self.module_scope().contains_direct_eval
                             && part.declared_symbols.len() > 0
@@ -8767,9 +8818,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if part.declared_symbols.len() == 0 {
                             part.declared_symbols = self.declared_symbols.clone();
                         } else {
-                            part.declared_symbols
-                                .append_list(&self.declared_symbols)
-                                .expect("unreachable");
+                            part.declared_symbols.append_list(&self.declared_symbols);
                         }
 
                         if part.import_record_indices.is_empty() {
@@ -8845,7 +8894,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             //   })
             //
             //  which is then called in `evaluateCommonJSModuleOnce`
-            let args = arena.alloc_slice_fill_default::<Arg>(5 + usize::from(self.has_import_meta));
+            let args = vec![Arg::default(); 5 + usize::from(self.has_import_meta)];
             args[0] = Arg {
                 binding: self.b(
                     B::Identifier {
@@ -9626,7 +9675,7 @@ impl LowerUsingDeclarationsContext {
                 if let Some(decl_value) = &mut decl.value {
                     let value_loc = decl_value.loc;
                     p.record_usage(self.stack_ref);
-                    let args = p.arena.alloc_slice_copy(&[
+                    let args = vec![
                         p.new_expr(
                             E::Identifier {
                                 ref_: self.stack_ref,
@@ -9645,11 +9694,11 @@ impl LowerUsingDeclarationsContext {
                             }),
                             stmt_loc,
                         ),
-                    ]);
+                    ];
                     decl.value = Some(p.call_runtime(
                         value_loc,
                         b"__using",
-                        p.store.alloc_slice((args).to_vec()),
+                        p.store.alloc_slice(args),
                     ));
                 }
             }
@@ -9745,7 +9794,7 @@ impl LowerUsingDeclarationsContext {
             end += 1;
         }
 
-        let non_exported_statements = p.store.alloc_slice(&mut stmts[..end as usize]);
+        let non_exported_statements = p.store.alloc_slice(stmts[..end as usize].iter().copied());
 
         let caught_ref = p.generate_temp_ref(Some(b"_catch"));
         let err_ref = p.generate_temp_ref(Some(b"_err"));
@@ -9791,7 +9840,7 @@ impl LowerUsingDeclarationsContext {
             p.record_usage(self.stack_ref);
             p.record_usage(err_ref);
             p.record_usage(has_err_ref);
-            let args = p.arena.alloc_slice_copy(&[
+            let args = vec![
                 p.new_expr(
                     E::Identifier {
                         ref_: self.stack_ref,
@@ -9813,8 +9862,8 @@ impl LowerUsingDeclarationsContext {
                     },
                     loc,
                 ),
-            ]);
-            p.call_runtime(loc, b"__callDispose", p.store.alloc_slice((args).to_vec()))
+            ];
+            p.call_runtime(loc, b"__callDispose", p.store.alloc_slice(args))
         };
 
         let finally_stmts: &'a mut [Stmt] = if self.has_await_using {
@@ -9876,16 +9925,16 @@ impl LowerUsingDeclarationsContext {
                 loc,
             );
 
-            p.arena.alloc_slice_copy(&[stmt0, stmt1])
+            vec![stmt0, stmt1]
         } else {
             let call_dispose_loc = call_dispose.loc;
-            p.arena.alloc_slice_copy(&[p.s(
+            vec![p.s(
                 S::SExpr {
                     value: call_dispose,
                     ..Default::default()
                 },
                 call_dispose_loc,
-            )])
+            )]
         };
 
         // Wrap everything in a try/catch/finally block
@@ -9938,7 +9987,7 @@ impl LowerUsingDeclarationsContext {
                 },
                 loc,
             );
-            p.store.alloc_slice(p.arena.alloc_slice_copy(&[stmt0]))
+            p.store.alloc_slice(vec![stmt0])
         };
         result.push(p.s(
             S::Try {

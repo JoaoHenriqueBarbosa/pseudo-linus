@@ -778,24 +778,27 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         name_loc: bun_ast::Loc,
     ) -> Option<Expr> {
         let p = self;
-        let map: &js_ast::TSNamespaceMemberMap = &p.ts_namespace.map.unwrap();
-        if let Some(value) = map.get(name) {
-            match value.data {
+        let map = p.ts_namespace.map.unwrap();
+        if let Some(value_data) = p.store[map].get(name).map(|value| value.data) {
+            match value_data {
                 js_ast::ts::Data::EnumNumber(num) => {
                     p.ignore_usage_of_identifier_in_dot_chain(*target);
+                    let comment = p.store.alloc_str(name);
                     return Some(p.wrap_inlined_enum(
                         Expr {
                             loc,
                             data: js_ast::ExprData::ENumber(E::Number::new(num)),
                         },
-                        name,
+                        comment,
                     ));
                 }
 
                 js_ast::ts::Data::EnumString(str_ptr) => {
                     p.ignore_usage_of_identifier_in_dot_chain(*target);
-                    let value = p.new_expr(&p.store[str_ptr], loc);
-                    return Some(p.wrap_inlined_enum(value, name));
+                    let string = p.store[str_ptr];
+                    let value = p.new_expr(string, loc);
+                    let comment = p.store.alloc_str(name);
+                    return Some(p.wrap_inlined_enum(value, comment));
                 }
 
                 js_ast::ts::Data::Namespace(namespace) => {

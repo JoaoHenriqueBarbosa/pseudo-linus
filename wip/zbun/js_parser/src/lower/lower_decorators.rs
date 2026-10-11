@@ -152,9 +152,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     /// Allocate args + callRuntime in one call.
     fn call_rt(&mut self, l: bun_ast::Loc, name: &'static [u8], args: &[Expr]) -> Expr {
-        let bump = self.arena;
-        let a = bump.alloc_slice_copy(args);
-        let list = self.store.alloc_slice((a).to_vec());
+        let list = self.store.alloc_slice(args.iter().copied());
         self.call_runtime(l, name, list)
     }
 
@@ -1602,12 +1600,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let this_e = p.new_expr(E::This {}, loc);
                     let wm_e = p.use_ref(wm_ref, loc);
                     let get_ret = p.call_rt(loc, b"__privateGet", &[this_e, wm_e]);
-                    let get_body = bump.alloc_slice_copy(&[p.s(
+                    let get_body = vec![p.s(
                         S::Return {
                             value: Some(get_ret),
                         },
                         loc,
-                    )]);
+                    )];
                     let get_fn = G::Fn {
                         body: G::FnBody {
                             stmts: p.store.alloc_slice(get_body),
@@ -2166,7 +2164,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             }
                         } else {
                             // Wrap in IIFE
-                            let stmts_ptr = p.store.alloc_slice(stmts_slice);
+                            let stmts_ptr = p.store.alloc_slice(stmts_slice.iter().copied());
                             let iife_body = p.new_expr(
                                 E::Arrow {
                                     body: G::FnBody {
@@ -2395,8 +2393,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         loc,
                     );
                     let spread = p.new_expr(E::Spread { value: inner }, loc);
-                    let arg_slice = bump.alloc_slice_copy(&[spread]);
-                    let call_args = p.store.alloc_slice((arg_slice).to_vec());
+                    let arg_slice = vec![spread];
+                    let call_args = p.store.alloc_slice(arg_slice);
                     let call = p.new_expr(
                         E::Call {
                             target,

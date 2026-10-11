@@ -4,6 +4,7 @@
 //! ** IMPORTANT **
 
 use bun_ast::ImportRecord;
+use bun_ast::NodeStore as _;
 use bun_collections::{ArrayHashMap, HashMap, StringArrayHashMap, StringHashMap};
 // `bun_wyhash::Wyhash` (wyhash final-4): used by `hash_for_runtime_transpiler`
 // and `ReactRefresh.HookContext`. NOT interchangeable with `bun_wyhash::Wyhash11`.
@@ -759,7 +760,10 @@ impl<'a> JSXTag<'a> {
             || (p.lexer().token != T::TDot && name[0] >= b'a' && name[0] <= b'z')
         {
             return Ok(JSXTag {
-                data: JSXTagData::Tag(p.new_expr(E::String::init(p.store.alloc_str(name)), loc)),
+                data: JSXTagData::Tag({
+                    let text = p.store().alloc_str(name);
+                    p.new_expr(E::String::init(text), loc)
+                }),
                 range: tag_range,
                 name,
             });
@@ -804,10 +808,11 @@ impl<'a> JSXTag<'a> {
             new_name[name.len() + 1..].copy_from_slice(member);
             name = new_name;
             tag_range.len = member_range.loc.start + member_range.len - tag_range.loc.start;
+            let member_name = p.store().alloc_str(member);
             tag = p.new_expr(
                 E::Dot {
                     target: tag,
-                    name: p.store.alloc_str(member),
+                    name: member_name,
                     name_loc: member_range.loc,
                     ..Default::default()
                 },
@@ -955,14 +960,14 @@ impl IdentifierOpts {
     }
 }
 
-pub(crate) fn statement_cares_about_scope(stmt: &Stmt) -> bool {
+pub(crate) fn statement_cares_about_scope(store: &js_ast::Store, stmt: &Stmt) -> bool {
     use js_ast::StmtData::*;
     match stmt.data {
         SBlock(_) | SEmpty(_) | SDebugger(_) | SExpr(_) | SIf(_) | SFor(_) | SForIn(_)
         | SForOf(_) | SDoWhile(_) | SWhile(_) | SWith(_) | STry(_) | SSwitch(_) | SReturn(_)
         | SThrow(_) | SBreak(_) | SContinue(_) | SDirective(_) | SLabel(_) => false,
 
-        SLocal(ref local) => local.kind != js_ast::LocalKind::KVar,
+        SLocal(local) => store[local].kind != js_ast::LocalKind::KVar,
         _ => true,
     }
 }
@@ -1312,7 +1317,7 @@ impl Default for PropertyOpts {
             class_has_extends: false,
             allow_ts_decorators: false,
             is_ts_abstract: false,
-            ts_decorators: Vec::new(),
+            ts_decorators: ExprNodeList::EMPTY,
             has_argument_decorators: false,
             has_class_decorators: false,
         }
@@ -1646,7 +1651,7 @@ pub fn new_lazy_export_ast_impl<'bump>(
     runtime_api_call: &'static [u8],
     symbols: js_ast::symbol::List,
 ) -> crate::CrateResult<Option<js_ast::Ast>> {
-    let mut temp_log = bun_ast::Log::init();
+    let mut temp_log = bun_ast::Log::default();
     let lexer = js_lexer::Lexer::init_without_reading(&mut temp_log, source, bump);
     let parser = Parser {
         options: opts,
@@ -1668,12 +1673,12 @@ pub fn new_lazy_export_ast_impl<'bump>(
             if temp_log.errors == 0 {
                 log_to_copy_into.add_range_error(Some(source), range, err.name().as_bytes());
             }
-            let _ = temp_log.append_to_maybe_recycled(log_to_copy_into, source);
+            temp_log.append_to_maybe_recycled(log_to_copy_into, source);
             return Ok(None);
         }
     };
 
-    let _ = temp_log.append_to_maybe_recycled(log_to_copy_into, source);
+    temp_log.append_to_maybe_recycled(log_to_copy_into, source);
     match result {
         crate::Result::Ast(mut ast) => {
             ast.has_lazy_export = true;

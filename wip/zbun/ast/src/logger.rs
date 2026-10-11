@@ -251,6 +251,16 @@ impl Default for Log {
 }
 
 impl Log {
+    /// `appendToMaybeRecycled`: passa as mensagens para `other` e soma os contadores. O upstream copia `text` e
+    /// `line_text` quando o fonte vai ser reciclado (`contents_is_recycled`), porque as fatias apontam para dentro
+    /// dele; aqui `Data` é dona dos bytes (`Cow<'static>`), e mover as mensagens basta.
+    pub fn append_to_maybe_recycled(&mut self, other: &mut Log, _source: &Source) {
+        other.msgs.append(&mut self.msgs);
+        other.warnings += self.warnings;
+        other.errors += self.errors;
+        self.msgs.shrink_to_fit();
+    }
+
     #[inline]
     pub fn has_errors(&self) -> bool {
         self.errors > 0

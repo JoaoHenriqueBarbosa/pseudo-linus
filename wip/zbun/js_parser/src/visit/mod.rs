@@ -108,14 +108,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         StrictModeFeature::EvalOrArguments,
                         js_lexer::range_of_identifier(self.source, name.loc),
                         symbol_name,
-                    )
-                    .expect("unreachable");
+                    );
                 }
             }
         }
 
         let body_loc = func.body.loc;
-        let body_stmts: &'a [Stmt] = self.arena.alloc_slice_copy(&self.store[func.body.stmts]);
+        let body_stmts: &'a [Stmt] = (&self.store[func.body.stmts]).to_vec();
 
         self.push_scope_for_visit_pass(ScopeKind::FunctionArgs, open_parens_loc)
             .expect("unreachable");

@@ -1611,7 +1611,7 @@ impl<'a> Parser<'a> {
                 part.declared_symbols.append(DeclaredSymbol {
                     ref_: export_star_ref,
                     is_top_level: true,
-                })?;
+                });
 
                 part.stmts = {
                     let old_stmts: Vec<Stmt> = p.store[part.stmts].to_vec();

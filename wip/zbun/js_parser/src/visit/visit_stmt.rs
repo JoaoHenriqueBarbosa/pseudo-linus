@@ -488,8 +488,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         S::Local {
                             kind: S::Kind::KConst,
                             decls: p.store.alloc_slice((&[G::Decl {
-                                binding: Binding::alloc(
-                                    p.arena,
+                                binding: Binding::alloc(&mut p.store,
                                     B::Identifier { r#ref: temp_id },
                                     stmt.loc,
                                 ),
@@ -543,7 +542,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }));
                     stmts.push(p.s(
                         S::ExportClause {
-                            items: p.store.alloc_slice(items),
+                            items: p.store.alloc_slice(items.iter().copied()),
                             is_single_line: false,
                         },
                         stmt.loc,
@@ -709,8 +708,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         S::Local {
                                             kind: S::Kind::KConst,
                                             decls: p.store.alloc_slice((&[G::Decl {
-                                                binding: Binding::alloc(
-                                                    p.arena,
+                                                binding: Binding::alloc(&mut p.store,
                                                     B::Identifier { r#ref: ref_to_use },
                                                     stmt.loc,
                                                 ),
@@ -1524,7 +1522,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 );
                                 let export = p.s(
                                     S::ExportClause {
-                                        items: p.store.alloc_slice(clause_items),
+                                        items: p.store.alloc_slice(clause_items.iter().copied()),
                                         is_single_line: true,
                                     },
                                     stmt.loc,
@@ -1617,8 +1615,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         data: &mut S::Block,
     ) -> Result<(), Error> {
         {
-            p.push_scope_for_visit_pass(js_ast::scope::Kind::Block, stmt.loc)
-                .expect("unreachable");
+            p.push_scope_for_visit_pass(js_ast::scope::Kind::Block, stmt.loc);
 
             // Pass the "is loop body" status on to the direct children of a block used
             // as a loop body. This is used to enable optimizations specific to the
@@ -1650,7 +1647,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     loc: stmt.loc,
                 });
                 return Ok(());
-            } else if block_stmts.len() == 1 && !statement_cares_about_scope(&block_stmts[0]) {
+            } else if block_stmts.len() == 1 && !statement_cares_about_scope(&p.store, &block_stmts[0]) {
                 // Unwrap blocks containing a single statement
                 stmts.push(block_stmts[0]);
                 return Ok(());
@@ -2165,7 +2162,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 for i in 0..cases.len() {
                     ctx.scan_stmts(p, (&mut p.store[cases[i].body]));
                 }
-                let switch_stmt = p.arena.alloc_slice_copy(&[*stmt]);
+                let switch_stmt = vec![*stmt];
                 stmts.extend_from_slice(&ctx.finalize(p, switch_stmt, false));
             }
 

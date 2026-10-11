@@ -193,7 +193,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                             .append(js_ast::DeclaredSymbol {
                                 ref_: temp_id,
                                 is_top_level: true,
-                            })?;
+                            });
                         self.last_part
                             .symbol_uses
                             .put(&temp_id, js_ast::symbol::Use::unscoped(1))?;
@@ -572,7 +572,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                 .append(js_ast::DeclaredSymbol {
                     ref_: arg1,
                     is_top_level: true,
-                })?;
+                });
             self.last_part
                 .symbol_uses
                 .put(&arg1, js_ast::symbol::Use::unscoped(1))?;
@@ -671,7 +671,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                 .append(js_ast::DeclaredSymbol {
                     ref_: p.module_ref,
                     is_top_level: true,
-                })?;
+                });
         }
 
         if p.options.features.react_fast_refresh && p.react_refresh.register_used {
@@ -707,7 +707,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
         for part in head_parts.iter_mut() {
             self.last_part
                 .declared_symbols
-                .append_list(&core::mem::take(&mut part.declared_symbols))?;
+                .append_list(&core::mem::take(&mut part.declared_symbols));
             self.last_part
                 .import_record_indices
                 .extend_from_slice(part.import_record_indices.as_slice());
@@ -738,12 +738,12 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             .extend_from_slice(p.import_records_for_current_part.as_slice());
         self.last_part
             .declared_symbols
-            .append_list(&p.declared_symbols)?;
+            .append_list(&p.declared_symbols);
 
         // Note: `Stmt` is `Copy`;
         // copy into the parser arena so the `StoreSlice<Stmt>` outlives this struct.
         let stmts = core::mem::take(&mut self.stmts);
-        self.last_part.stmts = p.store.alloc_slice(p.arena.alloc_slice_copy(&stmts));
+        self.last_part.stmts = p.store.alloc_slice((&stmts).to_vec());
         self.last_part.tag = bun_ast::PartTag::None;
         Ok(())
     }

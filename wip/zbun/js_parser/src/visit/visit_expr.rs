@@ -2585,7 +2585,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         p.push_scope_for_visit_pass(js_ast::scope::Kind::FunctionArgs, expr.loc)
             .expect("unreachable");
-        let dupe: &'a mut [Stmt] = p.arena.alloc_slice_copy((&p.store[p.store[e_].body.stmts]));
+        let dupe: &'a mut [Stmt] = ((&p.store[p.store[e_].body.stmts])).to_vec();
 
         let args_mut: &mut [G::Arg] = (&mut p.store[p.store[e_].args]);
         p.visit_args(
