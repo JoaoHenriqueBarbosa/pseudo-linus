@@ -4499,11 +4499,15 @@ impl Vm {
                 };
                 let kw_values = pop_n(stack, kw_names.len())?;
                 let defaults = pop_n(stack, ndefaults as usize)?;
+                let inner = code.functions[idx as usize].clone();
+                // Como o CPython: só a função com variável livre fecha o escopo de fora (sem ela, o `Env` de fora
+                // não ficaria preso à função, e um objeto guardado nele não viveria num ciclo que o CPython não tem).
+                let closure = if inner.freevars.is_empty() && !inner.uses_class_cell { None } else { locals.capture() };
                 let f = FuncObj {
-                    code: code.functions[idx as usize].clone(),
+                    code: inner,
                     defaults,
                     kwdefaults: kw_names.into_iter().zip(kw_values).collect(),
-                    closure: locals.capture(),
+                    closure,
                     globals: self.globals.clone(),
                     attrs: FuncObj::new_attrs(),
                     annotations: RefCell::new(None),
