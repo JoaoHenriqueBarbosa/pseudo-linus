@@ -185,7 +185,7 @@ pub(crate) fn suspension() -> PyException {
 /// O nome da nativa repetida, para o `CallLink::c_entry`: a embutida (`format`, `print`) ou o método (`str.format`).
 pub(crate) fn callee_name(func: &Value) -> String {
     match func {
-        Value::Bound(b) => b.name.to_string(),
+        Value::Bound(b) => format!("{}.{}", b.recv.type_name(), b.name),
         Value::NativeFn(f) => f.name.to_string(),
         other => crate::fold::builtin_name(other).unwrap_or("native").to_string(),
     }

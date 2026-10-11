@@ -7228,3 +7228,14 @@ fn issubclass_sees_builtin_data_bases() {
     let r = in_process("import collections.abc as A\nclass D(dict): pass\nclass L(list): pass\nclass B(bytes): pass\nclass I(int): pass\nprint(issubclass(D, dict), issubclass(L, list), issubclass(B, bytes), issubclass(I, int), issubclass(D, list), issubclass(D, A.Mapping), issubclass(L, A.Sequence), issubclass(I, float))\n");
     assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("True True True True False True True False\n", ""));
 }
+
+/// `str.format_map` lê cada nome com `mapping[nome]` na hora: `__missing__` de subclasse de `dict` e `__getitem__` de
+/// objeto qualquer valem, e posicional é `ValueError`. Saída do CPython 3.13.
+#[test]
+fn format_map_reads_through_getitem() {
+    let r = in_process("class M(dict):\n    def __missing__(self, k): return k.upper()\nclass G:\n    def __getitem__(self, k): return k * 2\nprint('{a}-{b}'.format_map(M(a=1)), '{x}'.format_map(G()), '{a[0]}'.format_map({'a': 'xy'}))\nfor t, m in [('{a}', 1), ('{}', {}), ('{0}', {}), ('{a}', {})]:\n    try: print(t.format_map(m))\n    except Exception as e: print(type(e).__name__, e)\n");
+    assert_eq!(
+        (r.stdout_str().as_str(), r.stderr_str().as_str()),
+        ("1-B xx x\nTypeError 'int' object is not subscriptable\nValueError Format string contains positional fields\nValueError Format string contains positional fields\nKeyError 'a'\n", "")
+    );
+}

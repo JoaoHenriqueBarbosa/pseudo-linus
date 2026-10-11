@@ -305,3 +305,14 @@ fn counter_api_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/counter_api.out"),
     );
 }
+
+/// O C de cada caminho até um método de usuário (slots dos operadores, nativas, callbacks, geradores consumidos por
+/// nativa), lido pelo `_stack_saved` de um greenlet que troca de dentro dele.
+#[test]
+fn c_paths_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_c_paths",
+        include_str!("../../../testbench/oracle/automation/cases/gl_c_paths.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_c_paths.out"),
+    );
+}

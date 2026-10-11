@@ -1394,6 +1394,9 @@ pub(crate) struct CallLink {
     /// Quando o quadro executa o `__next__` de um `for`: o destino do `ForIter`, para onde o laço
     /// salta (descartando o iterador) se o chamado terminar com `StopIteration`.
     pub(crate) on_stop: Option<usize>,
+    /// O caminho de C que o CPython empilha para chegar a este quadro quando nada mais aqui o diz (o `__call__` de
+    /// uma instância): só o `CallLink::c_entry` lê.
+    pub(crate) native: Option<&'static str>,
     /// Quando o quadro executa o método mágico de um operador, de uma subscrição ou de um teste de
     /// verdade: o que fazer com o valor que ele devolve (`Vm::finish_dunder`).
     pub(crate) then: Option<Dunder>,
@@ -1406,6 +1409,13 @@ impl CallLink {
     /// O nome do caminho de C que o CPython empilha para chegar a este quadro (`gthread::c_frames`), ou `None` para a
     /// chamada Python comum, que no 3.13 não usa pilha de máquina.
     pub(crate) fn c_entry(&self) -> Option<String> {
+        let path = self.c_path()?;
+        let method = self.func.as_ref().map_or("", |f| f.code.name.as_str());
+        Some(format!("{path}:{method}"))
+    }
+
+    /// O caminho sem o método de usuário (ver [`CallLink::c_entry`]).
+    fn c_path(&self) -> Option<String> {
         if self.instance.is_some() {
             return Some("init".into());
         }
@@ -1415,53 +1425,62 @@ impl CallLink {
         if let Some(r) = &self.resuming {
             return Some(format!("resume_{}", r.use_.consumer()));
         }
+        if let Some(entry) = self.native {
+            return Some(entry.into());
+        }
+        // A função de um módulo embutido que no CPython é C (`functools.reduce`, o `itertools`): a chamada dela é
+        // a da nativa, e o que ela chamar em Python vem por cima.
+        if let Some(f) = self.func.as_ref().filter(|f| code_is_native(&f.code)) {
+            return Some(format!("pyc_{}", f.code.qual()));
+        }
         let then = self.then.as_ref()?;
         Some(match then {
-            Dunder::Chain(c) => match (c.kind, c.scan.is_some()) {
-                (_, true) => "scan".into(),
+            Dunder::Chain(c) => match (&c.kind, &c.scan) {
+                (_, Some(scan)) => format!(
+                    "scan_{}_{}",
+                    scan.seq.type_name(),
+                    match scan.mode {
+                        ScanMode::Contains { .. } => "in",
+                        ScanMode::Index => "index",
+                        ScanMode::Count(_) => "count",
+                        ScanMode::Remove => "remove",
+                    }
+                ),
                 (ChainKind::Binary { inplace: true, .. }, _) => "binary_inplace".into(),
                 (ChainKind::Binary { .. }, _) => "binary".into(),
                 (ChainKind::Order(_), _) => "order".into(),
                 (ChainKind::Equal(_), _) => "equal".into(),
             },
-            Dunder::Push => "getitem".into(),
-            Dunder::Discard => "setitem".into(),
+            Dunder::Push => "push".into(),
+            Dunder::Discard => "discard".into(),
             Dunder::Boolean { .. } => "boolean".into(),
             Dunder::Truth { .. } => "truth".into(),
             Dunder::Iter => "iter".into(),
-            Dunder::Builtin(u) => format!(
-                "builtin_{}",
-                match u {
-                    BuiltinUse::Len => "len",
-                    BuiltinUse::Bool { .. } => "bool",
-                    BuiltinUse::Plain => "plain",
-                    BuiltinUse::Int => "int",
-                    BuiltinUse::Float => "float",
-                    BuiltinUse::Bytes => "bytes",
-                }
-            ),
-            Dunder::Text(name) => format!("text{name}"),
+            Dunder::Builtin(_) => "builtin".into(),
+            Dunder::Text(_) => "text".into(),
             Dunder::Callback(cb) => format!(
-                "callback_{}",
+                "callback_{}_{}",
                 match cb.what {
                     crate::generator::CallbackKind::Mapped => "mapped",
                     crate::generator::CallbackKind::Kept { .. } => "kept",
-                    crate::generator::CallbackKind::Keyed { .. } => return Some(format!("callback_keyed_{}", cb.pull.then.consumer())),
+                    crate::generator::CallbackKind::Keyed { .. } => "keyed",
                     crate::generator::CallbackKind::Advance { .. } => "advance",
                     crate::generator::CallbackKind::Start => "start",
-                }
+                },
+                cb.pull.consumer()
             ),
             Dunder::Signal => "signal".into(),
             Dunder::Import(_) => "import".into(),
             Dunder::Exec(_) => "exec".into(),
-            // A nativa repetida e o método de usuário que ela pediu (`format` com `__format__` ou com `__str__`).
-            Dunder::Replay(run) => {
-                let method = self.func.as_ref().map_or("", |f| f.code.name.as_str());
-                match &run.op {
-                    ReplayOp::Call { func, .. } => format!("replay_call_{}:{method}", crate::replay::callee_name(func)),
-                    ReplayOp::Step { instr, .. } => format!("replay_step_{}:{method}", crate::replay::op_name(instr)),
+            // A nativa repetida (a embutida ou o método com o tipo do receptor, ou a instrução com os tipos dos
+            // operandos).
+            Dunder::Replay(run) => match &run.op {
+                ReplayOp::Call { func, .. } => format!("replay_call_{}", crate::replay::callee_name(func)),
+                ReplayOp::Step { instr, operands } => {
+                    let types: Vec<&str> = operands.iter().map(|v| if matches!(v, Value::Instance(_)) { "obj" } else { v.type_name() }).collect();
+                    format!("replay_step_{}_{}", crate::replay::op_name(instr), types.join("_"))
                 }
-            }
+            },
         })
     }
 }
@@ -2454,7 +2473,13 @@ impl Vm {
                         // `property`, descritor com `__get__` e `__getattr__` em Python abrem quadro, sem recursar.
                         let read = self.instance_getattr_call(&obj, inst, name).and_then(|got| match got {
                             Ok(v) => Ok(Entered::Done(v)),
-                            Err((f, args)) => self.enter_function(&f, args, Vec::new()),
+                            Err((f, args)) => match self.enter_function(&f, args, Vec::new())? {
+                                Entered::Frame(mut callee) => {
+                                    callee.link.native = Some("attr");
+                                    Ok(Entered::Frame(callee))
+                                }
+                                done => Ok(done),
+                            },
                         });
                         match read {
                             Ok(Entered::Done(v)) => {
@@ -2981,6 +3006,21 @@ impl Vm {
                 let default = args.get(1).cloned();
                 self.pull(&args[0], ResumeUse::Next { default }).and_then(entered_of)
             }
+            // `next(it)` com `__next__` escrito em Python: o quadro dele é empilhado, como no `FOR_ITER`.
+            _ if crate::fold::builtin_name(func) == Some("next")
+                && kwargs.is_empty()
+                && args.len() == 1
+                && dunder_function(&args[0], "__next__").is_some() =>
+            {
+                let Some(next_fn) = dunder_function(&args[0], "__next__") else { return Err(internal("__next__ vanished")) };
+                match self.enter_function(&next_fn, args, Vec::new())? {
+                    Entered::Frame(mut callee) => {
+                        callee.link.native = Some("next");
+                        Ok(Entered::Frame(callee))
+                    }
+                    done => Ok(done),
+                }
+            }
             Value::Bound(b) if is_resume_call(b, &args, &kwargs) => {
                 let Some(core) = value_core(&b.recv) else { return Err(internal("generator vanished")) };
                 self.resume_entered(&core, args.pop(), None, ResumeUse::Next { default: None })
@@ -3028,7 +3068,13 @@ impl Vm {
             Value::Instance(i) => match i.class().lookup("__call__") {
                 Some(Value::Function(f)) => {
                     args.insert(0, func.clone());
-                    self.enter_function(&f, args, kwargs)
+                    match self.enter_function(&f, args, kwargs)? {
+                        Entered::Frame(mut callee) => {
+                            callee.link.native = Some("call");
+                            Ok(Entered::Frame(callee))
+                        }
+                        done => Ok(done),
+                    }
                 }
                 _ => self.call(func, args, kwargs).map(Entered::Done),
             },
@@ -3318,6 +3364,7 @@ impl Vm {
                     caller_globals: None,
                     instance: None,
                     on_stop: None,
+                    native: None,
                     then: None,
                     resuming: Some(Resuming { tail, use_, inject }),
                 };
@@ -3589,6 +3636,7 @@ impl Vm {
             caller_globals: None,
             instance: None,
             on_stop: None,
+            native: None,
             then: None,
             resuming: None,
         };

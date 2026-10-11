@@ -48,6 +48,7 @@ class _State:
         self.owner = owner
         self.parent = parent
         self.main = main
+        self.call_run = False
         self.run = None
         self.tid = None
         self.started = main
@@ -170,19 +171,72 @@ def _trace(event, origin, target):
 # O que o C empilha para chegar a um quadro Python chamado por nativa ou por slot (`_sys._gt_c_frames` dá o nome de
 # cada um que espera no segmento): a chamada Python comum não gasta pilha de máquina no 3.13.
 _C_FRAME_BYTES = {
-    'binary': 656, 'binary_inplace': 608, 'equal': 592, 'order': 592, 'scan': 608, 'getitem': 576, 'setitem': 592,
-    'iter': 544, 'truth': 544, 'init': 672, 'builtin_len': 720, 'builtin_bool': 624,
-    'text__str__': 704, 'text__repr__': 704,
-    'replay_call_format:__format__': 736, 'replay_call_format:__str__': 896,
-    'replay_step_format_value:__format__': 656, 'replay_step_format_value:__str__': 816,
-    'replay_step_binary:__str__': 1040, 'replay_call_print:__str__': 912,
-    'callback_mapped': 768, 'callback_kept': 736, 'callback_keyed_fold_sorted': 5040,
-    'callback_keyed_fold_min': 656, 'callback_keyed_fold_max': 656,
-    'resume_next': 544, 'resume_for': 448, 'resume_delegate': 0, 'resume_collect_list': 672,
-    'resume_collect_tuple': 560, 'resume_fold_sum': 640,
+    # slots dos operadores e das instruções
+    'binary:__add__': 656, 'binary:__radd__': 656, 'binary:__sub__': 656, 'binary:__mul__': 656,
+    'binary_inplace:__iadd__': 608, 'push:__neg__': 576, 'push:__invert__': 576, 'push:__getitem__': 576,
+    'push:__enter__': 592, 'discard:__setitem__': 592, 'discard:__delitem__': 592,
+    'equal:__eq__': 592, 'equal:__ne__': 592, 'order:__lt__': 592, 'order:__ge__': 592,
+    'boolean:__contains__': 528, 'truth:__bool__': 544, 'iter:__iter__': 544, 'for_next:__next__': 576, 'next:__next__': 704,
+    'init:__init__': 672, 'call:__call__': 736, 'attr:__getattr__': 656, 'attr': 624, 'exec:': 928,
+    'builtin:__abs__': 656, 'builtin:__bool__': 624, 'builtin:__float__': 656, 'builtin:__int__': 720,
+    'builtin:__len__': 720, 'builtin:__round__': 688, 'text:__str__': 704, 'text:__repr__': 704,
+    'scan_list_in:__eq__': 608, 'scan_tuple_in:__eq__': 608, 'scan_list_count:__eq__': 768,
+    'scan_list_index:__eq__': 784, 'scan_list_remove:__eq__': 688,
+    # nativas repetidas
+    'replay_call_ascii:__repr__': 736, 'replay_call_bin:__index__': 704, 'replay_call_hex:__index__': 704,
+    'replay_call_oct:__index__': 704, 'replay_call_range:__index__': 672, 'replay_call_divmod:__divmod__': 720,
+    'replay_call_format:__format__': 736, 'replay_call_format:__str__': 896, 'replay_call_print:__str__': 912,
+    'replay_call_getattr:__getattr__': 768, 'replay_call_hasattr:__getattr__': 768, 'replay_call_hash:__hash__': 640,
+    'replay_call_dict.get:__hash__': 656, 'replay_call_dict.pop:__hash__': 672,
+    'replay_call_dict.setdefault:__hash__': 736, 'replay_call_dict.__setitem__:__hash__': 768,
+    'replay_call_dict.__delitem__:__hash__': 800, 'replay_call_dict:__hash__': 672,
+    'replay_call_set.add:__hash__': 704, 'replay_call_set.discard:__hash__': 656,
+    'replay_call_set.remove:__hash__': 672, 'replay_call_set.union:__hash__': 896, 'replay_call_set:__hash__': 848,
+    'replay_call_frozenset:__hash__': 848, 'replay_call_sorted:__lt__': 5152, 'replay_call_min:__lt__': 720,
+    'replay_call_max:__lt__': 720, 'replay_call_sum:__radd__': 848,
+    'replay_call_str.format_map:__getitem__': 1328, 'replay_call_str.format:__format__': 1520, 'replay_call_str.format:__str__': 1680,
+    'replay_step_binary_str_obj:__str__': 1040, 'replay_step_binary_str_obj:__repr__': 992,
+    'replay_step_binary_str_obj:__int__': 1056, 'replay_step_build_dict_obj_int:__hash__': 560,
+    'replay_step_build_set_obj:__hash__': 624, 'replay_step_compare_obj_dict:__hash__': 560,
+    'replay_step_compare_obj_set:__hash__': 576, 'replay_step_compare_list_list:__eq__': 672,
+    'replay_step_compare_tuple_tuple:__eq__': 704, 'replay_step_format_value_obj:__str__': 816,
+    'replay_step_format_value_obj:__format__': 656, 'replay_step_format_value_obj:__repr__': 624,
+    'replay_step_format_value_obj_str:__format__': 656, 'replay_step_subscript_dict_obj:__hash__': 560,
+    'replay_step_subscript_list_obj:__index__': 688, 'replay_step_subscript_str_slice:__index__': 656,
+    'replay_step_store_subscript_int_dict_obj:__hash__': 560,
+    # callbacks das nativas (o método é do usuário: vale o caminho)
+    'callback_advance_collect_list': 800, 'callback_advance_fold_set': 912, 'callback_advance_fold_sum': 768,
+    'callback_advance_collect_list:__getitem__': 896, 'callback_kept_collect_list': 736, 'callback_kept_for': 512,
+    'callback_keyed_fold_max': 656, 'callback_keyed_fold_min': 656, 'callback_keyed_fold_sorted': 5040,
+    'callback_keyed_fold_list_sort': 4928, 'callback_mapped_collect_list': 768, 'callback_mapped_for': 544,
+    'callback_start_collect_list': 768, 'callback_start_collect_tuple': 656,
+    # geradores retomados por quem os consome
+    'resume_next:': 544, 'resume_for:': 448, 'resume_delegate:': 0, 'resume_collect_list:': 672,
+    'resume_collect_list_enumerate:': 752, 'resume_collect_list_map:': 800, 'resume_collect_list_zip:': 720,
+    'resume_collect_native:': 576, 'resume_collect_tuple:': 560, 'resume_collect_str.join:': 736,
+    'resume_fold_all:': 560, 'resume_fold_any:': 624, 'resume_fold_dict:': 608, 'resume_fold_extend:': 672,
+    'resume_fold_min:': 640, 'resume_fold_set:': 784, 'resume_fold_sorted:': 736, 'resume_fold_sum:': 640,
+    # funções embutidas que no CPython são C (o que elas chamam vem por cima)
+    'pyc_reduce:reduce': 592, 'pyc_setitem:setitem': 96, 'pyc_starmap.__next__:__next__': 144,
 }
-# Um caminho ainda não medido: a mediana dos medidos.
-_C_FRAME_UNMEASURED = 608
+# Os quadros deste módulo são o C do próprio greenlet, já contados nas constantes do corpo e da troca.
+_OWN_FRAMES = frozenset(('pyc_greenlet.switch:switch', 'pyc_greenlet.throw:throw', 'pyc__switch_to:_switch_to',
+                         'pyc__enter:_enter', 'pyc__enter.<locals>.<lambda>:<lambda>', 'pyc__entry:_entry'))
+# Caminho fora da tabela: a mediana dos medidos da mesma família (o começo do nome), e, sem família, a de todos.
+_C_FAMILY = ('replay_step_', 'replay_call_', 'callback_', 'resume_', 'scan_', 'pyc_')
+
+
+def _c_frame_bytes(name):
+    got = _C_FRAME_BYTES.get(name)
+    if got is None:
+        got = _C_FRAME_BYTES.get(name.rpartition(':')[0])
+    if got is None:
+        family = next((f for f in _C_FAMILY if name.startswith(f)), '')
+        known = sorted(v for k, v in _C_FRAME_BYTES.items() if k.startswith(family))
+        got = known[len(known) // 2]
+    return got
+
+
 # O corpo do greenlet até o código do usuário (`g_initialstub` e a chamada do `run`): função Python, método ligado,
 # objeto chamável e `functools.partial`; com argumentos nomeados no primeiro `switch` o C monta o dicionário.
 _RUN_FUNCTION = 1512
@@ -221,13 +275,19 @@ def _save_stacks(green, origin_state, state, new, finishing, run, payload):
         live = green.gstacks = []
     if not finishing:
         off = _TO_NEW if new else (_TO_MAIN if state.main else _TO_STARTED)
-        native = sum(_C_FRAME_BYTES.get(n, _C_FRAME_UNMEASURED) for n in _sys._gt_c_frames())
+        names = [n for n in _sys._gt_c_frames() if n not in _OWN_FRAMES]
+        # O `__call__` do `run` objeto chamável já está na base do corpo (`_RUN_CALLABLE`).
+        if names and names[0] == 'call:__call__' and origin_state.call_run:
+            del names[0]
+        native = sum(_c_frame_bytes(n) for n in names)
         origin_state.sp = origin_state.start + origin_state.base + native + off
         if not any(x is origin_state for x in live):
             live.append(origin_state)
     if new:
         state.start = (origin_state.sp - _NEW_STOP) if not finishing else origin_state.start
-        state.base = _run_base(run, payload[2] if payload[0] == 'switch' else None)
+        kwargs = payload[2] if payload[0] == 'switch' else None
+        state.base = _run_base(run, kwargs)
+        state.call_run = state.base - (_RUN_KWARGS if kwargs else 0) in (_RUN_CALLABLE, _RUN_PARTIAL)
     for other in live:
         if other is state:
             continue
