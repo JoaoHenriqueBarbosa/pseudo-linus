@@ -298,7 +298,10 @@ fn type_is_subtype(a: &Value, cls: &Value) -> bool {
         return matches!(a, Value::Class(c) if c.mro().iter().any(|x| Rc::ptr_eq(x, b)));
     }
     class_name(cls).is_some_and(|b| match a {
-        Value::Class(c) => b == "object" || c.mro().iter().any(|x| x.builtin_base.is_some_and(|n| subclass_of(n, b))),
+        // A base embutida pode ser uma exceção (`builtin_base`) ou um tipo de dados (`data_base`: `class D(dict)`).
+        Value::Class(c) => {
+            b == "object" || c.mro().iter().any(|x| [x.builtin_base, x.data_base].into_iter().flatten().any(|n| subclass_of(n, b)))
+        }
         other => class_name(other).is_some_and(|n| subclass_of(n, b)),
     })
 }

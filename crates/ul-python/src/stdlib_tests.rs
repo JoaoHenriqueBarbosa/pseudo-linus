@@ -7220,3 +7220,11 @@ print('__no_bind__' in dir(print), [n for n in dir(f) if 'bind' in n])
         "{} {'x': <class 'int'>, 'return': <class 'str'>}\n{} {}\n{'a': 1} False\n{}\nFalse []\n"
     );
 }
+
+/// `issubclass` com subclasse de tipo de dados embutido (`class D(dict)`): a base fica em `data_base`, não em
+/// `builtin_base`, e o `PyType_IsSubtype` tem de enxergá-la, inclusive pelo registro dos ABCs. Valores do CPython 3.13.
+#[test]
+fn issubclass_sees_builtin_data_bases() {
+    let r = in_process("import collections.abc as A\nclass D(dict): pass\nclass L(list): pass\nclass B(bytes): pass\nclass I(int): pass\nprint(issubclass(D, dict), issubclass(L, list), issubclass(B, bytes), issubclass(I, int), issubclass(D, list), issubclass(D, A.Mapping), issubclass(L, A.Sequence), issubclass(I, float))\n");
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("True True True True False True True False\n", ""));
+}

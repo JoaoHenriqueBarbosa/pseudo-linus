@@ -282,3 +282,14 @@ fn gl_leaks_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_leaks.out"),
     );
 }
+
+/// `collections.Counter` como o do CPython 3.13: operadores binários, unários e in-place, `most_common` (com o
+/// `heapq.nlargest` e o empate na ordem de inserção), `elements`, `total`, `repr`, comparações e o `fromkeys` que lança.
+#[test]
+fn counter_api_scene_matches_the_oracle() {
+    scene_matches(
+        "counter_api",
+        include_str!("../../../testbench/oracle/automation/cases/counter_api.py"),
+        include_str!("../../../testbench/oracle/automation/golden/counter_api.out"),
+    );
+}
