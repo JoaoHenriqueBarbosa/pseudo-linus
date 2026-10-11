@@ -1459,9 +1459,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut is_directive_prologue = true;
 
         loop {
-            for comment in p.lexer.comments_to_preserve_before.iter() {
+            for index in 0..p.lexer.comments_to_preserve_before.len() {
+                let text = p.lexer.comments_to_preserve_before[index].text;
                 let loc = p.lexer.loc();
-                stmts.push(p.s(S::Comment { text: comment.text }, loc));
+                stmts.push(p.s(S::Comment { text }, loc));
             }
             p.lexer.comments_to_preserve_before.clear();
 

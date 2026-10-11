@@ -326,11 +326,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // SAFETY: original_name is arena-owned, valid for 'a.
                             let ns_name: &[u8] =
                                 p.arena_str(p.symbols[ref_.inner_index() as usize].original_name);
+                            let ns_loc = p.store[*ns].name.loc;
                             p.store[exported_members].put(
                                 ns_name,
                                 TSNamespaceMember {
                                     data: clone_ts_member_data(&member_data),
-                                    loc: p.store[*ns].name.loc,
+                                    loc: ns_loc,
                                 },
                             )?;
                             p.ref_to_ts_namespace_member.insert(ref_, member_data);
@@ -345,11 +346,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // SAFETY: original_name is arena-owned, valid for 'a.
                             let enum_name: &[u8] =
                                 p.arena_str(p.symbols[ref_.inner_index() as usize].original_name);
+                            let ns_loc = p.store[*ns].name.loc;
                             p.store[exported_members].put(
                                 enum_name,
                                 TSNamespaceMember {
                                     data: clone_ts_member_data(&member_data),
-                                    loc: p.store[*ns].name.loc,
+                                    loc: ns_loc,
                                 },
                             )?;
                             p.ref_to_ts_namespace_member.insert(ref_, member_data);
@@ -660,8 +662,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let value_loc = value.loc;
             values.push(value);
 
+            let value_text = p.arena_str(value_name);
             p.store[exported_members].put(
-                p.arena_str(value_name),
+                value_text,
                 TSNamespaceMember {
                     loc: value_loc,
                     data: TSNamespaceMemberData::EnumProperty,

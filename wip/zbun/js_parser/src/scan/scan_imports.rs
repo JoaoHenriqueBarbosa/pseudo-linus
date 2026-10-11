@@ -390,15 +390,17 @@ impl<'a> ImportScanner<'a> {
                                     let name_ref = name.ref_;
 
                                     // Make sure the printer prints this as a property access
+                                    // `arena_str` não prende o Store, que recebe o alias logo abaixo.
+                                    let original_name =
+                                        p.arena_str(p.symbols[name_ref.inner_index() as usize].original_name);
+                                    let alias_text = p.store.alloc_str(*alias);
                                     let symbol: &mut Symbol =
                                         &mut p.symbols[name_ref.inner_index() as usize];
-                                    // SAFETY: `original_name` is an arena-owned slice valid for 'p.
-                                    let original_name = p.store.str(symbol.original_name);
 
                                     symbol.namespace_alias =
                                         Some(Box::new(G::NamespaceAlias {
                                             namespace_ref,
-                                            alias: p.store.alloc_str(*alias),
+                                            alias: alias_text,
                                             import_record_index: st.import_record_index,
                                             was_originally_property_access: !st
                                                 .star_name_loc
@@ -614,8 +616,10 @@ impl<'a> ImportScanner<'a> {
                 }
                 js_ast::StmtData::SLocal(st) => {
                     if p.store[st].is_export {
-                        for decl in (&p.store[p.store[st].decls]) {
-                            p.record_exported_binding(decl.binding);
+                        let decls = p.store[st].decls;
+                        for index in 0..decls.len() {
+                            let binding = p.store[decls][index].binding;
+                            p.record_exported_binding(binding);
                         }
                     }
 
@@ -707,8 +711,9 @@ impl<'a> ImportScanner<'a> {
                     }
                 }
                 js_ast::StmtData::SExportClause(st) => {
-                    // SAFETY: arena-owned slice valid for 'p.
-                    for item in (&p.store[p.store[st].items]).iter() {
+                    let items = p.store[st].items;
+                    for index in 0..items.len() {
+                        let item = p.store[items][index].clone();
                         // SAFETY: arena-owned alias slice valid for 'p.
                         let alias: &'p [u8] = p.arena_str(item.alias);
                         p.record_export(item.alias_loc, &alias, item.name.ref_)?;
@@ -745,12 +750,12 @@ impl<'a> ImportScanner<'a> {
                 js_ast::StmtData::SExportFrom(st) => {
                     p.import_records_for_current_part
                         .push(p.store[st].import_record_index);
-                    // SAFETY: arena-owned slice valid for 'p.
-                    let items = (&p.store[p.store[st].items]);
+                    let items = p.store[st].items;
                     p.named_imports
                         .ensure_unused_capacity(items.len())
                         .expect("unreachable");
-                    for item in items.iter() {
+                    for index in 0..items.len() {
+                        let item = p.store[items][index].clone();
                         let ref_ = item.name.ref_;
                         // Note that the imported alias is not item.Alias, which is the
                         // exported alias. This is somewhat confusing because each

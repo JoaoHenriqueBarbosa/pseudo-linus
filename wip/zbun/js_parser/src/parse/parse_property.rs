@@ -130,14 +130,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // G::Fn is not Copy (FnBody/TS-metadata aren't), so mutate `func` in place.
         let mut func = func;
         func.flags.insert(flags::Function::IsUniqueFormalParameters);
-        let args = (&p.store[func.args]);
+        let args = func.args;
         let value = p.new_expr(E::Function { func }, loc);
 
         // Enforce argument rules for accessors
         match kind {
             PropertyKind::Get => {
                 if args.len() > 0 {
-                    let r = js_lexer::range_of_identifier(p.source, args[0].binding.loc);
+                    let r = js_lexer::range_of_identifier(p.source, p.store[args][0].binding.loc);
                     let key_name = p.key_name_for_error(key);
                     p.lexer.log.add_range_error_fmt(
                         Some(p.source),
@@ -154,13 +154,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut r = js_lexer::range_of_identifier(
                         p.source,
                         if args.len() > 0 {
-                            args[0].binding.loc
+                            p.store[args][0].binding.loc
                         } else {
                             loc
                         },
                     );
                     if args.len() > 1 {
-                        r = js_lexer::range_of_identifier(p.source, args[1].binding.loc);
+                        r = js_lexer::range_of_identifier(p.source, p.store[args][1].binding.loc);
                     }
                     let key_name = p.key_name_for_error(key);
                     p.lexer.log.add_range_error_fmt(

@@ -694,7 +694,7 @@ impl BinaryExpressionVisitor {
                     let name = p.symbols[ident.ref_.inner_index() as usize].original_name;
                     e_.right = p.maybe_keep_expr_symbol_name(
                         e_.right,
-                        p.store.str(name),
+                        p.arena_str(name),
                         was_anonymous_named_expr,
                     );
                 }
