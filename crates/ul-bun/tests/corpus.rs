@@ -11,6 +11,7 @@ use sysabi::WaitStatus;
 
 /// `(caso, causa medida no oráculo)`.
 const KNOWN: &[(&str, &str)] = &[
+    ("fs-keys", "faltam no node:fs: cp, glob, chown/fchown/lchown/lchmod, statfs, writev/readv, mkdtempDisposableSync, opendir/Dir, watch/watchFile e as streams (fatias 3 e 4)"),
     ("http-server", "o zjsc ainda não tem Bun.serve nem a rede do fetch local"),
 ];
 
