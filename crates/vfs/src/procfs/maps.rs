@@ -425,6 +425,38 @@ pub(super) fn smaps(l: Option<&Layout>) -> Vec<u8> {
     o
 }
 
+/// `/proc/<pid>/smaps_rollup`: a soma de todas as áreas, numa linha de cabeçalho `[rollup]` (do começo da primeira ao fim
+/// da última) e os campos do `show_smaps_rollup` do 6.12.
+pub(super) fn smaps_rollup(l: Option<&Layout>) -> Vec<u8> {
+    let vmas = l.map_or(&[][..], |l| &l.vmas[..]);
+    let (Some(first), Some(last)) = (vmas.first(), vmas.last()) else { return Vec::new() };
+    let mut o = Vec::new();
+    let _ = write!(o, "{:08x}-{:08x} ---p 00000000 00:00 0 ", first.start, last.end);
+    while o.len() < NAME_COLUMN {
+        o.push(b' ');
+    }
+    o.extend_from_slice(b" [rollup]\n");
+    let sum = |f: &dyn Fn(&Vma) -> u64| vmas.iter().map(f).sum::<u64>();
+    let clean = |v: &Vma| v.rss_kb - v.dirty_kb;
+    let pss = |v: &Vma| if v.shared { clean(v) / 2 + v.dirty_kb } else { v.rss_kb };
+    kb(&mut o, "Rss", sum(&|v| v.rss_kb));
+    kb(&mut o, "Pss", sum(&pss));
+    kb(&mut o, "Pss_Dirty", sum(&|v| v.dirty_kb));
+    kb(&mut o, "Pss_Anon", sum(&|v| if v.anon { pss(v) } else { 0 }));
+    kb(&mut o, "Pss_File", sum(&|v| if v.anon { 0 } else { pss(v) }));
+    kb(&mut o, "Pss_Shmem", 0);
+    kb(&mut o, "Shared_Clean", sum(&|v| if v.shared { clean(v) } else { 0 }));
+    kb(&mut o, "Shared_Dirty", 0);
+    kb(&mut o, "Private_Clean", sum(&|v| if v.shared { 0 } else { clean(v) }));
+    kb(&mut o, "Private_Dirty", sum(&|v| v.dirty_kb));
+    kb(&mut o, "Referenced", sum(&|v| v.rss_kb));
+    kb(&mut o, "Anonymous", sum(&|v| if v.anon { v.rss_kb } else { v.dirty_kb }));
+    for name in ["KSM", "LazyFree", "AnonHugePages", "ShmemPmdMapped", "FilePmdMapped", "Shared_Hugetlb", "Private_Hugetlb", "Swap", "SwapPss", "Locked"] {
+        kb(&mut o, name, 0);
+    }
+    o
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -463,6 +495,26 @@ mod tests {
             }),
             ..ProcData::default()
         }
+    }
+
+    #[test]
+    fn smaps_rollup_sums_the_areas_in_kernel_field_order() {
+        let l = layout(&cat(), &files()).unwrap();
+        let t = String::from_utf8(smaps_rollup(Some(&l))).unwrap();
+        let mut lines = t.lines();
+        let head = lines.next().unwrap();
+        assert!(head.ends_with(" [rollup]") && head.contains(" ---p 00000000 00:00 0 "), "{head}");
+        let (first, last) = (&l.vmas[0], &l.vmas[l.vmas.len() - 1]);
+        assert!(head.starts_with(&format!("{:08x}-{:08x} ", first.start, last.end)), "{head}");
+        let names: Vec<&str> = lines.clone().map(|x| x.split(':').next().unwrap()).collect();
+        assert_eq!(
+            names,
+            ["Rss", "Pss", "Pss_Dirty", "Pss_Anon", "Pss_File", "Pss_Shmem", "Shared_Clean", "Shared_Dirty", "Private_Clean", "Private_Dirty", "Referenced", "Anonymous", "KSM", "LazyFree", "AnonHugePages", "ShmemPmdMapped", "FilePmdMapped", "Shared_Hugetlb", "Private_Hugetlb", "Swap", "SwapPss", "Locked"]
+        );
+        let rss: u64 = l.vmas.iter().map(|v| v.rss_kb).sum();
+        let first_line = lines.next().unwrap();
+        assert_eq!(first_line.split_whitespace().nth(1).unwrap().parse::<u64>().unwrap(), rss);
+        assert!(smaps_rollup(None).is_empty());
     }
 
     #[test]
