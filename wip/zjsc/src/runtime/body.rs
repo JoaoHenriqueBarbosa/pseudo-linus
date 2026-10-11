@@ -74,6 +74,9 @@ pub(crate) struct Body {
     /// `blob_type` só vem da leitura (string e array dão `text/plain`, sem `Content-Type`): o armazenamento do corpo não
     /// tem tipo, e o console do bun escreve `Blob (N bytes)` sem o campo `type` (medido no bun 1.4.2).
     pub(crate) implied_type: bool,
+    /// O corpo veio de um `Blob` (o `Content-Type` que `Bun.serve` manda sem tipo: `text/plain` para ele,
+    /// `application/octet-stream` para bytes de `ArrayBuffer` ou view; medido no bun 1.4.2).
+    pub(crate) from_blob: bool,
 }
 #[derive(Clone)]
 pub(crate) struct FileIdentity {
@@ -131,12 +134,14 @@ pub(crate) struct Extracted {
     pub(crate) stream: Option<JSValue>,
     /// A identidade de `File` da fonte, se ela era um.
     pub(crate) file: Option<FileIdentity>,
+    /// A fonte era um `Blob`.
+    pub(crate) from_blob: bool,
 }
 
 impl Extracted {
     pub(crate) fn into_body(self) -> Body {
         let implied_type = self.header_type.is_empty() && !self.blob_type.is_empty();
-        Body { bytes: self.bytes, blob_type: self.blob_type, used: false, lazy_path: None, from_stream: self.stream.is_some(), stream: self.stream, file: self.file, implied_type }
+        Body { bytes: self.bytes, blob_type: self.blob_type, used: false, lazy_path: None, from_stream: self.stream.is_some(), stream: self.stream, file: self.file, implied_type, from_blob: self.from_blob }
     }
 }
 
@@ -226,7 +231,10 @@ pub(crate) fn extract(global_object: &JSGlobalObject, value: JSValue) -> Result<
             state.bytes = crate::runtime::blob_file::read(&backing).unwrap_or_default();
         }
         let file = FileIdentity::of(&state);
-        return Ok(Some(Extracted { bytes: state.bytes, header_type: state.content_type.clone(), blob_type: state.content_type, file, ..Extracted::default() }));
+        return Ok(Some(Extracted { bytes: state.bytes, header_type: state.content_type.clone(), blob_type: state.content_type, file, from_blob: true, ..Extracted::default() }));
+    }
+    if let Some(stream) = crate::runtime::streams::async_iterable_stream(global_object, value)? {
+        return Ok(Some(Extracted { stream: Some(stream), ..Extracted::default() }));
     }
     if let Some(pairs) = pairs_of_instance(value) {
         return Ok(Some(Extracted { bytes: serialize(&pairs).into_bytes(), header_type: URL_ENCODED_TYPE.to_vec(), blob_type: URL_ENCODED_TYPE.to_vec(), ..Extracted::default() }));

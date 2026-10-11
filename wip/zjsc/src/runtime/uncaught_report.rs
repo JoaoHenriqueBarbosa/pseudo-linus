@@ -39,6 +39,30 @@ const MAX_LINE_BYTES: usize = 1024;
 const CARET_MIN_LINE_BYTES: usize = 512;
 const CARET_MIN_COLUMN: usize = 514;
 
+thread_local! {
+    /// O fonte do script principal, de onde sai o trecho que o relato mostra.
+    static MAIN_SOURCE: std::cell::RefCell<Option<std::rc::Rc<str>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Guarda o fonte do script principal para os relatos que saem fora da exceção fatal (`report_handler_error`).
+pub(crate) fn remember_main_source(source: std::rc::Rc<str>) {
+    MAIN_SOURCE.with(|slot| *slot.borrow_mut() = Some(source));
+}
+
+/// O erro de um handler de `Bun.serve` que ninguém tratou: o bloco do erro como numa exceção fatal (trecho do fonte,
+/// `error: msg`, frames), logo a linha `label` (`GET - /caminho failed`), no stderr, sem rodapé e sem terminar o
+/// programa (medido no bun 1.4.2).
+pub(crate) fn report_handler_error(global_object: &JSGlobalObject, error: JSValue, label: &str) {
+    let source = MAIN_SOURCE.with(|slot| slot.borrow().clone()).unwrap_or_else(|| std::rc::Rc::from(""));
+    let mut report = Vec::new();
+    append_exception_report(&mut report, global_object, &source, error, false);
+    report.extend_from_slice(label.as_bytes());
+    report.push(b'\n');
+    if let Some(console) = global_object.console_host() {
+        console.write_stderr(&report);
+    }
+}
+
 /// Escreve no console do hospedeiro de `global_object` o relato da exceção `exception` lançada por `source` e devolve o
 /// código de saída do processo (1). Sem console instalado a saída é descartada.
 pub fn report_uncaught_exception(global_object: &JSGlobalObject, source: &str, exception: JSValue) -> i32 {

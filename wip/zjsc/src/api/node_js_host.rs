@@ -122,7 +122,7 @@ fn base_host(global_object: &JSGlobalObject) -> JSObjectRef {
 /// global, e todas as funções aninhadas herdam o modo builtin. É isso que faz uma função do módulo nascer sem `prototype`
 /// próprio (só o ganha quem o atribui, como `EventEmitter.prototype = {}`) e mostrar o fonte no `Function.prototype.toString`
 /// (a função builtin com `sourceURL` mostra o texto, ver `FunctionExecutable::is_private_builtin_function`).
-fn module_factory(realm: &JSGlobalObject, source: &str, name: &str) -> JSValue {
+fn module_factory(realm: &JSGlobalObject, source: &str, name: &str, visibility: ImplementationVisibility) -> JSValue {
     // O que vem antes do `(function (` é o cabeçalho de comentário do arquivo gerado; o bun começa o fonte na fábrica.
     let text = if source.starts_with("(function (") { source } else { source.find("\n(function (").map_or(source, |at| &source[at + 1..]) };
     let latin1: Vec<u8> = text
@@ -135,7 +135,7 @@ fn module_factory(realm: &JSGlobalObject, source: &str, name: &str) -> JSValue {
         vm,
         &code,
         &Identifier::from_span(vm, name.as_bytes()),
-        ImplementationVisibility::Public,
+        visibility,
         ConstructorKind::None,
         ConstructAbility::CannotConstruct,
         InlineAttribute::None,
@@ -149,7 +149,18 @@ fn module_factory(realm: &JSGlobalObject, source: &str, name: &str) -> JSValue {
 /// Cria a fábrica do módulo `node:<name>` e a chama com `host`. Falhar aqui é defeito do fonte embutido, não do programa
 /// do usuário.
 pub(crate) fn run_factory(global_object: &JSGlobalObject, source: &str, name: &str, host: &JSObjectRef) -> JSValue {
-    let factory = module_factory(&current_global_object(), source, name);
+    run_factory_with(global_object, source, name, host, ImplementationVisibility::Public)
+}
+
+/// `run_factory` para o programa que no bun é código nativo (`Bun.serve`, `Bun.write`, `ReadableStream.values`...): a
+/// fábrica e tudo o que ela contém são `PrivateRecursive`, então nenhum frame dele aparece na pilha de um erro e o
+/// `toString` das funções dele mostra `[native code]`.
+pub(crate) fn run_native_factory(global_object: &JSGlobalObject, source: &str, name: &str, host: &JSObjectRef) -> JSValue {
+    run_factory_with(global_object, source, name, host, ImplementationVisibility::PrivateRecursive)
+}
+
+fn run_factory_with(global_object: &JSGlobalObject, source: &str, name: &str, host: &JSObjectRef, visibility: ImplementationVisibility) -> JSValue {
+    let factory = module_factory(&current_global_object(), source, name, visibility);
     call_microtask(global_object, factory, JSValue::undefined(), &[host.as_value()], "o módulo embutido não é uma função").unwrap_or_else(|thrown| {
         let detail = match &thrown {
             crate::runtime::js_promise_host::Thrown::Value(value) => describe_exception(value),

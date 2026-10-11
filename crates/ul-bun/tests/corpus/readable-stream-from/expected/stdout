@@ -1,0 +1,18 @@
+shape ok ["function",1,"from"]
+array ok [1,2,3]
+string ok ["a","b"]
+set ok ["x","y"]
+generator ok ["a","b"]
+async generator ok ["a","b"]
+promises in sync iterable ok [1,2]
+async iterable object ok [0,1]
+instance ok [true,false,"ReadableStream"]
+not iterable err TypeError ERR_ARG_NOT_ITERABLE 5 must be iterable
+object err TypeError ERR_ARG_NOT_ITERABLE {} must be iterable
+throwing iterator err Error undefined gen boom
+cancel calls return ok "why"
+lazy pull ok [1,2,2]
+response async iterable ok "ab"
+response sync generator ok "[object Generator]"
+response body is stream ok [true,"a"]
+request async iterable ok "q"

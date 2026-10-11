@@ -184,6 +184,16 @@ fn terminate(global_object: &JSGlobalObject) -> HostResult {
     Err(rethrow(global_object, CallThrown::Termination))
 }
 
+/// Um erro fatal do próprio bun, sem exceção JavaScript (`Bun.serve` que recebe `undefined` do handler em
+/// desenvolvimento): `error: <mensagem>`, a linha em branco e o rodapé no stderr, código de saída 1 e o programa
+/// termina como numa exceção não capturada (medido no bun 1.4.2).
+pub(crate) fn fatal_message(global_object: &JSGlobalObject, message: &str) -> HostResult {
+    crate::runtime::uncaught_report::finish_report(global_object, format!("error: {message}\n").as_bytes());
+    mark_fatal();
+    EXIT.with(|state| state.borrow_mut().exit_code = Some(1));
+    terminate(global_object)
+}
+
 /// O objeto `process` registrado (`undefined` antes da instalação).
 pub(crate) fn process_value() -> JSValue {
     EXIT.with(|state| state.borrow().process).unwrap_or_else(JSValue::undefined)

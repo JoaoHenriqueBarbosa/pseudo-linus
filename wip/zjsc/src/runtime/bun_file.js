@@ -156,5 +156,11 @@
     return sink;
   }
 
-  return { write, writer };
+  // `Bun.stdout.stat()` e afins: o `stat` de um descritor, depois de uma volta do laço como a E/S.
+  async function fstat(fd) {
+    await afterIo();
+    return fs.fstatSync(fd);
+  }
+
+  return { write, writer, fstat };
 })

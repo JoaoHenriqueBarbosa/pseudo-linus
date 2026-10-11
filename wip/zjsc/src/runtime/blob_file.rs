@@ -35,6 +35,7 @@ use crate::wtf::text::wtf_string::String as WtfString;
 const SOURCE: &str = include_str!("bun_file.js");
 const S_IFMT: u32 = 0o170000;
 const S_IFDIR: u32 = 0o040000;
+const S_IFREG: u32 = 0o100000;
 const CHUNK: usize = 65536;
 
 #[derive(Clone)]
@@ -140,8 +141,20 @@ fn snapshot(value: JSValue) -> Option<Snapshot> {
     Some(snapshot)
 }
 
+/// `size`: um descritor que não é arquivo regular (pipe, terminal, dispositivo) não tem tamanho conhecido, e o bun
+/// responde `Infinity` (medido no bun 1.4.2 para `Bun.stdin`, `Bun.stdout` e `Bun.file(fd)`).
 pub(crate) fn size(value: JSValue) -> Option<f64> {
+    if let Source::Fd(fd) = backing_of(value)?.source {
+        if host().fs_fstat(fd).is_ok_and(|stat| stat.mode & S_IFMT != S_IFREG) {
+            return Some(f64::INFINITY);
+        }
+    }
     snapshot(value).map(|snapshot| snapshot.size as f64)
+}
+
+/// `Bun.stdin`, `Bun.stdout` e `Bun.stderr`: o Blob de arquivo do descritor `fd`.
+pub(crate) fn std_file(global_object: &JSGlobalObject, fd: i32) -> JSValue {
+    register(global_object, FileBacking { source: Source::Fd(fd), start: 0, end: None, snapshot: None }, b"application/octet-stream".to_vec(), None)
 }
 
 pub(crate) fn last_modified(value: JSValue) -> Option<f64> {
@@ -177,7 +190,9 @@ fn read_open(files: &dyn Host, fd: i32, backing: &FileBacking, path: Option<&str
             Some(end) => (end - offset).min(CHUNK as u64) as usize,
             None => CHUNK,
         };
-        let chunk = files.fs_read(fd, wanted, Some(offset)).map_err(|errno| io_error(errno, "read", path))?;
+        // Pipe, terminal e dispositivo não têm posição: lê em sequência, como o bun lê `Bun.stdin`.
+        let position = (stat.mode & S_IFMT == S_IFREG).then_some(offset);
+        let chunk = files.fs_read(fd, wanted, position).map_err(|errno| io_error(errno, "read", path))?;
         if chunk.is_empty() {
             break;
         }
@@ -270,8 +285,10 @@ pub(crate) fn delete(global_object: &JSGlobalObject, value: JSValue) -> Option<J
 /// `stat`: o `fs.promises.stat` do caminho.
 pub(crate) fn stat(global_object: &JSGlobalObject, value: JSValue) -> Option<HostResult> {
     let backing = backing_of(value)?;
-    let Source::Path(path) = &backing.source else { return Some(Ok(JSValue::undefined())) };
-    Some(call_fs_promise(global_object, "stat", &[js_text(global_object.vm(), path)]))
+    Some(match &backing.source {
+        Source::Path(path) => call_fs_promise(global_object, "stat", &[js_text(global_object.vm(), path)]),
+        Source::Fd(fd) => call_module(global_object, "fstat", &[js_number(f64::from(*fd))]),
+    })
 }
 
 fn call_fs_promise(global_object: &JSGlobalObject, name: &str, arguments: &[JSValue]) -> HostResult {
@@ -295,7 +312,7 @@ host_function!(file_info_function, file_info_body);
 fn module(global_object: &JSGlobalObject) -> HostResult {
     crate::api::builtin_modules::cached("internal:bun-file", || {
         let host = crate::api::node_js_host::module_host(global_object, &[("fileInfo", 1, file_info_function)])?;
-        Ok(crate::api::node_js_host::run_factory(global_object, SOURCE, "bun-file", &host))
+        Ok(crate::api::node_js_host::run_native_factory(global_object, SOURCE, "bun-file", &host))
     })
 }
 
@@ -312,10 +329,14 @@ fn write_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 }
 host_function!(pub bun_write, write_body);
 
-/// O texto do caminho para o `inspect` (`FileRef ("<caminho>")`), se for Blob de arquivo de caminho.
+/// O que o `inspect` mostra entre parênteses depois de `FileRef`: `"<caminho>"` ou `fd: N`; `None` se não é Blob de
+/// arquivo (ou é de caminho sem nome).
 pub(crate) fn display_path(value: JSValue) -> Option<String> {
     match backing_of(value)?.source {
-        Source::Path(_) => state_of(value).and_then(|state| state.name).map(|units| WtfString::from_utf16(&units)).map(|text| rust_string(&text)),
-        Source::Fd(_) => None,
+        Source::Path(_) => state_of(value)
+            .and_then(|state| state.name)
+            .map(|units| WtfString::from_utf16(&units))
+            .map(|text| format!("\"{}\"", rust_string(&text))),
+        Source::Fd(fd) => Some(format!("fd: {fd}")),
     }
 }

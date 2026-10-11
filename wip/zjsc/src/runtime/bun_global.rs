@@ -128,6 +128,18 @@ fn create_env(_vm: &VM, _bun: &JSObject) -> JSValue {
     crate::runtime::process_env::env_value(&current_global_object())
 }
 
+fn create_stdin(_vm: &VM, _bun: &JSObject) -> JSValue {
+    crate::runtime::blob_file::std_file(&current_global_object(), 0)
+}
+
+fn create_stdout(_vm: &VM, _bun: &JSObject) -> JSValue {
+    crate::runtime::blob_file::std_file(&current_global_object(), 1)
+}
+
+fn create_stderr(_vm: &VM, _bun: &JSObject) -> JSValue {
+    crate::runtime::blob_file::std_file(&current_global_object(), 2)
+}
+
 fn create_revision(vm: &VM, _bun: &JSObject) -> JSValue {
     string_value(vm, BUN_REVISION)
 }
@@ -379,7 +391,7 @@ fn string_width_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRes
 host_function!(pub bun_string_width, string_width_body);
 
 /// `bunObjectTable` de `BunObject.cpp`, na ordem do `@begin`, só com as entradas portadas.
-static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 20] = [
+static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 23] = [
     lazy_entry_with_attributes("argv", DONT_DELETE, create_argv),
     native_function_entry("deepEquals", DONT_DELETE, bun_deep_equals, 2, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("env", READ_ONLY | DONT_DELETE, create_env),
@@ -396,6 +408,9 @@ static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 20] = [
     native_function_entry("serve", DONT_DELETE, crate::runtime::bun_http::bun_serve, 1, Intrinsic::NoIntrinsic),
     native_function_entry("sleep", DONT_DELETE, bun_sleep, 1, Intrinsic::NoIntrinsic),
     native_function_entry("sleepSync", DONT_DELETE, bun_sleep_sync, 1, Intrinsic::NoIntrinsic),
+    lazy_entry_with_attributes("stderr", DONT_DELETE, create_stderr),
+    lazy_entry_with_attributes("stdin", DONT_DELETE, create_stdin),
+    lazy_entry_with_attributes("stdout", DONT_DELETE, create_stdout),
     native_function_entry("stringWidth", DONT_DELETE, bun_string_width, 2, Intrinsic::NoIntrinsic),
     native_function_entry("stripANSI", DONT_DELETE, bun_strip_ansi, 1, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("version", READ_ONLY | DONT_DELETE, create_version),

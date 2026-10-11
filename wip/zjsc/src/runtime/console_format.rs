@@ -973,7 +973,7 @@ impl Formatter {
             }
         };
         if let Some(state) = crate::runtime::blob::state_of(value) {
-            let file_ref = crate::runtime::blob_file::display_path(value).map(|path| format!("FileRef (\"{path}\")"));
+            let file_ref = crate::runtime::blob_file::display_path(value).map(|shown| format!("FileRef ({shown})"));
             let mut fields = Vec::new();
             if let Some(name) = state.name.as_ref().filter(|_| file_ref.is_none()) {
                 fields.push(("name", WebField::Quoted(name.clone())));

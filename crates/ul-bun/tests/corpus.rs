@@ -11,7 +11,6 @@ use sysabi::WaitStatus;
 
 /// `(caso, causa medida no oráculo)`.
 const KNOWN: &[(&str, &str)] = &[
-    ("bun-serve-dev-errors", "em desenvolvimento o bun responde o erro do handler com a página de erro de uns 50 KB (text/html), escreve no stderr o trecho do fonte e a linha `GET - /caminho failed`, e uma resposta `undefined` termina o processo com código 1 (`Expected a Response object`); o zjsc responde uma página mínima, sem o trecho no stderr e sem o código 1"),
     ("fs-utf8-buffer", "o bun 1.4.2 lança TypeError em mergeBuf (Utf8Stream síncrono com contentMode buffer) com stack de fonte interno; o zjsc roda o mesmo código gerado e não reproduz o fonte interno do bun"),
 ];
 

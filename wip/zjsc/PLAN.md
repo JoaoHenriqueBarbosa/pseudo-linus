@@ -1269,18 +1269,14 @@ Declaradas e em backlog (todas de transpilador, exceto a última):
 - `fs.watch`, `fs.watchFile` e `fs.promises.watch`: o sysabi (e o `kernel`) não tem inotify (conferido por busca em `crates/sysabi` e `crates/kernel`; só o `tail` vendorizado do coreutils o menciona). O observador do zjsc (`scripts/node-fs-watch-prelude.js`) compara `stat` e `readdir` a cada 50 ms: `change` quando o conteúdo ou os atributos mudam, `rename` quando um nome aparece ou some. Um mesmo gesto gera os eventos de uma comparação, não a fila do kernel (o bun no Linux emite, por exemplo, vários `change` por `writeFileSync`). Fechar de verdade pede `inotify_init1`, `inotify_add_watch` e `inotify_rm_watch` no sysabi (testkit e kernel) e um `Host::fs_watch`; fatia própria, só depois que a fase corrente deixar.
 - `Bun.Glob` não existe: o `ignore` por texto do `fs.watch` usa o minimatch do `fs.glob`.
 - Caso `fs-utf8-buffer` em KNOWN: o bun 1.4.2 lança TypeError em `mergeBuf` no `Utf8Stream` síncrono com `contentMode: 'buffer'`; reproduzir a stack de fonte interno não faz sentido, e a divergência fica declarada.
-- `Bun.file`, `Bun.write` e os métodos de arquivo do `Blob` (`blob_file.rs` e `bun_file.js`, caso `bun-file`): a leitura é síncrona sobre o `Host` e a promessa já nasce resolvida (o bun resolve depois da E/S); `Bun.write` e o `FileSink` rodam depois de um `setImmediate`. `FileSink.write` acumula e só grava em `flush` e `end` (o bun grava em blocos), `options.mode` é ignorado como no bun. Ainda ausentes: `Bun.stdin`, `Bun.stdout`, `Bun.stderr` e `Bun.file(...).formData()` com conteúdo urlencoded de arquivo (só o que o `Blob` já faz).
-- Caso `readable-stream-values` em KNOWN: `ReadableStream.prototype.values` (`for await` sobre um stream) é `Mode::Throw` em `streams/mod.rs`; `Bun.file(...).stream()` iterado assim herda a lacuna. Fatia própria.
+- `Bun.file`, `Bun.write` e os métodos de arquivo do `Blob` (`blob_file.rs` e `bun_file.js`, caso `bun-file`): a leitura é síncrona sobre o `Host` e a promessa já nasce resolvida (o bun resolve depois da E/S); `Bun.write` e o `FileSink` rodam depois de um `setImmediate`. `FileSink.write` acumula e só grava em `flush` e `end` (o bun grava em blocos), `options.mode` é ignorado como no bun. `Bun.stdin`, `Bun.stdout` e `Bun.stderr` são Blobs de descritor (caso `bun-stdio`, medido com a saída em pipe). Ainda ausente: `Bun.file(...).formData()` com conteúdo urlencoded de arquivo (só o que o `Blob` já faz).
 
 ### Backlog do Bun.serve e do fetch em loopback (2026-10-11)
 
-Feito: `Bun.serve` (fetch, routes com `:param`, `/*` e objeto por método, error, reload, stop, fetch direto) e `fetch` de `http:` em `localhost` e `127.x.x.x`, em HTTP/1.1 escrito em `bun_http.js` sobre os `net_*` do `Host` (`net_loop.rs`), com o corpus rodando no kernel real (o TestKit não tem TCP). Falta:
+Feito: `Bun.serve` (com a página e o relato de erro de desenvolvimento, o código de saída 1 da resposta `undefined` e o framing chunked medido; caso `bun-serve-dev-errors` fora do KNOWN) (fetch, routes com `:param`, `/*` e objeto por método, error, reload, stop, fetch direto) e `fetch` de `http:` em `localhost` e `127.x.x.x`, em HTTP/1.1 escrito em `bun_http.js` sobre os `net_*` do `Host` (`net_loop.rs`), com o corpus rodando no kernel real (o TestKit não tem TCP). Falta:
 
-- Página de erro de desenvolvimento do bun (uns 50 KB), trecho do fonte e `GET - /caminho failed` no stderr, e o código de saída 1 de uma resposta `undefined` (caso `bun-serve-dev-errors` em KNOWN).
 - WebSocket (`upgrade`, `websocket`, `publish`), `tls`, `unix`, `idleTimeout`, `maxRequestBodySize`, `requestIP` real.
 - `fetch` de `https:`, de outros hosts e de `::1` (o `Host` só tem TCP em `127.0.0.1`); `Content-Encoding` na resposta (gzip, deflate, br, zstd), reuso de conexão (keep-alive), `proxy`, `unix`.
-- Corpo de resposta do servidor que vira chunked só decide por "terminou antes do próximo turno do laço"; a regra exata do bun não foi medida.
-- Bun.stdin, Bun.stdout e Bun.stderr (ordem do PLAN: depois do Bun.serve).
 
 ## Suíte completa em lotes, grupo 1 com o transpilador instalado (2026-10-11)
 

@@ -18,14 +18,31 @@ fn refused_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 }
 host_function!(refused_function, refused_body);
 
+/// `fatal(mensagem)`: o erro fatal do bun (ver `process_exit::fatal_message`).
+fn fatal_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let message = crate::runtime::js_module_loader::rust_string(&call.argument(0).to_wtf_string());
+    crate::runtime::process_exit::fatal_message(global_object, &message)
+}
+host_function!(fatal_function, fatal_body);
+
+/// `reportError(erro, rótulo)`: o erro de um handler sem tratador no stderr (ver `uncaught_report`).
+fn report_error_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let label = crate::runtime::js_module_loader::rust_string(&call.argument(1).to_wtf_string());
+    crate::runtime::uncaught_report::report_handler_error(global_object, call.argument(0), &label);
+    Ok(crate::runtime::js_value::JSValue::undefined())
+}
+host_function!(report_error_function, report_error_body);
+
 fn module(global_object: &JSGlobalObject) -> HostResult {
     crate::api::builtin_modules::cached("internal:bun-http", || {
         let mut natives: Vec<(&str, u32, NativeFunction)> = NATIVES.to_vec();
         natives.push(("responseWire", 1, crate::runtime::response::response_wire));
         natives.push(("markFetched", 3, crate::runtime::response::mark_fetched));
         natives.push(("refused", 1, refused_function));
+        natives.push(("fatal", 1, fatal_function));
+        natives.push(("reportError", 2, report_error_function));
         let host = crate::api::node_js_host::module_host(global_object, &natives)?;
-        Ok(crate::api::node_js_host::run_factory(global_object, SOURCE, "bun-http", &host))
+        Ok(crate::api::node_js_host::run_native_factory(global_object, SOURCE, "bun-http", &host))
     })
 }
 

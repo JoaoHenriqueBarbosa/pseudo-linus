@@ -61,7 +61,6 @@
     return error;
   }
 
-  const tick = () => new Promise(resolve => setImmediate(resolve));
 
   // Uma conexão TCP não bloqueante: leitura com buffer e escrita que espera o descritor ficar pronto.
   class Conn {
@@ -353,8 +352,16 @@
     async handle(request) {
       try {
         const response = await this.dispatch(request);
-        if (response === undefined) return new Response("Welcome to Bun! To get started, return a Response object.");
-        if (!(response instanceof Response)) throw new TypeError(`Expected a Response object, but received '${String(response)}'`);
+        if (!(response instanceof Response)) {
+          // O bun responde com a página de boas-vindas e, em seguida, o erro mata o processo (medido no 1.4.2: o
+          // cliente recebe a resposta e o stderr termina com `error: Expected a Response object...`, código 1).
+          const text = `Expected a Response object, but received '${String(response)}'`;
+          if (response === undefined) {
+            setTimeout(() => host.fatal(text), 0);
+            return new Response("Welcome to Bun! To get started, return a Response object.");
+          }
+          throw new TypeError(text);
+        }
         return response;
       } catch (error) {
         if (typeof this.errorHandler === "function") {
@@ -362,10 +369,10 @@
             const response = await this.errorHandler.call(this.options, error);
             if (response instanceof Response) return response;
           } catch (inner) {
-            console.error(inner);
+            host.reportError(inner, `${request.method} - ${new URL(request.url).pathname} failed`);
           }
         } else {
-          console.error(error);
+          host.reportError(error, `${request.method} - ${new URL(request.url).pathname} failed`);
         }
         if (this.development) {
           return new Response(`<!doctype html><html><head><title>Internal Server Error</title></head><body><h1>${String(error)}</h1></body></html>`, {
@@ -442,36 +449,57 @@
       type = wire[1];
     }
     const has = name => headers.some(([key]) => key === name);
-    if (!has("content-type")) {
-      if (type !== "") headers.push(["content-type", type]);
-      else if (bytes !== null && bytes.length > 0) headers.push(["content-type", "application/octet-stream"]);
-    }
     const noBody = status === 204 || status === 304 || (status >= 100 && status < 200);
+    if (!has("content-type") && request.method !== "HEAD" && !noBody && type !== "") headers.push(["content-type", type]);
+    // Corpo de stream (medido no bun 1.4.2): espera o primeiro pedaço (ou o fim) pelo tempo que for, deixa as
+    // microtasks assentarem e, se o stream já fechou com menos de 256 no total (bytes de pedaço binário, unidades de
+    // pedaço string), manda `Content-Length`; senão `Transfer-Encoding: chunked`.
     let chunks = null;
     let pump = null;
     let finished = true;
+    let wake = null;
+    const notify = () => {
+      if (wake !== null) {
+        const resolve = wake;
+        wake = null;
+        resolve();
+      }
+    };
+    const waitMore = () => new Promise(resolve => {
+      wake = resolve;
+    });
     if (stream !== null) {
       const reader = stream.getReader();
       chunks = [];
       finished = false;
+      let size = 0;
       pump = (async () => {
         for (;;) {
           const { done, value } = await reader.read();
           if (done) {
             finished = true;
+            notify();
             return;
           }
+          size += typeof value === "string" ? value.length : value.byteLength;
           chunks.push(bytesOf(value));
+          notify();
         }
       })();
-      await Promise.race([pump, tick()]);
-      if (finished) {
+      pump.catch(notify);
+      while (chunks.length === 0 && !finished) await Promise.race([waitMore(), pump]);
+      for (let turn = 0; turn < 1000 && !finished; turn++) await null;
+      if (finished && size < 256) {
         await pump;
         bytes = concatAll(chunks);
         chunks = null;
       }
     }
     const chunked = chunks !== null;
+    for (let index = headers.length - 1; index >= 0; index--) {
+      const name = headers[index][0];
+      if (name === (chunked ? "content-length" : "transfer-encoding")) headers.splice(index, 1);
+    }
     if (!noBody && !has("content-length") && !has("transfer-encoding")) {
       if (chunked) headers.push(["transfer-encoding", "chunked"]);
       else headers.push(["content-length", String(bytes === null ? 0 : bytes.length)]);
@@ -498,7 +526,7 @@
         if (chunk.length > 0) await conn.send(concatAll([encoder.encode(`${chunk.length.toString(16)}\r\n`), chunk, encoder.encode("\r\n")]));
       }
       if (finished) break;
-      await Promise.race([pump, tick()]);
+      await Promise.race([waitMore(), pump]);
     }
     await pump;
     await conn.send(encoder.encode("0\r\n\r\n"));

@@ -369,6 +369,7 @@ pub fn evaluate_main_script_reporting_signal(
         // uma vez, com o rodapé; a primeira delas para o laço de eventos.
         let report = Rc::new(RefCell::new(Vec::<u8>::new()));
         let shared_source: Rc<str> = Rc::from(source);
+        crate::runtime::uncaught_report::remember_main_source(shared_source.clone());
         let record = {
             let (report, shared_source) = (report.clone(), shared_source.clone());
             Rc::new(move |global: &JSGlobalObject, error: JSValue, with_trace: bool| {

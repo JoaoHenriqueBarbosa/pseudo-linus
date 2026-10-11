@@ -1,0 +1,25 @@
+keys ok ["object","object","object",["stderr","stdin","stdout"]]
+shape ok ["Blob",true,true,null,null,null,"application/octet-stream",null,null]
+file fd shape ok ["Infinity","Infinity","Infinity","Infinity",null,"application/octet-stream","FileRef (fd: 1) {\n  type: \"application/octet-stream\"\n}","[object Blob]"]
+same object ok [true,true,false]
+out-string
+write string ok 11
+out-bytes
+write bytes ok 10
+out-blob
+write blob ok 9
+write stderr ok 11
+out-response
+write response ok 13
+write empty ok 0
+via-file-1
+write fd ok 11
+w1 w2
+writer ok ["number","number","number","FileSink"]
+writer stderr ok 1
+stat ok "number"
+exists ok [true,true]
+inspect ok ["FileRef (fd: 1) {\n  type: \"application/octet-stream\"\n}","FileRef (fd: 0) {\n  type: \"application/octet-stream\"\n}","FileRef (fd: 2) {\n  type: \"application/octet-stream\"\n}"]
+text stdin ok "\"\""
+stdin again ok "\"\""
+stdin stream ok []

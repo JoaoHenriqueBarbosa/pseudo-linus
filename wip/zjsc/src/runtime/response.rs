@@ -475,8 +475,12 @@ fn response_wire_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRe
         return Err(throw_coded_type_error(global_object, "Body already used", "ERR_BODY_ALREADY_USED"));
     }
     body.used = true;
+    let mut payload_is_empty = false;
     let payload = match (body.from_stream, body.stream) {
-        (true, Some(stream)) => stream,
+        (true, Some(stream)) => {
+            payload_is_empty = true;
+            stream
+        }
         _ => {
             let loaded;
             let content: &[u8] = match &body.lazy_path {
@@ -486,12 +490,21 @@ fn response_wire_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRe
                 }
                 None => &body.bytes,
             };
+            payload_is_empty = content.is_empty();
             let array = crate::runtime::uint8_array_base64::create_uint8_array(global_object, content.len())?;
             array.with_vector_mut(|destination| destination[..content.len()].copy_from_slice(content));
             array.as_value()
         }
     };
-    let kind = crate::runtime::process_shape::text_value(global_object.vm(), &String::from_utf8_lossy(&body.blob_type));
+    // O tipo que o servidor manda sem `Content-Type` (medido no bun 1.4.2): o do corpo; sem ele, `text/plain` para um
+    // `Blob` e `application/octet-stream` para bytes; corpo vazio não manda tipo nenhum.
+    let wire_type = match (body.blob_type.is_empty(), body.from_blob, payload_is_empty) {
+        (_, _, true) => String::new(),
+        (false, _, false) => String::from_utf8_lossy(&body.blob_type).into_owned(),
+        (true, true, false) => "text/plain;charset=utf-8".to_owned(),
+        (true, false, false) => "application/octet-stream".to_owned(),
+    };
+    let kind = crate::runtime::process_shape::text_value(global_object.vm(), &wire_type);
     INSTANCES.with(|instances| {
         if let Some(stored) = instances.borrow_mut().get_mut(&response.encode()) {
             stored.body = state.body.clone();

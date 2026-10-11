@@ -208,14 +208,38 @@ pub(crate) fn reset_for_program() {
     compression_streams::reset_for_program();
 }
 
-/// `ReadableStream.prototype.values`: o iterador assíncrono, escrito em JavaScript sobre `getReader`.
-fn values_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+/// Chama `name` do `stream_iter.js` (o iterador assíncrono e o `ReadableStream.from`, escritos em JavaScript).
+fn call_stream_module(global_object: &JSGlobalObject, name: &str, this_value: JSValue, arguments: &[JSValue]) -> HostResult {
     let exports = crate::api::builtin_modules::cached("internal:stream-iter", || {
         let host = crate::api::node_js_host::module_host(global_object, &[])?;
-        Ok(crate::api::node_js_host::run_factory(global_object, include_str!("stream_iter.js"), "stream-iter", &host))
+        Ok(crate::api::node_js_host::run_native_factory(global_object, include_str!("stream_iter.js"), "stream-iter", &host))
     })?;
-    let function = crate::runtime::string_regexp_support::get_object_property(global_object, exports, &Identifier::from_span(global_object.vm(), b"values"))?;
-    crate::api::node_js_host::call_value(global_object, function, call.this_value(), call.arguments(), "ReadableStream")
+    let function = crate::runtime::string_regexp_support::get_object_property(global_object, exports, &Identifier::from_span(global_object.vm(), name.as_bytes()))?;
+    crate::api::node_js_host::call_value(global_object, function, this_value, arguments, "ReadableStream")
+}
+
+/// `ReadableStream.prototype.values`: o iterador assíncrono, sobre `getReader`.
+fn values_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    call_stream_module(global_object, "values", call.this_value(), call.arguments())
+}
+
+/// `ReadableStream.from(iterável)`.
+fn from_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    call_stream_module(global_object, "from", call.this_value(), call.arguments())
+}
+
+/// Um objeto com `Symbol.asyncIterator` passado como corpo de `Response` ou `Request` vira o `ReadableStream` de
+/// `ReadableStream.from` (medido no bun 1.4.2: o corpo é lido por stream); `None` para qualquer outro valor.
+pub(crate) fn async_iterable_stream(global_object: &JSGlobalObject, value: JSValue) -> Result<Option<JSValue>, Thrown> {
+    if !value.is_object() {
+        return Ok(None);
+    }
+    let vm = global_object.vm();
+    let method = crate::runtime::string_regexp_support::get_object_property(global_object, value, &vm.property_names.async_iterator_symbol)?;
+    if method.is_undefined_or_null() {
+        return Ok(None);
+    }
+    call_stream_module(global_object, "from", JSValue::undefined(), &[value]).map(Some)
 }
 
 /// `text()`, `bytes()`, `json()` e `blob()` do stream: lê tudo e resolve (ou rejeita) uma promessa, como o corpo de
@@ -409,7 +433,7 @@ members! {
     rs_bytes => (Kind::ReadableStream, Mode::Real(rs_bytes_body)),
     rs_json => (Kind::ReadableStream, Mode::Real(rs_json_body)),
     rs_text => (Kind::ReadableStream, Mode::Real(rs_text_body)),
-    rs_from => (Kind::ReadableStream, Mode::Throw),
+    rs_from => (Kind::ReadableStream, Mode::Real(from_body)),
     dr_closed => (Kind::DefaultReader, Mode::Real(readable::dr_closed)),
     dr_cancel => (Kind::DefaultReader, Mode::Real(readable::dr_cancel)),
     dr_read => (Kind::DefaultReader, Mode::Real(readable::dr_read)),
