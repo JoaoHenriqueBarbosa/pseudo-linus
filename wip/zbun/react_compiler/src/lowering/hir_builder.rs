@@ -137,8 +137,7 @@ pub(crate) enum FunctionNode<'a> {
 }
 
 impl<'a> FunctionNode<'a> {
-    pub(crate) fn args(&self) -> &'a [G::Arg] {
-        let store = self.host.store();
+    pub(crate) fn args(&self, store: &'a bun_ast::Store) -> &'a [G::Arg] {
         match self {
             FunctionNode::Function(f) => &store[f.args],
             FunctionNode::Arrow(a) => &store[a.args],
@@ -413,6 +412,7 @@ impl<'h> HirBuilder<'h> {
     /// into source text) rather than the resolved symbol ref. Walk the scope
     /// chain from `current_scope()` to find the declaring `Member`.
     pub(crate) fn resolve_ref(&self, ref_: Ref) -> Ref {
+        let store = self.host.store();
         use bun_ast::base::RefTag;
         if ref_.tag() == RefTag::Symbol {
             return ref_;
@@ -420,10 +420,10 @@ impl<'h> HirBuilder<'h> {
         let name = self.host.ref_name(ref_);
         let mut scope = Some(self.current_scope());
         while let Some(s) = scope {
-            if let Some(member) = s.members.get(name) {
+            if let Some(member) = s.members.get(self.host.store(), name) {
                 return member.ref_;
             }
-            scope = s.parent.as_deref();
+            scope = s.parent.map(|p| &store[p]);
         }
         ref_
     }
@@ -920,17 +920,17 @@ impl<'h> HirBuilder<'h> {
 
         let stored_name = HirStr::new(self.host.ref_name(ref_));
         let stored_candidate = if candidate == name {
-            stored_name
+            stored_name.clone()
         } else {
-            HirStr::new(bun_ast::data_store_dupe_str(candidate.as_bytes()))
+            HirStr::new(candidate.as_bytes())
         };
         if candidate != name {
             if let Some(start) = loc.as_ref().and_then(|l| l.start.index) {
                 self.env
                     .renames
                     .push(crate::hir::environment::BindingRename {
-                        original: stored_name,
-                        renamed: stored_candidate,
+                        original: stored_name.clone(),
+                        renamed: stored_candidate.clone(),
                         declaration_start: start,
                     });
             }
@@ -975,7 +975,7 @@ impl<'h> HirBuilder<'h> {
                 loc,
             ));
         };
-        let name = sym.original_name;
+        let name = HirStr::new(store.str(sym.original_name));
 
         use symbol::Kind as Sk;
         match sym.kind {
@@ -992,9 +992,9 @@ impl<'h> HirBuilder<'h> {
                         .import_records()
                         .get(alias.import_record_index as usize)
                     {
-                        let module = HirStr::new(record.path.text);
-                        let imported = alias.alias;
-                        return Ok(if store.str(imported) == b"default" {
+                        let module = HirStr::new(store.str(record.path.text));
+                        let imported = HirStr::new(store.str(alias.alias));
+                        return Ok(if imported == b"default" {
                             VariableBinding::ImportDefault { name, module }
                         } else {
                             VariableBinding::ImportSpecifier {
@@ -1024,7 +1024,7 @@ impl<'h> HirBuilder<'h> {
         }
 
         let module_scope = self.host.module_scope();
-        if let Some(member) = module_scope.members.get(store.str(sym.original_name)) {
+        if let Some(member) = module_scope.members.get(store, store.str(sym.original_name)) {
             if member.ref_ == ref_ {
                 return Ok(VariableBinding::ModuleLocal { name });
             }
@@ -1056,7 +1056,7 @@ impl<'h> HirBuilder<'h> {
             self.host
                 .module_scope()
                 .members
-                .get(store.str(sym.original_name))
+                .get(store, store.str(sym.original_name))
         }) {
             if member.ref_ == ref_ {
                 return false;

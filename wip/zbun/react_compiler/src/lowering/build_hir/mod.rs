@@ -68,7 +68,7 @@ pub(crate) fn lower(
     let loc = convert_loc(func.loc());
     let ast_id = func
         .name_ref()
-        .map(|r| host.symbols()[r.inner_index() as usize].original_name);
+        .map(|r| HirStr::new(host.store().str(host.symbols()[r.inner_index() as usize].original_name)));
 
     // Bun has no `node_id`-keyed scope table; the top-level function's scope
     // is a child of `module_scope`, and `G::Fn` does not retain a back-link.
@@ -130,7 +130,7 @@ pub(super) fn lower_inner<'h>(
     // `validate_ts_this_parameter`: Bun's parser strips `this` parameters
     // before this pass runs, so the upstream check is a no-op here.
 
-    let params = func.args();
+    let params = func.args(store);
     let body_stmts = &store[func.body().stmts];
     let generator = func.is_generator();
     let is_async = func.is_async();
@@ -194,11 +194,11 @@ pub(super) fn lower_inner<'h>(
 
         match (&param.binding.data, &param.default) {
             (b::B::BIdentifier(ident), None) => {
-                let name = builder.ref_name(ident.r#ref)?;
+                let name = builder.ref_name(store[*ident].r#ref)?;
                 if is_always_reserved_word(&name) {
                     return Err(CompilerError::from(reserved_identifier_diagnostic(&name)));
                 }
-                let binding = builder.resolve_identifier(ident.r#ref, param_loc)?;
+                let binding = builder.resolve_identifier(store[*ident].r#ref, param_loc)?;
                 match binding {
                     VariableBinding::Identifier { identifier, .. } => {
                         builder.set_identifier_declaration_loc(identifier, &param_loc);
@@ -277,7 +277,7 @@ pub(super) fn lower_inner<'h>(
         None => {
             for s in body_stmts {
                 if let StmtData::SDirective(d) = &s.data { let d = &store[*d];
-                    directives.push(d.value);
+                    directives.push(HirStr::new(store.str(d.value)));
                 }
             }
             // Use lower_block_statement_with_scope to get hoisting support for the function body.
@@ -343,7 +343,7 @@ pub(super) fn lower_inner<'h>(
 /// as a single `SReturn` with `prefer_expr` set. Detect that shape so the
 /// upstream `FunctionBody::Expression` arm is preserved (emits `Implicit`
 /// return variant instead of `Explicit`).
-fn arrow_expression_body<'a>(store: &bun_ast::Store, func: &FunctionNode<'a>) -> Option<&'a Expr> {
+fn arrow_expression_body<'a>(store: &'a bun_ast::Store, func: &FunctionNode<'a>) -> Option<&'a Expr> {
     let FunctionNode::Arrow(a) = func else {
         return None;
     };
@@ -354,7 +354,7 @@ fn arrow_expression_body<'a>(store: &bun_ast::Store, func: &FunctionNode<'a>) ->
     if stmts.len() != 1 {
         return None;
     }
-    if let StmtData::SReturn(r) = &stmts[0].data { let r = &store[r];
+    if let StmtData::SReturn(r) = &stmts[0].data { let r = &store[*r];
         return r.value.as_ref();
     }
     None
@@ -396,7 +396,7 @@ pub(super) fn gather_captured_context<'h>(
     };
     walker.push_scope(func.args_loc());
     walker.push_scope(func.body().loc);
-    walker.walk_args(func.args());
+    walker.walk_args(func.args(store));
     walker.walk_stmts(&store[func.body().stmts]);
 
     let module_scope = host.module_scope();
@@ -430,7 +430,7 @@ pub(super) fn gather_captured_context<'h>(
         ) {
             continue;
         }
-        if let Some(member) = module_scope.members.get(store.str(sym.original_name)) {
+        if let Some(member) = module_scope.members.get(store, store.str(sym.original_name)) {
             if member.ref_ == ref_ {
                 continue;
             }
@@ -485,6 +485,7 @@ impl<'h> CaptureWalker<'h> {
     }
 
     fn resolve_ref(&self, ref_: Ref) -> Ref {
+        let store = self.host.store();
         use bun_ast::base::RefTag;
         if ref_.tag() == RefTag::Symbol {
             return ref_;
@@ -492,10 +493,10 @@ impl<'h> CaptureWalker<'h> {
         let name = self.host.ref_name(ref_);
         let mut scope = Some(self.current_scope());
         while let Some(s) = scope {
-            if let Some(member) = s.members.get(name) {
+            if let Some(member) = s.members.get(store, name) {
                 return member.ref_;
             }
-            scope = s.parent.as_deref();
+            scope = s.parent.map(|p| &store[p]);
         }
         ref_
     }
@@ -593,7 +594,7 @@ impl<'h> CaptureWalker<'h> {
                     self.walk_expr(v);
                 }
             }
-            StmtData::SThrow(t) => self.walk_expr(&t.value),
+            StmtData::SThrow(t) => self.walk_expr(&store[*t].value),
             StmtData::SIf(i) => { let i = &store[*i];
                 self.walk_expr(&i.test);
                 self.walk_stmt(&i.yes);

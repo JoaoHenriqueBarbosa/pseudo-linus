@@ -233,7 +233,7 @@ fn ref_in_nested_fn_stmt(builder: &HirBuilder, target: Ref, stmt: &Stmt, depth: 
             .value
             .as_ref()
             .is_some_and(|v| ref_in_nested_fn_expr(builder, target, v, depth)) },
-        Data::SThrow(t) => ref_in_nested_fn_expr(builder, target, &t.value, depth),
+        Data::SThrow(t) => ref_in_nested_fn_expr(builder, target, &store[*t].value, depth),
         Data::SIf(i) => { let i = &store[*i];
             ref_in_nested_fn_expr(builder, target, &i.test, depth)
                 || ref_in_nested_fn_stmt(builder, target, &i.yes, depth)
@@ -277,8 +277,7 @@ fn ref_in_nested_fn_stmt(builder: &HirBuilder, target: Ref, stmt: &Stmt, depth: 
                     c.value
                         .as_ref()
                         .is_some_and(|v| ref_in_nested_fn_expr(builder, target, v, depth))
-                        || c.body
-                            &store[]
+                        || store[c.body]
                             .iter()
                             .any(|s| ref_in_nested_fn_stmt(builder, target, s, depth))
                 })
@@ -362,9 +361,8 @@ fn ref_in_nested_fn_class(builder: &HirBuilder, target: Ref, class: &G::Class, d
         .is_some_and(|e| ref_in_nested_fn_expr(builder, target, e, depth))
         || store[class.properties].iter().any(|p| {
             if let Some(block) = p.class_static_block_ref(store) {
-                return block
-                    .stmts
-                    store[].iter()
+                return store[block.stmts]
+                    .iter()
                     .any(|s| ref_in_nested_fn_stmt(builder, target, s, depth + 1));
             }
             (p.flags.contains(ast::flags::Property::IsComputed)
@@ -525,7 +523,7 @@ fn lower_statement(
         }
         Data::SThrow(throw) => {
             let loc = convert_loc(stmt_loc);
-            let value = lower_expression_to_temporary(builder, &throw.value)?;
+            let value = lower_expression_to_temporary(builder, &store[throw].value)?;
 
             // Check for throw handler (try/catch)
             if let Some(_handler) = builder.resolve_throw_handler() {
@@ -551,7 +549,7 @@ fn lower_statement(
         }
         Data::SBlock(block) => { let block = &store[block];
             builder.push_scope(stmt_loc);
-            let result = lower_block_statement(builder, &block.stmts);
+            let result = lower_block_statement(builder, &store[block.stmts]);
             builder.pop_scope();
             result?;
         }
@@ -1177,7 +1175,7 @@ fn lower_statement(
             let mut has_default = false;
 
             for ii in (0..switch_stmt.cases.len()).rev() {
-                let case = &switch_stmt.cases[ii];
+                let case = &store[switch_stmt.cases][ii];
                 let case_loc = convert_loc(case.loc);
 
                 if case.value.is_none() {
@@ -1198,7 +1196,7 @@ fn lower_statement(
                 let fallthrough_target = fallthrough;
                 let block = builder.try_enter(BlockKind::Block, |builder, _block_id| {
                     builder.switch_scope(label.clone(), continuation_id, |builder| {
-                        for consequent in case.body.iter() {
+                        for consequent in store[case.body].iter() {
                             lower_statement(builder, consequent, None)?;
                         }
                         Ok(Terminal::Goto {
@@ -1286,6 +1284,7 @@ fn lower_statement(
                 if is_destructuring {
                     // Iterate the pattern to find all identifier locs for error reporting
                     fn collect_identifier_locs(
+                        store: &bun_ast::Store,
                         pat: &Binding,
                         locs: &mut Vec<Option<SourceLocation>>,
                     ) {
@@ -1294,20 +1293,20 @@ fn lower_statement(
                                 locs.push(convert_loc(pat.loc));
                             }
                             b::B::BObject(obj) => { let obj = &store[obj];
-                                for prop in obj.properties() {
-                                    collect_identifier_locs(&prop.value, locs);
+                                for prop in obj.properties(store) {
+                                    collect_identifier_locs(store, &prop.value, locs);
                                 }
                             }
                             b::B::BArray(arr) => { let arr = &store[arr];
-                                for elem in arr.items() {
-                                    collect_identifier_locs(&elem.binding, locs);
+                                for elem in arr.items(store) {
+                                    collect_identifier_locs(store, &elem.binding, locs);
                                 }
                             }
                             b::B::BMissing(_) => {}
                         }
                     }
                     let mut id_locs = Vec::new();
-                    collect_identifier_locs(param, &mut id_locs);
+                    collect_identifier_locs(store, param, &mut id_locs);
                     for id_loc in id_locs {
                         builder.record_error(CompilerErrorDetail {
                                 reason: "(BuildHIR::lowerAssignment) Could not find binding for declaration.".to_string(),
@@ -1377,7 +1376,7 @@ fn lower_statement(
                             && catch_param_referenced_in_nested_fn(
                                 builder,
                                 target,
-                                &handler_clause.body,
+                                &store[handler_clause.body],
                             )
                         {
                             let id_loc = convert_loc(pattern.loc);
@@ -1408,7 +1407,7 @@ fn lower_statement(
                         }
                     }
                 }
-                lower_block_statement_with_scope(builder, &handler_clause.body)?;
+                lower_block_statement_with_scope(builder, &store[handler_clause.body])?;
                 builder.pop_scope();
                 builder.pop_scope();
                 Ok(Terminal::Goto {
@@ -1426,7 +1425,7 @@ fn lower_statement(
             let try_block = builder.try_enter(BlockKind::Block, |builder, _block_id| {
                 builder.push_scope(stmt_loc);
                 builder.try_enter_try_catch(handler_block, |builder| {
-                    lower_block_statement(builder, &try_stmt.body)?;
+                    lower_block_statement(builder, &store[try_stmt.body])?;
                     Ok(())
                 })?;
                 builder.pop_scope();
@@ -1648,7 +1647,7 @@ fn lower_for_in_of_left(
                     suggestions: None,
                 })?;
             }
-            if let Some(declarator) = var_decl.decls.first() {
+            if let Some(declarator) = store[var_decl.decls].first() {
                 Ok(lower_assignment_binding(
                     builder,
                     left_loc,

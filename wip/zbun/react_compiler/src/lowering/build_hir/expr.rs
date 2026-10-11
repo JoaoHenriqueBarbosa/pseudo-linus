@@ -26,7 +26,6 @@ pub(crate) fn lower_expression(
     let store = builder.store();
     let loc = convert_loc(expr.loc);
     match &expr.data {
-        Data::EObjectJSON(_) | Data::EArrayJSON(_) => Ok(unsupported_node("JSONValue", loc)),
         Data::EIdentifier(ident) => lower_identifier_reference(builder, ident.ref_, loc),
         Data::EImportIdentifier(ident) => lower_identifier_reference(builder, ident.ref_, loc),
         Data::ENull(_) => Ok(InstructionValue::Primitive {
@@ -42,7 +41,7 @@ pub(crate) fn lower_expression(
             loc,
         }),
         Data::EString(lit) => { let lit = &store[*lit]; Ok(InstructionValue::Primitive {
-            value: PrimitiveValue::String(convert_js_string(*lit)),
+            value: PrimitiveValue::String(convert_js_string(store, lit)),
             loc,
         }) },
         Data::EUndefined(_) => {
@@ -80,7 +79,7 @@ pub(crate) fn lower_expression(
             if is_member {
                 let lowered = lower_member_expression(builder, &call.target, None)?;
                 let property = lower_value_to_temporary(builder, lowered.value)?;
-                let args = Vec::from_iter(lower_arguments(builder, &call.args)?);
+                let args = Vec::from_iter(lower_arguments(builder, &store[call.args])?);
                 Ok(InstructionValue::MethodCall {
                     receiver: lowered.object,
                     property,
@@ -89,7 +88,7 @@ pub(crate) fn lower_expression(
                 })
             } else {
                 let callee = lower_expression_to_temporary(builder, &call.target)?;
-                let args = Vec::from_iter(lower_arguments(builder, &call.args)?);
+                let args = Vec::from_iter(lower_arguments(builder, &store[call.args])?);
                 Ok(InstructionValue::CallExpression { callee, args, loc })
             }
         }
@@ -186,7 +185,7 @@ pub(crate) fn lower_expression(
         }
         Data::ENew(new_expr) => { let new_expr = &store[*new_expr];
             let callee = lower_expression_to_temporary(builder, &new_expr.target)?;
-            let args = Vec::from_iter(lower_arguments(builder, &new_expr.args)?);
+            let args = Vec::from_iter(lower_arguments(builder, &store[new_expr.args])?);
             Ok(InstructionValue::NewExpression { callee, args, loc })
         }
         Data::ETemplate(tmpl) => { let tmpl = &store[*tmpl]; lower_template(builder, tmpl, loc) },
@@ -616,16 +615,16 @@ fn lower_sequence(
     let place = build_temporary_place(builder, loc);
 
     let sequence_block = builder.try_enter(BlockKind::Sequence, |builder, _block_id| {
-        fn flatten_comma(builder: &mut HirBuilder, e: &Expr) -> Result<Place, CompilerError> {
+        fn flatten_comma(builder: &mut HirBuilder, store: &bun_ast::Store, e: &Expr) -> Result<Place, CompilerError> {
             if let Data::EBinary(b) = &e.data { let b = &store[*b];
                 if b.op == OpCode::BinComma {
-                    flatten_comma(builder, &b.left)?;
-                    return flatten_comma(builder, &b.right);
+                    flatten_comma(builder, store, &b.left)?;
+                    return flatten_comma(builder, store, &b.right);
                 }
             }
             lower_expression_to_temporary(builder, e)
         }
-        flatten_comma(builder, &bin.left)?;
+        flatten_comma(builder, store, &bin.left)?;
         let last = lower_expression_to_temporary(builder, &bin.right)?;
         lower_value_to_temporary(
             builder,
@@ -680,7 +679,7 @@ fn lower_simple_assignment(
                 builder,
                 InstructionValue::PropertyStore {
                     object,
-                    property: PropertyLiteral::String(d.name),
+                    property: PropertyLiteral::String(HirStr::new(store.str(d.name))),
                     value: right,
                     loc: left_loc,
                 },
@@ -999,7 +998,7 @@ fn lower_unary(
                 let object = lower_expression_to_temporary(builder, &d.target)?;
                 Ok(InstructionValue::PropertyDelete {
                     object,
-                    property: PropertyLiteral::String(d.name),
+                    property: PropertyLiteral::String(HirStr::new(store.str(d.name))),
                     loc,
                 })
             }
@@ -1226,7 +1225,7 @@ fn lower_template(
         let value = match &tmpl.head {
             E::TemplateContents::Raw(r) => {
                 let raw_bytes = store.str(*r);
-                if bun_core::strings::contains_char(raw_bytes, b'\\') {
+                if raw_bytes.contains(&b'\\') {
                     builder.record_error(CompilerErrorDetail {
                         category: ErrorCategory::Todo,
                         reason: "(BuildHIR::lowerExpression) Handle tagged template where cooked value is different from raw value".to_string(),
@@ -1238,7 +1237,7 @@ fn lower_template(
                 }
                 let raw = HirStr::new(raw_bytes);
                 TemplateQuasi {
-                    cooked: Some(raw),
+                    cooked: Some(raw.clone()),
                     raw,
                 }
             }
@@ -1283,7 +1282,7 @@ fn convert_template_contents(store: &bun_ast::Store,
                 HirStr::new(s.slice8(store))
             };
             Ok(TemplateQuasi {
-                raw: cooked,
+                raw: cooked.clone(),
                 cooked: Some(cooked),
             })
         }
@@ -1470,7 +1469,7 @@ fn is_module_level_or_global(builder: &HirBuilder, ref_: Ref) -> bool {
         .host()
         .module_scope()
         .members
-        .get(store.str(sym.original_name))
+        .get(store, store.str(sym.original_name))
     {
         if member.ref_ == ref_ {
             return true;
@@ -1483,20 +1482,8 @@ fn is_module_level_or_global(builder: &HirBuilder, ref_: Ref) -> bool {
 // Conversion helpers
 // =============================================================================
 
-fn convert_js_string(s: StoreRef<E::EString>) -> JsString {
-    if s.get().next.is_none() {
-        return JsString::new(s);
-    }
-    // Roped literal (rare; only from parser-level constant folding): flatten so
-    // every HIR consumer can ignore ropes.
-    let mut joined: Vec<u8> = Vec::with_capacity(s.get().len());
-    let mut cur = Some(s.get());
-    while let Some(seg) = cur {
-        debug_assert!(!seg.is_utf16);
-        joined.extend_from_slice(seg.slice8());
-        cur = seg.next.as_ref().map(|r| r.get());
-    }
-    JsString::from_wtf8_bytes(&joined)
+fn convert_js_string(store: &bun_ast::Store, s: &E::EString) -> JsString {
+    JsString::from_flat(&s.flat(store))
 }
 
 fn unsupported_node(node_type: &'static str, loc: Option<SourceLocation>) -> InstructionValue {

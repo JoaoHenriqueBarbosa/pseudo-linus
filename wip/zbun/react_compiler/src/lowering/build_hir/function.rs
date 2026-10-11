@@ -13,7 +13,7 @@ use bun_ast::{self as ast, E, Expr, G, Loc, Ref};
 
 use super::super::hir_builder::{HirBuilder, convert_loc};
 use super::FunctionNode;
-use super::helpers::{lower_expression_to_temporary, lower_value_to_temporary};
+use super::helpers::{estring_to_store_str, lower_expression_to_temporary, lower_value_to_temporary};
 use super::{gather_captured_context, lower_inner};
 
 pub(super) fn lower_function_to_value(
@@ -137,7 +137,7 @@ pub(super) fn lower_function_declaration(
     let (host, env) = builder.host_and_env_mut();
     let (hir_func, child_used_refs, child_bindings) = lower_inner(
         &func,
-        func_name,
+        func_name.clone(),
         loc,
         host,
         env,
@@ -159,7 +159,7 @@ pub(super) fn lower_function_declaration(
 
     // Emit FunctionExpression instruction
     let fn_value = InstructionValue::FunctionExpression {
-        name: func_name,
+        name: func_name.clone(),
         name_hint: None,
         lowered_func,
         expr_type: FunctionExpressionType::FunctionDeclaration,
@@ -218,7 +218,7 @@ pub(super) fn lower_function_declaration(
                     category: ErrorCategory::Invariant,
                     reason: format!(
                         "Could not find binding for function declaration `{}`",
-                        bstr::BStr::new(func_name.map(|s| s.slice()).unwrap_or(b""))
+                        bstr::BStr::new(func_name.as_ref().map(|s| s.slice()).unwrap_or(b""))
                     ),
                     description: None,
                     loc,
@@ -289,6 +289,7 @@ pub(super) fn lower_object_method(
     builder: &mut HirBuilder<'_>,
     method: &G::Property,
 ) -> Result<Option<ObjectProperty>, CompilerError> {
+    let store = builder.store();
     use ast::flags::Property as PF;
     let key_expr = method.key.as_ref();
     let method_loc = key_expr.map(|k| k.loc).unwrap_or(Loc::EMPTY);
@@ -318,11 +319,11 @@ pub(super) fn lower_object_method(
     let key = match key_expr {
         Some(k) => {
             lower_object_property_key(builder, k, computed)?.unwrap_or(ObjectPropertyKey::String {
-                name: HirStr::EMPTY,
+                name: HirStr::default(),
             })
         }
         None => ObjectPropertyKey::String {
-            name: HirStr::EMPTY,
+            name: HirStr::default(),
         },
     };
 
@@ -347,7 +348,7 @@ pub(super) fn lower_object_method(
         return Ok(None);
     };
 
-    let lowered_func = lower_function_for_object_method(builder, &f.func, value.loc)?;
+    let lowered_func = lower_function_for_object_method(builder, &store[*f].func, value.loc)?;
 
     let loc = convert_loc(method_loc);
     let method_value = InstructionValue::ObjectMethod { loc, lowered_func };
@@ -415,15 +416,6 @@ fn lower_object_property_key(
             })?;
             Ok(None)
         }
-    }
-}
-
-fn estring_to_store_str(store: &bun_ast::Store, s: &E::EString) -> HirStr {
-    debug_assert!(s.next.is_none());
-    if s.is_utf16 {
-        super::helpers::arena_str(bun_core::strings::to_utf8_alloc(s.slice16(store)).as_slice())
-    } else {
-        HirStr::new(s.slice8(store))
     }
 }
 

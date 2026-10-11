@@ -14,16 +14,8 @@ use bun_ast::expr::Data as ExprData;
 use bun_ast::{E, Expr, G, Loc, Ref};
 
 use super::expr::lower_expression;
-use super::helpers::{lower_expression_to_temporary, lower_identifier, lower_value_to_temporary};
+use super::helpers::{estring_to_store_str, lower_expression_to_temporary, lower_identifier, lower_value_to_temporary};
 use crate::lowering::hir_builder::{HirBuilder, convert_loc};
-
-fn estring_to_store_str(store: &bun_ast::Store, s: &E::EString) -> HirStr {
-    if s.is_utf16 {
-        super::helpers::arena_str(&bun_core::strings::to_utf8_alloc(s.slice16(store)))
-    } else {
-        HirStr::new(s.slice8(store))
-    }
-}
 
 fn lower_jsx_element_name(builder: &mut HirBuilder, tag: &Expr) -> Result<JsxTag, CompilerError> {
     let store = builder.store();
@@ -62,7 +54,7 @@ fn lower_jsx_element_name(builder: &mut HirBuilder, tag: &Expr) -> Result<JsxTag
             if let Some(idx) = bun_core::strings::index_of_char_usize(bytes, b':') {
                 let namespace = &bytes[..idx];
                 let local = &bytes[idx + 1..];
-                if bun_core::strings::contains_char(local, b':') {
+                if local.contains(&b':') {
                     builder.record_error(CompilerErrorDetail {
                         category: ErrorCategory::Syntax,
                         reason:
@@ -205,7 +197,7 @@ pub(super) fn lower_jsx_call(
 ) -> Result<InstructionValue, CompilerError> {
     let store = builder.store();
     let loc = convert_loc(expr_loc);
-    let args: &[Expr] = &call.args;
+    let args: &[Expr] = &store[call.args];
 
     let Some(tag_expr) = args.first() else {
         builder.record_error(CompilerErrorDetail {
@@ -287,7 +279,7 @@ pub(super) fn lower_jsx_call(
             }
         }
 
-        for prop in obj.properties.iter() {
+        for prop in store[store[*obj].properties].iter() {
             if matches!(prop.kind, G::PropertyKind::Spread) {
                 let value = prop.value.as_ref().ok_or_else(|| {
                     todo_err("(BuildHIR::lowerJsxCall) spread without value", loc)
@@ -310,7 +302,7 @@ pub(super) fn lower_jsx_call(
                 continue;
             };
             let _key_loc = convert_loc(key_expr.loc);
-            let name = estring_to_store_str(store, key_str);
+            let name = estring_to_store_str(store, &store[*key_str]);
             let Some(value_expr) = prop.value.as_ref() else {
                 continue;
             };
@@ -352,7 +344,7 @@ pub(super) fn lower_jsx_call(
                         continue;
                     };
                     let _key_loc = convert_loc(key_expr.loc);
-                    let name = estring_to_store_str(store, key_str);
+                    let name = estring_to_store_str(store, &store[*key_str]);
                     let Some(value_expr) = prop.value.as_ref() else {
                         continue;
                     };

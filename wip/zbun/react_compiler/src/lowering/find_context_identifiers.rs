@@ -91,6 +91,7 @@ impl<'a> ContextIdentifierVisitor<'a> {
     }
 
     fn resolve_ref(&self, ref_: Ref) -> Ref {
+        let store = self.host.store();
         use bun_ast::base::RefTag;
         if ref_.tag() == RefTag::Symbol {
             return ref_;
@@ -98,10 +99,10 @@ impl<'a> ContextIdentifierVisitor<'a> {
         let name = self.host.ref_name(ref_);
         let mut scope = Some(self.current_scope());
         while let Some(s) = scope {
-            if let Some(member) = s.members.get(name) {
+            if let Some(member) = s.members.get(store, name) {
                 return member.ref_;
             }
-            scope = s.parent.as_deref();
+            scope = s.parent.map(|p| &store[p]);
         }
         ref_
     }
@@ -255,7 +256,7 @@ impl<'a> ContextIdentifierVisitor<'a> {
                     self.walk_expr(v);
                 }
             }
-            StmtData::SThrow(t) => self.walk_expr(&t.value),
+            StmtData::SThrow(t) => self.walk_expr(&store[*t].value),
             StmtData::SIf(i) => { let i = &store[*i];
                 self.walk_expr(&i.test);
                 self.walk_stmt(&i.yes);
@@ -388,7 +389,6 @@ impl<'a> ContextIdentifierVisitor<'a> {
     fn walk_expr(&mut self, e: &Expr) {
         let store = self.host.store();
         match &e.data {
-            Data::EObjectJSON(_) | Data::EArrayJSON(_) => {}
             Data::EIdentifier(id) => self.check_captured_reference(id.ref_),
             Data::EImportIdentifier(id) => self.check_captured_reference(id.ref_),
 
@@ -675,7 +675,7 @@ pub(crate) fn find_context_identifiers(
     // Walk params and body (like Babel's func.traverse())
     visitor.push_scope(func.args_loc());
     visitor.push_scope(func.body().loc);
-    visitor.walk_args(func.args());
+    visitor.walk_args(func.args(host.store()));
     visitor.walk_stmts(&store[func.body().stmts]);
 
     if let Some(error) = visitor.error {

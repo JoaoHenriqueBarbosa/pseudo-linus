@@ -11,9 +11,14 @@ use crate::lowering::hir_builder::{HirBuilder, convert_loc};
 use super::expr::lower_reorderable_expression;
 use super::lower_expression;
 
+/// Os bytes de uma `EString` do AST (UTF-16 vira UTF-8) como string do HIR.
+pub(super) fn estring_to_store_str(store: &bun_ast::Store, s: &bun_ast::E::EString) -> HirStr {
+    HirStr::new(&s.flat(store).string())
+}
+
 #[inline]
 pub(super) fn arena_str(bytes: &[u8]) -> HirStr {
-    HirStr::new(ast::data_store_dupe_str(bytes))
+    HirStr::new(bytes)
 }
 
 struct WriteBytes<'a>(&'a mut HirVec<u8>);
@@ -339,7 +344,7 @@ pub(super) fn lower_member_expression(
                 })?;
                 return Ok(LoweredMemberExpression {
                     object,
-                    property: MemberProperty::Literal(PropertyLiteral::String(HirStr::EMPTY)),
+                    property: MemberProperty::Literal(PropertyLiteral::String(HirStr::default())),
                     value: InstructionValue::UnsupportedNode {
                         node_type: Some("MemberExpression"),
                         original_node: serialize_expression!(expr),
@@ -1156,7 +1161,7 @@ pub(super) fn lower_object_property_key(
 // Optional chains
 // =============================================================================
 
-fn member_object<'a>(store: &bun_ast::Store, expr: &'a Expr) -> &'a Expr {
+fn member_object<'a>(store: &'a bun_ast::Store, expr: &'a Expr) -> &'a Expr {
     match &expr.data {
         Data::EDot(d) => { let d = &store[*d]; &d.target },
         Data::EIndex(i) => { let i = &store[*i]; &i.target },
@@ -1318,6 +1323,7 @@ fn lower_optional_call_expression_impl(
             convert_loc(expr.loc),
         ));
     };
+    let call = &store[*call];
     let optional = matches!(call.optional_chain, Some(OptionalChain::Start));
     let loc = convert_loc(expr.loc);
     let place = build_temporary_place(builder, loc);
@@ -1414,7 +1420,7 @@ fn lower_optional_call_expression_impl(
     })?;
 
     builder.try_enter_reserved(consequent, |builder| {
-        let args = lower_arguments(builder, &call.args)?;
+        let args = lower_arguments(builder, &store[call.args])?;
         let temp = build_temporary_place(builder, loc);
 
         match callee_info.as_ref().unwrap() {
