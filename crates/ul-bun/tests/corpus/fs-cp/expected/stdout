@@ -1,0 +1,37 @@
+file ok alpha
+file into new dir ok alpha
+dir not recursive err SystemError ERR_FS_EISDIR Path is a directory: cp returned EISDIR (/tmp/c/src is a directory (not copied)) /tmp/c/src ["name","info","errno","syscall","path"] cp 21 /tmp/c/src undefined
+dir recursive ok [
+  [ "a.txt", "link", "sub/", "sub/b.txt" ], "/tmp/c/src/a.txt"
+]
+dir merge ok [ "a.txt", "extra", "link", "sub/", "sub/b.txt" ]
+dereference ok false
+errorOnExist err SystemError ERR_FS_CP_EEXIST Target already exists: cp returned EEXIST (/tmp/c/out-file already exists) /tmp/c/out-file ["name","info","errno","syscall","path"] cp 17 /tmp/c/out-file undefined
+force false keeps ok old
+same file err SystemError ERR_FS_CP_EINVAL Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) /tmp/c/src/a.txt ["name","info","errno","syscall","path"] cp 22 /tmp/c/src/a.txt undefined
+into itself err SystemError ERR_FS_CP_EINVAL Invalid src or dest: cp returned EINVAL (cannot copy /tmp/c/src to a subdirectory of self /tmp/c/src/sub/in) /tmp/c/src/sub/in ["name","info","errno","syscall","path"] cp 22 /tmp/c/src/sub/in undefined
+dir to file err SystemError ERR_FS_CP_DIR_TO_NON_DIR Cannot overwrite non-directory with directory: cp returned EISDIR (cannot overwrite non-directory /tmp/c/out-file with directory /tmp/c/src) /tmp/c/out-file ["name","info","errno","syscall","path"] cp 21 /tmp/c/out-file undefined
+file to dir err SystemError ERR_FS_CP_NON_DIR_TO_DIR Cannot overwrite directory with non-directory: cp returned ENOTDIR (cannot overwrite directory /tmp/c/out-dir with non-directory /tmp/c/src/a.txt) /tmp/c/out-dir ["name","info","errno","syscall","path"] cp 20 /tmp/c/out-dir undefined
+missing err Error ENOENT ENOENT: no such file or directory, lstat '/tmp/c/zz' ["code","path","syscall","errno"] lstat -2 /tmp/c/zz undefined
+filter ok [ "a.txt", "link", "sub/" ]
+filter promise err TypeError ERR_INVALID_RETURN_VALUE Expected boolean to be returned from the "filter" function but got an instance of Promise. [] undefined undefined undefined undefined
+incompatible err TypeError ERR_INCOMPATIBLE_OPTION_PAIR Option "dereference" cannot be used in combination with option "verbatimSymlinks" [] undefined undefined undefined undefined
+bad mode err RangeError ERR_OUT_OF_RANGE The value of "mode" is out of range. It must be >= 0 && <= 7. Received 9 [] undefined undefined undefined undefined
+bad option type err TypeError ERR_INVALID_ARG_TYPE The "options.recursive" property must be of type boolean. Received type string ('yes') [] undefined undefined undefined undefined
+bad src err TypeError ERR_INVALID_ARG_TYPE The "src" argument must be of type string or an instance of Buffer or URL. Received type number (5) [] undefined undefined undefined undefined
+bad dest url err TypeError ERR_INVALID_ARG_TYPE The "dest" argument must be of type string or an instance of Buffer or URL. Received an instance of Object [] undefined undefined undefined undefined
+null byte err TypeError ERR_INVALID_ARG_VALUE The argument 'src' must be a string, Uint8Array, or URL without null bytes. Received '/tmp/c/src/a.txt\x00x' [] undefined undefined undefined undefined
+preserveTimestamps ok 2000000
+lengths ok [ 4, 3, 3, "cp", "cpSync", "cp" ]
+p file undefined alpha
+p dir undefined [ "a.txt", "link", "sub/", "sub/b.txt" ]
+p dir not recursive err SystemError ERR_FS_EISDIR Path is a directory: cp returned EISDIR (/tmp/c/src is a directory (not copied)) /tmp/c/src ["name","info","errno","syscall","path"]
+p errorOnExist err SystemError ERR_FS_CP_EEXIST Target already exists: cp returned EEXIST (/tmp/c/p-file already exists) /tmp/c/p-file ["name","info","errno","syscall","path"]
+p missing err Error ENOENT ENOENT: no such file or directory, lstat '/tmp/c/zz' ["code","path","syscall","errno"]
+p bad option err TypeError ERR_INVALID_ARG_TYPE The "options" argument must be of type object. Received type number (5) []
+p filter ok undefined
+p filter tree [ "a.txt", "link" ]
+cb [ null ] [ "a.txt", "link", "sub/", "sub/b.txt" ]
+cb err ENOENT lstat undefined
+cb missing ERR_INVALID_ARG_TYPE The "cb" argument must be of type function. Received undefined
+cb bad option ERR_INVALID_ARG_TYPE The "options.recursive" property must be of type boolean. Received type number (1)

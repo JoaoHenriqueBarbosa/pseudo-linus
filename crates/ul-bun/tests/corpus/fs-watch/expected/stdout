@@ -1,0 +1,28 @@
+shape FSWatcher [ "_events", "_eventsCount", "_maxListeners", "_handle" ] FSEvent [ "constructor",
+  "close", "ref", "unref", "start"
+] true true
+lengths 3 3 2 1 watch watchFile unwatchFile watch
+closed after close()
+missing Error ENOENT ENOENT: no such file or directory, watch '/tmp/w/zz' ["code","path","syscall","errno","filename"] watch -2 /tmp/w/zz /tmp/w/zz
+throwIfNoEntry FSWatcher
+file events [ "change f" ]
+dir events [ "rename n" ]
+buffer names [ true ]
+abort error AbortError
+abort close
+abort error AbortError
+abort close
+p watch AbortError ABORT_ERR
+p aborted AbortError ABORT_ERR
+p bad ERR_INVALID_ARG_TYPE The "filename" argument must be of type string or an instance of Buffer or URL. Received type number (5)
+p missing ENOENT
+p missing iterate ENOENT ENOENT: no such file or directory, watch '/tmp/w/zz'
+stat watcher StatWatcher [ "_events", "_eventsCount", "_maxListeners", "_handle" ] [ "constructor",
+  "start", "stop", "ref", "unref"
+] 1 true 2
+watchFile [
+  [ 6, 3, "Stats" ], [ 0, 6, "Stats" ]
+]
+missing watchFile BigIntStats 0n 0n 0n 0n
+bad listener ERR_INVALID_ARG_TYPE The "listener" argument must be of type function. Received type number (5)
+bad path ERR_INVALID_ARG_TYPE The "path" argument must be of type string or URL. Received type number (5)

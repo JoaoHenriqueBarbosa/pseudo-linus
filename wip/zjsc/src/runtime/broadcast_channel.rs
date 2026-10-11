@@ -282,17 +282,27 @@ fn post_message_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRes
     Ok(js_undefined())
 }
 
-/// O nome como `util.inspect` o mostra: aspas simples, ou duplas/crase quando o texto contém a anterior.
+/// O nome como `util.inspect` o mostra: aspas simples, ou duplas/crase quando o texto contém a anterior, com as
+/// escapadas do `strEscape` do Node (`\n \r \t \b \f`, `\xNN` maiúsculo nos demais controles e em 0x7f a 0x9f, `\uNNNN`
+/// minúsculo nos substitutos soltos).
 pub(crate) fn quoted_name(units: &[u16]) -> Vec<u16> {
     let contains = |quote: char| units.contains(&(quote as u16));
     let quote = ['\'', '"', '`'].into_iter().find(|quote| !contains(*quote)).unwrap_or('\'');
     let mut text = vec![quote as u16];
-    for &unit in units {
+    let escape = |text: &mut Vec<u16>, shown: String| text.extend(shown.encode_utf16());
+    for (index, &unit) in units.iter().enumerate() {
+        let low_follows = (0xdc00..0xe000).contains(&units.get(index + 1).copied().unwrap_or(0));
+        let high_precedes = index > 0 && (0xd800..0xdc00).contains(&units[index - 1]);
         match unit {
             0x5c => text.extend([0x5c, 0x5c]),
             0x0a => text.extend([0x5c, u16::from(b'n')]),
             0x0d => text.extend([0x5c, u16::from(b'r')]),
             0x09 => text.extend([0x5c, u16::from(b't')]),
+            0x08 => text.extend([0x5c, u16::from(b'b')]),
+            0x0c => text.extend([0x5c, u16::from(b'f')]),
+            0x00..=0x1f | 0x7f..=0x9f => escape(&mut text, format!("\\x{unit:02X}")),
+            0xd800..=0xdbff if !low_follows => escape(&mut text, format!("\\u{unit:x}")),
+            0xdc00..=0xdfff if !high_precedes => escape(&mut text, format!("\\u{unit:x}")),
             _ if unit == quote as u16 => text.extend([0x5c, unit]),
             _ => text.push(unit),
         }

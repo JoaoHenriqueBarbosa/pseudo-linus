@@ -1,0 +1,29 @@
+star ok [ "a.txt", "b.js", "c.txt", "linked", "src" ]
+txt ok [ "a.txt", "c.txt" ]
+globstar ok [ "a.txt", "c.txt", "src/d.txt", "src/deep/f.txt", "src/deep/er/g.txt" ]
+subdir ok [ "src/d.txt", "src/deep", "src/e.ts" ]
+brace ok [ "b.js", "a.txt", "c.txt" ]
+class ok [ "a.txt", "b.js" ]
+question ok [ "a.txt", "c.txt" ]
+multi ok [ "b.js", "src/e.ts" ]
+absolute ok [ "/tmp/g/src/d.txt" ]
+none ok []
+dot ok [ "d.txt", "deep", "e.ts", "deep/er", "deep/f.txt", "deep/er/g.txt" ]
+exclude fn ok [ "a.txt", "c.txt", "src/d.txt" ]
+exclude array ok [ "a.txt", "c.txt", "src/d.txt" ]
+withFileTypes ok [
+  [ "Dirent", "d.txt", "/tmp/g/src", false ], [ "Dirent", "deep", "/tmp/g/src", true ], [
+    "Dirent", "e.ts", "/tmp/g/src", false
+  ]
+]
+cwd url ok [ "b.js" ]
+bad pattern err TypeError ERR_INVALID_ARG_TYPE The "patterns" argument must be of type string. Received type number (5) []
+bad options err TypeError ERR_INVALID_ARG_TYPE The "options" argument must be of type object. Received type number (5) []
+bad exclude err TypeError ERR_INVALID_ARG_TYPE The "options.exclude" property must be of type function or string[]. Received type number (5) []
+lengths ok [ 3, 2, 2, "glob", "globSync", "glob" ]
+promises [ "a.txt", "c.txt", "src/d.txt", "src/deep/f.txt", "src/deep/er/g.txt" ]
+promises type [object AsyncGenerator]
+promises bad ERR_INVALID_ARG_TYPE The "patterns" argument must be of type string. Received type number (5)
+cb [ null, [ "src/d.txt" ] ]
+cb cwd 2 false
+cb missing ERR_INVALID_ARG_TYPE The "callback" argument must be of type function. Received undefined

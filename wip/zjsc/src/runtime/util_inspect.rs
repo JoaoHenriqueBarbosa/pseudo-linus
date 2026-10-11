@@ -2280,6 +2280,15 @@ mod tests {
         assert_eq!(inspect(&global, object.as_value()), "{ 'a-b': 1, _ok: 5, '$d': 6 }");
     }
 
+    // `strEscape` do Node: controles como `\xNN` maiúsculo (fora `\n \r \t \b \f`), 0x7f a 0x9f também, substituto solto como `\uNNNN` minúsculo.
+    #[test]
+    fn string_quoting_escapes_like_node() {
+        let quote = |text: &[u16]| String::from_utf16_lossy(&quoted_name(text));
+        assert_eq!(quote(&[0x61, 0x00, 0x62, 0x0b, 0x08, 0x0c, 0x7f, 0x9f]), "'a\\x00b\\x0B\\b\\f\\x7F\\x9F'");
+        assert_eq!(quote(&[0xd83d, 0x61, 0xde00]), "'\\ud83da\\ude00'");
+        assert_eq!(quote(&[0xd83d, 0xde00]), "'\u{1f600}'");
+    }
+
     // Medido no bun: `util.inspect(e)` com `e.stack = ''`.
     #[test]
     fn error_without_stack_is_bracketed() {

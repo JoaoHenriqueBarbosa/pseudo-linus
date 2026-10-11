@@ -647,7 +647,7 @@
     fstat: [3, 1], fsync: [2, 2], ftruncate: [1, 1], futimes: [4, 4], link: [3, 3], lstat: [3, 1], lutimes: [4, 4], mkdir: [3, 3],
     mkdtemp: [3, 3], open: [4, 1], read: [6, 6], readFile: [3, 1], readdir: [3, 3], readlink: [3, 3], realpath: [3, 3], rename: [3, 3],
     rm: [3, 2], rmdir: [3, 2], stat: [3, 1], symlink: [4, 4], truncate: [3, 3], unlink: [2, 2], utimes: [4, 4], write: [6, 6], writeFile: [4, 1],
-    chown: [4, 4], fchown: [4, 4], lchown: [4, 4], statfs: [3, 2], opendir: [3, 2], writev: [4, 3], readv: [4, 3], mkdtempDisposable: [0, 2],
+    chown: [4, 4], fchown: [4, 4], lchown: [4, 4], statfs: [3, 2], opendir: [3, 2], writev: [4, 3], readv: [4, 3], mkdtempDisposable: [0, 2], cp: [4, 3], glob: [3, 2],
   };
   // ---- chown, statfs, writev, readv, mkdtempDisposable, Dir, openAsBlob ----
   const id32 = (value) => (value === -1 ? 4294967295 : value);
@@ -1077,6 +1077,36 @@
   promises.write = promiseFor(writeSync, (bytesWritten, args) => ({ bytesWritten, buffer: args[1] }));
   promises.open = promiseFor(openSync, (fd, args) => new FileHandle(fd, args[1] === undefined ? "r" : args[1]));
 
+  // `glob`: o `internal/fs/glob` do bun (com o minimatch do Node), gerado por `scripts/gen-node-fs-glob.js`.
+  const globSync = (pattern, options) => b.asset("glob").globSync(pattern, options);
+  callbacks.glob = (pattern, options, callback) => b.asset("glob").glob(pattern, options, callback);
+  promises.glob = (pattern, options) => b.asset("glob").promisesGlob(pattern, options);
+
+  // `watch`, `watchFile` e `unwatchFile`: o `internal/fs/watch` e `watchfile` do bun, gerados por
+  // `scripts/gen-node-fs-watch.js`, sobre um observador por comparação de `stat` (o sysabi não tem inotify).
+  const watch = (path, options, listener) => b.asset("watch").watch(path, options, listener);
+  const watchFile = (path, options, listener) => b.asset("watch").watchFile(path, options, listener);
+  const unwatchFile = (path, listener) => b.asset("watch").unwatchFile(path, listener);
+  promises.watch = (filename, options) => b.asset("watch").promisesWatch(filename, options);
+
+  // `cp`: o `internal/fs/cp` do bun, gerado (`scripts/gen-node-fs-cp.js`) e montado na primeira chamada.
+  const cpSync = (src, dest, options) => b.asset("cp").cpSync(src, dest, options);
+  promises.cp = (src, dest, options) => b.asset("cp").cp(src, dest, options);
+  // A versão com callback valida na chamada (lança na hora) e entrega o resultado da promise; um `throw` dentro do
+  // callback sai por `queueMicrotask`, que o leva a `uncaughtException` em vez de rejeitar a cadeia interna.
+  callbacks.cp = function cp(src, dest, options, callback) {
+    if (typeof options === "function") {
+      callback = options;
+      options = undefined;
+    }
+    if (typeof callback !== "function") throw typeError('The "cb" argument must be of type function. Received ' + describe(callback));
+    const cpModule = b.asset("cp");
+    options = cpModule.validateCpOptions(options);
+    src = cpModule.getValidatedFsPath(src, "src");
+    dest = cpModule.getValidatedFsPath(dest, "dest");
+    promises.cp(src, dest, options).then(() => queueMicrotask(() => callback(null)), (error) => queueMicrotask(() => callback(error)));
+  };
+
   const createReadStream = function createReadStream(path, options) {
     return new (b.fsExports().ReadStream)(path, options);
   };
@@ -1090,7 +1120,7 @@
     linkSync, lstatSync, lutimesSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync,
     renameSync, rmSync, rmdirSync, statSync, symlinkSync, truncateSync, unlinkSync, utimesSync, writeFileSync, writeSync,
     fdatasyncSync: fsyncSync, _toUnixTimestamp: toUnixTimestamp, mkdtempDisposableSync, openAsBlob, opendirSync, statfsSync, writevSync, readvSync,
-    chownSync, fchownSync, lchownSync,
+    chownSync, fchownSync, lchownSync, cpSync, globSync, watch, watchFile, unwatchFile,
   };
   // O `length` de cada função do bun (medido).
   const LENGTHS = {
@@ -1098,7 +1128,7 @@
     ftruncateSync: 1, futimesSync: 3, linkSync: 2, lstatSync: 1, lutimesSync: 3, mkdirSync: 2, mkdtempSync: 2, openSync: 3, readFileSync: 2,
     readSync: 5, readdirSync: 2, readlinkSync: 2, realpathSync: 2, renameSync: 2, rmSync: 2, rmdirSync: 2, statSync: 1, symlinkSync: 3,
     truncateSync: 2, unlinkSync: 1, utimesSync: 3, writeFileSync: 3, writeSync: 5, fdatasyncSync: 1, _toUnixTimestamp: 1, createReadStream: 2, createWriteStream: 2, chownSync: 3, fchownSync: 3, lchownSync: 3, statfsSync: 2, opendirSync: 2, writevSync: 3, readvSync: 3,
-    mkdtempDisposableSync: 2, openAsBlob: 2,
+    mkdtempDisposableSync: 2, openAsBlob: 2, cpSync: 3, globSync: 2, watch: 3, watchFile: 3, unwatchFile: 2,
   };
   const setLength = (fn, value) => Object.defineProperty(fn, "length", { value, configurable: true });
   for (const name of Object.keys(LENGTHS)) setLength(implemented[name], LENGTHS[name]);
@@ -1106,8 +1136,13 @@
     if (callbacks[name]) setLength(callbacks[name], ASYNC_LENGTHS[name][0]);
     setLength(promises[name], ASYNC_LENGTHS[name][1]);
   }
+  setLength(promises.watch, 1);
+  // `fs.promises.lchmod` existe no bun e rejeita sempre (o `lchmod` só vale no macOS); `fs.lchmod` é `undefined`.
+  promises.lchmod = async function lchmod(_path, _mode) {
+    throw codedError(Error, "The lchmod() method is not implemented", "ERR_METHOD_NOT_IMPLEMENTED");
+  };
   const streamData = { FileHandle, kRef, kUnref, kFd };
-  const data = { Dir, lchmod: undefined, lchmodSync: undefined, Dirent, F_OK: 0, R_OK: 4, W_OK: 2, X_OK: 1, constants, Stats, ReadStream: undefined, WriteStream: undefined, FileReadStream: undefined, FileWriteStream: undefined };
+  const data = { Dir, lchmod: undefined, lchmodSync: undefined, Dirent, F_OK: 0, R_OK: 4, W_OK: 2, X_OK: 1, constants, Stats, ReadStream: undefined, WriteStream: undefined, FileReadStream: undefined, FileWriteStream: undefined, Utf8Stream: undefined };
 
   // A ordem das chaves de `Object.keys(require("fs"))` do bun 1.4.2.
   const ORDER = [

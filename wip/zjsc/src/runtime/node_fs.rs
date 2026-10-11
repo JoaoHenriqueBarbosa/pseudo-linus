@@ -41,8 +41,17 @@ const PRELUDE: &str = include_str!("node_fs.js");
 /// O fábrica de `fs.ReadStream` e `fs.WriteStream` (gerada de `internal/fs/streams.ts` do bun).
 const STREAMS: &str = include_str!("../api/node_fs_streams.js");
 
+/// As fábricas de JavaScript que o `node:fs` carrega por demanda: (nome, chave do cache, fonte).
+const ASSETS: [(&str, &str, &str); 4] = [
+    ("cp", "internal:fs-cp", include_str!("../api/node_fs_cp.js")),
+    ("glob", "internal:fs-glob", include_str!("../api/node_fs_glob.js")),
+    ("watch", "internal:fs-watch", include_str!("../api/node_fs_watch.js")),
+    ("utf8", "internal:fs-utf8", include_str!("../api/node_fs_utf8.js")),
+];
+
 /// Os exports de `node:fs` que são acessores preguiçosos no bun (`materializeStream`), e o que cada um entrega.
-const STREAM_EXPORTS: [(&str, &str); 4] = [("ReadStream", "ReadStream"), ("WriteStream", "WriteStream"), ("FileReadStream", "ReadStream"), ("FileWriteStream", "WriteStream")];
+const STREAM_EXPORTS: [(&str, &str); 5] =
+    [("ReadStream", "ReadStream"), ("WriteStream", "WriteStream"), ("FileReadStream", "ReadStream"), ("FileWriteStream", "WriteStream"), ("Utf8Stream", "Utf8Stream")];
 
 thread_local! {
     /// O objeto `{ FileHandle, kRef, kUnref, kFd }` (o `fs.promises.$data` do bun) e o módulo `fs` (raízes do coletor).
@@ -284,6 +293,21 @@ fn streams_module(global_object: &JSGlobalObject) -> HostResult {
     })
 }
 
+/// O módulo gerado do bun `name` (`cp`...), montado uma vez por programa.
+fn asset_module(global_object: &JSGlobalObject, name: &str) -> HostResult {
+    let Some((_, key, source)) = ASSETS.iter().find(|(known, _, _)| *known == name) else { return Ok(JSValue::undefined()) };
+    crate::api::builtin_modules::cached(key, || {
+        let host = crate::api::node_js_host::module_host(global_object, &[("asset", 1, asset_function)])?;
+        Ok(crate::api::node_js_host::run_factory(global_object, source, &format!("fs-{name}"), &host))
+    })
+}
+
+/// `asset(nome)`: o módulo gerado do bun para o `node_fs.js`.
+fn asset_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    asset_module(global_object, &text_argument(global_object, call, 0)?)
+}
+host_function!(asset_function, asset_body);
+
 fn streams_body(global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
     streams_module(global_object)
 }
@@ -303,7 +327,7 @@ host_function!(fs_exports_function, fs_exports_body);
 fn binding(global_object: &JSGlobalObject) -> JSValue {
     let vm = global_object.vm();
     let object = construct_empty_object(global_object);
-    let functions: [(&str, u32, NativeFunction); 29] = [
+    let functions: [(&str, u32, NativeFunction); 30] = [
         ("open", 3, open_function),
         ("close", 1, close_function),
         ("read", 5, read_function),
@@ -332,6 +356,7 @@ fn binding(global_object: &JSGlobalObject) -> JSValue {
         ("statfs", 1, statfs_function),
         ("builtin", 1, builtin_function),
         ("streams", 0, streams_function),
+        ("asset", 1, asset_function),
         ("fsExports", 0, fs_exports_function),
     ];
     for (name, length, function) in functions {
@@ -468,7 +493,7 @@ fn materialize_stream(global_object: &JSGlobalObject, this_value: JSValue, name:
 
 fn stream_getter_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let Some((name, class)) = STREAM_ACCESSORS.with(|accessors| accessors.borrow().get(&call.callee()).cloned()) else { return Ok(JSValue::undefined()) };
-    let module = streams_module(global_object)?;
+    let module = if class == "Utf8Stream" { asset_module(global_object, "utf8")? } else { streams_module(global_object)? };
     let value = get_object_property(global_object, module, &Identifier::from_span(global_object.vm(), class.as_bytes()))?;
     materialize_stream(global_object, call.this_value(), &name, value)?;
     Ok(value)

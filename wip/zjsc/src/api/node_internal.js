@@ -112,16 +112,24 @@
     return makeError("RangeError", "ERR_OUT_OF_RANGE", `The value of "${name}" is out of range. It must be ${range}. Received ${received}`);
   }
 
+  // `$ERR_INVALID_ARG_VALUE` e a variante `_RangeError` do bun: só o tipo do erro muda.
+  function invalidArgValue(kind) {
+    return (name, value, reason = "is invalid") => {
+      let inspected = host.inspect(value, undefined);
+      if (inspected.length > 128) inspected = `${inspected.slice(0, 128)}...`;
+      const type = name.includes(".") ? "property" : "argument";
+      return makeError(kind, "ERR_INVALID_ARG_VALUE", `The ${type} '${name}' ${reason}. Received ${inspected}`);
+    };
+  }
+
   // `$ERR_*` do bun: cada código é uma função que devolve o erro (o chamador faz `throw`).
   const codes = {
     INVALID_ARG_TYPE: invalidArgType,
     OUT_OF_RANGE: outOfRange,
-    INVALID_ARG_VALUE(name, value, reason = "is invalid") {
-      let inspected = host.inspect(value, undefined);
-      if (inspected.length > 128) inspected = `${inspected.slice(0, 128)}...`;
-      const type = name.includes(".") ? "property" : "argument";
-      return makeError("TypeError", "ERR_INVALID_ARG_VALUE", `The ${type} '${name}' ${reason}. Received ${inspected}`);
-    },
+    INVALID_ARG_VALUE: invalidArgValue("TypeError"),
+    INVALID_ARG_VALUE_RangeError: invalidArgValue("RangeError"),
+    INVALID_STATE: message => makeError("Error", "ERR_INVALID_STATE", `Invalid state: ${message}`),
+    OPERATION_FAILED: message => makeError("Error", "ERR_OPERATION_FAILED", `Operation failed: ${message}`),
     // O `$ERR_INVALID_RETURN_VALUE` do bun descreve o valor com o determineSpecificType (`type number (5)`, `an instance
     // of Object`, `null`), não com o `instance of X` do Node; medido no bun 1.4.2.
     INVALID_RETURN_VALUE(input, name, value) {
@@ -181,6 +189,21 @@
     ASYNC_TYPE: type => makeError("TypeError", "ERR_ASYNC_TYPE", `Invalid name for async "type": ${type}`),
     ASYNC_CALLBACK: name => makeError("TypeError", "ERR_ASYNC_CALLBACK", `${name} must be a function`),
   };
+  // Os que o bun declara só com a mensagem pronta (`$ERR_FS_CP_EEXIST(message)`): o argumento é a mensagem.
+  for (const [name, kind] of [
+    ["FS_CP_DIR_TO_NON_DIR", "Error"],
+    ["FS_CP_EEXIST", "Error"],
+    ["FS_CP_EINVAL", "Error"],
+    ["FS_CP_FIFO_PIPE", "Error"],
+    ["FS_CP_NON_DIR_TO_DIR", "Error"],
+    ["FS_CP_SOCKET", "Error"],
+    ["FS_CP_SYMLINK_TO_SUBDIRECTORY", "Error"],
+    ["FS_CP_UNKNOWN", "Error"],
+    ["FS_EISDIR", "Error"],
+    ["INCOMPATIBLE_OPTION_PAIR", "TypeError"],
+  ]) {
+    codes[name] = message => makeError(kind, `ERR_${name}`, message);
+  }
 
   // `AbortError` do bun: o protótipo traz `name` e `code`, e `constructor` continua o de `Error`.
   const abortErrorPrototype = ObjectCreate(Error.prototype, {
@@ -282,6 +305,29 @@
     }
   }
 
+  const fileURLToPath = url => host.requireBuiltin("node:url").fileURLToPath(url);
+
+  // Um caminho de texto ou URL, resolvido para absoluto (`getValidatedPath` do bun).
+  function getValidatedPath(path) {
+    if (path instanceof URL) return fileURLToPath(path);
+    if (typeof path !== "string") throw invalidArgType("path", "string or URL", path);
+    if (path.startsWith("file:")) return fileURLToPath(path);
+    return host.requireBuiltin("node:path").resolve(path);
+  }
+
+  function throwIfNullBytesInFileName(filename) {
+    if (filename.indexOf("\u0000") !== -1) throw codes.INVALID_ARG_VALUE("path", filename, "string without null bytes");
+  }
+
+  // O `getValidatedFsPath` do bun (o do Node): URL vira caminho, texto e Uint8Array entram como vieram, sem byte nulo.
+  function getValidatedFsPath(value, name = "path") {
+    if (value instanceof URL) value = fileURLToPath(value);
+    const bytes = typeof value === "string" ? value.indexOf("\u0000") : value instanceof Uint8Array ? value.indexOf(0) : undefined;
+    if (bytes === undefined) throw invalidArgType(name, ["string", "Buffer", "URL"], value);
+    if (bytes !== -1) throw codes.INVALID_ARG_VALUE(name, value, "must be a string, Uint8Array, or URL without null bytes");
+    return value;
+  }
+
   const validators = {
     kValidateObjectNone,
     kValidateObjectAllowNullable,
@@ -298,6 +344,9 @@
     validateAbortSignal,
     validateArray,
     validateOneOf,
+    getValidatedPath,
+    throwIfNullBytesInFileName,
+    getValidatedFsPath,
   };
 
   // ---- internal/errors ----

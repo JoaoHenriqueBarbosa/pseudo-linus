@@ -1,0 +1,27 @@
+lchmod function 2 lchmod 16
+p lchmod err Error ERR_METHOD_NOT_IMPLEMENTED The lchmod() method is not implemented [] undefined undefined
+p lchmod err Error ERR_METHOD_NOT_IMPLEMENTED The lchmod() method is not implemented [] undefined undefined
+p lchmod err Error ERR_METHOD_NOT_IMPLEMENTED The lchmod() method is not implemented [] undefined undefined
+fs lchmod undefined true undefined {
+  value: undefined,
+  writable: true,
+  enumerable: true,
+  configurable: true,
+}
+class function Utf8Stream 0 constructor,write,flush,flushSync,reopen,end,destroy,mode,file,fd,minLength,maxLength,writing,sync,fsync,append,periodicFlush,contentMode,mkdir length,name,prototype
+same true true
+instance Utf8Stream _events,_eventsCount,_maxListeners /tmp/u/out.txt true utf8 undefined 0 0 true false
+write true true
+closed "hello wörld"
+async write true true
+ready
+async closed "line 1\nline 2\n"
+fd mode true true
+destroyed "on a descriptor"
+after destroy ERR_INVALID_STATE Error Invalid state: Utf8Stream is destroyed
+no args err TypeError ERR_INVALID_ARG_TYPE The "fd" argument must be one of type number or string. Received undefined []
+no dest err TypeError ERR_INVALID_ARG_TYPE The "fd" argument must be one of type number or string. Received undefined []
+bad fd err TypeError ERR_INVALID_ARG_TYPE The "fd" argument must be one of type number or string. Received an instance of Object []
+bad min err RangeError ERR_INVALID_ARG_VALUE The argument 'minLength' should be smaller than maxWrite (10). Received 5000000 []
+bad mode err TypeError ERR_INVALID_ARG_VALUE The property 'options.contentMode' must be one of: 'buffer', 'utf8'. Received 'x' []
+bad sync err TypeError ERR_INVALID_ARG_TYPE The "options.sync" property must be of type boolean. Received type number (5) []

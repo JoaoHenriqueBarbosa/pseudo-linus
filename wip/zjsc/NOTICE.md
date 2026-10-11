@@ -14,7 +14,11 @@ sem alteração. O upstream não traz linha de copyright própria; o crédito é
 | `src/api/node_querystring.js` | `src/js/node/querystring.ts`, portado para JavaScript comum |
 | `src/api/node_stream_modules.js` | gerado por `scripts/gen-node-stream.js` a partir dos fontes do `stream` do upstream |
 | `src/api/node_fs_streams.js` | gerado por `scripts/gen-node-fs-streams.js` a partir de `src/js/internal/fs/streams.ts` |
-| `src/runtime/node_fs.js` | escrito para o porte sobre o comportamento medido do `node:fs` do bun; o `FileHandle` segue `src/js/node/fs.promises.ts` e o `cp` e o `glob` (quando entrarem) vêm de `src/js/internal/fs/` |
+| `src/runtime/node_fs.js` | escrito para o porte sobre o comportamento medido do `node:fs` do bun; o `FileHandle` segue `src/js/node/fs.promises.ts` |
+| `src/api/node_fs_cp.js` | gerado por `scripts/gen-node-fs-cp.js` a partir de `src/js/internal/fs/cp-sync.ts` e `cp.ts`; o epílogo (`scripts/node-fs-cp-epilogue.js`) segue os despachantes de `src/js/node/fs.ts` e `fs.promises.ts` |
+| `src/api/node_fs_glob.js` | gerado por `scripts/gen-node-fs-glob.js` a partir de `src/js/internal/fs/glob.ts` (que embute o minimatch do Node, ISC, sem alteração); o epílogo segue `fs.ts` e `fs.promises.ts` |
+| `src/api/node_fs_watch.js` | gerado por `scripts/gen-node-fs-watch.js` a partir de `src/js/internal/fs/watch.ts` e `watchfile.ts`; o epílogo segue o `watch` de `src/js/node/fs.promises.ts`; o observador nativo (`scripts/node-fs-watch-prelude.js`) é escrito para o porte |
+| `src/api/node_fs_utf8.js` | gerado por `scripts/gen-node-fs-utf8.js` a partir de `src/js/internal/streams/fast-utf8-stream.ts` (portado do Node, derivado do SonicBoom, MIT, Copyright (c) 2017 Matteo Collina) |
 | `src/api/node_url.js` | gerado por `scripts/gen-node-url.js` a partir de `src/js/node/url.ts` e `src/js/internal/url.ts` |
 | `src/api/node_util.js` | gerado por `scripts/gen-node-util.js` a partir de `src/js/node/util.ts` e dos internos que ele usa |
 | `src/api/node_assert.js` | gerado por `scripts/gen-node-assert.js` a partir de `src/js/node/assert.ts` e dos internos que ele usa |
