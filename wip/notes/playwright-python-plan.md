@@ -220,6 +220,11 @@ que os testes que falham sejam exatamente os de `DECLARED_DIVERGENCES`, cada um 
    que bloqueia numa trava (`lock1.acquire()` no finalizador). O `SCHED` está vazio na hora da coleta (nenhum
    segmento suspenso o segura), e cada peça isolada (thread com `getcurrent`, trava, greenlet solto em outra thread
    com e sem `join`) não vaza: só a combinação do teste. O dono não foi achado; não se persegue agora.
+   **Falha intermitente de `finalizing_scene_matches_the_oracle` (2026-10-11):** o pânico foi em
+   `tests/common/mod.rs:145` (o `unwrap` do `admin.keys.create` em `Daemon::user`), isto é, a chamada administrativa do
+   daemon falhou antes de qualquer Python rodar, com os 40 testes do arquivo em paralelo na mesma máquina. Medido: a
+   cena sozinha, 60 de 60 rodadas verdes, e 15 rodadas de 6 processos simultâneos (90 execuções), nenhuma falha. É
+   carga do harness (daemon por teste), não corrida do coletor.
 2. **Trashcan.** Os 30 subtestes de `TestTrashCanReEnter` (a destruição de uma cadeia profunda de greenlets) passam no
    estado atual; ficam no backlog só para reabrir se voltarem a falhar.
 3. **"Expected to leak but it did not".** `test_finalizer_crash`, `test_permutations`, `test_recursive_startup`,
