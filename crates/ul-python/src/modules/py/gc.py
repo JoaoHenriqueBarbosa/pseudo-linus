@@ -39,7 +39,7 @@ def isenabled():
 
 
 def get_count():
-    return (0, 0, 0)
+    return (_sys._gc_count(0), _sys._gc_count(1), _sys._gc_count(2))
 
 
 def get_threshold():
@@ -63,11 +63,11 @@ def set_debug(flags):
 
 
 def get_objects(generation=None):
-    return []
+    return _sys._gc_objects(generation)
 
 
 def get_referrers(*objs):
-    return []
+    return _sys._gc_referrers(objs)
 
 
 def get_referents(*objs):
@@ -78,7 +78,7 @@ def get_referents(*objs):
 
 
 def is_tracked(obj):
-    return not isinstance(obj, (int, float, str, bytes, bool, type(None)))
+    return _sys._gc_is_tracked(obj)
 
 
 def is_finalized(obj):
@@ -86,15 +86,15 @@ def is_finalized(obj):
 
 
 def freeze():
-    pass
+    _sys._gc_freeze(True)
 
 
 def unfreeze():
-    pass
+    _sys._gc_freeze(False)
 
 
 def get_freeze_count():
-    return 0
+    return _sys._gc_freeze(None)
 
 
 def get_stats():

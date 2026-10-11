@@ -29,6 +29,7 @@ pub mod frameobj;
 pub mod generator;
 pub mod generic;
 pub mod globalsview;
+mod gcreg;
 pub mod gthread;
 pub mod heapimage;
 pub mod idna;
