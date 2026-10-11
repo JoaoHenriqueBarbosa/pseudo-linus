@@ -639,13 +639,65 @@ function tokenize(text) {
   }
   return tokens;
 }
-// Para cada token do texto gravado, o índice do token do original a que corresponde (ou -1). Duas cabeças andam juntas;
-// no descompasso tenta, nesta ordem: pular tokens do original (janela 32), pular tokens do gravado, voltar ao ponto de
-// onde saiu um salto, saltar para a próxima ocorrência não usada dos três tokens seguintes em qualquer parte do original
-// (a `class` que o runtime iça para o começo), e por fim deixar o token sem par.
+// Para cada token do texto gravado, o índice do token do original a que corresponde (ou -1). Primeiro a maior
+// subsequência comum dos textos dos tokens (diff de Myers, `myersPairs`), que não se perde com token que só um dos lados
+// tem: o `;` que o transpilador acrescenta em `null.p }` e o `;` vazio de `};` que ele tira, lado a lado, desalinhavam as
+// duas cabeças da varredura gulosa e deixavam sem par o resto do programa (o `f()` do `try` herdava o deslocamento do
+// `null.p` e o mapa dava 5:16 onde o bun mostra 2:32). Os tokens que ficam sem par (a `class` que o runtime iça para o
+// começo não cabe numa subsequência comum) vão para a varredura gulosa abaixo, só sobre os originais não usados. Diff
+// grande demais (`MYERS_LIMIT` passos) fica só com a varredura gulosa.
+const MYERS_LIMIT = 4000;
+function myersPairs(a, b) {
+  const n = a.length;
+  const m = b.length;
+  const max = n + m;
+  const offset = max + 1;
+  let v = new Int32Array(2 * max + 3);
+  const trace = [];
+  let found = -1;
+  for (let d = 0; d <= Math.min(max, MYERS_LIMIT); d++) {
+    trace.push(v.slice());
+    for (let k = -d; k <= d; k += 2) {
+      let x = k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1]) ? v[offset + k + 1] : v[offset + k - 1] + 1;
+      let y = x - k;
+      while (x < n && y < m && a[x].t === b[y].t) { x++; y++; }
+      v[offset + k] = x;
+      if (x >= n && y >= m) { found = d; break; }
+    }
+    if (found >= 0) break;
+  }
+  if (found < 0) return null;
+  const pairs = [];
+  let x = n;
+  let y = m;
+  for (let d = found; d > 0; d--) {
+    const prev = trace[d];
+    const k = x - y;
+    const down = k === -d || (k !== d && prev[offset + k - 1] < prev[offset + k + 1]);
+    const prevK = down ? k + 1 : k - 1;
+    const prevX = prev[offset + prevK];
+    const prevY = prevX - prevK;
+    while (x > prevX && y > prevY) { x--; y--; pairs.push([x, y]); }
+    x = prevX;
+    y = prevY;
+  }
+  while (x > 0 && y > 0) { x--; y--; pairs.push([x, y]); }
+  return pairs;
+}
 function alignTokens(recorded, original) {
+  const pairs = myersPairs(recorded, original);
+  if (pairs === null) return greedyAlign(recorded, original, new Int32Array(recorded.length).fill(-1), new Uint8Array(original.length), false);
   const match = new Int32Array(recorded.length).fill(-1);
   const used = new Uint8Array(original.length);
+  for (const [i, j] of pairs) { match[i] = j; used[j] = 1; }
+  return greedyAlign(recorded, original, match, used, true);
+}
+// A varredura gulosa: duas cabeças andam juntas sobre os tokens ainda sem par (`match[i] < 0`) e os originais não usados;
+// no descompasso tenta, nesta ordem: pular tokens do original (janela 32), pular tokens do gravado, voltar ao ponto de
+// onde saiu um salto, saltar para a próxima ocorrência não usada dos três tokens seguintes em qualquer parte do original
+// (a `class` que o runtime iça para o começo), e por fim deixar o token sem par. Depois do diff (`strict`), o token sem
+// par só casa se o seguinte também casar: o `;` que só um dos lados tem não pega um `;` solto do outro.
+function greedyAlign(recorded, original, match, used, strict) {
   const WINDOW = 32;
   const gram = (tokens, k) => tokens[k].t + "\u0000" + (k + 1 < tokens.length ? tokens[k + 1].t : "") + "\u0000" + (k + 2 < tokens.length ? tokens[k + 2].t : "");
   let grams = null;
@@ -666,8 +718,9 @@ function alignTokens(recorded, original) {
   let j = 0;
   let saved = -1;
   while (i < recorded.length) {
+    if (match[i] >= 0) { j = match[i] + 1; i++; continue; }
     j = skipUsed(j);
-    if (j < original.length && recorded[i].t === original[j].t) { match[i] = j; used[j] = 1; i++; j++; continue; }
+    if (j < original.length && recorded[i].t === original[j].t && (!strict || nextEqual(i, j))) { match[i] = j; used[j] = 1; i++; j++; continue; }
     if (saved >= 0) {
       const back = skipUsed(saved);
       if (back < original.length && recorded[i].t === original[back].t) { j = back; saved = -1; continue; }
