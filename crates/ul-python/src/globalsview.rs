@@ -34,6 +34,18 @@ struct View {
 
 thread_local! {
     static VIEWS: RefCell<Vec<View>> = const { RefCell::new(Vec::new()) };
+    /// Os dicts de `exec(código, espaço)` cujas globais são uma tabela própria do `exec`: se alguém pedir o dict dessas
+    /// globais (o `f_globals` de uma função que o código criou), ele é o `espaço` do programa, não uma cópia.
+    static NAMESPACES: RefCell<Vec<(std::rc::Weak<RefCell<VarMap>>, std::rc::Weak<RefCell<Dict>>)>> = const { RefCell::new(Vec::new()) };
+}
+
+/// `exec(código, espaço)` rodou em `map`, uma tabela só dele: o dict das globais dela é o `espaço`.
+pub fn remember_namespace(map: &Rc<RefCell<VarMap>>, dict: &Rc<RefCell<Dict>>) {
+    NAMESPACES.with(|n| {
+        let mut n = n.borrow_mut();
+        n.retain(|(m, d)| m.strong_count() > 0 && d.strong_count() > 0);
+        n.push((Rc::downgrade(map), Rc::downgrade(dict)));
+    });
 }
 
 fn name_of(key: &Value) -> Option<String> {
@@ -79,7 +91,8 @@ pub fn view_for(map: &Rc<RefCell<VarMap>>, extras: Option<BTreeMap<String, Value
     if let Some(v) = found {
         return v;
     }
-    let dict = Rc::new(RefCell::new(Dict::default()));
+    let owned = NAMESPACES.with(|n| n.borrow().iter().find(|(m, _)| std::ptr::eq(m.as_ptr(), Rc::as_ptr(map))).and_then(|(_, d)| d.upgrade()));
+    let dict = owned.unwrap_or_else(|| Rc::new(RefCell::new(Dict::default())));
     let mut view = View { map: map.clone(), dict: dict.clone(), generation: 0, keys: HashSet::new() };
     refresh(&mut view, &extras);
     VIEWS.with(|views| views.borrow_mut().push(view));
