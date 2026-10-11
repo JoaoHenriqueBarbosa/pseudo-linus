@@ -320,8 +320,12 @@ def _save_stacks(green, origin_state, state, new, finishing, run, payload):
 
 def _land():
     """Tira da caixa o que a troca trouxe e o entrega como o resultado do `switch` (ou levanta, num `throw`)."""
-    payload = _box[0]
+    payload, origin = _box[0]
     _box[0] = None
+    # O `g_calltrace` do C roda do lado de quem chega (o alvo já é o corrente, quem saiu já está suspenso): um erro dele
+    # sobe do `switch` de quem chegou.
+    _trace(payload[0], origin, _thread().glet)
+    del origin
     if payload[0] == 'throw':
         raise payload[1]
     return _unpack(payload[1], payload[2])
@@ -348,7 +352,7 @@ def _enter(target, payload, run, finishing):
         except ValueError:
             # Um greenlet cujo `run` é uma nativa (`getcurrent().switch`) só tem quadros do shim embaixo: sem quadro.
             origin_state.frame = None
-    _box[0] = payload
+    _box[0] = (payload, green.glet)
     # O `ts->context` da thread troca de dono: o de quem sai fica guardado no greenlet dele, e o de quem entra (vazio,
     # num greenlet que ainda não rodou) passa a ser o corrente.
     origin_state.context = green.ctx
@@ -366,7 +370,7 @@ def _enter(target, payload, run, finishing):
     return _land()
 
 
-def _switch_to(target, payload, event):
+def _switch_to(target, payload):
     _check_thread(target)
     was_dead = _st(target).dead
     target = _resolve(target)
@@ -401,16 +405,18 @@ def _switch_to(target, payload, event):
                 raise error('cannot switch to a different thread (which happens to have exited)')
             raise error('Cannot switch to a different thread\n\tCurrent:  %r\n\tExpected: %r' % (origin, parent))
         del parent
-    _trace(event, origin, target)
     del origin
     return _enter(target, payload, run, False)
 
 
 def _entry(state, run):
     """O corpo do segmento de um greenlet: roda o `run` e entrega o resultado (ou a exceção) ao pai."""
-    payload = _box[0]
+    payload, origin = _box[0]
     _box[0] = None
     try:
+        # O rastreador roda no greenlet novo, antes do `run`: um erro dele o mata e sobe ao pai, como o do `run`.
+        _trace(payload[0], origin, _thread().glet)
+        del origin
         if payload[0] == 'throw':
             raise payload[1]
         result = ('switch', (run(*payload[1], **payload[2]),), {})
@@ -428,7 +434,6 @@ def _entry(state, run):
         parent_state = _st(target)
         try:
             run = None if parent_state.started else getattr(target, 'run')
-            _trace('switch' if result[0] == 'switch' else 'throw', me, target)
             break
         except BaseException as exc:
             # O pai não pôde receber (sem `run`): a falha sobe ao avô, como a propagação do C.
@@ -531,7 +536,7 @@ multiple arguments are given.
 If the greenlet is dead, or is the current greenlet then this
 function will simply return the arguments using the same rules as
 above."""
-        return _switch_to(self, ('switch', args, kwargs), 'switch')
+        return _switch_to(self, ('switch', args, kwargs))
 
     def throw(self, typ=GreenletExit, val=None, tb=None):
         """Switches execution to this greenlet, but immediately raises the
@@ -549,7 +554,7 @@ except that this trick does not work for the
 `greenlet.GreenletExit` exception, which would not propagate
 from ``g_raiser`` to ``g``.
 """
-        return _switch_to(self, ('throw', _exception(typ, val, tb)), 'throw')
+        return _switch_to(self, ('throw', _exception(typ, val, tb)))
 
     def __bool__(self):
         state = _st(self)
@@ -644,7 +649,7 @@ def _reap():
         old_parent = state.parent
         state.parent = _current()
         try:
-            _switch_to(glet, ('throw', GreenletExit()), 'throw')
+            _switch_to(glet, ('throw', GreenletExit()))
         except BaseException as exc:
             import _unraisable
             _sysmod.unraisablehook(_unraisable.UnraisableHookArgs((type(exc), exc, exc.__traceback__, None, glet)))

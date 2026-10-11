@@ -1,0 +1,18 @@
+('switch', 'cur=g', 'o=main', 't=g')
+('in run', 1)
+('switch', 'cur=main', 'o=g', 't=main')
+('main got', 'from g')
+('switch', 'cur=g', 'o=main', 't=g')
+('g resumed', 2)
+('switch', 'cur=main', 'o=g', 't=main')
+('main got', 'done')
+--- raising in start
+('switch', 'cur=g', 'o=main', 't=g')
+('main exc', "ValueError('boom')")
+('g', True, False, None)
+--- raising on return to main
+('switch', 'cur=g', 'o=main', 't=g')
+('in run', 1)
+('switch', 'cur=main', 'o=g', 't=main')
+('main exc', "ValueError('boom')")
+('g', False, True, None)
