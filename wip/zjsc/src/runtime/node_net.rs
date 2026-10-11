@@ -22,7 +22,11 @@ host_function!(socket_internals_function, socket_internals_body);
 pub(crate) fn install_net_module(global_object: &JSGlobalObject) -> HostResult {
     let host_object = crate::api::node_js_host::module_host(
         global_object,
-        &[("socketInternals", 0, socket_internals_function), ("requireInternal", 1, crate::api::node_stream::require_internal)],
+        &[
+            ("socketInternals", 0, socket_internals_function),
+            ("requireInternal", 1, crate::api::node_stream::require_internal),
+            ("internalModule", 1, crate::runtime::node_internals::internal_module_function),
+        ],
     )?;
     Ok(crate::api::node_js_host::run_factory(global_object, NET, "net", &host_object))
 }

@@ -1,0 +1,13 @@
+keys CLIENT_RENEG_LIMIT,CLIENT_RENEG_WINDOW,connect,convertALPNProtocols,createSecureContext,createServer,DEFAULT_CIPHERS,DEFAULT_ECDH_CURVE,DEFAULT_MAX_VERSION,DEFAULT_MIN_VERSION,getCiphers,setDefaultCACertificates,parseCertString,SecureContext,Server,TLSSocket,checkServerIdentity,rootCertificates,getCACertificates
+DEFAULT_CIPHERS TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA
+versions TLSv1.2 TLSv1.3 auto
+ciphers 19 TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256,TLS_AES_128_GCM_SHA256,ECDHE-RSA-AES128-GCM-SHA256,ECDHE-ECDSA-AES128-GCM-SHA256
+roots 121 -----BEGIN CERTIFICATE-----|MIIEkTCCA3mg true
+canon  
+canon mapped 
+canon v6 
+canon v4 
+err ERR_TLS_CERT_ALTNAME_INVALID Hostname/IP does not match certificate's altnames: Host: example.com. is not cert's CN: other.com example.com Host: example.com. is not cert's CN: other.com
+ip err ERR_TLS_CERT_ALTNAME_INVALID Hostname/IP does not match certificate's altnames: IP: 1.2.3.5 is not in the cert's list: 1.2.3.4
+wildcard 
+proto 29 1

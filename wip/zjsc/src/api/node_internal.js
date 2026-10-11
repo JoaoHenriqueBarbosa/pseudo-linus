@@ -206,6 +206,21 @@
     },
     SOCKET_BAD_PORT: message => makeError("RangeError", "ERR_SOCKET_BAD_PORT", message),
     TLS_ALPN_CALLBACK_INVALID_RESULT: message => makeError("TypeError", "ERR_TLS_ALPN_CALLBACK_INVALID_RESULT", message),
+    // Os de `node:tls` (ErrorCode.cpp do bun 1.4.2).
+    TLS_ALPN_CALLBACK_WITH_PROTOCOLS: () => makeError("TypeError", "ERR_TLS_ALPN_CALLBACK_WITH_PROTOCOLS", "The ALPNCallback and ALPNProtocols TLS options are mutually exclusive"),
+    TLS_CERT_ALTNAME_FORMAT: () => makeError("SyntaxError", "ERR_TLS_CERT_ALTNAME_FORMAT", "Invalid subject alternative name string"),
+    TLS_CERT_ALTNAME_INVALID(reason, host, cert) {
+      const error = makeError("Error", "ERR_TLS_CERT_ALTNAME_INVALID", `Hostname/IP does not match certificate's altnames: ${reason}`);
+      error.reason = reason;
+      error.host = host;
+      error.cert = cert;
+      return error;
+    },
+    TLS_INVALID_PROTOCOL_VERSION: (version, kind) => makeError("TypeError", "ERR_TLS_INVALID_PROTOCOL_VERSION", `${version} is not a valid ${kind} TLS protocol version`),
+    TLS_INVALID_STATE: () => makeError("Error", "ERR_TLS_INVALID_STATE", "TLS socket connection must be securely established"),
+    TLS_RENEGOTIATION_DISABLED: () => makeError("Error", "ERR_TLS_RENEGOTIATION_DISABLED", "TLS session renegotiation disabled for this socket"),
+    TLS_RENEGOTIATION_UNSUPPORTED: () => makeError("Error", "ERR_TLS_RENEGOTIATION_UNSUPPORTED", "TLS session renegotiation is unsupported by this TLS implementation"),
+    TLS_SNI_FROM_SERVER: () => makeError("Error", "ERR_TLS_SNI_FROM_SERVER", "Cannot issue SNI from a TLS server-side socket"),
   };
   // Os que o bun declara só com a mensagem pronta (`$ERR_FS_CP_EEXIST(message)`): o argumento é a mensagem.
   for (const [name, kind] of [
