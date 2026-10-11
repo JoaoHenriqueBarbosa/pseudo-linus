@@ -1038,6 +1038,9 @@ fn begin_dict(
         Some(m) => m.clone(),
         None => Rc::new(std::cell::RefCell::new(Default::default())),
     };
+    if live.is_none() {
+        crate::globalsview::remember_namespace(&map, g);
+    }
     let mut was: Vec<String> = Vec::new();
     let gitems: Vec<(Value, Value)> = g.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
     for (k, v) in gitems {
