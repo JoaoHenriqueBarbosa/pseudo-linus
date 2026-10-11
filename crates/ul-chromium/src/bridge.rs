@@ -14,7 +14,7 @@ use zjsc::runtime::dom_bridge::{DomArg, DomError, DomHost};
 use crate::document;
 use crate::encoding;
 use crate::fetch::Fetcher;
-use crate::local_storage::Change;
+use crate::storage_state::{AreaStore, Change};
 
 /// O User-Agent do Chromium do oráculo (o Debian 13 traz o 154; o Chromium reduz a versão a `154.0.0.0`).
 pub const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36";
@@ -420,19 +420,19 @@ impl DomHost for Bridge {
                         _ => Err(illegal()),
                     }
                 };
+                // O banco da área (o do perfil no `localStorage`, o da aba no `sessionStorage`, quando há
+                // `--user-data-dir`) fica sabendo de cada mudança; o que não muda nada ele mesmo descarta.
+                let in_area = |areas: &mut crate::session::Areas| {
+                    let store = areas.store();
+                    run(areas.area(&origin), &mut |change| {
+                        if let Some(store) = &store {
+                            store.record(&origin, change);
+                        }
+                    })
+                };
                 match str_arg(args, 0)? {
-                    // O banco do perfil (quando há `--user-data-dir`) fica sabendo de cada mudança; o que não muda
-                    // nada ele mesmo descarta.
-                    "local" => {
-                        let mut areas = tab.profile.local.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-                        let store = areas.store();
-                        run(areas.area(&origin), &mut |change| {
-                            if let Some(store) = &store {
-                                store.record(&origin, change);
-                            }
-                        })
-                    }
-                    _ => run(tab.session.borrow_mut().area(&origin), &mut |_| {}),
+                    "local" => in_area(&mut tab.profile.local.lock().unwrap_or_else(std::sync::PoisonError::into_inner)),
+                    _ => in_area(&mut tab.session.borrow_mut()),
                 }
             }
             // `[ação, nome, texto]`: os bancos do IndexedDB da origem no perfil (`load` devolve `[[nome, texto], ...]`,

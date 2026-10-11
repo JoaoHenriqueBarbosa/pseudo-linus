@@ -87,143 +87,187 @@ fn type_rank(type_byte: u8) -> Option<u8> {
     })
 }
 
-fn compare_idb_keys(a: &mut Cursor, b: &mut Cursor) -> Option<Ordering> {
-    let (type_a, type_b) = (a.byte()?, b.byte()?);
+/// As duas chaves lado a lado: cada leitura consome o mesmo campo de ambas e devolve a ordem entre elas.
+struct Pair<'a> {
+    a: Cursor<'a>,
+    b: Cursor<'a>,
+}
+
+impl Pair<'_> {
+    fn bytes(&mut self) -> Option<(u8, u8)> {
+        Some((self.a.byte()?, self.b.byte()?))
+    }
+
+    fn varint(&mut self) -> Option<(u64, u64)> {
+        Some((self.a.varint()?, self.b.varint()?))
+    }
+
+    /// `count` inteiros variáveis seguidos, na ordem lexicográfica.
+    fn varints(&mut self, count: usize) -> Option<Ordering> {
+        for _ in 0..count {
+            let (a, b) = self.varint()?;
+            if a != b {
+                return Some(a.cmp(&b));
+            }
+        }
+        Some(Ordering::Equal)
+    }
+
+    fn byte(&mut self) -> Option<Ordering> {
+        let (a, b) = self.bytes()?;
+        Some(a.cmp(&b))
+    }
+
+    fn string(&mut self) -> Option<Ordering> {
+        Some(self.a.string_with_length()?.cmp(self.b.string_with_length()?))
+    }
+
+    fn rest(&self) -> Ordering {
+        self.a.rest().cmp(self.b.rest())
+    }
+
+    fn field(&mut self, field: Field) -> Option<Ordering> {
+        match field {
+            Field::Varints(count) => self.varints(count),
+            Field::Byte => self.byte(),
+            Field::String => self.string(),
+            Field::Rest => Some(self.rest()),
+        }
+    }
+
+    fn rest_is_empty(&self) -> (bool, bool) {
+        (self.a.rest().is_empty(), self.b.rest().is_empty())
+    }
+}
+
+/// O que decide o campo seguinte: se a ordem já saiu do que foi lido, ela vale e o resto nem é lido (como o Chromium
+/// faz, e uma chave malformada depois do ponto que decide não derruba a comparação); senão, `next`.
+fn chain(first: Option<Ordering>, next: impl FnOnce() -> Option<Ordering>) -> Option<Ordering> {
+    match first? {
+        Ordering::Equal => next(),
+        decided => Some(decided),
+    }
+}
+
+fn compare_idb_keys(pair: &mut Pair) -> Option<Ordering> {
+    let (type_a, type_b) = pair.bytes()?;
     let ordering = type_rank(type_a)?.cmp(&type_rank(type_b)?);
     if ordering != Ordering::Equal {
         return Some(ordering);
     }
-    Some(match type_a {
-        0 | 5 => Ordering::Equal,
+    match type_a {
+        0 | 5 => Some(Ordering::Equal),
         4 => {
-            let (length_a, length_b) = (a.varint()?, b.varint()?);
+            let (length_a, length_b) = pair.varint()?;
             for _ in 0..length_a.min(length_b) {
-                let item = compare_idb_keys(a, b)?;
+                let item = compare_idb_keys(pair)?;
                 if item != Ordering::Equal {
                     return Some(item);
                 }
             }
-            length_a.cmp(&length_b)
+            Some(length_a.cmp(&length_b))
         }
         6 => {
-            let (size_a, size_b) = (a.varint()? as usize, b.varint()? as usize);
-            a.take(size_a)?.cmp(b.take(size_b)?)
+            let (size_a, size_b) = pair.varint()?;
+            Some(pair.a.take(size_a as usize)?.cmp(pair.b.take(size_b as usize)?))
         }
-        1 => a.string_with_length()?.cmp(b.string_with_length()?),
-        2 | 3 => a.double()?.partial_cmp(&b.double()?)?,
-        _ => return None,
-    })
-}
-
-fn compare_remaining(a: &mut Cursor, b: &mut Cursor) -> Ordering {
-    a.rest().len().cmp(&b.rest().len())
+        1 => pair.string(),
+        2 | 3 => pair.a.double()?.partial_cmp(&pair.b.double()?),
+        _ => None,
+    }
 }
 
 /// O corpo de uma chave de dados: a chave IDB (e, no índice, o número de sequência e a chave primária).
-fn compare_data(prefix_index: u64, a: &mut Cursor, b: &mut Cursor) -> Option<Ordering> {
-    if a.rest().is_empty() || b.rest().is_empty() {
-        return Some(compare_remaining(a, b));
+fn compare_data(prefix_index: u64, pair: &mut Pair) -> Option<Ordering> {
+    let (empty_a, empty_b) = pair.rest_is_empty();
+    if empty_a || empty_b {
+        return Some(pair.a.rest().len().cmp(&pair.b.rest().len()));
     }
-    let keys = compare_idb_keys(a, b)?;
+    let keys = compare_idb_keys(pair)?;
     if keys != Ordering::Equal || prefix_index < MINIMUM_INDEX_ID {
         return Some(keys);
     }
-    let sequence = a.varint()?.cmp(&b.varint()?);
-    if sequence != Ordering::Equal {
-        return Some(sequence);
-    }
-    Some(match (a.rest().is_empty(), b.rest().is_empty()) {
-        (true, true) => Ordering::Equal,
-        (true, false) => Ordering::Less,
-        (false, true) => Ordering::Greater,
-        (false, false) => compare_idb_keys(a, b)?,
+    chain(pair.varints(1), || {
+        Some(match pair.rest_is_empty() {
+            (true, true) => Ordering::Equal,
+            (true, false) => Ordering::Less,
+            (false, true) => Ordering::Greater,
+            (false, false) => compare_idb_keys(pair)?,
+        })
     })
 }
 
-fn compare_global(a: &mut Cursor, b: &mut Cursor) -> Option<Ordering> {
-    let (type_a, type_b) = (a.byte()?, b.byte()?);
-    if type_a != type_b {
-        return Some(type_a.cmp(&type_b));
-    }
-    if type_a < MAX_SIMPLE_GLOBAL_TYPE {
-        return Some(Ordering::Equal);
-    }
-    Some(match type_a {
-        SCOPES_PREFIX => a.rest().cmp(b.rest()),
-        DATABASE_FREE_LIST => a.varint()?.cmp(&b.varint()?),
-        DATABASE_NAME => {
-            let origin = a.string_with_length()?.cmp(b.string_with_length()?);
-            if origin != Ordering::Equal {
-                return Some(origin);
-            }
-            a.string_with_length()?.cmp(b.string_with_length()?)
-        }
-        _ => return None,
-    })
+/// Um campo do que segue o tipo de uma chave de metadados.
+#[derive(Clone, Copy)]
+enum Field {
+    /// Esta quantidade de inteiros variáveis, na ordem lexicográfica.
+    Varints(usize),
+    Byte,
+    /// Texto com o tamanho na frente (comparado por unidade UTF-16, não pelo tamanho).
+    String,
+    /// Tudo o que sobra, em bytes.
+    Rest,
 }
 
-fn compare_database(a: &mut Cursor, b: &mut Cursor) -> Option<Ordering> {
-    let (type_a, type_b) = (a.byte()?, b.byte()?);
+/// Um grupo de chaves que abre com um tipo (as globais e as de banco): tipos diferentes decidem pela ordem entre eles,
+/// os abaixo de `simple_below` não têm mais nada (iguais quando o tipo é o mesmo) e os demais têm os campos de
+/// `layouts`, comparados em ordem até um decidir. Tipo que não consta nem é simples não decodifica.
+struct Section {
+    simple_below: u8,
+    layouts: &'static [(u8, &'static [Field])],
+}
+
+const GLOBAL: Section = Section {
+    simple_below: MAX_SIMPLE_GLOBAL_TYPE,
+    layouts: &[(SCOPES_PREFIX, &[Field::Rest]), (DATABASE_FREE_LIST, &[Field::Varints(1)]), (DATABASE_NAME, &[Field::String, Field::String])],
+};
+
+const DATABASE: Section = Section {
+    simple_below: MAX_SIMPLE_DATABASE_TYPE,
+    layouts: &[
+        (OBJECT_STORE_META, &[Field::Varints(1), Field::Byte]),
+        (INDEX_META, &[Field::Varints(2), Field::Byte]),
+        (OBJECT_STORE_FREE_LIST, &[Field::Varints(1)]),
+        (INDEX_FREE_LIST, &[Field::Varints(2)]),
+        (OBJECT_STORE_NAMES, &[Field::String]),
+        (INDEX_NAMES, &[Field::Varints(1), Field::String]),
+    ],
+};
+
+fn compare_section(pair: &mut Pair, section: &Section) -> Option<Ordering> {
+    let (type_a, type_b) = pair.bytes()?;
     if type_a != type_b {
         return Some(type_a.cmp(&type_b));
     }
-    if type_a < MAX_SIMPLE_DATABASE_TYPE {
+    if type_a < section.simple_below {
         return Some(Ordering::Equal);
     }
-    let mut varints = |count: usize| -> Option<Ordering> {
-        for _ in 0..count {
-            let order = a.varint()?.cmp(&b.varint()?);
-            if order != Ordering::Equal {
-                return Some(order);
-            }
+    let (_, fields) = section.layouts.iter().find(|(kind, _)| *kind == type_a)?;
+    for field in *fields {
+        let order = pair.field(*field)?;
+        if order != Ordering::Equal {
+            return Some(order);
         }
-        Some(Ordering::Equal)
-    };
-    Some(match type_a {
-        OBJECT_STORE_META => {
-            let ids = varints(1)?;
-            if ids != Ordering::Equal {
-                return Some(ids);
-            }
-            a.byte()?.cmp(&b.byte()?)
-        }
-        INDEX_META => {
-            let ids = varints(2)?;
-            if ids != Ordering::Equal {
-                return Some(ids);
-            }
-            a.byte()?.cmp(&b.byte()?)
-        }
-        OBJECT_STORE_FREE_LIST => varints(1)?,
-        INDEX_FREE_LIST => varints(2)?,
-        OBJECT_STORE_NAMES => a.string_with_length()?.cmp(b.string_with_length()?),
-        INDEX_NAMES => {
-            let store = varints(1)?;
-            if store != Ordering::Equal {
-                return Some(store);
-            }
-            a.string_with_length()?.cmp(b.string_with_length()?)
-        }
-        _ => return None,
-    })
+    }
+    Some(Ordering::Equal)
 }
 
 fn compare_decoded(a: &[u8], b: &[u8]) -> Option<Ordering> {
-    let (mut cursor_a, mut cursor_b) = (Cursor(Input::new(a)), Cursor(Input::new(b)));
-    let (prefix_a, prefix_b) = (decode_prefix(&mut cursor_a)?, decode_prefix(&mut cursor_b)?);
+    let mut pair = Pair { a: Cursor(Input::new(a)), b: Cursor(Input::new(b)) };
+    let (prefix_a, prefix_b) = (decode_prefix(&mut pair.a)?, decode_prefix(&mut pair.b)?);
     let prefixes = (prefix_a.database, prefix_a.store, prefix_a.index).cmp(&(prefix_b.database, prefix_b.store, prefix_b.index));
     if prefixes != Ordering::Equal {
         return Some(prefixes);
     }
     if prefix_a.database == 0 {
-        return compare_global(&mut cursor_a, &mut cursor_b);
+        return compare_section(&mut pair, &GLOBAL);
     }
     if prefix_a.store == 0 {
-        return compare_database(&mut cursor_a, &mut cursor_b);
+        return compare_section(&mut pair, &DATABASE);
     }
     match prefix_a.index {
-        1..=3 => compare_data(0, &mut cursor_a, &mut cursor_b),
-        index if index >= MINIMUM_INDEX_ID => compare_data(index, &mut cursor_a, &mut cursor_b),
+        1..=3 => compare_data(0, &mut pair),
+        index if index >= MINIMUM_INDEX_ID => compare_data(index, &mut pair),
         _ => None,
     }
 }
@@ -245,7 +289,7 @@ impl Comparator for IdbComparator {
 
 #[cfg(test)]
 mod tests {
-    use super::super::coding::{index_data_key, object_store_data_key, units, IdbKey};
+    use super::super::coding::{index_data_key, record_index, record_key, units, IdbKey};
     use super::*;
 
     fn hex(text: &str) -> Vec<u8> {
@@ -271,7 +315,7 @@ mod tests {
 
     #[test]
     fn numbers_sort_by_value_and_types_by_rank() {
-        let key = |value: IdbKey| object_store_data_key(1, 1, &value);
+        let key = |value: IdbKey| record_key(1, 1, record_index::OBJECT_STORE_DATA, &value);
         assert_eq!(order(&key(IdbKey::Number(-1.0)), &key(IdbKey::Number(1.0))), Ordering::Less);
         assert_eq!(order(&key(IdbKey::Number(2.0)), &key(IdbKey::Number(10.0))), Ordering::Less);
         assert_eq!(order(&key(IdbKey::Number(1e300)), &key(IdbKey::Date(0.0))), Ordering::Less);

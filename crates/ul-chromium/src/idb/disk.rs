@@ -21,7 +21,7 @@ use ul_leveldb::env::Env;
 use ul_leveldb::{Db, Options, Result};
 
 use super::coding::{
-    database, decode_int, encode_int, exists_entry_key, global, index_data_key, index_data_value, index_field, key_prefix, object_store_data_key, object_store_data_value,
+    database, decode_int, encode_int, global, index_data_key, index_data_value, index_field, key_prefix, object_store_data_value, record_key,
     read_string, record_index, store_field, string, units, varint, IdbKey, KeyPath,
 };
 use super::comparator::IdbComparator;
@@ -816,7 +816,7 @@ impl Tx<'_> {
                 let store_id = self.store(store)?;
                 let id = self.disk.index_id(db, store_id, name)?;
                 for (primary, keys) in records {
-                    let data = self.get(&object_store_data_key(db, store_id, primary))?.unwrap_or_default();
+                    let data = self.get(&record_key(db, store_id, record_index::OBJECT_STORE_DATA, primary))?.unwrap_or_default();
                     let version = read_varint(&data).unwrap_or(1);
                     let ops = keys.iter().map(|key| Op::Put(index_data_key(db, store_id, id, key, 0, primary), index_data_value(version, primary))).collect::<Vec<_>>();
                     if !ops.is_empty() {
@@ -832,9 +832,9 @@ impl Tx<'_> {
                 varint(&mut encoded_version, version);
                 self.request(vec![
                     Op::Put(database::object_store_field(db, store_id, store_field::LAST_VERSION), encode_int(version)),
-                    Op::Put(object_store_data_key(db, store_id, key), object_store_data_value(version, &v8::wire_value(value))),
+                    Op::Put(record_key(db, store_id, record_index::OBJECT_STORE_DATA, key), object_store_data_value(version, &v8::wire_value(value))),
                 ])?;
-                let mut ops = vec![Op::Put(exists_entry_key(db, store_id, key), encoded_version)];
+                let mut ops = vec![Op::Put(record_key(db, store_id, record_index::EXISTS_ENTRY, key), encoded_version)];
                 for (index, keys) in indexes {
                     let index_id = self.disk.index_id(db, store_id, index)?;
                     ops.extend(keys.iter().map(|index_key| Op::Put(index_data_key(db, store_id, index_id, index_key, 0, key), index_data_value(version, key))));
@@ -859,7 +859,7 @@ impl Tx<'_> {
             }
             Entry::Delete { store, key } => {
                 let store_id = self.store(store)?;
-                self.request(vec![Op::Del(object_store_data_key(db, store_id, key)), Op::Del(exists_entry_key(db, store_id, key))])
+                self.request(vec![Op::Del(record_key(db, store_id, record_index::OBJECT_STORE_DATA, key)), Op::Del(record_key(db, store_id, record_index::EXISTS_ENTRY, key))])
             }
             Entry::Clear(store) => {
                 let store_id = self.store(store)?;

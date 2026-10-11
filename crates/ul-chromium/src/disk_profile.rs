@@ -21,7 +21,9 @@ use ul_common::time::Civil;
 
 use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
+use crate::session_storage::{Exit, SessionStorageStore};
 use crate::sys_env::SysEnv;
+use ul_leveldb::env::Env;
 
 /// O molde, gerado no oráculo (ver o cabeçalho de `testbench/oracle/profile-pack.py` para o formato): o começo e a
 /// saída do navegador com DevTools remoto.
@@ -31,6 +33,10 @@ static PACK_DUMP: &[u8] = include_bytes!("../profile/template-dump.pack");
 /// O diretório do banco do Local Storage no perfil: o molde o traz (de uma execução do oráculo), mas quem o grava é o
 /// leveldb próprio, com o log, o MANIFEST e o `LOG` de verdade.
 const LOCAL_STORAGE_DB: &[u8] = b"Default/Local Storage/leveldb";
+/// O diretório do banco do Session Storage: apagado e recriado a cada início, pelo leveldb próprio.
+const SESSION_STORAGE_DB: &[u8] = b"Default/Session Storage";
+/// Os bancos que o molde traz mas que o leveldb próprio grava.
+const OWN_DBS: [&[u8]; 2] = [LOCAL_STORAGE_DB, SESSION_STORAGE_DB];
 /// O diretório do IndexedDB no perfil: só existe depois que uma página o usa.
 const INDEXED_DB_DIR: &[u8] = b"Default/IndexedDB";
 
@@ -63,20 +69,18 @@ struct Entry {
 pub enum Run {
     /// `--remote-debugging-port` ou `--remote-debugging-pipe`: a saída (o `Browser.close` ou o SIGTERM) mantém os
     /// `Singleton*`.
-    DevTools,
+    DevTools = 0,
     /// `--dump-dom` e o carregamento sem DevTools: a saída apaga os bancos que não chegaram a ser usados, os
     /// `Singleton*` e o diretório do soquete.
-    DumpDom,
+    DumpDom = 1,
 }
 
-fn template() -> &'static [Entry] {
-    static TEMPLATE: OnceLock<Vec<Entry>> = OnceLock::new();
-    TEMPLATE.get_or_init(|| parse_pack(PACK).expect("o molde do perfil embutido é válido"))
-}
-
-fn template_dump() -> &'static [Entry] {
-    static TEMPLATE: OnceLock<Vec<Entry>> = OnceLock::new();
-    TEMPLATE.get_or_init(|| parse_pack(PACK_DUMP).expect("o molde do --dump-dom embutido é válido"))
+/// O molde de `run`. O começo do perfil é o mesmo nas duas execuções e vem do molde do DevTools (o do `--dump-dom` só
+/// leva a saída).
+fn template(run: Run) -> &'static [Entry] {
+    static TEMPLATES: OnceLock<[Vec<Entry>; 2]> = OnceLock::new();
+    let templates = TEMPLATES.get_or_init(|| [PACK, PACK_DUMP].map(|pack| parse_pack(pack).expect("o molde do perfil embutido é válido")));
+    &templates[run as usize]
 }
 
 fn parse_pack(pack: &[u8]) -> Option<Vec<Entry>> {
@@ -212,7 +216,7 @@ impl Expander<'_> {
             "unixf" => float_text((self.start_us + arg(0)) as f64 / 1e6).into_bytes(),
             "ts" => leveldb_timestamp(self.start_us + arg(0)).into_bytes(),
             "userdir" => self.user_dir.to_vec(),
-            "uuid" => uuid().into_bytes(),
+            "uuid" => crate::devtools::uuid().into_bytes(),
             "hex" => (0..arg(0)).map(|_| b"0123456789ABCDEF"[random_below(16) as usize]).collect(),
             "rb64" => random_base64(arg(0) as usize, arg(1) as usize),
             "rint" => (arg(0) as u64 + random_below((arg(1) - arg(0)) as u64)).to_string().into_bytes(),
@@ -230,14 +234,6 @@ fn leveldb_timestamp(micros: i64) -> String {
     let civil = Civil::from_secs(micros.div_euclid(1_000_000));
     let millis = micros.rem_euclid(1_000_000) / 1000;
     format!("{:04}/{:02}/{:02}-{:02}:{:02}:{:02}.{millis:03}", civil.year, civil.mon, civil.mday, civil.hour, civil.min, civil.sec)
-}
-
-fn uuid() -> String {
-    let mut bytes = random_bytes::<16>();
-    bytes[6] = bytes[6] & 0x0f | 0x40;
-    bytes[8] = bytes[8] & 0x3f | 0x80;
-    let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
-    format!("{}-{}-{}-{}-{}", &hex[0..8], &hex[8..12], &hex[12..16], &hex[16..20], &hex[20..32])
 }
 
 /// `count` caracteres base64 aleatórios; com `pad` sinais `=` depois, o último caractere é o canônico (os bits que o
@@ -267,6 +263,8 @@ pub struct DiskProfile {
     socket_dir: Option<Vec<u8>>,
     /// O banco do Local Storage (`Default/Local Storage/leveldb`), que o molde não traz: o banco próprio o cria.
     local_storage: Option<Arc<LocalStorageStore>>,
+    /// O banco do Session Storage (`Default/Session Storage`), recriado a cada início.
+    session_storage: Option<Arc<SessionStorageStore>>,
 }
 
 impl DiskProfile {
@@ -275,9 +273,14 @@ impl DiskProfile {
     /// subir: o Chromium também segue sem o perfil quando o disco recusa.
     pub fn start(user_data_dir: Option<&[u8]>, run: Run) -> DiskProfile {
         let mut profile = DiskProfile::new(user_data_dir, run);
-        let _ = profile.write_layer(template(), LAYER_START);
+        let _ = profile.write_layer(template(Run::DevTools), LAYER_START);
         profile.socket_dir = profile.write_singletons().ok();
-        profile.local_storage = profile.open_local_storage();
+        profile.local_storage = profile.open_db(LOCAL_STORAGE_DB, LocalStorageStore::open);
+        profile.session_storage = profile.open_db(SESSION_STORAGE_DB, |env, dir, thread_id| {
+            // O Chromium recria o banco do Session Storage a cada início: o da execução anterior some.
+            let _ = ul_common::fsutil::remove_tree(dir.as_bytes());
+            SessionStorageStore::open(env, dir, thread_id)
+        });
         profile
     }
 
@@ -287,7 +290,7 @@ impl DiskProfile {
             Some(path) if !path.is_empty() => path,
             _ => [home.as_slice(), b"/.config"].concat(),
         };
-        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None }
+        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None }
     }
 
     /// O IndexedDB do perfil (`Default/IndexedDB`): cada origem ganha o leveldb dela no primeiro uso.
@@ -302,26 +305,30 @@ impl DiskProfile {
         self.local_storage.clone()
     }
 
-    fn open_local_storage(&self) -> Option<Arc<LocalStorageStore>> {
-        let dir = [self.user_data_dir.as_deref()?, b"/", LOCAL_STORAGE_DB].concat();
-        let thread_id = sys::current().gettid() as u64;
-        LocalStorageStore::open(Arc::new(SysEnv::new()), &String::from_utf8_lossy(&dir), thread_id).ok().map(Arc::new)
+    /// O banco do Session Storage do perfil: cada aba do contexto padrão ganha o `namespace` dela nele.
+    pub fn session_storage(&self) -> Option<Arc<SessionStorageStore>> {
+        self.session_storage.clone()
     }
 
-    /// A saída limpa: o que o Chromium só grava ao encerrar (`Preferences`, o `Local State` completo), depois do
-    /// commit do que as páginas gravaram no Local Storage.
-    pub fn finish(&self) {
+    /// Abre o banco que mora em `relative` dentro do `--user-data-dir` com o leveldb próprio, ou nada sem o diretório.
+    fn open_db<T>(&self, relative: &[u8], open: impl FnOnce(Arc<dyn Env>, &str, u64) -> ul_leveldb::Result<T>) -> Option<Arc<T>> {
+        let dir = [self.user_data_dir.as_deref()?, b"/", relative].concat();
+        let thread_id = sys::current().gettid() as u64;
+        open(Arc::new(SysEnv::new()), &String::from_utf8_lossy(&dir), thread_id).ok().map(Arc::new)
+    }
+
+    /// A saída: o que o Chromium só grava ao encerrar (`Preferences`, o `Local State` completo), depois do commit do
+    /// que as páginas gravaram no Local Storage e no Session Storage, que ainda grava o que a forma de sair pede.
+    pub fn finish(&self, exit: Exit) {
         if let Some(store) = &self.local_storage {
             let _ = store.flush();
         }
-        match self.run {
-            Run::DevTools => {
-                let _ = self.write_layer(template(), LAYER_EXIT);
-            }
-            Run::DumpDom => {
-                let _ = self.write_layer(template_dump(), LAYER_EXIT);
-                self.remove_singletons();
-            }
+        if let Some(store) = &self.session_storage {
+            let _ = store.finish(exit);
+        }
+        let _ = self.write_layer(template(self.run), LAYER_EXIT);
+        if self.run == Run::DumpDom {
+            self.remove_singletons();
         }
     }
 
@@ -341,7 +348,7 @@ impl DiskProfile {
     fn write_layer(&self, entries: &[Entry], layer: u8) -> Result<(), Errno> {
         let user_dir = self.user_data_dir.as_deref().unwrap_or(b"");
         let expander = Expander { start_us: self.start_us, user_dir };
-        let selected = || entries.iter().filter(|e| e.layer == layer && !(e.root == ROOT_USER_DATA && e.path.starts_with(LOCAL_STORAGE_DB)));
+        let selected = || entries.iter().filter(|e| e.layer == layer && !(e.root == ROOT_USER_DATA && OWN_DBS.iter().any(|db| e.path.starts_with(db))));
         for entry in selected().filter(|e| e.kind == KIND_REMOVE) {
             let (Some(dir), ROOT_USER_DATA) = (&self.user_data_dir, entry.root) else { continue };
             let path = [dir.as_slice(), b"/", &expander.expand(&entry.path)].concat();
@@ -427,7 +434,7 @@ mod tests {
 
     #[test]
     fn the_embedded_template_parses() {
-        let entries = template();
+        let entries = template(Run::DevTools);
         assert!(entries.len() > 200);
         assert!(entries.iter().any(|e| e.path == b"Local State" && e.layer == LAYER_START));
         assert!(entries.iter().any(|e| e.path == b"Default/Preferences" && e.layer == LAYER_EXIT));

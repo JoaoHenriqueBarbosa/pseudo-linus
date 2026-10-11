@@ -9,6 +9,8 @@ use crate::devtools;
 use crate::disk_profile::{DiskProfile, Run};
 use crate::fetch;
 use crate::page::Page;
+use crate::session::Profile;
+use crate::session_storage::Exit;
 
 /// O que a linha de comando pediu.
 #[derive(Default, Debug, PartialEq)]
@@ -59,14 +61,14 @@ pub fn main(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     if options.devtools.port.is_some() || options.devtools.pipe {
         let url = options.urls.first().cloned().unwrap_or_else(|| "about:blank".to_owned());
         let disk = DiskProfile::start(options.user_data_dir.as_deref().map(str::as_bytes), Run::DevTools);
-        let code = devtools::server::run(ctx, &options.devtools, &url, disk.local_storage(), disk.indexed_db());
-        disk.finish();
-        return code;
+        let exit = devtools::server::run(ctx, &options.devtools, &url, Profile::from_disk(&disk));
+        disk.finish(exit);
+        return 0;
     }
     let Some(first) = options.urls.first() else { return 0 };
     let disk = DiskProfile::start(options.user_data_dir.as_deref().map(str::as_bytes), Run::DumpDom);
     let code = load(ctx, &options, first, &disk);
-    disk.finish();
+    disk.finish(Exit::DumpDom);
     code
 }
 
@@ -74,7 +76,7 @@ pub fn main(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
 fn load(ctx: &mut Ctx, options: &Options, first: &str, disk: &DiskProfile) -> i32 {
     let mut address = first.to_owned();
     // A aba atravessa as navegações: o storage do documento seguinte é o mesmo, no perfil em disco.
-    let profile = std::sync::Arc::new(crate::session::Profile::on_disk(disk.local_storage(), disk.indexed_db()));
+    let profile = std::sync::Arc::new(Profile::from_disk(disk));
     let tab = std::rc::Rc::new(crate::session::Tab::new(profile));
     for _ in 0..MAX_NAVIGATIONS {
         let mut page = match Page::load(&address, fetch::network()) {
