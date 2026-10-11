@@ -7,7 +7,6 @@ use std::sync::Arc;
 
 use ul_net::net::client::{FetchError, RequestSpec};
 
-use crate::cookies;
 use crate::fetch::{self, Fetcher};
 use crate::netmeta::NetMeta;
 use crate::session::Profile;
@@ -82,14 +81,7 @@ pub fn fetcher(net: Rc<RefCell<NetOverrides>>, profile: Arc<Profile>, observed: 
         }
         let mut headers = spec.headers.to_vec();
         overrides.apply(&mut headers);
-        let scope = cookies::scope(url);
-        if let Some((host, path, secure)) = &scope {
-            let jar = profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-            if let Some(cookie) = jar.header_for(host, path, *secure, cookies::now()).filter(|_| !headers.iter().any(|(k, _)| k.eq_ignore_ascii_case("cookie"))) {
-                headers.push(("Cookie".to_owned(), cookie));
-            }
-        }
-        let response = match base(url, &RequestSpec { method: spec.method, headers: &headers, body: spec.body, max_redirects: spec.max_redirects, timeout: spec.timeout }) {
+        let response = match base(url, &RequestSpec { method: spec.method, headers: &headers, body: spec.body, max_redirects: spec.max_redirects, timeout: spec.timeout, cookies: Some(&*profile) }) {
             Ok(response) => response,
             Err(error) => {
                 observe(Err(error.net_error().to_owned()));
@@ -97,9 +89,6 @@ pub fn fetcher(net: Rc<RefCell<NetOverrides>>, profile: Arc<Profile>, observed: 
             }
         };
         observe(Ok(NetMeta::from_response(&response)));
-        if scope.is_some() {
-            cookies::store_response(&mut profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner), &response);
-        }
         Ok(response)
     })
 }

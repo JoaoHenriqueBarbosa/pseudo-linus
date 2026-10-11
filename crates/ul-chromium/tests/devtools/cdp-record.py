@@ -9,6 +9,7 @@ from websockets.sync.client import connect
 ROUTES = {
     "/page": b"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 29\r\n\r\n<title>H</title><p>hello</p>\n",
     "/redirect": b"HTTP/1.0 302 Found\r\nLocation: /page\r\nContent-Length: 0\r\n\r\n",
+    "/login": b"HTTP/1.0 302 Found\r\nLocation: /page\r\nSet-Cookie: sid=1; Path=/\r\nContent-Length: 0\r\n\r\n",
     "/sub": b"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 85\r\n\r\n<link rel=stylesheet href=/s.css><script src=/a.js></script><img src=/i.gif><p>x</p>\x0a",
     "/s.css": b"HTTP/1.0 200 OK\r\nContent-Type: text/css\r\nContent-Length: 13\r\n\r\np{color:red}\x0a",
     "/a.js": b"HTTP/1.0 200 OK\r\nContent-Type: application/javascript\r\nContent-Length: 12\r\n\r\nwindow.a=1;\x0a",

@@ -20,13 +20,15 @@ pub struct Cookie {
     pub expires: i64,
     /// `Strict`, `Lax` ou `None`; vazio quando o cookie não disse.
     pub same_site: String,
+    /// A porta do pedido que o criou; 0 quando o cookie não veio de um pedido.
+    pub source_port: u16,
     creation: u64,
 }
 
 impl Cookie {
     /// Um cookie de fora do `Set-Cookie` (o `Storage.setCookies` do DevTools): `expires` 0 é de sessão.
     pub fn new(name: &str, value: &str, domain: &str, tailmatch: bool, path: &str, secure: bool, httponly: bool, expires: i64, same_site: &str) -> Cookie {
-        Cookie { name: name.to_owned(), value: value.to_owned(), domain: domain.to_owned(), tailmatch, path: path.to_owned(), secure, httponly, expires, same_site: same_site.to_owned(), creation: 0 }
+        Cookie { name: name.to_owned(), value: value.to_owned(), domain: domain.to_owned(), tailmatch, path: path.to_owned(), secure, httponly, expires, same_site: same_site.to_owned(), source_port: 0, creation: 0 }
     }
 }
 
@@ -145,6 +147,7 @@ impl Jar {
                 httponly,
                 expires: f[4].parse().unwrap_or(0),
                 same_site: String::new(),
+                source_port: 0,
                 creation: 0,
             };
             if c.expires != 0 && c.expires < now {
@@ -156,6 +159,11 @@ impl Jar {
 
     /// Aplica um `Set-Cookie` recebido de `host` pra `req_path`.
     pub fn set_cookie(&mut self, header: &str, host: &str, req_path: &str, now: i64) {
+        self.set_cookie_from(header, host, 0, req_path, now);
+    }
+
+    /// Como [`Jar::set_cookie`], guardando a porta do pedido que trouxe o cookie.
+    pub fn set_cookie_from(&mut self, header: &str, host: &str, port: u16, req_path: &str, now: i64) {
         let mut parts = header.split(';');
         let Some(nv) = parts.next() else { return };
         let Some((name, value)) = nv.split_once('=') else { return };
@@ -173,6 +181,7 @@ impl Jar {
             httponly: false,
             expires: 0,
             same_site: String::new(),
+            source_port: port,
             creation: 0,
         };
         let mut max_age: Option<i64> = None;

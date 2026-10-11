@@ -135,6 +135,15 @@ impl FetchError {
     }
 }
 
+/// O pote de cookies que o cliente consulta a cada salto: o `Cookie:` do pedido e o `Set-Cookie` da resposta, de modo que
+/// um login que redireciona leva o cookie que acabou de receber.
+pub trait CookieHook {
+    /// O valor do `Cookie:` para um pedido a `url`.
+    fn header_for(&self, url: &Url) -> Option<String>;
+    /// Guarda os `Set-Cookie` de uma resposta de `url`.
+    fn store(&self, url: &Url, headers: &[(Vec<u8>, Vec<u8>)]);
+}
+
 /// O que o pedido leva além da linha de status.
 pub struct RequestSpec<'a> {
     pub method: &'a str,
@@ -142,11 +151,13 @@ pub struct RequestSpec<'a> {
     pub body: &'a [u8],
     pub max_redirects: u32,
     pub timeout: Option<Duration>,
+    /// O pote de cookies; sem ele o pedido só leva os cabeçalhos de `headers`.
+    pub cookies: Option<&'a dyn CookieHook>,
 }
 
 impl Default for RequestSpec<'_> {
     fn default() -> Self {
-        RequestSpec { method: "GET", headers: &[], body: &[], max_redirects: 20, timeout: Some(Duration::from_secs(30)) }
+        RequestSpec { method: "GET", headers: &[], body: &[], max_redirects: 20, timeout: Some(Duration::from_secs(30)), cookies: None }
     }
 }
 
@@ -160,7 +171,16 @@ pub fn request(target: &str, spec: &RequestSpec<'_>) -> Result<Response, FetchEr
         if current.scheme != "http" && current.scheme != "https" {
             return Err(FetchError::UnknownScheme(current.scheme));
         }
-        let (mut response, location) = exchange(&current, &method, spec, &body)?;
+        // O `Cookie:` é do salto: o pote pode ter ganho um cookie na resposta anterior.
+        let mut headers = spec.headers.to_vec();
+        if let Some(cookie) = spec.cookies.and_then(|jar| jar.header_for(&current)).filter(|_| !headers.iter().any(|(name, _)| name.eq_ignore_ascii_case("Cookie"))) {
+            headers.push(("Cookie".to_owned(), cookie));
+        }
+        let hop_spec = RequestSpec { method: spec.method, headers: &headers, body: spec.body, max_redirects: spec.max_redirects, timeout: spec.timeout, cookies: spec.cookies };
+        let (mut response, location) = exchange(&current, &method, &hop_spec, &body)?;
+        if let Some(jar) = spec.cookies {
+            jar.store(&current, &response.headers);
+        }
         if let Some(location) = location {
             hops.push(Hop { url: current.clone(), status: response.status, reason: response.reason.clone(), headers: response.headers.clone(), head: response.head.clone(), sent: response.sent.clone(), version: response.transfer.version });
             current = url::resolve(&current, &location).map_err(FetchError::InvalidUrl)?;

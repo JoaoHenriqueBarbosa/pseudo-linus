@@ -261,8 +261,12 @@ impl Tab {
     }
 
     /// Os cookies que o pedido a `url` levou, como o `associatedCookies` do `requestWillBeSentExtraInfo`.
-    fn associated_cookies(&self, url: &str) -> Json {
-        crate::cookies::associated(&self.session.profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner), url)
+    fn associated_cookies(&self, exchange: &crate::netmeta::NetExchange) -> Json {
+        // Só a troca que levou o `Cookie:` associa cookies: o pote de agora pode ter ganho um depois dela.
+        if !exchange.sent.iter().any(|(name, _)| name.eq_ignore_ascii_case("cookie")) {
+            return Json::Array(Vec::new());
+        }
+        crate::cookies::associated(&self.session.profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner), &exchange.url)
     }
 
     /// A carga que acaba de comprometer entra no histórico (ou só move a entrada corrente).
@@ -642,7 +646,7 @@ impl Tab {
         }
         if wire {
             for exchange in meta.redirects.iter().chain(std::iter::once(&meta.last)) {
-                self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, exchange, monotonic_seconds(), false, self.associated_cookies(&exchange.url)));
+                self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, exchange, monotonic_seconds(), false, self.associated_cookies(exchange)));
                 self.emit(&sessions, "Network.responseReceivedExtraInfo", &network::response_extra_info(&id, exchange));
             }
         }
@@ -707,7 +711,7 @@ impl Tab {
                 return;
             }
         };
-        self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, &meta.last, started, true, self.associated_cookies(&meta.last.url)));
+        self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, &meta.last, started, true, self.associated_cookies(&meta.last)));
         self.emit(&sessions, "Network.responseReceivedExtraInfo", &network::response_extra_info(&id, &meta.last));
         let received = Json::object([
             ("requestId", Json::str(&id)),

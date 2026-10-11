@@ -2,10 +2,12 @@
 //! pelo `document.cookie` e pelo `Cookie:` e o `Set-Cookie` das requisições. O formato do JSON é o do Chromium 154
 //! (cenário `playwright_state` de `tests/devtools`).
 
-use ul_net::net::client::Response;
+use ul_net::net::client::CookieHook;
+use ul_net::net::url::Url;
 use ul_net::net::cookies::{Cookie, Jar};
 
 use crate::devtools::json::Json;
+use crate::session::Profile;
 
 /// Segundos desde a época.
 pub fn now() -> i64 {
@@ -48,7 +50,7 @@ pub fn cookie_json(c: &Cookie) -> Json {
     fields.extend([
         ("priority", Json::str("Medium")),
         ("sourceScheme", Json::str(if c.secure { "Secure" } else { "NonSecure" })),
-        ("sourcePort", Json::Number(if c.secure { 443.0 } else { 80.0 })),
+        ("sourcePort", Json::Number(if c.source_port != 0 { f64::from(c.source_port) } else if c.secure { 443.0 } else { 80.0 })),
     ]);
     Json::Object(fields.into_iter().map(|(k, v)| (k.to_owned(), v)).collect())
 }
@@ -116,17 +118,18 @@ pub fn set_document_cookie(jar: &mut Jar, value: &str, url: &str) {
     jar.set_cookie(value, &host, &path, now());
 }
 
-/// Os `Set-Cookie` da resposta (e dos redirecionamentos que a precederam) entram no pote.
-pub fn store_response(jar: &mut Jar, response: &Response) {
-    let now = now();
-    let exchanges = response.hops.iter().map(|h| (&h.url, &h.headers)).chain(std::iter::once((&response.url, &response.headers)));
-    for (url, headers) in exchanges {
-        let host = url.host.as_str();
+/// O pote do perfil como o cliente HTTP o consulta a cada salto de um pedido.
+impl CookieHook for Profile {
+    fn header_for(&self, url: &Url) -> Option<String> {
         let path = if url.path.is_empty() { "/" } else { url.path.as_str() };
-        for (name, value) in headers {
-            if name.eq_ignore_ascii_case(b"set-cookie") {
-                jar.set_cookie(&String::from_utf8_lossy(value), host, path, now);
-            }
+        self.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner).header_for(&url.host, path, url.scheme == "https", now())
+    }
+
+    fn store(&self, url: &Url, headers: &[(Vec<u8>, Vec<u8>)]) {
+        let path = if url.path.is_empty() { "/" } else { url.path.as_str() };
+        let mut jar = self.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        for (name, value) in headers.iter().filter(|(name, _)| name.eq_ignore_ascii_case(b"set-cookie")) {
+            jar.set_cookie_from(&String::from_utf8_lossy(value), &url.host, url.port_or_default(), path, now());
         }
     }
 }
