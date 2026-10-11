@@ -65,6 +65,9 @@ struct Tab {
     lifecycle_enabled: Vec<String>,
     runtime_enabled: Vec<String>,
     network_enabled: Vec<String>,
+    /// O `dataReceived` e o `loadingFinished` do documento, que saem depois do contexto de execução novo: os bytes
+    /// do corpo e os do fio.
+    finishing: Option<(usize, usize)>,
     security_enabled: Vec<String>,
     /// Os marcos do carregador corrente com o seu `timestamp`, repetidos a quem liga os eventos de ciclo de vida depois.
     lifecycle: Vec<(String, f64)>,
@@ -107,6 +110,7 @@ impl Tab {
             lifecycle_enabled: Vec::new(),
             runtime_enabled: Vec::new(),
             network_enabled: Vec::new(),
+            finishing: None,
             security_enabled: Vec::new(),
             lifecycle: Vec::new(),
             context: None,
@@ -245,6 +249,7 @@ impl Tab {
             }
         };
         page.enter_tab(self.session.clone());
+        self.network_document(&url, page.net_meta(), error.as_deref());
         self.url = if error.is_some() { "chrome-error://chromewebdata/".to_owned() } else { page.bridge.url.borrow().clone() };
         if let Some(request) = &request {
             let mut result = vec![("frameId", Json::str(&self.target_id)), ("loaderId", Json::str(&self.loader_id))];
@@ -294,8 +299,107 @@ impl Tab {
         ]);
         let _ = runner.call_hidden(hook, &[HostArg::Str("cdpInit"), HostArg::Str(&config.to_compact())]);
         self.drain(runner, hook);
+        if let Some((data, encoded)) = self.finishing.take() {
+            let sessions = self.network_enabled.clone();
+            let id = Json::str(&self.loader_id);
+            let params = Json::object([("requestId", id.clone()), ("timestamp", Json::Number(monotonic_seconds())), ("dataLength", Json::Number(data as f64)), ("encodedDataLength", Json::Number(0.0))]);
+            self.emit(&sessions, "Network.dataReceived", &params);
+            let params = Json::object([("requestId", id), ("timestamp", Json::Number(monotonic_seconds())), ("encodedDataLength", Json::Number(encoded as f64))]);
+            self.emit(&sessions, "Network.loadingFinished", &params);
+        }
         self.title.clear();
         self.announce();
+    }
+
+    /// Os eventos de `Network` do pedido do documento: `requestWillBeSent` e a resposta (`responseReceived`) ou a falha
+    /// (`loadingFailed`). O `dataReceived` e o `loadingFinished` saem no `commit`. `about:blank` e `file:` não têm
+    /// (`meta` vazio e sem erro).
+    fn network_document(&mut self, url: &str, meta: Option<&crate::page::NetMeta>, error: Option<&str>) {
+        if meta.is_none() && error.is_none() {
+            return;
+        }
+        let sessions = self.network_enabled.clone();
+        let id = Json::str(&self.loader_id);
+        let frame = Json::str(&self.target_id);
+        let remote = meta.is_some_and(|m| m.protocol != "data") || error.is_some();
+        let headers: Vec<(String, Json)> = if remote {
+            [
+                ("Upgrade-Insecure-Requests", "1"),
+                ("User-Agent", super::http::USER_AGENT),
+                ("sec-ch-ua", "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Linux\""),
+            ]
+            .into_iter()
+            .map(|(k, v)| (k.to_owned(), Json::str(v)))
+            .collect()
+        } else {
+            Vec::new()
+        };
+        let sent = Json::object([
+            ("requestId", id.clone()),
+            ("loaderId", id.clone()),
+            ("documentURL", Json::str(url)),
+            (
+                "request",
+                Json::object([
+                    ("url", Json::str(url)),
+                    ("method", Json::str("GET")),
+                    ("headers", Json::Object(headers)),
+                    ("mixedContentType", Json::str("none")),
+                    ("initialPriority", Json::str("VeryHigh")),
+                    ("referrerPolicy", Json::str("strict-origin-when-cross-origin")),
+                    ("isSameSite", Json::Bool(true)),
+                ]),
+            ),
+            ("timestamp", Json::Number(monotonic_seconds())),
+            ("wallTime", Json::Number(ul_common::time::realtime_nanos() as f64 / 1e9)),
+            ("initiator", Json::object([("type", Json::str("other"))])),
+            ("redirectHasExtraInfo", Json::Bool(false)),
+            ("type", Json::str("Document")),
+            ("frameId", frame.clone()),
+            ("hasUserGesture", Json::Bool(false)),
+        ]);
+        self.emit(&sessions, "Network.requestWillBeSent", &sent);
+        if let Some(error) = error {
+            let failed = Json::object([("requestId", id), ("timestamp", Json::Number(monotonic_seconds())), ("type", Json::str("Document")), ("errorText", Json::str(error)), ("canceled", Json::Bool(false))]);
+            self.emit(&sessions, "Network.loadingFailed", &failed);
+            return;
+        }
+        let Some(meta) = meta else { return };
+        let secure = if url.starts_with("https:") || meta.protocol == "data" { "secure" } else { "insecure" };
+        let mut response = vec![
+            ("url", Json::str(&meta.url)),
+            ("status", Json::Number(f64::from(meta.status))),
+            ("statusText", Json::str(&meta.status_text)),
+            ("headers", Json::Object(meta.headers.iter().map(|(k, v)| (k.clone(), Json::str(v))).collect())),
+            ("mimeType", Json::str(&meta.mime_type)),
+            ("charset", Json::str(&meta.charset)),
+            ("connectionReused", Json::Bool(false)),
+            ("connectionId", Json::Number(0.0)),
+            ("remoteIPAddress", Json::str(&meta.remote_ip)),
+            ("remotePort", Json::Number(f64::from(meta.remote_port))),
+            ("fromDiskCache", Json::Bool(false)),
+            ("fromServiceWorker", Json::Bool(false)),
+            ("fromPrefetchCache", Json::Bool(false)),
+            ("encodedDataLength", Json::Number(-1.0)),
+            ("protocol", Json::str(&meta.protocol)),
+        ];
+        if meta.protocol == "data" {
+            response.push(("alternateProtocolUsage", Json::str("alternativeJobWonWithoutRace")));
+        }
+        response.push(("securityState", Json::str(secure)));
+        let received = Json::object([
+            ("requestId", id),
+            ("loaderId", Json::str(&self.loader_id)),
+            ("timestamp", Json::Number(monotonic_seconds())),
+            ("type", Json::str("Document")),
+            ("response", Json::Object(response.into_iter().map(|(k, v)| (k.to_owned(), v)).collect())),
+            ("hasExtraInfo", Json::Bool(false)),
+            ("frameId", frame),
+        ]);
+        self.emit(&sessions, "Network.responseReceived", &received);
+        self.finishing = Some((meta.data_length, meta.encoded_length));
     }
 
     /// Título e URL para o `TargetInfo`. Sem `<title>`, o título é a URL; a aba que ainda vai navegar mostra o destino.

@@ -34,7 +34,8 @@ async def main():
                            handleSIGINT=False, handleSIGTERM=False, handleSIGHUP=False)
     print("version", (await browser.version()).split("/")[0])
     page = await browser.newPage()
-    await page.goto("data:text/html,<title>t</title><h1 id=a>oi</h1>")
+    response = await page.goto("data:text/html,<title>t</title><h1 id=a>oi</h1>")
+    print("goto", response.status, response.ok)
     print("title", await page.title())
     print("evaluate", await page.evaluate("() => document.getElementById('a').textContent"))
 {tail}    await browser.close()
@@ -62,7 +63,7 @@ fn run_scene(shot: bool) -> serde_json::Value {
 fn pyppeteer_goto_and_evaluate() {
     let r = run_scene(false);
     assert_eq!(r["exit_code"], 0, "{r}");
-    assert_eq!(r["stdout"].as_str().unwrap(), "version Chrome\ntitle t\nevaluate oi\n", "{r}");
+    assert_eq!(r["stdout"].as_str().unwrap(), "version Chrome\ngoto 200 True\ntitle t\nevaluate oi\n", "{r}");
 }
 
 /// Lacuna declarada: `Page.captureScreenshot` não existe no ul-chromium porque depende de layout e pintura (blitz-paint

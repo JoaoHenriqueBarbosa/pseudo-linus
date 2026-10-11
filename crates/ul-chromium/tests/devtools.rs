@@ -169,7 +169,7 @@ fn normalize(value: &Value, key: &str) -> Value {
             Value::Array(items)
         }
         Value::Array(items) => Value::Array(items.iter().map(|v| normalize(v, key)).collect()),
-        Value::Number(_) if key == "timestamp" => Value::String("<timestamp>".into()),
+        Value::Number(_) if key == "timestamp" || key == "wallTime" => Value::String("<timestamp>".into()),
         Value::Number(_) if key == "windowId" => Value::String("<windowId>".into()),
         Value::String(s) if token(s) => Value::String("<token>".into()),
         Value::String(s) if uuid(s) => Value::String("<uuid>".into()),

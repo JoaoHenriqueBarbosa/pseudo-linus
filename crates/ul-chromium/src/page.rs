@@ -103,6 +103,26 @@ struct ScriptInfo {
     src: Option<String>,
 }
 
+/// O que o domínio `Network` do DevTools mostra do documento: a resposta que o carregador recebeu.
+#[derive(Debug, Clone)]
+pub struct NetMeta {
+    pub url: String,
+    pub status: u16,
+    pub status_text: String,
+    pub headers: Vec<(String, String)>,
+    pub mime_type: String,
+    pub charset: String,
+    /// `data`, `http/1.1`, `h2`...
+    pub protocol: String,
+    pub remote_ip: String,
+    pub remote_port: u16,
+    /// Bytes do corpo no fio (`encodedDataLength` do `loadingFinished`).
+    pub encoded_length: usize,
+    /// Bytes do corpo decodificado (`dataLength` do `dataReceived`).
+    pub data_length: usize,
+    pub request_headers: Vec<(String, String)>,
+}
+
 pub struct Page {
     pub bridge: Rc<Bridge>,
     /// Orçamento de tempo virtual para o laço de eventos depois do carregamento, em ms.
@@ -123,6 +143,7 @@ pub struct Page {
     navigation_start: i128,
     /// A resposta do documento como o cache de disco a guarda (só o que veio pela rede).
     captured: Option<Captured>,
+    net: Option<NetMeta>,
 }
 
 /// A ida e volta de rede de uma busca em tempo virtual: o que já estava na fila de tarefas roda antes da resposta.
@@ -147,7 +168,7 @@ impl Page {
     /// `None` para código sem texto medido.
     pub fn error_page(url: &str, error: &str, fetcher: Fetcher) -> Option<Page> {
         let html = neterror_html(url, error)?;
-        let response = DocumentResponse { bytes: html.into_bytes(), final_url: "chrome-error://chromewebdata/".to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, csp: Vec::new(), cross_origin_isolated: false, transfer: None, timing: Fetched::now(), captured: None };
+        let response = DocumentResponse { bytes: html.into_bytes(), final_url: "chrome-error://chromewebdata/".to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, csp: Vec::new(), cross_origin_isolated: false, transfer: None, timing: Fetched::now(), captured: None, net: None };
         Some(Page::build(response, fetcher))
     }
 
@@ -176,12 +197,17 @@ impl Page {
         };
         use crate::devtools::json::Json;
         let csp_json = Json::Array(response.csp.iter().map(|(text, report_only)| Json::Array(vec![Json::str(text), Json::Bool(*report_only)])).collect()).to_compact();
-        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), csp_json, transfer_json, navigation_start, captured: response.captured }
+        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), csp_json, transfer_json, navigation_start, captured: response.captured, net: response.net }
     }
 
     /// O endereço do documento (o final, depois dos redirecionamentos).
     pub fn url(&self) -> String {
         self.bridge.url.borrow().clone()
+    }
+
+    /// A resposta do documento como o `Network` do DevTools a mostra (`about:blank`, `file:` e a página de erro não têm).
+    pub fn net_meta(&self) -> Option<&NetMeta> {
+        self.net.as_ref()
     }
 
     /// A resposta do documento como o cache de disco a guarda (só o que veio pela rede).
@@ -471,6 +497,7 @@ fn collect(doc: &BaseDocument, id: NodeId, base: &str, out: &mut Vec<ScriptInfo>
 struct DocumentResponse {
     /// A resposta como o cache de disco a guarda, para o que veio pela rede.
     captured: Option<Captured>,
+    net: Option<NetMeta>,
     bytes: Vec<u8>,
     final_url: String,
     content_type: Option<String>,
@@ -637,6 +664,7 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
         transfer: None,
         timing: Fetched { navigation_start, fetch_start: navigation_start, fetch_end: now() },
         captured: None,
+        net: None,
     };
     // A aba nova (`about:blank`) é um documento vazio sem rede; `data:` sai pelo processador de data: URL do Fetch.
     if address == "about:blank" {
@@ -645,7 +673,23 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
     if address.get(..5).is_some_and(|s| s.eq_ignore_ascii_case("data:")) {
         let parsed = data_url::DataUrl::process(address).map_err(|_| "net::ERR_INVALID_URL".to_owned())?;
         let (bytes, _) = parsed.decode_to_vec().map_err(|_| "net::ERR_INVALID_URL".to_owned())?;
-        return Ok(local(bytes, Some(parsed.mime_type().to_string())));
+        let mime = parsed.mime_type().to_string();
+        let mut response = local(bytes, Some(mime.clone()));
+        response.net = Some(NetMeta {
+            url: address.to_owned(),
+            status: 200,
+            status_text: "OK".to_owned(),
+            headers: vec![("Content-Type".to_owned(), mime.clone())],
+            mime_type: mime,
+            charset: String::new(),
+            protocol: "data".to_owned(),
+            remote_ip: String::new(),
+            remote_port: 0,
+            encoded_length: response.bytes.len(),
+            data_length: response.bytes.len(),
+            request_headers: Vec::new(),
+        });
+        return Ok(response);
     }
     if let Some(&(_, html)) = WEBUI_DOCUMENTS.iter().find(|(url, _)| *url == address) {
         return Ok(local(html.as_bytes().to_vec(), Some("text/html".to_owned())));
@@ -668,7 +712,26 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
     let cross_origin_isolated = policy_value(&response, "Cross-Origin-Opener-Policy").as_deref() == Some("same-origin")
         && matches!(policy_value(&response, "Cross-Origin-Embedder-Policy").as_deref(), Some("require-corp" | "credentialless"))
         && potentially_trustworthy(&final_url);
+    let (major, minor) = response.transfer.version;
+    let content_type = response.header("Content-Type");
+    let mime_type = content_type.as_deref().and_then(|c| c.split(';').next()).unwrap_or_default().trim().to_ascii_lowercase();
+    let charset = content_type.as_deref().and_then(|c| c.split(';').skip(1).find_map(|p| p.trim().strip_prefix("charset=").map(|v| v.trim_matches('"').to_owned()))).unwrap_or_default();
+    let net = NetMeta {
+        url: final_url.clone(),
+        status: response.status,
+        status_text: response.reason.clone(),
+        headers: response.headers.iter().map(|(n, v)| (String::from_utf8_lossy(n).into_owned(), String::from_utf8_lossy(v).into_owned())).collect(),
+        mime_type,
+        charset,
+        protocol: if (major, minor) == (1, 0) { "http/1.0".to_owned() } else if major == 2 { "h2".to_owned() } else { "http/1.1".to_owned() },
+        remote_ip: captured.remote_host.clone(),
+        remote_port: captured.remote_port,
+        encoded_length: response.transfer.encoded_size,
+        data_length: response.body.len(),
+        request_headers: headers.clone(),
+    };
     Ok(DocumentResponse {
+        net: Some(net),
         content_type: response.header("Content-Type"),
         header_csp: response.header("Content-Security-Policy").is_some(),
         csp: csp_policies(&response),
