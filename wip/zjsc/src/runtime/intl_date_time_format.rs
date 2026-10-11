@@ -751,7 +751,8 @@ fn time_parts(state: &DateTimeFormatState, fields: &Fields, moment: &Moment) -> 
         parts.push(("fractionalSecond".to_string(), fraction.to_string()));
     }
 
-    if let Some(width) = fields.day_period {
+    // No ciclo de 24 horas o `dayPeriod` não aparece (pt-BR, fr, de e ja com `hour` e `dayPeriod: "long"` dão só `15:04`).
+    if let Some(width) = fields.day_period.filter(|_| twelve || fields.hour.is_none()) {
         if !parts.is_empty() {
             parts.push(literal(" "));
         }
@@ -820,7 +821,7 @@ fn data_key(state: &DateTimeFormatState) -> Option<String> {
         if let Some(width) = numeric(user.day, resolved.day) {
             push_key(&mut key, "day", width.as_str());
         }
-        if let Some(width) = user.day_period {
+        if let Some(width) = user.day_period.filter(|_| resolved.hour.is_none() || matches!(state.cycle, HourCycle::H11 | HourCycle::H12)) {
             push_key(&mut key, "dayPeriod", width.as_str());
         }
         for (name, requested, wanted) in
@@ -1322,7 +1323,7 @@ fn initialize(
         fields.hour = Some(Digits2::TwoDigit);
     }
     let hour_cycle = fields.hour.map(|_| cycle);
-    Ok(DateTimeFormatState {
+    let mut state = DateTimeFormatState {
         locale,
         language: resolved.language,
         zone,
@@ -1337,7 +1338,35 @@ fn initialize(
         iso_calendar,
         native,
         numbering,
-    })
+    };
+    apply_pattern_widths(&mut state);
+    Ok(state)
+}
+
+/// A largura que o padrão do locale dá ao mês, ao dia e ao ano numéricos (`dd/MM/y` em fr e pt, `d.M.y` em de): é o que
+/// `resolvedOptions` mostra (`month: "2-digit"`), e não `numeric`. Só vale no gregoriano, com a tabela medida do locale.
+fn apply_pattern_widths(state: &mut DateTimeFormatState) {
+    if state.native.is_native() || state.iso_calendar || state.date_style.is_some() || state.time_style.is_some() {
+        return;
+    }
+    let Some(pattern) = intl_date_time_data::locale_data_for(&state.locale).and_then(|data| data_key(state).and_then(|key| data.pattern(&key))) else {
+        return;
+    };
+    let width = |field: &str| -> Option<Digits2> {
+        if pattern.contains(&format!("{{{field}:2-digit}}")) {
+            Some(Digits2::TwoDigit)
+        } else if pattern.contains(&format!("{{{field}:numeric}}")) {
+            Some(Digits2::Numeric)
+        } else {
+            None
+        }
+    };
+    if matches!(state.fields.month, Some(Month::Numeric | Month::TwoDigit)) {
+        state.fields.month = width("month").map(|width| if width == Digits2::TwoDigit { Month::TwoDigit } else { Month::Numeric }).or(state.fields.month);
+    }
+    if state.fields.day.is_some() {
+        state.fields.day = width("day").or(state.fields.day);
+    }
 }
 
 /// `Date.prototype.toLocaleString` e irmãs: o texto de `time_value` com `locales` e `options`.

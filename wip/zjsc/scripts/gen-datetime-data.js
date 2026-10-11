@@ -237,6 +237,8 @@ for (const hour of ["numeric", "2-digit"]) {
 for (const timeZoneName of ZONE_STYLES) {
   timeSkeletons.push({ hour: "numeric", minute: "2-digit", second: "2-digit", timeZoneName });
   timeSkeletons.push({ hour: "numeric", minute: "2-digit", timeZoneName });
+  // Só a hora com o fuso (`20 h UTC+5:30` em fr, `20 Uhr GMT+5:30` em de, `20時 GMT+5:30` em ja): o literal da hora entra no padrão.
+  timeSkeletons.push({ hour: "numeric", timeZoneName });
   // O que `toLocaleString`/`toLocaleTimeString` pedem com só `timeZoneName`: todos os campos `numeric`.
   timeSkeletons.push({ hour: "numeric", minute: "numeric", second: "numeric", timeZoneName });
 }
