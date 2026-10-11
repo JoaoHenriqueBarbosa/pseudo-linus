@@ -1,0 +1,23 @@
+lookup,resolve,resolveSrv,resolveTxt,resolveSoa,resolveNaptr,resolveMx,resolveCaa,resolveNs,resolvePtr,resolveCname,resolveAny,getServers,setServers,reverse,lookupService,prefetch,getCacheStats,ADDRCONFIG,ALL,V4MAPPED [object Object]
+32 16 8 2 resolve 0
+lookup localhost [{"address":"::1","family":6,"ttl":0},{"address":"127.0.0.1","family":4,"ttl":0}]
+lookup ip [{"address":"127.0.0.1","family":4,"ttl":0}]
+lookup v6 [{"address":"::1","family":6,"ttl":0}]
+lookup 4 [{"address":"127.0.0.1","family":4,"ttl":0},{"address":"127.0.0.1","family":4,"ttl":0}]
+lookup 6 [{"address":"::1","family":6,"ttl":0}]
+lookup upper [{"address":"::1","family":6,"ttl":0},{"address":"127.0.0.1","family":4,"ttl":0}]
+lookup empty throws TypeError ERR_INVALID_ARG_TYPE undefined undefined undefined Expected hostname to be a non-empty string for 'lookup'.
+lookup num throws TypeError ERR_INVALID_ARG_TYPE undefined undefined undefined Expected hostname to be a string for 'lookup'.
+lookup bad family throws Error undefined undefined undefined undefined Invalid options passed to lookup(): InvalidFamily
+resolve bad type throws TypeError ERR_INVALID_ARG_VALUE undefined undefined undefined The property "record" is invalid. Expected one of: A, AAAA, ANY, CAA, CNAME, MX, NAPTR, NS, PTR, SOA, SRV, TXT, received type string ('ZZ')
+resolve no host throws TypeError ERR_MISSING_ARGS undefined undefined undefined Not enough arguments to 'resolve'. Expected 3, got 0.
+lookupService bad throws TypeError ERR_INVALID_ARG_VALUE undefined undefined undefined The "address" argument is invalid. Received type string ('x')
+reverse bad throws DNSException DNS_ENOTIMP 5 getHostByAddr x getHostByAddr ENOTIMP x
+setServers throws TypeError ERR_INVALID_ARG_TYPE undefined undefined undefined Invalid address family
+ADDRCONFIG,ALL,V4MAPPED,NODATA,FORMERR,SERVFAIL,NOTFOUND,NOTIMP,REFUSED,BADQUERY,BADNAME,BADFAMILY,BADRESP,CONNREFUSED,TIMEOUT,EOF,FILE,NOMEM,DESTRUCTION,BADSTR,BADFLAGS,NONAME,BADHINTS,NOTINITIALIZED,LOADIPHLPAPI,ADDRGETNETWORKPARAMS,CANCELLED,lookup,lookupService,Resolver,setServers,setDefaultResultOrder,getDefaultResultOrder,resolve,reverse,resolve4,resolve6,resolveAny,resolveCname,resolveCaa,resolveMx,resolveNs,resolvePtr,resolveSoa,resolveSrv,resolveTxt,resolveNaptr,promises,getServers
+verbatim function true
+dns lookup cb ["::1",6]
+dns lookup all [{"address":"::1","family":6},{"address":"127.0.0.1","family":4}]
+dns lookup ip {"address":"127.0.0.1","family":4}
+dns lookup bad throws TypeError ERR_INVALID_ARG_TYPE undefined undefined undefined The "hostname" argument must be of type string. Received type number (5)
+function function false

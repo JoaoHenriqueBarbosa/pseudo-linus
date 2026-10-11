@@ -146,6 +146,7 @@ pub mod console_host;
 pub mod host;
 pub mod net_loop;
 pub mod proc_spawn;
+pub mod bun_dns;
 pub mod bun_http;
 pub mod module_fs;
 pub mod console_client;

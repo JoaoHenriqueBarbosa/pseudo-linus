@@ -67,6 +67,12 @@ const zlib = [
   [/\$requireMap\.\$get\("buffer"\)\?\.exports\.kMaxLength \?\? /, ""],
 ];
 
+// `node:dns`: o `Resolver` nativo do bun responde como o `Bun.dns` (mesma máquina sem rede), com `cancel`; a ordem padrão é `verbatim`.
+const dns = [
+  [/\$newRustFunction\(\s*"runtime\/dns_jsc\/dns\.rs",\s*"Resolver\.getRuntimeDefaultResultOrderOption",\s*0,?\s*\)/, '(() => "verbatim")'],
+  [/\$newRustFunction\("runtime\/dns_jsc\/dns\.rs", "Resolver\.newResolver", 1\)/, "((options) => Object.assign(Object.create(Bun.dns), { cancel() {} }))"],
+];
+
 // [nome do módulo embutido, arquivo, substituições próprias, o que o `export` final vira]
 const modules = [
   ["diagnostics_channel", "node/diagnostics_channel.ts", []],
@@ -80,6 +86,8 @@ const modules = [
   ["https", "node/https.ts", httpCommon],
   ["child_process", "node/child_process.ts", childProcess],
   ["zlib", "node/zlib.ts", zlib],
+  ["dns", "node/dns.ts", dns],
+  ["dns_promises", "node/dns.promises.ts", [[/^export default (require\(.*\)\.\w+);?\s*$/m, "return $1;"]]],
 ];
 
 const prologue = `  "use strict";

@@ -65,6 +65,8 @@ pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "child_process", scheme: Scheme::Both, install: crate::runtime::node_http::install_child_process_module },
     BuiltinEntry { name: "crypto", scheme: Scheme::Both, install: crate::runtime::node_crypto::install_crypto_module },
     BuiltinEntry { name: "diagnostics_channel", scheme: Scheme::Both, install: crate::runtime::node_http::install_diagnostics_channel_module },
+    BuiltinEntry { name: "dns", scheme: Scheme::Both, install: crate::runtime::node_http::install_dns_module },
+    BuiltinEntry { name: "dns/promises", scheme: Scheme::Both, install: crate::runtime::node_http::install_dns_promises_module },
     BuiltinEntry { name: "events", scheme: Scheme::Both, install: crate::api::node_events::install_events_module },
     BuiltinEntry { name: "fs", scheme: Scheme::Both, install: crate::runtime::node_fs::install_fs_module },
     BuiltinEntry { name: "fs/promises", scheme: Scheme::Both, install: crate::runtime::node_fs::install_fs_promises_module },
