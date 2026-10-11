@@ -137,7 +137,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         &mut self,
         class_keyword: bun_ast::Range,
         name: Option<js_ast::LocRef>,
-        class_opts: &ParseClassOptions<'a>,
+        class_opts: &ParseClassOptions,
     ) -> Result<G::Class, Error> {
         let p = self;
         let mut extends: Option<Expr> = None;
@@ -264,7 +264,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let has_any_decorators = has_decorators || class_opts.ts_decorators.len() > 0;
         // `Expr: Copy`: safe arena-slice → owned Vec (one memcpy, no double-drop).
-        let ts_decorators = p.store.alloc_slice((class_opts.ts_decorators).to_vec());
+        let ts_decorators = class_opts.ts_decorators;
         Ok(G::Class {
             class_name: name,
             extends,
@@ -663,7 +663,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn parse_class_stmt(
         &mut self,
         loc: bun_ast::Loc,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
     ) -> Result<Stmt, Error> {
         let p = self;
         let mut name: Option<js_ast::LocRef> = None;
@@ -787,7 +787,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     pub(crate) fn parse_expr_or_let_stmt(
         &mut self,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
     ) -> Result<ExprOrLetStmt, Error> {
         let p = self;
         let token_range = p.lexer.range();
@@ -1260,7 +1260,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn parse_and_declare_decls(
         &mut self,
         kind: js_ast::symbol::Kind,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
     ) -> Result<G::DeclList, Error> {
         let p = self;
         let mut decls: smallvec::SmallVec<[G::Decl; 4]> = smallvec::SmallVec::new();
@@ -1449,7 +1449,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn parse_stmts_up_to(
         &mut self,
         eend: T,
-        _opts: &mut ParseStatementOptions<'a>,
+        _opts: &mut ParseStatementOptions,
     ) -> Result<StmtList<'a>, Error> {
         let p = self;
         let mut opts = *_opts;

@@ -793,6 +793,12 @@ pub fn trim_left<'a>(slice: &'a [u8], values_to_strip: &[u8]) -> &'a [u8] {
     &slice[begin..]
 }
 
+/// `bun.strings.trimRight`: tira do fim os bytes que estão em `values_to_strip`.
+pub fn trim_right<'a>(slice: &'a [u8], values_to_strip: &[u8]) -> &'a [u8] {
+    let end = slice.iter().rposition(|b| !values_to_strip.contains(b)).map_or(0, |i| i + 1);
+    &slice[..end]
+}
+
 /// `input` começa com `prefix` e o que vem depois não continua um identificador:
 ///
 /// ```text

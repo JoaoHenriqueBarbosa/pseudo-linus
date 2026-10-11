@@ -11,7 +11,7 @@ use crate::parser::{
 };
 use bun_ast as js_ast;
 use bun_ast::op::Level;
-use bun_ast::{E, Expr, Flags, G, S, Stmt};
+use bun_ast::{E, Expr, ExprNodeList, Flags, G, S, Stmt};
 
 type Error = crate::Error;
 
@@ -227,7 +227,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 continue;
             }
 
-            let mut ts_decorators = Vec::new();
+            let mut ts_decorators = ExprNodeList::EMPTY;
             if opts.allow_ts_decorators {
                 ts_decorators = p.parse_type_script_decorators()?;
                 if ts_decorators.len_u32() > 0 {
@@ -316,7 +316,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             args.push(G::Arg {
-                ts_decorators: p.store.alloc_slice(ts_decorators),
+                ts_decorators,
                 binding: arg,
                 default: default_value,
 

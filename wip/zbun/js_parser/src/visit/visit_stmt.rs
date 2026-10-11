@@ -1159,11 +1159,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     );
                     // TODO: is it necessary to lowerAssign? why does esbuild do it _most_ of the time?
                     // ToExprWrapper is Copy; pass by value to avoid borrowing `*p`
-                    // across `p.s(...)`. The `*mut P` ctx is derived from the live `&mut Self`
-                    // here so its provenance is a child of the active Unique borrow.
+                    // across `p.s(...)`.
                     let wrapper = p.to_expr_wrapper_namespace;
-                    let ctx = core::ptr::addr_of_mut!(*p).cast::<core::ffi::c_void>();
-                    let lhs = Binding::to_expr(&d.binding, ctx, wrapper);
+                    let lhs = Binding::to_expr(&d.binding, p, wrapper);
                     stmts.push(p.s(
                         S::SExpr {
                             value: Expr::assign(&mut p.store, lhs, val),
@@ -2236,7 +2234,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Create an assignment for each enum value
         for value in values.iter_mut() {
-            let name: &'a [u8] = p.store.str(value.name);
+            let name: &'a [u8] = p.arena_str(value.name);
 
             let mut has_string_value = false;
             if let Some(enum_value) = value.value {
@@ -2255,7 +2253,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 match underlying_value.data {
                     js_ast::ExprData::ENumber(num) => {
-                        exported_members.get_ptr_mut(name).unwrap().data =
+                        p.store[exported_members].get_mut(name).unwrap().data =
                             js_ast::ts::Data::EnumNumber(num.value());
 
                         p.ref_to_ts_namespace_member
@@ -2266,7 +2264,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     js_ast::ExprData::EString(str_) => {
                         has_string_value = true;
 
-                        exported_members.get_ptr_mut(name).unwrap().data =
+                        p.store[exported_members].get_mut(name).unwrap().data =
                             js_ast::ts::Data::EnumString(str_);
 
                         p.ref_to_ts_namespace_member
@@ -2287,7 +2285,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 next_numeric_value = Some(num + 1.0);
 
-                exported_members.get_ptr_mut(name).unwrap().data =
+                p.store[exported_members].get_mut(name).unwrap().data =
                     js_ast::ts::Data::EnumNumber(num);
 
                 p.ref_to_ts_namespace_member

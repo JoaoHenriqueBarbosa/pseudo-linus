@@ -497,7 +497,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // --- These must be done in all cases --
                     let maybe_key_value: Option<ExprNodeIndex> = if p.store[e_].key_prop_index > -1 {
                         let idx = p.store[e_].key_prop_index as u32 as usize;
-                        p.store[e_].properties.ordered_remove(idx).value
+                        let mut properties = p.store[e_].properties;
+                        let removed = p.store.ordered_remove(&mut properties, idx);
+                        p.store[e_].properties = properties;
+                        removed.value
                     } else {
                         None
                     };
@@ -694,9 +697,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // arrows/functions inside them unconsumed and trip "Scope mismatch
         // while visiting" on the next scope push. Mirrors e_call, which visits
         // its arguments before macro handling.
-        // `Template.parts` is arena-owned.
-        for part in e_.parts_mut().iter_mut() {
-            p.visit_expr(&mut part.value);
+        let parts = p.store[e_].parts;
+        for i in 0..parts.len() {
+            let mut value = p.store[parts][i].value;
+            p.visit_expr(&mut value);
+            p.store[parts][i].value = value;
         }
 
         if let Some(tag) = p.store[e_].tag {
@@ -1059,7 +1064,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // `[x][0] = v` writes into the temporary, not `x`.
         if p.options.features.minify_syntax && in_.assign_target == js_ast::AssignTarget::None {
-            if let Some(number) = index.data.as_e_number() {
+            if let Some(number) = index.data.e_number() {
                 if number.value() >= 0.0
                     && number.value() < (usize::MAX as f64)
                     && number.value() % 1.0 == 0.0
@@ -1085,7 +1090,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 return;
                             }
                         }
-                    } else if let Some(array) = target.data.as_e_array() {
+                    } else if let Some(array) = target.data.e_array() {
                         let int: usize = number.value() as usize;
                         // [x][0] -> x
                         // ['a', 'b', 'c'][1] -> 'b'
@@ -1210,7 +1215,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     return;
                 }
 
-                if let Some(typeof_) = SideEffects::typeof_(&p.store[e_].value.data) {
+                if let Some(typeof_) = p.store[e_].value.data.to_typeof() {
                     *e = p.new_expr(
                         E::String {
                             data: p.store.alloc_str(typeof_),
@@ -1258,7 +1263,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
 
                         if p.options.features.minify_syntax {
-                            if let Some(exp) = Expr::maybe_simplify_not(&p.store[e_].value, p.arena) {
+                            let value = p.store[e_].value;
+                            if let Some(exp) = value.maybe_simplify_not(&mut p.store) {
                                 *e = exp;
                                 return;
                             }
@@ -1271,7 +1277,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                     Op::UnCpl => {
                         if p.should_fold_typescript_constant_expressions {
-                            if let Some(value) = SideEffects::to_number(&p.store[e_].value.data) {
+                            if let Some(value) = p.store[e_].value.data.to_number(&p.store) {
                                 *e = p.new_expr(
                                     E::Number::new(f64::from(!float_to_int32(value))),
                                     expr.loc,
@@ -1287,13 +1293,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
                     }
                     Op::UnPos => {
-                        if let Some(num) = SideEffects::to_number(&p.store[e_].value.data) {
+                        if let Some(num) = p.store[e_].value.data.to_number(&p.store) {
                             *e = p.new_expr(E::Number::new(num), expr.loc);
                             return;
                         }
                     }
                     Op::UnNeg => {
-                        if let Some(num) = SideEffects::to_number(&p.store[e_].value.data) {
+                        if let Some(num) = p.store[e_].value.data.to_number(&p.store) {
                             *e = p.new_expr(E::Number::new(-num), expr.loc);
                             return;
                         }

@@ -146,6 +146,22 @@ pub mod fs {
             Self { pretty: text, text, namespace: b"file", is_disabled: false, is_symlink: false }
         }
 
+        /// `sourceDir` do upstream (`name.dirWithTrailingSlash()`): o diretório com a barra do fim quando, no texto,
+        /// a barra separa o diretório do nome base logo em seguida. O upstream compara os ponteiros das fatias; aqui
+        /// o `dir` de um `PathName` com diretório começa sempre no início de `text`, e a comparação é a mesma pelos
+        /// endereços.
+        pub fn source_dir(&self) -> &'a [u8] {
+            let name = self.name();
+            let dir = name.dir;
+            if !dir.is_empty()
+                && dir[dir.len() - 1] != b'/'
+                && dir.as_ptr() as usize + dir.len() + 1 == name.base.as_ptr() as usize
+            {
+                return &self.text[..dir.len() + 1];
+            }
+            dir
+        }
+
         /// O diretório do caminho passa por `/node_modules/` (o `isNodeModule` do upstream, com o separador do
         /// Linux).
         pub fn is_node_module(&self) -> bool {

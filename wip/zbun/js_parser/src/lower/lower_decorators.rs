@@ -76,7 +76,7 @@ fn prop_copy(p: &Property) -> Property {
         kind: p.kind,
         flags: p.flags,
         class_static_block: p.class_static_block,
-        ts_decorators: p.store.alloc_slice(Vec::new()),
+        ts_decorators: bun_ast::ExprNodeList::EMPTY,
         key: p.key,
         value: p.value,
         // No upstream, `ptr::read` (cópia rasa que aliava o `Vec` do `MDot`, seguro só porque a arena nunca roda o
@@ -476,9 +476,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.rewrite_expr(t, kind);
                 }
                 self.store[*e].tag = slot;
-                // SAFETY: arena-owned slice; unique access via `&mut e`.
-                for part in e.parts_mut().iter_mut() {
-                    self.rewrite_expr(&mut part.value, kind);
+                let parts = self.store[*e].parts;
+                for i in 0..parts.len() {
+                    let mut value = self.store[parts][i].value;
+                    self.rewrite_expr(&mut value, kind);
+                    self.store[parts][i].value = value;
                 }
             }
             js_ast::ExprData::EArrow(e) => {
@@ -876,9 +878,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.rewrite_private_accesses_in_expr(t, map);
                 }
                 self.store[*e].tag = slot;
-                // SAFETY: see `rewrite_expr` ETemplate.
-                for part in e.parts_mut().iter_mut() {
-                    self.rewrite_private_accesses_in_expr(&mut part.value, map);
+                let parts = self.store[*e].parts;
+                for i in 0..parts.len() {
+                    let mut value = self.store[parts][i].value;
+                    self.rewrite_private_accesses_in_expr(&mut value, map);
+                    self.store[parts][i].value = value;
                 }
             }
             js_ast::ExprData::EFunction(e) => {
@@ -1584,7 +1588,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             if let js_ast::ExprData::EString(s) = &k.data
                                 && p.store[*s].is_utf8()
                             {
-                                break 'brk p.bump_name2(b"_", &p.store[*s].data);
+                                break 'brk p.bump_name2(b"_", p.store.str(p.store[*s].data));
                             }
                         }
                         let name =
@@ -1833,7 +1837,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if let js_ast::ExprData::EString(s) = &key_expr.data
                         && p.store[*s].is_utf8()
                     {
-                        break 'brk p.bump_name2(b"_", &p.store[*s].data);
+                        break 'brk p.bump_name2(b"_", p.store.str(p.store[*s].data));
                     }
                     let name = p.bump_name(b"_accessor_storage", Some(accessor_storage_counter));
                     accessor_storage_counter += 1;

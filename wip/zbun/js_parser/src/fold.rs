@@ -43,11 +43,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let mut value: Expr = Expr::EMPTY;
         for decl in decls {
-            // Derive `*mut P` from the live `&mut Self` so the trampoline's
-            // `&mut *ctx` reborrows under the active Unique tag (see Binding.rs).
             let wrapper = p.to_expr_wrapper_hoisted;
-            let ctx = core::ptr::addr_of_mut!(*p).cast::<core::ffi::c_void>();
-            let binding = Binding::to_expr(&decl.binding, ctx, wrapper);
+            let binding = Binding::to_expr(&decl.binding, p, wrapper);
             if let Some(decl_value) = decl.value {
                 value = Expr::join_with_comma(&mut p.store, value, Expr::assign(&mut p.store, binding, decl_value));
             } else if mode == RelocateVarsMode::ForInOrForOf {
@@ -305,7 +302,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     // anything which is not module.exports = {} is a de-opt.
                                     || !matches!(p.store[stmt_bin].right.data, js_ast::ExprData::EObject(_))
                                     || !matches!(p.store[stmt_bin].left.data, js_ast::ExprData::EDot(_))
-                                    || p.store[p.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked")].name != b"exports"
+                                    || p.store.str(p.store[p.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked")].name) != b"exports"
                                     || !matches!(
                                         p.store[p.store[stmt_bin].left.data.e_dot().expect("infallible: variant checked")].target.data,
                                         js_ast::ExprData::EIdentifier(_)
@@ -604,7 +601,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 // EDot and EIndex are handled with structurally identical arms.
                 js_ast::ExprData::EDot(data) => {
-                    if matches!(p.ts_namespace.expr, js_ast::ExprData::EDot(ns_data) if data.as_ptr() == ns_data.as_ptr())
+                    if matches!(p.ts_namespace.expr, js_ast::ExprData::EDot(ns_data) if data == ns_data)
                         && identifier_opts.assign_target() == js_ast::AssignTarget::None
                         && !identifier_opts.is_delete_target()
                     {
@@ -614,7 +611,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 js_ast::ExprData::EIndex(data) => {
-                    if matches!(p.ts_namespace.expr, js_ast::ExprData::EIndex(ns_data) if data.as_ptr() == ns_data.as_ptr())
+                    if matches!(p.ts_namespace.expr, js_ast::ExprData::EIndex(ns_data) if data == ns_data)
                         && identifier_opts.assign_target() == js_ast::AssignTarget::None
                         && !identifier_opts.is_delete_target()
                     {

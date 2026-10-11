@@ -92,16 +92,6 @@ impl SideEffects {
         }
     }
 
-    // Re-exports of ExprData methods.
-    #[inline(always)]
-    pub(crate) fn to_number(data: &ExprData) -> Option<f64> {
-        data.to_number()
-    }
-    #[inline(always)]
-    pub(crate) fn typeof_(data: &ExprData) -> Option<&'static [u8]> {
-        data.to_typeof()
-    }
-
     pub(crate) fn is_primitive_to_reorder(data: &ExprData) -> bool {
         matches!(
             data,
@@ -346,10 +336,11 @@ impl SideEffects {
                 // Objects with "..." spread expressions can't be unwrapped because the
                 // "..." triggers code evaluation via getters. In that case, just trim
                 // the other items instead and leave the object expression there.
-                let len = p.store[e_object].properties.len_u32() as usize;
+                let props = p.store[e_object].properties;
+                let len = props.len();
                 let mut has_spread = false;
                 for i in 0..len {
-                    if p.store[p.store[e_object].properties][i].kind == G::PropertyKind::Spread {
+                    if p.store[props][i].kind == G::PropertyKind::Spread {
                         has_spread = true;
                         break;
                     }
@@ -358,30 +349,29 @@ impl SideEffects {
                     // Spread properties must always be evaluated
                     let mut end: usize = 0;
                     for j in 0..len {
-                        let kind = p.store[p.store[e_object].properties][j].kind;
+                        let kind = p.store[props][j].kind;
                         if kind != G::PropertyKind::Spread {
-                            let prev_value = p.store[p.store[e_object].properties][j].value.unwrap();
-                            let is_computed = p.store[p.store[e_object]
-                                .properties][j]
+                            let prev_value = p.store[props][j].value.unwrap();
+                            let is_computed = p.store[props][j]
                                 .flags
                                 .contains(bun_ast::flags::Property::IsComputed);
                             let value = Self::simplify_unused_expr(p, prev_value);
                             if let Some(value) = value {
-                                p.store[e_object].properties.mut_(j).value = Some(value);
+                                p.store[props][j].value = Some(value);
                             } else if !is_computed {
                                 continue;
                             } else {
                                 let zero = p.new_expr(E::Number::new(0.0), prev_value.loc);
-                                p.store[e_object].properties.mut_(j).value = Some(zero);
+                                p.store[props][j].value = Some(zero);
                             }
                         }
 
                         // G::Property is not Copy (Vec ts_decorators field), so swap
                         // so the kept property lands at `end` without cloning.
-                        (&mut p.store[p.store[e_object].properties]).swap(end, j);
+                        (&mut p.store[props]).swap(end, j);
                         end += 1;
                     }
-                    p.store[e_object].properties.shrink_retaining_capacity(end);
+                    p.store[e_object].properties.truncate(end);
                     return Some(expr);
                 }
 
@@ -445,7 +435,7 @@ impl SideEffects {
                             end += 1;
                         }
                     }
-                    p.store[arr].items.shrink_retaining_capacity(end);
+                    p.store[arr].items.truncate(end);
                     return Some(expr);
                 }
 

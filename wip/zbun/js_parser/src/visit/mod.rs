@@ -368,8 +368,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // When hooks are immediately assigned to something, we need to hash the binding.
                     if let Some(last_hook) = self.react_refresh.last_hook_seen {
                         if let Some(call) = decl.value.unwrap().data.e_call() {
-                            if core::ptr::eq(last_hook, &raw const self.store[call]) {
-                                // `react_refresh` e `symbols` são campos disjuntos de `P`.
+                            if last_hook == call {
+                                // `react_refresh`, `store` e `symbols` são campos disjuntos de `P`.
                                 let hasher = &mut self
                                     .react_refresh
                                     .hook_ctx_stack
@@ -380,7 +380,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     .hasher;
                                 decl.binding
                                     .data
-                                    .write_to_hasher(hasher, self.symbols.as_mut_slice());
+                                    .write_to_hasher(&self.store, hasher, self.symbols.as_mut_slice());
                             }
                         }
                     }
@@ -633,42 +633,42 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn visit_binding_and_expr_for_macro(&mut self, binding: Binding, expr: Expr) {
         match binding.data {
             BData::BObject(bound_object) => {
-                let bound_object = (&self.store[bound_object]);
-                if let ExprData::EObject(mut object) = expr.data {
+                let bound_properties = self.store[bound_object].properties;
+                if let ExprData::EObject(object) = expr.data {
                     if self.store[object].was_originally_macro {
-                        for property in bound_object.properties(&self.store) {
-                            if property.flags.contains(flags::Property::IsSpread) {
-                                return;
-                            }
+                        if self.store[bound_properties]
+                            .iter()
+                            .any(|property| property.flags.contains(flags::Property::IsSpread))
+                        {
+                            return;
                         }
                         let mut end: u32 = 0;
-                        for property in bound_object.properties(&self.store) {
-                            if let Some(name) = property.key.as_string_literal(self.arena) {
-                                if let Some(query) = self.store[object].as_property(name) {
-                                    match query.expr.data {
-                                        ExprData::EObject(_) | ExprData::EArray(_) => {
-                                            self.visit_binding_and_expr_for_macro(
-                                                property.value,
-                                                query.expr,
-                                            );
+                        for p in 0..bound_properties.len() {
+                            let property = self.store[bound_properties][p];
+                            let Some(name) = property.key.as_string_literal(&mut self.store) else {
+                                continue;
+                            };
+                            let name = self.arena_str(name);
+                            let Some(query) = self.store[object].as_property(&self.store, name) else {
+                                continue;
+                            };
+                            match query.expr.data {
+                                ExprData::EObject(_) | ExprData::EArray(_) => {
+                                    self.visit_binding_and_expr_for_macro(property.value, query.expr);
+                                }
+                                _ => {
+                                    if self.options.features.inlining {
+                                        if let BData::BIdentifier(id) = property.value.data {
+                                            self.const_values.put(&self.store[id].r#ref, query.expr).expect("oom");
                                         }
-                                        _ => {
-                                            if self.options.features.inlining {
-                                                if let BData::BIdentifier(id) = property.value.data
-                                                {
-                                                    self.const_values
-                                                        .put(&self.store[id].r#ref, query.expr)
-                                                        .expect("oom");
-                                                }
-                                            }
-                                        }
-                                    }
-                                    let i = query.i as usize;
-                                    if i >= end as usize {
-                                        (&mut self.store[self.store[object].properties]).swap(i, end as usize);
-                                        end += 1;
                                     }
                                 }
+                            }
+                            let i = query.i as usize;
+                            if i >= end as usize {
+                                let properties = self.store[object].properties;
+                                (&mut self.store[properties]).swap(i, end as usize);
+                                end += 1;
                             }
                         }
                         self.store[object].properties.truncate(end as usize);
@@ -676,22 +676,21 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
             BData::BArray(bound_array) => {
-                let bound_array = (&self.store[bound_array]);
-                if let ExprData::EArray(mut array) = expr.data {
+                let bound_array = self.store[bound_array];
+                if let ExprData::EArray(array) = expr.data {
                     if self.store[array].was_originally_macro && !bound_array.has_spread {
-                        let bound_items = bound_array.items(&self.store);
-                        let trunc_n = self.store[array].items.len().min(bound_items.len());
+                        let trunc_n = self.store[array].items.len().min(bound_array.items.len());
                         self.store[array].items.truncate(trunc_n);
-                        let n = self.store[array].items.len_u32() as usize;
-                        for (item, child_expr) in bound_items[..n]
-                            .iter()
-                            .zip((&mut self.store[self.store[array].items]).iter_mut())
-                        {
+                        let items = self.store[array].items;
+                        for i in 0..items.len() {
+                            let item = self.store[bound_array.items][i];
                             if matches!(item.binding.data, BData::BMissing(_)) {
-                                *child_expr = self.new_expr(E::Missing {}, expr.loc);
+                                let missing = self.new_expr(E::Missing {}, expr.loc);
+                                self.store[items][i] = missing;
                                 continue;
                             }
-                            self.visit_binding_and_expr_for_macro(item.binding, *child_expr);
+                            let child_expr = self.store[items][i];
+                            self.visit_binding_and_expr_for_macro(item.binding, child_expr);
                         }
                     }
                 }
@@ -832,8 +831,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
             BData::BArray(mut bind) => {
-                // Arena-owned B::Array valid for 'a; exclusive during visit pass.
-                for item in bind.items_mut() {
+                let items = self.store[bind].items;
+                for i in 0..items.len() {
+                    let mut item = self.store[items][i];
+                    let item = &mut item;
                     self.visit_binding(item.binding, duplicate_arg_check.as_deref_mut());
                     if let Some(default_value) = item.default_value {
                         let was_anonymous_named_expr = default_value.is_anonymous_named();
@@ -863,11 +864,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             ));
                         }
                     }
+                    self.store[items][i] = *item;
                 }
             }
             BData::BObject(mut bind) => {
-                // Arena-owned B::Object valid for 'a; exclusive during visit pass.
-                for property in bind.properties_mut() {
+                let properties = self.store[bind].properties;
+                for i in 0..properties.len() {
+                    let mut property = self.store[properties][i];
+                    let property = &mut property;
                     if !property.flags.contains(flags::Property::IsSpread) {
                         self.visit_expr(&mut property.key);
                     }
@@ -901,6 +905,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             ));
                         }
                     }
+                    self.store[properties][i] = *property;
                 }
             }
         }
@@ -1949,7 +1954,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
                         match p.store[local].decls.len_u32() {
                             1 => {
-                                p.store[local].decls.clear();
+                                p.store[local].decls.truncate(0);
                                 let new_len = output.len() - 1;
                                 output.truncate(new_len);
                                 continue 'inner;

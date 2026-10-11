@@ -161,6 +161,52 @@ pub struct Data {
 }
 
 impl Data {
+    /// `Data.writeFormat` do upstream, no caminho sem cores: a linha do fonte com o número dela, o circunflexo sob
+    /// a coluna (seguido de `~` pelo resto do trecho), e então `tipo: texto` e `at arquivo:linha:coluna`.
+    pub fn write_format(&self, to: &mut impl std::io::Write, kind: Kind) -> std::io::Result<()> {
+        if self.text.is_empty() {
+            return Ok(());
+        }
+        if let Some(location) = &self.location {
+            if let Some(line_text) = &location.line_text {
+                let line_text = bun_core::strings::trim_left(bun_core::strings::trim_right(line_text, b" \r\n\t"), b"\n\r");
+                if location.column > -1 && !line_text.is_empty() {
+                    let mut line_offset_for_second_line = usize::try_from(location.column - 1).unwrap_or(0);
+                    if location.line > -1 {
+                        let prefix = format!("{} | ", location.line);
+                        to.write_all(prefix.as_bytes())?;
+                        line_offset_for_second_line += prefix.len();
+                    }
+                    to.write_all(line_text)?;
+                    to.write_all(b"\n")?;
+                    to.write_all(&b" ".repeat(line_offset_for_second_line))?;
+                    to.write_all(b"^")?;
+                    if location.length > 1 {
+                        let column = usize::try_from(location.column - 1).unwrap_or(0);
+                        let rest = line_text.len().saturating_sub(column + 1);
+                        to.write_all(&b"~".repeat((location.length - 1).min(rest)))?;
+                    }
+                    to.write_all(b"\n")?;
+                }
+            }
+        }
+        to.write_all(kind.string())?;
+        to.write_all(b": ")?;
+        to.write_all(&self.text)?;
+        to.write_all(b"\n")?;
+        if let Some(location) = &self.location {
+            if !location.file.is_empty() {
+                to.write_all(b"    at ")?;
+                to.write_all(&location.file)?;
+                if location.line > -1 && location.column > -1 {
+                    write!(to, ":{}:{}", location.line, location.column)?;
+                }
+                to.write_all(b"\n")?;
+            }
+        }
+        Ok(())
+    }
+
     pub fn clone_line_text(&self, should: bool) -> Data {
         if !should || self.location.is_none() || self.location.as_ref().unwrap().line_text.is_none() {
             return self.clone();
@@ -262,6 +308,20 @@ impl Log {
     }
 
     #[inline]
+    /// `Log.print` do upstream, sem cores: cada mensagem que o nível do log deixa passar, com as notas depois.
+    pub fn print(&self, to: &mut impl std::io::Write) -> std::io::Result<()> {
+        for msg in &self.msgs {
+            if !msg.kind.should_print(self.level) {
+                continue;
+            }
+            msg.data.write_format(to, msg.kind)?;
+            for note in msg.notes.iter() {
+                note.write_format(to, Kind::Note)?;
+            }
+        }
+        to.flush()
+    }
+
     pub fn has_errors(&self) -> bool {
         self.errors > 0
     }

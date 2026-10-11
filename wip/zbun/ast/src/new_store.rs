@@ -53,6 +53,17 @@ pub trait NodeStore: Sized {
         StoreSlice::from_range(to_u32(start), to_u32(items.len() + 1))
     }
 
+    /// O `orderedRemove` do upstream sobre uma lista da arena: tira o elemento `index`, desloca os seguintes uma
+    /// posição para trás (a ordem se mantém) e encurta a faixa em `items`.
+    fn ordered_remove<T: Stored<Self> + Clone>(&mut self, items: &mut StoreSlice<T>, index: usize) -> T {
+        let range = items.range();
+        let slots = &mut T::nodes_mut(self)[range];
+        let removed = slots[index].clone();
+        slots[index..].rotate_left(1);
+        items.truncate(slots.len() - 1);
+        removed
+    }
+
     /// O `clone_in` do upstream: um nó novo, com outro índice, igual ao original. As faixas internas são copiadas
     /// como números, então as duas cópias veem os mesmos elementos, como no upstream.
     fn clone_in<T: Stored<Self> + Clone>(&mut self, node: StoreRef<T>) -> StoreRef<T> {

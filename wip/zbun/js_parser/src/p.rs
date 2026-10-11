@@ -3247,13 +3247,6 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     pub(crate) fn prepare_for_visit_pass(&mut self) -> Result<(), crate::Error> {
         {
-            // The wrapper stores only the arena and a non-capturing
-            // The `&mut P` context is supplied at call time (see `Binding::to_expr`).
-            self.to_expr_wrapper_namespace = bun_ast::binding::ToExprWrapper::new(|p, loc, ref_| p.wrap_identifier_namespace(loc, ref_));
-            self.to_expr_wrapper_hoisted = bun_ast::binding::ToExprWrapper::new(|p, loc, ref_| p.wrap_identifier_hoisting(loc, ref_));
-        }
-
-        {
             // Compacta `scopes_in_order` (o passe de parse deixa buracos `None` do popAndDiscardScope) numa faixa
             // densa do `Store` para o passe de visita.
             let dense: Vec<ScopeOrder> = self.scopes_in_order.iter().flatten().copied().collect();
@@ -5389,7 +5382,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         self.lexer.log.level = bun_ast::Level::Verbose;
-        let _ = self.lexer.log.print(std::ptr::from_mut(Output::error_writer()));
+        let _ = self.lexer.log.print(&mut std::io::stderr());
 
         Output::panic(format_args!("{}\n{}", fmt, args));
     }
@@ -5566,7 +5559,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // if the part is dead, invalidate all the usage counts
             let symbol_uses = self.take_symbol_uses()?;
             self.clear_symbol_usages_from_dead_part(&js_ast::Part {
-                declared_symbols: self.declared_symbols.clone()?,
+                declared_symbols: self.declared_symbols.clone(),
                 symbol_uses,
                 ..Default::default()
             });
@@ -7540,7 +7533,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 stmts.extend_from_slice(&instance_decorators);
                 stmts.extend_from_slice(&static_decorators);
                 if self.store[s_class].class.ts_decorators.len_u32() > 0 {
-                    let mut array: Vec<Expr> = self.store[s_class].class.ts_decorators.move_to_list_managed();
+                    let ts_decorators = self.store[s_class].class.ts_decorators;
+                    let mut array: Vec<Expr> = self.store[ts_decorators].to_vec();
 
                     if self.options.features.emit_decorator_metadata {
                         if let Some(cf) = constructor_function {
@@ -8043,6 +8037,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     }
 
     pub(crate) fn extract_decls_for_binding(
+        store: &bun_ast::Store,
         binding: Binding,
         decls: &mut ListManaged<'a, G::Decl>,
     ) -> Result<(), crate::Error> {
@@ -8055,13 +8050,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 });
             }
             js_ast::b::B::BArray(arr) => {
-                for item in arr.items().iter() {
-                    Self::extract_decls_for_binding(item.binding, decls).expect("unreachable");
+                for item in store[store[arr].items].iter() {
+                    Self::extract_decls_for_binding(store, item.binding, decls).expect("unreachable");
                 }
             }
             js_ast::b::B::BObject(obj) => {
-                for prop in obj.properties().iter() {
-                    Self::extract_decls_for_binding(prop.value, decls).expect("unreachable");
+                for prop in store[store[obj].properties].iter() {
+                    Self::extract_decls_for_binding(store, prop.value, decls).expect("unreachable");
                 }
             }
         }
@@ -8307,16 +8302,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // place and `arr.items.slice_mut()` write through `DerefMut` into the
         // underlying arena slots.
         match self.store[call.args][0].data {
-            js_ast::ExprData::EString(mut str_) => {
+            js_ast::ExprData::EString(str_) => {
                 let loc = self.store[call.args][0].loc;
-                let Some(d) = self.rewrite_import_meta_hot_accept_string(&mut str_, loc) else {
+                let Some(d) = self.rewrite_import_meta_hot_accept_string(str_, loc) else {
                     return;
                 };
-                call.args.mut_(0).data = d;
+                self.store[call.args][0].data = d;
             }
-            js_ast::ExprData::EArray(mut arr) => {
-                for item in (&mut self.store[self.store[arr].items]) {
-                    let js_ast::ExprData::EString(mut s) = item.data else {
+            js_ast::ExprData::EArray(arr) => {
+                let items = self.store[arr].items;
+                for i in 0..items.len() {
+                    let item = self.store[items][i];
+                    let js_ast::ExprData::EString(s) = item.data else {
                         let _ = self.lexer.log.add_error(
                             Some(self.source),
                             item.loc,
@@ -8324,11 +8321,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         );
                         continue;
                     };
-                    let Some(d) = self.rewrite_import_meta_hot_accept_string(&mut s, item.loc)
+                    let Some(d) = self.rewrite_import_meta_hot_accept_string(s, item.loc)
                     else {
                         return;
                     };
-                    item.data = d;
+                    self.store[items][i].data = d;
                 }
             }
             _ => return,
@@ -8339,15 +8336,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     fn rewrite_import_meta_hot_accept_string(
         &mut self,
-        str_: &mut E::String,
+        str_: js_ast::StoreRef<E::String>,
         loc: bun_ast::Loc,
     ) -> Option<js_ast::ExprData> {
-        let _ = str_.to_utf8(self.arena);
-        let specifier = str_.data;
+        let mut string = self.store[str_];
+        string.to_utf8(&mut self.store);
+        self.store[str_] = string;
+        let specifier = self.store.str(string.data);
 
         let import_record_index = 'found: {
             for (i, import_record) in self.import_records.items().iter().enumerate() {
-                if strings::eql(&specifier, import_record.path.text) {
+                if specifier == self.store.str(import_record.path.text) {
                     break 'found i;
                 }
             }
@@ -8527,7 +8526,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 let arg = (&self.store[hook_call.args])[arg_index];
                 arg.data
-                    .write_to_hasher(&mut ctx.hasher, self.symbols.as_mut_slice());
+                    .write_to_hasher(&self.store, &mut ctx.hasher, self.symbols.as_mut_slice());
             }
         } else {
             match &hook_call.target.data {
@@ -8849,7 +8848,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 for stmt in self.store[part.stmts].iter() {
                     if let js_ast::StmtData::SExportClause(clause) = &stmt.data {
                         for item in self.store[self.store[*clause].items].iter() {
-                            if let Some(import) = self.named_imports.get_ptr_mut(&item.name.ref_) {
+                            if let Some(import) = self.named_imports.get_mut(&item.name.ref_) {
                                 import.is_exported = true;
                             }
                         }
@@ -8963,7 +8962,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 == js_ast::StrictModeKind::ExplicitStrictMode
                 && !(parts.len() > 0
                     && parts[0].stmts.len() > 0
-                    && matches!(parts[0].stmts[0].data, js_ast::StmtData::SDirective(_)));
+                    && matches!(self.store[parts[0].stmts][0].data, js_ast::StmtData::SDirective(_)));
 
             total_stmts_count += usize::from(preserve_strict_mode);
 
@@ -9051,8 +9050,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
 
                         ctx.top_level
-                            .entry(r#ref)
-                            .or_insert_with(Vec::new)
+                            .get_or_put(&r#ref)
+                            .expect("oom")
+                            .value_ptr
                             .push(ctx.part_index);
                     },
                 );
@@ -9060,8 +9060,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Pulling in the exports of this module always pulls in the export part
             top_level_symbols_to_parts
-                .entry(self.exports_ref)
-                .or_insert_with(Vec::new)
+                .get_or_put(&self.exports_ref)
+                .expect("oom")
+                .value_ptr
                 .push(js_ast::NAMESPACE_EXPORT_PART_INDEX);
         }
 
@@ -9077,7 +9078,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             {
                 use core::fmt::Write as _;
                 let mut buf = bun_alloc::ArenaString::new_in(arena);
-                let _ = write!(&mut buf, "require_{}", self.source.fmt_identifier());
+                let _ = write!(&mut buf, "require_{}", self.source.path.name().fmt_identifier());
                 break 'brk self
                     .new_symbol(js_ast::symbol::Kind::Other, buf.into_bump_str().as_bytes());
             }
@@ -9096,8 +9097,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // below does not conflict with the scope read.
             let module_scope = self.module_scope_ref();
             renamer::assign_nested_scope_slots(
-                arena,
-                (&self.store[module_scope]),
+                &self.store,
+                &self.store[module_scope],
                 self.symbols.as_mut_slice(),
             )
         } else {
@@ -9110,10 +9111,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let scope_uses = self.take_scope_uses();
 
         let module_scope_strict = self.module_scope().strict_mode;
-        // Scope is not `Clone` (Vec/HashMap members), so move it out and leave
-        // a default in `*self.module_scope`. `to_ast` is terminal: the parser
-        // does not touch `module_scope` afterwards.
-        let module_scope = core::mem::take(self.module_scope_mut());
+        // O escopo fica no `Store`; a `Ast` guarda só o índice.
+        let module_scope = Some(self.module_scope);
 
         let uses_module_ref =
             self.symbols[self.module_ref.inner_index() as usize].use_count_estimate > 0;
@@ -9247,31 +9246,31 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // Must be present and a namespace for top-level enums.
                 unreachable!("top_level_enums entry missing namespace member data");
             };
-            let ns: &js_ast::TSNamespaceMemberMap = namespace;
-            let mut inner_map = StringHashMap::<InlinedEnumValue>::default();
-            inner_map.ensure_total_capacity(ns.count())?;
+            let ns: &js_ast::TSNamespaceMemberMap = &self.store[*namespace];
+            let mut inner_map =
+                std::collections::HashMap::<Box<[u8]>, InlinedEnumValue>::with_capacity(ns.count());
             for i in 0..ns.count() {
                 let key = &ns.keys()[i];
                 let val = &ns.values()[i];
                 match val.data {
                     js_ast::ts::Data::EnumNumber(num) => {
-                        inner_map.put(
-                            key,
+                        inner_map.insert(
+                            key.clone(),
                             InlinedEnumValue::encode(InlinedEnumValueDecoded::Number(num)),
                         );
                     }
                     js_ast::ts::Data::EnumString(str_) => {
-                        inner_map.put(
-                            key,
+                        inner_map.insert(
+                            key.clone(),
                             InlinedEnumValue::encode(InlinedEnumValueDecoded::String(
-                                str_.as_ptr(),
+                                str_,
                             )),
                         );
                     }
                     _ => continue,
                 }
             }
-            map.put(*r#ref, inner_map);
+            map.put(r#ref, inner_map)?;
         }
         Ok(map)
     }
@@ -9478,9 +9477,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 has_multiple_args: false,
                 has_catch: false,
             },
-            // Wired in `prepare_for_visit_pass` (self moves on return).
-            to_expr_wrapper_namespace: bun_ast::binding::ToExprWrapper::dangling(),
-            to_expr_wrapper_hoisted: bun_ast::binding::ToExprWrapper::dangling(),
+            // O upstream liga os dois no `prepareForVisitPass` porque guarda um ponteiro para o P; aqui o P chega
+            // como argumento na chamada (ver `Binding::to_expr`), e as funções já valem desde a criação.
+            to_expr_wrapper_namespace: bun_ast::binding::ToExprWrapper::new(|p, loc, ref_| p.wrap_identifier_namespace(loc, ref_)),
+            to_expr_wrapper_hoisted: bun_ast::binding::ToExprWrapper::new(|p, loc, ref_| p.wrap_identifier_hoisting(loc, ref_)),
             source,
             macro_: MacroState::init(),
             current_scope: scope,
@@ -9816,8 +9816,7 @@ impl LowerUsingDeclarationsContext {
             .ensure_unused_capacity(
                 // 5 to include the _promise decl later on:
                 if self.has_await_using { 5 } else { 4 },
-            )
-            .expect("oom");
+            );
         p.declared_symbols.append_assume_capacity(DeclaredSymbol {
             is_top_level,
             ref_: self.stack_ref,
@@ -9866,7 +9865,7 @@ impl LowerUsingDeclarationsContext {
             p.call_runtime(loc, b"__callDispose", p.store.alloc_slice(args))
         };
 
-        let finally_stmts: &'a mut [Stmt] = if self.has_await_using {
+        let finally_stmts: Vec<Stmt> = if self.has_await_using {
             let promise_ref = p.generate_temp_ref(Some(b"_promise"));
             p.store[scope].generated.push(promise_ref);
             p.declared_symbols.append_assume_capacity(DeclaredSymbol {

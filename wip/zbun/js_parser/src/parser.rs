@@ -1379,8 +1379,8 @@ pub(crate) struct ExportClauseResult {
 }
 
 #[derive(Clone, Copy)]
-pub struct DeferredTsDecorators<'a> {
-    pub(crate) values: &'a [js_ast::Expr],
+pub struct DeferredTsDecorators {
+    pub(crate) values: ExprNodeList,
 
     /// If this turns out to be a "declare class" statement, we need to undo the
     /// scopes that were potentially pushed while parsing the decorator arguments.
@@ -1398,8 +1398,8 @@ pub enum LexicalDecl {
 }
 
 #[derive(Default)]
-pub struct ParseClassOptions<'a> {
-    pub(crate) ts_decorators: &'a [Expr],
+pub struct ParseClassOptions {
+    pub(crate) ts_decorators: ExprNodeList,
     pub(crate) allow_ts_decorators: bool,
     pub(crate) is_type_script_declare: bool,
 }
@@ -1428,8 +1428,8 @@ impl StatementScope {
 }
 
 #[derive(Default, Clone, Copy)]
-pub struct ParseStatementOptions<'a> {
-    pub(crate) ts_decorators: Option<DeferredTsDecorators<'a>>,
+pub struct ParseStatementOptions {
+    pub(crate) ts_decorators: Option<DeferredTsDecorators>,
     pub(crate) lexical_decl: LexicalDecl,
     pub(crate) scope: StatementScope,
     pub(crate) is_export: bool,
@@ -1440,7 +1440,7 @@ pub struct ParseStatementOptions<'a> {
     pub(crate) is_for_loop_init: bool,
 }
 
-impl<'a> ParseStatementOptions<'a> {
+impl ParseStatementOptions {
     pub(crate) fn has_decorators(&self) -> bool {
         let Some(decs) = &self.ts_decorators else {
             return false;
@@ -1766,7 +1766,7 @@ pub struct ReactRefresh<'a> {
     /// `.s_local`, as we must hash the variable destructure if the
     /// hook's result is assigned directly to a local.
     // ARENA: identity-compared against Store-allocated AST node.
-    pub(crate) last_hook_seen: Option<*const E::Call>,
+    pub(crate) last_hook_seen: Option<js_ast::StoreRef<E::Call>>,
 
     /// Every function sets up stack memory to hold data related to it's
     /// hook tracking. This is a pointer to that ?HookContext, where an

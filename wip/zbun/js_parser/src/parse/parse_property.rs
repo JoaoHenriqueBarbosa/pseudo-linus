@@ -229,7 +229,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         Ok(Some(G::Property {
-            ts_decorators: p.store.alloc_slice((&opts.ts_decorators).to_vec()),
+            ts_decorators: p.store.alloc_slice(p.store[opts.ts_decorators].to_vec()),
             kind,
             flags: prop_flags,
             key: Some(*key),
@@ -739,7 +739,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 return Ok(Some(G::Property {
-                    ts_decorators: p.store.alloc_slice((&opts.ts_decorators).to_vec()),
+                    ts_decorators: p.store.alloc_slice(p.store[opts.ts_decorators].to_vec()),
                     kind,
                     flags: prop_flags,
                     key: Some(key),

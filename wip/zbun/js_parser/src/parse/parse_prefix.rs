@@ -644,19 +644,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             )?;
         }
 
-        // spec passes the arena-backed `[]ExprNodeIndex` slice directly into
-        // `ParseClassOptions{.ts_decorators = ts_decorators}`. `ParseClassOptions::ts_decorators`
-        // is currently typed `&'a [Expr]` (parser.rs), so until that field is widened to
-        // `ExprNodeList` we copy into the arena (Expr is `Copy`) and let `ts_decorators` drop
-        // normally: no `mem::forget` / `from_raw_parts` lifetime laundering (forbidden per
-        // PORTING.md §Forbidden patterns; would leak heap when origin is `Owned`).
-        let ts_decorators_slice: &'a [Expr] = ((&p.store[ts_decorators])).to_vec();
-
         let class = p.parse_class(
             class_keyword,
             name,
             &ParseClassOptions {
-                ts_decorators: ts_decorators_slice,
+                ts_decorators,
                 allow_ts_decorators: true,
                 ..Default::default()
             },
@@ -703,7 +695,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let call_args = p.parse_call_args()?;
             (call_args.list, call_args.loc)
         } else {
-            (Vec::new(), bun_ast::Loc::EMPTY)
+            (ExprNodeList::EMPTY, bun_ast::Loc::EMPTY)
         };
 
         Ok(p.new_expr(

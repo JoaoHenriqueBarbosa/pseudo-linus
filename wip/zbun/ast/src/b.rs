@@ -1,5 +1,4 @@
-//! `src/ast/b.rs` do upstream sobre o `Store` (seção "Arena tipada" do README). O `write_to_hasher` do React Fast
-//! Refresh entra com o `Data::write_to_hasher` de `expr.rs`.
+//! `src/ast/b.rs` do upstream sobre o `Store` (seção "Arena tipada" do README).
 
 use crate::StoreRef;
 use crate::base::Ref;
@@ -93,6 +92,50 @@ pub struct Array {
 
 #[derive(Default, Copy, Clone)]
 pub struct Missing {}
+
+impl B {
+    /// A parte do hash do React Fast Refresh que cabe às ligações, campo a campo (ver `Data::write_to_hasher`).
+    pub fn write_to_hasher<S: crate::base::SymbolTable + ?Sized>(
+        &self,
+        store: &Store,
+        hasher: &mut bun_wyhash::Wyhash,
+        symbol_table: &mut S,
+    ) {
+        match *self {
+            B::BIdentifier(id) => {
+                let original_name = symbol_table.get_symbol(store[id].r#ref).original_name;
+                hasher.update(&[self.tag() as u8]);
+                hasher.update(&original_name.len().to_ne_bytes());
+            }
+            B::BArray(array) => {
+                let array = &store[array];
+                hasher.update(&[self.tag() as u8, array.has_spread as u8]);
+                hasher.update(&array.items.len().to_ne_bytes());
+                for item in store[array.items].iter() {
+                    hasher.update(&[item.default_value.is_some() as u8]);
+                    if let Some(default) = &item.default_value {
+                        default.data.write_to_hasher(store, hasher, symbol_table);
+                    }
+                    item.binding.data.write_to_hasher(store, hasher, symbol_table);
+                }
+            }
+            B::BObject(object) => {
+                let object = &store[object];
+                hasher.update(&[self.tag() as u8]);
+                hasher.update(&object.properties.len().to_ne_bytes());
+                for property in store[object.properties].iter() {
+                    hasher.update(&[property.default_value.is_some() as u8, property.flags.as_u8()]);
+                    if let Some(default) = &property.default_value {
+                        default.data.write_to_hasher(store, hasher, symbol_table);
+                    }
+                    property.key.data.write_to_hasher(store, hasher, symbol_table);
+                    property.value.data.write_to_hasher(store, hasher, symbol_table);
+                }
+            }
+            B::BMissing(_) => {}
+        }
+    }
+}
 
 // Ergonomic slice accessors so P-helpers can `for item in arr.items(store)`.
 impl Array {

@@ -53,7 +53,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline]
     fn t_function(
         p: &mut Self,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
         loc: bun_ast::Loc,
     ) -> Result<Stmt> {
         p.lexer.next()?;
@@ -64,7 +64,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline(never)]
     fn t_enum(
         p: &mut Self,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
         loc: bun_ast::Loc,
     ) -> Result<Stmt> {
         if !Self::IS_TYPESCRIPT_ENABLED {
@@ -76,7 +76,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     #[cold]
     #[inline(never)]
-    fn t_at(p: &mut Self, opts: &mut ParseStatementOptions<'a>) -> Result<Stmt> {
+    fn t_at(p: &mut Self, opts: &mut ParseStatementOptions) -> Result<Stmt> {
         // Parse decorators before class statements, which are potentially exported
         if Self::IS_TYPESCRIPT_ENABLED || p.options.features.standard_decorators {
             let scope_index = p.scopes_in_order.len();
@@ -91,14 +91,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             //   "@decorator export declare class Foo {}"
             //   "@decorator export declare abstract class Foo {}"
             //
-            // spec stores the Vec<Expr> directly into `opts.ts_decorators.values`.
-            // `DeferredTsDecorators::values` is currently typed `&'a [Expr]` (parser.rs), so until
-            // that field is widened to `ExprNodeList` we copy into the arena (Expr is `Copy`) and
-            // let `ts_decorators` drop normally: no `mem::forget` / `from_raw_parts` lifetime
-            // laundering (forbidden per PORTING.md §Forbidden patterns).
-            let ts_decorators_slice: &'a [Expr] = ((&p.store[ts_decorators])).to_vec();
             opts.ts_decorators = Some(DeferredTsDecorators {
-                values: ts_decorators_slice,
+                values: ts_decorators,
                 scope_index,
             });
 
@@ -132,7 +126,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline(never)]
     fn t_class(
         p: &mut Self,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
         loc: bun_ast::Loc,
     ) -> Result<Stmt> {
         if opts.lexical_decl != LexicalDecl::AllowAll {
@@ -145,7 +139,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline]
     fn t_var(
         p: &mut Self,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
         loc: bun_ast::Loc,
     ) -> Result<Stmt> {
         p.lexer.next()?;
@@ -165,7 +159,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline]
     fn t_const(
         p: &mut Self,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
         loc: bun_ast::Loc,
     ) -> Result<Stmt> {
         if opts.lexical_decl != LexicalDecl::AllowAll {
@@ -823,7 +817,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline(never)]
     fn t_export(
         p: &mut Self,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
         loc: bun_ast::Loc,
     ) -> Result<Stmt> {
         let previous_export_keyword = p.esm_export_keyword;
@@ -1392,7 +1386,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline(never)]
     fn t_import(
         p: &mut Self,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
         loc: bun_ast::Loc,
     ) -> Result<Stmt> {
         let previous_import_keyword = p.esm_import_keyword;
@@ -1672,7 +1666,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline(never)]
     fn parse_labeled_stmt(
         p: &mut Self,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
         loc: bun_ast::Loc,
         label_loc: bun_ast::Loc,
         label_ref: Ref,
@@ -1704,7 +1698,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     fn parse_stmt_fallthrough(
         p: &mut Self,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
         loc: bun_ast::Loc,
     ) -> Result<Stmt> {
         let is_identifier = p.lexer.token == T::TIdentifier;
@@ -1774,7 +1768,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline(never)]
     fn parse_stmt_fallthrough_ts_keyword(
         p: &mut Self,
-        opts: &mut ParseStatementOptions<'a>,
+        opts: &mut ParseStatementOptions,
         loc: bun_ast::Loc,
         ts_stmt: js_lexer::TypescriptStmtKeyword,
     ) -> Result<Option<Stmt>> {
@@ -1948,7 +1942,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 p.arena,
                             );
                             for decl in (&p.store[p.store[*local].decls]) {
-                                Self::extract_decls_for_binding(decl.binding, &mut _decls)?;
+                                Self::extract_decls_for_binding(&p.store, decl.binding, &mut _decls)?;
                             }
                             decls = p.store.alloc_slice(_decls);
                         }
@@ -1974,7 +1968,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         Ok(None)
     }
 
-    pub(crate) fn parse_stmt(&mut self, opts: &mut ParseStatementOptions<'a>) -> Result<Stmt> {
+    pub(crate) fn parse_stmt(&mut self, opts: &mut ParseStatementOptions) -> Result<Stmt> {
         if !self.stack_check.is_safe_to_recurse() {
             // Sentinel error; mapped to a "Maximum call stack size exceeded"
             // syntax error at the catch site in parse_entry.rs.

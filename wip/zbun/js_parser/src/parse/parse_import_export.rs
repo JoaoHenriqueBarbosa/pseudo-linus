@@ -74,11 +74,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.allow_in = old_allow_in;
 
         if SCAN_ONLY {
-            // Reshaped for borrowck: EString::slice takes &mut self (rope flatten),
-            // so capture the slice (arena-lifetime) before re-using `value` by-value below.
-            let slice_opt: Option<&'a [u8]> = if let ExprData::EString(e_string) = &mut value.data {
-                if p.store[*e_string].is_utf8() && p.store[*e_string].is_present() {
-                    Some(p.store.str(p.store[*e_string].slice(p.arena)))
+            // EString::slice achata a corda (escreve no nó), então o nó sai do Store, é achatado e volta.
+            let slice_opt: Option<&'a [u8]> = if let ExprData::EString(e_string) = value.data {
+                if p.store[e_string].is_utf8() && p.store[e_string].is_present() {
+                    let mut string = p.store[e_string];
+                    let text = string.slice(&mut p.store);
+                    p.store[e_string] = string;
+                    Some(p.arena_str(text))
                 } else {
                     None
                 }
@@ -136,7 +138,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.lexer.next()?;
 
             let probably_type_only_import = if TYPESCRIPT {
-                alias == b"type" && p.lexer.token != T::TComma && p.lexer.token != T::TCloseBrace
+                p.store.str(alias) == b"type" && p.lexer.token != T::TComma && p.lexer.token != T::TCloseBrace
             } else {
                 false
             };
@@ -191,7 +193,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 r,
                                 format_args!(
                                     "Cannot use {} as an identifier here",
-                                    bstr::BStr::new(original_name)
+                                    bstr::BStr::new(p.store.str(original_name))
                                 ),
                             );
                         }
@@ -245,7 +247,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         r,
                         format_args!(
                             "Cannot use \"{}\" as an identifier here",
-                            bstr::BStr::new(original_name)
+                            bstr::BStr::new(p.store.str(original_name))
                         ),
                     );
                 }
@@ -323,7 +325,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.lexer.next()?;
 
             if TYPESCRIPT {
-                if alias == b"type" && p.lexer.token != T::TComma && p.lexer.token != T::TCloseBrace
+                if p.store.str(alias) == b"type" && p.lexer.token != T::TComma && p.lexer.token != T::TCloseBrace
                 {
                     if p.lexer.is_contextual_keyword(b"as") {
                         p.lexer.next()?;

@@ -974,6 +974,95 @@ impl Expr {
         self.data.known_primitive(store)
     }
 
+    /// O texto de uma string literal, achatado e em UTF-8 no `Store`.
+    pub fn as_string_literal(&self, store: &mut Store) -> Option<crate::StoreStr> {
+        let Data::EString(s) = self.data else {
+            return None;
+        };
+        let string = store[s];
+        Some(string.string(store))
+    }
+
+    // Wraps the provided expression in the "!" prefix operator. The expression
+    // will potentially be simplified to avoid generating unnecessary extra "!"
+    // operators. For example, calling this with "!!x" will return "!x" instead
+    // of returning "!!!x".
+    pub fn not(&self, store: &mut Store) -> Expr {
+        self.maybe_simplify_not(store).unwrap_or_else(|| {
+            Expr::init(
+                store,
+                E::Unary {
+                    op: crate::OpCode::UnNot,
+                    value: *self,
+                    flags: E::UnaryFlags::empty(),
+                },
+                self.loc,
+            )
+        })
+    }
+
+    /// The given "expr" argument should be the operand of a "!" prefix operator
+    /// (i.e. the "x" in "!x"). This returns a simplified expression for the
+    /// whole operator (i.e. the "!x") if it can be simplified, or false if not.
+    /// It's separate from "Not()" above to avoid allocation on failure in case
+    /// that is undesired.
+    pub fn maybe_simplify_not(&self, store: &mut Store) -> Option<Expr> {
+        let expr = *self;
+        let boolean = |value: bool| Expr { loc: expr.loc, data: Data::EBoolean(E::Boolean { value }) };
+        match expr.data {
+            Data::ENull(_) | Data::EUndefined(_) => return Some(boolean(true)),
+            Data::EBoolean(b) | Data::EBranchBoolean(b) => return Some(boolean(!b.value)),
+            Data::ENumber(n) => return Some(boolean(n.value() == 0.0 || n.value().is_nan())),
+            Data::EBigInt(b) => {
+                if let Some(equal) = E::BigInt::check_equality(store.str(store[b].value), b"0") {
+                    return Some(boolean(equal));
+                }
+            }
+            Data::EFunction(_) | Data::EArrow(_) | Data::ERegExp(_) => return Some(boolean(false)),
+            // "!!!a" => "!a"
+            Data::EUnary(un) => {
+                let un = store[un];
+                if un.op == crate::OpCode::UnNot && un.value.known_primitive(store) == PrimitiveType::Boolean {
+                    return Some(un.value);
+                }
+            }
+            Data::EBinary(ex) => {
+                // TODO: evaluate whether or not it is safe to do this mutation since it's modifying in-place.
+                // Make sure that these transformations are all safe for special values.
+                // For example, "!(a < b)" is not the same as "a >= b" if a and/or b are
+                // NaN (or undefined, or null, or possibly other problem cases too).
+                let swapped = match store[ex].op {
+                    // "!(a == b)" => "a != b"
+                    crate::OpCode::BinLooseEq => Some(crate::OpCode::BinLooseNe),
+                    // "!(a != b)" => "a == b"
+                    crate::OpCode::BinLooseNe => Some(crate::OpCode::BinLooseEq),
+                    // "!(a === b)" => "a !== b"
+                    crate::OpCode::BinStrictEq => Some(crate::OpCode::BinStrictNe),
+                    // "!(a !== b)" => "a === b"
+                    crate::OpCode::BinStrictNe => Some(crate::OpCode::BinStrictEq),
+                    _ => None,
+                };
+                if let Some(op) = swapped {
+                    store[ex].op = op;
+                    return Some(expr);
+                }
+                if store[ex].op == crate::OpCode::BinComma {
+                    // "!(a, b)" => "a, !b"
+                    let right = store[ex].right;
+                    store[ex].right = right.not(store);
+                    return Some(expr);
+                }
+            }
+            Data::EInlinedEnum(inlined) => {
+                let value = store[inlined].value;
+                return value.maybe_simplify_not(store);
+            }
+            _ => {}
+        }
+
+        None
+    }
+
     /// O texto que o valor teria como string, quando ele é conhecido sem efeito colateral. O upstream aponta o
     /// `E::String` novo para uma fatia `'static` ou da arena; aqui o texto é gravado no `Store`.
     pub(crate) fn to_string_expr_without_side_effects(&self, store: &mut Store) -> Option<Expr> {
@@ -1146,6 +1235,149 @@ impl Data {
         self.e_string()
     }
 
+    /// Returns true if the result of the "typeof" operator on this expression is
+    /// statically determined and this expression has no side effects (i.e. can be
+    /// removed without consequence).
+    #[inline]
+    pub fn to_typeof(&self) -> Option<&'static [u8]> {
+        Tag::typeof_(self.tag())
+    }
+
+    /// O `+x` conhecido em tempo de transpilação. O texto da string passa pelo `StringToNumber` do JavaScriptCore
+    /// (`ul_common::js_number`), que no upstream é a FFI `JSC__jsToNumber`.
+    pub fn to_number(&self, store: &Store) -> Option<f64> {
+        match self {
+            Data::ENull(_) => Some(0.0),
+            Data::EUndefined(_) => Some(f64::NAN),
+            Data::EString(str) => string_to_number(store, &store[*str]),
+            Data::EBoolean(b) | Data::EBranchBoolean(b) => Some(if b.value { 1.0 } else { 0.0 }),
+            Data::ENumber(n) => Some(n.value()),
+            Data::EInlinedEnum(inlined) => match &store[*inlined].value.data {
+                Data::ENumber(num) => Some(num.value()),
+                Data::EString(str) => string_to_number(store, &store[*str]),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn is_string_value(&self) -> bool {
+        matches!(self, Data::EString(_))
+    }
+
+    /// `hasher` recebe os campos de cada nó um a um (sem bytes de preenchimento), e a tabela de símbolos troca cada
+    /// `Ref` pelo nome original, para o hash não depender da numeração. Só a assinatura do React Refresh consome o
+    /// resultado; o que importa é a estabilidade.
+    pub fn write_to_hasher<S: crate::base::SymbolTable + ?Sized>(
+        &self,
+        store: &Store,
+        hasher: &mut bun_wyhash::Wyhash,
+        symbol_table: &mut S,
+    ) {
+        fn name_of<S: crate::base::SymbolTable + ?Sized>(
+            store: &Store,
+            hasher: &mut bun_wyhash::Wyhash,
+            symbol_table: &mut S,
+            r: Ref,
+        ) {
+            let original_name = symbol_table.get_symbol(r).original_name;
+            hasher.update(store.str(original_name));
+        }
+
+        hasher.update(&[self.tag() as u8]);
+        match *self {
+            Data::ENameOfSymbol(e) => name_of(store, hasher, symbol_table, store[e].ref_),
+            Data::EArray(e) => {
+                let e = &store[e];
+                hasher.update(&[e.is_single_line as u8, e.is_parenthesized as u8, e.was_originally_macro as u8]);
+                hasher.update(&e.items.len_u32().to_ne_bytes());
+                for item in store[e.items].iter() {
+                    item.data.write_to_hasher(store, hasher, symbol_table);
+                }
+            }
+            Data::EUnary(e) => {
+                let e = &store[e];
+                hasher.update(&[e.flags.bits(), e.op as u8]);
+                e.value.data.write_to_hasher(store, hasher, symbol_table);
+            }
+            Data::EBinary(e) => {
+                let e = &store[e];
+                hasher.update(&[e.op as u8]);
+                e.left.data.write_to_hasher(store, hasher, symbol_table);
+                e.right.data.write_to_hasher(store, hasher, symbol_table);
+            }
+            Data::EClass(_) | Data::ENew(_) | Data::ECall(_) | Data::EFunction(_) => {}
+            Data::EDot(e) => {
+                let e = &store[e];
+                // `Option<#[repr(u8)] OptionalChain>` como o byte do nicho (Some(Start)=0,
+                // Some(Continuation)=1, None=2), os mesmos bytes que a leitura crua do upstream produz.
+                hasher.update(&[e.optional_chain.map_or(2u8, |c| c as u8)]);
+                hasher.update(&e.name.len().to_ne_bytes());
+                e.target.data.write_to_hasher(store, hasher, symbol_table);
+                hasher.update(store.str(e.name));
+            }
+            Data::EIndex(e) => {
+                let e = &store[e];
+                hasher.update(&[e.optional_chain.map_or(2u8, |c| c as u8)]);
+                e.target.data.write_to_hasher(store, hasher, symbol_table);
+                e.index.data.write_to_hasher(store, hasher, symbol_table);
+            }
+            Data::EArrow(_)
+            | Data::EJsxElement(_)
+            | Data::EObject(_)
+            | Data::ETemplate(_)
+            | Data::EIf(_)
+            | Data::EImport(_) => {}
+            Data::ESpread(e) => store[e].value.data.write_to_hasher(store, hasher, symbol_table),
+            Data::EAwait(e) => store[e].value.data.write_to_hasher(store, hasher, symbol_table),
+            Data::EYield(e) => {
+                let e = &store[e];
+                hasher.update(&[e.is_star as u8, e.value.is_some() as u8]);
+                if let Some(value) = &e.value {
+                    value.data.write_to_hasher(store, hasher, symbol_table);
+                }
+            }
+            Data::EIdentifier(e) => name_of(store, hasher, symbol_table, e.ref_),
+            Data::EImportIdentifier(e) => name_of(store, hasher, symbol_table, e.ref_),
+            Data::EPrivateIdentifier(e) => name_of(store, hasher, symbol_table, e.ref_),
+            Data::ECommonjsExportIdentifier(e) => name_of(store, hasher, symbol_table, e.ref_),
+            Data::EBoolean(e) | Data::EBranchBoolean(e) => hasher.update(&[e.value as u8]),
+            Data::ENumber(e) => hasher.update(&e.value().to_ne_bytes()),
+            Data::EBigInt(e) => hasher.update(store.str(store[e].value)),
+            Data::ERegExp(e) => hasher.update(store.str(store[e].value)),
+            Data::EString(e) => {
+                // Only the *first* rope segment is hashed.
+                let current = &store[e];
+                if current.is_utf8() {
+                    hasher.update(store.str(current.data));
+                } else {
+                    let bytes: Vec<u8> = current.slice16(store).iter().flat_map(|unit| unit.to_ne_bytes()).collect();
+                    hasher.update(&bytes);
+                }
+                hasher.update(b"\x00");
+            }
+            // preferably, i'd like to write the filepath
+            Data::ERequireString(e) => hasher.update(&e.import_record_index.to_ne_bytes()),
+            Data::ERequireResolveString(e) => hasher.update(&e.import_record_index.to_ne_bytes()),
+            Data::EImportMetaMain(e) => hasher.update(&[e.inverted as u8]),
+            // pretend there is no comment
+            Data::EInlinedEnum(e) => store[e].value.data.write_to_hasher(store, hasher, symbol_table),
+            // no data
+            Data::ERequireCallTarget
+            | Data::ERequireResolveCallTarget
+            | Data::EMissing(_)
+            | Data::EThis(_)
+            | Data::ESuper(_)
+            | Data::ENull(_)
+            | Data::EUndefined(_)
+            | Data::ENewTarget(_)
+            | Data::ERequireMain
+            | Data::EImportMeta(_)
+            | Data::ESpecial(_) => {}
+        }
+    }
+
     pub fn to_finite_number(&self, store: &Store) -> Option<f64> {
         match self {
             Data::EBoolean(b) | Data::EBranchBoolean(b) => Some(if b.value { 1.0 } else { 0.0 }),
@@ -1179,4 +1411,21 @@ impl Data {
             _ => None,
         }
     }
+}
+
+/// `+"texto"`: só a string inteira (sem corda) e em UTF-8; o vazio dá 0 e o que não é ASCII dá NaN antes de chegar
+/// ao `StringToNumber`, como no upstream.
+fn string_to_number(store: &Store, string: &E::EString) -> Option<f64> {
+    if string.next.is_some() || !string.is_utf8() {
+        return None;
+    }
+    let text = string.slice8(store);
+    // +"" -> 0
+    if text.is_empty() {
+        return Some(0.0);
+    }
+    if !text.is_ascii() {
+        return Some(f64::NAN);
+    }
+    Some(ul_common::js_number::js_to_number_characters(text))
 }

@@ -53,13 +53,14 @@ impl<'a> ConvertESMExportsForHmr<'a> {
 
                 let mut new_len: usize = 0;
                 // Note: reshaped for borrowck: index loop instead of `|*decl_ptr|`.
-                let decls_len = p.store[st].decls.len_u32() as usize;
+                let decls = p.store[st].decls;
+                let decls_len = decls.len();
                 for i in 0..decls_len {
                     // explicit field copies (G::Decl is not `Copy`) to avoid aliasing
-                    let binding = (&p.store[p.store[st].decls])[i].binding;
-                    let value = (&p.store[p.store[st].decls])[i].value;
+                    let binding = p.store[decls][i].binding;
+                    let value = p.store[decls][i].value;
                     let Some(value) = value else {
-                        p.store[st].decls[new_len] = G::Decl {
+                        p.store[decls][new_len] = G::Decl {
                             binding,
                             value: None,
                         };
@@ -88,7 +89,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                                     ..Default::default()
                                 });
                             } else {
-                                p.store[st].decls[new_len] = G::Decl {
+                                p.store[decls][new_len] = G::Decl {
                                     binding,
                                     value: Some(value),
                                 };
@@ -98,7 +99,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                         }
 
                         _ => {
-                            p.store[st].decls[new_len] = G::Decl {
+                            p.store[decls][new_len] = G::Decl {
                                 binding,
                                 value: Some(value),
                             };
