@@ -45,10 +45,20 @@ fn signal_client(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
         .expect("o DevTools não abriu a porta");
     let _ = sys::close(fd);
     s.kill(KillTarget::Pid(pid), signal).unwrap();
-    pause(&*s, Duration::from_millis(500));
+    // O encerramento leva tempo variável com a máquina carregada: espera a saída até o prazo, amostrando a cada 20 ms.
+    // O SIGPIPE não mata, então só confere que o processo segue vivo depois de meio segundo.
+    let deadline = if signal == Signal::SIGPIPE { 25 } else { 500 };
+    let mut exited = None;
+    for _ in 0..deadline {
+        pause(&*s, Duration::from_millis(20));
+        if let Some((_, status)) = s.wait4(WaitTarget::Pid(pid), WaitOptions::NOHANG).unwrap() {
+            exited = Some(status);
+            break;
+        }
+    }
     let mut alive = false;
-    let status = match s.wait4(WaitTarget::Pid(pid), WaitOptions::NOHANG).unwrap() {
-        Some((_, status)) => status,
+    let status = match exited {
+        Some(status) => status,
         None => {
             alive = true;
             s.kill(KillTarget::Pid(pid), Signal::SIGTERM).unwrap();
