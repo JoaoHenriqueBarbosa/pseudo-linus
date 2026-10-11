@@ -78,7 +78,7 @@ pub(crate) fn lower_expression(
             if is_member {
                 let lowered = lower_member_expression(builder, &call.target, None)?;
                 let property = lower_value_to_temporary(builder, lowered.value)?;
-                let args = AstAlloc::vec_from_iter(lower_arguments(builder, &call.args)?);
+                let args = Vec::from_iter(lower_arguments(builder, &call.args)?);
                 Ok(InstructionValue::MethodCall {
                     receiver: lowered.object,
                     property,
@@ -87,7 +87,7 @@ pub(crate) fn lower_expression(
                 })
             } else {
                 let callee = lower_expression_to_temporary(builder, &call.target)?;
-                let args = AstAlloc::vec_from_iter(lower_arguments(builder, &call.args)?);
+                let args = Vec::from_iter(lower_arguments(builder, &call.args)?);
                 Ok(InstructionValue::CallExpression { callee, args, loc })
             }
         }
@@ -121,7 +121,7 @@ pub(crate) fn lower_expression(
         )
         .map_err(CompilerError::from),
         Data::EObject(obj) => {
-            let mut properties: HirVec<ObjectPropertyOrSpread> = AstAlloc::vec();
+            let mut properties: HirVec<ObjectPropertyOrSpread> = Vec::new();
             for prop in obj.properties.iter() {
                 use ast::flags::Property as PF;
                 if matches!(prop.kind, G::PropertyKind::Spread) {
@@ -164,7 +164,7 @@ pub(crate) fn lower_expression(
             Ok(InstructionValue::ObjectExpression { properties, loc })
         }
         Data::EArray(arr) => {
-            let mut elements: HirVec<ArrayElement> = AstAlloc::vec();
+            let mut elements: HirVec<ArrayElement> = Vec::new();
             for element in arr.items.iter() {
                 match &element.data {
                     Data::EMissing(_) => {
@@ -184,7 +184,7 @@ pub(crate) fn lower_expression(
         }
         Data::ENew(new_expr) => {
             let callee = lower_expression_to_temporary(builder, &new_expr.target)?;
-            let args = AstAlloc::vec_from_iter(lower_arguments(builder, &new_expr.args)?);
+            let args = Vec::from_iter(lower_arguments(builder, &new_expr.args)?);
             Ok(InstructionValue::NewExpression { callee, args, loc })
         }
         Data::ETemplate(tmpl) => lower_template(builder, tmpl, loc),
@@ -261,7 +261,7 @@ pub(crate) fn lower_expression(
                     loc,
                 },
             )?;
-            let mut args: HirVec<PlaceOrSpread> = AstAlloc::vec();
+            let mut args: HirVec<PlaceOrSpread> = Vec::new();
             args.push(PlaceOrSpread::Place(lower_expression_to_temporary(
                 builder, &i.expr,
             )?));
@@ -761,7 +761,7 @@ fn lower_simple_assignment_identifier(
                     loc: ident_loc,
                     description: Some(format!(
                         "`{}` is declared as const",
-                        bun_core::BStr::new(name)
+                        bstr::BStr::new(name)
                     )),
                     suggestions: None,
                 })?;
@@ -1251,8 +1251,8 @@ fn lower_template(
         return Ok(InstructionValue::TaggedTemplateExpression { tag, value, loc });
     }
 
-    let mut subexprs: HirVec<Place> = AstAlloc::vec_with_capacity(parts.len());
-    let mut quasis: HirVec<TemplateQuasi> = AstAlloc::vec_with_capacity(parts.len() + 1);
+    let mut subexprs: HirVec<Place> = Vec::with_capacity(parts.len());
+    let mut quasis: HirVec<TemplateQuasi> = Vec::with_capacity(parts.len() + 1);
     quasis.push(convert_template_contents(&tmpl.head, loc)?);
     for part in parts {
         subexprs.push(lower_expression_to_temporary(builder, &part.value)?);
@@ -1292,7 +1292,7 @@ fn arena_utf8_from_utf16(
     units: &[u16],
     loc: Option<SourceLocation>,
 ) -> Result<StoreStr, CompilerError> {
-    let mut buf: HirVec<u8> = AstAlloc::vec_with_capacity(units.len() * 3);
+    let mut buf: HirVec<u8> = Vec::with_capacity(units.len() * 3);
     for r in char::decode_utf16(units.iter().copied()) {
         let c = r.map_err(|_| cold_todo("non-utf16 template", loc))?;
         let mut tmp = [0u8; 4];

@@ -247,7 +247,7 @@ fn rename_variables_with_parent(
 
     let mut result: HashSet<String> = HashSet::with_capacity(scopes.names.len() + globals.len());
     for n in scopes.names.iter().chain(globals.iter()) {
-        result.insert(bun_core::BStr::new(n.slice()).to_string());
+        result.insert(bstr::BStr::new(n.slice()).to_string());
     }
     result
 }

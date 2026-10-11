@@ -15,7 +15,6 @@ use std::collections::HashSet;
 
 use crate::collections::IdMap;
 use crate::collections::IndexMap;
-use crate::hir::AstAlloc;
 use crate::hir::BasicBlock;
 use crate::hir::BlockId;
 use crate::hir::EvaluationOrder;
@@ -231,7 +230,7 @@ fn handle_rewrite(
     context.rewrites.push(BasicBlock {
         kind: source_block.kind,
         id: curr_block_id,
-        instructions: AstAlloc::vec_from_slice(
+        instructions: Vec::from(
             &source_block.instructions[context.instr_slice_idx..idx],
         ),
         preds,
@@ -239,7 +238,7 @@ fn handle_rewrite(
         phis: if context.rewrites.is_empty() {
             source_block.phis.clone()
         } else {
-            AstAlloc::vec()
+            Vec::new()
         },
         terminal,
     });
@@ -312,10 +311,10 @@ pub(crate) fn build_reactive_scope_terminals_hir(func: &mut HirFunction, env: &m
                 kind: block.kind,
                 preds: final_preds,
                 terminal: block.terminal.clone(),
-                instructions: AstAlloc::vec_from_slice(
+                instructions: Vec::from(
                     &block.instructions[context.instr_slice_idx..],
                 ),
-                phis: AstAlloc::vec(),
+                phis: Vec::new(),
             };
             let final_block_id = final_block.id;
             context.rewrites.push(final_block);

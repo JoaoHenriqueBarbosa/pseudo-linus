@@ -8,9 +8,9 @@
 use core::fmt;
 use core::hash::{Hash, Hasher};
 
-use bun_alloc::{AstAlloc, AstVec};
 use bun_ast::{E, StoreRef, expr};
-use bun_core::{BStr, strings};
+use bstr::BStr;
+use bun_core::strings;
 
 /// Invariant: the wrapped `EString` is never roped (`next.is_none()`).
 /// Lowering flattens the rare rope case so every consumer here can ignore it.
@@ -37,7 +37,7 @@ impl JsString {
         let s = if strings::first_non_ascii(bytes).is_none() {
             E::EString::init(bun_ast::data_store_dupe_str(bytes))
         } else {
-            let mut buf: AstVec<u16> = AstAlloc::vec_with_capacity(bytes.len());
+            let mut buf: Vec<u16> = Vec::with_capacity(bytes.len());
             buf.extend(core::iter::repeat_n(0u16, bytes.len()));
             let n = strings::convert_utf8_to_utf16_in_buffer(&mut buf, bytes).len();
             buf.truncate(n);
@@ -49,7 +49,7 @@ impl JsString {
     /// Arena-allocate an `EString` from UTF-16 code units.
     pub fn from_code_units(units: &[u16]) -> Self {
         Self(expr::data::Store::append(E::EString::init_utf16(
-            AstAlloc::vec_from_slice(units).leak(),
+            Vec::from(units).leak(),
         )))
     }
 

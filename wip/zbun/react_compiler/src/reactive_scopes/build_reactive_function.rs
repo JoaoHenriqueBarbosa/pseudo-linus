@@ -39,10 +39,10 @@ pub(crate) fn build_reactive_function(
 
     Ok(ReactiveFunction {
         loc: hir.loc,
-        id: hir.id.map(|s| bun_core::BStr::new(s.slice()).to_string()),
+        id: hir.id.map(|s| bstr::BStr::new(s.slice()).to_string()),
         name_hint: hir
             .name_hint
-            .map(|s| bun_core::BStr::new(s.slice()).to_string()),
+            .map(|s| bstr::BStr::new(s.slice()).to_string()),
         params: hir.params.to_vec(),
         generator: hir.generator,
         is_async: hir.is_async,
@@ -50,7 +50,7 @@ pub(crate) fn build_reactive_function(
         directives: hir
             .directives
             .iter()
-            .map(|s| bun_core::BStr::new(s.slice()).to_string())
+            .map(|s| bstr::BStr::new(s.slice()).to_string())
             .collect(),
     })
 }

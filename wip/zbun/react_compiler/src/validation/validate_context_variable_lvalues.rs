@@ -183,7 +183,7 @@ fn format_place(place: &Place, identifiers: &[Identifier]) -> String {
         Some(n) => n.value(),
         None => b"",
     };
-    format!("{} {}${}", place.effect, bun_core::BStr::new(name), id.0)
+    format!("{} {}${}", place.effect, bstr::BStr::new(name), id.0)
 }
 
 fn visit(

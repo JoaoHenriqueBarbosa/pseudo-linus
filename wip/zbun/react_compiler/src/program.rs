@@ -21,7 +21,6 @@ use crate::hir::environment_config::EnvironmentConfig;
 use crate::hir::environment_config::{
     ExhaustiveEffectDepsMode, ExternalFunctionConfig, InstrumentationConfig,
 };
-use bun_alloc::{AstAlloc, AstVec};
 use bun_ast::expr::Data as ExprData;
 use bun_ast::stmt::Data as StmtData;
 use bun_ast::{
@@ -32,7 +31,6 @@ use bun_ast::{
 use crate::ReactCompilerOptions;
 use crate::codegen::CodegenFunction;
 
-bun_core::declare_scope!(react_compiler, hidden);
 use crate::collections::IndexMap;
 use crate::compile_result::{CompileDiagnostic, CompileOutput};
 use crate::hir::VariableBinding;
@@ -247,7 +245,7 @@ fn find_dynamic_gating_directive(directives: &[&[u8]]) -> Result<Option<String>,
                 Err(cold_diagnostic(
                     ErrorCategory::Gating,
                     "Dynamic gating directive is not a valid JavaScript identifier",
-                    Some(format!("Found '{}'", bun_core::BStr::new(d))),
+                    Some(format!("Found '{}'", bstr::BStr::new(d))),
                     None,
                 ))
             }
@@ -255,7 +253,7 @@ fn find_dynamic_gating_directive(directives: &[&[u8]]) -> Result<Option<String>,
         _ => {
             let list = found
                 .iter()
-                .map(|d| bun_core::BStr::new(d).to_string())
+                .map(|d| bstr::BStr::new(d).to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
             Err(cold_diagnostic(
@@ -1030,7 +1028,7 @@ fn handle_error(
 // -----------------------------------------------------------------------
 
 fn leak_args(params: Vec<G::Arg>) -> StoreSlice<G::Arg> {
-    let mut v: AstVec<G::Arg> = AstAlloc::vec_with_capacity(params.len());
+    let mut v: Vec<G::Arg> = Vec::with_capacity(params.len());
     for p in params {
         v.push(p);
     }
@@ -1038,7 +1036,7 @@ fn leak_args(params: Vec<G::Arg>) -> StoreSlice<G::Arg> {
 }
 
 fn leak_stmts(body: Vec<Stmt>) -> StoreSlice<Stmt> {
-    let mut v: AstVec<Stmt> = AstAlloc::vec_with_capacity(body.len());
+    let mut v: Vec<Stmt> = Vec::with_capacity(body.len());
     for s in body {
         v.push(s);
     }
@@ -1111,11 +1109,6 @@ impl ReactCompilerState {
         has_module_scope_opt_out: bool,
         import_bindings: IndexMap<Ref, VariableBinding>,
     ) -> Self {
-        bun_core::scoped_log!(
-            react_compiler,
-            "ReactCompilerState::new opt_out={}",
-            has_module_scope_opt_out
-        );
         let context = ProgramContext::new(
             options.clone(),
             options.filename.clone(),
@@ -1246,18 +1239,11 @@ fn maybe_compile_node(
     name: Option<&[u8]>,
     in_react_hoc: bool,
 ) -> Option<CodegenFunction> {
-    bun_core::scoped_log!(
-        react_compiler,
-        "maybe_compile_node name={:?}",
-        name.map(bun_core::BStr::new)
-    );
     if state.fatal.is_some() {
-        bun_core::scoped_log!(react_compiler, "  -> bail: prior fatal");
         return None;
     }
     state.lazy_init(&*host);
     if state.fatal.is_some() {
-        bun_core::scoped_log!(react_compiler, "  -> bail: fatal after lazy_init");
         return None;
     }
 
@@ -1270,14 +1256,12 @@ fn maybe_compile_node(
         in_react_hoc,
         &state.options,
     );
-    bun_core::scoped_log!(react_compiler, "  -> fn_type={:?}", fn_type);
     let fn_type = fn_type?;
 
     let fn_name: Option<String> =
         name.and_then(|n| core::str::from_utf8(n).ok().map(str::to_owned));
 
     if node.has_react_hooks_suppression() {
-        bun_core::scoped_log!(react_compiler, "  -> bail: react-hooks eslint suppression");
         return None;
     }
 
@@ -1302,7 +1286,6 @@ fn maybe_compile_node(
     if find_directive_disabling_memoization(&body_directives).is_some()
         || state.context.has_module_scope_opt_out
     {
-        bun_core::scoped_log!(react_compiler, "  -> bail: opt-out directive");
         return None;
     }
 
@@ -1326,7 +1309,6 @@ fn maybe_compile_node(
         &state.import_bindings,
     ) {
         Err(err) => {
-            bun_core::scoped_log!(react_compiler, "  -> compile_fn err: {:?}", err);
             if let Some(fatal) = handle_error(err, &mut state.diagnostics, &state.options) {
                 state.fatal = Some(fatal);
             }
@@ -1398,8 +1380,8 @@ fn convert_renames(
     renames
         .iter()
         .map(|r| crate::compile_result::BindingRenameInfo {
-            original: bun_core::BStr::new(r.original.slice()).to_string(),
-            renamed: bun_core::BStr::new(r.renamed.slice()).to_string(),
+            original: bstr::BStr::new(r.original.slice()).to_string(),
+            renamed: bstr::BStr::new(r.renamed.slice()).to_string(),
             declaration_start: r.declaration_start,
         })
         .collect()

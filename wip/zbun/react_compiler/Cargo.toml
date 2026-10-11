@@ -18,7 +18,9 @@ bun_alloc = { path = "../bun_alloc" }
 bun_ast = { path = "../ast" }
 bun_collections = { path = "../bun_collections" }
 bun_core = { path = "../bun_core" }
+bstr.workspace = true
 enumset.workspace = true
+indexmap = "2"
 rustc-hash = "2"
 smallvec.workspace = true
 

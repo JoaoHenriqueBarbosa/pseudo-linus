@@ -2,7 +2,7 @@
 
 use crate::diagnostics::{CompilerDiagnostic, CompilerError, CompilerErrorDetail, ErrorCategory};
 use crate::hir::{
-    ArrayPattern, ArrayPatternElement, AstAlloc, BinaryOperator, BlockKind, Case, Effect,
+    ArrayPattern, ArrayPatternElement, BinaryOperator, BlockKind, Case, Effect,
     EvaluationOrder, GotoVariant, HirVec, InstructionKind, InstructionValue, LValue, LValuePattern,
     ObjectPattern, ObjectProperty, ObjectPropertyOrSpread, ObjectPropertyType, Pattern, Place,
     PrimitiveValue, ReturnVariant, SourceLocation, SpreadPattern, Terminal, VariableBinding,
@@ -1182,7 +1182,7 @@ fn lower_statement(
             // Iterate through cases in reverse order so that previous blocks can
             // fallthrough to successors
             let mut fallthrough = continuation_id;
-            let mut cases: HirVec<Case> = AstAlloc::vec();
+            let mut cases: HirVec<Case> = Vec::new();
             let mut has_default = false;
 
             for ii in (0..switch_stmt.cases.len()).rev() {
@@ -1792,7 +1792,7 @@ pub(super) fn lower_assignment_binding(
         }
 
         b::B::BArray(pattern) => {
-            let mut items: HirVec<ArrayPatternElement> = AstAlloc::vec();
+            let mut items: HirVec<ArrayPatternElement> = Vec::new();
             let mut followups: Vec<(Place, &Binding, Option<&Expr>)> = Vec::new();
 
             let elements = pattern.items();
@@ -1890,7 +1890,7 @@ pub(super) fn lower_assignment_binding(
         }
 
         b::B::BObject(pattern) => {
-            let mut properties: HirVec<ObjectPropertyOrSpread> = AstAlloc::vec();
+            let mut properties: HirVec<ObjectPropertyOrSpread> = Vec::new();
             let mut followups: Vec<(Place, &Binding, Option<&Expr>)> = Vec::new();
 
             for prop in pattern.properties() {

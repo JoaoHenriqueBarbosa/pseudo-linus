@@ -160,7 +160,7 @@ fn get_identifier_name_with_loc(
 ) -> Option<String> {
     let ident = &identifiers[id.0 as usize];
     if let Some(IdentifierName::Named(name)) = &ident.name {
-        return Some(bun_core::BStr::new(name.slice()).to_string());
+        return Some(bstr::BStr::new(name.slice()).to_string());
     }
     // Fall back to extracting from source code
     if let (Some(loc), Some(code)) = (loc, source_code) {

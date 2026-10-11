@@ -748,7 +748,7 @@ fn read(constants: &Constants, place: &Place) -> Option<Constant> {
 /// Supports Unicode identifier characters per ECMAScript spec (ID_Start / ID_Continue).
 /// Rejects JS reserved words (matching Babel's `isValidIdentifier` default behavior).
 fn is_valid_identifier(s: &[u8]) -> bool {
-    use bun_core::ByteSlice;
+    use bstr::ByteSlice;
     if s.is_empty() {
         return false;
     }

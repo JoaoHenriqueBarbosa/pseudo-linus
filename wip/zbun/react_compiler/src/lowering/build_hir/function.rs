@@ -218,7 +218,7 @@ pub(super) fn lower_function_declaration(
                     category: ErrorCategory::Invariant,
                     reason: format!(
                         "Could not find binding for function declaration `{}`",
-                        bun_core::BStr::new(func_name.map(|s| s.slice()).unwrap_or(b""))
+                        bstr::BStr::new(func_name.map(|s| s.slice()).unwrap_or(b""))
                     ),
                     description: None,
                     loc,

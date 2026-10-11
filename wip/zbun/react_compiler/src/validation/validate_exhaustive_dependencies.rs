@@ -11,12 +11,12 @@ use crate::hir::visitors::{
     each_instruction_value_operand_with_functions, each_lvalue, each_terminal_operand,
 };
 use crate::hir::{
-    ArrayElement, AstAlloc, BlockId, DependencyPathEntry, HirFunction, HirVec, Identifier,
+    ArrayElement, BlockId, DependencyPathEntry, HirFunction, HirVec, Identifier,
     IdentifierId, InstructionKind, InstructionValue, ManualMemoDependency,
     ManualMemoDependencyRoot, NonLocalBinding, Place, PlaceOrSpread, PropertyLiteral, StoreStr,
     Terminal, Type, hir_vec,
 };
-use bun_core::BStr;
+use bstr::BStr;
 use core::fmt::Write as _;
 
 /// Port of ValidateExhaustiveDependencies.ts
@@ -926,7 +926,7 @@ fn collect_dependencies(
                                                                 },
                                                                 constant: false,
                                                             },
-                                                        path: AstAlloc::vec_from_iter(
+                                                        path: Vec::from_iter(
                                                             path.iter().cloned(),
                                                         ),
                                                         loc: *loc,
@@ -1038,7 +1038,7 @@ fn collect_dependencies(
                                                                 },
                                                                 constant: false,
                                                             },
-                                                        path: AstAlloc::vec_from_iter(
+                                                        path: Vec::from_iter(
                                                             path.iter().cloned(),
                                                         ),
                                                         loc: *loc,

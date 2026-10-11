@@ -70,7 +70,7 @@ fn format_kind(kind: Option<InstructionKind>) -> &'static str {
 fn format_place(place: &Place, env: &Environment) -> String {
     let ident = &env.identifiers[place.identifier.0 as usize];
     let name = match &ident.name {
-        Some(n) => bun_core::BStr::new(n.value()).to_string(),
+        Some(n) => bstr::BStr::new(n.value()).to_string(),
         None => String::new(),
     };
     let scope = match ident.scope {

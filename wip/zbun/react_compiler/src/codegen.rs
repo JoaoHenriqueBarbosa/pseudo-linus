@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 use crate::collections::IdMap;
-use bun_alloc::{Arena, ArenaVec, AstAlloc, AstVec};
+use bun_alloc::{Arena, ArenaVec};
 use bun_ast::{
     self as ast, ArrayBinding, Binding, Case, Catch, E, Expr, ExprData, ExprNodeList, Finally, G,
     Loc, LocRef, OpCode, OptionalChain, Ref, S, Stmt, StmtData, StmtNodeList, StoreSlice, StoreStr,
@@ -251,7 +251,7 @@ pub(crate) fn codegen_function(
         let call = Expr::init(
             E::Call {
                 target: use_memo_cache,
-                args: AstAlloc::vec_from_iter([Expr::init(
+                args: Vec::from_iter([Expr::init(
                     E::Number::new(cache_count as f64),
                     loc,
                 )]),
@@ -320,7 +320,7 @@ pub(crate) fn codegen_function(
             let call = Expr::init(
                 E::Call {
                     target,
-                    args: AstAlloc::vec_from_iter([
+                    args: Vec::from_iter([
                         string_expr(fn_name_str, Loc::EMPTY),
                         Expr::init(
                             E::EString::init(store_str(filename_str).slice()),
@@ -973,7 +973,7 @@ fn codegen_terminal(
         } => {
             let test_expr = codegen_place_to_expression(cx, test)?;
             let stmt_loc = convert_loc(*loc);
-            let mut switch_cases: AstVec<Case> = AstAlloc::vec_with_capacity(cases.len());
+            let mut switch_cases: Vec<Case> = Vec::with_capacity(cases.len());
             for case in cases {
                 let test = case
                     .test
@@ -1303,7 +1303,7 @@ fn codegen_for_init(cx: &mut Context, init: &ReactiveValue) -> Result<Option<Stm
             .map(|i| ReactiveStatement::Instruction(i.clone()))
             .collect();
         let body = codegen_block(cx, &block_items)?;
-        let mut declarators: G::DeclList = AstAlloc::vec();
+        let mut declarators: G::DeclList = Vec::new();
         let mut kind = S::Kind::KConst;
         for instr in body {
             if let StmtData::SExpr(expr_stmt) = instr.data {
@@ -1936,7 +1936,7 @@ fn codegen_base_instruction_value(
             ))
         }
         InstructionValue::ArrayExpression { elements, .. } => {
-            let mut elems: ExprNodeList = AstAlloc::vec_with_capacity(elements.len());
+            let mut elems: ExprNodeList = Vec::with_capacity(elements.len());
             for el in elements {
                 match el {
                     ArrayElement::Place(place) => {
@@ -2193,7 +2193,7 @@ fn codegen_base_instruction_value(
                 .next()
                 .ok_or_else(|| invariant_err("TemplateLiteral with no quasis", None))?;
             let head = template_contents(head_q);
-            let mut parts: AstVec<E::TemplatePart> = AstAlloc::vec_with_capacity(subexprs.len());
+            let mut parts: Vec<E::TemplatePart> = Vec::with_capacity(subexprs.len());
             for (value, tail) in subexprs.iter().zip(quasis_it) {
                 parts.push(E::TemplatePart {
                     value: codegen_place_to_expression(cx, value)?,
@@ -2227,7 +2227,7 @@ fn codegen_base_instruction_value(
             closing_loc,
         } => codegen_jsx_expression(cx, tag, props, children, *loc, *closing_loc),
         InstructionValue::JsxFragment { children, .. } => {
-            let mut child_elems: ExprNodeList = AstAlloc::vec_with_capacity(children.len());
+            let mut child_elems: ExprNodeList = Vec::with_capacity(children.len());
             for child in children {
                 child_elems.push(codegen_jsx_element(cx, child)?);
             }
@@ -2237,7 +2237,7 @@ fn codegen_base_instruction_value(
             Ok(codegen_jsx_call(
                 cx,
                 tag_value,
-                AstAlloc::vec(),
+                Vec::new(),
                 child_elems,
                 None,
                 loc,
@@ -2356,7 +2356,7 @@ fn codegen_function_expression(
     if cx.env.config.enable_name_anonymous_functions && name.is_none() && name_hint.is_some() {
         let hint = name_hint.unwrap();
         let key = Expr::init(E::EString::init(hint.slice()), loc);
-        let mut props: G::PropertyList = AstAlloc::vec_with_capacity(1);
+        let mut props: G::PropertyList = Vec::with_capacity(1);
         props.push(G::Property {
             kind: G::PropertyKind::Normal,
             key: Some(key),
@@ -2394,7 +2394,7 @@ fn codegen_object_expression(
     properties: &[ObjectPropertyOrSpread],
     loc: Loc,
 ) -> Result<Expr, CompilerError> {
-    let mut ast_properties: G::PropertyList = AstAlloc::vec_with_capacity(properties.len());
+    let mut ast_properties: G::PropertyList = Vec::with_capacity(properties.len());
     for prop in properties {
         match prop {
             ObjectPropertyOrSpread::Property(obj_prop) => {
@@ -2560,15 +2560,15 @@ fn codegen_jsx_expression(
         ),
     };
 
-    let mut child_nodes: ExprNodeList = AstAlloc::vec();
+    let mut child_nodes: ExprNodeList = Vec::new();
     if let Some(c) = children {
-        child_nodes = AstAlloc::vec_with_capacity(c.len());
+        child_nodes = Vec::with_capacity(c.len());
         for child in c {
             child_nodes.push(codegen_jsx_element(cx, child)?);
         }
     }
 
-    let mut properties: G::PropertyList = AstAlloc::vec_with_capacity(props.len() + 1);
+    let mut properties: G::PropertyList = Vec::with_capacity(props.len() + 1);
     let mut key_value: Option<Expr> = None;
     for attr in props {
         if let JsxAttribute::Attribute { name, place } = attr
@@ -2637,7 +2637,7 @@ fn codegen_jsx_call(
     } else {
         2 + usize::from(key_value.is_some())
     };
-    let mut args: ExprNodeList = AstAlloc::vec_with_capacity(args_len);
+    let mut args: ExprNodeList = Vec::with_capacity(args_len);
     args.push(tag_value);
     args.push(Expr::init(
         E::Object {
@@ -2750,7 +2750,7 @@ fn codegen_assignment_target(cx: &mut Context, pattern: &LvalueRef) -> Result<Ex
         LvalueRef::Pattern(pat) => match pat {
             Pattern::Array(arr) => {
                 let loc = convert_loc(arr.loc);
-                let mut items: ExprNodeList = AstAlloc::vec_with_capacity(arr.items.len());
+                let mut items: ExprNodeList = Vec::with_capacity(arr.items.len());
                 for item in &arr.items {
                     items.push(match item {
                         crate::hir::ArrayPatternElement::Place(place) => {
@@ -2775,7 +2775,7 @@ fn codegen_assignment_target(cx: &mut Context, pattern: &LvalueRef) -> Result<Ex
             Pattern::Object(obj) => {
                 let loc = convert_loc(obj.loc);
                 let mut properties: G::PropertyList =
-                    AstAlloc::vec_with_capacity(obj.properties.len());
+                    Vec::with_capacity(obj.properties.len());
                 for prop in &obj.properties {
                     properties.push(match prop {
                         ObjectPropertyOrSpread::Property(obj_prop) => {
@@ -2946,7 +2946,7 @@ fn codegen_arguments(
     cx: &mut Context,
     args: &[PlaceOrSpread],
 ) -> Result<ExprNodeList, CompilerError> {
-    let mut out: ExprNodeList = AstAlloc::vec_with_capacity(args.len());
+    let mut out: ExprNodeList = Vec::with_capacity(args.len());
     for arg in args {
         out.push(codegen_argument(cx, arg)?);
     }
@@ -3131,7 +3131,7 @@ fn estring_utf8(s: &str) -> E::EString {
     if s.is_ascii() {
         E::EString::init(store_str(s.as_bytes()).slice())
     } else {
-        let units: AstVec<u16> = AstAlloc::vec_from_iter(s.encode_utf16());
+        let units: Vec<u16> = Vec::from_iter(s.encode_utf16());
         E::EString::init_utf16(units.leak())
     }
 }
@@ -3195,17 +3195,17 @@ fn body_stmt(mut body: Vec<Stmt>, loc: Loc) -> Stmt {
 }
 
 fn leak_stmts(body: Vec<Stmt>) -> StmtNodeList {
-    let v: AstVec<Stmt> = AstAlloc::vec_from_iter(body);
+    let v: Vec<Stmt> = Vec::from_iter(body);
     StoreSlice::new_mut(v.leak())
 }
 
 fn leak_args(args: Vec<G::Arg>) -> StoreSlice<G::Arg> {
-    let v: AstVec<G::Arg> = AstAlloc::vec_from_iter(args);
+    let v: Vec<G::Arg> = Vec::from_iter(args);
     StoreSlice::new_mut(v.leak())
 }
 
 fn decl_list(iter: impl IntoIterator<Item = G::Decl>) -> G::DeclList {
-    AstAlloc::vec_from_iter(iter)
+    Vec::from_iter(iter)
 }
 
 fn template_contents(q: &crate::hir::TemplateQuasi) -> E::TemplateContents {
@@ -3481,7 +3481,7 @@ fn wrap_hook_call_with_guard(guard_ref: Ref, call_expr: Expr, before: u32, after
             Expr::init(
                 E::Call {
                     target: Expr::init_identifier(guard_ref, loc),
-                    args: AstAlloc::vec_from_iter([Expr::init(E::Number::new(kind as f64), loc)]),
+                    args: Vec::from_iter([Expr::init(E::Number::new(kind as f64), loc)]),
                     ..Default::default()
                 },
                 loc,
@@ -3527,7 +3527,7 @@ fn wrap_hook_call_with_guard(guard_ref: Ref, call_expr: Expr, before: u32, after
     Expr::init(
         E::Call {
             target: iife,
-            args: AstAlloc::vec(),
+            args: Vec::new(),
             ..Default::default()
         },
         loc,
@@ -3546,7 +3546,7 @@ fn create_function_body_hook_guard(
             Expr::init(
                 E::Call {
                     target: Expr::init_identifier(guard_ref, loc),
-                    args: AstAlloc::vec_from_iter([Expr::init(E::Number::new(kind as f64), loc)]),
+                    args: Vec::from_iter([Expr::init(E::Number::new(kind as f64), loc)]),
                     ..Default::default()
                 },
                 loc,

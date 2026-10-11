@@ -6,7 +6,7 @@
 
 use crate::diagnostics::{CompilerError, CompilerErrorDetail, ErrorCategory};
 use crate::hir::{
-    AstAlloc, BuiltinTag, Effect, HirVec, InstructionValue, JsxAttribute, JsxTag, Place,
+    BuiltinTag, Effect, HirVec, InstructionValue, JsxAttribute, JsxTag, Place,
     PrimitiveValue, PropertyLiteral, SourceLocation, StoreStr, VariableBinding,
 };
 use bun_ast::expr::Data as ExprData;
@@ -68,8 +68,8 @@ fn lower_jsx_element_name(builder: &mut HirBuilder, tag: &Expr) -> Result<JsxTag
                                 .to_string(),
                         description: Some(format!(
                             "Got `{}` : `{}`",
-                            bun_core::BStr::new(namespace),
-                            bun_core::BStr::new(local)
+                            bstr::BStr::new(namespace),
+                            bstr::BStr::new(local)
                         )),
                         loc,
                         suggestions: None,
@@ -244,8 +244,8 @@ pub(super) fn lower_jsx_call(
         _ => false,
     };
 
-    let mut props: HirVec<JsxAttribute> = AstAlloc::vec();
-    let mut children: HirVec<Place> = AstAlloc::vec();
+    let mut props: HirVec<JsxAttribute> = Vec::new();
+    let mut children: HirVec<Place> = Vec::new();
 
     if is_automatic {
         let ExprData::EObject(obj) = &props_arg.unwrap().data else {

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::diagnostics::{CompilerError, CompilerErrorDetail, ErrorCategory};
 use crate::hir::environment::Environment;
 use crate::hir::{HirFunction, IdentifierId, InstructionValue, PropertyLiteral, StoreStr};
-use bun_core::BStr;
+use bstr::BStr;
 
 /// Validates that capitalized functions are not called directly (they should be rendered as JSX).
 ///

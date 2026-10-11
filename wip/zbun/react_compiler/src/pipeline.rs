@@ -198,7 +198,7 @@ pub(crate) fn compile_fn(
             context.merge_uid_known_names(
                 &uid_names
                     .into_iter()
-                    .map(|s| bun_core::BStr::new(s.slice()).to_string())
+                    .map(|s| bstr::BStr::new(s.slice()).to_string())
                     .collect(),
             );
         }
@@ -239,7 +239,7 @@ pub(crate) fn compile_fn(
         context.merge_uid_known_names(
             &uid_names
                 .into_iter()
-                .map(|s| bun_core::BStr::new(s.slice()).to_string())
+                .map(|s| bstr::BStr::new(s.slice()).to_string())
                 .collect(),
         );
     }
@@ -268,7 +268,6 @@ pub(crate) fn compile_outlined_fn(
     context: &mut ProgramContext,
     import_bindings: &IndexMap<bun_ast::Ref, VariableBinding>,
 ) -> Result<CodegenFunction, CompilerError> {
-    use bun_alloc::AstAlloc;
     use bun_ast::{G, Loc, StoreSlice, flags};
 
     let mut env = Environment::with_config(env_config.clone());
@@ -276,13 +275,13 @@ pub(crate) fn compile_outlined_fn(
     env.output_mode = context.output_mode;
 
     // Build a FunctionDeclaration from the codegen output
-    let mut params: bun_alloc::AstVec<G::Arg> =
-        AstAlloc::vec_with_capacity(codegen_fn.params.len());
+    let mut params: Vec<G::Arg> =
+        Vec::with_capacity(codegen_fn.params.len());
     for p in codegen_fn.params {
         params.push(p);
     }
-    let mut body: bun_alloc::AstVec<bun_ast::Stmt> =
-        AstAlloc::vec_with_capacity(codegen_fn.body.len());
+    let mut body: Vec<bun_ast::Stmt> =
+        Vec::with_capacity(codegen_fn.body.len());
     for s in codegen_fn.body {
         body.push(s);
     }

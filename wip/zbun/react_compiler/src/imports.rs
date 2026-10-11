@@ -9,7 +9,6 @@
 use crate::collections::{IndexMap, IndexSet};
 
 use crate::diagnostics::{CompilerError, CompilerErrorDetail, ErrorCategory};
-use bun_alloc::{AstAlloc, AstVec};
 use bun_ast::{
     ClauseItem, ImportKind, ImportRecord, Loc, LocRef, S, Stmt, StoreSlice, StoreStr, Symbol,
 };
@@ -206,7 +205,7 @@ pub(crate) fn validate_restricted_imports(
             )
             .with_description(format!(
                 "Import from module {}",
-                bun_core::BStr::new(import.path.text)
+                bstr::BStr::new(import.path.text)
             ));
             detail.loc = crate::lowering::convert_loc(import.range.loc);
             error.push_error_detail(detail);
@@ -254,7 +253,7 @@ pub(crate) fn add_imports_to_program(
         let (import_record_index, namespace_ref) =
             host.add_import_record(module_name.as_bytes(), ImportKind::Stmt);
 
-        let mut items: AstVec<ClauseItem> = AstAlloc::vec_with_capacity(sorted_imports.len());
+        let mut items: Vec<ClauseItem> = Vec::with_capacity(sorted_imports.len());
         for spec in &sorted_imports {
             items.push(make_import_specifier(spec));
         }
@@ -294,7 +293,7 @@ fn make_import_specifier(spec: &NonLocalImportSpecifier) -> ClauseItem {
 }
 
 fn arena_str(bytes: &[u8]) -> StoreStr {
-    let mut v: AstVec<u8> = AstAlloc::vec_with_capacity(bytes.len());
+    let mut v: Vec<u8> = Vec::with_capacity(bytes.len());
     v.extend_from_slice(bytes);
     StoreStr::new(v.leak())
 }

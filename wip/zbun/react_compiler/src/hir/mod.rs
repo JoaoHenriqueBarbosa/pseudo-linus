@@ -69,8 +69,7 @@ pub use reactive::*;
 /// global-heap allocations (`String`, `Box<T>`, `Vec<T>`): the arena bulk-
 /// frees on reset without walking elements, so any nested global allocation
 /// leaks per parse. Use [`StoreStr`] / [`HirVec`] instead.
-pub type HirVec<T> = bun_alloc::AstVec<T>;
-pub use bun_alloc::AstAlloc;
+pub type HirVec<T> = Vec<T>;
 /// Arena-owned (or `'static`) byte string. Copy; no Drop. See [`HirVec`].
 pub use bun_ast::StoreStr;
 
@@ -79,10 +78,10 @@ pub use bun_ast::StoreStr;
 #[macro_export]
 macro_rules! hir_vec {
     () => {
-        ::bun_alloc::AstAlloc::vec()
+        Vec::new()
     };
     ($($x:expr),+ $(,)?) => {{
-        let mut v = ::bun_alloc::AstAlloc::vec();
+        let mut v = Vec::new();
         $(v.push($x);)+
         v
     }};
@@ -1316,7 +1315,7 @@ pub enum PropertyLiteral {
 impl std::fmt::Display for PropertyLiteral {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PropertyLiteral::String(s) => write!(f, "{}", bun_core::BStr::new(s.slice())),
+            PropertyLiteral::String(s) => write!(f, "{}", bstr::BStr::new(s.slice())),
             PropertyLiteral::Number(n) => write!(f, "{}", n),
         }
     }
