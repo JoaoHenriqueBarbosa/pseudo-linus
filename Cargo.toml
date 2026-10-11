@@ -69,3 +69,6 @@ blitz-dom = { path = "vendor/blitz-dom" }
 # stylo_taffy 0.3.0-beta.2 vendorizado: a barra de rolagem dele tem 0px e `overflow: auto` vira `scroll`. O Chromium
 # reserva 15px só em `overflow: scroll` (`auto` sem transbordo não tem barra).
 stylo_taffy = { path = "vendor/stylo_taffy" }
+# stylo 0.20.0 vendorizado: o parser de seletores do motor `servo` recusa `:has()` e `:nth-child(... of S)`
+# (`parse_has` e `parse_nth_child_of` devolvem false). O Chromium os aceita em querySelector, matches e closest.
+stylo = { path = "vendor/stylo" }

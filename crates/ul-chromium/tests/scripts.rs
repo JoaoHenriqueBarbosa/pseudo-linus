@@ -773,3 +773,20 @@ setTimeout(function () {
     let deltas = lines[4].strip_prefix("deltas").unwrap().trim();
     assert!(deltas.is_empty() || deltas.split(',').all(|d| d == "16.6" || d == "16.7"), "{log}");
 }
+
+/// `:has()` e `:nth-child(... of S)` em `querySelector`, `matches` e `closest` (o parser do stylo `servo` os recusava e o WPT
+/// `css/selectors` reprovava 500 subtestes por `is not a valid selector`).
+#[test]
+fn has_and_nth_child_of_selectors_parse_and_match() {
+    let script = "const r = []; \
+        r.push(document.querySelector('div:has(> .q)')?.id, document.querySelector('p:has(+ p)')?.id, \
+        document.getElementById('b').matches('span:not(:has(i))'), document.getElementById('a').matches(':has(#b)'), \
+        document.getElementById('b').closest('div:has(span)')?.id, document.querySelector('li:nth-child(2 of .on)')?.id, \
+        document.querySelectorAll('div:has(.nope)').length); console.log(r.join(','))";
+    let page = format!(
+        "<div id=a class=p><span class=q id=b></span></div><p id=c></p><p id=d></p>\
+         <ul><li class=on id=l1></li><li id=l2></li><li class=on id=l3></li></ul><script>{script}</script>"
+    );
+    let (_, log) = run(&[("/", &page)]);
+    assert_eq!(log, "a,c,true,true,a,l3,0\n");
+}
