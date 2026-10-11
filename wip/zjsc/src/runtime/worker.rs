@@ -67,7 +67,7 @@ fn resolve_script(global_object: &JSGlobalObject, specifier: &str) -> Result<(St
         format!("./{specifier}")
     };
     let cwd = current_directory();
-    let path = resolve_require(fs.as_ref(), cwd.trim_end_matches('/'), &request).ok_or_else(not_found)?;
+    let path = resolve_require(fs.as_ref(), cwd.trim_end_matches('/'), &request, false).ok_or_else(not_found)?;
     let source = fs.read_file(&path).ok_or_else(not_found)?;
     Ok((source, path))
 }

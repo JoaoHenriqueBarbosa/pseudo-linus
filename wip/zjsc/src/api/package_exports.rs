@@ -149,8 +149,14 @@ pub fn resolve_package_from(
       let pkg_dir = format!("{dir}/node_modules/{name}");
       let manifest = fs.read_file(&format!("{pkg_dir}/package.json")).as_deref().and_then(parse);
       if let Some(exports) = manifest.as_ref().and_then(|m| m.get("exports")).filter(|e| !matches!(e, Json::Null)) {
-        let relative = if subpath == "./package.json" { Some("package.json".to_string()) } else { lookup(exports, &subpath, esm) };
-        let file = relative.map(|rel| format!("{pkg_dir}/{rel}")).filter(|path| fs.is_file(path));
+        let exported = |subpath: &str| {
+          let relative = if subpath == "./package.json" { Some("package.json".to_string()) } else { lookup(exports, subpath, esm) };
+          relative.map(|rel| format!("{pkg_dir}/{rel}")).filter(|path| fs.is_file(path))
+        };
+        // Medido no bun: se o subcaminho não leva a arquivo, um `.js` final cai fora e a busca repete (`./x.js` com
+        // `"./*": "./src/*.mjs"` acha `src/x.mjs`; o `./x.js.js` que existe vence). Nenhum outro sufixo e nenhum
+        // arquivo fora do `exports` (`./b.js` com só `"./a"` falha).
+        let file = exported(&subpath).or_else(|| subpath.strip_suffix(".js").filter(|rest| rest.len() > 1).and_then(exported));
         return file.map(|path| fs.realpath(&path).unwrap_or(path)).ok_or_else(not_found);
       }
     }
@@ -297,5 +303,29 @@ mod tests {
     let plain = MemoryFs::new(&[("/node_modules/q/package.json", "{}"), ("/node_modules/q/index.js", "")]);
     assert_eq!(resolve_package(&plain, "/", "q", true).unwrap(), "/node_modules/q/index.js");
     assert!(resolve_package(&plain, "/", "q/zzz", true).is_err());
+  }
+
+  /// Medido no bun 1.4.2 (`require.resolve("pkg/x.js")`): sem arquivo para o subcaminho, um `.js` final cai fora e a busca
+  /// repete uma vez; o mapeamento exato que existe vence; nenhum outro sufixo; nenhum arquivo fora do `exports`.
+  #[test]
+  fn trailing_js_is_dropped_once_when_the_subpath_maps_to_nothing() {
+    let pattern = |exports: &str, files: &[&str]| {
+      let manifest = format!("{{\"main\":\"main.js\",\"exports\":{exports}}}");
+      let mut all = vec![("/node_modules/pkg/package.json".to_string(), manifest)];
+      all.extend(files.iter().map(|file| (format!("/node_modules/pkg/{file}"), "1".to_string())));
+      let refs: Vec<(&str, &str)> = all.iter().map(|(path, text)| (path.as_str(), text.as_str())).collect();
+      MemoryFs::new(&refs)
+    };
+    let to_mjs = pattern(r#"{"./*":"./src/*.mjs"}"#, &["src/x.mjs"]);
+    assert_eq!(resolve_package(&to_mjs, "/", "pkg/x.js", false).unwrap(), "/node_modules/pkg/src/x.mjs");
+    let both = pattern(r#"{"./*":"./src/*.js"}"#, &["src/x.js", "src/x.js.js"]);
+    assert_eq!(resolve_package(&both, "/", "pkg/x.js", false).unwrap(), "/node_modules/pkg/src/x.js.js");
+    let one = pattern(r#"{"./*":"./src/*.js"}"#, &["src/x.js"]);
+    assert_eq!(resolve_package(&one, "/", "pkg/x.js", false).unwrap(), "/node_modules/pkg/src/x.js");
+    assert!(resolve_package(&one, "/", "pkg/x.js.js", false).is_err(), "só um `.js` cai");
+    assert!(resolve_package(&one, "/", "pkg/x.mjs", false).is_err(), "só o `.js` cai");
+    let exact = pattern(r#"{"./a":"./a.js"}"#, &["a.js", "b.js"]);
+    assert_eq!(resolve_package(&exact, "/", "pkg/a.js", false).unwrap(), "/node_modules/pkg/a.js");
+    assert!(resolve_package(&exact, "/", "pkg/b.js", false).is_err(), "o arquivo fora do `exports` não resolve");
   }
 }

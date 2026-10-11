@@ -1356,7 +1356,7 @@ fn require_module(global_object: &JSGlobalObject, specifier: JSValue, resolve: b
         return Err(throw_require_failure(global_object, specifier, resolve, importer));
     }
     let vm = global_object.vm();
-    let Some(path) = resolve_require(fs.as_ref(), dirname_str(importer), &request) else {
+    let Some(path) = resolve_require(fs.as_ref(), dirname_str(importer), &request, false) else {
         let reported = file_url_path(&request).map_or(specifier, |path| js_text(global_object.vm(), &path));
         return Err(throw_require_failure(global_object, reported, resolve, importer));
     };

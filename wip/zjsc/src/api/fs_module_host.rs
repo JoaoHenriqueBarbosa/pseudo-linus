@@ -40,7 +40,7 @@ impl ModuleHost for FsModuleHost {
         }
         let from = referrer.unwrap_or("/");
         let importer_dir = from.rsplit_once('/').map_or("", |(directory, _)| directory);
-        resolve_require(self.fs.as_ref(), importer_dir, specifier).ok_or_else(|| {
+        resolve_require(self.fs.as_ref(), importer_dir, specifier, true).ok_or_else(|| {
             if let Some(path) = file_url_path(specifier) {
                 format!("Cannot find module '{path}' imported from {from}")
             } else if is_path_like(specifier) {

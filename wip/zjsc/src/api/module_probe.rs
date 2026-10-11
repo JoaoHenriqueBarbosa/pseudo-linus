@@ -4,6 +4,7 @@
 //! [`ModuleFs`]; devolve o primeiro candidato que é arquivo. Não conhece o VFS nem o host: quem
 //! carrega módulos fornece a implementação (a do VFS no sandbox, [`MemoryFs`] nos testes).
 
+use crate::api::package_exports::resolve_package_from;
 use crate::wtf::text::conversion_mode::ConversionMode;
 use crate::wtf::text::wtf_string::String as WtfString;
 use crate::wtf::url::URL;
@@ -94,19 +95,10 @@ fn probe_file(fs: &dyn ModuleFs, exts: &[&str], base: &str) -> Option<String> {
 /// barra final, direto ao diretório). Não há noção de pacote: `node_modules/pkg.js` atende `pkg`, um
 /// subdiretório com `package.json` usa o `main` dele, e quem falha num nível segue para o pai (um
 /// diretório vazio ou sem `index` não bloqueia). O resultado é o caminho canônico (`realpath`), com os
-/// links simbólicos resolvidos. `exports` ainda é ignorado.
-pub fn resolve_node_modules(fs: &dyn ModuleFs, importer_dir: &str, specifier: &str) -> Option<String> {
-  let spec = specifier.replace('\\', "/");
-  let mut dir = importer_dir.trim_end_matches('/').to_string();
-  loop {
-    if let Some(found) = resolve_node_modules_at(fs, &dir, &spec) {
-      return Some(found);
-    }
-    if dir.is_empty() {
-      return None;
-    }
-    dir.truncate(dir.rfind('/').unwrap_or(0));
-  }
+/// links simbólicos resolvidos. Um pacote com `exports` resolve só por ele (`esm` escolhe a condição `import` em vez de
+/// `require`; ver [`resolve_package_from`]).
+pub fn resolve_node_modules(fs: &dyn ModuleFs, importer_dir: &str, specifier: &str, esm: bool) -> Option<String> {
+  resolve_package_from(fs, importer_dir, specifier, esm, "").ok()
 }
 
 /// Um nível de [`resolve_node_modules`]: sonda `dir/node_modules/<spec>` (`spec` já com `/` no lugar de `\`)
@@ -122,11 +114,11 @@ pub(super) fn resolve_node_modules_at(fs: &dyn ModuleFs, dir: &str, spec: &str) 
 /// `require(specifier)` visto de `importer_dir` (absoluto, sem barra final): caminho relativo (`./`, `../`, `.`,
 /// `..`) ou absoluto vai pela sonda de arquivo e diretório e termina em `realpath`; o resto é nome de pacote
 /// ([`resolve_node_modules`]). `file://` vira o caminho ([`file_url_path`]). `None` é "Cannot find module".
-pub fn resolve_require(fs: &dyn ModuleFs, importer_dir: &str, specifier: &str) -> Option<String> {
+pub fn resolve_require(fs: &dyn ModuleFs, importer_dir: &str, specifier: &str, esm: bool) -> Option<String> {
   let spec = file_url_path(specifier).unwrap_or_else(|| specifier.to_owned()).replace('\\', "/");
   let path_like = spec.starts_with('/') || spec == "." || spec == ".." || spec.starts_with("./") || spec.starts_with("../");
   if !path_like {
-    return resolve_node_modules(fs, importer_dir, &spec);
+    return resolve_node_modules(fs, importer_dir, &spec, esm);
   }
   let target = join_normalized(importer_dir, &spec);
   let found = probe_package_path(fs, &target, spec.ends_with('/'))?;
@@ -506,7 +498,7 @@ mod tests {
   }
 
   fn nm(importer_dir: &str, spec: &str) -> Option<String> {
-    resolve_node_modules(&nm_tree(), importer_dir, spec)
+    resolve_node_modules(&nm_tree(), importer_dir, spec, true)
   }
 
   #[test]
