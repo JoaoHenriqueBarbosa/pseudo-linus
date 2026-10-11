@@ -255,7 +255,17 @@ _OWN_FRAMES = frozenset(('pyc_greenlet.switch:switch', 'pyc_greenlet.throw:throw
 _C_FAMILY = ('replay_step_', 'replay_call_', 'callback_', 'resume_', 'scan_', 'pyc_')
 
 
+_C_FRAME_MEMO = {}
+
+
 def _c_frame_bytes(name):
+    got = _C_FRAME_MEMO.get(name)
+    if got is None:
+        got = _C_FRAME_MEMO[name] = _c_frame_bytes_uncached(name)
+    return got
+
+
+def _c_frame_bytes_uncached(name):
     got = _C_FRAME_BYTES.get(name)
     if got is None:
         got = _C_FRAME_BYTES.get(name.rpartition(':')[0])
@@ -299,9 +309,11 @@ def _save_stacks(green, origin_state, state, new, finishing, run, payload):
     """A cópia preguiçosa de pilha do greenlet: ao trocar para `state`, cada greenlet suspenso desta thread cuja pilha
     passa do começo da de `state` tem essa parte copiada (a do principal começa no topo, então trocar para ele copia
     tudo); a de quem é retomado volta inteira."""
+    # Só os suspensos com pilha ainda por copiar (o `saved` abaixo do teto): quem já tem tudo copiado sai daqui, então
+    # a troca não varre os greenlets que não têm o que mudar (o `g_save` do C anda só pela cadeia que precisa).
     live = getattr(green, 'gstacks', None)
     if live is None:
-        live = green.gstacks = []
+        live = green.gstacks = {}
     if not finishing:
         off = _TO_NEW if new else (_TO_MAIN if state.main else _TO_STARTED)
         names = [n for n in _sys._gt_c_frames() if n not in _OWN_FRAMES]
@@ -310,22 +322,27 @@ def _save_stacks(green, origin_state, state, new, finishing, run, payload):
             del names[0]
         native = sum(_c_frame_bytes(n) for n in names)
         origin_state.sp = origin_state.start + origin_state.base + native + off
-        if not any(x is origin_state for x in live):
-            live.append(origin_state)
+        live[id(origin_state)] = origin_state
     if new:
         state.start = (origin_state.sp - _NEW_STOP) if not finishing else origin_state.start
         kwargs = payload[2] if payload[0] == 'switch' else None
         state.base = _run_base(run, kwargs)
         state.call_run = state.base - (_RUN_KWARGS if kwargs else 0) in (_RUN_CALLABLE, _RUN_PARTIAL)
-    for other in live:
-        if other is state:
+    live.pop(id(state), None)
+    complete = []
+    for key, other in live.items():
+        if other.dead:
+            complete.append(key)
             continue
         # A pilha do principal começa no topo da pilha da thread: nada limita a parte dela a copiar.
         full = None if other.main else other.sp - other.start
         part = max(0, other.sp - state.start) if full is None else full if state.main else min(full, max(0, other.sp - state.start))
         if part > other.saved:
             other.saved = part
-    live[:] = [x for x in live if x is not state and not x.dead]
+        if full is not None and other.saved >= full:
+            complete.append(key)
+    for key in complete:
+        del live[key]
     state.saved = 0
     state.sp = None
 
@@ -651,6 +668,11 @@ from ``g_raiser`` to ``g``.
         if state.main or not state.started or state.dead:
             return
         if state.owner is not _thread():
+            if _exited(state.owner):
+                # A thread dele acabou: ninguém mais troca para ele, só se libera o que a pilha dele segurava.
+                state.dead = True
+                _sys._gt_drop(state.tid)
+                return
             _defer_to(state.owner, self)
             return
         _doomed.append(self)

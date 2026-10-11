@@ -235,6 +235,26 @@ fn spawn(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::Int(tid))
 }
 
+/// `_gt_drop(tid)`: descarta a thread suspensa `tid` sem nunca a retomar (o greenlet de uma thread que já acabou: nada
+/// pode trocar para ele, e o C só libera a pilha copiada dele). Devolve se havia o que descartar. A thread que roda e as
+/// que ainda esperam para começar não se descartam.
+fn drop_parked(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_gt_drop", &kw)?;
+    let target = want_int(args.first().ok_or_else(|| crate::vm::type_error("_gt_drop() missing the thread"))?)?;
+    let _ = vm;
+    let gone = SCHED.with(|s| {
+        let mut s = s.borrow_mut();
+        if target == s.current || !matches!(s.entries.get(&target), Some(Entry::Parked(_))) {
+            return None;
+        }
+        let gone = s.entries.remove(&target);
+        sync_others(&s);
+        gone
+    });
+    // O que a pilha segurava cai fora do empréstimo do escalonador (o `Drop` de uma instância só enfileira).
+    Ok(Value::Bool(gone.is_some()))
+}
+
 /// Valida que a troca para `target` é possível agora (o mesmo que `green_switch` confere, antes de
 /// suspender, para o erro sair na chamada).
 fn check_target(vm: &Vm, target: i64) -> PyResult<()> {
@@ -360,6 +380,7 @@ pub(crate) fn register(builder: ModuleBuilder) -> ModuleBuilder {
         .func("_gt_spawn", spawn)
         .func("_gt_switch", switch)
         .func("_gt_finish", finish)
+        .func("_gt_drop", drop_parked)
         .func("_gt_current", current)
         .func("_gt_can_switch", can_switch)
         .func("_gt_interval", interval)

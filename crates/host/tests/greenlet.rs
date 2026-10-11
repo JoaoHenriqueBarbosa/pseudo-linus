@@ -354,8 +354,6 @@ const DECLARED_DIVERGENCES: &[(&str, &str)] = &[
     ("test_threaded_adv_leak (test_leaks)", "o plinus não acha ciclos de instâncias (sem coletor: `gc.collect`, `__del__` e `weakref` de ciclo); fica para o projeto do coletor de ciclos (item 1)"),
     ("test_threaded_leak (test_leaks)", "o plinus não acha ciclos de instâncias (sem coletor: `gc.collect`, `__del__` e `weakref` de ciclo); fica para o projeto do coletor de ciclos (item 1)"),
     ("test_throw_to_dead_thread_doesnt_crash (test_greenlet)", "o teste espera um vazamento (`expect_greenlet_leak`) que o CPython tem e o plinus não: aqui o greenlet morre ao soltar a última referência (divergência declarada, item 3)"),
-    ("test_untracked_memory_doesnt_increase_unfinished_thread_dealloc_in_main (test_leaks)", "o `switch` cresce de forma quadrática com os greenlets suspensos (a cópia preguiçosa da pilha em `_save_stacks`): 20 mil greenlets passam dos 30 s do teste; backlog de desempenho"),
-    ("test_untracked_memory_doesnt_increase_unfinished_thread_dealloc_in_thread (test_leaks)", "o `switch` cresce de forma quadrática com os greenlets suspensos (a cópia preguiçosa da pilha em `_save_stacks`): 20 mil greenlets passam dos 30 s do teste; backlog de desempenho"),
 ];
 
 /// A suíte `greenlet/tests` do 3.5.6 (a da wheel, copiada do oráculo com o `psutil` mínimo que ela importa) roda
@@ -504,4 +502,40 @@ fn repr_pending_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/cases/gl_repr_pending.py"),
         include_str!("../../../testbench/oracle/automation/golden/gl_repr_pending.out"),
     );
+}
+
+/// Criar, trocar e retomar milhares de greenlets suspensos custa o mesmo por greenlet (a troca não varre os suspensos):
+/// 2000 e 20000 greenlets cabem em tempo limitado, e todos terminam no retorno.
+#[test]
+fn switching_many_greenlets_scales_linearly() {
+    let d = Daemon::kernel("");
+    let t = d.user("ana", json!({}));
+    let c = d.client(&t);
+    let sb = sandbox(&c);
+    let r = exec(&c, &sb, "mkdir -p /tmp/gl/greenlet && : > /tmp/gl/greenlet/_greenlet.cpython-313-x86_64-linux-gnu.so");
+    assert_eq!(r["exit_code"], 0, "{r}");
+    write(&c, &sb, "/tmp/gl/greenlet/__init__.py", INIT);
+    let script = "\
+import time, greenlet
+def f():
+    greenlet.getcurrent().parent.switch()
+    return 1
+for n in (2000, 20000):
+    t0 = time.time()
+    gl = []
+    for _ in range(n):
+        g = greenlet.greenlet(f)
+        gl.append(g)
+        g.switch()
+    for g in gl:
+        g.switch()
+    assert all(g.dead for g in gl)
+    print(n, round(time.time() - t0, 2))
+";
+    write(&c, &sb, "/tmp/gl/scale.py", script);
+    let command = "cd /tmp/gl && python3 scale.py";
+    let r = c.call("exec", json!({ "sandbox_id": sb, "command": command, "timeout_ms": 300_000 })).unwrap();
+    assert_eq!(r["exit_code"], 0, "{r}");
+    let times: Vec<f64> = r["stdout"].as_str().unwrap().lines().map(|l| l.split(' ').nth(1).unwrap().parse().unwrap()).collect();
+    assert!(times[0] < 5.0 && times[1] < 60.0, "{times:?}");
 }
