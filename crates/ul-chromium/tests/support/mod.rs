@@ -5,7 +5,8 @@ use std::time::Duration;
 
 use sysabi::sys;
 use sysabi::*;
-use ul_chromium::devtools::websocket;
+use serde_json::Value;
+use ul_chromium::devtools::websocket::{self, Decoder, Incoming};
 
 /// Responde toda requisição com a página, em HTTP/1.0 como o `http.server` do Python.
 pub fn serve(listener: Fd, page: &'static str) -> i32 {
@@ -138,3 +139,100 @@ pub fn run_devtools(page: &'static str, name: &str, how: &str, seconds: f64) -> 
     let _ = s.wait4(WaitTarget::Pid(pid), WaitOptions::empty());
     server
 }
+
+pub struct Client {
+    pub fd: Fd,
+    pub inbox: Vec<u8>,
+    pub decoder: Decoder,
+    pub log: Vec<Value>,
+}
+
+impl Client {
+    /// Espera até `wait` por mensagens; cada uma vai para o registro. Devolve a que tem `id` igual a `until`.
+    pub fn receive(&mut self, until: Option<i64>, wait: Duration) -> Option<Value> {
+        let deadline = std::time::Instant::now() + wait;
+        loop {
+            // Todos os quadros já lidos entram no registro, mesmo os que chegaram junto com a resposta esperada.
+            let mut found = None;
+            for incoming in self.decoder.feed(&mut self.inbox) {
+                if let Incoming::Text(text) = incoming {
+                    let message: Value = serde_json::from_str(&text).unwrap();
+                    self.log.push(serde_json::json!({ "in": message }));
+                    if until.is_some() && message.get("id").and_then(Value::as_i64) == until {
+                        found = Some(message);
+                    }
+                }
+            }
+            if found.is_some() {
+                return found;
+            }
+            let left = deadline.saturating_duration_since(std::time::Instant::now());
+            if left.is_zero() {
+                return None;
+            }
+            let mut fds = [PollFd { fd: self.fd, events: PollEvents::IN, revents: PollEvents::empty() }];
+            if sys::current().poll(&mut fds, Some(left)).unwrap_or(0) == 0 {
+                continue;
+            }
+            let mut buffer = [0u8; 65536];
+            match sys::read(self.fd, &mut buffer) {
+                Ok(0) | Err(_) => return None,
+                Ok(n) => self.inbox.extend_from_slice(&buffer[..n]),
+            }
+        }
+    }
+}
+
+/// Troca o que varia entre execuções pelo formato: ids de 128 bits, UUID, `objectId` (o isolate), `uniqueId`,
+/// `timestamp` e o `Content-Length` não entram.
+pub fn normalize(value: &Value, key: &str) -> Value {
+    let token = |s: &str| s.len() == 32 && s.bytes().all(|b| b.is_ascii_digit() || (b'A'..=b'F').contains(&b));
+    let uuid = |s: &str| s.len() == 36 && s.bytes().all(|b| b == b'-' || b.is_ascii_digit() || (b'a'..=b'f').contains(&b));
+    match value {
+        // O título do popup do omnibox depende de quanto ele já carregou quando o cliente pergunta. O oráculo gravou
+        // "", "Omnibox Popup" e o título provisório, que é o host no popup da raiz e a URL inteira no
+        // `omnibox_popup_aim.html`. Só esses valem; outro fica como veio e diverge.
+        Value::Object(map) if map.get("type").and_then(Value::as_str) == Some("browser_ui") => {
+            let provisional = match map.get("url").and_then(Value::as_str) {
+                Some("chrome://omnibox-popup.top-chrome/") => "chrome://omnibox-popup.top-chrome",
+                Some(url) => url,
+                None => "",
+            };
+            Value::Object(
+                map.iter()
+                    .map(|(k, v)| {
+                        let measured = v.as_str().is_some_and(|t| t.is_empty() || t == "Omnibox Popup" || t == provisional);
+                        (k.clone(), if k == "title" && measured { Value::String("<omnibox>".into()) } else { normalize(v, k) })
+                    })
+                    .collect(),
+            )
+        }
+        // Os instantes e as durações da troca de rede variam a cada execução; os campos que o Chromium deixa em -1 por
+        // não ter feito DNS nem conexão (conexão reaproveitada) também variam com o estado do pool de sockets.
+        Value::Object(map) if key == "timing" || key == "connectTiming" => Value::Object(map.keys().map(|k| (k.clone(), Value::String("<n>".into()))).collect()),
+        Value::Object(map) => Value::Object(map.iter().map(|(k, v)| (k.clone(), normalize(v, k))).collect()),
+        // O `getTargets` do oráculo sai na ordem de um mapa de hash, que muda de uma execução para outra: qualquer
+        // ordem vale, então a comparação é como conjunto.
+        Value::Array(items) if key == "targetInfos" => {
+            let mut items: Vec<Value> = items.iter().map(|v| normalize(v, key)).collect();
+            items.sort_by_key(|v| v.to_string());
+            Value::Array(items)
+        }
+        Value::Array(items) => Value::Array(items.iter().map(|v| normalize(v, key)).collect()),
+        Value::Number(_) if key == "timestamp" || key == "wallTime" || key == "responseTime" => Value::String("<timestamp>".into()),
+        // O id da conexão e o reaproveitamento dela dependem do pool de sockets do processo (o oráculo mostrou
+        // `connectionReused` verdadeiro e falso para o mesmo pedido em corridas diferentes).
+        Value::Number(_) if key == "connectionId" => Value::String("<n>".into()),
+        Value::Bool(_) if key == "connectionReused" => Value::String("<bool>".into()),
+        // O `requestId` de subrecurso é `pid.n`.
+        Value::String(s) if key == "requestId" && s.split_once('.').is_some_and(|(a, b)| !a.is_empty() && a.bytes().all(|c| c.is_ascii_digit()) && b.bytes().all(|c| c.is_ascii_digit())) => Value::String("<requestId>".into()),
+        Value::Number(_) if key == "windowId" => Value::String("<windowId>".into()),
+        Value::String(s) if token(s) => Value::String("<token>".into()),
+        Value::String(s) if uuid(s) => Value::String("<uuid>".into()),
+        Value::String(s) if key == "objectId" => Value::String(format!("<isolate>.{}", s.split_once('.').map(|(_, rest)| rest).unwrap_or_default())),
+        Value::String(_) if key == "uniqueId" => Value::String("<unique>".into()),
+        Value::String(s) if s.starts_with("ws://") || s.contains("/devtools/") => Value::String(s.split("/devtools/").next().unwrap_or_default().to_owned()),
+        other => other.clone(),
+    }
+}
+
