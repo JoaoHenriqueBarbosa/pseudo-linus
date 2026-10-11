@@ -17,8 +17,9 @@ const GOLDEN: &str = include_str!("golden/performance_bun.tsv");
 
 #[test]
 fn performance_matches_bun() {
+    // O gerador declara `R` com um `(0, eval)("var R")` antes do programa (sem ele, `R = ...` em função estrita lança).
     common::check(GOLDEN, common::NO_PRELUDES, 150, |source| {
-        match catch_unwind(AssertUnwindSafe(|| evaluate_named_script_running_timers_reporting_uncaught(source, "performance_case.js", "R"))) {
+        match catch_unwind(AssertUnwindSafe(|| evaluate_named_script_running_timers_reporting_uncaught(&format!("var R;{source}"), "performance_case.js", "R"))) {
             Ok(Err(uncaught)) => Ok(common::Units::from(uncaught)),
             Ok(Ok(read)) => common::guarded_units(|| read),
             Err(panic) => {

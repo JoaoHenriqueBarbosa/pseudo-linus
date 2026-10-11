@@ -1211,6 +1211,35 @@ Fechados por comportamento nesta rodada (não são backlog): `streams_bun_golden
 do `MemoryModuleHost`, `URLPattern`, `node:assert`, `node:util` completo, pilha única com `forEach`, `map` e
 `Array.from` em igualdade exata.
 
+## Os cinco vermelhos antigos classificados contra o bun (2026-10-11)
+
+Medido contra o oráculo bun, com baseline limpo. Nenhuma divergência abaixo vaza a simulação, e todas estouram com
+informação para depurar. As conhecidas ficam declaradas no teste (`KnownDivergence` e `KnownCase`/`assert_only_known` em
+`tests/common/mod.rs`): o teste falha se aparece divergência nova ou se uma conhecida deixa de ocorrer.
+
+Corrigidos (comportamento ou harness, não erro):
+
+- `error_edge_bun_golden`, 29 para 1: 28 eram dois frames a mais do runner do gerador (`runInThisContext` chamado de um
+  arquivo CJS), o teste passa a rodar o programa do mesmo modo. Resta 1, o texto de `new Date(0)`, que depende do fuso
+  em que o golden foi gerado (declarado).
+- `fetch_network_bun_golden`, 1 para 0: o código de `eval` não tem `sourceURL` no bun, e o `DOMException` criado por
+  função definida dentro do eval trazia a chave a mais. O provider ganhou a marca `eval_code`, e o `sourceURL` do
+  `DOMException` sai vazio nesse caso. O teste embrulha o programa como o gerador (`(0, eval)(fonte)`).
+- `performance_bun_golden`, 10 para 0: `PerformanceMark.length` 1, `toJSON` de mark e measure não enumerável,
+  `observe` só registra o observador (e fixa o modo) com tipo suportado, entrega por ordem de registro e microtasks
+  esvaziadas só depois do último callback. O teste declara `var R;` como o gerador.
+
+Declaradas e em backlog (todas de transpilador, exceto a última):
+
+- `uncaught_bun_golden`, 7: 4 de coluna ou linha por mapa de posições e reimpressão do transpilador (`context-class`,
+  `error-name-and-code-number`, `dom-exception-native-atob`, `dom-exception-native-structured-clone`), 2 de coluna do
+  frame `new Promise` (o bun mapeia ao `new`), 1 de ciclo de `cause` com três erros (o motor imprime um bloco
+  `[Circular]` a mais).
+- `process_bun_golden`, 6: 382 e 393 (coluna do `new Promise`), 470 (posição do frame em ouvinte de `warning`, 3:74
+  contra 3:48, ainda sem causa), 599 (mensagem sem `(evaluating 'this._events')`), 624 (relato sem `code` e sem frames
+  internos de streams) e 602, que não é erro: `process.stdin.constructor(path)` deve ser `fs.ReadStream`, e isso
+  espera o `node:fs` portado.
+
 ## Pilha única e divergências abertas da régua (2026-10-11)
 
 - Fechado: a pilha do JS e a nativa são uma só, como no bun (`VM::stack_used`, `VM::enter_vm`, `stack_cost`). Cada entrada no VM desconta da `CLoopStack` os frames nativos que o C++ empilha (`PROGRAM_ENTRY` na primeira, `VM_REENTRY` para `vmEntryToJavaScript`, `VM_NATIVE_REENTRY` para `vmEntryToNative`); as chamadas genéricas de `op_iterator_open`, `op_iterator_next` e `op_async_iterator_next` são o `callHelper` do LLInt e não entram no VM (`Interpreter::call_from_llint`, frame em `cfr - stackOffset`). `executeCall` desembrulha um nível de `JSBoundFunction`. `arraySpeciesWatchpointIsValid` evita o getter de `@@species` em `map`, `filter` e `flatMap`.

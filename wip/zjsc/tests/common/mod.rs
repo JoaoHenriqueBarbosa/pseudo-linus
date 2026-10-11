@@ -555,6 +555,25 @@ pub struct KnownDivergence {
     pub count: usize,
 }
 
+/// Uma divergência conhecida de um caso do golden de programa principal, pelo rótulo que abre a mensagem de falha (`[rótulo]`).
+pub struct KnownCase {
+    pub label: &'static str,
+    pub cause: &'static str,
+}
+
+/// Falha se alguma divergência não está em `known`, ou se uma conhecida deixou de ocorrer (para a lista não apodrecer). Não
+/// tira caso nem afrouxa asserção: o caso conhecido segue rodando e segue divergindo do mesmo jeito.
+pub fn assert_only_known(failures: &[String], known: &[KnownCase]) {
+    let is_known = |failure: &String| known.iter().any(|case| failure.starts_with(&format!("[{}]", case.label)));
+    let unknown: Vec<&String> = failures.iter().filter(|failure| !is_known(failure)).collect();
+    let gone: Vec<&str> = known.iter().filter(|case| !failures.iter().any(|failure| failure.starts_with(&format!("[{}]", case.label)))).map(|case| case.label).collect();
+    assert!(unknown.is_empty(), "{} divergências novas:\n{}", unknown.len(), unknown.iter().map(|failure| failure.as_str()).collect::<Vec<_>>().join("\n"));
+    assert!(gone.is_empty(), "divergências conhecidas que deixaram de ocorrer (tire da lista): {gone:?}");
+    for case in known {
+        println!("divergência conhecida [{}]: {}", case.label, case.cause);
+    }
+}
+
 /// `check` com a quinta coluna: `run` recebe o programa completo e o `ProgramMeta` da linha.
 pub fn check_with_meta<R: Into<Units>>(tsv: &str, preludes: &str, min_total: usize, run: impl Fn(&Program, &ProgramMeta) -> Result<R, String>) {
     check_with_meta_known(tsv, preludes, min_total, &[], run);

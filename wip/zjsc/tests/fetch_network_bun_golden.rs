@@ -39,7 +39,10 @@ fn fetch_network_and_file_quirk_match_bun() {
         let source = json_string(columns.next().expect("fonte"));
         let expected = json_string(columns.next().expect("resultado"));
         total += 1;
-        let units: Vec<u16> = source.encode_utf16().collect();
+        // O gerador roda o programa por `(0, eval)(...)` dentro de um `main.js` (sem `var R` no escopo do módulo): o fonte do
+        // programa não tem nome, então os erros nativos não ganham `sourceURL`.
+        let wrapped = format!("globalThis.require = require;\nPromise.resolve((0, eval)({})).then(function () {{}}, function (e) {{ globalThis.R = \"TOPERR \" + e }});\n", common::json_quote(&source));
+        let units: Vec<u16> = wrapped.encode_utf16().collect();
         match guarded(|| evaluate_cjs_program_with_fs(Rc::new(RootOnlyFs), &units, "/app/main.js", "R", &[])) {
             Ok(actual) if actual == expected => {}
             Ok(actual) => failures.push(format!("linha {row}\n    esperado {expected:?}\n    veio     {actual:?}")),
