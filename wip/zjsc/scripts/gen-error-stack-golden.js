@@ -4,6 +4,9 @@
 // O arquivo se chama `error_stack_case.js` dos dois lados; o diretório temporário sai do texto da pilha e
 // qualquer resultado que ainda contenha caminho da máquina é descartado.
 // Uso: bun scripts/gen-error-stack-golden.js > tests/golden/error_stack_bun.tsv
+// Com `ORIGINALS=1` grava o outro golden, `tests/golden/error_stack_originals_bun.tsv`: o programa ORIGINAL (sem o texto
+// canônico nem o mapa de corridas) rodado como `bun run` o roda, e o resultado; o teste roda o mesmo fonte no zjsc com o
+// transpilador do zbun instalado (`tests/error_stack_originals_bun_golden.rs`).
 const fs = require("fs");
 const { emitFactoredLines, prepareProgram } = require("./golden-prelude.js");
 const os = require("os");
@@ -498,7 +501,8 @@ for (const body of programs) {
   const original = '"use strict";\n' + body.replace(/\bR = /g, "globalThis.R = ");
   // O bun transpila o arquivo antes do JSC (colunas e `evaluating '...'` citam o texto transpilado): grava-se o texto
   // canônico e o bun executa `executableSource(original)` (ver golden-prelude.js).
-  const { source, executable, meta } = prepareProgram(original);
+  const originals = process.env.ORIGINALS === "1";
+  const { source, executable, meta } = originals ? { source: original, executable: original, meta: null } : prepareProgram(original);
   fs.writeFileSync(file, executable);
   const run = spawnSync(process.execPath, ["--preload", preload, file], { encoding: "utf8", cwd: dir, timeout: 15000 });
   const marked = (run.stdout || "").split("\n").find(line => line.startsWith("\u0001"));
@@ -517,5 +521,5 @@ for (const body of programs) {
   lines.push(JSON.stringify(source) + "\t" + JSON.stringify(result) + (meta ? "\t" + JSON.stringify(meta) : ""));
 }
 process.stderr.write(`mantidos ${kept}, descartados ${dropped}\n`);
-process.stdout.write(emitFactoredLines("error_stack", lines));
+process.stdout.write(process.env.ORIGINALS === "1" ? lines.join("\n") + "\n" : emitFactoredLines("error_stack", lines));
 fs.rmSync(dir, { recursive: true, force: true });
