@@ -80,6 +80,12 @@ vite.dev, htmx.org, solidjs.com).
 - `<template>`, `DocumentFragment` e PI: o Blitz não tem esses tipos de nó; fragmento emulado por elemento marcado,
   `template.content` compartilha o nó do template.
 - `document.write` durante o parse insere depois do script corrente em vez de alimentar o tokenizador.
+- Perfil, estado de rede (decisão do coordenador, 2026-10-11): o `Network Persistent State` e o `TransportSecurity` do
+  `--dump-dom` saem na forma sem rede do oráculo (116 bytes, sem `TransportSecurity`; com rede o oráculo grava de
+  1049 a 1079 bytes com servidores do Google e o HSTS deles). Essa forma vem do tráfego de fundo do Chromium, que o
+  sandbox não emula e não deve emular; nenhum agente lê o arquivo para decidir algo.
+- Perfil, IndexedDB em `iframe`: o oráculo cria bucket no QuotaManager (próprio no mesmo site, particionado em outro
+  site); o motor ainda não executa script de `iframe`, então não nasce (`crates/ul-chromium/src/quota_manager.rs`).
 
 ## Canvas (decisão do coordenador, 2026-10-10: os dois de verdade)
 
