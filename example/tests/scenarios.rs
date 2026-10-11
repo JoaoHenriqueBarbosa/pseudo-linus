@@ -438,7 +438,7 @@ async fn report_pdf_with_charts_from_uploaded_csv() -> anyhow::Result<()> {
         .sandbox
         .exec(
             "check",
-            "head -c 5 /home/user/report/sales_report.pdf; echo; grep -ac '/Type */Page[^s]' /home/user/report/sales_report.pdf; \
+            "head -c 5 /home/user/report/sales_report.pdf; echo; grep -aEc '/Type */Page($|[^s])' /home/user/report/sales_report.pdf; \
              ls /home/user/report/*.png | wc -l",
             None,
         )

@@ -59,3 +59,4 @@ credentials*.json
 
 # Core dumps de testes abortados
 core.[0-9]*
+/target-container/
