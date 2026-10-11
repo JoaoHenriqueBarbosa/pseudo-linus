@@ -1566,6 +1566,10 @@ fn sort_compact(call: &ArrayCall, object: &JSObject, length: u64) -> Result<(u64
 /// `sortStableSort`: `arrayStableSort<MergeStrategy::Galloping>` com o comparador do usuário.
 /// `CachedCall` (atalho de chamada de função JS) é só desempenho: cada chamada vai por `call`.
 fn sort_stable_sort(call: &ArrayCall, compacted: &mut [JSValue], comparator: JSValue) -> Result<(), ArrayError> {
+    // Os frames do `sort` com comparador que ficam na pilha enquanto o comparador roda.
+    let Some(_stack_frame) = call.vm.enter_logical_frame(crate::runtime::vm::stack_cost::SORT_COMPARATOR) else {
+        return Err(ArrayError::Put(PutError::StackOverflow));
+    };
     let mut working_set = compacted.to_vec();
     array_stable_sort(MergeStrategy::Galloping, compacted, &mut working_set, |left, right| {
         let result = call_function(call.global_object, comparator, JSValue::undefined(), &[left, right]).ok_or(Thrown::Pending)?;

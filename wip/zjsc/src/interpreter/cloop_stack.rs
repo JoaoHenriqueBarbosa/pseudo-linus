@@ -71,14 +71,9 @@ impl CLoopStack {
     /// `CLoopStack::CLoopStack()`. O `vm().topCallFrame = 0` é responsabilidade do `VM` que cria
     /// a pilha, porque o `VM` não vive dentro dela.
     pub fn new() -> CLoopStack {
-        let capacity = Options::max_per_thread_stack_usage() as usize;
-        let capacity = round_up_to_multiple_of(PAGE_SIZE, capacity);
-        debug_assert!(capacity != 0 && capacity % PAGE_SIZE == 0);
-
-        let reservation_bytes = round_up_to_multiple_of(commit_size(), capacity);
         // `vec![0; n]` vira `alloc_zeroed` (calloc/mmap): as páginas só ficam residentes quando
         // são escritas, como a região do `PageReservation`, que só vira memória de verdade no commit.
-        let registers = vec![0 as EncodedJSValue; reservation_bytes / SIZEOF_REGISTER as usize];
+        let registers = vec![0 as EncodedJSValue; CLoopStack::reservation_registers()];
 
         let bottom_of_stack = registers.len();
         let stack = CLoopStack {
@@ -93,6 +88,14 @@ impl CLoopStack {
         stack.set_cloop_stack_limit(bottom_of_stack);
         debug_assert!(stack.end.get() == bottom_of_stack);
         stack
+    }
+
+    /// Tamanho da reserva em registradores, que é também o `highAddress()` de toda pilha: a capacidade
+    /// (`maxPerThreadStackUsage` em páginas) arredondada para o `commitSize()`.
+    pub fn reservation_registers() -> usize {
+        let capacity = round_up_to_multiple_of(PAGE_SIZE, Options::max_per_thread_stack_usage() as usize);
+        debug_assert!(capacity != 0 && capacity % PAGE_SIZE == 0);
+        round_up_to_multiple_of(commit_size(), capacity) / SIZEOF_REGISTER as usize
     }
 
     /// `highAddress()`.

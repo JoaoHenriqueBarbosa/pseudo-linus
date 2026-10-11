@@ -11,8 +11,9 @@
 //! - Sem `VMEntryScope`, `DeferTraps`, `didEnterVM`, `m_shouldAlwaysBeInlined`, `disallowVMEntryCount` e
 //!   `Wasm` (nada deles é observável sem o inspetor, os traps e o JIT). `isSafeToRecurseSoft` é o
 //!   `isSafeToRecurse` do `VM` do porte.
-//! - `executeBoundCall` e o desembrulho de `JSBoundFunction` em `executeCall` não existem enquanto o
-//!   `JSBoundFunction` não for portado (`isBoundFunction` é sempre falso).
+//! - `executeBoundCall` não monta um `MarkedArgumentBuffer`: os argumentos combinados são um `Vec`, sem o
+//!   `hasOverflowed()` (o limite de `maxArguments` do `executeCallImpl` cobre o mesmo caso). `isTainted` e
+//!   `setMightBeExecutingTaintedCode` não existem (o porte não rastreia código contaminado).
 //! - `vmEntryToNative` monta o frame (o mesmo prólogo do `doVMEntry`), chama a função nativa com o
 //!   [`NativeCallFrame`] (o frame sobre a pilha única) e trata o desfecho: exceção pendente no `VM` vira
 //!   `Thrown`, senão o `EncodedJSValue` devolvido é o resultado. A `NativeFunction` recebe o
@@ -51,8 +52,25 @@ impl Interpreter {
         context: Option<usize>,
         args: &[JSValue],
     ) -> LLIntResult<JSValue> {
-        // `executeCallImpl` (o desvio de `isBoundFunction` não existe: ver o cabeçalho).
-        self.enter_callee(CodeSpecializationKind::CodeForCall, function, call_data, this_value, context, args)
+        let CallData::Native { is_bound_function: true, .. } = call_data else {
+            return self.enter_callee(CodeSpecializationKind::CodeForCall, function, call_data, this_value, context, args);
+        };
+        // Only one-level unwrap is enough! O nível desembrulhado não entra no VM: chama direto o alvo, com o `this`
+        // e os argumentos ligados.
+        let callee = function.as_js_function().expect("callData.native.isBoundFunction com callee que não é JSFunction");
+        let bound = callee.as_bound_function().expect("callData.native.isBoundFunction com callee que não é JSBoundFunction");
+        let target = bound.target_function();
+        let target_call_data = crate::runtime::call_data::get_call_data(target);
+        debug_assert!(!target_call_data.is_none());
+        if bound.bound_args_length() == 0 {
+            // This is the simplest path, just replacing |this|. We do not need to go to executeBoundCall.
+            return self.enter_callee(CodeSpecializationKind::CodeForCall, target, &target_call_data, bound.bound_this(), context, args);
+        }
+        // `executeBoundCall`.
+        let mut combined_args = Vec::with_capacity(bound.bound_args_length() + args.len());
+        combined_args.extend_from_slice(bound.bound_args());
+        combined_args.extend_from_slice(args);
+        self.enter_callee(CodeSpecializationKind::CodeForCall, target, &target_call_data, bound.bound_this(), context, &combined_args)
     }
 
     /// `Interpreter::executeConstruct(constructor, constructData, args, newTarget)`: o slot `this` do
@@ -154,7 +172,7 @@ impl Interpreter {
         proto_call_frame: ProtoCallFrame,
         function: TaggedNativeFunction,
     ) -> LLIntResult<JSValue> {
-        let call_frame = self.push_proto_call_frame(global_object, &proto_call_frame)?;
+        let (call_frame, _entry_mark) = self.push_proto_call_frame(global_object, &proto_call_frame, crate::runtime::vm::VMEntryKind::Native)?;
         let saved_sp = self.sp();
         // `vmEntryRecord.m_prevTopCallFrame`: o `doVMEntry` restaura o `topCallFrame` na saída.
         let saved_top_call_frame = global_object.vm().top_call_frame();

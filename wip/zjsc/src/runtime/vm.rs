@@ -133,6 +133,9 @@ pub struct VM {
     /// Bytes de pilha LÓGICA ocupados pelas recursões nativas guardadas (parser, ...), na medida do frame que o
     /// C++ teria (ver `stack_cost` e `enter_logical_frame`). Independe do tamanho da thread.
     logical_stack_used: Rc<Cell<usize>>,
+    /// `logical_stack_used` na entrada mais recente no VM (`doVMEntry`): o que a pilha lógica gastou depois dela é
+    /// a parte nativa ainda não descontada da `CLoopStack` (ver `stack_used` e `enter_vm`).
+    logical_entry_mark: Rc<Cell<usize>>,
     /// `void* m_stackPointerAtVMEntry`.
     stack_pointer_at_vm_entry: Cell<usize>,
     /// `VMEntryScope* entryScope`: identidade do escopo mais externo (0 é `nullptr`).
@@ -280,6 +283,45 @@ pub mod stack_cost {
     /// Um nível do ciclo `join` -> `toString` -> `join` num array aninhado. Medido no bun: `join`/`toString`
     /// passam com 4313 arrays aninhados (4314 níveis) e estouram com 4314 (4314 * 1200 <= 5177344 < 4315 * 1200).
     pub const JOIN_LEVEL: usize = 1200;
+    /// Os frames nativos do bun abaixo do primeiro `vmEntryToJavaScript` do programa.
+    pub const PROGRAM_ENTRY: usize = 3200;
+    /// `JSC::call` -> `Interpreter::executeCall` -> `vmEntryToJavaScript` vindo de uma função nativa.
+    pub const VM_REENTRY: usize = 1056;
+    /// `JSC::call` -> `Interpreter::executeCall` -> `vmEntryToNative` vindo de uma função nativa: o caminho curto de
+    /// `executeCall` para alvo nativo, sem `prepareForExecution` nem `CodeBlock`. Medido no bun sem JIT: uma cadeia
+    /// de `bind` chega a 13880 níveis, e cada entrada cobre dois deles (o `boundFunctionCall` de um nível chama o
+    /// seguinte, que o `executeCall` desembrulha sem entrar no VM): 2 * 368 B menos o frame de 48 B da entrada.
+    pub const VM_NATIVE_REENTRY: usize = 688;
+    /// `replaceUsingStringSearch` com callback.
+    pub const REPLACE_CALLBACK: usize = 96;
+    /// `sortStableSort` e a ordenação com comparador.
+    pub const SORT_COMPARATOR: usize = 2512;
+    /// `jsonParseSlow` e o `Walker` do reviver.
+    pub const JSON_REVIVER: usize = 2880;
+    /// `globalFuncEval` -> `Interpreter::executeEval`.
+    pub const INDIRECT_EVAL: usize = 448;
+    /// `toPrimitive` -> `ordinaryToPrimitive` -> `callToPrimitiveFunction`.
+    pub const TO_PRIMITIVE: usize = 192;
+}
+
+/// O trampolim de entrada no VM: `vmEntryToJavaScript` ou `vmEntryToNative`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VMEntryKind {
+    JavaScript,
+    Native,
+}
+
+/// A marca de `VM::enter_vm`, restaurada ao sair do VM (RAII).
+#[derive(Debug)]
+pub struct VMEntryMark {
+    mark: Rc<Cell<usize>>,
+    previous: usize,
+}
+
+impl Drop for VMEntryMark {
+    fn drop(&mut self) {
+        self.mark.set(self.previous);
+    }
 }
 
 /// Reserva de pilha lógica devolvida ao morrer (RAII), ver `VM::enter_logical_frame`.
@@ -394,6 +436,7 @@ impl VM {
             last_exception: RefCell::new(None),
             stack_limit: Cell::new(hard_stack_limit),
             logical_stack_used: Rc::new(Cell::new(0)),
+            logical_entry_mark: Rc::new(Cell::new(0)),
             stack_pointer_at_vm_entry: Cell::new(0),
             entry_scope: Cell::new(0),
             next_entry_scope_id: Cell::new(0),
@@ -764,7 +807,7 @@ impl VM {
     /// (`logical_stack_limit`), a medida fiel ao C++: `maxPerThreadStackUsage - reservedZoneSize` em bytes dos
     /// frames que o C++ teria, somados pelas recursões que chamam `enter_logical_frame`.
     pub fn is_safe_to_recurse(&self) -> bool {
-        self.logical_stack_used.get() < VM::logical_stack_limit() && self.is_safe_to_recurse_with(self.stack_limit.get())
+        self.stack_used() < VM::logical_stack_limit() && self.is_safe_to_recurse_with(self.stack_limit.get())
     }
 
     /// `Options::maxPerThreadStackUsage() - Options::reservedZoneSize()`: o que `StackBounds::recursionLimit(start,
@@ -775,12 +818,41 @@ impl VM {
         max_user_stack - reserved_zone
     }
 
+    /// A pilha única do C++, em bytes: os registradores da `CLoopStack` até o `topCallFrame` (que já incluem o custo
+    /// nativo de cada entrada no VM, ver `enter_vm`) mais o que a pilha lógica gastou desde a última entrada. No bun
+    /// os frames do LLInt e os do C++ dividem a mesma pilha nativa e o mesmo limite.
+    pub fn stack_used(&self) -> usize {
+        let top = self.top_call_frame.get();
+        let js_bytes = if top == 0 {
+            0
+        } else {
+            crate::interpreter::cloop_stack::CLoopStack::reservation_registers().saturating_sub(top) * size_of::<crate::runtime::js_value::EncodedJSValue>()
+        };
+        js_bytes + (self.logical_stack_used.get() - self.logical_entry_mark.get())
+    }
+
+    /// Entrada no VM (`doVMEntry`): devolve quantos bytes de `CLoopStack` o frame de entrada deve pular, que são os
+    /// frames nativos que o C++ empilha entre o chamador e o trampolim (`stack_cost::PROGRAM_ENTRY` na primeira
+    /// entrada; vindo de função nativa, `stack_cost::VM_REENTRY` para `vmEntryToJavaScript` e
+    /// `stack_cost::VM_NATIVE_REENTRY` para `vmEntryToNative`) mais a pilha lógica gasta desde a entrada anterior. A
+    /// marca volta ao valor antigo quando o `VMEntryMark` morre.
+    pub fn enter_vm(&self, kind: VMEntryKind) -> (usize, VMEntryMark) {
+        let cost = match (self.top_call_frame.get() == 0, kind) {
+            (true, _) => stack_cost::PROGRAM_ENTRY,
+            (false, VMEntryKind::JavaScript) => stack_cost::VM_REENTRY,
+            (false, VMEntryKind::Native) => stack_cost::VM_NATIVE_REENTRY,
+        };
+        let used = self.logical_stack_used.get();
+        let previous = self.logical_entry_mark.replace(used);
+        (cost + (used - previous), VMEntryMark { mark: Rc::clone(&self.logical_entry_mark), previous })
+    }
+
     /// Entra num frame de recursão nativa de `cost` bytes lógicos (ver `stack_cost`). `None` quando o orçamento
     /// lógico ou a pilha nativa acabou: o chamador responde como o C++ responde a `!isSafeToRecurse()`. O frame
     /// sai da conta quando o `LogicalStackFrame` morre, em qualquer caminho de saída.
     pub fn enter_logical_frame(&self, cost: usize) -> Option<LogicalStackFrame> {
         let used = self.logical_stack_used.get();
-        if used.saturating_add(cost) > VM::logical_stack_limit() || !self.is_safe_to_recurse_with(self.stack_limit.get()) {
+        if self.stack_used().saturating_add(cost) > VM::logical_stack_limit() || !self.is_safe_to_recurse_with(self.stack_limit.get()) {
             return None;
         }
         self.logical_stack_used.set(used + cost);

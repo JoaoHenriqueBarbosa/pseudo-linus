@@ -58,6 +58,18 @@ static JSON_TABLE: HashTable = HashTable { class_for_this: None, values: &JSON_T
 fn json_parse_body(global_object: &JSGlobalObject, call: &HostCall) -> Result<JSValue, JsonError> {
     let text = JsonHost::to_string(global_object, call.argument(0))?;
     let reviver = (call.argument_count() >= 2).then(|| call.argument(1));
+    // Os frames de `jsonParseSlow` e do `Walker` que ficam na pilha enquanto o reviver roda.
+    let _stack_frame = match reviver {
+        Some(_) => match global_object.vm().enter_logical_frame(crate::runtime::vm::stack_cost::JSON_REVIVER) {
+            Some(frame) => Some(frame),
+            None => {
+                let mut scope = crate::runtime::throw_scope::ThrowScope::new(global_object.vm());
+                let exception = crate::runtime::exception_helpers::throw_stack_overflow_error(global_object, &mut scope);
+                return Err(JsonError::Thrown(crate::runtime::js_promise_host::Thrown::Value(exception.value())));
+            }
+        },
+        None => None,
+    };
     json_parse(global_object, &text, reviver, Options::use_json_source_text_access())
 }
 

@@ -307,7 +307,7 @@ impl Interpreter {
         proto_call_frame: ProtoCallFrame,
         entry: LLIntEntry,
     ) -> LLIntResult<JSValue> {
-        let call_frame = self.push_proto_call_frame(global_object, &proto_call_frame)?;
+        let (call_frame, _entry_mark) = self.push_proto_call_frame(global_object, &proto_call_frame, crate::runtime::vm::VMEntryKind::JavaScript)?;
         let _realm = crate::runtime::current_realm::CurrentRealmScope::enter(global_object);
         let saved_sp = self.sp();
         // `vmEntryRecord.m_prevTopCallFrame`: o `doVMEntry` restaura o `topCallFrame` na saída.
@@ -326,12 +326,15 @@ impl Interpreter {
         &mut self,
         global_object: &JSGlobalObject,
         proto_call_frame: &ProtoCallFrame,
-    ) -> LLIntResult<CallFrame> {
+        kind: crate::runtime::vm::VMEntryKind,
+    ) -> LLIntResult<(CallFrame, crate::runtime::vm::VMEntryMark)> {
+        let (native_bytes, entry_mark) = global_object.vm().enter_vm(kind);
         let padded_arg_count = proto_call_frame.padded_arg_count as usize;
         let argument_count_including_this = proto_call_frame.argument_count_including_this() as usize;
 
         // loadi ProtoCallFrame::paddedArgCount; addp CallFrameHeaderSlots; subp sp
-        let size = padded_arg_count + CALL_FRAME_HEADER_SLOTS;
+        // Mais os frames nativos que o C++ empilha antes do frame de entrada (`VM::enter_vm`).
+        let size = padded_arg_count + CALL_FRAME_HEADER_SLOTS + native_bytes.div_ceil(size_of::<crate::runtime::js_value::EncodedJSValue>());
         let frame_base = match self.sp().checked_sub(size) {
             Some(frame_base) if self.stack.ensure_capacity_for(frame_base as isize) => frame_base,
             // _llint_stack_check_at_vm_entry, depois _llint_throw_stack_overflow_error_from_vm_entry.
@@ -362,7 +365,7 @@ impl Interpreter {
             self.stack.set(frame_base + CallFrameSlot::FIRST_ARGUMENT as usize + index, Register::from_encoded(encoded));
         }
 
-        Ok(call_frame)
+        Ok((call_frame, entry_mark))
     }
 }
 

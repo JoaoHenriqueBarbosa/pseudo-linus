@@ -150,6 +150,12 @@ fn replace_using_string_search(
     let source = code_units(&string.value()).into_owned();
     let search_units = code_units(search).into_owned();
     let functional = !replace_value.is_string() && !get_call_data(replace_value).is_none();
+    // O frame de `replaceUsingStringSearch` que fica na pilha enquanto o callback roda.
+    let _stack_frame = if functional {
+        Some(vm.enter_logical_frame(crate::runtime::vm::stack_cost::REPLACE_CALLBACK).ok_or(Thrown::StackOverflow)?)
+    } else {
+        None
+    };
 
     if !functional {
         // `stringReplaceStringString` / `stringReplaceAllStringString` com substituições.

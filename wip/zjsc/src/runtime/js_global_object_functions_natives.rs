@@ -168,6 +168,12 @@ fn global_func_encode_uri_component(global_object: & JSGlobalObject, call_frame:
 fn global_func_eval(global_object: &JSGlobalObject, call_frame: &mut NativeCallFrame<'_>) -> EncodedJSValue {
     let _realm = CurrentRealmScope::enter(global_object);
     let global_object = current_global_object();
+    // Os frames de `globalFuncEval` e `Interpreter::executeEval` que ficam na pilha enquanto o código roda.
+    let Some(_stack_frame) = global_object.vm().enter_logical_frame(crate::runtime::vm::stack_cost::INDIRECT_EVAL) else {
+        let mut scope = crate::runtime::throw_scope::ThrowScope::new(global_object.vm());
+        crate::runtime::exception_helpers::throw_stack_overflow_error(&global_object, &mut scope);
+        return JSValue::empty().encode();
+    };
     let source_origin = caller_source_origin(&global_object.vm().interpreter(), call_frame.call_frame());
     let eval_origin = crate::runtime::stack_frame::v8_stack_format()
         .then(|| crate::runtime::v8_stack::eval_origin(&global_object, call_frame.call_frame()));

@@ -76,10 +76,14 @@ fn host_function_for(function: &JSFunction, kind: CodeSpecializationKind) -> Tag
     }
 }
 
-/// `JSFunction::getCallDataInline`.
+/// `JSFunction::getCallDataInline`: `callData.native.isBoundFunction = thisObject->inherits<JSBoundFunction>()`.
 fn function_call_data(function: &JSFunction) -> CallData {
     if function.is_host_function() {
-        return CallData::native(host_function_for(function, CodeSpecializationKind::CodeForCall));
+        return CallData::Native {
+            function: host_function_for(function, CodeSpecializationKind::CodeForCall),
+            is_bound_function: function.as_bound_function().is_some(),
+            is_wasm: false,
+        };
     }
     CallData::JS {
         function_executable: function.js_executable(),

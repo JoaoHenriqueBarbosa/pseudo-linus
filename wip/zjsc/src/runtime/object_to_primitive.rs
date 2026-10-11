@@ -115,6 +115,12 @@ fn call_to_primitive_function(
 
 /// `JSObject::ordinaryToPrimitive(globalObject, hint)`: `None` com a exceção pendente.
 pub fn ordinary_to_primitive(global_object: &JSGlobalObject, object: &ObjectRef, hint: PreferredPrimitiveType) -> Option<JSValue> {
+    // O frame de `ordinaryToPrimitive` e `callToPrimitiveFunction` que fica na pilha enquanto o método roda.
+    let Some(_stack_frame) = global_object.vm().enter_logical_frame(crate::runtime::vm::stack_cost::TO_PRIMITIVE) else {
+        let mut scope = crate::runtime::throw_scope::ThrowScope::new(global_object.vm());
+        crate::runtime::exception_helpers::throw_stack_overflow_error(global_object, &mut scope);
+        return None;
+    };
     let names = &global_object.vm().property_names;
     let order = if hint == PreferredPrimitiveType::PreferString {
         [&names.to_string, &names.value_of]
