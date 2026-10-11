@@ -1,0 +1,406 @@
+{
+ "url": "https://lobste.rs/",
+ "recorded_at": 1791582308,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "default-src 'none'; img-src 'self' data:; script-src 'self' 'inline-speculation-rules'; style-src 'self' 'unsafe-inline'"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "0a3f5bf9ce5fa5823fe0de9b09c2cfa78ab000348df3304afa2bf55e61794d70"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/system-system.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ]
+   ],
+   "body": "4c2aa433623679b5f128c946283aac3c7a399968c6c8de459cb20fe8fb3102b9"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/application.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "2faab754bada455b66232d94d6a83347783c6f4e104bd8526904e3b18dfcbcc1"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/application.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ]
+   ],
+   "body": "d896fea99f39f615f35f9f5aed76275b756e986da510e1eb1529d9b58ec2fdc6"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/assets/light-high-56dfc432.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ]
+   ],
+   "body": "0abfe5d3ef73c1a952c14f22a0f2759c7b5f9aac45be3c0a91741d92e3b46156"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/assets/light-normal-bf538ff1.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ]
+   ],
+   "body": "f039f64a786ee24a49e3ead7a37e6d0ebb53da582752dfaff52262c9c7021d8f"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/assets/dark-normal-b6128952.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ]
+   ],
+   "body": "7b78673c549e93d4d73813a1058b802e3bf68a7f297839a8581379a9bf927be8"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/assets/dark-high-dd12f301.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ]
+   ],
+   "body": "baed7e479a8a30f2dc9970777ba5a6bb62b87b56d8466aa6ff41470b4ce8d342"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/assets/logo-transparent-e4f2f8b4.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "8e708373deb4063bf7a4117801261bd1ff80c8a2374cdc2e491ea149ed47020b"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/mtlynch-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "80175284aa5b129832efda7de752bcb2d045d685b0f235ad5b2db07aaedcf8d7"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/eatonphil-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "f54dd328da8b4aa3a284095129e62d5b4e9279a772a190b316ee99ec450b2f52"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/icefox-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "cb5849ea9b3ad1e55bb4313ede6cd3b9a93147959227536013f3b9a6980d87e0"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/blueberrywren-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "fd98143510233914010ebc854b2c8c5e439d43693b1627fc4f4a2bdc6ca7c7c8"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/fanf-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "e8d84e8952d9778c855b3392d0f2dd97314c97866912a24a85e628fb3a7b1d94"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/untrusem-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "a9b54b225a3b1d379862bcf89b041ba09e2f1546a64c46309dc7e23c403d7236"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/kaycebasques-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "6e1a3bfb0a4f3fd001f145bf9d5f7913a59be98e3773b1244b7ba88054eb10a9"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/rrampage-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "eb2c22faf1b0cfeeafdb10b800a718af17e9f417f34eb509de405f9f2e4144f4"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/snej-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "dd363561629e48bdca05116705d83047e02eabeca9ee76d402105cb0fa21495f"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/Qyriad-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "b53d0b6a150b8d1b055194d17ef0dcf5d4f4b46b47ca6a3c1d6241e0914b3dab"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/bontaq-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "080f0335f8526e51544f5c8e3ec3e3346bf10e7a3f1bf9f8d022fc5487a77b02"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/caius-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "a54b9803e027074248a3c57a07ae459435affc5f32774029c7673aee50ace458"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/mitsuhiko-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "2a1936b6f577b803c44fb03f70bfdf539811edb27ff6f8059b3a230e454ca6e9"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/BD103-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "8654254b3a74e081fb715ab99a352095c5802cdcb0d038565c98a05b82ff7b80"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/hashemi-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "01cb5ab0e3fcb013a36fc216c05d40648139b2df7fcc8ed1504ff998c2deabce"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/hugoarnal-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "05a3ba5c420b915304d3297f21f1d72d724da9c7127aee8b94a7c6047d6dcd2a"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/eaj-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "3ff3dc35895bdcae7658c1d30b127b5e62556442164e061827f124776befa75c"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/FedericoSchonborn-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "fb9226a25a88a741bad4f4300e211ac781320f4ce5965e58f9e5a0da0eea1a3b"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/calvin-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "8d17e010d3466f755f378c5fbfefcfded848cbeac7e77e889421bdae92730eef"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/brn-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "88f158c808be07376e682e21c82def821224145e06386dcafc2c44698148263a"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/Corbin-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "6177fa90879883c894170fe9c9c1c03fa8bf22d8d5ed6e6c58008e21c876f757"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/seb-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "480497583826fef31841eb756ff8124909b9c5d0113a55ae642a179fbe532a37"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/favicon.ico",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/vnd.microsoft.icon"
+    ]
+   ],
+   "body": "2265dc38cbab99bec7cd7c193acbc31ca2d46ac7085c6ef8427509f2a322be09"
+  },
+  {
+   "method": "GET",
+   "url": "https://lobste.rs/avatars/lorddimwit-16.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "ca9a7cf2cc1db4d0761d2b4293872c464825aa657a6545f8787cf2c1a1beda24"
+  }
+ ]
+}

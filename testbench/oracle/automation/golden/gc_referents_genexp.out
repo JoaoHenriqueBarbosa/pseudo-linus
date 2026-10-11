@@ -1,0 +1,15 @@
+genexp_range ['str', 'str', 'function', 'code', 'range_iterator']
+genexp_unstarted ['str', 'str', 'function', 'code', 'tuple_iterator']
+genexp_started ['str', 'str', 'function', 'code', 'tuple_iterator', 'int', 'tuple_iterator']
+genexp_dict ['str', 'str', 'function', 'code', 'dict_keyiterator']
+genexp_dict_items ['str', 'str', 'function', 'code', 'dict_itemiterator']
+genexp_set ['str', 'str', 'function', 'code', 'set_iterator']
+genexp_bytes ['str', 'str', 'function', 'code', 'bytes_iterator']
+genexp_bytearray ['str', 'str', 'function', 'code', 'bytearray_iterator']
+genexp_str ['str', 'str', 'function', 'code', 'str_ascii_iterator']
+genexp_instance 1 ['str', 'str', 'function', 'code', 'list_iterator'] [1, 2] 1
+genexp_bad iter() returned non-iterator of type 'int'
+It.__iter__
+genexp_it It
+It.__iter__
+[1, 2]

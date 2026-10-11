@@ -1,0 +1,17 @@
+<!doctype html><body><script>
+// Gradientes do canvas 2D no oráculo: linear com pontos quebrados, transformação, globalAlpha e várias paradas,
+// radial concêntrica e cônica, para modelar o shader do Skia (matriz, interpolação, dither).
+const px = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); draw(x); return Array.from(x.getImageData(0, 0, w, h).data); };
+const fill = (g, setup) => (c) => { if (setup) setup(c); c.fillStyle = g(c); c.fillRect(-100, -100, 300, 300); };
+const lin = (x0, y0, x1, y1, stops) => (c) => { const g = c.createLinearGradient(x0, y0, x1, y1); for (const [o, col] of stops) g.addColorStop(o, col); return g; };
+const out = {
+  odd: px(24, 24, fill(lin(1.3, 2.7, 21.9, 17.2, [[0, '#123456'], [1, '#fedcba']]))),
+  four: px(40, 3, fill(lin(3, 0, 37, 0, [[0, 'red'], [0.2, 'yellow'], [0.7, 'rgba(0,128,255,0.6)'], [1, 'black']]))),
+  rot: px(24, 24, fill(lin(0, 0, 20, 0, [[0, 'white'], [1, 'purple']]), (c) => { c.translate(12, 12); c.rotate(0.7); c.scale(1.3, 0.8); })),
+  galpha: px(32, 2, fill(lin(0, 0, 32, 0, [[0, 'red'], [1, 'blue']]), (c) => { c.globalAlpha = 0.37; })),
+  conic: px(24, 24, fill((c) => { const g = c.createConicGradient(0.5, 12, 12); g.addColorStop(0, 'red'); g.addColorStop(0.5, 'lime'); g.addColorStop(1, 'blue'); return g; })),
+  radial: px(32, 32, fill((c) => { const g = c.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'white'); g.addColorStop(1, 'black'); return g; })),
+  radial2: px(24, 24, fill((c) => { const g = c.createRadialGradient(10, 11, 3, 10, 11, 14); g.addColorStop(0, 'orange'); g.addColorStop(1, 'navy'); return g; })),
+};
+document.body.setAttribute('data-out', JSON.stringify(out));
+</script></body>

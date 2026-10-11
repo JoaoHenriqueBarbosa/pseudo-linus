@@ -1,0 +1,122 @@
+{
+ "url": "https://www.paulgraham.com/greatwork.html",
+ "recorded_at": 1791582315,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://www.paulgraham.com/greatwork.html",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html"
+    ]
+   ],
+   "body": "0740b285b87c8a2aae71400fd2cf37db6304ad988c1382ae960b4dbcbdd58212"
+  },
+  {
+   "method": "GET",
+   "url": "https://sep.turbifycdn.com/ca/Img/trans_1x1.gif",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/gif"
+    ]
+   ],
+   "body": "b1442e85b03bdcaf66dc58c7abb98745dd2687d86350be9a298a1d9382ac849b"
+  },
+  {
+   "method": "GET",
+   "url": "https://s.turbifycdn.com/ae/store/secure/recs-1.3.2.2.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/x-javascript"
+    ]
+   ],
+   "body": "3ff48d145fc74530c4377141bff2fb513afcfc2e1d20c635343c681b2a7fa42f"
+  },
+  {
+   "method": "GET",
+   "url": "https://s.turbifycdn.com/ae/lib/smbiz/store/csell/beacon-a9518fc6e4.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "7af25a4a128d5ae83293b9b592690427922a6ed8d04dc0877f622684f5bb3c97"
+  },
+  {
+   "method": "GET",
+   "url": "https://s.turbifycdn.com/lq/ult/ylc_1.9.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "27254e9d4f9810e707e43faafc5a2088c2b0452e09e6226b1b7701efeb81b211"
+  },
+  {
+   "method": "GET",
+   "url": "https://s.turbifycdn.com/aah/paulgraham/bel-6.gif",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/gif"
+    ]
+   ],
+   "body": "475d990b0e95f45c956ac54baa3b440eff78866c6e2a3245bde7e5a32133a94a"
+  },
+  {
+   "method": "GET",
+   "url": "https://s.turbifycdn.com/aah/paulgraham/how-to-do-great-work-2.gif",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/gif"
+    ]
+   ],
+   "body": "a8613ea5a5f54160f5d7c043da478128ad39c6aed91949f5b0a16c80a36d78f9"
+  },
+  {
+   "method": "GET",
+   "url": "https://s.turbifycdn.com/aah/paulgraham/bel-8.gif",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/gif"
+    ]
+   ],
+   "body": "7c9518a9efa0561bcae5ae2168241f0503c786ebe7502f85a747c549635da0be"
+  },
+  {
+   "method": "GET",
+   "url": "https://s.turbifycdn.com/aah/paulgraham/bel-7.gif",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/gif"
+    ]
+   ],
+   "body": "4e33189b57323e0c34b4d023d2be6be30af53b2d7359391fbfd7fd4bd6d70bf0"
+  }
+ ]
+}

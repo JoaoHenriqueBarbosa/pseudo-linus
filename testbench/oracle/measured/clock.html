@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>clock</title></head>
+<body><pre id="out"></pre>
+<script>
+// Sonda do relógio da página: granularidade de performance.now, timeOrigin e Event.timeStamp, e o carimbo e o
+// intervalo dos quadros do requestAnimationFrame. Servida sem e com COOP/COEP (crossOriginIsolated), sob
+// --virtual-time-budget=15000. Resultado no Chromium 151 do oráculo: sem isolamento, múltiplos de 100 µs com ruído de
+// ponto flutuante (114.80000000447035), timeOrigin com uma casa; com isolamento, 5 µs (105.77, 106.725) e timeOrigin
+// com três casas; carimbo do rAF redondo (115.1, 131.8; isolado 101.11, 117.775, 134.445), passo de 16,7 ou 16,665
+// e 16,67 (a grade de 16666 µs).
+const out = [];
+const log = (k, v) => { out.push(k + ' ' + JSON.stringify(v)); document.getElementById('out').textContent = out.join('\n'); };
+log('isolated', self.crossOriginIsolated);
+log('timeOrigin', performance.timeOrigin);
+log('timeOriginFrac', String(performance.timeOrigin));
+const nows = [];
+for (let i = 0; i < 40; i++) { let s = 0; for (let j = 0; j < 20000 * (i + 1); j++) s += j; nows.push(performance.now()); }
+log('nows', nows);
+const ev = new Event('x');
+log('eventTimeStamp', ev.timeStamp);
+const frames = [];
+const nowAtFrame = [];
+const step = (t) => {
+  frames.push(t); nowAtFrame.push(performance.now());
+  log('f', [t, nowAtFrame[nowAtFrame.length - 1]]);
+  if (frames.length < 30) requestAnimationFrame(step);
+  else {
+    log('frames', frames);
+    log('deltas', frames.slice(1).map((v, i) => +(v - frames[i]).toFixed(4)));
+    log('nowAtFrame', nowAtFrame);
+    const t0 = performance.now();
+    setTimeout(() => { log('timeout10', performance.now() - t0); document.getElementById('out').textContent = out.join('\n'); }, 10);
+  }
+};
+requestAnimationFrame(step);
+</script></body></html>

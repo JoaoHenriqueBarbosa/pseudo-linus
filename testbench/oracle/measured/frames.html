@@ -1,0 +1,23 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>frames</title></head>
+<body><pre id="out"></pre>
+<script>
+// Sonda da regra dos quadros sob --virtual-time-budget: cadeia de rAF iniciada durante o parse, no load, depois do
+// load por timer, e com timers vivos em paralelo.
+const out = [];
+const log = (k, v) => { out.push(k + ' ' + JSON.stringify(v)); document.getElementById('out').textContent = out.join('\n'); };
+const scenario = new URLSearchParams(location.search).get('s') || 'parse';
+const chain = (label, max) => {
+  let n = 0;
+  const step = (t) => { n++; log(label, [n, t, +performance.now().toFixed(3), document.readyState]); if (n < max) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+};
+log('start', [scenario, +performance.now().toFixed(3), document.readyState]);
+if (scenario === 'parse') chain('p', 20);
+if (scenario === 'load') addEventListener('load', () => { log('load', +performance.now().toFixed(3)); chain('l', 20); });
+if (scenario === 'late') setTimeout(() => chain('t', 20), 500);
+if (scenario === 'busy') { chain('b', 20); let k = 0; const tick = () => { k++; if (k < 50) setTimeout(tick, 10); else log('ticks', [k, +performance.now().toFixed(3)]); }; setTimeout(tick, 10); }
+if (scenario === 'single') { addEventListener('load', () => setTimeout(() => requestAnimationFrame((t) => log('s1', [t, +performance.now().toFixed(3)])), 100)); }
+if (scenario === 'sab') log('sab', [typeof SharedArrayBuffer, self.crossOriginIsolated, typeof Atomics.waitAsync, 'SharedArrayBuffer' in self]);
+addEventListener('load', () => log('loadAt', +performance.now().toFixed(3)));
+</script></body></html>

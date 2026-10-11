@@ -268,12 +268,14 @@ pub fn live_frame_at(chain: Vec<FrameLink>, depth: usize, fresh_innermost: bool)
     let mut result = None;
     let mut back = Value::None;
     let mut positions: HashSet<Key> = HashSet::new();
+    // O que sai do registro morre depois do empréstimo: o `FrameHold` de um quadro volta a ele ao soltar os locais.
+    let mut dead: Vec<Entry> = Vec::new();
     REGISTRY.with(|reg| {
         let mut reg = reg.borrow_mut();
         for (i, link) in chain.into_iter().enumerate().rev() {
             let key = key_of(&link, n - 1 - i);
             if i == 0 && fresh_innermost {
-                reg.remove(&key);
+                dead.extend(reg.remove(&key));
             }
             if matches!(key, Key::Pos(..)) {
                 positions.insert(key);
@@ -295,12 +297,27 @@ pub fn live_frame_at(chain: Vec<FrameLink>, depth: usize, fresh_innermost: bool)
             }
         }
         // Quadros que já saíram: o `Env` morreu, ou a posição não está mais no empilhamento.
-        reg.retain(|k, e| match k {
-            Key::Env(_) => e.obj.env.borrow().strong_count() > 0,
-            Key::Pos(..) => positions.contains(k),
-        });
+        let gone: Vec<Key> = reg
+            .iter()
+            .filter(|(k, e)| match k {
+                // Só o registro guarda o objeto de um quadro que acabou: o escopo que ele segurava solta junto.
+                Key::Env(_) => e.obj.env.borrow().strong_count() == 0 || (Rc::strong_count(&e.obj) == 1 && e.obj.held.borrow().is_some()),
+                Key::Pos(..) => !positions.contains(*k),
+            })
+            .map(|(k, _)| *k)
+            .collect();
+        dead.extend(gone.into_iter().filter_map(|k| reg.remove(&k)));
     });
+    drop(dead);
     result
+}
+
+/// Os objetos `frame` que o registro por thread segura (endereço do `Rc`): a referência do registro é do
+/// interpretador, não do programa, e o coletor de ciclos a desconta como uma aresta interna.
+pub(crate) fn registry_pointers() -> std::collections::HashSet<usize> {
+    REGISTRY
+        .try_with(|reg| reg.try_borrow().map(|r| r.values().map(|e| Rc::as_ptr(&e.obj) as *const () as usize).collect()).unwrap_or_default())
+        .unwrap_or_default()
 }
 
 /// Um quadro de traceback (`tb_frame`): terminou, não tem identidade; `hold` é o dono do quadro que ele
@@ -371,6 +388,17 @@ impl Drop for FrameHold {
 /// último dono do quadro leva os locais.
 pub fn finish(code: &Code, env: &Rc<Env>) {
     env.finished.set(true);
+    // Um objeto `frame` que o programa ainda guarda (`sys._getframe`) leva o quadro com ele: os locais vivem enquanto
+    // o objeto viver, como no CPython, mesmo quando nenhuma função de dentro fechou o escopo.
+    REGISTRY.with(|reg| {
+        if let Some(entry) = reg.borrow().get(&Key::Env(Rc::as_ptr(env) as usize)) {
+            if Rc::strong_count(&entry.obj) > 1 && entry.obj.held.borrow().is_none() {
+                if let Some(owner) = &entry.obj.code {
+                    *entry.obj.held.borrow_mut() = Some(FrameHold::new(env.clone(), owner.clone(), None));
+                }
+            }
+        }
+    });
     release_locals(code, env);
 }
 
@@ -382,7 +410,8 @@ pub fn release_locals(code: &Code, env: &Rc<Env>) {
     if !code.is_function || !env.finished.get() || env.holds.get() > 0 || Rc::strong_count(env) == 1 {
         return;
     }
-    if REGISTRY.with(|reg| reg.borrow().contains_key(&Key::Env(Rc::as_ptr(env) as usize))) {
+    // Com o registro já destruído (a thread acaba) ou emprestado, não há objeto `frame` a respeitar.
+    if REGISTRY.try_with(|reg| reg.try_borrow().map_or(true, |r| r.contains_key(&Key::Env(Rc::as_ptr(env) as usize)))).unwrap_or(true) {
         return;
     }
     // O que sai é solto depois do empréstimo: um `__del__` pode voltar a este escopo.
@@ -454,6 +483,21 @@ fn want_bool(v: &Value) -> PyResult<bool> {
     match v {
         Value::Bool(b) => Ok(*b),
         _ => Err(type_error("attribute value type must be bool")),
+    }
+}
+
+impl FrameObj {
+    /// As referências fortes que o objeto `frame` guarda, para o coletor de ciclos. `false`: emprestado.
+    pub(crate) fn gc_children(&self, f: &mut dyn FnMut(crate::gccollect::Child)) -> bool {
+        let (Ok(held), Ok(back), Ok(trace)) = (self.held.try_borrow(), self.back.try_borrow(), self.trace.try_borrow()) else {
+            return false;
+        };
+        if let Some(h) = held.as_ref() {
+            f(crate::gccollect::Child::Hold(h));
+        }
+        f(crate::gccollect::Child::Val(&back));
+        f(crate::gccollect::Child::Val(&trace));
+        true
     }
 }
 
@@ -540,12 +584,14 @@ impl ExtObject for FrameObj {
         })
     }
 
-    fn call_method(&self, _vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    fn call_method(&self, vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         debug_assert_eq!(name, "clear");
         if !args.is_empty() {
             return Err(type_error(format!("frame.clear() takes no arguments ({} given)", args.len())));
         }
-        if self.live {
+        // Um quadro de traceback (`tb_frame`) cujo quadro ainda executa é o mesmo do CPython: não se limpa.
+        let executing = self.env().is_some_and(|env| vm.frames.borrow().iter().any(|(_, _, e)| Rc::ptr_eq(e, &env)));
+        if self.live || executing {
             return Err(exc("RuntimeError", "cannot clear an executing frame"));
         }
         *self.trace.borrow_mut() = Value::None;

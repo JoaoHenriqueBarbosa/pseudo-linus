@@ -24,7 +24,7 @@ use crate::compile::{Code, Op};
 use crate::generator::{Begun, Callback, CallbackKind, Collect, GenCore, Layer, Pull, ResumeUse, Resumed, Resuming};
 use crate::modules::{csv, json};
 use crate::object::{
-    exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, py_eq, repr, to_str, BoundMethod, Dict, Env,
+    eq_bool, exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, position_eq, py_eq, repr, to_str, BoundMethod, Dict, Env,
     ExcObj, FileKind, FuncObj, Native, ObjError, PyFile, PyStr, Range, Set, Value, EXC_CLASSES, str_cmp,
 };
 
@@ -101,6 +101,7 @@ fn native_in_cpython(filename: &str, qual: &str) -> bool {
             | "_random.py"
             | "_thread.py"
             | "_gsched.py"
+            | "_greenlet_impl.py"
             | "_string.py"
             | "_memoryview.py"
             | "_complex.py"
@@ -606,6 +607,7 @@ impl From<ObjError> for PyException {
             ObjError::IntOverflow => {
                 exc("OverflowError", "integer result outside the 64-bit range (arbitrary int is pending)")
             }
+            ObjError::Raised(e) => *e,
         }
     }
 }
@@ -648,6 +650,10 @@ fn base_exception_new(_vm: &mut Vm, args: Vec<Value>, _kw: crate::object::Kw) ->
 }
 
 pub(crate) fn note_text_error(e: PyException, depth: usize) {
+    // A suspensão de uma nativa repetida não é erro do programa: a repetição a resolve.
+    if e.kind == crate::replay::SUSPEND {
+        return;
+    }
     TEXT_ERROR.with(|t| {
         let mut t = t.borrow_mut();
         if t.is_none() {
@@ -919,8 +925,14 @@ impl PyIter {
                 }
                 Some(Value::Int(v))
             }
-            PyIter::Native(n) => native_next(n)?,
-            PyIter::Ext(e) => e.iter_next()?,
+            PyIter::Native(n) => {
+                crate::replay::iterator_advanced();
+                native_next(n)?
+            }
+            PyIter::Ext(e) => {
+                crate::replay::iterator_advanced();
+                e.iter_next()?
+            }
             PyIter::Inst(v) => {
                 let mut vm = current().ok_or_else(|| internal("no vm"))?;
                 match vm.call_dunder(v, "__next__", Vec::new()) {
@@ -931,6 +943,38 @@ impl PyIter {
                 }
             }
         })
+    }
+}
+
+/// O argumento `.0` de uma compreensão (`GET_ITER` do primeiro iterável, feito do lado de fora). Lista, tupla, string
+/// e `range` viram o objeto iterador vivo (`list_iterator`...), que a função e o `gc.get_referents` enxergam; um valor
+/// que não é iterável dá o `TypeError` já na criação. Instância e classe (o `__iter__` pode ser código do usuário), dict,
+/// conjunto, bytes e os objetos nativos seguem como vieram: o `GET_ITER` de dentro da função faz o resto.
+fn iterator_value(v: Value) -> PyResult<Value> {
+    match &v {
+        Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Range(_) => Ok(crate::lazy::IterBox::new(get_iter(&v)?)),
+        Value::Dict(_) | Value::Set(_) | Value::Bytes(_) | Value::ByteArray(_) => crate::builtins::make_iter(&v),
+        // O `__iter__` de instância roda na criação da expressão (o `GET_ITER` de fora), e o que ele devolve tem de ser
+        // um iterador.
+        Value::Instance(_) => {
+            let it = crate::builtins::make_iter(&v)?;
+            let is_iterator = match &it {
+                Value::Instance(i) => i.class().lookup("__next__").is_some(),
+                Value::Ext(e) => e.is_iterable(),
+                Value::Int(_) | Value::Big(_) | Value::Float(_) | Value::Bool(_) | Value::None | Value::Str(_) | Value::List(_)
+                | Value::Tuple(_) | Value::Dict(_) | Value::Set(_) | Value::Bytes(_) | Value::ByteArray(_) | Value::Range(_) => false,
+                _ => true,
+            };
+            if is_iterator {
+                Ok(it)
+            } else {
+                Err(type_error(format!("iter() returned non-iterator of type '{}'", it.type_name())))
+            }
+        }
+        // Uma view de dicionário (ou outro iterável que não é o próprio iterador) vira o iterador dela.
+        Value::Ext(e) if !e.is_iterable() => crate::builtins::make_iter(&v),
+        Value::Class(_) | Value::Ext(_) | Value::Native(_) => Ok(v),
+        _ => get_iter(&v).map(|_| v),
     }
 }
 
@@ -1329,6 +1373,18 @@ pub(crate) struct Frame {
 }
 
 impl Frame {
+    /// As referências fortes do quadro, para o coletor de ciclos: o escopo, os valores da pilha e as exceções em
+    /// tratamento. Os iteradores da pilha não entram (o que eles seguram conta como dono de fora).
+    pub(crate) fn gc_visit(&self, f: &mut dyn FnMut(crate::gccollect::Child)) {
+        f(crate::gccollect::Child::Env(&self.env));
+        for slot in &self.stack {
+            if let Slot::Val(v) = slot {
+                f(crate::gccollect::Child::Val(v));
+            }
+        }
+        self.handled.iter().for_each(|v| f(crate::gccollect::Child::Val(v)));
+    }
+
     pub(crate) fn new(code: Rc<Code>, env: Rc<Env>) -> Frame {
         // A pilha de quase todo quadro cabe em poucas posições: uma alocação só, sem crescer aos poucos.
         Frame { code, env, stack: Vec::with_capacity(8), blocks: Vec::new(), pc: 0, handled: Vec::new(), handled_base: 0 }
@@ -1350,12 +1406,97 @@ pub(crate) struct CallLink {
     /// Quando o quadro executa o `__next__` de um `for`: o destino do `ForIter`, para onde o laço
     /// salta (descartando o iterador) se o chamado terminar com `StopIteration`.
     pub(crate) on_stop: Option<usize>,
+    /// O caminho de C que o CPython empilha para chegar a este quadro quando nada mais aqui o diz (o `__call__` de
+    /// uma instância): só o `CallLink::c_entry` lê.
+    pub(crate) native: Option<&'static str>,
     /// Quando o quadro executa o método mágico de um operador, de uma subscrição ou de um teste de
     /// verdade: o que fazer com o valor que ele devolve (`Vm::finish_dunder`).
     pub(crate) then: Option<Dunder>,
     /// Quando o quadro é o de um gerador ou de uma corrente retomado pelo laço (sem `func`): o que fechar
     /// a retomada e o que fazer com o valor entregue.
     pub(crate) resuming: Option<crate::generator::Resuming>,
+}
+
+impl CallLink {
+    /// O nome do caminho de C que o CPython empilha para chegar a este quadro (`gthread::c_frames`), ou `None` para a
+    /// chamada Python comum, que no 3.13 não usa pilha de máquina.
+    pub(crate) fn c_entry(&self) -> Option<String> {
+        let path = self.c_path()?;
+        let method = self.func.as_ref().map_or("", |f| f.code.name.as_str());
+        Some(format!("{path}:{method}"))
+    }
+
+    /// O caminho sem o método de usuário (ver [`CallLink::c_entry`]).
+    fn c_path(&self) -> Option<String> {
+        if self.instance.is_some() {
+            return Some("init".into());
+        }
+        if self.on_stop.is_some() {
+            return Some("for_next".into());
+        }
+        if let Some(r) = &self.resuming {
+            return Some(format!("resume_{}", r.use_.consumer()));
+        }
+        if let Some(entry) = self.native {
+            return Some(entry.into());
+        }
+        // A função de um módulo embutido que no CPython é C (`functools.reduce`, o `itertools`): a chamada dela é
+        // a da nativa, e o que ela chamar em Python vem por cima.
+        if let Some(f) = self.func.as_ref().filter(|f| code_is_native(&f.code)) {
+            return Some(format!("pyc_{}", f.code.qual()));
+        }
+        let then = self.then.as_ref()?;
+        Some(match then {
+            Dunder::Chain(c) => match (&c.kind, &c.scan) {
+                (_, Some(scan)) => format!(
+                    "scan_{}_{}",
+                    scan.seq.type_name(),
+                    match scan.mode {
+                        ScanMode::Contains { .. } => "in",
+                        ScanMode::Index => "index",
+                        ScanMode::Count(_) => "count",
+                        ScanMode::Remove => "remove",
+                    }
+                ),
+                (ChainKind::Binary { inplace: true, .. }, _) => "binary_inplace".into(),
+                (ChainKind::Binary { .. }, _) => "binary".into(),
+                (ChainKind::Order(_), _) => "order".into(),
+                (ChainKind::Equal(_), _) => "equal".into(),
+            },
+            Dunder::Push => "push".into(),
+            Dunder::Discard => "discard".into(),
+            Dunder::Boolean { .. } => "boolean".into(),
+            Dunder::Truth { .. } => "truth".into(),
+            Dunder::Iter => "iter".into(),
+            Dunder::Builtin(_) => "builtin".into(),
+            Dunder::Text(_) => "text".into(),
+            Dunder::Callback(cb) => format!(
+                "callback_{}_{}",
+                match cb.what {
+                    crate::generator::CallbackKind::Mapped => "mapped",
+                    crate::generator::CallbackKind::Kept { .. } => "kept",
+                    crate::generator::CallbackKind::Keyed { .. } => "keyed",
+                    crate::generator::CallbackKind::Advance { .. } => "advance",
+                    crate::generator::CallbackKind::Start => "start",
+                },
+                cb.pull.consumer()
+            ),
+            Dunder::Signal => "signal".into(),
+            Dunder::Import(_) => "import".into(),
+            Dunder::Exec(_) => "exec".into(),
+            Dunder::CReturn(_) => return None,
+            Dunder::Finalize { .. } => "finalize".into(),
+            // A nativa repetida (a embutida ou o método com o tipo do receptor, ou a instrução com os tipos dos
+            // operandos).
+            Dunder::Replay(run) => match &run.op {
+                ReplayOp::Call { func, .. } => format!("replay_call_{}", crate::replay::callee_name(func)),
+                ReplayOp::Step { instr, operands } => {
+                    let types: Vec<&str> = operands.iter().map(|v| if matches!(v, Value::Instance(_)) { "obj" } else { v.type_name() }).collect();
+                    format!("replay_step_{}_{}", crate::replay::op_name(instr), types.join("_"))
+                }
+            },
+        })
+    }
 }
 
 /// Uma tentativa de uma cadeia de operador: o método mágico `name` de `recv`, com `other` de argumento.
@@ -1386,6 +1527,113 @@ pub(crate) struct Chain {
     pub(crate) rest: Vec<Attempt>,
     /// `invert` da tentativa em curso.
     pub(crate) invert: bool,
+    /// A busca numa lista ou tupla que espera esta igualdade (`None`: o resultado vai para a pilha).
+    pub(crate) scan: Option<Box<Scan>>,
+}
+
+/// A busca de `item` numa lista ou tupla (`in`, `index`, `count`, `remove`) quando a igualdade de algum par roda
+/// `__eq__` em Python: cada comparação dessas abre o quadro do método, e a busca segue de onde parou quando ele
+/// volta. A lista é relida a cada passo, como no `list_contains`, porque o `__eq__` pode mudá-la.
+pub(crate) struct Scan {
+    pub(crate) seq: Value,
+    pub(crate) item: Value,
+    pub(crate) pos: usize,
+    pub(crate) stop: usize,
+    pub(crate) mode: ScanMode,
+}
+
+pub(crate) enum ScanMode {
+    Contains { negate: bool },
+    Index,
+    Count(i64),
+    Remove,
+}
+
+impl Scan {
+    fn element(&self) -> Option<Value> {
+        if self.pos >= self.stop {
+            return None;
+        }
+        match &self.seq {
+            Value::List(l) => l.borrow().get(self.pos).cloned(),
+            Value::Tuple(t) => t.get(self.pos).cloned(),
+            _ => None,
+        }
+    }
+
+    /// O par da posição corrente deu `equal`: o resultado da busca, se ela acaba aqui.
+    fn matched(&mut self, equal: bool) -> Option<Value> {
+        if !equal {
+            return None;
+        }
+        match &mut self.mode {
+            ScanMode::Contains { negate } => Some(Value::Bool(!*negate)),
+            ScanMode::Index => Some(Value::Int(self.pos as i64)),
+            ScanMode::Count(n) => {
+                *n += 1;
+                None
+            }
+            ScanMode::Remove => {
+                if let Value::List(l) = &self.seq {
+                    let mut l = l.borrow_mut();
+                    if self.pos < l.len() {
+                        l.remove(self.pos);
+                    }
+                }
+                Some(Value::None)
+            }
+        }
+    }
+
+    /// A sequência acabou sem decidir.
+    fn exhausted(&self) -> PyResult<Value> {
+        match (&self.mode, &self.seq) {
+            (ScanMode::Contains { negate }, _) => Ok(Value::Bool(*negate)),
+            (ScanMode::Count(n), _) => Ok(Value::Int(*n)),
+            (ScanMode::Index, Value::Tuple(_)) => Err(exc("ValueError", "tuple.index(x): x not in tuple")),
+            (ScanMode::Index, _) => Err(exc("ValueError", format!("{} is not in list", repr(&self.item)))),
+            (ScanMode::Remove, _) => Err(exc("ValueError", "list.remove(x): x not in list")),
+        }
+    }
+}
+
+/// A busca de `item` em `seq` precisa de quadro: a sequência é lista ou tupla e algum lado de algum par é
+/// instância com `__eq__` em Python.
+fn scan_needs_frames(seq: &Value, item: &Value) -> bool {
+    let python_eq = |v: &Value| dunder_function(v, "__eq__").is_some();
+    match seq {
+        Value::List(l) => python_eq(item) || l.borrow().iter().any(python_eq),
+        Value::Tuple(t) => python_eq(item) || t.iter().any(python_eq),
+        _ => false,
+    }
+}
+
+/// A busca que a chamada `lista.index(x)`, `count`, `remove` ou `tupla.index(x)`, `count` faz, quando ela precisa
+/// de quadro; com outros argumentos a nativa responde (e dá os erros dela).
+fn scan_call(func: &Value, args: &[Value], kwargs: &[(String, Value)]) -> PyResult<Option<Box<Scan>>> {
+    let Value::Bound(b) = func else { return Ok(None) };
+    if !kwargs.is_empty() || !matches!(b.recv, Value::List(_) | Value::Tuple(_)) {
+        return Ok(None);
+    }
+    let len = match &b.recv {
+        Value::List(l) => l.borrow().len(),
+        Value::Tuple(t) => t.len(),
+        _ => return Ok(None),
+    };
+    let (mode, start, stop) = match (b.name, args) {
+        ("index", [_, rest @ ..]) if rest.len() <= 2 => {
+            let start = crate::native_util::norm_bound(rest.first(), len, 0)?;
+            let stop = crate::native_util::norm_bound(rest.get(1), len, len)?;
+            (ScanMode::Index, start, stop)
+        }
+        ("count", [_]) => (ScanMode::Count(0), 0, usize::MAX),
+        ("remove", [_]) if matches!(b.recv, Value::List(_)) => (ScanMode::Remove, 0, usize::MAX),
+        _ => return Ok(None),
+    };
+    if !scan_needs_frames(&b.recv, &args[0]) {
+        return Ok(None);
+    }
+    Ok(Some(Box::new(Scan { seq: b.recv.clone(), item: args[0].clone(), pos: start, stop, mode })))
 }
 
 /// O que um salto condicional ou um `not` faz com a verdade do operando.
@@ -1396,6 +1644,61 @@ pub(crate) enum TruthUse {
     /// `JumpIf*OrPop`: o operando continua na pilha; salta quando a verdade é `when`, senão ele sai.
     JumpKeep { target: usize, when: bool },
     Not,
+}
+
+/// A nativa de um só argumento cujo método mágico o laço de instruções roda em quadro (ver `Dunder::Builtin`).
+#[derive(Clone, Copy)]
+pub(crate) enum BuiltinUse {
+    Len,
+    /// `bool(x)`: o `__bool__`, ou (`len`) o `__len__` na falta dele.
+    Bool { len: bool },
+    /// `abs(x)` e `round(x[, n])`: o que o método devolve vale como está.
+    Plain,
+    Int,
+    Float,
+    Bytes,
+}
+
+impl BuiltinUse {
+    /// O método de usuário (função Python) que a nativa `name` chamaria sobre `x` com `argc` argumentos, e o que fazer
+    /// com o resultado. `None` deixa a nativa como está.
+    fn of(name: &str, x: &Value, argc: usize) -> Option<(Rc<FuncObj>, BuiltinUse)> {
+        let Value::Instance(i) = x else { return None };
+        let method = |dunder: &str| match i.class().lookup(dunder) {
+            Some(Value::Function(f)) => Some(f),
+            _ => None,
+        };
+        match (name, argc) {
+            ("len", 1) => method("__len__").map(|f| (f, BuiltinUse::Len)),
+            ("bool", 1) => match i.class().lookup("__bool__") {
+                Some(Value::Function(f)) => Some((f, BuiltinUse::Bool { len: false })),
+                Some(_) => None,
+                None => method("__len__").map(|f| (f, BuiltinUse::Bool { len: true })),
+            },
+            ("abs", 1) => method("__abs__").map(|f| (f, BuiltinUse::Plain)),
+            ("round", 1 | 2) => method("__round__").map(|f| (f, BuiltinUse::Plain)),
+            ("int", 1) => method("__int__").map(|f| (f, BuiltinUse::Int)),
+            ("float", 1) => method("__float__").map(|f| (f, BuiltinUse::Float)),
+            ("bytes", 1) => method("__bytes__").map(|f| (f, BuiltinUse::Bytes)),
+            _ => None,
+        }
+    }
+
+    /// O que o método devolveu, conferido como a nativa confere.
+    fn result(self, v: Value) -> PyResult<Value> {
+        match self {
+            BuiltinUse::Len => len_result(v).map(Value::Int),
+            BuiltinUse::Bool { len: false } => bool_result(&v).map(Value::Bool),
+            BuiltinUse::Bool { len: true } => len_result(v).map(|n| Value::Bool(n != 0)),
+            BuiltinUse::Plain => Ok(v),
+            BuiltinUse::Int if matches!(v, Value::Int(_) | Value::Big(_)) => Ok(v),
+            BuiltinUse::Float if matches!(v, Value::Float(_)) => Ok(v),
+            BuiltinUse::Bytes if matches!(v, Value::Bytes(_)) => Ok(v),
+            BuiltinUse::Int => Err(type_error(format!("__int__ returned non-int (type {})", v.type_name()))),
+            BuiltinUse::Float => Err(type_error(format!("__float__ returned non-float (type {})", v.type_name()))),
+            BuiltinUse::Bytes => Err(type_error(format!("__bytes__ returned non-bytes (type {})", v.type_name()))),
+        }
+    }
 }
 
 /// O que fazer com o valor que o quadro de um método mágico devolve.
@@ -1411,6 +1714,12 @@ pub(crate) enum Dunder {
     Truth { how: TruthUse, len: bool },
     /// `__iter__` de um `for`: o iterador vai para a pilha.
     Iter,
+    /// `len(x)`, `bool(x)`, `abs(x)`, `round(x)`, `int(x)`, `float(x)` ou `bytes(x)` com o método de usuário em Python:
+    /// o resultado, conferido como o da nativa, vai para a pilha.
+    Builtin(BuiltinUse),
+    /// `repr(x)` ou `str(x)` com `__repr__`/`__str__` em Python (o nome do método): o texto vai para a pilha, e
+    /// outro tipo é o `TypeError` do `PyObject_Repr`/`PyObject_Str`.
+    Text(&'static str),
     /// Um callback Python de uma nativa (a função do `map`, o predicado do `filter`, a chave de
     /// `min`/`max`/`sorted`, o `__next__` ou o `__getitem__` de uma fonte, o `__iter__` de uma coleta): o valor
     /// que ele devolve volta à máquina de `Vm::drive` (`Vm::resume_callback`).
@@ -1425,6 +1734,34 @@ pub(crate) enum Dunder {
     /// O código de um `exec` ou `eval`: ao fechar, as globais e o `locals` recebem o que ele criou e o valor sai
     /// (`Vm::close_exec`).
     Exec(Box<crate::builtins_ext::ExecRun>),
+    /// Uma chamada de usuário de dentro de uma nativa repetida (ver `replay.rs`): o resultado (ou a exceção) entra no
+    /// memo e a nativa roda de novo.
+    Replay(Box<ReplayRun>),
+    /// A função Python que no CPython é C (`greenlet.switch`), chamada com o perfil ligado: o `c_return` (ou o
+    /// `c_exception`) sai quando o quadro acaba, e o valor segue para o chamador.
+    CReturn(Value),
+    /// O `__del__` de uma instância solta, empilhado entre duas instruções (o ponto seguro da finalização): o valor é
+    /// descartado, uma exceção vai ao `sys.unraisablehook` (com `del` como objeto) e as exceções tratadas voltam ao
+    /// número de antes (`handled`). Por ser quadro do laço, o `__del__` pode trocar de greenlet.
+    Finalize { del: Value, handled: usize, floor: u64 },
+}
+
+/// O que se repete: a chamada da nativa, ou a instrução do laço sobre os operandos que ela consumiu.
+pub(crate) enum ReplayOp {
+    Call { func: Value, args: Vec<Value>, kwargs: Vec<(String, Value)> },
+    Step { instr: Op, operands: Vec<Value> },
+}
+
+/// Uma nativa repetida com o memo das chamadas de usuário já feitas.
+pub(crate) struct ReplayRun {
+    pub(crate) op: ReplayOp,
+    pub(crate) memo: Vec<PyResult<Value>>,
+}
+
+/// O que a repetição deu: terminou (com o salto da instrução, se houver) ou pede o quadro de uma chamada de usuário.
+pub(crate) enum ReplayStatus {
+    Done(Option<usize>),
+    Spawn(Callee),
 }
 
 impl Dunder {
@@ -1578,7 +1915,10 @@ impl Chain {
             ChainKind::Binary { op, inplace } => binary_native(op, &self.a, &self.b, inplace),
             ChainKind::Order(op) => compare_native(op, &self.a, &self.b).map(Value::Bool),
             ChainKind::Equal(op) => {
-                let equal = crate::classes::payload_eq(&self.a, &self.b).unwrap_or_else(|| crate::object::py_eq_native(&self.a, &self.b));
+                let equal = match crate::classes::payload_eq(&self.a, &self.b) {
+                    Some(r) => r?,
+                    None => crate::object::py_eq_native(&self.a, &self.b)?,
+                };
                 Ok(Value::Bool(equal != (op == CmpOp::NotEq)))
             }
         }
@@ -1589,6 +1929,19 @@ impl Chain {
 pub(crate) struct Callee {
     pub(crate) frame: Frame,
     pub(crate) link: CallLink,
+}
+
+impl Callee {
+    /// As referências fortes do chamado para o coletor de ciclos: o quadro, a função e a instância de `Classe(...)`.
+    pub(crate) fn gc_visit(&self, f: &mut dyn FnMut(crate::gccollect::Child)) {
+        self.frame.gc_visit(f);
+        if let Some(func) = self.link.func.as_ref() {
+            f(crate::gccollect::Child::Func(func));
+        }
+        if let Some(instance) = self.link.instance.as_ref() {
+            f(crate::gccollect::Child::Val(instance));
+        }
+    }
 }
 
 /// O resultado de iniciar uma chamada: o valor já pronto, ou o quadro a executar.
@@ -1834,8 +2187,8 @@ impl Vm {
             }
             // Ponto seguro da finalização: logo depois da instrução que soltou a última referência de um
             // objeto com `__del__`, o `__del__` roda (nunca com uma exceção em voo).
-            if crate::finalize::pending() && pending.is_none() {
-                self.run_finalizers();
+            if crate::finalize::pending() && pending.is_none() && spawn.is_none() {
+                spawn = self.finalizer_frame();
             }
             // Sinais capturados chegam entre instruções, como no CPython (só depois de um `signal.signal`). O
             // tratador ganha quadro neste laço (o quadro em execução espera em `frames_stack`), então um `fork`
@@ -2061,8 +2414,28 @@ impl Vm {
                     Op::Binary { .. } | Op::Compare(_) if instance_at(stack, 0) || instance_at(stack, 1) => {
                         self.dunder_op(code, op, stack, env, &mut spawn)
                     }
+                    // `x in lista`: o `__eq__` em Python de algum elemento roda em quadro (`Scan`).
+                    Op::Compare(CmpOp::In | CmpOp::NotIn)
+                        if matches!(stack.last(), Some(Slot::Val(Value::List(_) | Value::Tuple(_)))) =>
+                    {
+                        self.dunder_op(code, op, stack, env, &mut spawn)
+                    }
                     Op::Subscript | Op::StoreSubscript | Op::DeleteSubscript if instance_at(stack, 1) => {
                         self.dunder_op(code, op, stack, env, &mut spawn)
+                    }
+                    // Chave, argumento de formatação ou elemento que é instância: o `__hash__`, o `__eq__`, o `__format__`
+                    // e o `__str__` dela rodam em quadro (repetição da instrução, `replay.rs`).
+                    Op::Compare(_)
+                    | Op::Binary { .. }
+                    | Op::Subscript
+                    | Op::StoreSubscript
+                    | Op::DeleteSubscript
+                    | Op::FormatValue { .. }
+                    | Op::BuildSet(_)
+                    | Op::BuildDict(_)
+                        if crate::replay::step_operands(op, stack).is_some() && !crate::replay::active(self.rust_nest.get()) =>
+                    {
+                        self.step_replayed(code, op, stack, env, &mut spawn)
                     }
                     // Unários, `iter()` de um `for`, gravação e remoção de atributo e abertura de `with`
                     // sobre instância: o método mágico em Python também ganha quadro.
@@ -2134,7 +2507,13 @@ impl Vm {
                         // `property`, descritor com `__get__` e `__getattr__` em Python abrem quadro, sem recursar.
                         let read = self.instance_getattr_call(&obj, inst, name).and_then(|got| match got {
                             Ok(v) => Ok(Entered::Done(v)),
-                            Err((f, args)) => self.enter_function(&f, args, Vec::new()),
+                            Err((f, args)) => match self.enter_function(&f, args, Vec::new())? {
+                                Entered::Frame(mut callee) => {
+                                    callee.link.native = Some("attr");
+                                    Ok(Entered::Frame(callee))
+                                }
+                                done => Ok(done),
+                            },
                         });
                         match read {
                             Ok(Entered::Done(v)) => {
@@ -2425,6 +2804,40 @@ impl Vm {
                         }
                     }
                     Closed::Call(outcome, on_stop, then) => match (outcome, on_stop, then) {
+                        // O método de usuário de uma nativa repetida voltou (com valor ou exceção): vai para o memo e a
+                        // nativa roda de novo, no quadro do chamador.
+                        (outcome, _, Some(Dunder::Replay(run))) => {
+                            let mut run = *run;
+                            run.memo.push(outcome);
+                            let code = caller.code.clone();
+                            let env = caller.env.clone();
+                            match self.replay_run(run, Some((&code, &env)), &mut caller.stack) {
+                                Ok(ReplayStatus::Done(jump)) => {
+                                    if let Some(target) = jump {
+                                        caller.pc = target;
+                                    }
+                                }
+                                Ok(ReplayStatus::Spawn(callee)) => next_spawn = Some(callee),
+                                Err(e) => {
+                                    caller.pc -= 1;
+                                    pending = Some(e);
+                                }
+                            }
+                        }
+                        (Ok(v), _, Some(Dunder::CReturn(func))) => match crate::tracing::c_event(self, "c_return", &func) {
+                            Ok(()) => caller.stack.push(Slot::Val(v)),
+                            Err(e) => {
+                                caller.pc -= 1;
+                                pending = Some(e);
+                            }
+                        },
+                        (Err(e), _, Some(Dunder::CReturn(func))) => {
+                            caller.pc -= 1;
+                            pending = Some(match crate::tracing::c_event(self, "c_exception", &func) {
+                                Ok(()) => e,
+                                Err(e2) => e2,
+                            });
+                        }
                         (Ok(v), _, Some(then)) => {
                             let stepped = self.finish_dunder(then, v);
                             let (callee, error) = land_step(caller, stepped);
@@ -2436,6 +2849,12 @@ impl Vm {
                         (Ok(v), _, None) => caller.stack.push(Slot::Val(v)),
                         // O tratador de um sinal levantou: a exceção nasce na instrução interrompida, que ainda não rodou.
                         (Err(e), _, Some(Dunder::Signal)) => pending = Some(e),
+                        // O `__del__` levantou: o erro não sobe, vai ao `unraisablehook`, e a instrução interrompida segue.
+                        (Err(e), _, Some(Dunder::Finalize { del, handled, floor })) => {
+                            self.handled.borrow_mut().truncate(handled);
+                            crate::finalize::frame_closed(floor);
+                            self.write_unraisable(&del, e);
+                        }
                         // O `__next__` ou o `__getitem__` de uma fonte folha acabou com o fim dela (`StopIteration`,
                         // no protocolo antigo também `IndexError`): a máquina da coleta segue com o fim.
                         (Err(e), _, Some(Dunder::Callback(callback)))
@@ -2549,6 +2968,9 @@ impl Vm {
     }
 
     pub(crate) fn call_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+        if let Some(replayed) = crate::replay::intercept(self.rust_nest.get(), f, &args, &kwargs) {
+            return replayed;
+        }
         match self.enter_function(f, args, kwargs)? {
             Entered::Done(v) => Ok(v),
             Entered::Frame(mut callee) => {
@@ -2570,13 +2992,61 @@ impl Vm {
         // Função de módulo que no CPython é C: um `c_call`/`c_return` por fora e nada por dentro, o
         // que pede a chamada recursiva, não o quadro entregue ao laço de instruções.
         if crate::tracing::reports_native_python_call(self, func) {
-            return crate::tracing::c_call(self, func, |vm| vm.call_value(func, args, kwargs)).map(Entered::Done);
+            // O quadro vai para o laço (o greenlet troca de dentro dele); o `c_return` sai quando ele acaba.
+            crate::tracing::c_event(self, "c_call", func)?;
+            return match self.enter_callable(func, args, kwargs) {
+                Ok(Entered::Frame(mut callee)) if callee.link.then.is_none() => {
+                    callee.link.then = Some(Dunder::CReturn(func.clone()));
+                    Ok(Entered::Frame(callee))
+                }
+                Ok(Entered::Frame(callee)) => {
+                    // Já tem fecho próprio: roda recursivo, como antes, para o evento não se perder.
+                    let _ = callee;
+                    Err(internal("a native python function opened a frame with its own close"))
+                }
+                Ok(done) => {
+                    crate::tracing::c_event(self, "c_return", func)?;
+                    Ok(done)
+                }
+                Err(e) => {
+                    crate::tracing::c_event(self, "c_exception", func)?;
+                    Err(e)
+                }
+            };
         }
         // Com o perfil ligado, `sorted`, `min`, `sum`... geram `c_call` antes e `c_return` depois dos quadros do
         // callback: a coleta em quadros do laço não tem onde pô-los, então a nativa segue pela chamada recursiva.
         if !crate::tracing::reports_c_call(self, func) {
+            if let Some(scan) = scan_call(func, &args, &kwargs)? {
+                return self.scan_step(scan, None).and_then(entered_of);
+            }
+            // `repr(x)` e `str(x)` com o método de usuário em Python: o quadro dele roda no laço.
+            if let ([x], [], Some(name @ ("repr" | "str"))) = (&args[..], &kwargs[..], crate::fold::builtin_name(func))
+                && let Some((dunder, f)) = crate::classes::text_dunder(x, name == "str")
+            {
+                return self.open_dunder(&f, vec![x.clone()], Dunder::Text(dunder)).and_then(entered_of);
+            }
+            // `len(x)`, `bool(x)`, `abs(x)`, `int(x)`... com o método de usuário em Python: o quadro dele roda no laço.
+            if let (Some(name), [], [x, ..]) = (crate::fold::builtin_name(func), &kwargs[..], &args[..])
+                && let Some((f, use_)) = BuiltinUse::of(name, x, args.len())
+            {
+                return self.open_dunder(&f, args, Dunder::Builtin(use_)).and_then(entered_of);
+            }
             if let Some((root, collect)) = collect_source(func, &args, &kwargs)? {
                 return self.start_pull(root, ResumeUse::Collect(Box::new(collect))).and_then(entered_of);
+            }
+            // Nativa pura até o fim (`'{}'.format(x)`, `d.get(x)`, `sorted(xs)`...) com método de usuário no caminho: a
+            // repetição roda esse método em quadro, onde o greenlet troca.
+            if crate::replay::native_call(func, &args, &kwargs) && !crate::replay::active(self.rust_nest.get()) {
+                let mut scratch = Vec::new();
+                let run = ReplayRun { op: ReplayOp::Call { func: func.clone(), args, kwargs }, memo: Vec::new() };
+                return match self.replay_run(run, None, &mut scratch)? {
+                    ReplayStatus::Done(_) => Ok(Entered::Done(match scratch.pop() {
+                        Some(Slot::Val(v)) => v,
+                        _ => Value::None,
+                    })),
+                    ReplayStatus::Spawn(callee) => Ok(Entered::Frame(callee)),
+                };
             }
         }
         match func {
@@ -2609,6 +3079,21 @@ impl Vm {
             {
                 let default = args.get(1).cloned();
                 self.pull(&args[0], ResumeUse::Next { default }).and_then(entered_of)
+            }
+            // `next(it)` com `__next__` escrito em Python: o quadro dele é empilhado, como no `FOR_ITER`.
+            _ if crate::fold::builtin_name(func) == Some("next")
+                && kwargs.is_empty()
+                && args.len() == 1
+                && dunder_function(&args[0], "__next__").is_some() =>
+            {
+                let Some(next_fn) = dunder_function(&args[0], "__next__") else { return Err(internal("__next__ vanished")) };
+                match self.enter_function(&next_fn, args, Vec::new())? {
+                    Entered::Frame(mut callee) => {
+                        callee.link.native = Some("next");
+                        Ok(Entered::Frame(callee))
+                    }
+                    done => Ok(done),
+                }
             }
             Value::Bound(b) if is_resume_call(b, &args, &kwargs) => {
                 let Some(core) = value_core(&b.recv) else { return Err(internal("generator vanished")) };
@@ -2655,9 +3140,17 @@ impl Vm {
                 }
             }
             Value::Instance(i) => match i.class().lookup("__call__") {
+                // Função embutida guardada na classe (`NewType.__call__ = _idfunc`): não liga o `self`.
+                Some(Value::Function(f)) if f.no_bind.get() => self.enter_function(&f, args, kwargs),
                 Some(Value::Function(f)) => {
                     args.insert(0, func.clone());
-                    self.enter_function(&f, args, kwargs)
+                    match self.enter_function(&f, args, kwargs)? {
+                        Entered::Frame(mut callee) => {
+                            callee.link.native = Some("call");
+                            Ok(Entered::Frame(callee))
+                        }
+                        done => Ok(done),
+                    }
                 }
                 _ => self.call(func, args, kwargs).map(Entered::Done),
             },
@@ -2737,7 +3230,7 @@ impl Vm {
                             // de sequência): o método ganha quadro, e o desfecho volta por `CallbackKind::Advance`.
                             Some(crate::lazy::Leaf::Ended) => Event::Ended,
                             Some(crate::lazy::Leaf::Call(method, args)) => match self.enter_function(&method, args, Vec::new())? {
-                                Entered::Done(v) => leaf_event(&*target, Some(v)),
+                                Entered::Done(v) => leaf_event(&*target, Some(v))?,
                                 Entered::Frame(mut callee) => {
                                     let pull = Pull { root: root.clone(), layers, then };
                                     callee.link.then = Some(Dunder::Callback(Box::new(Callback { pull, what: CallbackKind::Advance { leaf: target } })));
@@ -2896,7 +3389,7 @@ impl Vm {
         let event = match what {
             CallbackKind::Mapped => Event::Got(returned.ok_or_else(missing)?),
             CallbackKind::Kept { it, item } => kept_event(&mut layers, it, item, returned.ok_or_else(missing)?.is_true())?,
-            CallbackKind::Advance { leaf } => leaf_event(&*leaf, returned),
+            CallbackKind::Advance { leaf } => leaf_event(&*leaf, returned)?,
             CallbackKind::Keyed { item } => {
                 let ResumeUse::Collect(collect) = then else { return Err(internal("a key outside a collection")) };
                 return self.collect_run(&root, collect, Input::Key(item, returned.ok_or_else(missing)?));
@@ -2947,6 +3440,7 @@ impl Vm {
                     caller_globals: None,
                     instance: None,
                     on_stop: None,
+                    native: None,
                     then: None,
                     resuming: Some(Resuming { tail, use_, inject }),
                 };
@@ -3099,11 +3593,11 @@ fn kept_event(layers: &mut Vec<Layer>, it: Rc<dyn crate::object::ExtObject>, ite
 }
 
 /// A fonte folha `leaf` entregou `got` (`None`: acabou): o estado dela avança e o evento sobe pelas camadas.
-fn leaf_event(leaf: &dyn crate::object::ExtObject, got: Option<Value>) -> Event {
-    match crate::lazy::leaf_settle(leaf, got) {
+fn leaf_event(leaf: &dyn crate::object::ExtObject, got: Option<Value>) -> PyResult<Event> {
+    Ok(match crate::lazy::leaf_settle(leaf, got)? {
         Some(v) => Event::Got(v),
         None => Event::Ended,
-    }
+    })
 }
 
 /// A fonte que o iterador devolvido por um `__iter__` em Python passa a ser numa coleta: o gerador (ou a cadeia) que
@@ -3170,7 +3664,7 @@ fn is_resume_call(b: &BoundMethod, args: &[Value], kwargs: &[(String, Value)]) -
 impl Vm {
     /// Liga os argumentos e abre a chamada. Gerador e corrotina terminam aqui, com o valor. A função
     /// de outro módulo troca `Vm::globals` pelas dela até o fechamento (`end_call`).
-    fn enter_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Entered> {
+    pub(crate) fn enter_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Entered> {
         if Rc::ptr_eq(&self.globals, &f.globals) {
             return self.open_call(f, args, kwargs);
         }
@@ -3191,7 +3685,7 @@ impl Vm {
         let env = self.bind_params(f, args, kwargs)?;
         let code = f.code.clone();
         if code.is_generator || code.is_async {
-            return Ok(Entered::Done(crate::generator::new_generator(self.clone(), code, env)));
+            return Ok(Entered::Done(crate::generator::new_generator(self.clone(), f.clone(), env)));
         }
         // O quadro do módulo também gasta uma unidade do limite no CPython (`py_recursion_remaining`),
         // mas aqui ele não entra em `depth`: os demais podem ir até `limit - 1`.
@@ -3218,6 +3712,7 @@ impl Vm {
             caller_globals: None,
             instance: None,
             on_stop: None,
+            native: None,
             then: None,
             resuming: None,
         };
@@ -3269,7 +3764,80 @@ impl Vm {
                 *spawn = callee;
                 Ok(jump)
             }
-            None => self.step(code, instr, stack, env),
+            None => self.step_replayed(code, instr, stack, env, spawn),
+        }
+    }
+
+    /// A instrução `instr`, repetida (ver `replay.rs`) quando algum operando pode chamar método de usuário.
+    fn step_replayed(
+        &mut self,
+        code: &Rc<Code>,
+        instr: Op,
+        stack: &mut Vec<Slot>,
+        env: &Rc<Env>,
+        spawn: &mut Option<Callee>,
+    ) -> PyResult<Option<usize>> {
+        let count = match crate::replay::step_operands(instr, stack) {
+            Some(count) if !crate::replay::active(self.rust_nest.get()) => count,
+            _ => return self.step(code, instr, stack, env),
+        };
+        let operands: Vec<Value> = stack
+            .drain(stack.len() - count..)
+            .map(|slot| match slot {
+                Slot::Val(v) => v,
+                _ => Value::None,
+            })
+            .collect();
+        let run = ReplayRun { op: ReplayOp::Step { instr, operands }, memo: Vec::new() };
+        match self.replay_run(run, Some((code, env)), stack)? {
+            ReplayStatus::Done(jump) => Ok(jump),
+            ReplayStatus::Spawn(callee) => {
+                *spawn = Some(callee);
+                Ok(None)
+            }
+        }
+    }
+
+    /// Roda a nativa (ou a instrução) com o memo; se ela pediu uma chamada de usuário, abre o quadro dela com a
+    /// repetição pendente (`Dunder::Replay`). O resultado fica no topo de `stack`.
+    pub(crate) fn replay_run(
+        &mut self,
+        run: ReplayRun,
+        frame: Option<(&Rc<Code>, &Rc<Env>)>,
+        stack: &mut Vec<Slot>,
+    ) -> PyResult<ReplayStatus> {
+        let ReplayRun { op, mut memo } = run;
+        loop {
+            let base = stack.len();
+            let noted_before = TEXT_ERROR_SET.with(Cell::get);
+            crate::replay::begin(self.rust_nest.get(), memo);
+            let result = match (&op, frame) {
+                (ReplayOp::Call { func, args, kwargs }, _) => self.call(func, args.clone(), kwargs.clone()).map(|v| {
+                    stack.push(Slot::Val(v));
+                    None
+                }),
+                (ReplayOp::Step { instr, operands }, Some((code, env))) => {
+                    stack.extend(operands.iter().cloned().map(Slot::Val));
+                    self.step(code, *instr, stack, env)
+                }
+                (ReplayOp::Step { .. }, None) => Err(internal("a replayed instruction without a frame")),
+            };
+            let (taken, need) = crate::replay::end();
+            memo = taken;
+            let Some(need) = need else { return result.map(ReplayStatus::Done) };
+            // O erro de texto que esta passada anotou volta a ser anotado na passada que terminar.
+            if !noted_before {
+                take_text_error();
+            }
+            stack.truncate(base);
+            match self.enter_function(&need.func, need.args, need.kwargs) {
+                Ok(Entered::Done(v)) => memo.push(Ok(v)),
+                Ok(Entered::Frame(mut callee)) => {
+                    callee.link.then = Some(Dunder::Replay(Box::new(ReplayRun { op, memo })));
+                    return Ok(ReplayStatus::Spawn(callee));
+                }
+                Err(e) => memo.push(Err(e)),
+            }
         }
     }
 
@@ -3299,9 +3867,15 @@ impl Vm {
                         self.begin_chain(stack, ChainKind::Equal(cop), a, b, attempts)
                     }
                     CmpOp::In | CmpOp::NotIn => {
+                        let negate = cop == CmpOp::NotIn;
+                        if scan_needs_frames(&b, &a) {
+                            stack.truncate(stack.len() - 2);
+                            let scan = Scan { seq: b, item: a, pos: 0, stop: usize::MAX, mode: ScanMode::Contains { negate } };
+                            return self.scan_step(Box::new(scan), None).map(Some);
+                        }
                         let Some(f) = dunder_function(&b, "__contains__") else { return Ok(None) };
                         stack.truncate(stack.len() - 2);
-                        self.open_dunder(&f, vec![b, a], Dunder::Boolean { negate: cop == CmpOp::NotIn }).map(Some)
+                        self.open_dunder(&f, vec![b, a], Dunder::Boolean { negate }).map(Some)
                     }
                     _ => Ok(None),
                 }
@@ -3415,7 +3989,7 @@ impl Vm {
         }
         stack.truncate(stack.len() - 2);
         attempts.reverse();
-        self.advance_chain(Chain { kind, a, b, rest: attempts, invert: false }, None).map(Some)
+        self.advance_chain(Chain { kind, a, b, rest: attempts, invert: false, scan: None }, None).map(Some)
     }
 
     /// Abre o quadro do método mágico `f`; o que ele devolver será tratado por `finish_dunder`.
@@ -3435,10 +4009,19 @@ impl Vm {
             Dunder::Chain(chain) => self.advance_chain(chain, Some(v)),
             Dunder::Push => Ok(Next::Value(v)),
             Dunder::Discard | Dunder::Signal => Ok(Next::Nothing),
+            Dunder::Finalize { handled, floor, .. } => {
+                self.handled.borrow_mut().truncate(handled);
+                crate::finalize::frame_closed(floor);
+                Ok(Next::Nothing)
+            }
             Dunder::Boolean { negate } => Ok(Next::Value(Value::Bool(v.is_true() != negate))),
             Dunder::Iter => iterator_from_dunder(v).map(Next::Iter),
+            Dunder::Text(name) => crate::classes::text_result(name, v).map(Next::Value),
+            Dunder::Builtin(use_) => use_.result(v).map(Next::Value),
             Dunder::Callback(callback) => self.resume_callback(*callback, Some(v)),
             Dunder::Import(_) | Dunder::Exec(_) => Err(internal("a module body closed as a method")),
+            Dunder::Replay(_) => Err(internal("a replayed call closed as a method")),
+            Dunder::CReturn(_) => Err(internal("a native python call closed as a method")),
             Dunder::Truth { how, len } => {
                 let truth = if len { len_result(v)? != 0 } else { bool_result(&v)? };
                 Ok(match how {
@@ -3458,7 +4041,8 @@ impl Vm {
         if let Some(v) = returned
             && !crate::classes::is_not_implemented(&v)
         {
-            return Ok(Next::Value(chain.conclude(v)));
+            let v = chain.conclude(v);
+            return self.chain_result(chain, v);
         }
         while let Some(at) = chain.rest.pop() {
             chain.invert = at.invert;
@@ -3469,10 +4053,47 @@ impl Vm {
                 None => {}
                 Some(Err(e)) => return Err(e),
                 Some(Ok(v)) if crate::classes::is_not_implemented(&v) => {}
-                Some(Ok(v)) => return Ok(Next::Value(chain.conclude(v))),
+                Some(Ok(v)) => {
+                    let v = chain.conclude(v);
+                    return self.chain_result(chain, v);
+                }
             }
         }
-        chain.fallback().map(Next::Value)
+        let v = chain.fallback()?;
+        self.chain_result(chain, v)
+    }
+
+    /// O operador da cadeia deu `v`: vai para a pilha, ou para a busca que o esperava.
+    fn chain_result(&mut self, mut chain: Chain, v: Value) -> PyResult<Next> {
+        match chain.scan.take() {
+            Some(scan) => self.scan_step(scan, Some(v.is_true())),
+            None => Ok(Next::Value(v)),
+        }
+    }
+
+    /// Segue a busca `scan`; `hit` é a igualdade do par corrente, quando ela acabou de voltar de um quadro.
+    fn scan_step(&mut self, mut scan: Box<Scan>, hit: Option<bool>) -> PyResult<Next> {
+        if let Some(equal) = hit {
+            if let Some(v) = scan.matched(equal) {
+                return Ok(Next::Value(v));
+            }
+            scan.pos += 1;
+        }
+        while let Some(x) = scan.element() {
+            let item = scan.item.clone();
+            if !is(&x, &item) && (dunder_function(&x, "__eq__").is_some() || dunder_function(&item, "__eq__").is_some()) {
+                let mut attempts = equal_attempts(CmpOp::Eq, &x, &item);
+                attempts.reverse();
+                let chain = Chain { kind: ChainKind::Equal(CmpOp::Eq), a: x, b: item, rest: attempts, invert: false, scan: Some(scan) };
+                return self.advance_chain(chain, None);
+            }
+            let equal = eq_bool(&x, &item)?;
+            if let Some(v) = scan.matched(equal) {
+                return Ok(Next::Value(v));
+            }
+            scan.pos += 1;
+        }
+        scan.exhausted().map(Next::Value)
     }
 
     /// Liga os argumentos aos parâmetros como o CPython (`_PyEval_MakeFrameVector`) e devolve o
@@ -3835,6 +4456,10 @@ impl Vm {
                 let v = pop(stack)?;
                 stack.push(Slot::Iter(get_iter(&v)?));
             }
+            Op::GetIterValue => {
+                let v = pop(stack)?;
+                stack.push(Slot::Val(iterator_value(v)?));
+            }
             Op::ForIter(t) => {
                 let next = match stack.last_mut() {
                     Some(Slot::Iter(it)) => it.next()?,
@@ -3956,11 +4581,15 @@ impl Vm {
                 };
                 let kw_values = pop_n(stack, kw_names.len())?;
                 let defaults = pop_n(stack, ndefaults as usize)?;
+                let inner = code.functions[idx as usize].clone();
+                // Como o CPython: só a função com variável livre fecha o escopo de fora (sem ela, o `Env` de fora
+                // não ficaria preso à função, e um objeto guardado nele não viveria num ciclo que o CPython não tem).
+                let closure = if inner.freevars.is_empty() && !inner.uses_class_cell { None } else { locals.capture() };
                 let f = FuncObj {
-                    code: code.functions[idx as usize].clone(),
+                    code: inner,
                     defaults,
                     kwdefaults: kw_names.into_iter().zip(kw_values).collect(),
-                    closure: locals.capture(),
+                    closure,
                     globals: self.globals.clone(),
                     attrs: FuncObj::new_attrs(),
                     annotations: RefCell::new(None),
@@ -4593,6 +5222,7 @@ impl Vm {
             Value::Class(c) => return self.instantiate(c, args, kwargs),
             Value::Instance(i) => {
                 return match i.class().lookup("__call__") {
+                    Some(Value::Function(f)) if f.no_bind.get() => self.call_function(&f, args, kwargs),
                     Some(Value::Function(f)) => {
                         let mut full = Vec::with_capacity(args.len() + 1);
                         full.push(func.clone());
@@ -4879,6 +5509,9 @@ impl Vm {
                 t
             }
         });
+        if crate::UNBUFFERED.load(std::sync::atomic::Ordering::Relaxed) {
+            return self.flush_stdout();
+        }
         if tty {
             if data.contains(&b'\n') {
                 self.flush_stdout()?;
@@ -4961,6 +5594,10 @@ impl Vm {
                 break;
             }
             parts.push(part);
+        }
+        // Numa repetição que ainda espera um `__str__` de usuário, nada sai: o `print` roda de novo com o texto pronto.
+        if crate::replay::suspended(self.rust_nest.get()) {
+            return Err(crate::replay::suspension());
         }
         let text = if failure.is_some() {
             let mut t = parts.join(&sep);
@@ -5628,7 +6265,11 @@ impl Vm {
                             "newlines" => return Ok(Value::None),
                             // O tipo do `sys.stdout` é o `_io.TextIOWrapper` (tipo de heap em C, com `__module__` no dict).
                             "__module__" => return Ok(Value::str("_io")),
-                            "line_buffering" | "write_through" => return Ok(Value::Bool(false)),
+                            "line_buffering" => return Ok(Value::Bool(false)),
+                            "write_through" => {
+                                let out = matches!(f.kind, FileKind::Stdout | FileKind::Stderr);
+                                return Ok(Value::Bool(out && crate::UNBUFFERED.load(std::sync::atomic::Ordering::Relaxed)));
+                            }
                             "mode" => {
                                 return Ok(Value::str(if matches!(f.kind, FileKind::Stdin | FileKind::Read) { "r" } else { "w" }))
                             }
@@ -6021,7 +6662,7 @@ pub(crate) fn raise_value(v: Value) -> PyResult<PyException> {
 }
 
 fn list_of(items: Vec<Value>) -> Value {
-    Value::List(Rc::new(RefCell::new(items)))
+    Value::list(items)
 }
 
 /// Ordena com `<`, estável, propagando o `TypeError` de tipos incomparáveis.
@@ -6252,6 +6893,29 @@ fn as_index(v: &Value) -> Option<i64> {
     }
 }
 
+/// O `PyNumber_Index`: o próprio `int` (o `bool` e a subclasse de `int` viram o inteiro), ou o que o `__index__` de
+/// usuário devolve, que tem de ser `int`.
+pub(crate) fn number_index(v: &Value) -> PyResult<Value> {
+    let int = |v: &Value| matches!(unwrap_payload(v), Value::Int(_) | Value::Bool(_) | Value::Big(_));
+    if int(v) {
+        return Ok(match unwrap_payload(v) {
+            Value::Bool(b) => Value::Int(i64::from(b)),
+            other => other,
+        });
+    }
+    if let Value::Instance(_) = v
+        && let Some(mut vm) = current()
+        && let Some(r) = vm.call_dunder(v, "__index__", Vec::new())
+    {
+        let r = r?;
+        if !int(&r) {
+            return Err(type_error(format!("__index__ returned non-int (type {})", r.type_name())));
+        }
+        return number_index(&r);
+    }
+    Err(type_error(format!("'{}' object cannot be interpreted as an integer", v.type_name())))
+}
+
 fn range_of(args: &[Value]) -> PyResult<Value> {
     if args.is_empty() {
         return Err(type_error("range expected at least 1 argument, got 0"));
@@ -6261,7 +6925,8 @@ fn range_of(args: &[Value]) -> PyResult<Value> {
     }
     let mut ints = Vec::with_capacity(3);
     for a in args {
-        match as_index(a) {
+        let n = number_index(a)?;
+        match as_index(&n) {
             Some(i) => ints.push(i),
             None => {
                 return Err(type_error(format!("'{}' object cannot be interpreted as an integer", a.type_name())))
@@ -6346,6 +7011,10 @@ pub(crate) fn slice_bounds(len: i64, s: &(Value, Value, Value)) -> PyResult<(i64
             Value::None => Ok(None),
             Value::Int(i) => Ok(Some(*i)),
             Value::Bool(b) => Ok(Some(i64::from(*b))),
+            Value::Instance(i) if i.class().lookup("__index__").is_some() => match number_index(v)? {
+                Value::Int(n) => Ok(Some(n)),
+                _ => Ok(Some(i64::MAX)),
+            },
             _ => Err(type_error("slice indices must be integers or None or have an __index__ method")),
         }
     };
@@ -6448,8 +7117,17 @@ pub(crate) fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
         return Err(type_error(format!("'{}' object is not subscriptable", container.type_name())));
     }
     let seq_index = |what: &str| -> PyResult<i64> {
-        as_index(index)
-            .ok_or_else(|| type_error(format!("{what} indices must be integers or slices, not {}", index.type_name())))
+        if let Some(i) = as_index(index) {
+            return Ok(i);
+        }
+        // `__index__` de usuário (`PyNumber_AsSsize_t`): o que não cabe num `Py_ssize_t` é `IndexError`.
+        if matches!(index, Value::Instance(i) if i.class().lookup("__index__").is_some()) {
+            return match number_index(index)? {
+                Value::Int(n) => Ok(n),
+                other => Err(exc("IndexError", format!("cannot fit '{}' into an index-sized integer", other.type_name()))),
+            };
+        }
+        Err(type_error(format!("{what} indices must be integers or slices, not {}", index.type_name())))
     };
     match container {
         Value::Ext(e) => match e.getitem(index) {
@@ -6963,31 +7641,33 @@ fn binary_native(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<
 
 /// `|`, `&`, `-` e `^` entre conjuntos (e as versões `|=`... que mudam o da esquerda).
 fn set_binary(op: Operator, x: &Rc<RefCell<Set>>, y: &Rc<RefCell<Set>>, inplace: bool) -> PyResult<Value> {
-    let xs: Vec<Value> = x.borrow().iter().cloned().collect();
-    let ys: Vec<Value> = y.borrow().iter().cloned().collect();
+    // Os hashes guardados nas entradas servem às operações entre conjuntos (`set_merge`, `set_contains_entry`):
+    // o CPython não chama o `__hash__` de novo aqui.
+    let xs = x.borrow().hashed_items();
+    let ys = y.borrow().hashed_items();
     // O resultado tem o tipo do operando da esquerda; `frozenset |= x` não existe, o nome é religado.
     let frozen = x.borrow().is_frozen();
     let inplace = inplace && !frozen;
     let mut out = Set::new();
     match op {
         Operator::BitOr => {
-            for v in xs.iter().chain(ys.iter()) {
-                out.add(v.clone())?;
+            for (h, v) in xs.iter().chain(ys.iter()) {
+                out.add_hashed(*h, v.clone())?;
             }
         }
         Operator::BitAnd => {
             let yb = y.borrow();
-            for v in &xs {
-                if yb.contains(v)? {
-                    out.add(v.clone())?;
+            for (h, v) in &xs {
+                if yb.contains_hashed(*h, v)? {
+                    out.add_hashed(*h, v.clone())?;
                 }
             }
         }
         Operator::Sub => {
             let yb = y.borrow();
-            for v in &xs {
-                if !yb.contains(v)? {
-                    out.add(v.clone())?;
+            for (h, v) in &xs {
+                if !yb.contains_hashed(*h, v)? {
+                    out.add_hashed(*h, v.clone())?;
                 }
             }
         }
@@ -6995,11 +7675,10 @@ fn set_binary(op: Operator, x: &Rc<RefCell<Set>>, y: &Rc<RefCell<Set>>, inplace:
             // `set_symmetric_difference`: cópia do da direita, alternando cada item do da esquerda; o `^=`
             // (`set_symmetric_difference_update`) altera o da esquerda com os itens do da direita.
             let (mut base, items) = if inplace { (x.borrow().clone(), &ys) } else { (y.borrow().clone(), &xs) };
-            for v in items {
-                if base.contains(v)? {
-                    base.discard(v)?;
-                } else {
-                    base.add(v.clone())?;
+            // Como o `set_discard_entry` seguido do `set_add_entry` do CPython: uma só busca quando o item estava lá.
+            for (h, v) in items {
+                if !base.discard_hashed(*h, v)? {
+                    base.add_hashed(*h, v.clone())?;
                 }
             }
             out = base;
@@ -7407,8 +8086,8 @@ fn compare_native(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
         }
     }
     match op {
-        CmpOp::Eq => Ok(py_eq(a, b)),
-        CmpOp::NotEq => Ok(!py_eq(a, b)),
+        CmpOp::Eq => py_eq(a, b),
+        CmpOp::NotEq => Ok(!py_eq(a, b)?),
         CmpOp::Is => Ok(is(a, b)),
         CmpOp::IsNot => Ok(!is(a, b)),
         CmpOp::In => contains(b, a),
@@ -7508,7 +8187,7 @@ pub(crate) fn contains(container: &Value, item: &Value) -> PyResult<bool> {
             return r;
         }
         if let Some(items) = e.to_items() {
-            return Ok(items.iter().any(|x| is(x, item) || py_eq(x, item)));
+            return Ok(position_eq(&items, item)?.is_some());
         }
     }
     if let Value::Class(c) = container
@@ -7525,10 +8204,16 @@ pub(crate) fn contains(container: &Value, item: &Value) -> PyResult<bool> {
         }
         return contains_by_iteration(container, item);
     }
-    let member = |items: &[Value]| items.iter().any(|x| is(x, item) || py_eq(x, item));
     match container {
-        Value::List(l) => Ok(member(&l.borrow()[..])),
-        Value::Tuple(t) => Ok(member(&t[..])),
+        Value::List(l) => {
+            let mut found = false;
+            crate::object::scan_list_eq(l, item, 0, usize::MAX, |_| {
+                found = true;
+                true
+            })?;
+            Ok(found)
+        }
+        Value::Tuple(t) => Ok(position_eq(t, item)?.is_some()),
         Value::Str(s) => match item {
             Value::Str(sub) => Ok(!crate::object::match_offsets(s.as_str(), sub.as_str(), 1).is_empty()),
             _ => Err(type_error(format!(
@@ -7541,7 +8226,7 @@ pub(crate) fn contains(container: &Value, item: &Value) -> PyResult<bool> {
         Value::Range(r) => match item {
             Value::Int(i) => Ok(r.contains_int(*i)),
             Value::Bool(b) => Ok(r.contains_int(i64::from(*b))),
-            _ => Ok(member(&iterate(container)?)),
+            _ => Ok(position_eq(&iterate(container)?, item)?.is_some()),
         },
         Value::Bytes(_) | Value::ByteArray(_) => match as_index(item) {
             Some(i) if (0..256).contains(&i) => Ok(container.bytes_like().is_some_and(|b| b.contains(&(i as u8)))),
@@ -7581,7 +8266,7 @@ fn contains_by_iteration(container: &Value, item: &Value) -> PyResult<bool> {
         }
     })?;
     while let Some(x) = it.next()? {
-        if is(&x, item) || py_eq(&x, item) {
+        if eq_bool(&x, item)? {
             return Ok(true);
         }
     }
@@ -7687,7 +8372,7 @@ fn order(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
 /// sem diferença, decide o tamanho.
 fn seq_order(op: CmpOp, x: &[Value], y: &[Value]) -> PyResult<bool> {
     for (p, q) in x.iter().zip(y) {
-        if !(is(p, q) || py_eq(p, q)) {
+        if !eq_bool(p, q)? {
             return compare(op, p, q);
         }
     }

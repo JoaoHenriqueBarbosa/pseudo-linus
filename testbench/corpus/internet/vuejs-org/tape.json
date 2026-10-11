@@ -1,0 +1,702 @@
+{
+ "url": "https://vuejs.org/",
+ "recorded_at": 1791582400,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "text/html; charset=UTF-8"
+    ]
+   ],
+   "body": "770d19af5438cab2a87c31b4228830d10e78ead9a1c63adf63ccf2e20583224e"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/vp-icons.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "text/css; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/index.md.DGgGtkgQ.lean.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "68c7b2a8d989bd846d85c1d5bd102f72982c3dd86dc6f4f552cb7a6149247e8d"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/inter-roman-latin.Cy4MYw_J.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "3ba37cd162fbf77ac61ae16dfc6a9bda2a04d7e93cf1c9873312d0b3f07920e4"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/app.B91ytTIH.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "b8fb0bca9d4069b83faab415cb1651e0d2abc7ae2b5c859e7f6ca96213d0b811"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/chunks/plugin-vue_export-helper.CHIaqsk5.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "27e87fe62aa760227b7529576953d8314891fd2aec28e0a3f03aece406f2d7d7"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/chunks/preload-helper.DPeZQNDl.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "0c88c6aaef07b19239a2eac9faef82584f9e733114f85dc190e98dcea60b1753"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/chunks/src.BvVF4JYV.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "887407fd6775c91ddad638a6c6f7c86529d3e86a3502164e5b24740127e8b1f7"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/chunks/client.Di6ffgQ0.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "1fe26e8ac20c06efbffe86816c23a61246b489276b82dc2706590723b54d3a22"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/chunks/PreferenceSwitch.Xjf1us8F.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "67cce5eb932c9815c4a921419255723b2c53ad740f4d5cc8fad00f4d32a58bf0"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/style.BMnqHME7.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "text/css; charset=UTF-8"
+    ]
+   ],
+   "body": "f9b52690c0a0a10b974dcf90eda9122a5e641117810f3aa9e4836b3b1fe30769"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/chunks/runtime-dom.esm-bundler.CWLNKmOD.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "44f6248e8d1ea06ebfb6cd5dada150c61a69cc71d571db210cd360bbbf446033"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/chunks/runtime-core.esm-bundler.D9dvqvXF.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "4510d6903488718a872e2ce5c1f85ad7c66f7b88b94909bd2496f4817d4e1cee"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/chunks/SponsorsGroup.DCKN6C6f.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "9f0b8586992b1c956164d88d32753b8b056c7e35d794c82903741a30b4309463"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/chunks/config.CLhnupWp.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "5ca01e8d245179b3aa3e901a1d9bf90110341c80e9a30e138b9be018f034a29e"
+  },
+  {
+   "method": "GET",
+   "url": "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "link",
+     "<https://fonts.gstatic.com>; rel=preconnect; crossorigin"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "3359b9ea957026e00dc25989c6f39b1f4b6de8f89c6957e2013298fb5c9b9f3f"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/inter-roman-cyrillic.CD0kT8R4.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "493cb92701749499ec7604e1c36f99f2f943e1586b9f2f3f66dc06218ab47da5"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/inter-roman-latin-ext.Dl_ayf4-.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "20fb3c253b044c6c30ef7b89a362cf48c4f773f66b71b8dd8c09c7c76e44d23b"
+  },
+  {
+   "method": "GET",
+   "url": "https://cdn.usefathom.com/script.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "ccf2b4e65ead8bc452ba86f85c89626280ab9fa7b5c4af246f2c42dede516252"
+  },
+  {
+   "method": "GET",
+   "url": "https://media.bitterbrains.com/main.js?from=vuejs&type=top",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-expose-headers",
+     "ETag"
+    ],
+    [
+     "access-control-allow-methods",
+     "GET, OPTIONS"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-headers",
+     "Accept, Content-Type, If-None-Match"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "a8c0f35794ee24286a47a13b66629b945e34d29348948b3db0d1b4581c4a9726"
+  },
+  {
+   "method": "GET",
+   "url": "https://automation.vuejs.org/data.json",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ]
+   ],
+   "body": "aab0a34829862210ea8a3469ada6581ec630d683a66ac92a9affeb26de432617"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/guide_quick-start.md.B1k9QN6u.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/tutorial_index.md.DAkQf-Ux.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/api_index.md.C3D3OUgv.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/about_community-guide.md.BwmxDKSS.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/sponsor_index.md.t80tqlQI.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/about_coc.md.v_lGDmAB.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/guide_introduction.md.gc56Jx_-.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/glossary_index.md.CwErPStu.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/about_team.md.Bju45K56.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/about_faq.md.DHc_el53.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/about_privacy.md.DEPHtMz3.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/partners_index.md.BqX16792.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/about_releases.md.DetwGGkT.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/ecosystem_themes.md.Cr2s_KrP.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/examples_index.md.BosncS-L.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/error-reference_index.md._PgetNiz.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://cdn.usefathom.com/?h=https%3A%2F%2Fvuejs.org&p=%2F&r=&sid=XNOLWPLB&qs=%7B%7D&cid=65495281",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/gif"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "aa03dc59bdca72631d2301e4297cfa030bd31b907dc138e7b973d12311c90a22"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/logo.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "6f97b1f82a6dafdda0b53c347bdfb0b74cb3bf1d73ce8e40bbbb914115235886"
+  },
+  {
+   "method": "GET",
+   "url": "https://media.bitterbrains.com/banners?affiliate=vuejs",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-expose-headers",
+     "ETag"
+    ],
+    [
+     "access-control-allow-methods",
+     "GET, OPTIONS"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ],
+    [
+     "access-control-allow-headers",
+     "Accept, Content-Type, If-None-Match"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  {
+   "method": "GET",
+   "url": "https://vuejs.org/assets/guide_scaling-up_tooling.md.CNmmMp3K.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors https://staging.certification.vuejs.org https://certification.vuejs.org https://certificates.dev https://staging.certificates.dev https://alemira.com https://*.alemira.com"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+ ]
+}

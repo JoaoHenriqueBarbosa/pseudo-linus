@@ -1,0 +1,5 @@
+2026/10/10-21:42:54.343 20c Reusing MANIFEST /tmp/profile/Default/Local Storage/leveldb/MANIFEST-000001
+2026/10/10-21:42:54.344 20c Recovering log #7
+2026/10/10-21:42:54.344 20c Level-0 table #9: started
+2026/10/10-21:42:54.368 20c Level-0 table #9: 80341 bytes OK
+2026/10/10-21:42:54.375 20c Delete type=0 #7

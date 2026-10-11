@@ -1,0 +1,8 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>quota inner</title>
+<script>
+const a = indexedDB.open('inner', 1);
+a.onsuccess = () => a.result.close();
+</script>
+<body>inner</body>

@@ -1,0 +1,463 @@
+/*
+ * A scrolling body, a site navigation menu (div.banner) along
+ * the top and a local navigation menu (div.map) along the
+ * right side.
+ *   
+ * Some pages (e.g., QA) use DIVs with ID=Menu and ID=Logo instead of
+ * class "banner" and "map" and have some other subtle differences.
+ *
+ * Copyright 2003 W3C (MIT, ERCIM, Keio). All Rights Reserved.
+ * See http://www.w3.org/Consortium/Legal/ipr-notice.html#Copyright
+ *
+ * Author: Bert Bos <bert@w3.org>
+ * Created: 12 Sep 2002
+ * Version: $Id: threepart.css,v 1.125 2016/04/15 13:03:39 bbos Exp $
+ */
+
+@import "hints2.css";
+
+/* Colors, fonts and other basic stuff */
+
+@font-face {
+  font-family: My Gill Sans;
+  font-style: normal;
+  font-weight: normal;
+  src: url(CSS/GILLSAN3.eot) format("eot"), url(CSS/GILLSAN3.woff) format("woff")}
+
+@font-face {
+  font-family: My Gill Sans;
+  font-style: oblique;
+  font-weight: normal;
+  src: url(CSS/GILLSAN2.eot) format("eot"), url(CSS/GILLSAN2.woff) format("woff")}
+
+@font-face {
+  font-family: My Gill Sans;
+  font-style: normal;
+  font-weight: 700;
+  src: url(CSS/GILLSAN1.eot) format("eot"), url(CSS/GILLSAN1.woff) format("woff")}
+
+@font-face {
+  font-family: My Gill Sans;
+  font-style: oblique;
+  font-weight: 700;
+  src: url(CSS/GILLSAN0.eot) format("eot"), url(CSS/GILLSAN0.woff) format("woff")}
+
+body {
+  background: white;
+  color: #333;
+  line-height: 1.3;
+  text-align: justify;
+  letter-spacing: 0;		/* Avoid letter spacing due to justification */
+  font: 1.156em/1.3 Gill Sans MT, Gill Sans, My Gill Sans, sans-serif;
+  font-size-adjust: 0.45 }
+h1 {
+  line-height: 1;
+  text-align: left;
+  font-variant: small-caps;
+  border-bottom: thin solid;
+  padding: 0 0 0.2em 0;
+  font-weight: normal }
+html[dir=rtl] h1 {
+  text-align: right}
+h1:first-line { 
+  border-bottom: none;		/* bug in Konqueror 3.1 */
+  font-style: italic }
+a:link img, a:visited img {
+  border-style: none }
+h1, h3 {
+  color: #000 }
+h3 {
+  font-weight: bold;
+  font-size: 1em;
+  margin: 1.5em 0 1em 0;
+  display: run-in }
+h3:after {
+  content: " " }
+h3.subtitle {
+  font-weight: normal;
+  font-style: italic;
+  margin: 1em 0;
+  display: block;
+  text-align: left }
+html[dir=rtl] h3.subtitle {
+  text-align: right }
+h2 {
+  text-align: left;
+  line-height: 1;
+  color: #aa7;
+  border-bottom: thin solid;
+  padding: 0 0 0.2em 0;
+  font-weight: bold;
+  text-transform: uppercase;
+  clear: both;
+  margin-top: 3em }
+html[dir=rtl] h2 {
+  text-align: right }
+div.section {
+  clear: both }
+pre {
+  margin-left: 1.5em;
+  text-align: left }		/* Safari 1.0b doesn't do this by default */
+li {
+  padding-left: 0;
+  margin: 1.2em 0 }
+html[dir=rtl] {
+  padding-right: 0 }
+ul, ol {
+  padding-right: 0;
+  padding-left: 0;
+  margin-right: 0;
+  margin-left: 1.5em }
+html[dir=rtl] ul, html[dir=rtl] ol {
+  padding-right: 0;
+  padding-left: 0;
+  margin-left: 0;
+  margin-right: 1.5em }
+address { 
+  text-align: right;
+  font-style: italic }
+html[dir=rtl] address {
+  text-align: left }
+p + p, p + p.hint + p {		/* Indent rather than top margin */
+  text-indent: 1.5em;
+  margin-top: 0 }
+p {
+  margin-top: 1em;
+  margin-bottom: 0 }
+dd {
+  padding-left: 1.5em;
+  margin-left: 0 }
+a:link {
+  color: #037 }
+a:visited {
+  color: #551a8b }
+a:active {
+  color: #900 }
+a:hover {
+  background: #999;
+  color: #FFF;
+  outline: solid red }
+a:hover * {			/* Work-around for Konqueror 3.1 */
+  background: inherit }
+div.back {
+  clear: both }
+
+/* Some specific classes */
+
+span.date {
+  font-size: 110%;
+  font-weight: bold;
+  line-height: 0.9 }
+span.date:after {
+  content: "\A0\A0" }
+h3 + p > span.date {
+  font: inherit }
+h3 + p > span.date:before {
+  content: "(" }
+h3 + p > span.date:after {
+  content: ")" }
+p.stb, .hint + p.stb {		/* Small thematic break */
+  text-indent: 0;
+  margin-top: 0.6em }
+p.hint + p, p.alt-hint + p, p.skip + p, p.metadata + p {
+  text-indent: 0;
+  margin-top: 1em }
+p.remark {
+  font-size: smaller}
+@media screen, projection, print, handheld { 
+  .hide {
+    display: none;
+    color: white } }
+div.endmatter, div.footer {
+  clear: both;
+  margin-top: 1em;
+  border-top: thin solid;
+  padding-top: 1em }
+ul.toc {
+  list-style: none }
+address img {
+  float: right;			/* Portrait of the author */
+  margin: 0 0 0 0.5em;
+  width: 4em }
+html[dir=rtl] address img {
+  float: left;
+  margin: 0 0.5em 0 0 }
+dl.compact {			/* A DL as a single para, with  */
+  padding: 0;
+  margin-left: 0;
+  margin-right: 0 }
+dl.compact dt {
+  display: run-in;
+  font-weight: bold;
+  margin: 0;
+  padding: 0 }
+dl.compact dd {
+  margin: 0;
+  padding: 0 }
+.skip {				/* Navigation for handhelds */
+  display: none }
+
+/* Give the body some margins to make room for the two menus */
+
+html {
+  margin: 0 }
+body {
+  position: relative;		/* Make containing block for the menus */
+  padding: 9em 17em 5em 2em;	/* Room for banner at the top */
+  margin: 0 }			/* 17em is too much, but IE6 needs it */
+html>body {
+  padding-right: 14em }		/* 14em overrides the 17em above */
+
+/* Local navigation menu, along the right side */
+
+div#Menu span.dot,		/* Hide the dot between links in this style */
+div#Menu hr {			/* Hide the HR inside the menu */
+  display: none }
+
+div#Menu,
+div.map { 
+  position: absolute;
+  width: 11em; height: auto;
+  top: 1em; right: 1em; bottom: 1em; left: auto;
+  background: #DDB url(dogsear.png) bottom right no-repeat }
+div#Menu p.navhead, div#Menu a,
+div.map p, div.map li, div.map h2 {
+  display: block;
+  font-size: medium;
+  margin: 0.55em 1.63em 0.44em -0.9em;
+  padding: 0.38em 1em;
+  text-indent: 0;
+  text-align: left;
+  background: #aa7 url(sandydogsear.png) bottom right no-repeat;
+  color: white;
+  border-bottom: none;		/* Remove rule under H2 */
+  list-style: none }		/* Remove triangle from H2 */
+html[dir=rtl] div.map p, html[dir=rtl] div.map li, html[dir=rtl] div.map h2 {
+  padding-right: 18px;		/* Width of sandydogsear.png + 2px */
+  text-align: right }
+div.map li li {			/* Nested LIs don't get the dogear */
+  margin: 0;
+  padding: 0;
+  background: #aa7;
+  color: white}
+div.map > ul {
+  margin: 0;
+  padding: 0 }
+div#Menu p.navhead {
+  font-weight: bold }
+div#Menu a:link, div#Menu a:visited,
+div.map a:link, div.map a:visited {
+  font-style: italic;
+  text-decoration: none;
+  color: white }
+div.map a:hover {
+  background: #CCC;
+  color: #000 }
+div#Menu:before,
+div.map:before {
+  content: "Local links";
+  display: block;
+  margin-bottom: 1em;
+  padding: 0.1em 0.5em;
+  color: #999;
+  font-size: larger;
+  font-style: italic;
+  text-align: left;
+  letter-spacing: 0.25em }
+html[dir=rtl] div.map:before {
+  text-align: right }
+
+/* Various other languages */
+div.map:lang(az):before {content: "Lokal istinadlar"}
+div.map:lang(bg):before {content: "\41B\43E\43A\430\43B\43D\438  \432\440\44A\437\43A\438"}
+div.map:lang(de):before {content: "Lokale Links"}
+div.map:lang(es):before {content: "Enlaces locales"}
+div.map:lang(fr):before {content: "Liens locaux"}
+div.map:lang(is):before {content: "Sta\F0 bundnir tenglar"}
+div.map:lang(it):before {content: "Link nella pagina"}
+div.map:lang(nl):before {content: "Lokale links"}
+div.map:lang(no):before,
+div.map:lang(nb):before {content: "Lokale linker"}
+div.map:lang(pl):before {content: "Linki lokalne"}
+div.map:lang(pt):before {content: "Links locais"}
+div.map:lang(sr):before {content: "\41B\43E\43A\430\43B\43D\438  \43B\438\43D\43A\43E\432\438"}
+div.map:lang(th):before {content: "\E40\E21\E19\E39\E25\E31\E14"}
+
+/* Site navigation menu, along the top */
+
+div#Logo div, div#Logo map {	/* QA pages have extra elements inside the */
+  position: static;		/* DIV. Make sure they don't do anything. */
+  display: inline;
+  margin: 0;
+  padding: 0;
+  background: transparent }
+div.header {			/* The banner replaces the header */
+  display: none }
+
+div#Logo,
+div.banner {
+  position: absolute;
+  font-weight: normal;
+  width: auto;
+  height: 7.3em;
+  overflow: visible;
+  top: 1em; right: 14em; bottom: auto; left: 2em;
+  line-height: 1.2;
+  text-align: right;
+  /*background: white;*/
+  color: black }
+/* html[dir=rtl] div.banner {
+  text-align: left } */
+div.banner ul, div.banner li {	/* Lists become inline */
+  margin: 0;
+  padding: 0;
+  display: inline }
+div#Logo p,
+div.banner p {
+  font-size: 0.9em;
+  margin: 0 0 0 0 }
+div.banner a:after {
+  content: " \2022";
+  color: #900 }
+div.banner a:before {
+  content: "\2022  ";
+  color: #900 }
+div.banner a:first-child:before,
+div.banner a + a:before,
+div.banner a[rel=home]:after { 
+  content: "" }
+div.banner a.home:after {
+  content: "" }
+div#Logo a[rel=home],
+div.banner a[rel=home] {
+  float: left; margin-right: 1em }
+div#Logo a.home,
+div.banner a.home {
+  float: left; margin-right: 1em;
+  text-align: left /* This seems to help Opera 6... */ }
+div#Logo img,
+div.banner img {
+  max-height: 7em }
+
+/* /Status.html has a search box in the banner */
+
+#searchbox, #searchbox * {
+  display: inline }
+
+/* author, date and other stuff in blogs */
+
+span.author {font-style: italic}
+p.metadata {text-indent: 0; margin: 1em 0 1em 1.5em; /*text-align: right*/}
+p.metadata span.date {font: inherit}
+p.metadata span.date:after {content: ""; content: none}
+p.feedback {text-indent: 0; margin: 1em 0}
+.feedback strong, .feedback .date {font: inherit}
+.intro {/*font-style: italic;*/ font-weight: bold}
+.caption {margin-top: 1em; text-indent: 0}
+
+p.button {float: left}
+
+/* Links to translations. Each language a different color. Colors are random */
+.translations a[hreflang] {background: hsl(0,0%,83%); padding: 0 0.15em}
+.translations a[hreflang|=af] {color: hsl(195,57%,24%); background: hsl(195,57%,83%)}
+.translations a[hreflang|=ar] {color: hsl(85,57%,24%); background: hsl(85,57%,83%)}
+.translations a[hreflang|=az] {color: hsl(300,57%,24%); background: hsl(300,57%,83%)}
+.translations a[hreflang|=be] {color: hsl(100,57%,24%); background: hsl(100,57%,83%)}
+.translations a[hreflang|=bg] {color: hsl(260,57%,24%); background: hsl(260,57%,83%)}
+.translations a[hreflang|=bn] {color: hsl(105,57%,24%); background: hsl(105,57%,83%)}
+.translations a[hreflang|=ca] {color: hsl(205,57%,24%); background: hsl(205,57%,83%)}
+.translations a[hreflang|=cs] {color: hsl(140,57%,24%); background: hsl(140,57%,83%)}
+.translations a[hreflang|=da] {color: hsl(35,57%,24%); background: hsl(35,57%,83%)}
+.translations a[hreflang|=de] {color: hsl(60,57%,24%); background: hsl(60,57%,83%)}
+.translations a[hreflang|=dk] {color: hsl(95,57%,24%); background: hsl(95,57%,83%)}
+.translations a[hreflang|=el] {color: hsl(190,57%,24%); background: hsl(190,57%,83%)}
+.translations a[hreflang|=en] {color: hsl(20,57%,24%); background: hsl(20,57%,83%)}
+.translations a[hreflang|=es] {color: hsl(130,57%,24%); background: hsl(130,57%,83%)}
+.translations a[hreflang|=et] {color: hsl(350,57%,24%); background: hsl(350,57%,83%)}
+.translations a[hreflang|=fa] {color: hsl(165,57%,24%); background: hsl(165,57%,83%)}
+.translations a[hreflang|=fi] {color: hsl(320,57%,24%); background: hsl(320,57%,83%)}
+.translations a[hreflang|=fr] {color: hsl(70,57%,24%); background: hsl(70,57%,83%)}
+.translations a[hreflang|=gl] {color: hsl(185,57%,24%); background: hsl(185,57%,83%)}
+.translations a[hreflang|=he] {color: hsl(45,57%,24%); background: hsl(45,57%,83%)}
+.translations a[hreflang|=hi] {color: hsl(25,57%,24%); background: hsl(25,57%,83%)}
+.translations a[hreflang|=hr] {color: hsl(15,57%,24%); background: hsl(15,57%,83%)}
+.translations a[hreflang|=hu] {color: hsl(135,57%,24%); background: hsl(135,57%,83%)}
+.translations a[hreflang|=hy] {color: hsl(230,57%,24%); background: hsl(230,57%,83%)}
+.translations a[hreflang|=id] {color: hsl(180,57%,24%); background: hsl(180,57%,83%)}
+.translations a[hreflang|=is] {color: hsl(125,57%,24%); background: hsl(127,57%,83%)}
+.translations a[hreflang|=it] {color: hsl(210,57%,24%); background: hsl(210,57%,83%)}
+.translations a[hreflang|=ja] {color: hsl(120,57%,24%); background: hsl(120,57%,83%)}
+.translations a[hreflang|=ka] {color: hsl(290,57%,24%); background: hsl(290,57%,83%)}
+.translations a[hreflang|=kk] {color: hsl(170,57%,24%); background: hsl(170,57%,83%)}
+.translations a[hreflang|=km] {color: hsl(215,57%,24%); background: hsl(215,57%,83%)}
+.translations a[hreflang|=ko] {color: hsl(55,57%,24%); background: hsl(55,57%,83%)}
+.translations a[hreflang|=ky] {color: hsl(250,57%,24%); background: hsl(250,57%,83%)}
+.translations a[hreflang|=lt] {color: hsl(65,57%,24%); background: hsl(65,57%,83%)}
+.translations a[hreflang|=lv] {color: hsl(0,57%,24%); background: hsl(0,57%,83%)}
+.translations a[hreflang|=mk] {color: hsl(145,57%,24%); background: hsl(145,57%,83%)}
+.translations a[hreflang|=mo] {color: hsl(90,57%,24%); background: hsl(90,57%,83%)}
+.translations a[hreflang|=ne] {color: hsl(175,57%,24%); background: hsl(175,57%,83%)}
+.translations a[hreflang|=nl] {color: hsl(30,57%,24%); background: hsl(30,57%,83%)}
+.translations a[hreflang|=no],
+.translations a[hreflang|=nb] {color: hsl(330,57%,24%); background: hsl(330,57%,83%)}
+.translations a[hreflang|=pl] {color: hsl(220,57%,24%); background: hsl(220,57%,83%)}
+.translations a[hreflang|=pt] {color: hsl(200,57%,24%); background: hsl(200,57%,83%)}
+.translations a[hreflang|=ro] {color: hsl(80,57%,24%); background: hsl(80,57%,83%)}
+.translations a[hreflang|=ru] {color: hsl(10,57%,24%); background: hsl(10,57%,83%)}
+.translations a[hreflang|=sk] {color: hsl(5,57%,24%); background: hsl(5,57%,83%)}
+.translations a[hreflang|=sq] {color: hsl(115,57%,24%); background: hsl(115,57%,83%)}
+.translations a[hreflang|=sr] {color: hsl(50,57%,24%); background: hsl(50,57%,83%)}
+.translations a[hreflang|=sv] {color: hsl(340,57%,24%); background: hsl(340,57%,83%)}
+.translations a[hreflang|=th] {color: hsl(110,57%,24%); background: hsl(110,57%,83%)}
+.translations a[hreflang|=tk] {color: hsl(310,57%,24%); background: hsl(310,57%,83%)}
+.translations a[hreflang|=tl] {color: hsl(270,57%,24%); background: hsl(270,57%,83%)}
+.translations a[hreflang|=tr] {color: hsl(280,57%,24%); background: hsl(280,57%,83%)}
+.translations a[hreflang|=tt] {color: hsl(150,57%,24%); background: hsl(150,57%,83%)}
+.translations a[hreflang|=uk] {color: hsl(40,57%,24%); background: hsl(40,57%,83%)}
+.translations a[hreflang|=ur] {color: hsl(155,57%,24%); background: hsl(155,57%,83%)}
+.translations a[hreflang|=uz] {color: hsl(75,57%,24%); background: hsl(75,57%,83%)}
+.translations a[hreflang|=vi] {color: hsl(240,57%,24%); background: hsl(240,57%,83%)}
+.translations a[hreflang|=zh] {color: hsl(160,57%,24%); background: hsl(160,57%,83%)}
+/* Next: hsl(225,57%,24%) and hsl(225,57%,83%) and then 235, 245... */
+
+/* Fix for Firefox 2, which cannot justify Hindi */
+p:lang(hi) {text-align: left}
+li:lang(hi) {text-align: left}
+
+/* Khmer actually needs a dictionary to determine where words end, but
+it has spaces where where some other languages use commas, and that
+may be just enough to keep the text readable... */
+p:lang(km), li:lang(km) {text-align: left}
+
+@page { 
+  margin: 1.5cm
+}
+
+@media print {
+  /*
+   * Don't print the menus. Make the title large enough
+   * to take half a page. Print a W3C logo in the
+   * upper left corner.
+   *
+   *  Once columns are in CR or Rec, add
+   * 'column-width: 17em; column-gap: 2em' to BODY and
+   * 'column-span: all' to H1, because most paper is much
+   * wider than the optimal line length.
+   */
+  div.banner, div#Logo, div.map, div#Menu {display: none}
+  body, html>body {margin: 0; padding: 0}
+  body:before {display: block;
+    content: url(http://www.w3.org/Icons/w3c_main.png)}
+  h2 {color: black}
+  h1 {border: none; color: #aa7; padding: 2em 0.5em 1em 0;
+    margin: 0.5em 0; text-transform: uppercase;
+    font-size: 600%; line-height: 1; font-weight: normal}
+  h1:first-line {font-style: inherit}
+}
+
+/*
+Local variables:
+mode: css
+cssm-indent-level: 2
+End:
+*/

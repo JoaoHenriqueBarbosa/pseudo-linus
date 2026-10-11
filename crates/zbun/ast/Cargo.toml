@@ -1,0 +1,24 @@
+[package]
+name = "bun_ast"
+version = "1.4.2"
+edition.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+bitflags.workspace = true
+bstr.workspace = true
+bun_collections = { path = "../bun_collections" }
+bun_core = { path = "../bun_core" }
+bun_paths = { path = "../paths" }
+bun_wyhash = { path = "../bun_wyhash" }
+enum-map.workspace = true
+enumset.workspace = true
+hashbrown.workspace = true
+strum.workspace = true
+ul-common = { path = "../../ul-common" }
+
+[lints]
+workspace = true

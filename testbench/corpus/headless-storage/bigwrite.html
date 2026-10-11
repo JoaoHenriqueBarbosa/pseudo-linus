@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>big write probe</title>
+<script>
+// 120 chaves de 20 mil caracteres (cerca de 4,6 MB de UTF-16 no leveldb, que guarda Latin1 quando dá): passa do
+// buffer de escrita do leveldb e força a memtable para uma tabela.
+const chunk = 'x'.repeat(20000);
+let written = 0;
+try {
+  for (let i = 0; i < 120; i++) {
+    localStorage.setItem('big' + String(i).padStart(3, '0'), chunk + i);
+    written++;
+  }
+} catch (error) {
+  document.title = 'error:' + error.name + ':' + written;
+}
+if (!document.title.startsWith('error')) document.title = 'wrote:' + written;
+</script>
+<body>big write probe</body>

@@ -29,6 +29,8 @@ pub mod frameobj;
 pub mod generator;
 pub mod generic;
 pub mod globalsview;
+mod gccollect;
+mod gcreg;
 pub mod gthread;
 pub mod heapimage;
 pub mod idna;
@@ -43,10 +45,13 @@ pub mod native_util;
 pub mod object;
 pub mod parser;
 pub mod pep695;
+mod referents;
 pub mod stdbuf;
 pub mod stdin;
 pub mod suggest;
 pub mod textcodec;
+mod replay;
+mod timsort;
 mod textcodec_tables;
 #[cfg(test)]
 mod stdlib_tests;
@@ -247,6 +252,9 @@ pub(crate) static WARN_OPTIONS: std::sync::Mutex<Vec<String>> = std::sync::Mutex
 /// Nível de `-O` (0, 1 ou 2): com `-O` os `assert` somem e `__debug__` vira `False`.
 pub(crate) static OPTIMIZE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
 
+/// `-u` ou `PYTHONUNBUFFERED`: stdout e stderr sem buffer (cada escrita sai na hora, `write_through` verdadeiro).
+pub(crate) static UNBUFFERED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 /// Versão completa de `-VV` e de `sys.version`.
 pub const VERSION_LONG: &str = "3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]";
 
@@ -291,6 +299,7 @@ fn apply_flag(flags: &mut [i64; 18], letter: u8, optarg: Option<&[u8]>) {
 fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     WARN_OPTIONS.lock().unwrap().clear();
     OPTIMIZE.store(0, std::sync::atomic::Ordering::Relaxed);
+    UNBUFFERED.store(false, std::sync::atomic::Ordering::Relaxed);
     *CLI_FLAGS.lock().unwrap() = DEFAULT_FLAGS;
     let program = argv.first().map(|a| String::from_utf8_lossy(a.as_bytes()).into_owned());
     let program = program.unwrap_or_else(|| "python3".to_string());
@@ -309,6 +318,7 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
                 return 0;
             }
             Opt::Found(b'V') => print_version += 1,
+            Opt::Found(b'u') => UNBUFFERED.store(true, std::sync::atomic::Ordering::Relaxed),
             Opt::Found(b'O') => {
                 let n = OPTIMIZE.load(std::sync::atomic::Ordering::Relaxed);
                 OPTIMIZE.store(n.saturating_add(1).min(2), std::sync::atomic::Ordering::Relaxed);
@@ -333,7 +343,13 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
             }
         }
     }
-    let no_site = CLI_FLAGS.lock().unwrap()[6] != 0;
+    let (no_site, ignore_environment) = {
+        let flags = CLI_FLAGS.lock().unwrap();
+        (flags[6] != 0, flags[7] != 0)
+    };
+    if !ignore_environment && sys::try_current().and_then(|s| s.getenv(b"PYTHONUNBUFFERED")).is_some_and(|v| !v.is_empty()) {
+        UNBUFFERED.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
     let located = locate(&program, no_site);
     *LAYOUT.lock().unwrap() = Some(located);
     if print_version > 0 {
@@ -689,18 +705,23 @@ fn run_main(
         let _ = c.sigaction(sysabi::Signal::SIGPIPE, sysabi::SigDisposition::Ignore);
         let _ = c.sigaction(sysabi::Signal::SIGXFSZ, sysabi::SigDisposition::Ignore);
     }
-    on_interpreter_thread(move || run_source_inner(&owned, argv, &name, file_mode, module, finish_mode)).unwrap_or_else(|| Outcome {
-        stdout: Vec::new(),
-        stderr: "Fatal Python error: could not run the interpreter thread\n".into(),
-        status: 1,
-    })
+    on_interpreter_thread(move || run_source_inner(&owned, argv, &name, file_mode, module, finish_mode))
 }
 
-/// Roda `job` na thread do interpretador: pilha de 1 GiB (reservada, não comprometida) para o limite de recursão de
-/// 1000 chamadas caber, com o pseudo-processo de quem chama instalado nela (`ul_common::thread::run_with_stack`).
-pub(crate) fn on_interpreter_thread<T: Send + 'static>(job: impl FnOnce() -> T + Send + 'static) -> Option<T> {
-    ul_common::thread::run_with_stack(1 << 30, job)
+/// Roda `job` na thread do interpretador: pilha grande (reservada, não comprometida) para o limite de recursão de
+/// 1000 chamadas caber, e o pseudo-processo de quem chama instalado nela (uma thread nova não o herda; `open`, stdin
+/// e stderr dependem dele). Os desvios de controle do kernel (`execve`, `_exit`, morte por sinal) desempilham a
+/// thread e seguem até o pseudo-processo, que é quem troca o programa ou termina.
+///
+/// O CPython não tem uma mensagem para "a thread do interpretador não subiu": com pouca memória ele sobe do mesmo
+/// jeito, e uma falha interna dele é um crash. Aqui a reserva de pilha que o SO recusa cai para a seguinte, menor;
+/// um panic de bug, ou a recusa de todas, mata o processo por SIGSEGV (`ul_common::thread::run_with_stack_ladder`).
+pub(crate) fn on_interpreter_thread<T: Send + 'static>(job: impl FnOnce() -> T + Send + 'static) -> T {
+    ul_common::thread::run_with_stack_ladder(INTERPRETER_STACKS, job)
 }
+
+/// As pilhas que a thread do interpretador tenta, da maior à menor.
+const INTERPRETER_STACKS: &[usize] = &[1 << 30, 1 << 29, 1 << 28, 1 << 27, 1 << 26];
 
 /// As globais que o `pymain` do CPython dá ao `__main__`: `__package__`, `__loader__`, `__spec__`,
 /// `__annotations__`, `__builtins__` e, quando há arquivo, `__cached__`. Com `-m`, a spec é a do
@@ -965,8 +986,8 @@ mod rust_nest_tests {
         let mut machine = Vm::new();
         machine.globals.borrow_mut().insert("nest".into(), Value::NativeFn(Rc::new(NativeFn { name: "nest", f: nest })));
         assert!(machine.run(&code).is_ok());
-        // `list.sort(key=)` recursa (2); o `key=` de `sorted` roda em quadro do laço (1).
-        assert_eq!(ints(machine.globals.borrow().get("seen").expect("seen")), vec![1, 1, 2, 2, 1, 1, 1]);
+        // O `key=` de `list.sort` e o de `sorted` rodam em quadro do laço (1).
+        assert_eq!(ints(machine.globals.borrow().get("seen").expect("seen")), vec![1, 1, 1, 1, 1, 1, 1]);
         assert_eq!(machine.rust_nest.get(), 0);
     }
 }

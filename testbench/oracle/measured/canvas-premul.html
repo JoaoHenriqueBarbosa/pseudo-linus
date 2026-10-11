@@ -1,0 +1,16 @@
+<!doctype html><body><script>
+// Os pixels de getImageData depois de putImageData com cor e alfa aleatórios: a ida (premultiplicação) e a volta
+// do Chromium. O laço inicial só avança o gerador até a sequência em que a medida foi tirada.
+let seed = 12345;
+const rand = (n) => { seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; return (seed >>> 16) % n; };
+for (let i = 0; i < 37 * 23 * 3; i++) rand(256);
+const w = 29, h = 31;
+const c = document.createElement('canvas'); c.width = w; c.height = h;
+const ctx = c.getContext('2d');
+const img = ctx.createImageData(w, h);
+const src = [];
+for (let i = 0; i < w * h; i++) { const p = [rand(256), rand(256), rand(256), rand(256)]; src.push(...p); img.data.set(p, i * 4); }
+ctx.putImageData(img, 0, 0);
+const got = Array.from(ctx.getImageData(0, 0, w, h).data);
+document.body.setAttribute('data-out', JSON.stringify({ src, got }));
+</script></body>

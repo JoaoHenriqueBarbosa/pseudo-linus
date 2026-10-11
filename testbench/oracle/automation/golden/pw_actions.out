@@ -1,0 +1,39 @@
+fill: null
+input_value: "Ana"
+click: null
+out-text: "oi Ana"
+fill-enter: null
+press-enter: null
+out-text-2: "oi Bia"
+type: null
+input_value-2: "BiaZé"
+check: null
+is_checked: true
+uncheck: null
+is_checked-2: false
+select_option: ["g"]
+select-value: "g"
+select-label: ["r"]
+hover: null
+focus: null
+active: "name"
+dblclick: null
+is_visible: true
+is_visible-missing: false
+is_enabled: true
+is_hidden: false
+get_attribute: "/second.html"
+inner_html: "<li>um</li><li>dois</li><li>três</li>"
+bbox: [120, 40]
+text_content-list: "umdoistrês"
+click-missing-timeout: !TimeoutError: Page.click: Timeout 300ms exceeded.
+click-hidden: "none"
+click-hidden-timeout: !TimeoutError: Page.click: Timeout 300ms exceeded.
+click-force: !Error: Page.click: Element is not visible
+keyboard: null
+mouse-move: null
+mouse-click: null
+dispatch_event: null
+out-after-dispatch: "oi BiaZé"
+scroll: null
+scroll-y: true

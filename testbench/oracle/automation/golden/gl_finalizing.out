@@ -1,0 +1,2 @@
+finalizing True
+raised RuntimeError greenlet is being finalized

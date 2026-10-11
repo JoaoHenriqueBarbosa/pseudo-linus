@@ -1,0 +1,66 @@
+count 1 1
+chain PerformanceNavigationTiming[unloadEventStart,unloadEventEnd,domInteractive,domContentLoadedEventStart,domContentLoadedEventEnd,domComplete,loadEventStart,loadEventEnd,type,redirectCount,confidence,criticalCHRestart,activationStart,toJSON,constructor,notRestoredReasons] > PerformanceResourceTiming[initiatorType,nextHopProtocol,deliveryType,workerStart,redirectStart,redirectEnd,fetchStart,domainLookupStart,domainLookupEnd,connectStart,connectEnd,secureConnectionStart,requestStart,responseStart,responseEnd,transferSize,encodedBodySize,decodedBodySize,serverTiming,renderBlockingStatus,responseStatus,contentType,contentEncoding,finalResponseHeadersStart,firstInterimResponseStart,toJSON,workerRouterEvaluationStart,workerCacheLookupStart,workerMatchedSourceType,workerFinalSourceType,constructor] > PerformanceEntry[name,entryType,startTime,duration,toJSON,constructor,navigationId]
+own 
+tag [object PerformanceNavigationTiming] true
+json name "http://127.0.0.1:8000/p"
+json entryType "navigation"
+json startTime 0
+json duration positive
+json navigationId number
+json initiatorType "navigation"
+json deliveryType ""
+json nextHopProtocol "http/1.0"
+json renderBlockingStatus "non-blocking"
+json contentType "text/html"
+json contentEncoding ""
+json workerStart 0
+json workerRouterEvaluationStart 0
+json workerCacheLookupStart 0
+json workerMatchedSourceType ""
+json workerFinalSourceType ""
+json redirectStart 0
+json redirectEnd 0
+json fetchStart positive
+json domainLookupStart positive
+json domainLookupEnd positive
+json connectStart positive
+json secureConnectionStart 0
+json connectEnd positive
+json requestStart positive
+json responseStart positive
+json firstInterimResponseStart 0
+json finalResponseHeadersStart positive
+json responseEnd positive
+json transferSize body+300
+json encodedBodySize body
+json decodedBodySize body
+json responseStatus positive
+json serverTiming array0
+json unloadEventStart 0
+json unloadEventEnd 0
+json domInteractive positive
+json domContentLoadedEventStart positive
+json domContentLoadedEventEnd positive
+json domComplete positive
+json loadEventStart positive
+json loadEventEnd positive
+json type "navigate"
+json redirectCount 0
+json activationStart 0
+json criticalCHRestart 0
+json notRestoredReasons null
+json confidence  number true
+same true
+zero startTime,redirectStart,redirectEnd,workerStart,secureConnectionStart
+monotone true true true
+byName 1 1 0
+entries0 navigation
+legacy {"type":0,"redirectCount":0} [object PerformanceNavigation]
+timing connectStart,secureConnectionStart,unloadEventEnd,domainLookupStart,domainLookupEnd,responseStart,connectEnd,responseEnd,requestStart,domLoading,redirectStart,loadEventEnd,domComplete,navigationStart,loadEventStart,domContentLoadedEventEnd,unloadEventStart,redirectEnd,domInteractive,fetchStart,domContentLoadedEventStart
+tzero secureConnectionStart,unloadEventEnd,redirectStart,unloadEventStart,redirectEnd
+tmatch true
+confidence [object PerformanceTimingConfidence] randomizedTriggerRate,value,toJSON,constructor ["randomizedTriggerRate","value"] false true
+serverTiming [] true true
+ctor TypeError: Failed to construct 'PerformanceNavigationTiming': Illegal constructor | TypeError: Failed to construct 'PerformanceResourceTiming': Illegal constructor
+brand TypeError: Illegal invocation
+size true true 300

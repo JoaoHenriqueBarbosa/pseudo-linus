@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>idb lifecycle</title>
+<script>
+// Ciclo completo num só processo (um único .log): cria db3 com store e índice, escreve, apaga o repositório numa
+// versão nova, e apaga o banco.
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 300 && !done; i++) await fetch('/idb-lifecycle.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+const open = (version, upgrade) => new Promise((resolve) => {
+  const request = indexedDB.open('db3', version);
+  request.onupgradeneeded = (event) => upgrade(event.target.result, event.target.transaction);
+  request.onsuccess = () => resolve(request.result);
+});
+(async () => {
+  let db = await open(1, (database) => {
+    const store = database.createObjectStore('s', { keyPath: 'id' });
+    store.createIndex('by_n', 'n');
+    store.put({ id: 1, n: 'x' });
+  });
+  db.close();
+  db = await open(2, (database) => { database.deleteObjectStore('s'); });
+  db.close();
+  await new Promise((resolve) => { const request = indexedDB.deleteDatabase('db3'); request.onsuccess = resolve; });
+  setTimeout(() => { done = true; document.title = 'done'; }, 200);
+})();
+</script>
+<body>idb lifecycle</body>

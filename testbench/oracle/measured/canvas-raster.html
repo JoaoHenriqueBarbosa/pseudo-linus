@@ -1,0 +1,45 @@
+<!doctype html><body><script>
+// Rasterização do canvas 2D no oráculo: cada cena desenha num canvas de 32x32 e guarda o getImageData em base64.
+// Rodar com `chromium --headless --dump-dom`; o resultado sai no atributo data-out do body.
+const scenes = {
+  'fill-rect': (c) => { c.fillStyle = '#c03'; c.fillRect(4, 4, 20, 12); },
+  'fill-rect-fraction': (c) => { c.fillStyle = 'rgb(20, 120, 220)'; c.fillRect(3.3, 2.6, 17.5, 20.25); },
+  'alpha': (c) => { c.fillStyle = 'rgba(0, 128, 0, 0.5)'; c.globalAlpha = 0.6; c.fillRect(2, 2, 20, 20); c.fillStyle = 'rgba(255, 0, 0, 0.7)'; c.fillRect(10, 10, 20, 20); },
+  'clear-rect': (c) => { c.fillStyle = 'navy'; c.fillRect(0, 0, 32, 32); c.clearRect(8.5, 8.5, 12, 10); },
+  'arc': (c) => { c.fillStyle = 'orange'; c.beginPath(); c.arc(16, 16, 11.5, 0, Math.PI * 2); c.fill(); },
+  'stroke-round': (c) => { c.strokeStyle = 'purple'; c.lineWidth = 3; c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath(); c.moveTo(4, 6); c.lineTo(26, 10); c.lineTo(10, 27); c.stroke(); },
+  'bezier': (c) => { c.strokeStyle = '#222'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(2, 28); c.bezierCurveTo(8, 0, 24, 40, 30, 4); c.stroke(); },
+  'linear-gradient': (c) => { const g = c.createLinearGradient(0, 0, 32, 32); g.addColorStop(0, 'red'); g.addColorStop(0.5, 'rgba(0, 0, 255, 0.5)'); g.addColorStop(1, 'yellow'); c.fillStyle = g; c.fillRect(0, 0, 32, 32); },
+  'radial-gradient': (c) => { const g = c.createRadialGradient(12, 12, 2, 16, 16, 15); g.addColorStop(0, 'white'); g.addColorStop(1, 'green'); c.fillStyle = g; c.fillRect(0, 0, 32, 32); },
+  'rotate': (c) => { c.translate(16, 16); c.rotate(0.5); c.fillStyle = 'teal'; c.fillRect(-8, -5, 16, 10); },
+  'clip': (c) => { c.beginPath(); c.arc(16, 16, 10, 0, Math.PI * 2); c.clip(); c.fillStyle = 'crimson'; c.fillRect(0, 0, 24, 32); },
+  'destination-out': (c) => { c.fillStyle = 'blue'; c.fillRect(0, 0, 32, 32); c.globalCompositeOperation = 'destination-out'; c.beginPath(); c.arc(16, 16, 9, 0, Math.PI * 2); c.fill(); },
+  'source-in': (c) => { c.fillStyle = 'blue'; c.fillRect(4, 4, 16, 16); c.globalCompositeOperation = 'source-in'; c.fillStyle = 'red'; c.fillRect(12, 12, 16, 16); },
+  'copy': (c) => { c.fillStyle = 'blue'; c.fillRect(0, 0, 32, 32); c.globalCompositeOperation = 'copy'; c.fillStyle = 'rgba(255, 0, 0, 0.5)'; c.fillRect(8, 8, 16, 16); },
+  'draw-canvas': (c) => { const o = document.createElement('canvas'); o.width = 8; o.height = 8; const oc = o.getContext('2d'); oc.fillStyle = 'red'; oc.fillRect(0, 0, 4, 4); oc.fillStyle = 'blue'; oc.fillRect(4, 4, 4, 4); c.imageSmoothingEnabled = false; c.drawImage(o, 2, 2, 24, 24); },
+  'text': (c) => { c.font = '16px sans-serif'; c.fillStyle = 'black'; c.fillText('Hi', 4, 20); },
+  'text-stroke': (c) => { c.font = 'bold 20px serif'; c.strokeStyle = 'red'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.strokeText('Ag', 16, 16); },
+  'dash': (c) => { c.strokeStyle = 'black'; c.lineWidth = 2; c.setLineDash([4, 3]); c.beginPath(); c.moveTo(2, 16); c.lineTo(30, 16); c.stroke(); },
+  'evenodd': (c) => { c.fillStyle = 'olive'; c.beginPath(); c.rect(2, 2, 28, 28); c.rect(8, 8, 16, 16); c.fill('evenodd'); },
+  'pattern': (c) => { const o = document.createElement('canvas'); o.width = 6; o.height = 6; const oc = o.getContext('2d'); oc.fillStyle = 'black'; oc.fillRect(0, 0, 3, 3); c.fillStyle = c.createPattern(o, 'repeat'); c.fillRect(0, 0, 32, 32); },
+  'shadow': (c) => { c.shadowColor = 'rgba(0, 0, 0, 0.8)'; c.shadowBlur = 4; c.shadowOffsetX = 3; c.shadowOffsetY = 3; c.fillStyle = 'gold'; c.fillRect(6, 6, 14, 14); },
+  'put-image-data': (c) => { const d = c.createImageData(10, 10); for (let i = 0; i < d.data.length; i += 4) { d.data[i] = 200; d.data[i + 3] = i % 8 ? 255 : 100; } c.putImageData(d, 3, 3); c.fillStyle = 'rgba(0, 0, 255, 0.5)'; c.fillRect(8, 8, 12, 12); },
+  'round-rect': (c) => { c.fillStyle = 'indigo'; c.beginPath(); c.roundRect(3, 5, 26, 20, [8, 2, 6]); c.fill(); },
+  'transform-path': (c) => { c.beginPath(); c.moveTo(4, 4); c.scale(2, 1); c.lineTo(14, 4); c.lineTo(14, 20); c.setTransform(1, 0, 0, 1, 0, 0); c.closePath(); c.fillStyle = 'brown'; c.fill(); },
+  'ellipse-stroke': (c) => { c.strokeStyle = 'darkgreen'; c.lineWidth = 2; c.beginPath(); c.ellipse(16, 16, 12, 6, 0.4, 0, Math.PI * 1.5); c.stroke(); },
+  'arc-to': (c) => { c.strokeStyle = 'black'; c.lineWidth = 2; c.beginPath(); c.moveTo(4, 28); c.arcTo(4, 4, 28, 4, 10); c.lineTo(28, 4); c.stroke(); },
+  'path2d': (c) => { const p = new Path2D('M4 4 L28 8 Q20 30 6 26 Z'); c.fillStyle = 'steelblue'; c.scale(1, 1.1); c.fill(p); },
+};
+const out = {};
+for (const [name, draw] of Object.entries(scenes)) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 32; canvas.height = 32;
+  const c = canvas.getContext('2d');
+  draw(c);
+  const data = c.getImageData(0, 0, 32, 32).data;
+  let bin = '';
+  for (let i = 0; i < data.length; i++) bin += String.fromCharCode(data[i]);
+  out[name] = btoa(bin);
+}
+document.body.setAttribute('data-out', JSON.stringify(out));
+</script></body>

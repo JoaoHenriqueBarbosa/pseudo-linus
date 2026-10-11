@@ -1,0 +1,13 @@
+goto: 200
+title: "Fixture da automação"
+evaluate: [1, "a", {"x": 1}]
+fill: null
+click: null
+text: "oi Gil"
+locator: "Enviar"
+expect: null
+count: 3
+console: ["sync"]
+route: {"s": 1}
+timeout: !TimeoutError: Page.click: Timeout 200ms exceeded.
+screenshot: true

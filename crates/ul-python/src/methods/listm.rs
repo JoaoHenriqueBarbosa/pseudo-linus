@@ -6,9 +6,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::native_util::want_int;
-use crate::object::{is, py_eq, repr, Kw, NativeFnPtr, Value};
-use crate::vm::{exc, iterate, py_lt, type_error, PyResult, Vm};
+use crate::native_util::{norm_bound, want_int};
+use crate::object::{repr, scan_list_eq, Kw, NativeFnPtr, Value};
+use crate::vm::{exc, iterate, type_error, PyResult, Vm};
 
 type ListRef = Rc<RefCell<Vec<Value>>>;
 
@@ -46,22 +46,6 @@ fn argc(fname: &str, rest: &[Value], min: usize, max: usize) -> PyResult<()> {
         format!("list.{fname}() takes at most {max} argument{} ({n} given)", plural(max))
     };
     Err(type_error(msg))
-}
-
-/// Normaliza `start`/`stop` de `index`: negativo soma o tamanho, e tudo é limitado a `0..=len`.
-fn norm_bound(v: Option<&Value>, len: usize, default: usize) -> PyResult<usize> {
-    match v {
-        None | Some(Value::None) => Ok(default),
-        Some(x) => {
-            let i = want_int(x)?;
-            if i < 0 {
-                let j = i.saturating_add(len as i64);
-                Ok(if j < 0 { 0 } else { j as usize })
-            } else {
-                Ok(i.min(len as i64) as usize)
-            }
-        }
-    }
 }
 
 fn append(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -105,7 +89,11 @@ fn remove(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("remove", &kw)?;
     argc("remove", &args[1..], 1, 1)?;
     let l = this(&args)?;
-    let pos = l.borrow().iter().position(|x| is(x, &args[1]) || py_eq(x, &args[1]));
+    let mut pos = None;
+    scan_list_eq(&l, &args[1], 0, usize::MAX, |i| {
+        pos = Some(i);
+        true
+    })?;
     match pos {
         Some(i) => {
             l.borrow_mut().remove(i);
@@ -156,55 +144,34 @@ fn reverse(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn index(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("index", &kw)?;
     argc("index", &args[1..], 1, 3)?;
-    let items = this(&args)?.borrow().clone();
-    let len = items.len();
+    let l = this(&args)?;
+    let len = l.borrow().len();
     let start = norm_bound(args.get(2), len, 0)?;
     let stop = norm_bound(args.get(3), len, len)?;
-    let mut i = start;
-    while i < stop && i < items.len() {
-        if is(&items[i], &args[1]) || py_eq(&items[i], &args[1]) {
-            return Ok(Value::Int(i as i64));
-        }
-        i += 1;
+    let mut pos = None;
+    scan_list_eq(&l, &args[1], start, stop, |i| {
+        pos = Some(i);
+        true
+    })?;
+    match pos {
+        Some(i) => Ok(Value::Int(i as i64)),
+        None => Err(exc("ValueError", format!("{} is not in list", repr(&args[1])))),
     }
-    Err(exc("ValueError", format!("{} is not in list", repr(&args[1]))))
 }
 
 fn count(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("count", &kw)?;
     argc("count", &args[1..], 1, 1)?;
-    let n = this(&args)?.borrow().iter().filter(|x| is(x, &args[1]) || py_eq(x, &args[1])).count();
-    Ok(Value::Int(n as i64))
+    let l = this(&args)?;
+    let mut n = 0;
+    scan_list_eq(&l, &args[1], 0, usize::MAX, |_| {
+        n += 1;
+        false
+    })?;
+    Ok(Value::Int(n))
 }
 
 type Pair = (Value, Value);
-
-/// Merge sort estável sobre pares (chave, item). `b < a` só leva o da direita à frente quando é
-/// estritamente menor, o que mantém a ordem original dos iguais. O erro de comparação propaga.
-fn merge_sort(mut v: Vec<Pair>) -> PyResult<Vec<Pair>> {
-    if v.len() <= 1 {
-        return Ok(v);
-    }
-    let right = v.split_off(v.len() / 2);
-    let left = merge_sort(v)?;
-    let right = merge_sort(right)?;
-    let mut out: Vec<Pair> = Vec::with_capacity(left.len() + right.len());
-    let mut l = left.into_iter().peekable();
-    let mut r = right.into_iter().peekable();
-    loop {
-        let take_right = match (l.peek(), r.peek()) {
-            (Some(a), Some(b)) => py_lt(&b.0, &a.0)?,
-            (Some(_), None) => false,
-            (None, Some(_)) => true,
-            (None, None) => break,
-        };
-        let next = if take_right { r.next() } else { l.next() };
-        if let Some(p) = next {
-            out.push(p);
-        }
-    }
-    Ok(out)
-}
 
 fn sort(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if args.len() > 1 {
@@ -220,20 +187,28 @@ fn sort(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             other => return Err(type_error(format!("sort() got an unexpected keyword argument '{other}'"))),
         }
     }
-    let items = l.borrow().clone();
+    // Como o `list_sort_impl`: a lista fica vazia enquanto ordena (a chave e o `__lt__` enxergam uma lista vazia), e
+    // o que a ordenação deixar nela vale como modificação.
+    let items = std::mem::take(&mut *l.borrow_mut());
     let mut pairs: Vec<Pair> = Vec::with_capacity(items.len());
-    for it in items {
-        let k = if matches!(key, Value::None) { it.clone() } else { vm.call(&key, vec![it.clone()], Vec::new())? };
-        pairs.push((k, it));
+    for it in &items {
+        let k = if matches!(key, Value::None) { Ok(it.clone()) } else { vm.call(&key, vec![it.clone()], Vec::new()) };
+        match k {
+            Ok(k) => pairs.push((k, it.clone())),
+            // Chave que levanta devolve a lista como estava.
+            Err(e) => {
+                *l.borrow_mut() = items;
+                return Err(e);
+            }
+        }
     }
-    if rev {
-        pairs.reverse();
+    let (sorted, outcome) = crate::builtins::sort_keyed_partial(pairs, rev);
+    let modified = !l.borrow().is_empty();
+    *l.borrow_mut() = sorted;
+    outcome?;
+    if modified {
+        return Err(exc("ValueError", "list modified during sort"));
     }
-    let mut sorted = merge_sort(pairs)?;
-    if rev {
-        sorted.reverse();
-    }
-    *l.borrow_mut() = sorted.into_iter().map(|(_, it)| it).collect();
     Ok(Value::None)
 }
 

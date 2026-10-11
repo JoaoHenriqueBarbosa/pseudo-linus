@@ -1,0 +1,25 @@
+contexts: 1
+viewport: [800, 600, 2]
+user-agent: "PW-Teste/1.0"
+language: ["pt-BR", ["pt-BR"]]
+timezone: "America/Sao_Paulo"
+tz-offset: 180
+prefers-dark: true
+init-script: "sim"
+geolocation: [-23.5, -46.6]
+header: 200
+cookies: [["k", "v", "/", false]]
+document.cookie: "k=v"
+storage_state: [["k"], [["http://127.0.0.1:8765", ["a"]]]]
+cookies-cleared: 0
+expose_function: 5
+expose_binding: [7, true]
+offline: "ok"
+media-print: true
+reduced-motion: true
+cdp-session: {"result": {"description": "3", "type": "number", "value": 3}}
+cdp-browser-version: "Chrome"
+cdp-error: !Error: CDPSession.send: Protocol error (Nao.existe): 'Nao.existe' wasn't found
+isolated-cookies: ""
+isolated-storage: null
+contexts-after: 0

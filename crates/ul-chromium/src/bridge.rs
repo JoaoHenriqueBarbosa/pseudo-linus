@@ -1,0 +1,894 @@
+//! A ponte entre o JavaScript da página e o documento: implementa o `DomHost` do zjsc sobre o `BaseDocument` do Blitz.
+//! As operações são as mínimas que o prelúdio JavaScript precisa para escrever `Node`, `Element`, `Document` e o resto
+//! em cima delas; a identidade dos nós é o `NodeId` do Blitz.
+
+use std::cell::RefCell;
+
+use blitz_dom::node::{Attribute, NodeData};
+use blitz_dom::{BaseDocument, DocumentMutator, NodeId};
+use markup5ever::{LocalName, Namespace, QualName, ns};
+use ul_net::net::client::RequestSpec;
+use ul_net::net::url;
+use zjsc::runtime::dom_bridge::{DomArg, DomError, DomHost};
+
+use crate::document;
+use crate::encoding;
+use crate::fetch::Fetcher;
+use crate::storage_state::Change;
+
+/// O User-Agent do Chromium do oráculo (o Debian 13 traz o 154; o Chromium reduz a versão a `154.0.0.0`).
+pub const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36";
+
+/// Nome local do elemento que emula o `DocumentFragment` (o Blitz não tem esse tipo de nó). Não é nome válido de
+/// elemento, então não colide com nada que a página crie.
+const FRAGMENT: &str = "#document-fragment";
+/// A raiz de um documento criado por `DOMImplementation` (o Blitz só tem um nó de documento por árvore).
+const SUBDOCUMENT: &str = "#document";
+
+pub struct Bridge {
+    pub doc: RefCell<BaseDocument>,
+    pub doctype: Option<String>,
+    pub fetcher: Fetcher,
+    /// A URL da página (muda com `history.pushState` e `location.hash`, que o prelúdio relata).
+    pub url: RefCell<String>,
+    /// Navegação pedida por `location.href = ...` (a página nova substitui a atual).
+    pub navigation: RefCell<Option<String>>,
+    /// Elementos cujo atributo `style` nasceu de uma escrita do CSSOM e ainda não foi lido. O atributo já vale para
+    /// estilo e layout, mas no Blink ele só entra na lista de atributos quando alguém o lê: nessa hora vai para o fim.
+    pub unsynced_styles: RefCell<Vec<NodeId>>,
+    /// Os subrecursos que o Blitz pediu (folhas, imagens, fontes), servidos pela rede da página antes de cada medida.
+    pub net: std::sync::Arc<document::QueuedNet>,
+    /// As imagens que a página decodificou, pelo índice que o prelúdio guarda (o `drawImage` e o `texImage2D` leem os
+    /// pixels daqui).
+    pub images: RefCell<Vec<crate::imaging::Decoded>>,
+    /// O documento veio com COOP e COEP num contexto seguro: `crossOriginIsolated`, `SharedArrayBuffer` e o relógio
+    /// de 5 µs.
+    pub cross_origin_isolated: bool,
+    /// As superfícies dos canvas 2D, pelo índice que o contexto guarda.
+    pub canvases: RefCell<Vec<crate::canvas::Surface>>,
+    /// A aba do documento: o `sessionStorage` dela e o perfil com o `localStorage`, que sobrevivem à navegação.
+    pub tab: RefCell<std::rc::Rc<crate::session::Tab>>,
+}
+
+/// Bytes em latin1 (um byte por unidade de código), o jeito de pixels cruzarem a ponte como string.
+fn latin1_bytes(text: &str) -> Vec<u8> {
+    text.chars().map(|c| c as u32 as u8).collect()
+}
+
+fn latin1_string(bytes: &[u8]) -> String {
+    bytes.iter().map(|&b| char::from(b)).collect()
+}
+
+/// As operações que leem o atributo `style` (e por isso o sincronizam): a lista inteira de atributos, a serialização,
+/// o clone, e a leitura ou o seletor que o nomeiam.
+fn reads_style_attribute(op: &str, args: &[DomArg]) -> bool {
+    let names_style = |i: usize| args.get(i).is_some_and(|a| matches!(a, DomArg::Str(s) if s.to_ascii_lowercase().contains("style")));
+    match op {
+        "attrs" | "clone" | "innerHTML" | "outerHTML" => true,
+        "getAttr" => names_style(1),
+        "query" | "matches" => names_style(1),
+        _ => false,
+    }
+}
+
+fn err(name: &str, message: impl Into<String>) -> DomError {
+    DomError { name: name.to_owned(), message: message.into() }
+}
+
+/// O que o Chromium lança quando um método de DOM recebe um `this` ou argumento que não é o objeto certo. Os erros
+/// internos da ponte (id que não resolve, argumento de tipo errado) chegam à página só assim.
+fn illegal() -> DomError {
+    err("TypeError", "Illegal invocation")
+}
+
+/// Os ids cruzam a ponte como número JavaScript: o `NodeId` do Blitz é um `u64` (índice mais versão do slot), e a
+/// versão só sobe quando um slot é reaproveitado, então o valor cabe nos 53 bits exatos de um `f64`.
+fn id_arg(args: &[DomArg], index: usize) -> Result<NodeId, DomError> {
+    match args.get(index) {
+        Some(DomArg::Num(n)) if *n >= 0.0 => Ok(NodeId::from_u64(*n as u64)),
+        _ => Err(illegal()),
+    }
+}
+
+fn str_arg(args: &[DomArg], index: usize) -> Result<&str, DomError> {
+    match args.get(index) {
+        Some(DomArg::Str(s)) => Ok(s),
+        _ => Err(illegal()),
+    }
+}
+
+fn num_arg(args: &[DomArg], index: usize) -> Result<f64, DomError> {
+    match args.get(index) {
+        Some(DomArg::Num(n)) => Ok(*n),
+        _ => Err(illegal()),
+    }
+}
+
+fn opt_id(args: &[DomArg], index: usize) -> Option<NodeId> {
+    match args.get(index) {
+        Some(DomArg::Num(n)) => Some(NodeId::from_u64(*n as u64)),
+        _ => None,
+    }
+}
+
+fn num(id: NodeId) -> DomArg {
+    DomArg::Num(id.as_u64() as f64)
+}
+
+fn ids(list: impl IntoIterator<Item = NodeId>) -> DomArg {
+    DomArg::List(list.into_iter().map(num).collect())
+}
+
+fn is_fragment(doc: &BaseDocument, id: NodeId) -> bool {
+    doc.get_node(id).and_then(|n| n.element_data()).is_some_and(|e| &*e.name.local == FRAGMENT)
+}
+
+/// O nome com que a página enxerga o atributo: `prefixo:local` quando há prefixo.
+fn attr_matches(name: &QualName, wanted: &str) -> bool {
+    document::qualified_attr_name(name) == wanted
+}
+
+impl Bridge {
+    /// A chave do storage do documento: a origem dele, e `file://` para todo `file:` (uma origem só, como no Chromium).
+    fn storage_origin(&self) -> String {
+        let address = self.url.borrow().clone();
+        origin_of(&address).unwrap_or_else(|| if address.starts_with("file:") { "file://".to_owned() } else { address })
+    }
+
+    /// Serve os subrecursos pendentes do Blitz: a folha de estilo e a imagem chegadas valem para o layout.
+    pub fn serve_resources(&self) {
+        let document_url = self.url.borrow().clone();
+        let fetch = |address: &str| {
+            // O `data:` não passa pela rede: o corpo está na própria URL.
+            if address.get(..5).is_some_and(|scheme| scheme.eq_ignore_ascii_case("data:")) {
+                return data_url::DataUrl::process(address).ok().and_then(|parsed| parsed.decode_to_vec().ok()).map(|(bytes, _)| bytes);
+            }
+            crate::fetch::subresource(&self.fetcher, crate::fetch::Kind::infer(address), &document_url, address).ok().filter(|r| r.status < 400).map(|r| r.body)
+        };
+        self.net.serve(&mut self.doc.borrow_mut(), &fetch);
+    }
+
+    /// Sincroniza o `style` que o CSSOM criou: o atributo passa para o fim da lista, na ordem em que foi escrito.
+    pub fn flush_styles(&self) {
+        let unsynced = std::mem::take(&mut *self.unsynced_styles.borrow_mut());
+        for id in unsynced {
+            let value = self.style_attribute(id);
+            if let Some(value) = value {
+                let qname = QualName::new(None, ns!(), LocalName::from("style"));
+                self.mutate(|m| {
+                    m.clear_attribute(id, qname.clone());
+                    m.set_attribute(id, qname, &value);
+                });
+            }
+        }
+    }
+
+    fn style_attribute(&self, id: NodeId) -> Option<String> {
+        let doc = self.doc.borrow();
+        doc.get_node(id).and_then(|n| n.element_data()).and_then(|e| e.attrs.iter().find(|a| attr_matches(&a.name, "style")).map(|a| a.value.to_string()))
+    }
+
+    /// Tira da árvore tudo o que vem depois de `script` na ordem do documento (os irmãos seguintes dele e de cada
+    /// ancestral), como se o parser ainda não tivesse chegado lá. Devolve o que tirou, por pai, para `restore_following`.
+    pub fn detach_following(&self, script: NodeId) -> Vec<(NodeId, Vec<NodeId>)> {
+        let mut held = Vec::new();
+        let mut doc = self.doc.borrow_mut();
+        let root = doc.root_node().id;
+        let mut mutr = doc.mutate();
+        let mut current = script;
+        while let Some(parent) = mutr.parent_id(current) {
+            if parent == root {
+                break;
+            }
+            let siblings = mutr.child_ids(parent);
+            if let Some(position) = siblings.iter().position(|&s| s == current) {
+                let after: Vec<NodeId> = siblings[position + 1..].to_vec();
+                for &node in &after {
+                    mutr.remove_node(node);
+                }
+                if !after.is_empty() {
+                    held.push((parent, after));
+                }
+            }
+            current = parent;
+        }
+        held
+    }
+
+    /// Devolve à árvore, no fim de cada pai, o que `detach_following` tirou (o que o script acrescentou fica antes).
+    pub fn restore_following(&self, held: Vec<(NodeId, Vec<NodeId>)>) {
+        self.mutate(|m| {
+            for (parent, nodes) in held {
+                m.append_children(parent, &nodes);
+            }
+        });
+    }
+
+    /// A imagem de um desenho no canvas, em bitmap premultiplicado: ['image', índice decodificado], ['canvas',
+    /// índice da superfície] ou ['rgba', largura, altura, pixels em latin1] (ImageData, ImageBitmap).
+    fn canvas_source(&self, spec: Option<&DomArg>) -> Option<std::sync::Arc<vello_cpu::Pixmap>> {
+        let Some(DomArg::List(spec)) = spec else { return None };
+        let at = |i: usize| match spec.get(i) {
+            Some(DomArg::Num(n)) => *n,
+            _ => 0.0,
+        };
+        let pixmap = match spec.first() {
+            Some(DomArg::Str(kind)) if kind == "image" => {
+                let images = self.images.borrow();
+                let image = images.get(at(1) as usize)?;
+                crate::canvas::premultiplied(image.width, image.height, &image.rgba)?
+            }
+            Some(DomArg::Str(kind)) if kind == "canvas" => return self.canvases.borrow_mut().get_mut(at(1) as usize)?.snapshot(),
+            Some(DomArg::Str(kind)) if kind == "rgba" => {
+                let Some(DomArg::Str(pixels)) = spec.get(3) else { return None };
+                crate::canvas::premultiplied(at(1) as u32, at(2) as u32, &latin1_bytes(pixels))?
+            }
+            _ => return None,
+        };
+        Some(std::sync::Arc::new(pixmap))
+    }
+
+    /// `fetch` e `XMLHttpRequest` da página: `[status, reason, url final, cabeçalhos (nome, valor, ...), corpo]`, ou
+    /// `Null` quando o navegador falharia o pedido (rede, esquema não permitido, bloqueio de CORS).
+    fn fetch(&self, args: &[DomArg]) -> Result<DomArg, DomError> {
+        let method = str_arg(args, 0)?;
+        let target = str_arg(args, 1)?;
+        let mut headers: Vec<(String, String)> = Vec::new();
+        if let Some(DomArg::List(flat)) = args.get(2) {
+            for pair in flat.chunks(2) {
+                if let [DomArg::Str(name), DomArg::Str(value)] = pair {
+                    headers.push((name.clone(), value.clone()));
+                }
+            }
+        }
+        let body = match args.get(3) {
+            Some(DomArg::Str(text)) => text.as_bytes().to_vec(),
+            _ => Vec::new(),
+        };
+        let page_url = self.url.borrow().clone();
+        // `data:` responde sem rede, pelo processador de data: URL da especificação de Fetch (só GET).
+        if target.get(..5).is_some_and(|s| s.eq_ignore_ascii_case("data:")) {
+            let Ok(parsed) = data_url::DataUrl::process(target) else { return Ok(DomArg::Null) };
+            let Ok((bytes, _)) = parsed.decode_to_vec() else { return Ok(DomArg::Null) };
+            if method != "GET" {
+                return Ok(DomArg::Null);
+            }
+            let mime = parsed.mime_type().to_string();
+            let charset = encoding::label(Some(&mime));
+            let raw: String = bytes.iter().map(|&b| char::from(b)).collect();
+            let headers = vec![DomArg::Str("content-type".to_owned()), DomArg::Str(mime)];
+            return Ok(DomArg::List(vec![DomArg::Num(200.0), DomArg::Str("OK".to_owned()), DomArg::Str(target.to_owned()), DomArg::List(headers), DomArg::Str(raw), DomArg::Str(charset)]));
+        }
+        let page_origin = origin_of(&page_url);
+        let target_origin = origin_of(target);
+        let Some(target_origin) = target_origin else { return Ok(DomArg::Null) };
+        let same_origin = page_origin.as_deref() == Some(target_origin.as_str());
+        let kind = crate::fetch::Kind::from_name(args.get(4).and_then(|a| if let DomArg::Str(k) = a { Some(k.as_str()) } else { None }).unwrap_or("fetch"));
+        let mut defaults = crate::fetch::subresource_headers(kind, &page_url, target);
+        if defaults.is_empty() {
+            defaults = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "*/*".to_owned()), ("Accept-Language".to_owned(), "en-US,en;q=0.9".to_owned())];
+        }
+        for (name, value) in defaults {
+            if !headers.iter().any(|(existing, _)| existing.eq_ignore_ascii_case(&name)) {
+                headers.push((name, value));
+            }
+        }
+        if !same_origin || !matches!(method, "GET" | "HEAD") {
+            headers.push(("Origin".to_owned(), page_origin.clone().unwrap_or_else(|| "null".to_owned())));
+        }
+        let spec = RequestSpec { method, headers: &headers, body: &body, ..RequestSpec::default() };
+        let Ok(response) = crate::fetch::tagged(kind, || (self.fetcher)(target, &spec)) else { return Ok(DomArg::Null) };
+        let final_url = response.url.to_string_with(false);
+        if origin_of(&final_url).as_deref() != page_origin.as_deref() {
+            let allowed = response.header("Access-Control-Allow-Origin");
+            let page = page_origin.as_deref().unwrap_or("null");
+            if !allowed.is_some_and(|value| value == "*" || value == page) {
+                return Ok(DomArg::Null);
+            }
+        }
+        // O corpo cruza a ponte cru, um byte por unidade de código (latin1): binários (wasm, imagens) chegam intactos, e
+        // o JavaScript decodifica texto pelo charset que este último item diz (o rótulo do encoding_rs).
+        let content_type = response.header("Content-Type");
+        let charset = encoding::label(content_type.as_deref());
+        let raw: String = response.body.iter().map(|&b| char::from(b)).collect();
+        let mut flat = Vec::new();
+        for (name, value) in &response.headers {
+            flat.push(DomArg::Str(String::from_utf8_lossy(name).into_owned()));
+            flat.push(DomArg::Str(String::from_utf8_lossy(value).into_owned()));
+        }
+        Ok(DomArg::List(vec![DomArg::Num(f64::from(response.status)), DomArg::Str(response.reason), DomArg::Str(final_url), DomArg::List(flat), DomArg::Str(raw), DomArg::Str(charset)]))
+    }
+
+    fn mutate<T>(&self, f: impl FnOnce(&mut DocumentMutator<'_>) -> T) -> T {
+        let mut doc = self.doc.borrow_mut();
+        let mut mutr = doc.mutate();
+        f(&mut mutr)
+    }
+
+    /// Cópia rasa de um nó (sem filhos), para `cloneNode(false)` e como base da cópia profunda.
+    fn shallow_clone(m: &mut DocumentMutator<'_>, id: NodeId) -> NodeId {
+        let data = m.doc.get_node(id).map(|n| n.data.clone());
+        match data {
+            Some(NodeData::Element(element)) => m.create_element(element.name.clone(), element.attrs.iter().cloned().collect()),
+            Some(NodeData::Text(text)) => m.create_text_node(&text.content),
+            Some(NodeData::Comment { contents }) => {
+                let copy = m.create_comment_node(&contents);
+                document::copy_special_node(id, copy);
+                copy
+            }
+            _ => m.create_comment_node(""),
+        }
+    }
+
+    fn clone_node(m: &mut DocumentMutator<'_>, id: NodeId, deep: bool) -> NodeId {
+        let copy = Self::shallow_clone(m, id);
+        if deep {
+            let children = m.child_ids(id);
+            let copies: Vec<NodeId> = children.iter().map(|&child| Self::clone_node(m, child, true)).collect();
+            m.append_children(copy, &copies);
+        }
+        copy
+    }
+
+    /// Tira `child` do pai antigo (se houver) e, se for fragmento, devolve os filhos dele no lugar.
+    fn detach_for_insert(m: &mut DocumentMutator<'_>, child: NodeId) -> Vec<NodeId> {
+        if is_fragment(m.doc, child) {
+            let kids: Vec<NodeId> = m.child_ids(child).to_vec();
+            for &kid in &kids {
+                m.remove_node(kid);
+            }
+            return kids;
+        }
+        if m.parent_id(child).is_some() {
+            m.remove_node(child);
+        }
+        vec![child]
+    }
+}
+
+/// Copia a subárvore `id` de outro documento para o da página, nó a nó.
+fn copy_across(from: &BaseDocument, id: NodeId, m: &mut DocumentMutator<'_>) -> Option<NodeId> {
+    let node = from.get_node(id)?;
+    let copy = match &node.data {
+        NodeData::Element(element) => m.create_element(element.name.clone(), element.attrs.iter().cloned().collect()),
+        NodeData::Text(text) => m.create_text_node(&text.content),
+        NodeData::Comment { contents } => m.create_comment_node(contents),
+        _ => return None,
+    };
+    for &child in &node.children {
+        if let Some(child_copy) = copy_across(from, child, m) {
+            m.append_children(copy, &[child_copy]);
+        }
+    }
+    Some(copy)
+}
+
+/// A origem (`esquema://host[:porta]`) de uma URL absoluta; `None` para o que não tem origem de rede.
+pub fn origin_of(address: &str) -> Option<String> {
+    let parsed = url::parse(address, false).ok()?;
+    if parsed.scheme != "http" && parsed.scheme != "https" {
+        return None;
+    }
+    let default = url::default_port(&parsed.scheme);
+    Some(match parsed.port {
+        Some(port) if Some(port) != default => format!("{}://{}:{port}", parsed.scheme, parsed.host_for_url()),
+        _ => format!("{}://{}", parsed.scheme, parsed.host_for_url()),
+    })
+}
+
+impl DomHost for Bridge {
+    fn call(&self, op: &str, args: &[DomArg]) -> Result<DomArg, DomError> {
+        if !self.unsynced_styles.borrow().is_empty() && reads_style_attribute(op, args) {
+            self.flush_styles();
+        }
+        // Escrever ou apagar o atributo `style` direto já é o atributo de verdade, sincronizado.
+        if matches!(op, "setAttr" | "removeAttr") && args.get(1).is_some_and(|a| matches!(a, DomArg::Str(n) if n.eq_ignore_ascii_case("style"))) {
+            let id = id_arg(args, 0)?;
+            self.unsynced_styles.borrow_mut().retain(|node| *node != id);
+        }
+        match op {
+            // A escrita do CSSOM: no atributo que já existe, no lugar; sem atributo, ele nasce já valendo para estilo
+            // e layout, mas fica fora de ordem até a primeira leitura (`flush_styles`).
+            "setStyle" => {
+                let id = id_arg(args, 0)?;
+                let text = str_arg(args, 1)?;
+                if self.style_attribute(id).is_none() {
+                    self.unsynced_styles.borrow_mut().push(id);
+                }
+                self.mutate(|m| m.set_attribute(id, QualName::new(None, ns!(), LocalName::from("style")), text));
+                Ok(DomArg::Undefined)
+            }
+            // O texto do estilo em linha, sem sincronizar.
+            "getStyle" => Ok(self.style_attribute(id_arg(args, 0)?).map_or(DomArg::Null, DomArg::Str)),
+            "pageUrl" => Ok(DomArg::Str(self.url.borrow().clone())),
+            // `[ação, url, valor]`: o `document.cookie` sobre o pote do perfil (`get` lê, `set` aplica o `Set-Cookie`).
+            "cookie" => {
+                let tab = self.tab.borrow().clone();
+                let url = str_arg(args, 1)?;
+                let mut jar = tab.profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                match str_arg(args, 0)? {
+                    "get" => Ok(DomArg::Str(crate::cookies::document_cookie(&jar, url))),
+                    _ => {
+                        crate::cookies::set_document_cookie(&mut jar, str_arg(args, 2)?, url);
+                        Ok(DomArg::Undefined)
+                    }
+                }
+            }
+            // `[tipo, mensagem, padrão]`: `alert`, `confirm` e `prompt` pedem ao DevTools da aba; `null` é o diálogo recusado.
+            "dialog" => {
+                let tab = self.tab.borrow().clone();
+                let hook = tab.dialogs.borrow().as_ref().map(|hook| hook.0.clone());
+                let answer = match hook {
+                    Some(hook) => hook(str_arg(args, 0)?, str_arg(args, 1)?, str_arg(args, 2)?),
+                    None => (str_arg(args, 0)? == "alert").then(String::new),
+                };
+                Ok(answer.map_or(DomArg::Null, DomArg::Str))
+            }
+            // `[nome]`: o que o DevTools concedeu (`Browser.grantPermissions`) a esta origem.
+            "permission" => {
+                let tab = self.tab.borrow().clone();
+                let name = str_arg(args, 0)?;
+                let origin = origin_of(&self.url.borrow()).unwrap_or_default();
+                let granted = tab.profile.permissions.lock().unwrap_or_else(std::sync::PoisonError::into_inner).iter().any(|(o, p)| p == name && (o.is_empty() || *o == origin));
+                Ok(DomArg::Bool(granted))
+            }
+            // `[área, ação, chave, valor]`: o `localStorage` (no perfil) e o `sessionStorage` (na aba) da origem do
+            // documento; `file:` é uma origem só, como no Chromium.
+            "storage" => {
+                let origin = self.storage_origin();
+                let tab = self.tab.borrow().clone();
+                let action = str_arg(args, 1)?;
+                let run = |area: &mut crate::session::StorageArea, notify: &mut dyn FnMut(Change)| -> Result<DomArg, DomError> {
+                    let text = |value: Option<&str>| value.map_or(DomArg::Null, |v| DomArg::Str(v.to_owned()));
+                    match action {
+                        "length" => Ok(DomArg::Num(area.len() as f64)),
+                        "key" => Ok(text(area.key(num_arg(args, 2)? as usize))),
+                        "get" => Ok(text(area.get(str_arg(args, 2)?))),
+                        "keys" => Ok(DomArg::List(area.keys().into_iter().map(DomArg::Str).collect())),
+                        "set" => {
+                            let (key, value) = (str_arg(args, 2)?, str_arg(args, 3)?);
+                            area.set(key, value);
+                            notify(Change::Set(key, value));
+                            Ok(DomArg::Undefined)
+                        }
+                        "remove" => {
+                            let key = str_arg(args, 2)?;
+                            area.remove(key);
+                            notify(Change::Remove(key));
+                            Ok(DomArg::Undefined)
+                        }
+                        "clear" => {
+                            area.clear();
+                            notify(Change::Clear);
+                            Ok(DomArg::Undefined)
+                        }
+                        _ => Err(illegal()),
+                    }
+                };
+                // O banco da área (o do perfil no `localStorage`, o da aba no `sessionStorage`, quando há
+                // `--user-data-dir`) fica sabendo de cada mudança; o que não muda nada ele mesmo descarta.
+                let in_area = |areas: &mut crate::session::Areas| {
+                    let store = areas.store();
+                    run(areas.area(&origin), &mut |change| {
+                        if let Some(store) = &store {
+                            store.record(&origin, change);
+                        }
+                    })
+                };
+                match str_arg(args, 0)? {
+                    "local" => in_area(&mut tab.profile.local.lock().unwrap_or_else(std::sync::PoisonError::into_inner)),
+                    _ => in_area(&mut tab.session.borrow_mut()),
+                }
+            }
+            // `[ação, nome, texto]`: os bancos do IndexedDB da origem no perfil (`load` devolve `[[nome, texto], ...]`,
+            // `commit` grava o diário de uma transação). Falha de disco não chega à página: o Chromium também segue.
+            "idb" => {
+                let origin = self.storage_origin();
+                let profile = self.tab.borrow().profile.clone();
+                match str_arg(args, 0)? {
+                    "load" => Ok(DomArg::List(profile.indexed_db.load(&origin).into_iter().map(|(name, text)| DomArg::List(vec![DomArg::Str(name), DomArg::Str(text)])).collect())),
+                    "commit" => {
+                        let _ = profile.indexed_db.commit(&origin, str_arg(args, 1)?, str_arg(args, 2)?);
+                        Ok(DomArg::Undefined)
+                    }
+                    "open" => {
+                        profile.indexed_db.opened(&origin);
+                        Ok(DomArg::Undefined)
+                    }
+                    "delete" => {
+                        let _ = profile.indexed_db.delete(&origin, str_arg(args, 1)?);
+                        Ok(DomArg::Undefined)
+                    }
+                    _ => Err(illegal()),
+                }
+            }
+            "crossOriginIsolated" => Ok(DomArg::Bool(self.cross_origin_isolated)),
+            // O carimbo do quadro: o instante (ms desde a origem) clampado pelo `TimeClamper`.
+            "frameTime" => match args.first() {
+                Some(DomArg::Num(elapsed)) => Ok(DomArg::Num(zjsc::runtime::time_clamper::clamp_delta_ms(*elapsed))),
+                _ => Ok(DomArg::Undefined),
+            },
+            // A compilação de um script que a página inseriu custa tempo virtual, como os do documento.
+            "chargeSource" => {
+                if let Some(DomArg::Num(bytes)) = args.first() {
+                    zjsc::runtime::cpu_clock::charge_source_bytes(*bytes as usize);
+                }
+                Ok(DomArg::Undefined)
+            }
+            "navigate" => {
+                *self.navigation.borrow_mut() = Some(str_arg(args, 0)?.to_owned());
+                Ok(DomArg::Undefined)
+            }
+            "fetch" => self.fetch(args),
+            // Decodifica os bytes (em latin1, um byte por unidade) e devolve [índice, largura, altura], ou null.
+            "decodeImage" => {
+                let bytes = latin1_bytes(str_arg(args, 0)?);
+                let Some(decoded) = crate::imaging::decode(&bytes) else { return Ok(DomArg::Null) };
+                let (width, height) = (decoded.width, decoded.height);
+                let mut images = self.images.borrow_mut();
+                images.push(decoded);
+                Ok(DomArg::List(vec![DomArg::Num((images.len() - 1) as f64), DomArg::Num(f64::from(width)), DomArg::Num(f64::from(height))]))
+            }
+            "measureText" => {
+                let font = crate::canvas_text::CanvasFont { family: &str_arg(args, 1)?, weight: num_arg(args, 2)? as f32, style: &str_arg(args, 3)?, size: num_arg(args, 4)? as f32 };
+                Ok(DomArg::List(crate::canvas_text::measure(&str_arg(args, 0)?, &font, str_arg(args, 5)?).into_iter().map(DomArg::Num).collect()))
+            }
+            "canvasCreate" => {
+                let mut canvases = self.canvases.borrow_mut();
+                canvases.push(crate::canvas::Surface::new(num_arg(args, 0)? as u32, num_arg(args, 1)? as u32));
+                Ok(DomArg::Num((canvases.len() - 1) as f64))
+            }
+            "canvasResize" => {
+                let mut canvases = self.canvases.borrow_mut();
+                canvases.get_mut(num_arg(args, 0)? as usize).ok_or_else(illegal)?.resize(num_arg(args, 1)? as u32, num_arg(args, 2)? as u32);
+                Ok(DomArg::Undefined)
+            }
+            // [índice, comum, comando, fonte]: a fonte do `drawImage` ou do padrão vira bitmap antes do empréstimo
+            // da superfície de destino (desenhar o canvas nele mesmo é permitido).
+            "canvasDraw" => {
+                let source = self.canvas_source(args.get(3));
+                let (DomArg::List(common), DomArg::List(cmd)) = (args.get(1).ok_or_else(illegal)?, args.get(2).ok_or_else(illegal)?) else { return Err(illegal()) };
+                let mut canvases = self.canvases.borrow_mut();
+                canvases.get_mut(num_arg(args, 0)? as usize).ok_or_else(illegal)?.draw(common, cmd, source);
+                Ok(DomArg::Undefined)
+            }
+            "canvasRead" => {
+                let mut canvases = self.canvases.borrow_mut();
+                let surface = canvases.get_mut(num_arg(args, 0)? as usize).ok_or_else(illegal)?;
+                Ok(DomArg::Str(latin1_string(&surface.read(num_arg(args, 1)? as i64, num_arg(args, 2)? as i64, num_arg(args, 3)? as u32, num_arg(args, 4)? as u32))))
+            }
+            "canvasWrite" => {
+                let mut canvases = self.canvases.borrow_mut();
+                let surface = canvases.get_mut(num_arg(args, 0)? as usize).ok_or_else(illegal)?;
+                surface.write(num_arg(args, 1)? as i64, num_arg(args, 2)? as i64, num_arg(args, 3)? as u32, num_arg(args, 4)? as u32, &latin1_bytes(str_arg(args, 5)?));
+                Ok(DomArg::Undefined)
+            }
+            // Os pixels RGBA não premultiplicados de uma imagem decodificada ou de um canvas, em latin1.
+            "sourceRgba" => {
+                let Some(DomArg::List(spec)) = args.first() else { return Err(illegal()) };
+                let index = match spec.get(1) {
+                    Some(DomArg::Num(n)) => *n as usize,
+                    _ => return Err(illegal()),
+                };
+                let bytes = match spec.first() {
+                    Some(DomArg::Str(kind)) if kind == "image" => self.images.borrow().get(index).map(|i| i.rgba.clone()).unwrap_or_default(),
+                    Some(DomArg::Str(kind)) if kind == "canvas" => self.canvases.borrow_mut().get_mut(index).map(|c| c.rgba().2).unwrap_or_default(),
+                    _ => return Err(illegal()),
+                };
+                Ok(DomArg::Str(latin1_string(&bytes)))
+            }
+            // [índice da superfície ou null, largura, altura, mime, qualidade] → `mime;base64,...`; canvas sem
+            // contexto 2D codifica um bitmap transparente do tamanho dele.
+            "canvasEncode" => {
+                let (width, height) = (num_arg(args, 1)? as u32, num_arg(args, 2)? as u32);
+                let rgba = match args.first() {
+                    Some(DomArg::Num(index)) => self.canvases.borrow_mut().get_mut(*index as usize).ok_or_else(illegal)?.rgba().2,
+                    _ => vec![0; (width as usize) * (height as usize) * 4],
+                };
+                let icc = matches!(args.get(5), Some(DomArg::Bool(true)));
+                Ok(DomArg::Str(crate::imaging::encode(str_arg(args, 3)?, num_arg(args, 4).unwrap_or(-1.0), icc, width, height, &rgba)))
+            }
+            // [caminho, regra, traço ([] no isPointInPath), transformação, x, y] → acerto.
+            "canvasHit" => {
+                let (DomArg::List(path), DomArg::List(stroke), DomArg::List(ctm)) = (args.first().ok_or_else(illegal)?, args.get(2).ok_or_else(illegal)?, args.get(3).ok_or_else(illegal)?) else { return Err(illegal()) };
+                Ok(DomArg::Bool(crate::canvas::hit(path, str_arg(args, 1)?, stroke, ctm, num_arg(args, 4)?, num_arg(args, 5)?)))
+            }
+            "root" => Ok(num(self.doc.borrow().root_node().id)),
+            "docElement" => {
+                let doc = self.doc.borrow();
+                let root = match opt_id(args, 0) {
+                    Some(id) => doc.get_node(id).ok_or_else(illegal)?,
+                    None => doc.root_node(),
+                };
+                Ok(root.children.iter().copied().find(|&c| doc.get_node(c).is_some_and(|n| n.is_element())).map_or(DomArg::Null, num))
+            }
+            "compatMode" => Ok(DomArg::Str(
+                if matches!(self.doc.borrow().quirks_mode(), selectors::matching::QuirksMode::Quirks) { "BackCompat" } else { "CSS1Compat" }.to_owned(),
+            )),
+            "doctype" => Ok(self.doctype.clone().map_or(DomArg::Null, DomArg::Str)),
+            "kind" => {
+                let doc = self.doc.borrow();
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
+                if let Some((kind, _)) = document::special_node(node.id) {
+                    return Ok(DomArg::Num(f64::from(kind)));
+                }
+                Ok(DomArg::Num(match &node.data {
+                    NodeData::Element(e) if &*e.name.local == FRAGMENT => 11.0,
+                    NodeData::Element(e) if &*e.name.local == SUBDOCUMENT => 9.0,
+                    NodeData::Element(_) | NodeData::AnonymousBlock(_) => 1.0,
+                    NodeData::Text(_) => 3.0,
+                    NodeData::Comment { .. } => 8.0,
+                    NodeData::Document(_) => 9.0,
+                }))
+            }
+            "name" => {
+                let doc = self.doc.borrow();
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
+                if let Some((kind, target)) = document::special_node(node.id) {
+                    return Ok(DomArg::Str(if kind == 7 { target } else { "#cdata-section".to_owned() }));
+                }
+                Ok(DomArg::Str(match &node.data {
+                    NodeData::Element(e) => e.name.local.to_string(),
+                    NodeData::Text(_) => "#text".to_owned(),
+                    NodeData::Comment { .. } => "#comment".to_owned(),
+                    _ => "#document".to_owned(),
+                }))
+            }
+            "ns" => {
+                let doc = self.doc.borrow();
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
+                Ok(node.element_data().map_or(DomArg::Null, |e| DomArg::Str(e.name.ns.to_string())))
+            }
+            "parent" => {
+                let doc = self.doc.borrow();
+                Ok(doc.get_node(id_arg(args, 0)?).and_then(|n| n.parent).map_or(DomArg::Null, num))
+            }
+            "children" => {
+                let doc = self.doc.borrow();
+                Ok(doc.get_node(id_arg(args, 0)?).map_or(DomArg::List(Vec::new()), |n| ids(n.children.iter().copied())))
+            }
+            "attrs" => {
+                let doc = self.doc.borrow();
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
+                let mut flat = Vec::new();
+                if let Some(element) = node.element_data() {
+                    for attr in element.attrs.iter() {
+                        flat.push(DomArg::Str(document::qualified_attr_name(&attr.name)));
+                        flat.push(DomArg::Str(attr.value.clone()));
+                    }
+                }
+                Ok(DomArg::List(flat))
+            }
+            "getAttr" => {
+                let doc = self.doc.borrow();
+                let wanted = str_arg(args, 1)?;
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
+                Ok(node
+                    .element_data()
+                    .and_then(|e| e.attrs.iter().find(|a| attr_matches(&a.name, wanted)))
+                    .map_or(DomArg::Null, |a| DomArg::Str(a.value.clone())))
+            }
+            "setAttr" => {
+                let id = id_arg(args, 0)?;
+                let (name, value) = (str_arg(args, 1)?, str_arg(args, 2)?);
+                // Mantém o QualName do atributo que já existe (com o namespace do `xlink:href`); senão, nome local puro.
+                let existing = {
+                    let doc = self.doc.borrow();
+                    doc.get_node(id).and_then(|n| n.element_data()).and_then(|e| e.attrs.iter().find(|a| attr_matches(&a.name, name)).map(|a| a.name.clone()))
+                };
+                let qname = existing.unwrap_or_else(|| QualName::new(None, ns!(), LocalName::from(name)));
+                self.mutate(|m| m.set_attribute(id, qname, value));
+                Ok(DomArg::Undefined)
+            }
+            "box" => {
+                let id = id_arg(args, 0)?;
+                self.serve_resources();
+                let found = document::layout_box(&mut self.doc.borrow_mut(), id);
+                Ok(found.map_or(DomArg::Null, |values| DomArg::List(values.into_iter().map(DomArg::Num).collect())))
+            }
+            // O valor computado de uma longhand ou propriedade customizada, como o stylo o serializa; `null` para
+            // nome desconhecido ou nó sem estilo.
+            "computedStyle" => {
+                let id = id_arg(args, 0)?;
+                let name = str_arg(args, 1)?;
+                self.serve_resources();
+                Ok(document::computed_value(&mut self.doc.borrow_mut(), id, name).map_or(DomArg::Null, DomArg::Str))
+            }
+            "setViewport" => {
+                // A janela que o `Emulation` e o `Browser.setWindowBounds` dão à página: em pixels físicos, com a escala.
+                let (w, h, scale) = (num_arg(args, 0)?, num_arg(args, 1)?, num_arg(args, 2)?);
+                let dark = matches!(args.get(3), Some(DomArg::Bool(true)));
+                let scheme = if dark { blitz_traits::shell::ColorScheme::Dark } else { blitz_traits::shell::ColorScheme::Light };
+                let scale = scale.max(0.1) as f32;
+                self.doc.borrow_mut().set_viewport(blitz_traits::shell::Viewport::new((w * f64::from(scale)).round() as u32, (h * f64::from(scale)).round() as u32, scale, scheme));
+                Ok(DomArg::Undefined)
+            }
+            "matchMedia" => {
+                self.serve_resources();
+                Ok(DomArg::Bool(document::media_matches(&mut self.doc.borrow_mut(), str_arg(args, 0)?)))
+            }
+            "setDefined" => {
+                let id = id_arg(args, 0)?;
+                self.doc.borrow_mut().get_node_mut(id).ok_or_else(illegal)?.set_defined();
+                Ok(DomArg::Undefined)
+            }
+            "removeAttr" => {
+                let id = id_arg(args, 0)?;
+                let name = str_arg(args, 1)?;
+                let existing = {
+                    let doc = self.doc.borrow();
+                    doc.get_node(id).and_then(|n| n.element_data()).and_then(|e| e.attrs.iter().find(|a| attr_matches(&a.name, name)).map(|a| a.name.clone()))
+                };
+                if let Some(qname) = existing {
+                    self.mutate(|m| m.clear_attribute(id, qname));
+                }
+                Ok(DomArg::Undefined)
+            }
+            "data" => {
+                let doc = self.doc.borrow();
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
+                Ok(DomArg::Str(match &node.data {
+                    NodeData::Text(t) => t.content.clone(),
+                    NodeData::Comment { contents } => contents.clone(),
+                    _ => String::new(),
+                }))
+            }
+            "setData" => {
+                let id = id_arg(args, 0)?;
+                let value = str_arg(args, 1)?;
+                let mut doc = self.doc.borrow_mut();
+                if let Some(node) = doc.get_node_mut(id) {
+                    match &mut node.data {
+                        NodeData::Text(t) => t.content = value.to_owned(),
+                        NodeData::Comment { contents } => *contents = value.to_owned(),
+                        _ => {}
+                    }
+                }
+                Ok(DomArg::Undefined)
+            }
+            "createElement" => {
+                let (local, namespace) = (str_arg(args, 0)?, str_arg(args, 1)?);
+                let qname = QualName::new(None, Namespace::from(namespace), LocalName::from(local));
+                Ok(num(self.mutate(|m| m.create_element(qname, Vec::<Attribute>::new()))))
+            }
+            // `DOMParser.parseFromString`: o texto é parseado num documento à parte (html5ever ou xml5ever) e a árvore
+            // copiada para cá sob uma raiz de documento secundário.
+            "parseDocument" => {
+                let text = str_arg(args, 0)?;
+                let xml = matches!(args.get(1), Some(DomArg::Bool(true)));
+                let base = self.url.borrow().clone();
+                let parsed = if xml { document::parse_xml(text, &base) } else { document::parse_at(text, &base) };
+                Ok(num(self.mutate(|m| {
+                    let root = m.create_element(QualName::new(None, ns!(), LocalName::from(SUBDOCUMENT)), Vec::new());
+                    for &child in &parsed.root_node().children {
+                        if let Some(copy) = copy_across(&parsed, child, m) {
+                            m.append_children(root, &[copy]);
+                        }
+                    }
+                    root
+                })))
+            }
+            "createFragment" => {
+                let qname = QualName::new(None, ns!(), LocalName::from(FRAGMENT));
+                Ok(num(self.mutate(|m| m.create_element(qname, Vec::<Attribute>::new()))))
+            }
+            // `DOMImplementation.createHTMLDocument`: um documento à parte, com `html`, `head`, `body` e o `title`
+            // pedido. A raiz é um elemento marcado, como o fragmento.
+            "createDocument" => {
+                let title = match args.first() {
+                    Some(DomArg::Str(t)) => Some(t.clone()),
+                    _ => None,
+                };
+                Ok(num(self.mutate(|m| {
+                    let html_name = |local: &str| QualName::new(None, ns!(html), LocalName::from(local));
+                    let root = m.create_element(QualName::new(None, ns!(), LocalName::from(SUBDOCUMENT)), Vec::new());
+                    let html = m.create_element(html_name("html"), Vec::new());
+                    let head = m.create_element(html_name("head"), Vec::new());
+                    let body = m.create_element(html_name("body"), Vec::new());
+                    if let Some(title) = &title {
+                        let element = m.create_element(html_name("title"), Vec::new());
+                        let text = m.create_text_node(title);
+                        m.append_children(element, &[text]);
+                        m.append_children(head, &[element]);
+                    }
+                    m.append_children(html, &[head, body]);
+                    m.append_children(root, &[html]);
+                    root
+                })))
+            }
+            "createText" => Ok(num(self.mutate(|m| m.create_text_node(str_arg(args, 0).unwrap_or(""))))),
+            "createSpecial" => {
+                let kind = if matches!(args.first(), Some(DomArg::Num(k)) if *k == 7.0) { 7 } else { 4 };
+                let target = str_arg(args, 1)?.to_owned();
+                let id = self.mutate(|m| m.create_comment_node(str_arg(args, 2).unwrap_or("")));
+                document::mark_special_node(id, kind, target);
+                Ok(num(id))
+            }
+            "createComment" => Ok(num(self.mutate(|m| m.create_comment_node(str_arg(args, 0).unwrap_or(""))))),
+            "append" => {
+                let (parent, child) = (id_arg(args, 0)?, id_arg(args, 1)?);
+                self.mutate(|m| {
+                    let kids = Self::detach_for_insert(m, child);
+                    m.append_children(parent, &kids);
+                });
+                Ok(DomArg::Undefined)
+            }
+            "insertBefore" => {
+                let (parent, child) = (id_arg(args, 0)?, id_arg(args, 1)?);
+                let reference = opt_id(args, 2);
+                self.mutate(|m| {
+                    let kids = Self::detach_for_insert(m, child);
+                    match reference {
+                        Some(anchor) => m.insert_nodes_before(anchor, &kids),
+                        None => m.append_children(parent, &kids),
+                    }
+                });
+                Ok(DomArg::Undefined)
+            }
+            "remove" => {
+                let id = id_arg(args, 0)?;
+                self.mutate(|m| {
+                    if m.parent_id(id).is_some() {
+                        m.remove_node(id);
+                    }
+                });
+                Ok(DomArg::Undefined)
+            }
+            "clone" => {
+                let id = id_arg(args, 0)?;
+                let deep = matches!(args.get(1), Some(DomArg::Bool(true)));
+                Ok(num(self.mutate(|m| Self::clone_node(m, id, deep))))
+            }
+            "byId" => Ok(self.doc.borrow().get_element_by_id(str_arg(args, 0)?).map_or(DomArg::Null, num)),
+            "query" => {
+                let scope = id_arg(args, 0)?;
+                let selector = str_arg(args, 1)?;
+                let all = matches!(args.get(2), Some(DomArg::Bool(true)));
+                let doc = self.doc.borrow();
+                let invalid = |_| err("SyntaxError", format!("'{selector}' is not a valid selector."));
+                if all {
+                    Ok(ids(doc.query_selector_all_in(scope, selector).map_err(invalid)?))
+                } else {
+                    Ok(doc.query_selector_in(scope, selector).map_err(invalid)?.map_or(DomArg::Null, num))
+                }
+            }
+            "matches" => {
+                let id = id_arg(args, 0)?;
+                let selector = str_arg(args, 1)?;
+                let doc = self.doc.borrow();
+                let mut top = id;
+                while let Some(parent) = doc.get_node(top).and_then(|n| n.parent) {
+                    top = parent;
+                }
+                let found = doc.query_selector_all_in(top, selector).map_err(|_| err("SyntaxError", format!("'{selector}' is not a valid selector.")))?;
+                Ok(DomArg::Bool(found.contains(&id)))
+            }
+            "normalizeStyle" => Ok(DomArg::Str(document::normalize_style(str_arg(args, 0)?))),
+            "innerHTML" => Ok(DomArg::Str(document::inner_html(&self.doc.borrow(), id_arg(args, 0)?))),
+            "outerHTML" => Ok(DomArg::Str(document::outer_html(&self.doc.borrow(), id_arg(args, 0)?))),
+            "setInnerHTML" => {
+                let id = id_arg(args, 0)?;
+                let html = str_arg(args, 1)?;
+                self.mutate(|m| document::set_inner_html(m, id, html));
+                Ok(DomArg::Undefined)
+            }
+            "textContent" => {
+                let doc = self.doc.borrow();
+                Ok(DomArg::Str(document::text_content(&doc, id_arg(args, 0)?)))
+            }
+            "setTextContent" => {
+                let id = id_arg(args, 0)?;
+                let text = str_arg(args, 1)?;
+                self.mutate(|m| {
+                    document::detach_children(m, id);
+                    if !text.is_empty() {
+                        let node = m.create_text_node(text);
+                        m.append_children(id, &[node]);
+                    }
+                });
+                Ok(DomArg::Undefined)
+            }
+            _ => Err(illegal()),
+        }
+    }
+}

@@ -1,0 +1,30 @@
+{
+ "url": "https://example.com/",
+ "recorded_at": 1791582189,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://example.com/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "25ddf2c883e0d1958ea971d279a7e4f0fd446724ee3db7db19dadabd4a62e484"
+  },
+  {
+   "method": "GET",
+   "url": "https://example.com/s.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "535ef2c3425a9d1214bcd1a8d5430d904444135e48a4f113ba1e6f6e29925b0a"
+  }
+ ]
+}

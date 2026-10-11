@@ -243,8 +243,9 @@ pub trait ExtObject {
     fn hash_value(&self) -> Option<i64> {
         None
     }
-    /// `obj == other` quando o objeto define a própria igualdade; `None` = por identidade.
-    fn eq_value(&self, _other: &Value) -> Option<bool> {
+    /// `obj == other` quando o objeto define a própria igualdade; `None` = por identidade. O erro é a exceção de um
+    /// `__eq__` de usuário alcançado pela comparação (o referente de uma referência fraca).
+    fn eq_value(&self, _other: &Value) -> Option<crate::vm::PyResult<bool>> {
         None
     }
     /// O objeto para o qual uma referência fraca aponta, se for uma e ainda estiver viva.
@@ -255,6 +256,11 @@ pub trait ExtObject {
     /// falha com `ImageError::Unsupported` em vez de copiar errado).
     fn image(&self) -> Option<ExtImage> {
         None
+    }
+    /// O que o `tp_traverse` do tipo visita, na ordem do CPython (`gc.get_referents`, ver `referents`); vazio para o
+    /// tipo que não guarda referência nenhuma.
+    fn referents(&self) -> Vec<Value> {
+        Vec::new()
     }
 }
 
@@ -461,7 +467,7 @@ impl fmt::Debug for Env {
 
 impl Env {
     pub fn new(parent: Option<Rc<Env>>, is_class: bool, is_module: bool) -> Rc<Env> {
-        Rc::new(Env {
+        let env = Rc::new(Env {
             vars: RefCell::new(LocalMap::default()),
             order: RefCell::new(Vec::new()),
             parent,
@@ -469,7 +475,9 @@ impl Env {
             is_module,
             finished: std::cell::Cell::new(false),
             holds: std::cell::Cell::new(0),
-        })
+        });
+        crate::gcreg::track_env(&env);
+        env
     }
 
     /// Grava uma variável local; nos corpos de classe lembra a ordem em que os nomes nasceram.
@@ -570,6 +578,8 @@ const C_EXTENSION_MODULES: &[(&str, &str)] = &[
     ("_sre", "_sre"),
     ("_sqlite3", "_sqlite3"),
     ("_typing", "_typing"),
+    ("greenlet._greenlet", "greenlet._greenlet"),
+    ("_contextvars", "_contextvars"),
 ];
 
 /// Funções soltas de módulos que no CPython misturam Python e C, como `(módulo daqui, módulo do CPython,
@@ -629,7 +639,9 @@ const C_EXTENSION_FUNCTIONS: &[(&str, &str, &[&str])] = &[
 impl FuncObj {
     /// O `__dict__` inicial de uma função: vazio.
     pub fn new_attrs() -> RefCell<Rc<RefCell<Dict>>> {
-        RefCell::new(Rc::new(RefCell::new(Dict::default())))
+        let attrs = Rc::new(RefCell::new(Dict::default()));
+        crate::gcreg::track_dict(&attrs);
+        RefCell::new(attrs)
     }
 
     /// `f.__annotations__`: o dict guardado, ou um dict vazio novo que passa a ser o guardado.
@@ -881,7 +893,8 @@ impl ClassObj {
     /// aparecer, porque o tipo real não tem `__dict__` nem esses nomes.
     pub fn emulates_c_type(&self) -> bool {
         matches!(self.dict.borrow().get("__module__"), Some(Value::Str(m))
-            if m.as_str() == "builtins" || BUILTIN_MODULES.contains(&m.as_str()) || C_TYPE_MODULES.contains(&m.as_str()))
+            if m.as_str() == "builtins" || BUILTIN_MODULES.contains(&m.as_str()) || C_TYPE_MODULES.contains(&m.as_str())
+                || C_EXTENSION_TYPES.contains(&(m.as_str(), self.name.as_str())))
     }
 
     /// O tipo de C é estático (sem `Py_TPFLAGS_HEAPTYPE`): o `__module__` sai do `tp_name`, fora do `__dict__`
@@ -1024,6 +1037,7 @@ impl InstanceObj {
         if class.finalizer().is_some() {
             crate::finalize::register(&inst);
         }
+        crate::gcreg::track_instance(&inst);
         inst
     }
 
@@ -1050,6 +1064,7 @@ impl InstanceObj {
             return Value::Dict(v.clone());
         }
         let rc = Rc::new(RefCell::new(self.attrs_dict()));
+        crate::gcreg::track_dict(&rc);
         *self.view.borrow_mut() = Some(rc.clone());
         Value::Dict(rc)
     }
@@ -1409,12 +1424,31 @@ impl Range {
 }
 
 /// Erros do modelo de objetos. O interpretador (fatia 11) converte em exceções Python.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum ObjError {
     /// `TypeError` com a mensagem do CPython.
     TypeError(String),
     /// Erro interno: resultado inteiro fora de `i64`. Some na fatia 19 (ver `int`).
     IntOverflow,
+    /// A exceção que um `__eq__` de usuário levantou durante a busca de uma chave: sai como está.
+    Raised(Box<crate::vm::PyException>),
+}
+
+impl From<crate::vm::PyException> for ObjError {
+    fn from(e: crate::vm::PyException) -> ObjError {
+        ObjError::Raised(Box::new(e))
+    }
+}
+
+/// Uma exceção levantada só é igual a si mesma pelo objeto, que a comparação de erros não alcança.
+impl PartialEq for ObjError {
+    fn eq(&self, other: &ObjError) -> bool {
+        match (self, other) {
+            (ObjError::TypeError(a), ObjError::TypeError(b)) => a == b,
+            (ObjError::IntOverflow, ObjError::IntOverflow) => true,
+            _ => false,
+        }
+    }
 }
 
 impl Value {
@@ -1442,7 +1476,9 @@ impl Value {
     }
 
     pub fn list(items: Vec<Value>) -> Value {
-        Value::List(Rc::new(RefCell::new(items)))
+        let l = Rc::new(RefCell::new(items));
+        crate::gcreg::track_list(&l);
+        Value::List(l)
     }
 
     pub fn tuple(items: Vec<Value>) -> Value {
@@ -1450,11 +1486,15 @@ impl Value {
     }
 
     pub fn dict(d: Dict) -> Value {
-        Value::Dict(Rc::new(RefCell::new(d)))
+        let d = Rc::new(RefCell::new(d));
+        crate::gcreg::track_dict(&d);
+        Value::Dict(d)
     }
 
     pub fn set(s: Set) -> Value {
-        Value::Set(Rc::new(RefCell::new(s)))
+        let s = Rc::new(RefCell::new(s));
+        crate::gcreg::track_set(&s);
+        Value::Set(s)
     }
 
     pub fn frozenset(s: Set) -> Value {
@@ -1547,13 +1587,22 @@ pub(crate) const FROZEN_MODULES: &[&str] = &[
 /// Módulos embutidos no executável do CPython 3.13 do Debian (`sys.builtin_module_names`).
 /// Módulos escritos em Python cujos tipos, no Debian, vêm de um módulo C com o `__module__` do módulo
 /// público (`_datetime` dá `datetime.timezone`): os tipos são de C, o módulo não é embutido.
-pub(crate) const C_TYPE_MODULES: &[&str] = &["datetime"];
+pub(crate) const C_TYPE_MODULES: &[&str] = &["datetime", "_contextvars"];
+
+/// Tipos em C de extensões de terceiros que aqui são classes Python, como `(__module__, nome)`: o `greenlet.greenlet`
+/// do greenlet 3.5.6. Os outros nomes do módulo (as exceções `greenlet.error` e `GreenletExit`, feitas por
+/// `PyErr_NewException`) seguem classes de verdade.
+pub(crate) const C_EXTENSION_TYPES: &[(&str, &str)] =
+    &[("greenlet", "greenlet"), ("greenlet._greenlet", "UnswitchableGreenlet")];
 
 /// Os tipos estáticos de C fora de `builtins` (`__module__` ausente do `__dict__` e sem `Py_TPFLAGS_HEAPTYPE`),
-/// levantados no oráculo sobre os módulos embutidos, `datetime` e `types`.
+/// levantados no oráculo sobre os módulos embutidos, `datetime` e `types`, e o `greenlet.greenlet` (oráculo de
+/// automação).
 pub(crate) const STATIC_C_TYPES: &[(&str, &str)] = &[
+    ("_contextvars", "Context"), ("_contextvars", "ContextVar"), ("_contextvars", "Token"),
     ("collections", "OrderedDict"), ("datetime", "date"), ("datetime", "datetime"), ("datetime", "time"),
-    ("datetime", "timedelta"), ("datetime", "timezone"), ("datetime", "tzinfo"), ("pickle", "PickleBuffer"),
+    ("datetime", "timedelta"), ("datetime", "timezone"), ("datetime", "tzinfo"), ("greenlet", "greenlet"),
+    ("greenlet._greenlet", "UnswitchableGreenlet"), ("pickle", "PickleBuffer"),
     ("sys", "flags"), ("sys", "float_info"), ("sys", "hash_info"), ("sys", "int_info"), ("sys", "thread_info"),
     ("sys", "version_info"), ("types", "GenericAlias"), ("types", "SimpleNamespace"), ("types", "UnionType"),
     ("weakref", "CallableProxyType"), ("weakref", "ProxyType"), ("weakref", "ReferenceType"),
@@ -1907,8 +1956,44 @@ fn int_float_eq(i: i64, x: f64) -> bool {
     x.is_finite() && x.fract() == 0.0 && (-LIMIT..LIMIT).contains(&x) && x as i64 == i
 }
 
-/// `a == b` dos tipos embutidos.
-pub fn py_eq(a: &Value, b: &Value) -> bool {
+/// O `PyObject_RichCompareBool(x, y, Py_EQ)`: a identidade decide antes do `==`.
+pub fn eq_bool(x: &Value, y: &Value) -> crate::vm::PyResult<bool> {
+    Ok(is(x, y) || py_eq(x, y)?)
+}
+
+/// A primeira posição de `items` igual a `item`, pela ordem.
+pub fn position_eq(items: &[Value], item: &Value) -> crate::vm::PyResult<Option<usize>> {
+    for (i, x) in items.iter().enumerate() {
+        if eq_bool(x, item)? {
+            return Ok(Some(i));
+        }
+    }
+    Ok(None)
+}
+
+/// Percorre a lista de `start` a `stop` como `list_contains`, `list_index_impl` e `list_count`: o tamanho e o
+/// elemento são relidos a cada passo, porque o `__eq__` de usuário pode mudar a lista no meio. `hit` recebe cada
+/// posição igual a `item` e devolve se a busca para ali.
+pub fn scan_list_eq(
+    list: &RefCell<Vec<Value>>,
+    item: &Value,
+    start: usize,
+    stop: usize,
+    mut hit: impl FnMut(usize) -> bool,
+) -> crate::vm::PyResult<()> {
+    let mut i = start;
+    while i < stop {
+        let Some(x) = list.borrow().get(i).cloned() else { break };
+        if eq_bool(&x, item)? && hit(i) {
+            break;
+        }
+        i += 1;
+    }
+    Ok(())
+}
+
+/// `a == b` dos tipos embutidos; a exceção de um `__eq__` de usuário sai como no `PyObject_RichCompare`.
+pub fn py_eq(a: &Value, b: &Value) -> crate::vm::PyResult<bool> {
     let user_eq = |v: &Value| match v {
         Value::Instance(_) => true,
         Value::Class(c) => c.meta.is_some(),
@@ -1923,9 +2008,9 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
 }
 
 /// O resto de `py_eq`, depois do `__eq__` de instâncias de usuário.
-pub(crate) fn py_eq_native(a: &Value, b: &Value) -> bool {
+pub(crate) fn py_eq_native(a: &Value, b: &Value) -> crate::vm::PyResult<bool> {
     if matches!(a, Value::Big(_)) || matches!(b, Value::Big(_)) {
-        return match (a, b) {
+        return Ok(match (a, b) {
             (Value::Float(x), Value::Big(n)) | (Value::Big(n), Value::Float(x)) => {
                 crate::bigint::cmp_float(n, *x) == Some(std::cmp::Ordering::Equal)
             }
@@ -1933,32 +2018,35 @@ pub(crate) fn py_eq_native(a: &Value, b: &Value) -> bool {
                 (Some(x), Some(y)) => x == y,
                 _ => false,
             },
-        };
+        });
     }
     if let (Some(x), Some(y)) = (as_num(a), as_num(b)) {
-        return match (x, y) {
+        return Ok(match (x, y) {
             (Num::Int(x), Num::Int(y)) => x == y,
             (Num::Float(x), Num::Float(y)) => x == y,
             (Num::Int(i), Num::Float(x)) | (Num::Float(x), Num::Int(i)) => int_float_eq(i, x),
-        };
+        });
     }
-    match (a, b) {
+    Ok(match (a, b) {
         (Value::None, Value::None) => true,
         (Value::Str(x), Value::Str(y)) => Rc::ptr_eq(x, y) || x.as_str() == y.as_str(),
         (Value::Bytes(x), Value::Bytes(y)) => x[..] == y[..],
         (Value::ByteArray(x), Value::ByteArray(y)) => Rc::ptr_eq(x, y) || *x.borrow() == *y.borrow(),
         (Value::ByteArray(x), Value::Bytes(y)) | (Value::Bytes(y), Value::ByteArray(x)) => x.borrow()[..] == y[..],
-        (Value::List(x), Value::List(y)) => Rc::ptr_eq(x, y) || list::seq_eq(&x.borrow(), &y.borrow()),
-        (Value::Tuple(x), Value::Tuple(y)) => Rc::ptr_eq(x, y) || list::seq_eq(x, y),
-        (Value::Dict(x), Value::Dict(y)) => Rc::ptr_eq(x, y) || dict::dict_eq(&x.borrow(), &y.borrow()),
-        (Value::Set(x), Value::Set(y)) => Rc::ptr_eq(x, y) || set::set_eq(&x.borrow(), &y.borrow()),
+        (Value::List(x), Value::List(y)) => Rc::ptr_eq(x, y) || list::seq_eq(&x.borrow(), &y.borrow())?,
+        (Value::Tuple(x), Value::Tuple(y)) => Rc::ptr_eq(x, y) || list::seq_eq(x, y)?,
+        (Value::Dict(x), Value::Dict(y)) => Rc::ptr_eq(x, y) || dict::dict_eq(&x.borrow(), &y.borrow())?,
+        (Value::Set(x), Value::Set(y)) => Rc::ptr_eq(x, y) || set::set_eq(&x.borrow(), &y.borrow())?,
         (Value::Range(x), Value::Range(y)) => range_eq(x, y),
         (Value::Builtin(x), Value::Builtin(y)) => x == y,
         (Value::Exception(x), Value::Exception(y)) => Rc::ptr_eq(x, y),
         (Value::Function(x), Value::Function(y)) => Rc::ptr_eq(x, y),
         (Value::Module(x), Value::Module(y)) => Rc::ptr_eq(x, y),
         (Value::NativeFn(x), Value::NativeFn(y)) => x.name == y.name && x.f as usize == y.f as usize,
-        (Value::Ext(x), Value::Ext(y)) => x.eq_value(b).or_else(|| y.eq_value(a)).unwrap_or_else(|| std::ptr::addr_eq(Rc::as_ptr(x), Rc::as_ptr(y))),
+        (Value::Ext(x), Value::Ext(y)) => match x.eq_value(b).or_else(|| y.eq_value(a)) {
+            Some(r) => r?,
+            None => std::ptr::addr_eq(Rc::as_ptr(x), Rc::as_ptr(y)),
+        },
         (Value::Native(x), Value::Native(y)) => Rc::ptr_eq(x, y),
         // Método ligado: o mesmo receptor (identidade) e a mesma função (`method_richcompare` e
         // `meth_richcompare`); cada acesso `obj.m` cria um objeto novo, então o ponteiro não serve.
@@ -1968,7 +2056,7 @@ pub(crate) fn py_eq_native(a: &Value, b: &Value) -> bool {
         (Value::BoundFn(x), Value::BoundFn(y)) => Rc::ptr_eq(x, y) || (Rc::ptr_eq(&x.1, &y.1) && is(&x.0, &y.0)),
         (Value::Slice(x), Value::Slice(y)) => Rc::ptr_eq(x, y),
         _ => false,
-    }
+    })
 }
 
 /// Hash fixo de `None` desde o 3.12 (`none_hash`), independente do endereço.
@@ -2003,10 +2091,10 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::Bound(b) => Ok(PyStr::new(b.name).hash()),
         Value::Class(c) => Ok((py_type_addr(Rc::as_ptr(c) as usize) >> 4) as i64),
         Value::Instance(i) => match crate::vm::instance_hash(v) {
-            Some(h) => Ok(h),
+            Some(h) => Ok(h?),
             // `__hash__ = None` na classe: instâncias não são hasheáveis.
             None if matches!(i.class().lookup("__hash__"), Some(Value::None)) => {
-                Err(ObjError::TypeError(format!("unhashable type: '{}'", i.class().name)))
+                Err(ObjError::TypeError(format!("unhashable type: '{}'", i.class().tp_name())))
             }
             None => Ok(py_addr_hash(Rc::as_ptr(i) as usize)),
         },
@@ -2162,6 +2250,7 @@ mod tests {
 
     #[test]
     fn equality() {
+        let py_eq = |a: &Value, b: &Value| py_eq(a, b).unwrap();
         assert!(py_eq(&Value::Int(1), &Value::Float(1.0)));
         assert!(py_eq(&Value::Bool(true), &Value::Int(1)));
         assert!(!py_eq(&Value::Int(1), &s("1")));

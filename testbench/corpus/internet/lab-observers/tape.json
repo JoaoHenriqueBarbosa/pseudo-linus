@@ -1,0 +1,18 @@
+{
+ "url": "https://lab.test/lab-observers/",
+ "recorded_at": 1791500000,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-observers/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "f44bf234859f7f3531f30d1e6ab70448164b4a59c23931e765aa29ed78d3648e"
+  }
+ ]
+}

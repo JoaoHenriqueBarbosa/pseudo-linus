@@ -1,0 +1,4 @@
+["any","TypeError","Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': Policy \"any name\" disallowed."]
+["dup","TypeError","Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': Policy \"any name\" disallowed."]
+V ["trusted-types","trusted-types","trusted-types-policy","enforce","any name","O/fx/csp-e.js",5,37,200,"trusted-types *","O/e",true,true,true,""]
+V ["trusted-types","trusted-types","trusted-types-policy","enforce","any name","O/fx/csp-e.js",5,86,200,"trusted-types *","O/e",true,true,true,""]

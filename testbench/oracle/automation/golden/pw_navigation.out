@@ -1,0 +1,26 @@
+version-major: "154"
+is_connected: true
+response: [200, "http://127.0.0.1:8765/", true, "OK", "text/html"]
+title: "Fixture da automação"
+url: "http://127.0.0.1:8765/"
+content-head: "<!DOCTYPE html><html lang=\"en\"><head>\n  "
+inner_text: "Olá, automação"
+viewport_size: {"height": 720, "width": 1280}
+window-inner: [1280, 720]
+viewport-after: [500, 400]
+wait_for_load_state: null
+wait_for_url: null
+second-title: "Segunda"
+go_back: "http://127.0.0.1:8765/"
+go_forward: "http://127.0.0.1:8765/second.html"
+reload: 200
+goto-404: 404
+set_content: "conteúdo novo"
+frames: [2, "http://127.0.0.1:8765/nao-existe", [false, true]]
+frame-text: "dentro"
+goto-data: true
+data-title: "d"
+goto-bad: !Error: Page.goto: net::ERR_UNSAFE_PORT at http://127.0.0.1:1/
+is_closed: false
+is_closed-after: true
+is_connected-after: false

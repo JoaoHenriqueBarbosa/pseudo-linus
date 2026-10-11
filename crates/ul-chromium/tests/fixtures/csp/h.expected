@@ -1,0 +1,6 @@
+["a","ok","string:a"]
+["b","TypeError","Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': Policy \"b\" disallowed."]
+["innerHTML","TypeError","Failed to set the 'innerHTML' property on 'Element': This document requires 'TrustedHTML' assignment."]
+V ["trusted-types","trusted-types","trusted-types-policy","report","a","O/fx/csp-h.js",5,35,200,"trusted-types b","O/h",true,true,true,""]
+V ["trusted-types","trusted-types","trusted-types-policy","enforce","b","O/fx/csp-h.js",5,75,200,"require-trusted-types-for 'script'; trusted-types a","O/h",true,true,true,""]
+V ["require-trusted-types-for","require-trusted-types-for","trusted-types-sink","enforce","Element innerHTML|<b>1</b>","O/fx/csp-h.js",6,70,200,"require-trusted-types-for 'script'; trusted-types a","O/h",true,true,true,""]

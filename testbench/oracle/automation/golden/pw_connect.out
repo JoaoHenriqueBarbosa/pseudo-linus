@@ -1,0 +1,10 @@
+version-major: "154"
+contexts: [1, [1]]
+first-page-url: "about:blank"
+title: "Fixture da automação"
+click: null
+pages: 2
+targets-json: ["browser_ui", "browser_ui", "page", "page"]
+new-context: "Segunda"
+contexts-after: 2
+still-alive: true

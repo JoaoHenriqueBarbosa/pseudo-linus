@@ -1,0 +1,113 @@
+cmp [1,2] ok -1
+cmp [2,1] ok 1
+cmp [1,1] ok 0
+cmp ["a",1] ok 1
+cmp [1,"a"] ok -1
+cmp ["Date(5)",9] ok 1
+cmp [[1],"z"] ok 1
+cmp [[1,2],[1,3]] ok -1
+cmp [[],[0]] ok -1
+cmp ["AB1","z"] ok 1
+cmp ["AB1",[1]] ok -1
+cmp [null,null] ok -1
+cmp [0,0] ok 0
+cmp bad NaN threw DataError: Failed to execute 'cmp' on 'IDBFactory': The parameter is not a valid key.
+cmp bad null threw DataError: Failed to execute 'cmp' on 'IDBFactory': The parameter is not a valid key.
+cmp bad undefined threw DataError: Failed to execute 'cmp' on 'IDBFactory': The parameter is not a valid key.
+cmp bad [object Object] threw DataError: Failed to execute 'cmp' on 'IDBFactory': The parameter is not a valid key.
+cmp bad true threw DataError: Failed to execute 'cmp' on 'IDBFactory': The parameter is not a valid key.
+cmp bad sym threw DataError: Failed to execute 'cmp' on 'IDBFactory': The parameter is not a valid key.
+cmp bad Invalid Date threw DataError: Failed to execute 'cmp' on 'IDBFactory': The parameter is not a valid key.
+cmp bad NaN threw DataError: Failed to execute 'cmp' on 'IDBFactory': The parameter is not a valid key.
+cmp bad function () {} threw DataError: Failed to execute 'cmp' on 'IDBFactory': The parameter is not a valid key.
+cmp 1 arg threw TypeError: Failed to execute 'cmp' on 'IDBFactory': 2 arguments required, but only 1 present.
+open no arg threw TypeError: Failed to execute 'open' on 'IDBFactory': 1 argument required, but only 0 present.
+open v0 threw TypeError: Failed to execute 'open' on 'IDBFactory': The version provided must not be 0.
+open v-1 threw TypeError: Failed to execute 'open' on 'IDBFactory': Value is outside the 'unsigned long long' value range.
+open vNaN threw TypeError: Failed to execute 'open' on 'IDBFactory': Value is not of type 'unsigned long long'.
+range 1 5 true false false true true [object IDBKeyRange]
+bound inverted threw DataError: Failed to execute 'bound' on 'IDBKeyRange': The lower key is greater than the upper key.
+bound equal open threw DataError: Failed to execute 'bound' on 'IDBKeyRange': The lower key and upper key are equal and one of the bounds is open.
+only bad threw DataError: Failed to execute 'only' on 'IDBKeyRange': The parameter is not a valid key.
+includes bad threw DataError: Failed to execute 'includes' on 'IDBKeyRange': The parameter is not a valid key.
+lowerBound ok ["a",null,true]
+result early threw InvalidStateError: Failed to read the 'result' property from 'IDBRequest': The request has not finished.
+error early threw InvalidStateError: Failed to read the 'error' property from 'IDBRequest': The request has not finished.
+open req [object IDBOpenDBRequest] pending   null null
+open order ["upgradeneeded IDBVersionChangeEvent old=0 new=2 none \"\" tx=versionchange ready=done","stores auto,kp,people,plain [object DOMStringList] true 4","indexNames byEmail,byName,byTag","store props [\"people\",\"id\",false,true]","dup store ConstraintError: Failed to execute 'createObjectStore' on 'IDBDatabase': An object store with the specified name already exists.","bad keyPath SyntaxError: Failed to execute 'createObjectStore' on 'IDBDatabase': The keyPath option is not a valid key path.","auto empty kp InvalidAccessError: Failed to execute 'createObjectStore' on 'IDBDatabase': The autoIncrement option was set but the keyPath option was empty or an array.","auto array kp InvalidAccessError: Failed to execute 'createObjectStore' on 'IDBDatabase': The autoIncrement option was set but the keyPath option was empty or an array.","dup index ConstraintError: Failed to execute 'createIndex' on 'IDBObjectStore': An index with the specified name already exists.","multi array InvalidAccessError: Failed to execute 'createIndex' on 'IDBObjectStore': The keyPath argument was an array and the multiEntry option is true.","delete missing NotFoundError: Failed to execute 'deleteObjectStore' on 'IDBDatabase': The specified object store was not found.","index missing NotFoundError: Failed to execute 'index' on 'IDBObjectStore': The specified index was not found.","versionchange tx complete","success ready=done tx=null"]
+db [object IDBDatabase] db1 2 ["auto","kp","people","plain"]
+createObjectStore outside upgrade threw InvalidStateError: Failed to execute 'createObjectStore' on 'IDBDatabase': The database is not running a version change transaction.
+transaction no stores threw InvalidAccessError: Failed to execute 'transaction' on 'IDBDatabase': The storeNames parameter was empty.
+transaction missing threw NotFoundError: Failed to execute 'transaction' on 'IDBDatabase': One of the specified object stores was not found.
+transaction bad mode threw TypeError: Failed to execute 'transaction' on 'IDBDatabase': The mode provided ('versionchange') is not one of 'readonly' or 'readwrite'.
+tx [object IDBTransaction] readwrite default ["auto","kp","people","plain"] true null
+add no key threw DataError: Failed to execute 'add' on 'IDBObjectStore': Evaluating the object store's key path did not yield a value.
+put explicit key with kp threw DataError: Failed to execute 'put' on 'IDBObjectStore': The object store uses in-line keys and the key parameter was provided.
+add bad key threw DataError: Failed to execute 'add' on 'IDBObjectStore': Evaluating the object store's key path yielded a value that is not a valid key.
+clone fail threw DataCloneError: Failed to execute 'add' on 'IDBObjectStore': f() {} could not be cloned.
+plain no key threw DataError: Failed to execute 'add' on 'IDBObjectStore': The object store uses out-of-line keys and has no key generator and the key parameter was not provided.
+tx results [["success",3],["success",1],["success",2],["success",4],["error","ConstraintError: Key already exists in the object store."],["error","ConstraintError: Unable to add key to index 'byEmail': at least one key does not satisfy the uniqueness requirements."],["success",1],["success",2],["success",10],["success",11],["success",20.5],["success",21],["success",[1,"x"]],["success",[1,"a"]],["success","k1"],["success",[1,"a"]],["success","Date(3)"]]
+tx end complete
+use finished tx threw TransactionInactiveError: Failed to execute 'get' on 'IDBObjectStore': The transaction has finished.
+readonly put threw ReadOnlyError: Failed to execute 'put' on 'IDBObjectStore': The transaction is read-only.
+read get1 success {"id":1,"name":"a","tags":["y"],"email":"a@x"}
+read getRange success {"id":2,"name":"b","tags":[],"email":"b@x"}
+read getMissing success 
+read getKey success 2
+read count success 4
+read countRange success 2
+read getAll success ["{\"id\":1,\"name\":\"a\",\"tags\":[\"y\"],\"email\":\"a@x\"}","{\"id\":2,\"name\":\"b\",\"tags\":[],\"email\":\"b@x\"}","{\"id\":3,\"name\":\"c\",\"tags\":[\"x\",\"y\"],\"email\":\"c@x\"}","{\"id\":4,\"name\":\"a\",\"tags\":[\"x\",\"x\"]}"]
+read getAllCount success ["{\"id\":1,\"name\":\"a\",\"tags\":[\"y\"],\"email\":\"a@x\"}","{\"id\":2,\"name\":\"b\",\"tags\":[],\"email\":\"b@x\"}"]
+read getAllKeys success [3,4]
+read byName success ["{\"id\":1,\"name\":\"a\",\"tags\":[\"y\"],\"email\":\"a@x\"}","{\"id\":4,\"name\":\"a\",\"tags\":[\"x\",\"x\"]}"]
+read byNameKeys success [1,4,2,3]
+read byTag success [3,4]
+read tagCount success 4
+read emailGet success {"id":2,"name":"b","tags":[],"email":"b@x"}
+read emailKey success 3
+read auto success [1,2,10,11,20.5,21]
+read kp success ["{\"a\":1,\"b\":\"a\",\"v\":2}","{\"a\":1,\"b\":\"x\",\"v\":1}"]
+read plain success ["Date(3)","k1",[1,"a"]]
+read plainV success {"d":"1970-01-01T00:00:00.007Z","buf":{},"m":{}}
+records success [["[object IDBRecord]",4,4,"{\"id\":4,\"name\":\"a\",\"tags\":[\"x\",\"x\"]}"],["[object IDBRecord]",3,3,"{\"id\":3,\"name\":\"c\",\"tags\":[\"x\",\"y\"],\"email\":\"c@x\"}"]]
+index records [["a",1],["a",4],["b",2],["c",3]]
+getAll bad count threw TypeError: Failed to execute 'getAll' on 'IDBObjectStore': Value is outside the 'unsigned long' value range.
+get no arg threw TypeError: Failed to execute 'get' on 'IDBObjectStore': 1 argument required, but only 0 present.
+cursor next [["[object IDBCursorWithValue]",1,1,"{\"id\":1,\"name\":\"a\",\"tags\":[\"y\"],\"email\":\"a@x\"}","next",true,true],["[object IDBCursorWithValue]",2,2,"{\"id\":2,\"name\":\"b\",\"tags\":[],\"email\":\"b@x\"}","next",true,true],["[object IDBCursorWithValue]",3,3,"{\"id\":3,\"name\":\"c\",\"tags\":[\"x\",\"y\"],\"email\":\"c@x\"}","next",true,true],["[object IDBCursorWithValue]",4,4,"{\"id\":4,\"name\":\"a\",\"tags\":[\"x\",\"x\"]}","next",true,true]]
+cursor prev range [["[object IDBCursorWithValue]",4,4,"{\"id\":4,\"name\":\"a\",\"tags\":[\"x\",\"x\"]}","prev",true,true],["[object IDBCursorWithValue]",3,3,"{\"id\":3,\"name\":\"c\",\"tags\":[\"x\",\"y\"],\"email\":\"c@x\"}","prev",true,true],["[object IDBCursorWithValue]",2,2,"{\"id\":2,\"name\":\"b\",\"tags\":[],\"email\":\"b@x\"}","prev",true,true],["[object IDBCursorWithValue]",1,1,"{\"id\":1,\"name\":\"a\",\"tags\":[\"y\"],\"email\":\"a@x\"}","prev",true,true]]
+cursor advance [["[object IDBCursorWithValue]",1,1,"{\"id\":1,\"name\":\"a\",\"tags\":[\"y\"],\"email\":\"a@x\"}","next",true,true],["[object IDBCursorWithValue]",3,3,"{\"id\":3,\"name\":\"c\",\"tags\":[\"x\",\"y\"],\"email\":\"c@x\"}","next",true,true],["[object IDBCursorWithValue]",4,4,"{\"id\":4,\"name\":\"a\",\"tags\":[\"x\",\"x\"]}","next",true,true]]
+cursor continue key [["[object IDBCursorWithValue]",1,1,"{\"id\":1,\"name\":\"a\",\"tags\":[\"y\"],\"email\":\"a@x\"}","next",true,true],["[object IDBCursorWithValue]",4,4,"{\"id\":4,\"name\":\"a\",\"tags\":[\"x\",\"x\"]}","next",true,true]]
+index cursor nextunique [["[object IDBCursorWithValue]","a",1,"{\"id\":1,\"name\":\"a\",\"tags\":[\"y\"],\"email\":\"a@x\"}","nextunique",true,true],["[object IDBCursorWithValue]","b",2,"{\"id\":2,\"name\":\"b\",\"tags\":[],\"email\":\"b@x\"}","nextunique",true,true],["[object IDBCursorWithValue]","c",3,"{\"id\":3,\"name\":\"c\",\"tags\":[\"x\",\"y\"],\"email\":\"c@x\"}","nextunique",true,true]]
+index key cursor prevunique [["[object IDBCursor]","y",1,"-","prevunique",true,true],["[object IDBCursor]","x",3,"-","prevunique",true,true]]
+index continuePrimaryKey [["[object IDBCursorWithValue]","a",1,"{\"id\":1,\"name\":\"a\",\"tags\":[\"y\"],\"email\":\"a@x\"}","next",true,true],["[object IDBCursorWithValue]","a",4,"{\"id\":4,\"name\":\"a\",\"tags\":[\"x\",\"x\"]}","next",true,true],["[object IDBCursorWithValue]","b",2,"{\"id\":2,\"name\":\"b\",\"tags\":[],\"email\":\"b@x\"}","next",true,true],["[object IDBCursorWithValue]","c",3,"{\"id\":3,\"name\":\"c\",\"tags\":[\"x\",\"y\"],\"email\":\"c@x\"}","next",true,true]]
+advance0 threw TypeError: Failed to execute 'advance' on 'IDBCursor': A count argument with value 0 (zero) was supplied, must be greater than 0.
+continue back threw DataError: Failed to execute 'continue' on 'IDBCursor': The parameter is less than or equal to this cursor's position.
+update ro threw ReadOnlyError: Failed to execute 'update' on 'IDBCursor': The record may not be updated inside a read-only transaction.
+delete ro threw ReadOnlyError: Failed to execute 'delete' on 'IDBCursor': The record may not be deleted inside a read-only transaction.
+cursor errors [["[object IDBCursorWithValue]",1,1,"{\"id\":1,\"name\":\"a\",\"tags\":[\"y\"],\"email\":\"a@x\"}","next",true,true],["[object IDBCursorWithValue]",2,2,"{\"id\":2,\"name\":\"b\",\"tags\":[],\"email\":\"b@x\"}","next",true,true],["[object IDBCursorWithValue]",3,3,"{\"id\":3,\"name\":\"c\",\"tags\":[\"x\",\"y\"],\"email\":\"c@x\"}","next",true,true],["[object IDBCursorWithValue]",4,4,"{\"id\":4,\"name\":\"a\",\"tags\":[\"x\",\"x\"]}","next",true,true]]
+bad direction threw TypeError: Failed to execute 'openCursor' on 'IDBObjectStore': The provided value 'sideways' is not a valid enum value of type IDBCursorDirection.
+tx2 end complete
+update result 2
+cursor update [["[object IDBCursorWithValue]",2,2,"{\"id\":2,\"name\":\"b\",\"tags\":[],\"email\":\"b@x\"}","next",true,true]]
+cursor update key change ok 1
+delete range ["success",null]
+after delete keys ["success",[1,2,3]]
+tx3 complete
+abort twice threw InvalidStateError: Failed to execute 'abort' on 'IDBTransaction': The transaction has finished.
+aborted abort null null
+after abort keys ["success",[1,2,3]]
+request error event ConstraintError: Key already exists in the object store. done
+constraint tx abort ConstraintError: Key already exists in the object store.
+request after commit threw InvalidStateError: Failed to execute 'objectStore' on 'IDBTransaction': The transaction has finished.
+committed complete
+request after microtask ok {}
+request after task threw TransactionInactiveError: Failed to execute 'get' on 'IDBObjectStore': The transaction is not active.
+databases [{"name":"db1","version":2}]
+upgrade events ["versionchange old=2 new=3","blocked old=2 new=3","upgrade old=2 new=3","success v3"]
+closed db transaction threw InvalidStateError: Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing.
+lower version VersionError: The requested version (1) is less than the existing version (3).
+delete ["IDBVersionChangeEvent",3,null,null]
+databases after []
+window error Uncaught Error: upgrade boom
+upgrade throws AbortError: Version change transaction was aborted in upgradeneeded event handler.
+databases end []

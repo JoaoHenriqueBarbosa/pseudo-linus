@@ -1,0 +1,27 @@
+import{Ir as mi,O as DU,Rt as Rd,T as Cy,c as AE,di as sv,u as Ad,v as Ba,wt as Od}from"./chunk-D_Aw3EbW.js";import"./chunk-DZBGZuRz.js";import"./chunk-CIOM-Haa.js";import"./chunk-CNyT-CDp.js";import"./chunk-DnM7d6q1.js";import"./chunk-BVDUjXwE.js";import"./chunk-CTEIptZw.js";import"./chunk-BbgFU4tH.js";import"./chunk-BCfsnBNs.js";import"./chunk-BbYgsnNQ.js";import"./chunk-RAZtzPgh.js";import"./chunk-CUE2FT8x.js";import"./chunk-CypiKwJm.js";import"./chunk-DThMAhWW.js";import"./chunk-BH_eiUy0.js";import"./chunk-DzycFhCy.js";import"./chunk-CTeCQvmu.js";import"./chunk-DRzOVhxS.js";import"./chunk-A8jdGNy-.js";import"./chunk-DzmjwhYq.js";import"./chunk-Cg-53P7y.js";import{c as Pt}from"./chunk-BnEWohmg.js";import"./main-XOGNJOWC.js";import{t as xu}from"./chunk-BgW8eGNc.js";DU();var w=(()=>{class o{Example=f;static ɵfac=function(r){return new(r||o)};static ɵcmp=sv({type:o,selectors:[[`adev-control-flow-example`]],decls:15,vars:2,consts:[[1,`two-column-step`],[1,`step-description`],[1,`header`],[1,`description`],[`routerLink`,`/guide/templates/control-flow`,1,`docs-primary-btn`],[1,`step-code`],[1,`code-block`],[1,`code-header`],[1,`copy-icon`],[`language`,`angular-html`,3,`code`]],template:function(r,g){r&1&&(mi(0,`div`,0)(1,`div`,1)(2,`div`,2),AE(3,`Control Flow`),Ba(),mi(4,`div`,3),AE(5,` Angular's new control flow syntax makes templates easier to write and understand. `),Ba(),mi(6,`button`,4),AE(7,` Learn more about Control Flow `),Ba()(),mi(8,`div`,5)(9,`div`,6)(10,`div`,7)(11,`span`),AE(12,`my-template.html`),Ba(),Rd(13,`span`,8),Ba(),Rd(14,`adev-code-block`,9),Ba()()()),r&2&&(Cy(6),Ad(`text`,`Learn more about Control Flow`),Cy(8),Od(`code`,g.Example))},dependencies:[Pt,xu],styles:[`.two-column-step[_ngcontent-%COMP%]{display:grid;grid-template-columns:1fr 1fr;gap:3rem;text-align:left;width:100%;max-width:1200px;margin:0 auto;box-sizing:border-box;background-color:var(--%NS%card-background);border:1px solid var(--%NS%senary-contrast);border-radius:.5rem;padding:2rem}@media(max-width:775px){.two-column-step[_ngcontent-%COMP%]{grid-template-columns:1fr;gap:2rem;padding:1.5rem}}@media(max-width:700px){.two-column-step[_ngcontent-%COMP%]{padding:1rem}}.step-description[_ngcontent-%COMP%]{display:flex;flex-direction:column;gap:1.5rem}.step-description[_ngcontent-%COMP%]   .header[_ngcontent-%COMP%]{font-size:1.5rem;font-weight:500}.step-description[_ngcontent-%COMP%]   .description[_ngcontent-%COMP%]{font-size:1.1rem;line-height:1.6;color:var(--%NS%secondary-contrast)}.step-code[_ngcontent-%COMP%]{display:flex;flex-direction:column;gap:1.5rem;min-width:0}.step-code[_ngcontent-%COMP%]   .code-block[_ngcontent-%COMP%]{background:var(--%NS%card-background);border:1px solid var(--%NS%senary-contrast);border-radius:.5rem;font-size:.9rem}.step-code[_ngcontent-%COMP%]   .code-block[_ngcontent-%COMP%]   .code-header[_ngcontent-%COMP%]{display:flex;padding:.75rem;background:var(--%NS%subtle-purple);border-radius:.25rem .25rem 0 0;transition:background .3s ease}.step-code[_ngcontent-%COMP%]   .code-block[_ngcontent-%COMP%]   .code-header[_ngcontent-%COMP%] > span[_ngcontent-%COMP%]{background-image:var(--%NS%purple-to-blue-horizontal-gradient);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:.875rem;font-style:normal;font-weight:400;line-height:1.4rem;letter-spacing:-.00875rem;margin:0;word-wrap:break-word;width:fit-content}.step-code[_ngcontent-%COMP%]   .code-block[_ngcontent-%COMP%]   pre[_ngcontent-%COMP%]{font-family:JetBrains Mono,monospace;margin:0;color:#a9b7c6}`]})}return o})();var f=`
+@if(meal() === 'burger') {
+  <p>You selected a burger!</p>
+} @else if(lang meal === 'pizza') {
+  <p>You selected a pizza!</p>
+} @else {
+  <p>Please select a meal.</p>
+}
+
+@for(item of ShoppingList; track $index) {
+  <p>{{ item }}</p>
+}
+
+@switch(user.role) {
+  @case('user') {
+    <p>Welcome, {{user.name}}</p>
+  }
+  @case('moderator')
+  @case('admin') {
+    <p>Welcome</p>
+  }
+
+  @default {
+    <p>Welcome, guest!</p>
+  }
+}
+`.trim();export{w as ControlFlowExample};

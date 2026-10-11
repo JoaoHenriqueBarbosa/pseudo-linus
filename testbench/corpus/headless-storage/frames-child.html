@@ -1,0 +1,9 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>filho</title>
+<body id="child-body"><p id="p">dentro</p>
+<script>
+parent.log('child-script ' + location.pathname + ' name=' + window.name + ' parent===window:' + (parent === window) + ' top===parent:' + (top === parent) + ' rs=' + document.readyState + ' frameElement=' + (frameElement && frameElement.id) + ' origin=' + location.origin);
+window.addEventListener('load', () => parent.log('child-load'));
+document.addEventListener('DOMContentLoaded', () => parent.log('child-DOMContentLoaded'));
+</script>

@@ -1,0 +1,23 @@
+<!doctype html><body><script>
+const out = {};
+for (const kind of ['webgl', 'webgl2']) {
+  const gl = document.createElement('canvas').getContext(kind);
+  const o = out[kind] = {};
+  for (const name of gl.getSupportedExtensions()) {
+    const e = gl.getExtension(name);
+    const proto = Object.getPrototypeOf(e);
+    const own = Object.getOwnPropertyNames(e);
+    const props = Object.getOwnPropertyNames(proto).filter((k) => k !== 'constructor').map((k) => { const d = Object.getOwnPropertyDescriptor(proto, k); return typeof d.value === 'function' ? k + '()' + d.value.length : k + '=' + d.value; });
+    o[name] = { tag: Object.prototype.toString.call(e), own, props, ctor: typeof proto.constructor, global: typeof window[Object.prototype.toString.call(e).slice(8, -1)] };
+  }
+}
+const lens = {};
+const gl2 = document.createElement('canvas').getContext('webgl2');
+for (const k of Object.getOwnPropertyNames(WebGL2RenderingContext.prototype)) { const d = Object.getOwnPropertyDescriptor(WebGL2RenderingContext.prototype, k); if (typeof d.value === 'function') lens[k] = d.value.length; }
+out.lens2 = lens;
+const lens1 = {};
+for (const k of Object.getOwnPropertyNames(WebGLRenderingContext.prototype)) { const d = Object.getOwnPropertyDescriptor(WebGLRenderingContext.prototype, k); if (typeof d.value === 'function') lens1[k] = d.value.length; }
+out.lens1 = lens1;
+const pre = document.createElement('pre'); pre.id = 'out'; pre.textContent = JSON.stringify(out);
+document.documentElement.append(pre);
+</script></body>

@@ -55,10 +55,10 @@ fn iters_parts(iters: &RefCell<Vec<PyIter>>) -> Vec<IterParts> {
 
 /// O estado de um iterador preguiçoso embutido como dado (ver [`IterParts`]).
 pub enum LazyParts {
-    /// `iter(seq)`: a cópia dos itens e a posição.
-    Seq { kind: &'static str, items: Vec<Value>, pos: usize },
+    /// `iter(seq)`: a cópia dos itens, a posição, a origem e se já esgotou.
+    Seq { kind: &'static str, items: Vec<Value>, pos: usize, source: Option<Value>, exhausted: bool },
     /// `reversed(seq)`: itens já invertidos e a posição.
-    Reversed { kind: &'static str, items: Vec<Value>, next: usize },
+    Reversed { kind: &'static str, items: Vec<Value>, next: usize, source: Option<Value> },
     Map { func: Value, iters: Vec<IterParts> },
     Filter { func: Value, iter: IterParts },
     Zip { iters: Vec<IterParts>, strict: bool },
@@ -74,9 +74,9 @@ pub enum LazyParts {
 pub(crate) fn lazy_from_parts(parts: LazyParts) -> Option<Value> {
     let many = |list: Vec<IterParts>| list.into_iter().map(iter_from_parts).collect::<Option<Vec<PyIter>>>();
     Some(match parts {
-        LazyParts::Seq { kind, items, pos } => crate::builtins::seq_iter(kind, items, pos),
-        LazyParts::Reversed { kind, items, next } => {
-            Value::Ext(Rc::new(ReversedIter { kind, items, next: Cell::new(next) }))
+        LazyParts::Seq { kind, items, pos, source, exhausted } => crate::builtins::seq_iter(kind, items, pos, source, exhausted),
+        LazyParts::Reversed { kind, items, next, source } => {
+            Value::Ext(Rc::new(ReversedIter { kind, items, next: Cell::new(next), source: RefCell::new(source) }))
         }
         LazyParts::Map { func, iters } => Value::Ext(Rc::new(MapIter { func, iters: RefCell::new(many(iters)?) })),
         LazyParts::Filter { func, iter } => Value::Ext(Rc::new(FilterIter { func, iter: RefCell::new(iter_from_parts(iter)?) })),
@@ -108,10 +108,33 @@ pub(crate) fn object_repr<T>(kind: &str, obj: &T) -> String {
     format!("<{kind} object at {:#x}>", crate::object::py_addr(obj as *const T as usize))
 }
 
+/// O objeto que o CPython guarda no lugar do iterador interno `it` de um `for` (o `enumerate`, o `zip`, o `map` e o
+/// `filter` guardam o iterador da origem): o iterador de sequência sobre ela, ou o próprio objeto quando ele já é o
+/// iterador.
+pub(crate) fn iterator_object(it: &PyIter) -> Value {
+    use crate::builtins::{seq_iter, seq_iter_over};
+    match it {
+        PyIter::List(l, i) => seq_iter_over("list_iterator", Value::List(l.clone()), *i),
+        PyIter::Tuple(t, i) => seq_iter_over("tuple_iterator", Value::Tuple(t.clone()), *i),
+        PyIter::Str(s, i) => seq_iter_over(if s.as_str().is_ascii() { "str_ascii_iterator" } else { "str_iterator" }, Value::Str(s.clone()), *i),
+        PyIter::Range { .. } => seq_iter("range_iterator", Vec::new(), 0, None, false),
+        PyIter::Items(items, i) => seq_iter("iterator", items.clone(), *i, None, false),
+        PyIter::Native(n) => Value::Native(n.clone()),
+        PyIter::Ext(e) => Value::Ext(e.clone()),
+        PyIter::Inst(v) => v.clone(),
+    }
+}
+
+/// Os iteradores de origem de `map` e `zip` como o `tuple` de iteradores que o CPython guarda (`lz->iters`,
+/// `lz->ittuple`).
+fn iterators_tuple(iters: &RefCell<Vec<PyIter>>) -> Value {
+    Value::tuple(iters.borrow().iter().map(iterator_object).collect())
+}
+
 /// A parte de `ExtObject` que todo iterador preguiçoso de tipo fixo tem igual (nome, `repr`, só o
-/// `__next__`), com o `iter_next` próprio de cada um.
+/// `__next__`), com o `iter_next` próprio de cada um e, quando o tipo guarda referências, o `referents`.
 macro_rules! lazy_iterator {
-    ($ty:ident, $name:literal, image(&$i:ident) $image:block, fn iter_next(&$s:ident) $body:block) => {
+    ($ty:ident, $name:literal, image(&$i:ident) $image:block, $(referents(&$r:ident) $referents:block,)? fn iter_next(&$s:ident) $body:block) => {
         impl ExtObject for $ty {
             fn type_name(&self) -> &'static str {
                 $name
@@ -120,6 +143,7 @@ macro_rules! lazy_iterator {
                 Some(self)
             }
             fn image(&$i) -> Option<ExtImage> $image
+            $(fn referents(&$r) -> Vec<Value> $referents)?
             fn repr(&self) -> String {
                 object_repr($name, self)
             }
@@ -169,6 +193,8 @@ impl MapIter {
 
 lazy_iterator!(MapIter, "map",
 image(&self) { Some(ExtImage::Lazy(LazyParts::Map { func: self.func.clone(), iters: iters_parts(&self.iters) })) },
+// `map_traverse`: os iteradores (um `tuple`) e a função.
+referents(&self) { vec![iterators_tuple(&self.iters), self.func.clone()] },
 fn iter_next(&self) {
     // O empréstimo dos iteradores acaba antes da chamada, que pode voltar a este mesmo `map`.
     let args = next_of_each(&mut self.iters.borrow_mut())?;
@@ -195,12 +221,14 @@ lazy_iterator!(CallIter, "callable_iterator",
 image(&self) {
     Some(ExtImage::Lazy(LazyParts::CallIter { func: self.func.clone(), sentinel: self.sentinel.clone(), done: self.done.get() }))
 },
+// `calliter_traverse`: o chamável e a sentinela, que o `iternext` solta ao acabar.
+referents(&self) { if self.done.get() { Vec::new() } else { vec![self.func.clone(), self.sentinel.clone()] } },
 fn iter_next(&self) {
     if self.done.get() {
         return Ok(None);
     }
     let x = call(&self.func, Vec::new())?;
-    if crate::object::py_eq(&x, &self.sentinel) {
+    if crate::object::py_eq(&x, &self.sentinel)? {
         self.done.set(true);
         return Ok(None);
     }
@@ -229,6 +257,8 @@ impl FilterIter {
 
 lazy_iterator!(FilterIter, "filter",
 image(&self) { Some(ExtImage::Lazy(LazyParts::Filter { func: self.func.clone(), iter: iter_parts(&self.iter.borrow()) })) },
+// `filter_traverse`: o iterador e a função (`None` entra como valor).
+referents(&self) { vec![iterator_object(&self.iter.borrow()), self.func.clone()] },
 fn iter_next(&self) {
     loop {
         let Some(x) = self.iter.borrow_mut().next()? else { return Ok(None) };
@@ -273,6 +303,11 @@ pub(crate) fn zip_mismatch(arg: usize, how: &str) -> PyException {
 
 lazy_iterator!(ZipIter, "zip",
 image(&self) { Some(ExtImage::Lazy(LazyParts::Zip { iters: iters_parts(&self.iters), strict: self.strict.get() })) },
+// `zip_traverse`: o `tuple` de iteradores e o `tuple` de resultado reaproveitado (um `None` por origem).
+referents(&self) {
+    let result = Value::tuple(vec![Value::None; self.iters.borrow().len()]);
+    vec![iterators_tuple(&self.iters), result]
+},
 fn iter_next(&self) {
     let mut iters = self.iters.borrow_mut();
     if iters.is_empty() {
@@ -310,28 +345,85 @@ lazy_iterator!(EnumerateIter, "enumerate",
 image(&self) {
     Some(ExtImage::Lazy(LazyParts::Enumerate { iter: iter_parts(&self.iter.borrow()), next_index: self.next_index.get() }))
 },
+// `enum_traverse`: o iterador da origem e o par de resultado reaproveitado.
+referents(&self) { vec![iterator_object(&self.iter.borrow()), Value::tuple(vec![Value::None, Value::None])] },
 fn iter_next(&self) {
     let Some(x) = self.iter.borrow_mut().next()? else { return Ok(None) };
     Ok(Some(self.number(x)))
 });
 
 /// O iterador vivo de um iterável qualquer, como objeto: a coleta do laço de quadros puxa dele quando a fonte
-/// não é um gerador (`sorted(lista, key=f)`, `sum(IteradorDeUsuario())`), e a imagem do heap o leva inteiro.
+/// não é um gerador (`sorted(lista, key=f)`, `sum(IteradorDeUsuario())`), a imagem do heap o leva inteiro, e o `.0` de
+/// uma compreensão é um (`GET_ITER` do primeiro iterável, feito fora da função). O tipo é o que o CPython mostra pela
+/// origem (`list_iterator`, `tuple_iterator`, `str_ascii_iterator`, `range_iterator`; `iterator` nos demais).
 pub struct IterBox {
     iter: RefCell<PyIter>,
+    kind: &'static str,
+    /// O `next` já bateu no fim: o CPython solta a origem nessa hora e não a visita mais (`gc.get_referents`).
+    exhausted: Cell<bool>,
 }
 
 impl IterBox {
     pub(crate) fn new(iter: PyIter) -> Value {
-        Value::Ext(Rc::new(IterBox { iter: RefCell::new(iter) }))
+        Value::Ext(Self::shared(iter))
+    }
+
+    /// O mesmo objeto sem o embrulho de [`Value`], para quem guarda um `Rc<dyn ExtObject>`.
+    pub(crate) fn shared(iter: PyIter) -> Rc<IterBox> {
+        let kind = match &iter {
+            PyIter::List(..) => "list_iterator",
+            PyIter::Tuple(..) => "tuple_iterator",
+            PyIter::Str(s, _) if s.as_str().is_ascii() => "str_ascii_iterator",
+            PyIter::Str(..) => "str_iterator",
+            PyIter::Range { .. } => "range_iterator",
+            _ => "iterator",
+        };
+        Rc::new(IterBox { iter: RefCell::new(iter), kind, exhausted: Cell::new(false) })
     }
 }
 
-lazy_iterator!(IterBox, "iterator",
-image(&self) { Some(ExtImage::Lazy(LazyParts::Boxed { iter: iter_parts(&self.iter.borrow()) })) },
-fn iter_next(&self) {
-    self.iter.borrow_mut().next()
-});
+impl ExtObject for IterBox {
+    fn type_name(&self) -> &'static str {
+        self.kind
+    }
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+    fn image(&self) -> Option<ExtImage> {
+        Some(ExtImage::Lazy(LazyParts::Boxed { iter: iter_parts(&self.iter.borrow()) }))
+    }
+    /// `listiter_traverse` e parentes: a sequência de origem, até o iterador esgotar.
+    fn referents(&self) -> Vec<Value> {
+        if self.exhausted.get() {
+            return Vec::new();
+        }
+        match &*self.iter.borrow() {
+            PyIter::List(l, _) => vec![Value::List(l.clone())],
+            PyIter::Tuple(t, _) => vec![Value::Tuple(t.clone())],
+            PyIter::Str(s, _) => vec![Value::Str(s.clone())],
+            _ => Vec::new(),
+        }
+    }
+    fn repr(&self) -> String {
+        object_repr(self.kind, self)
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__next__"]
+    }
+    fn is_iterable(&self) -> bool {
+        true
+    }
+    fn iter_next(&self) -> PyResult<Option<Value>> {
+        let next = self.iter.borrow_mut().next()?;
+        if next.is_none() {
+            self.exhausted.set(true);
+        }
+        Ok(next)
+    }
+    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        next_method(self, name)
+    }
+}
 
 /// O iterador do protocolo antigo de sequência (`iter(obj)` sem `__iter__`, com `__getitem__`): chama
 /// `obj[0]`, `obj[1]`... a cada passo, até `IndexError` ou `StopIteration`, que o esgotam de vez
@@ -497,7 +589,7 @@ pub(crate) fn frame_source(obj: &dyn ExtObject, idx: usize) -> Option<Rc<dyn Ext
     with_source(obj, idx, |it| match it {
         PyIter::Ext(e) => needs_frames(e).then(|| e.clone()),
         PyIter::Inst(v) => crate::vm::dunder_function(v, "__next__")
-            .map(|_| Rc::new(IterBox { iter: RefCell::new(PyIter::Inst(v.clone())) }) as Rc<dyn ExtObject>),
+            .map(|_| IterBox::shared(PyIter::Inst(v.clone())) as Rc<dyn ExtObject>),
         _ => None,
     })
     .flatten()
@@ -552,7 +644,7 @@ pub(crate) fn leaf_stops(obj: &dyn ExtObject, e: &PyException) -> bool {
 }
 
 /// Aplica ao estado da fonte folha `obj` o desfecho do quadro: o item entregue (`Some`) ou o fim (`None`).
-pub(crate) fn leaf_settle(obj: &dyn ExtObject, got: Option<Value>) -> Option<Value> {
+pub(crate) fn leaf_settle(obj: &dyn ExtObject, got: Option<Value>) -> PyResult<Option<Value>> {
     let any = obj.as_any();
     if let Some(seq) = any.and_then(|any| any.downcast_ref::<OldSeqIter>()) {
         match &got {
@@ -562,12 +654,12 @@ pub(crate) fn leaf_settle(obj: &dyn ExtObject, got: Option<Value>) -> Option<Val
     }
     if let Some(calls) = any.and_then(|any| any.downcast_ref::<CallIter>()) {
         // O valor igual à sentinela (ou o `StopIteration` da função) esgota o iterador de vez.
-        if got.as_ref().map_or(true, |v| crate::object::py_eq(v, &calls.sentinel)) {
+        if got.as_ref().map_or(Ok(true), |v| crate::object::py_eq(v, &calls.sentinel))? {
             calls.done.set(true);
-            return None;
+            return Ok(None);
         }
     }
-    got
+    Ok(got)
 }
 
 /// A camada de `obj` para o laço de quadros, na primeira fonte.
@@ -650,12 +742,15 @@ pub struct ReversedIter {
     kind: &'static str,
     items: Vec<Value>,
     next: Cell<usize>,
+    /// A sequência de origem (o `it_seq` do `listreviter`, o `di_dict` do `dictiter`): o que o `gc.get_referents`
+    /// mostra, até o `next` bater no fim e o CPython soltá-la. `None` onde o CPython não guarda a origem (`range`).
+    source: RefCell<Option<Value>>,
 }
 
 impl ReversedIter {
-    pub fn new(kind: &'static str, mut items: Vec<Value>) -> Value {
+    pub fn new(kind: &'static str, mut items: Vec<Value>, source: Option<Value>) -> Value {
         items.reverse();
-        Value::Ext(std::rc::Rc::new(ReversedIter { kind, items, next: Cell::new(0) }))
+        Value::Ext(std::rc::Rc::new(ReversedIter { kind, items, next: Cell::new(0), source: RefCell::new(source) }))
     }
 }
 
@@ -676,11 +771,30 @@ impl ExtObject for ReversedIter {
         true
     }
     fn image(&self) -> Option<ExtImage> {
-        Some(ExtImage::Lazy(LazyParts::Reversed { kind: self.kind, items: self.items.clone(), next: self.next.get() }))
+        Some(ExtImage::Lazy(LazyParts::Reversed {
+            kind: self.kind,
+            items: self.items.clone(),
+            next: self.next.get(),
+            source: self.source.borrow().clone(),
+        }))
+    }
+    fn referents(&self) -> Vec<Value> {
+        let mut out: Vec<Value> = self.source.borrow().clone().into_iter().collect();
+        // O `dict_reverseitemiterator` guarda também a tupla de resultado que reaproveita.
+        if self.kind == "dict_reverseitemiterator" {
+            out.push(Value::tuple(vec![Value::None, Value::None]));
+        }
+        out
     }
     fn iter_next(&self) -> PyResult<Option<Value>> {
         let i = self.next.get();
-        let Some(v) = self.items.get(i) else { return Ok(None) };
+        let Some(v) = self.items.get(i) else {
+            // O `listreviter` é o único que não solta a origem ao esgotar.
+            if self.kind != "list_reverseiterator" {
+                self.source.borrow_mut().take();
+            }
+            return Ok(None);
+        };
         self.next.set(i + 1);
         Ok(Some(v.clone()))
     }

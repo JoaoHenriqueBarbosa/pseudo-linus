@@ -50,6 +50,8 @@ def _reconstructor(cls, base, state):
 
 _HEAPTYPE = 1<<9
 _new_type = type(int.__new__)
+# Tipos de C emulados cujo `tp_basicsize` passa o do `object` e que não definem `__reduce__`: o pickle os recusa.
+_SIZED_C_TYPES = frozenset(('_contextvars.Context', '_contextvars.ContextVar', '_contextvars.Token'))
 
 # Python code for object.__reduce_ex__ for protocols 0 and 1
 
@@ -240,8 +242,8 @@ def _object_getstate(self):
 
 
 def _object_reduce(self):
-    """`object.__reduce__`: reconstrução pelo protocolo 0/1."""
-    return _object_reduce_ex(self, 1)
+    """`object.__reduce__`: o `_common_reduce(self, 0)` do C."""
+    return _object_reduce_ex(self, 0)
 
 
 def _object_reduce_ex(self, proto=0):
@@ -257,6 +259,18 @@ def _object_reduce_ex(self, proto=0):
     # `BaseException` tem `__reduce__` próprio (`BaseException_reduce`): nunca passa pelo protocolo de `object`.
     if isinstance(self, BaseException):
         return _exception_reduce(self)
+    if proto < 2:
+        # `copyreg._reduce_ex`: a primeira base sem `Py_TPFLAGS_HEAPTYPE` decide, antes de pedir o estado (um tipo de C
+        # exato, como o `greenlet.greenlet`, nem chega ao `__getstate__`).
+        base = next((k for k in cls.__mro__ if hasattr(k, '__flags__') and not k.__flags__ & _HEAPTYPE), object)
+        if base is cls and base is not object:
+            raise TypeError("cannot pickle %r object" % cls.__name__)
+    elif any('%s.%s' % (k.__module__, k.__qualname__) in _SIZED_C_TYPES for k in cls.__mro__) and not any(
+            k is not object and ('__getstate__' in k.__dict__ or '__getnewargs__' in k.__dict__
+                                 or '__getnewargs_ex__' in k.__dict__) for k in cls.__mro__):
+        # `object_getstate_default` com `required`: um tipo de C com campos além dos do `object` (o `tp_basicsize`
+        # maior) e sem `__getstate__` nem `__getnewargs__` não tem como ser reconstruído.
+        raise TypeError("cannot pickle '%s.%s' object" % (cls.__module__, cls.__qualname__))
     own_getstate = any(k is not object and '__getstate__' in k.__dict__ for k in cls.__mro__)
     if proto < 2 and getattr(cls, '__slots__', None) and not own_getstate:
         raise TypeError("a class that defines __slots__ without defining __getstate__ cannot be pickled")
@@ -281,14 +295,6 @@ def _object_reduce_ex(self, proto=0):
         listitems = iter(self) if isinstance(self, list) else None
         dictitems = iter(self.items()) if isinstance(self, dict) else None
         return __newobj__, (cls,) + tuple(args), state, listitems, dictitems
-    base = object
-    for candidate in (tuple, list, dict, set, frozenset, str, bytes, int, float):
-        if isinstance(self, candidate):
-            base = candidate
-            break
-    # `copyreg._reduce_ex`: um tipo embutido exato não se reconstrói pelo protocolo 0 e 1.
-    if base is cls and base is not object:
-        raise TypeError("cannot pickle %r object" % cls.__name__)
     return _reconstructor, (cls, base, None if base is object else base(self)), state
 
 

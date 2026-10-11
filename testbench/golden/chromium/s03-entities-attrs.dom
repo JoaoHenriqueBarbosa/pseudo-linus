@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<html><head></head><body>
+<p>&amp; &lt; &gt; " &nbsp; © é é 😀 ¬anentity; &amp;</p>
+<p a="x&amp;y" b="&quot;q&quot;" c="&lt;d" e="a&lt;b&gt;c" f="&nbsp;&lt;">attrs</p>
+<p a="1">dup</p>
+
+</body></html>

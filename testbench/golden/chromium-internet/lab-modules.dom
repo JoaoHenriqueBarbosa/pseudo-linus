@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8">
+<title>lab: módulos</title>
+<script>
+  window.order = [];
+  function log(line) { order.push(String(line)); var pre = document.getElementById('log'); if (pre) pre.textContent = order.join('\n'); }
+  log('clássico do head, currentScript=' + (document.currentScript && document.currentScript.localName));
+</script>
+<script type="module" src="./app.mjs"></script>
+<script type="module">
+  import { counter, bump } from './state.mjs';
+  bump();
+  log('inline 1: counter=' + counter + ' url=' + import.meta.url.replace(location.origin, '') + ' currentScript=' + document.currentScript);
+  const late = await import('./late.mjs');
+  log('inline 1 depois do await: ' + late.default());
+</script>
+<script type="module">
+  log('inline 2 roda enquanto o 1 espera; classicVar=' + typeof classicVar);
+  try {
+    await import('react');
+  } catch (e) {
+    log('especificador nu: ' + e.name + ': ' + e.message);
+  }
+  try {
+    await import('./missing.mjs');
+  } catch (e) {
+    log('módulo ausente: ' + e.name);
+  }
+</script>
+<script type="module" src="./broken.mjs" onerror="log('broken.mjs: evento error')"></script>
+<script nomodule="">log('nomodule não deveria rodar');</script>
+</head>
+<body>
+<h1>Módulos ES</h1>
+<pre id="log">clássico do head, currentScript=script
+clássico do body, antes dos módulos; readyState=loading
+import() de script clássico: late.mjs carregado
+state.mjs avaliado uma vez; ciclo: ping-pong
+app.mjs: counter=1 describe.mjs em /lab-modules/app.mjs
+inline 1: counter=2 url=/lab-modules/ currentScript=null
+inline 2 roda enquanto o 1 espera; classicVar=number
+especificador nu: TypeError: Failed to resolve module specifier 'react'
+DOMContentLoaded
+load
+inline 1 depois do await: late.mjs carregado
+módulo ausente: TypeError
+app.mjs: config.name=lab (await de topo com fetch)</pre>
+<script>
+  var classicVar = 1;
+  log('clássico do body, antes dos módulos; readyState=' + document.readyState);
+  import('./late.mjs').then(function (m) { log('import() de script clássico: ' + m.default()); });
+  document.addEventListener('DOMContentLoaded', function () { log('DOMContentLoaded'); });
+  window.addEventListener('load', function () { log('load'); });
+</script>
+
+
+</body></html>

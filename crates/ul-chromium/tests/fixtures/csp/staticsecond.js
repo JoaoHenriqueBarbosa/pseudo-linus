@@ -1,0 +1,1 @@
+const e = document.createElement('div'); const q = window.R1; try { e.innerHTML = 'b'; q.push('second ok'); } catch (x) { q.push('second ' + x.name); } setTimeout(() => { try { e.innerHTML = 'c'; q.push('timer ok'); } catch (x) { q.push('timer ' + x.name); } console.log(JSON.stringify(q)); }, 20);

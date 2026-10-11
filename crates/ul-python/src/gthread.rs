@@ -26,7 +26,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use crate::compile::Code;
 use crate::fork::{suspend, SuspendRequest};
@@ -84,6 +84,8 @@ thread_local! {
     /// Espelho de `!SCHED.entries.is_empty()`: há outra thread verde (nova ou suspensa). O laço de instruções
     /// o lê a cada instrução, então o caso comum (nenhuma outra thread) custa uma leitura de `Cell`.
     static OTHERS: Cell<bool> = const { Cell::new(false) };
+    /// Há pedido de `_gsched.at_safe_point` esperando: a próxima olhada da fatia vence na hora (`_gt_urge`).
+    static URGED: Cell<bool> = const { Cell::new(false) };
 }
 
 /// Reflete em `OTHERS` o estado de `entries`; toda mutação de `Sched::entries` termina chamando isto.
@@ -233,6 +235,64 @@ fn spawn(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::Int(tid))
 }
 
+/// As referências fortes da thread verde `tid` que não roda (suspensa, ou nova e sem rodar), para o coletor de ciclos.
+/// `None`: não há tal entrada (ou o escalonador está emprestado).
+pub(crate) fn parked_visit(tid: i64, f: &mut dyn FnMut(crate::gccollect::Child)) -> Option<()> {
+    SCHED
+        .try_with(|s| {
+            let s = s.try_borrow().ok()?;
+            match s.entries.get(&tid)? {
+                Entry::Fresh(callable) => f(crate::gccollect::Child::Val(callable)),
+                Entry::Parked(p) => {
+                    p.outer.gc_visit(f);
+                    p.suspended.iter().for_each(|c| c.gc_visit(f));
+                    if let Some(c) = p.child.as_ref() {
+                        c.gc_visit(f);
+                    }
+                    p.handled.iter().for_each(|v| f(crate::gccollect::Child::Val(v)));
+                    p.frames.iter().for_each(|(_, _, env)| f(crate::gccollect::Child::Env(env)));
+                }
+            }
+            Some(())
+        })
+        .ok()
+        .flatten()
+}
+
+/// Tira a thread verde `tid` (que não roda) do escalonador e a entrega, para o coletor soltá-la fora do empréstimo.
+pub(crate) fn take_parked(tid: i64) -> Option<Box<dyn std::any::Any>> {
+    let gone = SCHED.try_with(|s| {
+        let mut s = s.try_borrow_mut().ok()?;
+        if tid == s.current {
+            return None;
+        }
+        let gone = s.entries.remove(&tid);
+        sync_others(&s);
+        gone
+    });
+    gone.ok().flatten().map(|e| Box::new(e) as Box<dyn std::any::Any>)
+}
+
+/// `_gt_drop(tid)`: descarta a thread suspensa `tid` sem nunca a retomar (o greenlet de uma thread que já acabou: nada
+/// pode trocar para ele, e o C só libera a pilha copiada dele). Devolve se havia o que descartar. A thread que roda e as
+/// que ainda esperam para começar não se descartam.
+fn drop_parked(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_gt_drop", &kw)?;
+    let target = want_int(args.first().ok_or_else(|| crate::vm::type_error("_gt_drop() missing the thread"))?)?;
+    let _ = vm;
+    let gone = SCHED.with(|s| {
+        let mut s = s.borrow_mut();
+        if target == s.current || !matches!(s.entries.get(&target), Some(Entry::Parked(_))) {
+            return None;
+        }
+        let gone = s.entries.remove(&target);
+        sync_others(&s);
+        gone
+    });
+    // O que a pilha segurava cai fora do empréstimo do escalonador (o `Drop` de uma instância só enfileira).
+    Ok(Value::Bool(gone.is_some()))
+}
+
 /// Valida que a troca para `target` é possível agora (o mesmo que `green_switch` confere, antes de
 /// suspender, para o erro sair na chamada).
 fn check_target(vm: &Vm, target: i64) -> PyResult<()> {
@@ -274,54 +334,47 @@ fn can_switch(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::Bool(vm.rust_nest.get() == 1))
 }
 
-/// A fatia de tempo das threads verdes, o `sys.getswitchinterval()` da GIL: uma thread que roda sem bloquear
-/// passa a vez quando a fatia vence, como o pedido de troca (`eval_breaker`) do CPython.
+/// A fatia das threads verdes, o `sys.getswitchinterval()` da GIL: uma thread que roda sem bloquear passa a vez
+/// quando a fatia vence, como o pedido de troca (`eval_breaker`) do CPython. A fatia é medida em instruções, não em
+/// segundos de relógio: o que o CPython cumpre em 5 ms o laço daqui cumpre em muito mais tempo (num build de
+/// depuração, ou com a máquina carregada), e uma fatia de relógio venceria no meio de um `Thread.start` ou de um
+/// `Event.wait`, reordenando saídas que no CPython não se reordenam. Contada, a troca cai sempre no mesmo ponto.
 struct Slice {
-    /// Quando a thread que roda ganhou a vez.
-    start: Instant,
-    interval: Duration,
-    /// Instruções desde a última olhada no relógio.
-    ticks: u32,
+    /// O `sys.getswitchinterval()` em segundos.
+    interval: f64,
+    /// Instruções que a thread que roda executou desde que ganhou a vez (só contam com outra thread viva).
+    used: u64,
 }
 
-/// De quantas em quantas instruções o laço olha o relógio (só com outra thread viva).
-const SLICE_CHECK_EVERY: u32 = 64;
+/// Quantas instruções do laço o CPython cumpre por segundo num laço de Python puro (da ordem de 4 x 10^7); a fatia
+/// de `interval` segundos vale `interval` vezes isto.
+const SLICE_INSTRUCTIONS_PER_SECOND: f64 = 40_000_000.0;
 
 thread_local! {
-    static SLICE: RefCell<Slice> = RefCell::new(Slice {
-        start: Instant::now(),
-        interval: Duration::from_micros(5000),
-        ticks: 0,
-    });
+    static SLICE: RefCell<Slice> = const { RefCell::new(Slice { interval: 0.005, used: 0 }) };
 }
 
 /// Começa a fatia da thread que acabou de ganhar a vez.
 fn restart_slice() {
-    SLICE.with(|s| {
-        let mut s = s.borrow_mut();
-        s.start = Instant::now();
-        s.ticks = 0;
-    });
+    SLICE.with(|s| s.borrow_mut().used = 0);
 }
 
 /// Entre instruções: a fatia da thread que roda venceu e há outra thread para quem passar a vez. Quando vence,
 /// a fatia recomeça (sem ninguém pronto, a thread segue e só volta a perguntar no fim da próxima).
 pub(crate) fn slice_expired() -> bool {
+    if URGED.with(|u| u.replace(false)) {
+        return true;
+    }
     if !OTHERS.with(Cell::get) {
         return false;
     }
     SLICE.with(|s| {
         let mut s = s.borrow_mut();
-        s.ticks += 1;
-        if s.ticks < SLICE_CHECK_EVERY {
+        s.used += 1;
+        if (s.used as f64) < (s.interval * SLICE_INSTRUCTIONS_PER_SECOND).max(1.0) {
             return false;
         }
-        s.ticks = 0;
-        let now = Instant::now();
-        if now.saturating_duration_since(s.start) < s.interval {
-            return false;
-        }
-        s.start = now;
+        s.used = 0;
         true
     })
 }
@@ -335,8 +388,28 @@ fn interval(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         _ => return Err(crate::vm::type_error("_gt_interval() takes a number of seconds")),
     };
     let interval = Duration::try_from_secs_f64(secs).map_err(|_| exc("ValueError", "switch interval must be strictly positive"))?;
-    SLICE.with(|s| s.borrow_mut().interval = interval);
+    SLICE.with(|s| s.borrow_mut().interval = interval.as_secs_f64());
     Ok(Value::None)
+}
+
+/// `_gt_urge()`: o `_gsched.preempt` roda no próximo ponto seguro do laço mais externo, mesmo sem a fatia vencer
+/// e sem outra thread (o caminho do `_gsched.at_safe_point`).
+fn urge(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    URGED.with(|u| u.set(true));
+    Ok(Value::None)
+}
+
+/// `_gt_c_frames()`: o que cada quadro que espera no segmento corrente fez o C do CPython empilhar ao chamá-lo (o
+/// `_stack_saved` do greenlet conta esses bytes da pilha de máquina). Um nome por chamado vindo de uma nativa ou de um
+/// slot (o método mágico de um operador, o `__str__` do `str()`, a chave do `sorted`...); a chamada Python comum não
+/// empilha C no 3.13 e não aparece.
+fn c_frames(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_gt_c_frames", &kw)?;
+    if !args.is_empty() {
+        return Err(crate::vm::type_error("_gt_c_frames() takes no arguments"));
+    }
+    let names: Vec<Value> = vm.frames_stack.borrow().iter().filter_map(|c| c.link.c_entry()).map(Value::str).collect();
+    Ok(Value::list(names))
 }
 
 /// Registra as nativas no módulo `_sys`.
@@ -345,7 +418,10 @@ pub(crate) fn register(builder: ModuleBuilder) -> ModuleBuilder {
         .func("_gt_spawn", spawn)
         .func("_gt_switch", switch)
         .func("_gt_finish", finish)
+        .func("_gt_drop", drop_parked)
         .func("_gt_current", current)
         .func("_gt_can_switch", can_switch)
         .func("_gt_interval", interval)
+        .func("_gt_urge", urge)
+        .func("_gt_c_frames", c_frames)
 }

@@ -1,0 +1,6 @@
+["a","ok","string:a"]
+["a again","ok","string:a"]
+["c","TypeError","Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': Policy \"c\" disallowed."]
+["default","TypeError","Failed to execute 'createPolicy' on 'TrustedTypePolicyFactory': Policy \"default\" disallowed."]
+V ["trusted-types","trusted-types","trusted-types-policy","enforce","c","O/fx/csp-a.js",6,99,200,"trusted-types a b 'allow-duplicates'; require-trusted-types-for 'script'","O/a",true,true,true,""]
+V ["trusted-types","trusted-types","trusted-types-policy","enforce","default","O/fx/csp-a.js",6,145,200,"trusted-types a b 'allow-duplicates'; require-trusted-types-for 'script'","O/a",true,true,true,""]

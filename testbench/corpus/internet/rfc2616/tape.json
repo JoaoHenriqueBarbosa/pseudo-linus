@@ -1,0 +1,42 @@
+{
+ "url": "https://www.rfc-editor.org/rfc/rfc2616.html",
+ "recorded_at": 1791582206,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://www.rfc-editor.org/rfc/rfc2616.html",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/html"
+    ],
+    [
+     "link",
+     "<https://www.rfc-editor.org/info/rfc2616/>; rel=\"canonical\""
+    ]
+   ],
+   "body": "820d9510516c174d88b556b74c33bbb45686c87a1b8416afd77dd7b865c549db"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.rfc-editor.org/favicon.ico",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "993900378337b7a9fbe9b203dc174c7904e9800ad02d3213cd466d9e75fb9b8f"
+  }
+ ]
+}

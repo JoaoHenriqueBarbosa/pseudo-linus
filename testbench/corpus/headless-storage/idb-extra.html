@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>idb extra</title>
+<script>
+// Num só processo (um só .log): store autoIncrement com dois índices e quatro puts (dois com chave explícita, um
+// menor que o gerador), renomear store e índice, `clear` numa transação posterior, e apagar um store com dois
+// registros e dois índices.
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 400 && !done; i++) await fetch('/idb-extra.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+const open = (version, upgrade) => new Promise((resolve) => {
+  const request = indexedDB.open('db6', version);
+  request.onupgradeneeded = (event) => upgrade(event.target.result, event.target.transaction);
+  request.onsuccess = () => resolve(request.result);
+});
+(async () => {
+  let db = await open(1, (database) => {
+    const store = database.createObjectStore('s', { autoIncrement: true });
+    store.createIndex('by_n', 'n');
+    store.createIndex('by_m', 'm');
+    store.put({ n: 'x', m: 'y' });
+    store.put({ n: 'a', m: 'b' });
+    store.put({ n: 'q' }, 10);
+    store.put({ n: 'r' }, 3);
+  });
+  db.close();
+  db = await open(2, (database, tx) => {
+    const store = tx.objectStore('s');
+    store.name = 's2';
+    store.index('by_n').name = 'by_n2';
+  });
+  db.close();
+  db = await open(2);
+  await new Promise((resolve) => { const tx = db.transaction('s2', 'readwrite'); tx.objectStore('s2').clear(); tx.oncomplete = resolve; });
+  db.close();
+  db = await open(3, (database) => {
+    const store = database.createObjectStore('t', { keyPath: 'id' });
+    store.createIndex('i1', 'a');
+    store.createIndex('i2', 'b');
+    store.put({ id: 1, a: 'p', b: 'q' });
+    store.put({ id: 2, a: 'r', b: 's' });
+  });
+  db.close();
+  db = await open(4, (database) => { database.deleteObjectStore('t'); });
+  db.close();
+  setTimeout(() => { done = true; document.title = 'done'; }, 200);
+})();
+</script>
+<body>idb extra</body>

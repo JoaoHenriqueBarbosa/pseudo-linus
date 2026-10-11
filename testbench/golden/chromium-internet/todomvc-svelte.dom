@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" data-framework="svelte"><head>
+        <meta charset="UTF-8">
+        <meta name="description" content="A TodoMVC app written with Svelte.">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>TodoMVC: Svelte</title>
+      <script async="" src="https://www.google-analytics.com/analytics.js"></script><script type="module" crossorigin="" src="./assets/index-BxPr2-fK.js"></script>
+      <link rel="stylesheet" crossorigin="" href="./assets/index-bgjkvPzV.css">
+    </head>
+    <body class="learn-bar"><aside class="learn"><header> <h3>Svelte</h3> <span class="source-links">   <h5>Example</h5> <a href="https://github.com/tastejs/todomvc/tree/gh-pages/examples/svelte">Source</a>   </span> </header> <hr> <blockquote class="quote speech-bubble"> <p>Svelte is a UI framework that shifts work out of the browser and into a compile step. Components describe what the UI should look like and Svelte generates the imperative code that surgically updates the DOM. Svelte 5 introduces runes ($state, $derived, $effect, $props) for explicit, fine-grained reactivity.</p> <footer> <a href="http://svelte.dev">Svelte</a> </footer> </blockquote>  <hr>  <h4>Official Resources</h4> <ul>  <li> <a href="https://svelte.dev/docs/introduction">Getting Started</a> </li>  </ul>   <footer> <hr> <em>If you have other helpful links to share, or find any of the links above no longer work, please <a href="https://github.com/tastejs/todomvc/issues">let us know</a>.</em> </footer></aside>
+        <section class="todoapp"><!----><header class="header"><h1>todos</h1> <input class="new-todo" placeholder="What needs to be done?" autofocus=""></header><!----> <main class="main" hidden=""><div class="toggle-all-container"><input id="toggle-all" class="toggle-all" type="checkbox"> <label for="toggle-all">Mark all as complete</label></div> <ul class="todo-list"></ul></main> <footer class="footer" hidden=""><span class="todo-count"><strong>0</strong> items left</span> <ul class="filters"><li><a href="#/" class="selected">All</a></li> <li><a href="#/active">Active</a></li> <li><a href="#/completed">Completed</a></li></ul> <button class="clear-completed" hidden="">Clear completed</button></footer><!----></section>
+        <footer class="info">
+            <p>Double-click to edit a todo</p>
+			<p>Created by the TodoMVC Team</p>
+			<p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
+        </footer>
+		<script src="./base.js"></script>
+    
+
+</body></html>

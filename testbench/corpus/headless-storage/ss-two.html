@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ss two</title>
+<script>
+// Duas origens na mesma aba: grava no sessionStorage de 127.0.0.1 e navega para localhost (mesma porta), cuja página
+// grava no dela. O namespace é o da aba; cada origem ganha o próprio mapa.
+sessionStorage.setItem('top', '1');
+location.href = 'http://localhost:8000/ss-frame.html';
+</script>
+<body>ss two</body>

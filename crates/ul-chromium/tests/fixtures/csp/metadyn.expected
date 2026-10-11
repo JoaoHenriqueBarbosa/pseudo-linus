@@ -1,0 +1,1 @@
+[["before any meta","ok"],["detached meta","ok"],["same script after insert","TypeError"],["after remove","TypeError"],["body meta","ok"],["report-only meta","ok"],["later task","TypeError"],["later policy","ok"]]

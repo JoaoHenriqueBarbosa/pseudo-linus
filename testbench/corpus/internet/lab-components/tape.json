@@ -1,0 +1,18 @@
+{
+ "url": "https://lab.test/lab-components/",
+ "recorded_at": 1791500000,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-components/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "25972f4e75c5f205b5a9902e4a475cda9c0113ae6a6f00c56af723cbf6ac51fb"
+  }
+ ]
+}

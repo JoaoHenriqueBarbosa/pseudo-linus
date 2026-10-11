@@ -298,7 +298,10 @@ fn type_is_subtype(a: &Value, cls: &Value) -> bool {
         return matches!(a, Value::Class(c) if c.mro().iter().any(|x| Rc::ptr_eq(x, b)));
     }
     class_name(cls).is_some_and(|b| match a {
-        Value::Class(c) => b == "object" || c.mro().iter().any(|x| x.builtin_base.is_some_and(|n| subclass_of(n, b))),
+        // A base embutida pode ser uma exceção (`builtin_base`) ou um tipo de dados (`data_base`: `class D(dict)`).
+        Value::Class(c) => {
+            b == "object" || c.mro().iter().any(|x| [x.builtin_base, x.data_base].into_iter().flatten().any(|n| subclass_of(n, b)))
+        }
         other => class_name(other).is_some_and(|n| subclass_of(n, b)),
     })
 }
@@ -446,11 +449,23 @@ struct SeqIter {
     items: Vec<Value>,
     pos: Cell<usize>,
     kind: &'static str,
+    /// O contêiner de que o iterador nasceu (o `it_seq` do `listiterator`, o `di_dict` do `dictiter`...): o que o
+    /// `gc.get_referents` mostra. `None` nos iteradores que não guardam a origem (`range`).
+    source: Option<Value>,
+    /// O `next` já bateu no fim: o CPython solta a origem nessa hora e não a visita mais.
+    exhausted: Cell<bool>,
 }
 
 /// O iterador de sequência (`iter(lista)`) numa posição dada, para a imagem do heap refazê-lo.
-pub(crate) fn seq_iter(kind: &'static str, items: Vec<Value>, pos: usize) -> Value {
-    Value::Ext(Rc::new(SeqIter { items, pos: Cell::new(pos), kind }))
+pub(crate) fn seq_iter(kind: &'static str, items: Vec<Value>, pos: usize, source: Option<Value>, exhausted: bool) -> Value {
+    Value::Ext(Rc::new(SeqIter { items, pos: Cell::new(pos), kind, source, exhausted: Cell::new(exhausted) }))
+}
+
+/// O iterador de sequência sobre `source` na posição `pos`, como o objeto que o CPython guarda no lugar do iterador
+/// interno de um `for` (o `enumerate`, o `zip`, o `map` e o `filter` guardam o iterador da origem).
+pub(crate) fn seq_iter_over(kind: &'static str, source: Value, pos: usize) -> Value {
+    let items = iterate(&source).unwrap_or_default();
+    seq_iter(kind, items, pos, Some(source), false)
 }
 
 impl ExtObject for SeqIter {
@@ -463,7 +478,18 @@ impl ExtObject for SeqIter {
             kind: self.kind,
             items: self.items.clone(),
             pos: self.pos.get(),
+            source: self.source.clone(),
+            exhausted: self.exhausted.get(),
         }))
+    }
+
+    fn referents(&self) -> Vec<Value> {
+        let mut out: Vec<Value> = if self.exhausted.get() { Vec::new() } else { self.source.clone().into_iter().collect() };
+        // O `dict_itemiterator` guarda também a tupla de resultado que reaproveita.
+        if self.kind == "dict_itemiterator" {
+            out.push(Value::tuple(vec![Value::None, Value::None]));
+        }
+        out
     }
 
     fn repr(&self) -> String {
@@ -503,12 +529,18 @@ impl ExtObject for SeqIter {
                 self.pos.set(i + 1);
                 Ok(Some(v.clone()))
             }
-            None => Ok(None),
+            None => {
+                self.exhausted.set(true);
+                Ok(None)
+            }
         }
     }
 }
 
 pub(crate) fn make_iter(v: &Value) -> PyResult<Value> {
+    if let Some(view) = crate::dictview::view_iters(v) {
+        return Ok(seq_iter(view.forward, iterate(v)?, 0, Some(view.dict), false));
+    }
     let kind = match v {
         Value::List(_) => "list_iterator",
         Value::Tuple(_) => "tuple_iterator",
@@ -535,7 +567,9 @@ pub(crate) fn make_iter(v: &Value) -> PyResult<Value> {
         _ => "iterator",
     };
     let items = iterate(v)?;
-    Ok(Value::Ext(Rc::new(SeqIter { items, pos: Cell::new(0), kind })))
+    // O `range_iterator` guarda só os números; os demais, a origem.
+    let source = (!matches!(v, Value::Range(_))).then(|| v.clone());
+    Ok(seq_iter(kind, items, 0, source, false))
 }
 
 fn b_iter(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -635,7 +669,7 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         let payload = inst.payload.borrow().clone();
         if let Some(p @ (Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Bytes(_) | Value::ByteArray(_))) = payload {
             let kind = if matches!(p, Value::List(_)) { "list_reverseiterator" } else { "reversed" };
-            return Ok(crate::lazy::ReversedIter::new(kind, iterate(&p)?));
+            return Ok(crate::lazy::ReversedIter::new(kind, iterate(&p)?, Some(p)));
         }
         // Protocolo de sequência: `__len__` e `__getitem__`.
         let class = inst.class();
@@ -648,8 +682,11 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                     out.push(vm.call(&getitem, vec![Value::Int(i)], Vec::new())?);
                 }
             }
-            return Ok(crate::lazy::ReversedIter::new("reversed", out));
+            return Ok(crate::lazy::ReversedIter::new("reversed", out, Some(v.clone())));
         }
+    }
+    if let Some(view) = crate::dictview::view_iters(&v) {
+        return Ok(crate::lazy::ReversedIter::new(view.reverse, iterate(&v)?, Some(view.dict)));
     }
     match &v {
         Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Range(_) | Value::Bytes(_) | Value::ByteArray(_) | Value::Dict(_) => {
@@ -659,7 +696,9 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                 Value::Dict(_) => "dict_reversekeyiterator",
                 _ => "reversed",
             };
-            Ok(crate::lazy::ReversedIter::new(kind, iterate(&v)?))
+            // O `range` reverso guarda só os números.
+            let source = (!matches!(v, Value::Range(_))).then(|| v.clone());
+            Ok(crate::lazy::ReversedIter::new(kind, iterate(&v)?, source))
         }
         other => Err(type_error(format!("'{}' object is not reversible", other.type_name()))),
     }
@@ -668,34 +707,6 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 // ---------------------------------------------------------------------------------------------
 // Ordenação, soma, mínimo e máximo
 // ---------------------------------------------------------------------------------------------
-
-/// Merge sort estável sobre pares (chave, valor); compara com `<` e propaga o erro. A comparação é
-/// `direita < esquerda`, como o CPython, para a mensagem de `TypeError` sair na ordem dele.
-fn merge_sort(mut v: Vec<(Value, Value)>) -> PyResult<Vec<(Value, Value)>> {
-    if v.len() <= 1 {
-        return Ok(v);
-    }
-    let right = v.split_off(v.len() / 2);
-    let left = merge_sort(v)?;
-    let right = merge_sort(right)?;
-    let mut out = Vec::with_capacity(left.len() + right.len());
-    let mut l = left.into_iter().peekable();
-    let mut r = right.into_iter().peekable();
-    loop {
-        let take_right = match (l.peek(), r.peek()) {
-            (Some(a), Some(b)) => Some(py_lt(&b.0, &a.0)?),
-            (Some(_), None) => Some(false),
-            (None, Some(_)) => Some(true),
-            (None, None) => None,
-        };
-        match take_right {
-            Some(true) => out.extend(r.next()),
-            Some(false) => out.extend(l.next()),
-            None => break,
-        }
-    }
-    Ok(out)
-}
 
 /// Ordena `items` (estável) pela chave `key` (ou pelo próprio valor), opcionalmente invertido. As chaves são
 /// chamadas na ordem dos itens, antes de qualquer comparação e antes de inverter (`list.sort` do CPython).
@@ -711,17 +722,25 @@ pub fn sort_items(vm: &mut Vm, items: Vec<Value>, key: Option<Value>, reverse: b
     sort_keyed(pairs, reverse)
 }
 
-/// Ordena os pares (chave, item) de forma estável pela chave, opcionalmente invertido, e devolve os itens.
-pub(crate) fn sort_keyed(mut pairs: Vec<(Value, Value)>, reverse: bool) -> PyResult<Vec<Value>> {
+/// Ordena os pares (chave, item) pela chave com o `list.sort` do CPython (`timsort`), opcionalmente invertido, e
+/// devolve os itens. A comparação é `<` entre as chaves.
+pub(crate) fn sort_keyed(pairs: Vec<(Value, Value)>, reverse: bool) -> PyResult<Vec<Value>> {
+    let (out, outcome) = sort_keyed_partial(pairs, reverse);
+    outcome.map(|()| out)
+}
+
+/// Como [`sort_keyed`], mas devolve sempre os itens, mesmo quando a comparação levanta: aí eles estão na permutação
+/// parcial em que o CPython deixa a lista (o `list.sort` a mostra assim ao programa).
+pub(crate) fn sort_keyed_partial(mut pairs: Vec<(Value, Value)>, reverse: bool) -> (Vec<Value>, PyResult<()>) {
+    // A inversão antes e depois dá a estabilidade de `reverse=True`.
     if reverse {
         pairs.reverse();
     }
-    let sorted = merge_sort(pairs)?;
-    let mut out: Vec<Value> = sorted.into_iter().map(|p| p.1).collect();
+    let outcome = crate::timsort::sort(&mut pairs, &mut |a, b| py_lt(a, b));
     if reverse {
-        out.reverse();
+        pairs.reverse();
     }
-    Ok(out)
+    (pairs.into_iter().map(|p| p.1).collect(), outcome)
 }
 
 fn b_sorted(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -1036,6 +1055,8 @@ fn b_pow(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 fn radix_str(fname: &str, args: Vec<Value>, kw: Kw, prefix: &str, radix: u32) -> PyResult<Value> {
     let v = one(fname, args, &kw)?;
+    // `PyNumber_Index`: o `__index__` de usuário vale.
+    let v = if matches!(v, Value::Instance(_)) { crate::vm::number_index(&v)? } else { v };
     let Some(n) = crate::bigint::as_big(&crate::vm::unwrap_payload(&v)) else {
         return Err(type_error(format!("'{}' object cannot be interpreted as an integer", v.type_name())));
     };

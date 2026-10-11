@@ -13,12 +13,12 @@ ul-common = { workspace = true }
 # Deflate/inflate em Rust puro (zlib-rs), o mesmo backend do ul-archive.
 flate2 = { version = "1.1", default-features = false, features = ["zlib-rs"] }
 # Deflate do zlib 1.3.1 traduzido sem unsafe, com saída idêntica byte a byte (fora do workspace).
-zdeflate = { path = "../../wip/zdeflate" }
+zdeflate = { path = "../zdeflate" }
 # JPEG do libjpeg-turbo 2.1.5 traduzido sem unsafe, com os pixels do Pillow do Debian (fora do workspace).
-zjpeg = { path = "../../wip/zjpeg" }
-zft = { path = "../../wip/zft" }
+zjpeg = { path = "../zjpeg" }
+zft = { path = "../zft" }
 # HarfBuzz 10.2.0, fribidi 1.0.16 e raqm 0.10.2 traduzidos sem unsafe: o layout Raqm do Pillow.
-zhb = { path = "../../wip/zhb" }
+zhb = { path = "../zhb" }
 # `__dict__` de instâncias e classes na ordem de inserção, como no CPython.
 indexmap = "2"
 # `int` de precisão arbitrária (o que não cabe em `i64`).

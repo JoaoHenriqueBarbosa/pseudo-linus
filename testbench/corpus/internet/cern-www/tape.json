@@ -1,0 +1,42 @@
+{
+ "url": "http://info.cern.ch/hypertext/WWW/TheProject.html",
+ "recorded_at": 1791582200,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "http://info.cern.ch/hypertext/WWW/TheProject.html",
+   "status": 307,
+   "headers": [
+    [
+     "location",
+     "https://info.cern.ch/hypertext/WWW/TheProject.html"
+    ]
+   ],
+   "body": null
+  },
+  {
+   "method": "GET",
+   "url": "https://info.cern.ch/hypertext/WWW/TheProject.html",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html"
+    ]
+   ],
+   "body": "d78ac003f36a0ed898bcda19b10daaf5a928a250014fbb4a1daa823ef4e6b71b"
+  },
+  {
+   "method": "GET",
+   "url": "https://info.cern.ch/favicon.ico",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/vnd.microsoft.icon"
+    ]
+   ],
+   "body": "248e390faee1ab0d058e1b12aad2618561fe88ace9d180a34305747825778572"
+  }
+ ]
+}

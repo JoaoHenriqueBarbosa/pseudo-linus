@@ -188,7 +188,9 @@ def fork_exec(*arguments):
                     # Não é falha do `exec`: o `fork` do CPython levanta direto, sem o nome do programa.
                     raise OSError(e.errno, os.strerror(e.errno)) from None
                 errors.append(e.errno)
-        _report(errpipe_write, _exec_failure(errors))
+        # O `exec` que falha leva a mensagem vazia (`err_msg = ""` do `child_exec`): o `subprocess` põe o nome do
+        # programa no erro. `noexec` é só das falhas de antes do `exec`.
+        _report(errpipe_write, _exec_failure(errors), '')
         return _NO_CHILD
     finally:
         if restore_ids is not None:
@@ -258,7 +260,7 @@ def _child_exec(argv, executables, env_list, cwd, dups, closes, close_fds, errpi
             _os.execve(path, [path] if argv is None else argv, env_list)
         except OSError as e:
             errors.append(e.errno)
-    _report(errpipe_write, _exec_failure(errors))
+    _report(errpipe_write, _exec_failure(errors), '')
 
 
 fork_exec = _sys._builtin(fork_exec)

@@ -1,0 +1,170 @@
+{
+ "url": "https://todomvc.com/examples/svelte/dist/",
+ "recorded_at": 1791582362,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/svelte/dist/",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "abac3c3059082f000b10e40c0ee9afbcc8bba45ff9dc49a5f682a7f4451a266d"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/svelte/dist/assets/index-bgjkvPzV.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "0b471946c750dd088f0f535ac38548d353065992e8f7f88e993ccab97f7da556"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/svelte/dist/assets/index-BxPr2-fK.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "904d4802db399194adec46bb20f32f0ffe0afbf160d0b6d29df941ae85f75e34"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/svelte/dist/base.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "84090789021f5f8206800503e18adbc38b5fddbfb0a84bfe36e86e683da60c20"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/learn.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "47192f5d6f87d5a2025ff26ea00ac9040e1092144e0431185e92c417a3e4f439"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.google-analytics.com/analytics.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript"
+    ]
+   ],
+   "body": "f1a61277e3f902f50ab42015d8b07218db9b7601bb0967e54a52bfdcb4fa7e81"
+  },
+  {
+   "method": "POST",
+   "url": "https://www.google-analytics.com/j/collect?v=1&_v=j102&a=667740641&t=pageview&_s=1&dl=https%3A%2F%2Ftodomvc.com%2Fexamples%2Fsvelte%2Fdist%2F&ul=en-us&dt=TodoMVC%3A%20Svelte&sr=800x600&vp=780x437&_u=IEBAAEABAAAAACAAI~&jid=1141995674&gjid=734347672&cid=1216027107.1791582358&tid=UA-31081062-1&_gid=1071635430.1791582358&_r=1&_slc=1&z=88678555",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/plain"
+    ],
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "https://todomvc.com"
+    ]
+   ],
+   "body": "507af7ab51eb4cdc1f544183a1be4e27a0943bad4ada5ab732ed65cd837d5a3c"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/favicon.ico",
+   "status": 404,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "b620507312c5e97566a3c6cfaf99144fefc18a0da7d941401dfa0f5f58fb0368"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.googletagmanager.com/gtag/js?id=G-T3XWXPZX5B&cx=c&_slc=1",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ],
+    [
+     "access-control-allow-headers",
+     "Cache-Control"
+    ]
+   ],
+   "body": "2920ef30bf210a5eeeafd9525f0c656db3094a91c989c246ea07563e596210a5"
+  }
+ ]
+}

@@ -1,0 +1,394 @@
+{
+ "url": "https://www.debian.org/",
+ "recorded_at": 1791582279,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/",
+   "status": 200,
+   "headers": [
+    [
+     "content-language",
+     "en"
+    ],
+    [
+     "content-type",
+     "text/html"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ]
+   ],
+   "body": "26dced98a8bc2901fdc0087751565943bd13fbdab3c5f15171805e2514e3bb33"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/debhome.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "c032e7a896b8475b1aa6d7d7ba429760d46cea7e17975f82a459f9b2bf0356e8"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/debconf26_group_photo.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "6bc73525222455d14c699617410e5135386c74bfe733af537650d968af5a2b66"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/5img-carousel-slider.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "3ae02e0afd2181eb0ff37bf94673c6661d65ada685e44289669dead3efad11f3"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/debian-en.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "752495a8a164e0f64d717ad6a392518c193c98a7ad2da6f23f73a5b0360d15ad"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/startpage.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "5dd64848164e9158a29823613e675af9517d9209faa937c6293b3f1df19eae0e"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/mini-dc26-hamburg.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "9d8fd8e75c25de7dff87752924bb940ea756e0f07632e112fd6e656b84c3146c"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/mini-dc26-campinas.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "cc7302bee0a2ae9b7536439604ca04043b536fa84395ca21f38979d07cfed3f9"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/calamares-installer.png",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "92795c8a2c8548bdafbfafad1d4d802887746f14a43f13864af67e7fc7100740"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/debian.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "c63ccc983ab22b239286b58b0fc8838d56e17c157fca58206ba6b91f76eefad8"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/empty.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/security.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "78279759a432c29b2557a09d53ba61e5832033bcd3649824b5b5aa00dd86b9e3"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/life-ring.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "cd5e529926a12a9283a07dbc31d285b7c9d985be46e4bf187711c31a71fbc960"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/trophy.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "c080b3f8cfce90a3d78c7a4b3553132549851b9957a6efd08c0a55d89e63e352"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/debian-logo-1024x576.png",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "3729ca780497cc9260f0cd03df2fddace1b4bd8ca4b415d627ad572f16096927"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/list.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "1b78133b733e39f5a8302c815b876244d7fc62aa68793b07d1ae54d9d31e44d8"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/user-plus.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "ca05a795c5a58b1e6659a8ea96146738051164e48fe0bfa91a267428ab69fab0"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/heartbeat.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "d8e75457e02987fb08dca484d87c7c451d0cb5211b489f005bc315732af1b8f2"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/users.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "befa223a61329a1a199c90b327e5a72f07a926ca0458b5a6f248ef608775eb46"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/debian-funny-people-1024x576.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "966df3bab4a2d2d41e8b328adbdca99cd9b0fb313d1a7bdebeddbc6bd77747c8"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/debian-swiss-knife-hands-1024x576.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "887be3bfc9cffd7d06ba3b73967ad8cf4542a65888a33e9c1b6f18729af0810f"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/openlogo-50.png",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "599c5da9217274a3b1cd150c97839c011efc84ad74244a070de3d57e29beae0f"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/Pics/ceratopsian-fg.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "36c763725d2be979500bec0d03fca3203c83e2dd2355704909ef82e9847c0e9f"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.debian.org/favicon.ico",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/x-icon"
+    ]
+   ],
+   "body": "b7f83e026ed2bd42c631036d34566baedcab0be3eed1f0f13106e46cb7933200"
+  }
+ ]
+}

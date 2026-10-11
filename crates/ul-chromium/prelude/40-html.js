@@ -1,0 +1,830 @@
+// ---- Interfaces HTML e SVG por tag, custom elements e template.
+
+const customByName = new Map();
+const customByCtor = new Map();
+let upgrading = null;
+
+class HTMLElement extends Element {
+  constructor() {
+    super();
+    if (upgrading) {
+      const target = upgrading;
+      upgrading = null;
+      return target;
+    }
+    const def = customByCtor.get(new.target);
+    if (!def) throw new TypeError('Illegal constructor');
+    const id = op('createElement', def.name, HTML_NS);
+    ids.set(this, id);
+    wrappers.set(id, this);
+  }
+  get contentEditable() { return this.getAttribute('contenteditable') ?? 'inherit'; }
+  set contentEditable(v) { this.setAttribute('contenteditable', v); }
+  get isContentEditable() { return lower(this.contentEditable) === 'true'; }
+  get spellcheck() { return this.getAttribute('spellcheck') !== 'false'; }
+  set spellcheck(v) { this.setAttribute('spellcheck', String(!!v)); }
+  get translate() { return this.getAttribute('translate') !== 'no'; }
+  set translate(v) { this.setAttribute('translate', v ? 'yes' : 'no'); }
+  get inert() { return this.hasAttribute('inert'); }
+  set inert(v) { this.toggleAttribute('inert', !!v); }
+  get popover() { return this.getAttribute('popover'); }
+  get autofocus() { return this.hasAttribute('autofocus'); }
+  set autofocus(v) { this.toggleAttribute('autofocus', !!v); }
+  get enterKeyHint() { return this.getAttribute('enterkeyhint') ?? ''; }
+  get inputMode() { return this.getAttribute('inputmode') ?? ''; }
+  // offset* são de HTMLElement (no SVG e no MathML não existem; bibliotecas como o motion testam `'offsetHeight' in el`).
+  get offsetWidth() { const b = boxOf(this); return b ? Math.round(b.width) : 0; }
+  get offsetHeight() { const b = boxOf(this); return b ? Math.round(b.height) : 0; }
+  get offsetTop() { const b = boxOf(this); const p = this.offsetParent && boxOf(this.offsetParent); return b ? Math.round(b.y - (p ? p.y + p.border[0] : 0)) : 0; }
+  get offsetLeft() { const b = boxOf(this); const p = this.offsetParent && boxOf(this.offsetParent); return b ? Math.round(b.x - (p ? p.x + p.border[3] : 0)) : 0; }
+  get offsetParent() { return null; }
+  attachInternals() { return { setFormValue() {}, setValidity() {}, checkValidity: () => true, form: null, states: new Set(), shadowRoot: null }; }
+}
+tag(HTMLElement, 'HTMLElement');
+reflect(HTMLElement, [['title', 'title'], ['lang', 'lang'], ['dir', 'dir', 'enum'], ['hidden', 'hidden', 'bool'], ['accessKey', 'accesskey'], ['draggable', 'draggable', 'bool'], ['tabIndex', 'tabindex', 'long'], ['nonce', 'nonce']]);
+
+const htmlByTag = new Map();
+const defineHtml = (name, tags, install) => {
+  const cls = { [name]: class extends HTMLElement {} }[name];
+  tag(cls, name);
+  for (const t of tags) htmlByTag.set(t, cls);
+  if (install) install(cls);
+  globalThis[name] = cls;
+  return cls;
+};
+const plain = (name, ...tags) => defineHtml(name, tags);
+
+class HTMLUnknownElement extends HTMLElement {}
+tag(HTMLUnknownElement, 'HTMLUnknownElement');
+
+const formOwner = (el) => el.closest('form');
+const formControls = (form) => Array.from(form.querySelectorAll('input,select,textarea,button,fieldset,object,output')).filter((c) => c.closest('form') === form);
+
+defineHtml('HTMLAnchorElement', ['a'], (cls) => {
+  reflect(cls, [['href', 'href', 'url'], ['target', 'target'], ['rel', 'rel'], ['download', 'download'], ['hreflang', 'hreflang'], ['type', 'type'], ['referrerPolicy', 'referrerpolicy'], ['ping', 'ping']]);
+  const part = (name) => ({
+    get() { try { return new URL(this.href)[name]; } catch { return ''; } },
+    set(v) { try { const u = new URL(this.href); u[name] = v; this.setAttribute('href', u.href); } catch {} },
+    configurable: true, enumerable: true,
+  });
+  for (const name of ['origin', 'protocol', 'username', 'password', 'host', 'hostname', 'port', 'pathname', 'search', 'hash']) Object.defineProperty(cls.prototype, name, part(name));
+  Object.defineProperty(cls.prototype, 'text', { get() { return this.textContent; }, set(v) { this.textContent = v; }, configurable: true });
+  Object.defineProperty(cls.prototype, 'relList', { get() { return tokenList(this, 'rel'); }, configurable: true });
+  cls.prototype.toString = function () { return this.href; };
+});
+defineHtml('HTMLImageElement', ['img'], (cls) => {
+  reflect(cls, [['src', 'src', 'url'], ['alt', 'alt'], ['srcset', 'srcset'], ['sizes', 'sizes'], ['useMap', 'usemap'], ['isMap', 'ismap', 'bool'], ['loading', 'loading'], ['decoding', 'decoding'], ['crossOrigin', 'crossorigin', 'cors'], ['referrerPolicy', 'referrerpolicy'], ['fetchPriority', 'fetchpriority']]);
+  // Sem atributo, `width`/`height` são as dimensões naturais (a imagem fora do layout).
+  for (const dim of ['width', 'height']) Object.defineProperty(cls.prototype, dim, { get() { const n = parseInt(this.getAttribute(dim), 10); if (Number.isFinite(n)) return n; const image = this[P.__image]; return image ? image[dim === 'width' ? 1 : 2] : 0; }, set(v) { this.setAttribute(dim, v); }, configurable: true, enumerable: true });
+  Object.defineProperties(cls.prototype, {
+    naturalWidth: { get() { const image = this[P.__image]; return image ? image[1] : 0; }, configurable: true }, naturalHeight: { get() { const image = this[P.__image]; return image ? image[2] : 0; }, configurable: true },
+    // Completa sem fonte nenhuma (nem `src` nem `srcset`, ou só `src` vazio), ou depois do `load`/`error`. A imagem
+    // lazy que ainda espera o quadro não está completa.
+    complete: {
+      get() {
+        const srcset = this.hasAttribute('srcset');
+        if (!srcset && (!this.hasAttribute('src') || this.getAttribute('src') === '')) return true;
+        return this[P.__imageDone] === true;
+      },
+      configurable: true,
+    },
+    // A URL do pedido corrente (escolhida no `srcset` ou no `<picture>`), vazia antes do primeiro pedido.
+    currentSrc: { get() { return this[P.__imageUrl] || ''; }, configurable: true },
+    x: { get() { return 0; }, configurable: true }, y: { get() { return 0; }, configurable: true },
+  });
+  // Resolve quando a imagem chega decodificada; imagem quebrada rejeita com EncodingError, como o Blink.
+  cls.prototype.decode = function () {
+    return new Promise((resolve, reject) => {
+      const settle = () => {
+        if (this[P.__image]) resolve();
+        else reject(domException('The source image cannot be decoded.', 'EncodingError'));
+      };
+      if (this[P.__imageDone] === true || this.complete) { settle(); return; }
+      const waiting = this[P.__decodeWaiting] || [];
+      waiting.push(settle);
+      hidden(this, '__decodeWaiting', waiting);
+    });
+  };
+});
+defineHtml('HTMLScriptElement', ['script'], (cls) => {
+  reflect(cls, [['src', 'src', 'url'], ['type', 'type'], ['defer', 'defer', 'bool'], ['noModule', 'nomodule', 'bool'], ['crossOrigin', 'crossorigin', 'cors'], ['integrity', 'integrity'], ['charset', 'charset'], ['referrerPolicy', 'referrerpolicy'], ['fetchPriority', 'fetchpriority']]);
+  // A flag "force async" do HTML: script criado por script é async até a página escrever `async`.
+  Object.defineProperty(cls.prototype, 'async', {
+    get() { return !!this[P.__forceAsync] || this.hasAttribute('async'); },
+    set(v) { hidden(this, '__forceAsync', false); if (v) this.setAttribute('async', ''); else this.removeAttribute('async'); },
+    configurable: true, enumerable: true,
+  });
+  Object.defineProperty(cls.prototype, 'text', { get() { return this.textContent; }, set(v) { this.textContent = v; }, configurable: true, enumerable: true });
+  cls.supports = (type) => ['classic', 'module', 'importmap'].includes(type);
+});
+defineHtml('HTMLLinkElement', ['link'], (cls) => {
+  reflect(cls, [['href', 'href', 'url'], ['rel', 'rel'], ['as', 'as'], ['type', 'type'], ['media', 'media'], ['hreflang', 'hreflang'], ['crossOrigin', 'crossorigin', 'cors'], ['integrity', 'integrity'], ['disabled', 'disabled', 'bool'], ['referrerPolicy', 'referrerpolicy'], ['imageSrcset', 'imagesrcset'], ['imageSizes', 'imagesizes']]);
+  Object.defineProperty(cls.prototype, 'relList', { get() { return tokenList(this, 'rel'); }, configurable: true });
+  Object.defineProperty(cls.prototype, 'sheet', { get() { return lower(this.getAttribute('rel') || '').split(/\s+/).includes('stylesheet') ? sheetFor(this) : null; }, configurable: true });
+});
+defineHtml('HTMLStyleElement', ['style'], (cls) => {
+  reflect(cls, [['media', 'media'], ['type', 'type'], ['disabled', 'disabled', 'bool']]);
+  Object.defineProperty(cls.prototype, 'sheet', { get() { return sheetFor(this); }, configurable: true });
+});
+defineHtml('HTMLMetaElement', ['meta'], (cls) => reflect(cls, [['name', 'name'], ['content', 'content'], ['httpEquiv', 'http-equiv'], ['charset', 'charset'], ['media', 'media']]));
+defineHtml('HTMLBaseElement', ['base'], (cls) => reflect(cls, [['href', 'href', 'url'], ['target', 'target']]));
+defineHtml('HTMLTitleElement', ['title'], (cls) => Object.defineProperty(cls.prototype, 'text', { get() { return this.textContent; }, set(v) { this.textContent = v; }, configurable: true }));
+defineHtml('HTMLInputElement', ['input'], (cls) => {
+  reflect(cls, [['name', 'name'], ['placeholder', 'placeholder'], ['disabled', 'disabled', 'bool'], ['required', 'required', 'bool'], ['readOnly', 'readonly', 'bool'], ['multiple', 'multiple', 'bool'], ['accept', 'accept'], ['autocomplete', 'autocomplete'], ['min', 'min'], ['max', 'max'], ['step', 'step'], ['pattern', 'pattern'], ['src', 'src', 'url'], ['alt', 'alt'], ['formAction', 'formaction', 'url'], ['defaultValue', 'value'], ['defaultChecked', 'checked', 'bool'], ['maxLength', 'maxlength', 'long'], ['minLength', 'minlength', 'long'], ['size', 'size', 'long']]);
+  Object.defineProperties(cls.prototype, {
+    type: { get() { const t = lower(this.getAttribute('type') || 'text'); return ['button', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image', 'month', 'number', 'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'text', 'time', 'url', 'week'].includes(t) ? t : 'text'; }, set(v) { this.setAttribute('type', v); }, configurable: true, enumerable: true },
+    // Os modos de valor do HTML: "default" e "default/on" guardam o valor no atributo; os demais, no valor sujo.
+    value: { get() { return this[P.__value] !== undefined ? this[P.__value] : this.getAttribute('value') ?? (this.type === 'checkbox' || this.type === 'radio' ? 'on' : ''); }, set(v) { if (['hidden', 'submit', 'image', 'reset', 'button', 'checkbox', 'radio'].includes(this.type)) this.setAttribute('value', toStr(v)); else hidden(this, '__value', toStr(v)); }, configurable: true, enumerable: true },
+    checked: { get() { return this[P.__checked] !== undefined ? this[P.__checked] : this.hasAttribute('checked'); }, set(v) { hidden(this, '__checked', !!v); }, configurable: true, enumerable: true },
+    form: { get() { return formOwner(this); }, configurable: true },
+    labels: { get() { return staticNodeList([]); }, configurable: true },
+    files: { get() { return null; }, configurable: true },
+    valueAsNumber: { get() { return parseFloat(this.value); }, configurable: true },
+    selectionStart: { get() { return this[P.__selStart] ?? this.value.length; }, set(v) { hidden(this, '__selStart', v); }, configurable: true },
+    selectionEnd: { get() { return this[P.__selEnd] ?? this.value.length; }, set(v) { hidden(this, '__selEnd', v); }, configurable: true },
+    validity: { get() { return { valid: true, valueMissing: false, typeMismatch: false, patternMismatch: false, tooLong: false, tooShort: false, rangeUnderflow: false, rangeOverflow: false, stepMismatch: false, badInput: false, customError: false }; }, configurable: true },
+    validationMessage: { get() { return ''; }, configurable: true },
+    willValidate: { get() { return !this.disabled; }, configurable: true },
+    indeterminate: { get() { return !!this[P.__indeterminate]; }, set(v) { hidden(this, '__indeterminate', !!v); }, configurable: true },
+  });
+  Object.assign(cls.prototype, { select() {}, setSelectionRange(a, b) { hidden(this, '__selStart', a); hidden(this, '__selEnd', b); }, setCustomValidity() {}, checkValidity() { return true; }, reportValidity() { return true; }, stepUp() {}, stepDown() {}, showPicker() {} });
+});
+defineHtml('HTMLTextAreaElement', ['textarea'], (cls) => {
+  reflect(cls, [['name', 'name'], ['placeholder', 'placeholder'], ['disabled', 'disabled', 'bool'], ['required', 'required', 'bool'], ['readOnly', 'readonly', 'bool'], ['rows', 'rows', 'long'], ['cols', 'cols', 'long'], ['maxLength', 'maxlength', 'long'], ['wrap', 'wrap']]);
+  Object.defineProperties(cls.prototype, {
+    defaultValue: { get() { return this.textContent; }, set(v) { this.textContent = v; }, configurable: true },
+    value: { get() { return this[P.__value] !== undefined ? this[P.__value] : this.textContent; }, set(v) { hidden(this, '__value', toStr(v)); }, configurable: true, enumerable: true },
+    type: { get() { return 'textarea'; }, configurable: true },
+    form: { get() { return formOwner(this); }, configurable: true },
+    textLength: { get() { return this.value.length; }, configurable: true },
+    selectionStart: { get() { return this[P.__selStart] ?? this.value.length; }, set(v) { hidden(this, '__selStart', v); }, configurable: true },
+    selectionEnd: { get() { return this[P.__selEnd] ?? this.value.length; }, set(v) { hidden(this, '__selEnd', v); }, configurable: true },
+  });
+  Object.assign(cls.prototype, { select() {}, setSelectionRange(a, b) { hidden(this, '__selStart', a); hidden(this, '__selEnd', b); }, setCustomValidity() {}, checkValidity() { return true; }, reportValidity() { return true; } });
+});
+defineHtml('HTMLSelectElement', ['select'], (cls) => {
+  reflect(cls, [['name', 'name'], ['disabled', 'disabled', 'bool'], ['required', 'required', 'bool'], ['multiple', 'multiple', 'bool'], ['size', 'size', 'long']]);
+  Object.defineProperties(cls.prototype, {
+    options: { get() { const self = this; return liveList(HTMLCollection.prototype, () => Array.from(self.querySelectorAll('option'))); }, configurable: true },
+    selectedOptions: { get() { const self = this; return liveList(HTMLCollection.prototype, () => Array.from(self.querySelectorAll('option')).filter((o) => o.selected)); }, configurable: true },
+    selectedIndex: {
+      get() { const opts = Array.from(this.querySelectorAll('option')); const i = opts.findIndex((o) => o.selected); return i >= 0 ? i : opts.length && !this.multiple ? 0 : -1; },
+      set(v) { Array.from(this.querySelectorAll('option')).forEach((o, i) => { o.selected = i === v; }); }, configurable: true,
+    },
+    value: {
+      get() { const o = this.options[this.selectedIndex]; return o ? o.value : ''; },
+      set(v) { let found = false; for (const o of Array.from(this.querySelectorAll('option'))) { o.selected = !found && o.value === String(v); found = found || o.selected; } }, configurable: true, enumerable: true,
+    },
+    type: { get() { return this.multiple ? 'select-multiple' : 'select-one'; }, configurable: true },
+    form: { get() { return formOwner(this); }, configurable: true },
+    length: { get() { return this.querySelectorAll('option').length; }, configurable: true },
+  });
+  Object.assign(cls.prototype, { add(option, before) { this.insertBefore(option, before ?? null); }, item(i) { return this.options[i] || null; }, checkValidity() { return true; }, reportValidity() { return true; }, setCustomValidity() {} });
+});
+defineHtml('HTMLOptionElement', ['option'], (cls) => {
+  reflect(cls, [['disabled', 'disabled', 'bool'], ['label', 'label'], ['defaultSelected', 'selected', 'bool']]);
+  Object.defineProperties(cls.prototype, {
+    value: { get() { return this.getAttribute('value') ?? this.text; }, set(v) { this.setAttribute('value', v); }, configurable: true, enumerable: true },
+    text: { get() { return this.textContent.replace(/[ \t\n\f\r]+/g, ' ').trim(); }, set(v) { this.textContent = v; }, configurable: true },
+    selected: { get() { return this[P.__selected] !== undefined ? this[P.__selected] : this.hasAttribute('selected'); }, set(v) { hidden(this, '__selected', !!v); }, configurable: true, enumerable: true },
+    index: { get() { const s = this.closest('select'); return s ? Array.from(s.querySelectorAll('option')).indexOf(this) : 0; }, configurable: true },
+    form: { get() { return formOwner(this); }, configurable: true },
+  });
+});
+defineHtml('HTMLButtonElement', ['button'], (cls) => {
+  reflect(cls, [['name', 'name'], ['value', 'value'], ['disabled', 'disabled', 'bool'], ['formAction', 'formaction', 'url']]);
+  Object.defineProperties(cls.prototype, {
+    type: { get() { const t = lower(this.getAttribute('type') || 'submit'); return ['button', 'reset', 'submit'].includes(t) ? t : 'submit'; }, set(v) { this.setAttribute('type', v); }, configurable: true, enumerable: true },
+    form: { get() { return formOwner(this); }, configurable: true },
+  });
+});
+defineHtml('HTMLFormElement', ['form'], (cls) => {
+  reflect(cls, [['name', 'name'], ['target', 'target'], ['action', 'action', 'url'], ['acceptCharset', 'accept-charset'], ['autocomplete', 'autocomplete'], ['noValidate', 'novalidate', 'bool'], ['enctype', 'enctype'], ['encoding', 'enctype']]);
+  Object.defineProperties(cls.prototype, {
+    method: { get() { const m = lower(this.getAttribute('method') || 'get'); return m === 'post' || m === 'dialog' ? m : 'get'; }, set(v) { this.setAttribute('method', v); }, configurable: true, enumerable: true },
+    elements: { get() { const self = this; return liveList(HTMLCollection.prototype, () => formControls(self)); }, configurable: true },
+    length: { get() { return formControls(this).length; }, configurable: true },
+  });
+  Object.assign(cls.prototype, {
+    submit() {}, reset() { this.dispatchEvent(new Event('reset', { bubbles: true, cancelable: true })); },
+    requestSubmit() { this.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true })); },
+    checkValidity() { return true; }, reportValidity() { return true; },
+  });
+});
+defineHtml('HTMLLabelElement', ['label'], (cls) => {
+  reflect(cls, [['htmlFor', 'for']]);
+  Object.defineProperty(cls.prototype, 'control', { get() { const f = this.getAttribute('for'); return f ? document.getElementById(f) : this.querySelector('input,select,textarea,button'); }, configurable: true });
+});
+defineHtml('HTMLTemplateElement', ['template'], (cls) => {
+  Object.defineProperty(cls.prototype, 'content', {
+    get() {
+      if (!this[P.__content]) {
+        const content = Object.create(TemplateContent.prototype);
+        ids.set(content, idOf(this));
+        hidden(content, '__template', this);
+        hidden(this, '__content', content);
+      }
+      return this[P.__content];
+    },
+    configurable: true,
+  });
+  Object.defineProperty(cls.prototype, 'innerHTML', { get() { return op('innerHTML', idOf(this)); }, set(v) { op('setInnerHTML', idOf(this), toStr(v)); }, configurable: true });
+});
+// `template.content` compartilha o NodeId do template: os filhos do template SÃO o conteúdo.
+class TemplateContent extends DocumentFragment {
+  get nodeType() { return 11; }
+  get nodeName() { return '#document-fragment'; }
+  cloneNode(deep) {
+    const fragment = document.createDocumentFragment();
+    for (const child of Array.from(this.childNodes)) fragment.appendChild(child.cloneNode(!!deep));
+    return fragment;
+  }
+  [P.__flatten]() {
+    const fragment = document.createDocumentFragment();
+    for (const child of Array.from(this.childNodes)) fragment.appendChild(child);
+    return fragment;
+  }
+}
+tag(TemplateContent, 'DocumentFragment');
+defineHtml('HTMLIFrameElement', ['iframe'], (cls) => {
+  reflect(cls, [['src', 'src', 'url'], ['srcdoc', 'srcdoc'], ['name', 'name'], ['allow', 'allow'], ['allowFullscreen', 'allowfullscreen', 'bool'], ['loading', 'loading'], ['referrerPolicy', 'referrerpolicy']]);
+  Object.defineProperties(cls.prototype, {
+    // A janela do frame que o hospedeiro ligou a este elemento (`frameAttach`); `null` sem documento aninhado.
+    contentWindow: { get() { return this[P.__frameWindow] || null; }, configurable: true },
+    // O documento só vale no mesmo origem; `about:blank` e `about:srcdoc` herdam a do pai.
+    contentDocument: {
+      get() {
+        const frame = this[P.__frameWindow];
+        if (!frame) return null;
+        const address = frame.location.href;
+        return address.startsWith('about:') || frame.location.origin === location.origin ? frame.document : null;
+      },
+      configurable: true,
+    },
+  });
+});
+defineHtml('HTMLCanvasElement', ['canvas'], (cls) => {
+  for (const [dim, def] of [['width', 300], ['height', 150]]) Object.defineProperty(cls.prototype, dim, { get() { const n = parseInt(this.getAttribute(dim), 10); return Number.isFinite(n) ? n : def; }, set(v) { this.setAttribute(dim, String(Number(v) >>> 0)); canvasResized(this); }, configurable: true, enumerable: true });
+  Object.assign(cls.prototype, {
+    // Um contexto por canvas: o mesmo tipo devolve o mesmo objeto, outro tipo devolve null.
+    getContext(type, options) {
+      if (arguments.length < 1) throw new TypeError("Failed to execute 'getContext' on 'HTMLCanvasElement': 1 argument required, but only 0 present.");
+      const kind = { '2d': '2d', webgl: 1, 'experimental-webgl': 1, webgl2: 2 }[String(type)];
+      const existing = this[P.__context];
+      if (existing) return existing[0] === kind ? existing[1] : null;
+      if (!kind) return null;
+      const ctx = kind === '2d' ? canvas2dGetContext(this, options) : createWebGLContext(this, kind, options);
+      hidden(this, '__context', [kind, ctx]);
+      return ctx;
+    },
+    toDataURL(type, quality) { return canvasDataURL(this, type, quality); },
+    toBlob(callback, type, quality) {
+      if (typeof callback !== 'function') throw new TypeError("Failed to execute 'toBlob' on 'HTMLCanvasElement': The callback provided as parameter 1 is not a function.");
+      const url = canvasDataURL(this, type, quality);
+      const blob = url === 'data:,' ? null : new Blob([Uint8Array.from(atob(url.slice(url.indexOf(',') + 1)), (c) => c.charCodeAt(0))], { type: url.slice(5, url.indexOf(';')) });
+      setTimeout(() => callback(blob), 0);
+    },
+    transferControlToOffscreen() { throw new TypeError('not supported'); },
+  });
+});
+for (const [name, tags] of [['HTMLVideoElement', ['video']], ['HTMLAudioElement', ['audio']]]) {
+  defineHtml(name, tags, (cls) => {
+    reflect(cls, [['src', 'src', 'url'], ['autoplay', 'autoplay', 'bool'], ['loop', 'loop', 'bool'], ['defaultMuted', 'muted', 'bool'], ['controls', 'controls', 'bool'], ['preload', 'preload'], ['poster', 'poster', 'url'], ['crossOrigin', 'crossorigin', 'cors']]);
+    // `muted` é estado da mídia, não reflete o atributo (esse é o `defaultMuted`); começa com a presença dele.
+    Object.defineProperty(cls.prototype, 'muted', { get() { return this[P.__muted] ?? this.hasAttribute('muted'); }, set(v) { hidden(this, '__muted', Boolean(v)); }, configurable: true, enumerable: true });
+    Object.defineProperties(cls.prototype, { paused: { get() { return true; }, configurable: true }, ended: { get() { return false; }, configurable: true }, currentTime: { get() { return 0; }, set() {}, configurable: true }, duration: { get() { return NaN; }, configurable: true }, readyState: { get() { return 0; }, configurable: true }, volume: { get() { return 1; }, set() {}, configurable: true } });
+    Object.defineProperty(cls.prototype, 'textTracks', {
+      // A mesma lista a cada leitura, com os índices refeitos a partir dos `<track>` filhos (lista viva).
+      get() {
+        if (!this[P.__textTracks]) hidden(this, '__textTracks', Object.create(TextTrackList.prototype));
+        const list = this[P.__textTracks];
+        const tracks = Array.from(this.children).filter((c) => c.localName === 'track').map((c) => c.track);
+        for (const key of Object.keys(list)) delete list[key];
+        tracks.forEach((t, i) => Object.defineProperty(list, i, { value: t, enumerable: true, configurable: true }));
+        hidden(list, '__length', tracks.length);
+        return list;
+      },
+      configurable: true,
+      enumerable: true,
+    });
+    Object.assign(cls.prototype, { play() { return Promise.reject(domException('The play() request was interrupted because the media has no source.', 'NotSupportedError')); }, pause() {}, load() {}, canPlayType() { return ''; } });
+  });
+}
+defineHtml('HTMLSourceElement', ['source'], (cls) => reflect(cls, [['src', 'src', 'url'], ['type', 'type'], ['srcset', 'srcset'], ['sizes', 'sizes'], ['media', 'media']]));
+defineHtml('HTMLProgressElement', ['progress'], (cls) => reflect(cls, [['value', 'value'], ['max', 'max']]));
+defineHtml('HTMLDetailsElement', ['details'], (cls) => reflect(cls, [['open', 'open', 'bool'], ['name', 'name']]));
+defineHtml('HTMLDialogElement', ['dialog'], (cls) => {
+  reflect(cls, [['open', 'open', 'bool']]);
+  Object.assign(cls.prototype, { show() { this.setAttribute('open', ''); }, showModal() { this.setAttribute('open', ''); }, close(v) { this.removeAttribute('open'); this.dispatchEvent(new Event('close')); } });
+});
+defineHtml('HTMLSlotElement', ['slot'], (cls) => {
+  reflect(cls, [['name', 'name']]);
+  // Atribuição manual por nome: o slot nomeado recebe os filhos do host com `slot` igual; o padrão, os sem `slot`.
+  const assigned = (slot) => {
+    let root = slot.parentNode;
+    while (root && !(root instanceof ShadowRoot)) root = root.parentNode;
+    if (!root) return [];
+    const name = slot.getAttribute('name') || '';
+    return Array.from(root[P.__host].childNodes).filter((n) => (n.nodeType === 1 ? (n.getAttribute('slot') || '') === name : n.nodeType === 3 && name === ''));
+  };
+  Object.assign(cls.prototype, { assignedNodes() { return assigned(this); }, assignedElements() { return assigned(this).filter((n) => n.nodeType === 1); } });
+});
+defineHtml('HTMLTableElement', ['table']);
+defineHtml('HTMLTableRowElement', ['tr'], (cls) => Object.defineProperty(cls.prototype, 'cells', { get() { const self = this; return liveList(HTMLCollection.prototype, () => Array.from(self.children).filter((c) => /^(td|th)$/i.test(c.localName))); }, configurable: true }));
+defineHtml('HTMLTableCellElement', ['td', 'th'], (cls) => reflect(cls, [['colSpan', 'colspan', 'long'], ['rowSpan', 'rowspan', 'long'], ['headers', 'headers'], ['scope', 'scope'], ['abbr', 'abbr']]));
+defineHtml('HTMLTableSectionElement', ['tbody', 'thead', 'tfoot']);
+defineHtml('HTMLTableColElement', ['col', 'colgroup']);
+defineHtml('HTMLTableCaptionElement', ['caption']);
+defineHtml('HTMLOListElement', ['ol'], (cls) => reflect(cls, [['reversed', 'reversed', 'bool'], ['start', 'start', 'long'], ['type', 'type']]));
+defineHtml('HTMLLIElement', ['li'], (cls) => reflect(cls, [['value', 'value', 'long']]));
+defineHtml('HTMLHeadingElement', ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+defineHtml('HTMLModElement', ['ins', 'del'], (cls) => reflect(cls, [['cite', 'cite', 'url'], ['dateTime', 'datetime']]));
+defineHtml('HTMLQuoteElement', ['blockquote', 'q'], (cls) => reflect(cls, [['cite', 'cite', 'url']]));
+defineHtml('HTMLObjectElement', ['object'], (cls) => reflect(cls, [['data', 'data', 'url'], ['type', 'type'], ['name', 'name']]));
+defineHtml('HTMLEmbedElement', ['embed'], (cls) => reflect(cls, [['src', 'src', 'url'], ['type', 'type']]));
+defineHtml('HTMLFieldSetElement', ['fieldset'], (cls) => reflect(cls, [['disabled', 'disabled', 'bool'], ['name', 'name']]));
+defineHtml('HTMLOutputElement', ['output']);
+defineHtml('HTMLMeterElement', ['meter'], (cls) => reflect(cls, [['value', 'value'], ['min', 'min'], ['max', 'max'], ['low', 'low'], ['high', 'high'], ['optimum', 'optimum']]));
+defineHtml('HTMLTimeElement', ['time'], (cls) => reflect(cls, [['dateTime', 'datetime']]));
+defineHtml('HTMLDataElement', ['data'], (cls) => reflect(cls, [['value', 'value']]));
+defineHtml('HTMLAreaElement', ['area'], (cls) => reflect(cls, [['href', 'href', 'url'], ['alt', 'alt'], ['target', 'target'], ['shape', 'shape'], ['coords', 'coords']]));
+defineHtml('HTMLMapElement', ['map'], (cls) => reflect(cls, [['name', 'name']]));
+class TextTrack extends EventTarget {
+  constructor() { throw new TypeError('Illegal constructor'); }
+  get kind() { const k = this[P.__trackElement].kind; return k || 'subtitles'; }
+  get label() { return this[P.__trackElement].label; }
+  get language() { return this[P.__trackElement].srclang; }
+  get id() { return this[P.__trackElement].id; }
+  get inBandMetadataTrackDispatchType() { return ''; }
+  // Sem mídia carregando (o headless não toca vídeo), a faixa fica desativada e sem pistas.
+  get mode() { return 'disabled'; }
+  set mode(v) {}
+  get cues() { return null; }
+  get activeCues() { return null; }
+  addCue() {}
+  removeCue() {}
+}
+tag(TextTrack, 'TextTrack');
+class TextTrackList extends EventTarget {
+  constructor() { throw new TypeError('Illegal constructor'); }
+  get length() { return this[P.__length] || 0; }
+  getTrackById(id) { return Array.from({ length: this.length }, (_, i) => this[i]).find((t) => t.id === String(id)) || null; }
+  [Symbol.iterator]() { return Array.from({ length: this.length }, (_, i) => this[i])[Symbol.iterator](); }
+}
+tag(TextTrackList, 'TextTrackList');
+defineHtml('HTMLTrackElement', ['track'], (cls) => {
+  reflect(cls, [['src', 'src', 'url'], ['kind', 'kind'], ['srclang', 'srclang'], ['label', 'label'], ['default', 'default', 'bool']]);
+  Object.defineProperty(cls.prototype, 'track', {
+    get() {
+      if (!this[P.__track]) { const track = Object.create(TextTrack.prototype); hidden(track, '__trackElement', this); hidden(this, '__track', track); }
+      return this[P.__track];
+    },
+    configurable: true,
+    enumerable: true,
+  });
+  Object.defineProperty(cls.prototype, 'readyState', { get() { return 0; }, configurable: true, enumerable: true });
+  Object.assign(cls, { NONE: 0, LOADING: 1, LOADED: 2, ERROR: 3 });
+});
+defineHtml('HTMLPictureElement', ['picture']);
+defineHtml('HTMLHtmlElement', ['html']);
+defineHtml('HTMLHeadElement', ['head']);
+defineHtml('HTMLBodyElement', ['body']);
+defineHtml('HTMLDivElement', ['div']);
+defineHtml('HTMLSpanElement', ['span']);
+defineHtml('HTMLParagraphElement', ['p']);
+defineHtml('HTMLPreElement', ['pre']);
+defineHtml('HTMLBRElement', ['br']);
+defineHtml('HTMLHRElement', ['hr']);
+defineHtml('HTMLUListElement', ['ul']);
+defineHtml('HTMLDListElement', ['dl']);
+defineHtml('HTMLMenuElement', ['menu']);
+defineHtml('HTMLLegendElement', ['legend']);
+defineHtml('HTMLOptGroupElement', ['optgroup'], (cls) => reflect(cls, [['disabled', 'disabled', 'bool'], ['label', 'label']]));
+defineHtml('HTMLDataListElement', ['datalist']);
+defineHtml('HTMLParamElement', ['param']);
+defineHtml('HTMLFrameSetElement', ['frameset']);
+
+// `className` de SVG é um SVGAnimatedString vivo sobre o atributo `class`.
+class SVGAnimatedString {
+  constructor() { throw new TypeError('Illegal constructor'); }
+  get baseVal() { return this[P.__element].getAttribute(this[P.__attr]) ?? ''; }
+  set baseVal(v) { this[P.__element].setAttribute(this[P.__attr], v); }
+  get animVal() { return this.baseVal; }
+}
+tag(SVGAnimatedString, 'SVGAnimatedString');
+const animatedString = (element, attr) => { const s = Object.create(SVGAnimatedString.prototype); hidden(s, '__element', element); hidden(s, '__attr', attr); return s; };
+
+class SVGElement extends Element {
+  get ownerSVGElement() { return this.closest('svg'); }
+  get viewportElement() { return this.closest('svg'); }
+  get className() { return animatedString(this, 'class'); }
+  get style() { return styleOf(this); }
+}
+tag(SVGElement, 'SVGElement');
+reflect(SVGElement, [['tabIndex', 'tabindex', 'long'], ['nonce', 'nonce']]);
+class SVGGraphicsElement extends SVGElement {
+  getBBox() { return new DOMRect(0, 0, 0, 0); }
+  getCTM() { return null; }
+  getScreenCTM() { return null; }
+}
+tag(SVGGraphicsElement, 'SVGGraphicsElement');
+class SVGSVGElement extends SVGGraphicsElement {
+  createSVGPoint() { return { x: 0, y: 0 }; }
+  createSVGRect() { return new DOMRect(); }
+  createSVGMatrix() { return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }; }
+  createSVGNumber() { return { value: 0 }; }
+  get viewBox() { return { baseVal: { x: 0, y: 0, width: 0, height: 0 } }; }
+}
+tag(SVGSVGElement, 'SVGSVGElement');
+// As interfaces SVG do Chromium 154, com a hierarquia da IDL: [nome, pai, tags].
+const svgByTag = new Map([['svg', SVGSVGElement]]);
+const SVG_INTERFACES = [
+  ['SVGGeometryElement', 'SVGGraphicsElement', []],
+  ['SVGTextContentElement', 'SVGGraphicsElement', []],
+  ['SVGTextPositioningElement', 'SVGTextContentElement', []],
+  ['SVGGradientElement', 'SVGElement', []],
+  ['SVGComponentTransferFunctionElement', 'SVGElement', []],
+  ['SVGAElement', 'SVGGraphicsElement', ['a']],
+  ['SVGAnimationElement', 'SVGElement', []],
+  ['SVGAnimateElement', 'SVGAnimationElement', ['animate']],
+  ['SVGAnimateMotionElement', 'SVGAnimationElement', ['animateMotion']],
+  ['SVGAnimateTransformElement', 'SVGAnimationElement', ['animateTransform']],
+  ['SVGSetElement', 'SVGAnimationElement', ['set']],
+  ['SVGCircleElement', 'SVGGeometryElement', ['circle']],
+  ['SVGEllipseElement', 'SVGGeometryElement', ['ellipse']],
+  ['SVGLineElement', 'SVGGeometryElement', ['line']],
+  ['SVGPathElement', 'SVGGeometryElement', ['path']],
+  ['SVGPolygonElement', 'SVGGeometryElement', ['polygon']],
+  ['SVGPolylineElement', 'SVGGeometryElement', ['polyline']],
+  ['SVGRectElement', 'SVGGeometryElement', ['rect']],
+  ['SVGClipPathElement', 'SVGElement', ['clipPath']],
+  ['SVGDefsElement', 'SVGGraphicsElement', ['defs']],
+  ['SVGDescElement', 'SVGElement', ['desc']],
+  ['SVGFilterElement', 'SVGElement', ['filter']],
+  ['SVGForeignObjectElement', 'SVGGraphicsElement', ['foreignObject']],
+  ['SVGGElement', 'SVGGraphicsElement', ['g']],
+  ['SVGImageElement', 'SVGGraphicsElement', ['image']],
+  ['SVGLinearGradientElement', 'SVGGradientElement', ['linearGradient']],
+  ['SVGRadialGradientElement', 'SVGGradientElement', ['radialGradient']],
+  ['SVGMarkerElement', 'SVGElement', ['marker']],
+  ['SVGMaskElement', 'SVGElement', ['mask']],
+  ['SVGMetadataElement', 'SVGElement', ['metadata']],
+  ['SVGMPathElement', 'SVGElement', ['mpath']],
+  ['SVGPatternElement', 'SVGElement', ['pattern']],
+  ['SVGScriptElement', 'SVGElement', ['script']],
+  ['SVGStopElement', 'SVGElement', ['stop']],
+  ['SVGStyleElement', 'SVGElement', ['style']],
+  ['SVGSwitchElement', 'SVGGraphicsElement', ['switch']],
+  ['SVGSymbolElement', 'SVGElement', ['symbol']],
+  ['SVGTextElement', 'SVGTextPositioningElement', ['text']],
+  ['SVGTextPathElement', 'SVGTextContentElement', ['textPath']],
+  ['SVGTSpanElement', 'SVGTextPositioningElement', ['tspan']],
+  ['SVGTitleElement', 'SVGElement', ['title']],
+  ['SVGUseElement', 'SVGGraphicsElement', ['use']],
+  ['SVGViewElement', 'SVGElement', ['view']],
+  ['SVGFEBlendElement', 'SVGElement', ['feBlend']],
+  ['SVGFEColorMatrixElement', 'SVGElement', ['feColorMatrix']],
+  ['SVGFEComponentTransferElement', 'SVGElement', ['feComponentTransfer']],
+  ['SVGFECompositeElement', 'SVGElement', ['feComposite']],
+  ['SVGFEConvolveMatrixElement', 'SVGElement', ['feConvolveMatrix']],
+  ['SVGFEDiffuseLightingElement', 'SVGElement', ['feDiffuseLighting']],
+  ['SVGFEDisplacementMapElement', 'SVGElement', ['feDisplacementMap']],
+  ['SVGFEDistantLightElement', 'SVGElement', ['feDistantLight']],
+  ['SVGFEDropShadowElement', 'SVGElement', ['feDropShadow']],
+  ['SVGFEFloodElement', 'SVGElement', ['feFlood']],
+  ['SVGFEFuncAElement', 'SVGComponentTransferFunctionElement', ['feFuncA']],
+  ['SVGFEFuncBElement', 'SVGComponentTransferFunctionElement', ['feFuncB']],
+  ['SVGFEFuncGElement', 'SVGComponentTransferFunctionElement', ['feFuncG']],
+  ['SVGFEFuncRElement', 'SVGComponentTransferFunctionElement', ['feFuncR']],
+  ['SVGFEGaussianBlurElement', 'SVGElement', ['feGaussianBlur']],
+  ['SVGFEImageElement', 'SVGElement', ['feImage']],
+  ['SVGFEMergeElement', 'SVGElement', ['feMerge']],
+  ['SVGFEMergeNodeElement', 'SVGElement', ['feMergeNode']],
+  ['SVGFEMorphologyElement', 'SVGElement', ['feMorphology']],
+  ['SVGFEOffsetElement', 'SVGElement', ['feOffset']],
+  ['SVGFEPointLightElement', 'SVGElement', ['fePointLight']],
+  ['SVGFESpecularLightingElement', 'SVGElement', ['feSpecularLighting']],
+  ['SVGFESpotLightElement', 'SVGElement', ['feSpotLight']],
+  ['SVGFETileElement', 'SVGElement', ['feTile']],
+  ['SVGFETurbulenceElement', 'SVGElement', ['feTurbulence']],
+];
+const svgClasses = { SVGElement, SVGGraphicsElement, SVGSVGElement };
+for (const [name, parent, tags] of SVG_INTERFACES) {
+  const cls = { [name]: class extends svgClasses[parent] {} }[name];
+  tag(cls, name);
+  svgClasses[name] = cls;
+  for (const t of tags) svgByTag.set(t, cls);
+}
+Object.assign(svgClasses.SVGGeometryElement.prototype, { getTotalLength() { return 0; }, getPointAtLength() { return { x: 0, y: 0 }; }, isPointInFill() { return false; }, isPointInStroke() { return false; } });
+Object.assign(svgClasses.SVGTextContentElement.prototype, { getNumberOfChars() { return this.textContent.length; }, getComputedTextLength() { return 0; } });
+for (const name of Object.keys(svgClasses)) Object.defineProperty(globalThis, name, { value: svgClasses[name], writable: true, configurable: true, enumerable: false });
+class MathMLElement extends Element {}
+tag(MathMLElement, 'MathMLElement');
+
+function elementPrototype(local, ns) {
+  if (ns === HTML_NS) {
+    const cls = htmlByTag.get(local);
+    if (cls) return cls.prototype;
+    return (local.includes('-') ? HTMLElement : HTMLUnknownElement).prototype;
+  }
+  if (ns === SVG_NS) return (svgByTag.get(local) || SVGElement).prototype;
+  if (ns === MATHML_NS) return MathMLElement.prototype;
+  return Element.prototype;
+}
+
+// ---- Custom elements.
+class CustomElementRegistry {
+  constructor() { throw new TypeError('Illegal constructor'); }
+  define(name, ctor, options) {
+    name = String(name);
+    if (!/^[a-z][-.0-9_a-z]*-[-.0-9_a-z]*$/.test(name)) throw domException(`Failed to execute 'define' on 'CustomElementRegistry': "${name}" is not a valid custom element name`, 'SyntaxError');
+    if (customByName.has(name)) throw domException(`Failed to execute 'define' on 'CustomElementRegistry': the name "${name}" has already been used with this registry`, 'NotSupportedError');
+    if (customByCtor.has(ctor)) throw domException("Failed to execute 'define' on 'CustomElementRegistry': this constructor has already been used with this registry", 'NotSupportedError');
+    const def = { name, ctor, observed: new Set(ctor.observedAttributes || []), waiters: [] };
+    customByName.set(name, def);
+    customByCtor.set(ctor, def);
+    for (const el of Array.from(document.querySelectorAll(name))) upgradeElement(el, def);
+    for (const resolve of def.waiters) resolve(ctor);
+  }
+  get(name) { const def = customByName.get(String(name)); return def ? def.ctor : undefined; }
+  getName(ctor) { const def = customByCtor.get(ctor); return def ? def.name : null; }
+  whenDefined(name) { const def = customByName.get(String(name)); return def ? Promise.resolve(def.ctor) : new Promise((resolve) => { const w = this[P.__waiting] || (this[P.__waiting] = new Map()); (w.get(name) || w.set(name, []).get(name)).push(resolve); this[P.__pending] = true; }); }
+  upgrade(root) { for (const el of Array.from(root.querySelectorAll('*'))) { const def = customByName.get(el.localName); if (def) upgradeElement(el, def); } }
+}
+tag(CustomElementRegistry, 'CustomElementRegistry');
+const upgradeElement = (el, def) => {
+  if (el[P.__upgraded] || !(el instanceof HTMLElement)) return;
+  hidden(el, '__upgraded', true);
+  Object.setPrototypeOf(el, def.ctor.prototype);
+  upgrading = el;
+  try { new def.ctor(); } catch (error) { upgrading = null; reportError(error); return; }
+  op('setDefined', idOf(el));
+  if (def.observed.size && typeof el.attributeChangedCallback === 'function') {
+    for (const name of attrNames(idOf(el))) if (def.observed.has(name)) invokeReaction(() => el.attributeChangedCallback(name, null, el.getAttribute(name)));
+  }
+  if (el.isConnected && typeof el.connectedCallback === 'function') invokeReaction(() => el.connectedCallback());
+};
+const invokeReaction = (fn) => { try { fn(); } catch (error) { reportError(error); } };
+const customElements = Object.create(CustomElementRegistry.prototype);
+const originalDefine = CustomElementRegistry.prototype.define;
+CustomElementRegistry.prototype.define = function (name, ctor, options) {
+  originalDefine.call(this, name, ctor, options);
+  const waiting = this[P.__waiting] && this[P.__waiting].get(String(name));
+  if (waiting) for (const resolve of waiting) resolve(ctor);
+};
+
+// Chamado depois de um nó entrar na árvore: upgrade de custom elements, `connectedCallback` e scripts dinâmicos.
+function afterInsert(node) {
+  if (node.nodeType !== 1) return;
+  const connected = node.isConnected;
+  const walk = (el) => {
+    const def = customByName.get(el.localName);
+    if (def && !el[P.__upgraded] && connected) upgradeElement(el, def);
+    else if (def && el[P.__upgraded] && connected && typeof el.connectedCallback === 'function') invokeReaction(() => el.connectedCallback());
+    if (connected && el.localName === 'script') runDynamicScript(el);
+    if (connected && el.localName === 'link') loadLink(el);
+    // A imagem que o parser criou (documento, `innerHTML`) entra na árvore sem ter pedido a fonte ainda.
+    if (el.localName === 'img' && el.namespaceURI === HTML_NS && !el[P.__imageStarted]) updateImage(el);
+    else if (connected && el.localName === 'img' && lazyImages.has(el)) requestRender();
+    for (const child of Array.from(el.children)) walk(child);
+  };
+  walk(node);
+}
+
+// Chamado depois de um nó conectado sair da árvore: `disconnectedCallback` dos custom elements da subárvore.
+function afterRemove(node) {
+  if (node.nodeType !== 1) return;
+  const walk = (el) => {
+    if (el[P.__upgraded] && typeof el.disconnectedCallback === 'function') invokeReaction(() => el.disconnectedCallback());
+    for (const child of Array.from(el.children)) walk(child);
+  };
+  walk(node);
+}
+
+// O `<link>` que a página insere e que o Chromium busca (folha de estilo, preload, modulepreload) dispara `load` ou
+// `error` quando a resposta chega. Só a primeira inserção busca.
+function loadLink(link) {
+  if (link[P.__linkStarted]) return;
+  const rel = lower(link.getAttribute('rel') || '').split(/[ \t\n\f\r]+/);
+  const href = link.getAttribute('href');
+  if (href === null || href === '' || !rel.some((r) => r === 'stylesheet' || r === 'preload' || r === 'modulepreload')) return;
+  hidden(link, '__linkStarted', true);
+  const url = resolveUrl(href);
+  afterNetwork(() => {
+    const result = netFetch('GET', url, [], null, rel.includes('stylesheet') ? 'stylesheet' : 'other');
+    const ok = result !== null && result[0] >= 200 && result[0] < 300;
+    link.dispatchEvent(new Event(ok ? 'load' : 'error'));
+  }, rel.includes('stylesheet'));
+}
+
+// A imagem busca e decodifica a fonte escolhida (rede da página ou `blob:` criada por URL.createObjectURL); `load`
+// com as dimensões naturais, `error` quando a busca falha ou os bytes não são imagem. Conectada ou não, como no
+// Chromium; a última fonte vence.
+function loadImage(img, src) {
+  const url = src === '' ? '' : resolveUrl(src);
+  hidden(img, '__imageUrl', url);
+  hidden(img, '__image', null);
+  hidden(img, '__imageDone', false);
+  const finish = (bytes) => {
+    if (img[P.__imageUrl] !== url) return;
+    const decoded = bytes === null ? null : op('decodeImage', bytes);
+    hidden(img, '__image', decoded);
+    hidden(img, '__imageDone', true);
+    const waiting = img[P.__decodeWaiting];
+    hidden(img, '__decodeWaiting', undefined);
+    img.dispatchEvent(new Event(decoded ? 'load' : 'error'));
+    if (waiting) for (const settle of waiting) settle();
+  };
+  const blob = url.startsWith('blob:') ? blobUrls.get(url.replace(/#.*$/, '')) : undefined;
+  if (blob !== undefined) {
+    // A leitura do Blob é assíncrona; a busca continua em voo até ela terminar.
+    afterNetwork(() => {
+      networkInFlight++;
+      blob.arrayBuffer().then((buffer) => {
+        networkInFlight--;
+        let latin1 = '';
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.length; i += 8192) latin1 += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+        finish(latin1);
+      });
+    }, img.isConnected);
+    return;
+  }
+  afterNetwork(() => {
+    if (img[P.__imageUrl] !== url) return;
+    const result = url === '' ? null : netFetch('GET', url, [], null, 'image');
+    finish(result !== null && result[0] >= 200 && result[0] < 300 ? result[4] : null);
+  }, img.isConnected);
+}
+
+// ---- Escolha da fonte da imagem (HTML "update the image data" e o HTMLSrcsetParser do Blink), com a janela do
+// headless (devicePixelRatio 1, largura do viewport).
+
+// "Parse a srcset attribute": os candidatos com URL e descritor (`x` de densidade ou `w` de largura). Candidato com
+// descritor inválido sai da lista.
+function parseSrcset(text) {
+  const candidates = [];
+  const isSpace = (c) => c === ' ' || c === '\t' || c === '\n' || c === '\f' || c === '\r';
+  let i = 0;
+  const n = text.length;
+  while (i < n) {
+    while (i < n && (isSpace(text[i]) || text[i] === ',')) i++;
+    if (i >= n) break;
+    let start = i;
+    while (i < n && !isSpace(text[i])) i++;
+    let url = text.slice(start, i);
+    const descriptors = [];
+    if (url.endsWith(',')) {
+      url = url.replace(/,+$/, '');
+    } else {
+      let current = '';
+      let inParens = false;
+      for (; i <= n; i++) {
+        const c = i < n ? text[i] : null;
+        if (c === null) { if (current) descriptors.push(current); break; }
+        if (inParens) { current += c; if (c === ')') inParens = false; continue; }
+        if (isSpace(c)) { if (current) { descriptors.push(current); current = ''; } continue; }
+        if (c === ',') { i++; if (current) descriptors.push(current); break; }
+        if (c === '(') inParens = true;
+        current += c;
+      }
+    }
+    let density = null, width = null, error = false;
+    for (const d of descriptors) {
+      const last = d[d.length - 1];
+      const value = d.slice(0, -1);
+      if (last === 'w' && /^[0-9]+$/.test(value) && density === null && width === null && Number(value) > 0) width = Number(value);
+      else if (last === 'x' && density === null && width === null && /^[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?$/.test(value) && Number(value) >= 0) density = Number(value);
+      else if (last === 'h' && /^[0-9]+$/.test(value)) continue;
+      else error = true;
+    }
+    if (!error && url !== '') candidates.push({ url, density, width });
+  }
+  return candidates;
+}
+
+// Um comprimento de `sizes` em pixels CSS (px, em e rem a 16px, vw e vh do viewport); `null` quando não é comprimento.
+function sizeLength(text) {
+  const m = /^([+-]?(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)(px|em|rem|vw|vh|vmin|vmax)?$/i.exec(text.trim());
+  if (!m) return null;
+  const value = Number(m[1]);
+  if (value < 0) return null;
+  const unit = lower(m[2] || '');
+  if (unit === '') return value === 0 ? 0 : null;
+  const width = windowMetrics.innerWidth, height = windowMetrics.innerHeight;
+  return value * ({ px: 1, em: 16, rem: 16, vw: width / 100, vh: height / 100, vmin: Math.min(width, height) / 100, vmax: Math.max(width, height) / 100 })[unit];
+}
+
+// "Parse a sizes attribute": o primeiro tamanho cuja condição de mídia vale; sem nenhum, 100vw.
+function imageSourceSize(text) {
+  if (text !== null) {
+    for (const part of text.split(',')) {
+      const trimmed = part.trim();
+      const space = trimmed.search(/\s[^\s]*$/);
+      const condition = space < 0 ? '' : trimmed.slice(0, space).trim();
+      const length = sizeLength(space < 0 ? trimmed : trimmed.slice(space + 1));
+      if (length === null) continue;
+      if (condition === '' || matchMedia(condition).matches) return length;
+    }
+  }
+  return windowMetrics.innerWidth;
+}
+
+const SUPPORTED_IMAGE_TYPES = new Set(['image/apng', 'image/avif', 'image/bmp', 'image/gif', 'image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/svg+xml', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/x-xbitmap']);
+
+// A fonte escolhida: o `srcset` do primeiro `<source>` do `<picture>` que serve (mídia e tipo), senão o da própria
+// imagem com o `src` como candidato 1x. `null` sem fonte nenhuma.
+function selectImageSource(img) {
+  let srcset = null, sizes = null, fromSource = false;
+  const parent = img.parentNode;
+  if (parent && parent.nodeType === 1 && parent.localName === 'picture' && parent.namespaceURI === HTML_NS) {
+    for (let node = parent.firstChild; node && node !== img; node = node.nextSibling) {
+      if (node.nodeType !== 1 || node.localName !== 'source' || node.namespaceURI !== HTML_NS) continue;
+      const set = node.getAttribute('srcset');
+      if (set === null || set === '') continue;
+      const media = node.getAttribute('media');
+      if (media !== null && media.trim() !== '' && !matchMedia(media).matches) continue;
+      const type = node.getAttribute('type');
+      if (type !== null && type.trim() !== '' && !SUPPORTED_IMAGE_TYPES.has(lower(type.split(';')[0].trim()))) continue;
+      const parsed = parseSrcset(set);
+      if (!parsed.length) continue;
+      srcset = set;
+      sizes = node.getAttribute('sizes');
+      fromSource = true;
+      break;
+    }
+  }
+  if (!fromSource) {
+    srcset = img.getAttribute('srcset');
+    sizes = img.getAttribute('sizes');
+  }
+  const candidates = srcset === null ? [] : parseSrcset(srcset);
+  const src = img.getAttribute('src');
+  if (!fromSource && src !== null && src !== '' && !candidates.some((c) => c.width !== null || (c.density ?? 1) === 1)) candidates.push({ url: src, density: 1, width: null });
+  if (!candidates.length) return src === null ? null : src;
+  const size = candidates.some((c) => c.width !== null) ? imageSourceSize(sizes) : 0;
+  const scored = candidates.map((c) => ({ url: c.url, density: c.width !== null ? c.width / size : c.density ?? 1 }));
+  // A ordem estável por densidade; densidades repetidas ficam com a primeira.
+  scored.sort((a, b) => a.density - b.density);
+  const unique = scored.filter((c, k) => k === 0 || c.density !== scored[k - 1].density);
+  const desired = windowMetrics.devicePixelRatio;
+  // O laço do PickBestImageCandidate do Blink: anda até o próximo candidato cobrir a tela e fica com ele quando a tela
+  // (até 1x) passa a densidade corrente ou alcança a média geométrica dos dois; senão, com o corrente.
+  let i = 0;
+  for (; i < unique.length - 1; i++) {
+    const next = unique[i + 1].density;
+    if (next < desired) continue;
+    const current = unique[i].density;
+    if ((desired <= 1 && desired > current) || desired >= Math.sqrt(current * next)) return unique[i + 1].url;
+    break;
+  }
+  return unique[i].url;
+}
+
+const isLazy = (img) => lower(img.getAttribute('loading') || '') === 'lazy';
+// As imagens lazy conectadas esperando o quadro. Medido no oráculo (headless sob --virtual-time-budget): a busca da
+// imagem lazy só começa na etapa de interseção do primeiro quadro, mas aí começa para todas, a qualquer distância da
+// dobra e mesmo com `display: none`.
+const lazyImages = new Set();
+
+// "Update the image data": escolhe a fonte e busca, ou deixa para o quadro quando a imagem é lazy.
+function updateImage(img) {
+  hidden(img, '__imageStarted', true);
+  const chosen = selectImageSource(img);
+  lazyImages.delete(img);
+  if (chosen === null) {
+    hidden(img, '__imageUrl', '');
+    hidden(img, '__image', null);
+    hidden(img, '__imageDone', true);
+    return;
+  }
+  // A imagem lazy desconectada não tem o que observar e busca na hora, como a eager (medido no oráculo).
+  if (chosen !== '' && isLazy(img) && img.isConnected) {
+    hidden(img, '__imageUrl', '');
+    hidden(img, '__image', null);
+    hidden(img, '__imageDone', false);
+    lazyImages.add(img);
+    requestRender();
+    return;
+  }
+  loadImage(img, chosen);
+}
+
+// Etapa de interseção do quadro: as imagens lazy conectadas começam a busca; a que saiu da árvore busca também.
+function startLazyImages() {
+  for (const img of Array.from(lazyImages)) {
+    lazyImages.delete(img);
+    const chosen = selectImageSource(img);
+    if (chosen !== null) loadImage(img, chosen);
+  }
+}
+
+function attributeChanged(el, name, oldValue, newValue) {
+  if (el.localName === 'img' && el.namespaceURI === HTML_NS) {
+    if (name === 'src' || name === 'srcset' || name === 'sizes') updateImage(el);
+    else if (name === 'loading' && lazyImages.has(el) && !isLazy(el)) { lazyImages.delete(el); updateImage(el); }
+  }
+  mutationHook.record({ type: 'attributes', target: el, attributeName: name, oldValue });
+  const def = customByCtor.get(el.constructor);
+  if (def && def.observed.has(name) && typeof el.attributeChangedCallback === 'function') invokeReaction(() => el.attributeChangedCallback(name, oldValue, newValue));
+}

@@ -1,0 +1,8 @@
+["innerHTML","ok","string:<b>1</b>"]
+["eval","ok","number:2"]
+["Function","ok","number:3"]
+["setTimeout","ok","undefined:undefined"]
+V ["require-trusted-types-for","require-trusted-types-for","trusted-types-sink","report","Element innerHTML|<b>1</b>","O/fx/csp-c.js",5,70,200,"require-trusted-types-for 'script'","O/c",true,true,true,""]
+V ["require-trusted-types-for","require-trusted-types-for","trusted-types-sink","report","eval|1+1","O/fx/csp-c.js",5,117,200,"require-trusted-types-for 'script'","O/c",true,true,true,""]
+V ["require-trusted-types-for","require-trusted-types-for","trusted-types-sink","report","Function|(\n) {\nreturn 3\n})","O/fx/csp-c.js",5,148,200,"require-trusted-types-for 'script'","O/c",true,true,true,""]
+V ["require-trusted-types-for","require-trusted-types-for","trusted-types-sink","report","Window setTimeout|1","O/fx/csp-c.js",5,209,200,"require-trusted-types-for 'script'","O/c",true,true,true,""]

@@ -23,6 +23,25 @@ pub struct TracebackObj {
 }
 
 impl TracebackObj {
+    /// As referências fortes que este nó guarda, para o coletor de ciclos. `false`: emprestado.
+    pub(crate) fn gc_children(&self, f: &mut dyn FnMut(crate::gccollect::Child)) -> bool {
+        let (Ok(next), Ok(frame)) = (self.next.try_borrow(), self.frame.try_borrow()) else { return false };
+        f(crate::gccollect::Child::Entries(&self.entries));
+        if let Some(v) = next.as_ref() {
+            f(crate::gccollect::Child::Val(v));
+        }
+        if let Some(v) = frame.as_ref() {
+            f(crate::gccollect::Child::Val(v));
+        }
+        true
+    }
+
+    /// Quantos objetos `traceback` do CPython este nó vale: ele e os seguintes que o CPython já teria criado.
+    pub(crate) fn gc_weight(&self) -> usize {
+        let materialized = self.next.try_borrow().map_or(true, |n| n.is_some());
+        1 + if materialized { 0 } else { self.entries.len().saturating_sub(self.idx + 1) }
+    }
+
     /// O traceback que começa no quadro mais externo de `entries`; `None` se estiver vazio.
     pub fn make(entries: Vec<crate::vm::TbEntry>, filename: &str) -> Value {
         if entries.is_empty() {
@@ -216,7 +235,7 @@ pub fn code_eq(a: &crate::compile::Code, b: &crate::compile::Code) -> bool {
         && ea.exceptiontable == eb.exceptiontable
         && ea.names == eb.names
         && ea.consts.len() == eb.consts.len()
-        && ea.consts.iter().zip(&eb.consts).all(|(x, y)| crate::object::py_eq(x, y))
+        && ea.consts.iter().zip(&eb.consts).all(|(x, y)| crate::object::py_eq(x, y).unwrap_or(false))
         && (la.varnames, la.cellvars, la.freevars) == (lb.varnames, lb.cellvars, lb.freevars)
         && a.functions.len() == b.functions.len()
         && a.functions.iter().zip(&b.functions).all(|(x, y)| code_eq(x, y))
@@ -331,11 +350,11 @@ impl ExtObject for CodeObject {
     }
 
     /// `code_richcompare`: o `co_filename` não entra na comparação.
-    fn eq_value(&self, other: &Value) -> Option<bool> {
+    fn eq_value(&self, other: &Value) -> Option<PyResult<bool>> {
         let Value::Ext(o) = other else { return None };
         let o = o.as_any()?.downcast_ref::<CodeObject>()?;
         match (&self.code, &o.code) {
-            (Some(a), Some(b)) => Some(self.name == o.name && code_eq(a, b)),
+            (Some(a), Some(b)) => Some(Ok(self.name == o.name && code_eq(a, b))),
             _ => None,
         }
     }

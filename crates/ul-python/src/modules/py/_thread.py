@@ -3,6 +3,7 @@ precisa esperar um travão pede ao escalonador do `threading` (`_hooks['wait']`)
 outras rodam até a condição valer, como no CPython com a GIL."""
 
 import _os
+import _sys
 import _weakref
 
 error = RuntimeError
@@ -51,6 +52,9 @@ class _Atomic:
 
 
 def _new_ident():
+    # A thread nova ocupa uma vaga de tarefa do usuário (`RLIMIT_NPROC`, como a thread de `clone`): o limite atingido
+    # levanta `RuntimeError("can't start new thread")` antes de a thread existir para o resto do `threading`.
+    _sys._task_reserve()
     _next_slot[0] += 1
     if _free_idents:
         ident = _free_idents.pop()
@@ -71,6 +75,7 @@ def _release_ident(ident):
     """A thread de `ident` acabou: a pilha volta para reuso e os dados `threading.local` dela se perdem.
     A pilha de uma thread que acaba de terminar ainda está sendo desmontada quando a próxima nasce, então
     só a da thread anterior entra para reuso (quarentena de uma)."""
+    _sys._task_release()
     if _quarantine:
         _free_idents.append(_quarantine.pop())
     _quarantine.append(ident)

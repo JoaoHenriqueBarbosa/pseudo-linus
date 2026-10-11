@@ -1,0 +1,219 @@
+window.navigation ["get","set","enumerable","configurable"]
+Navigation function 0 currentEntry:aec,transition:aec,activation:aec,canGoBack:aec,canGoForward:aec,onnavigate:asec,onnavigatesuccess:asec,onnavigateerror:asec,oncurrententrychange:asec,back:f0wec,entries:f0wec,forward:f0wec,navigate:f1wec,reload:f0wec,traverseTo:f1wec,updateCurrentEntry:f1wec,constructor:f0wc EventTarget
+ new TypeError: Failed to construct 'Navigation': Illegal constructor
+NavigationHistoryEntry function 0 key:aec,id:aec,url:aec,index:aec,sameDocument:aec,ondispose:asec,getState:f0wec,constructor:f0wc EventTarget
+ new TypeError: Failed to construct 'NavigationHistoryEntry': Illegal constructor
+NavigationTransition function 0 navigationType:aec,from:aec,to:aec,committed:aec,finished:aec,constructor:f0wc Object
+ new TypeError: Failed to construct 'NavigationTransition': Illegal constructor
+NavigateEvent function 2 navigationType:aec,destination:aec,canIntercept:aec,userInitiated:aec,hashChange:aec,signal:aec,formData:aec,downloadRequest:aec,info:aec,sourceElement:aec,intercept:f0wec,scroll:f0wec,hasUAVisualTransition:aec,constructor:f2wc Event
+ new TypeError: Failed to construct 'NavigateEvent': 2 arguments required, but only 0 present.
+NavigationCurrentEntryChangeEvent function 2 navigationType:aec,from:aec,constructor:f2wc Event
+ new TypeError: Failed to construct 'NavigationCurrentEntryChangeEvent': 2 arguments required, but only 0 present.
+NavigationDestination function 0 key:aec,id:aec,url:aec,index:aec,sameDocument:aec,getState:f0wec,constructor:f0wc Object
+ new TypeError: Failed to construct 'NavigationDestination': Illegal constructor
+NavigationActivation function 0 entry:aec,from:aec,navigationType:aec,constructor:f0wc Object
+ new TypeError: Failed to construct 'NavigationActivation': Illegal constructor
+NavigationPrecommitController function 0 addHandler:f1wec,redirect:f1wec,constructor:f0wc Object
+ new TypeError: Failed to construct 'NavigationPrecommitController': Illegal constructor
+[object Navigation] [object NavigationHistoryEntry] string36 false null null true
+navigate() TypeError: Failed to execute 'navigate' on 'Navigation': 1 argument required, but only 0 present.
+updateCurrentEntry() TypeError: Failed to execute 'updateCurrentEntry' on 'Navigation': 1 argument required, but only 0 present.
+traverseTo() TypeError: Failed to execute 'traverseTo' on 'Navigation': 1 argument required, but only 0 present.
+getState no state ok undefined
+start O/p@0
+== navigate hash push
+navigate push O/p#a idx=-1 same=true key=empty ci=true hash=true info="i" state={"s":1} tr=null
+currententrychange push from=O/p@0 to=O/p#a@1 tr=null
+popstate null
+n returned
+sync O/p#a@1 state={"s":1}
+navigatesuccess Event tr=null
+n committed O/p#a@1
+n finished O/p#a@1
+hashchange
+now O/p#a@1 entries=O/p@0,O/p#a@1 back=true fwd=false
+== navigate hash replace
+navigate replace O/p#b idx=-1 same=true key=empty ci=true hash=true info=undefined state=undefined tr=null
+currententrychange replace from=O/p#a@-1 to=O/p#b@1 tr=null
+popstate null
+n returned
+navigatesuccess Event tr=null
+n committed O/p#b@1
+n finished O/p#b@1
+hashchange
+now O/p#b@1 entries=O/p@0,O/p#b@1 back=true fwd=false
+== navigate same url
+navigate replace O/p#b idx=-1 same=true key=empty ci=true hash=false info=undefined state=undefined tr=null
+currententrychange replace from=O/p#b@-1 to=O/p#b@1 tr=null
+popstate null
+n returned
+navigatesuccess Event tr=null
+n committed O/p#b@1
+n finished O/p#b@1
+now O/p#b@1 entries=O/p@0,O/p#b@1 back=true fwd=false
+== pushState
+navigate push O/p#p idx=-1 same=true key=empty ci=true hash=false info=undefined state=undefined tr=null
+currententrychange push from=O/p#b@1 to=O/p#p@2 tr=null
+sync O/p#p@2 state=undefined
+navigatesuccess Event tr=null
+now O/p#p@2 entries=O/p@0,O/p#b@1,O/p#p@2 back=true fwd=false
+== replaceState
+navigate replace O/p#r idx=-1 same=true key=empty ci=true hash=false info=undefined state=undefined tr=null
+currententrychange replace from=O/p#p@-1 to=O/p#r@2 tr=null
+navigatesuccess Event tr=null
+now O/p#r@2 entries=O/p@0,O/p#b@1,O/p#r@2 back=true fwd=false
+== location.hash
+navigate push O/p#h idx=-1 same=true key=empty ci=true hash=true info=undefined state=undefined tr=null
+currententrychange push from=O/p#r@2 to=O/p#h@3 tr=null
+popstate null
+sync O/p#h@3
+navigatesuccess Event tr=null
+hashchange
+now O/p#h@3 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3 back=true fwd=false
+== back
+b returned
+sync O/p#h@3
+navigate traverse O/p#r idx=2 same=true key=other ci=true hash=true info="x" state=undefined tr=null
+currententrychange traverse from=O/p#h@3 to=O/p#r@2 tr=null
+b committed O/p#r@2
+navigatesuccess Event tr=null
+b finished O/p#r@2
+popstate null
+hashchange
+now O/p#r@2 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3 back=true fwd=true
+== forward
+f returned
+navigate traverse O/p#h idx=3 same=true key=other ci=true hash=true info=undefined state=undefined tr=null
+currententrychange traverse from=O/p#r@2 to=O/p#h@3 tr=null
+f committed O/p#h@3
+navigatesuccess Event tr=null
+f finished O/p#h@3
+popstate null
+hashchange
+now O/p#h@3 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3 back=true fwd=false
+== traverseTo first
+t returned
+navigate traverse O/p idx=0 same=true key=other ci=true hash=true info=undefined state=undefined tr=null
+currententrychange traverse from=O/p#h@3 to=O/p@0 tr=null
+t committed O/p@0
+navigatesuccess Event tr=null
+t finished O/p@0
+popstate null
+hashchange
+now O/p@0 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3 back=false fwd=true
+== traverseTo current
+t returned
+t committed O/p@0
+t finished O/p@0
+now O/p@0 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3 back=false fwd=true
+== history.back
+navigate traverse O/p#r idx=2 same=true key=other ci=true hash=true info=undefined state=undefined tr=null
+currententrychange traverse from=O/p@0 to=O/p#r@2 tr=null
+navigatesuccess Event tr=null
+popstate null
+hashchange
+now O/p#r@2 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3 back=true fwd=true
+== back at start
+t returned
+navigate traverse O/p idx=0 same=true key=other ci=true hash=true info=undefined state=undefined tr=null
+currententrychange traverse from=O/p#r@2 to=O/p@0 tr=null
+t committed O/p@0
+navigatesuccess Event tr=null
+t finished O/p@0
+popstate null
+hashchange
+b returned
+b committed InvalidStateError: Cannot go back
+b finished InvalidStateError: Cannot go back
+now O/p@0 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3 back=false fwd=true
+== forward at end
+t returned
+navigate traverse O/p#h idx=3 same=true key=other ci=true hash=true info=undefined state=undefined tr=null
+currententrychange traverse from=O/p@0 to=O/p#h@3 tr=null
+t committed O/p#h@3
+navigatesuccess Event tr=null
+t finished O/p#h@3
+popstate null
+hashchange
+f returned
+f committed InvalidStateError: Cannot go forward
+f finished InvalidStateError: Cannot go forward
+now O/p#h@3 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3 back=true fwd=false
+== intercept
+navigate push O/other?q idx=-1 same=false key=empty ci=true hash=false info=undefined state=undefined tr=null
+currententrychange push from=O/p#h@3 to=O/other?q@4 tr=push:O/p#h@3
+handler start
+i returned
+sync O/other?q@4 tr=push
+i committed O/other?q@4
+handler end
+navigatesuccess Event tr=push
+i finished O/other?q@4
+now O/other?q@4 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3,O/other?q@4 back=true fwd=false
+== preventDefault
+navigate push O/other?q#prevented idx=-1 same=true key=empty ci=true hash=true info=undefined state=undefined tr=null
+navigateerror ErrorEvent Uncaught  AbortError
+p returned
+p committed AbortError: Navigation was aborted
+p finished AbortError: Navigation was aborted
+now O/other?q@4 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3,O/other?q@4 back=true fwd=false
+== abort by second
+navigate push O/other?q#x1 idx=-1 same=true key=empty ci=true hash=true info=undefined state=undefined tr=null
+currententrychange push from=O/other?q@4 to=O/other?q#x1@5 tr=null
+popstate null
+one returned
+navigateerror ErrorEvent Uncaught  AbortError
+navigate push O/other?q#x2 idx=-1 same=true key=empty ci=true hash=true info=undefined state=undefined tr=null
+currententrychange push from=O/other?q#x1@5 to=O/other?q#x2@6 tr=null
+two returned
+one committed O/other?q#x1@5
+one finished AbortError: Navigation was aborted
+navigatesuccess Event tr=null
+two committed O/other?q#x2@6
+two finished O/other?q#x2@6
+hashchange
+now O/other?q#x2@6 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3,O/other?q@4,O/other?q#x1@5,O/other?q#x2@6 back=true fwd=false
+== updateCurrentEntry
+currententrychange null from=O/other?q#x2@6 to=O/other?q#x2@6 tr=null
+state [1]
+now O/other?q#x2@6 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3,O/other?q@4,O/other?q#x1@5,O/other?q#x2@6 back=true fwd=false
+== reload intercept
+navigate reload O/other?q#x2 idx=-1 same=false key=empty ci=true hash=false info=undefined state="rs" tr=null
+currententrychange reload from=O/other?q#x2@6 to=O/other?q#x2@6 tr=reload:O/other?q#x2@6
+r returned
+navigatesuccess Event tr=reload
+r committed O/other?q#x2@6
+r finished O/other?q#x2@6
+now O/other?q#x2@6 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3,O/other?q@4,O/other?q#x1@5,O/other?q#x2@6 back=true fwd=false
+== navigate bad url
+u returned
+u committed SyntaxError: Invalid URL 'http://[x/'.
+u finished SyntaxError: Invalid URL 'http://[x/'.
+now O/other?q#x2@6 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3,O/other?q@4,O/other?q#x1@5,O/other?q#x2@6 back=true fwd=false
+== navigate js url
+j returned
+j committed NotSupportedError: The javascript: protocol is not supported
+j finished NotSupportedError: The javascript: protocol is not supported
+now O/other?q#x2@6 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3,O/other?q@4,O/other?q#x1@5,O/other?q#x2@6 back=true fwd=false
+== navigateerror fields
+navigate push O/other?q#cancelled idx=-1 same=true key=empty ci=true hash=true info=undefined state=undefined tr=null
+navigateerror ErrorEvent Uncaught  AbortError
+error ["Uncaught ","O/probe.js",78,16,"AbortError",true,false,true]
+navigate push O/other?q#rejected idx=-1 same=true key=empty ci=true hash=true info=undefined state=undefined tr=null
+currententrychange push from=O/other?q#x2@6 to=O/other?q#rejected@7 tr=push:O/other?q#x2@6
+h returned
+navigateerror ErrorEvent Uncaught TypeError: boom TypeError
+error ["Uncaught TypeError: boom","O/probe.js",79,98,"TypeError",true,false,true]
+h committed O/other?q#rejected@7
+h finished TypeError: boom
+tb returned
+navigate traverse O/other?q#x2 idx=6 same=true key=other ci=true hash=true info=undefined state="rs" tr=null
+traverse cancelable true
+navigateerror ErrorEvent Uncaught  AbortError
+tb committed AbortError: Navigation was aborted
+tb finished AbortError: Navigation was aborted
+error ["Uncaught ","O/other?q#rejected",0,0,"AbortError",true,false,true]
+now O/other?q#rejected@7 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3,O/other?q@4,O/other?q#x1@5,O/other?q#x2@6,O/other?q#rejected@7 back=true fwd=false
+== entry identity
+eq true cur true
+now O/other?q#rejected@7 entries=O/p@0,O/p#b@1,O/p#r@2,O/p#h@3,O/other?q@4,O/other?q#x1@5,O/other?q#x2@6,O/other?q#rejected@7 back=true fwd=false

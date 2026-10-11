@@ -1,8 +1,8 @@
 /target/
 /testbench/target/
 /testbench/experiments/*/target/
-/wip/*/target/
-# Cópia de trabalho do zjsc onde o integrador compila (rsync de wip/zjsc) com o alvo de build ao lado.
+/crates/z*/target/
+# Cópia de trabalho do zjsc onde o integrador compila (rsync de crates/zjsc) com o alvo de build ao lado.
 /target-zjsc-snap/
 /testbench/corpus/agent/
 /testbench/corpus/upstream/
@@ -53,4 +53,9 @@ id_ed25519*
 credentials*.json
 .DS_Store
 *.log
+# Os logs do leveldb que o Chromium do oráculo escreveu são fixtures (binários, não são logs de texto).
+!crates/ul-leveldb/tests/fixtures/**/*.log
 # <<< offload jet-dev
+
+# Core dumps de testes abortados
+core.[0-9]*

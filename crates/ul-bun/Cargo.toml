@@ -14,9 +14,9 @@ ul-common = { workspace = true }
 # O package.json do `bun run` (a ordem dos scripts é a do arquivo).
 serde_json = { version = "1", features = ["preserve_order"] }
 # O motor: JavaScriptCore do WebKit do Bun, traduzido sem unsafe (fora do workspace).
-zjsc = { path = "../../wip/zjsc" }
+zjsc = { path = "../zjsc" }
 # O transpilador do bun (TypeScript, JSX, decorators): o que o `bun run a.ts` passa o fonte antes de o motor rodá-lo.
-bun_transpile = { path = "../../wip/zbun/transpile" }
+bun_transpile = { path = "../zbun/transpile" }
 
 [dev-dependencies]
 sysabi = { workspace = true, features = ["testkit"] }

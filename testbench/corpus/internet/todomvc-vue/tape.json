@@ -1,0 +1,166 @@
+{
+ "url": "https://todomvc.com/examples/vue/dist/",
+ "recorded_at": 1791582350,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/vue/dist/",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "8d2fb97cb255c5bd26f19214a4c8992ed87c60592a19645a3dcdbba2790da697"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/vue/dist/assets/index-CO9Gq1IP.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "a3369f75571a321455ce646feb7c242e559b57df21fe1a6d60a32a0064ae6d64"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/vue/dist/base.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "84090789021f5f8206800503e18adbc38b5fddbfb0a84bfe36e86e683da60c20"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/vue/dist/assets/index-bgjkvPzV.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "0b471946c750dd088f0f535ac38548d353065992e8f7f88e993ccab97f7da556"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/learn.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "47192f5d6f87d5a2025ff26ea00ac9040e1092144e0431185e92c417a3e4f439"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.google-analytics.com/analytics.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript"
+    ]
+   ],
+   "body": "f1a61277e3f902f50ab42015d8b07218db9b7601bb0967e54a52bfdcb4fa7e81"
+  },
+  {
+   "method": "POST",
+   "url": "https://www.google-analytics.com/j/collect?v=1&_v=j102&a=1423021118&t=pageview&_s=1&dl=https%3A%2F%2Ftodomvc.com%2Fexamples%2Fvue%2Fdist%2F&ul=en-us&dt=TodoMVC%3A%20Vue&sr=800x600&vp=780x437&_u=IEBAAEABAAAAACAAI~&jid=1631662766&gjid=733987951&cid=1948260295.1791582347&tid=UA-31081062-1&_gid=1869713086.1791582347&_r=1&_slc=1&z=248418768",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/plain"
+    ],
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "https://todomvc.com"
+    ]
+   ],
+   "body": "507af7ab51eb4cdc1f544183a1be4e27a0943bad4ada5ab732ed65cd837d5a3c"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.googletagmanager.com/gtag/js?id=G-T3XWXPZX5B&cx=c&_slc=1",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ],
+    [
+     "access-control-allow-headers",
+     "Cache-Control"
+    ]
+   ],
+   "body": "2920ef30bf210a5eeeafd9525f0c656db3094a91c989c246ea07563e596210a5"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/vue/dist/favicon.ico",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/vnd.microsoft.icon"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "db74ab0b78338c1f778f8398c45f4103c99aea0e845a3118a7750b4eeafd3445"
+  }
+ ]
+}

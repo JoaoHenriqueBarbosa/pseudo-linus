@@ -1,0 +1,86 @@
+<!doctype html><body><script>
+// Rasterização do WebGL no oráculo (ANGLE sobre SwiftShader): cada cena desenha num canvas de 24x24 e guarda o
+// readPixels (RGBA, de baixo para cima, pré-multiplicado) em base64. Rodar com `chromium --headless --disable-gpu
+// --dump-dom`; o resultado sai no atributo data-out do body.
+const W = 24, H = 24;
+const b64 = (u8) => { let s = ''; for (const b of u8) s += String.fromCharCode(b); return btoa(s); };
+const VS1 = 'attribute vec2 p; attribute vec4 c; varying vec4 v; uniform vec2 off; void main() { v = c; gl_Position = vec4(p + off, 0.0, 1.0); }';
+const FS1 = 'precision mediump float; varying vec4 v; void main() { gl_FragColor = v; }';
+const tri = [-0.8, -0.8, 0.8, -0.8, 0.0, 0.8];
+const scenes = {
+  'clear': (gl) => { gl.clearColor(0.2, 0.4, 0.6, 0.8); gl.clear(gl.COLOR_BUFFER_BIT); },
+  'flat-triangle': (gl, d) => { gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); d.draw(tri, [1, 0, 0, 1], gl.TRIANGLES); },
+  'vertex-colors': (gl, d) => { d.draw(tri, [1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1], gl.TRIANGLES); },
+  'fractional': (gl, d) => { d.draw([-0.33, -0.71, 0.9, -0.12, 0.17, 0.83], [0.9, 0.5, 0.1, 1], gl.TRIANGLES); },
+  'strip': (gl, d) => { d.draw([-0.9, -0.9, 0.9, -0.9, -0.9, 0.9, 0.9, 0.9], [0.1, 0.7, 0.3, 1], gl.TRIANGLE_STRIP); },
+  'fan': (gl, d) => { d.draw([0, 0, 0.9, 0, 0.6, 0.7, -0.2, 0.9, -0.9, 0.1], [0.3, 0.2, 0.9, 1], gl.TRIANGLE_FAN); },
+  'elements': (gl, d) => { d.drawIndexed([-0.9, -0.9, 0.9, -0.9, 0.9, 0.9, -0.9, 0.9], [0.8, 0.8, 0.1, 1], [0, 1, 2, 0, 2, 3]); },
+  'blend': (gl, d) => { gl.clearColor(0.1, 0.2, 0.3, 1); gl.clear(gl.COLOR_BUFFER_BIT); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); d.draw(tri, [1, 0, 0, 0.5], gl.TRIANGLES); d.draw([-0.8, 0.5, 0.8, 0.5, 0, -0.8], [0, 1, 0, 0.3], gl.TRIANGLES); },
+  'blend-add': (gl, d) => { gl.clearColor(0.1, 0.1, 0.1, 1); gl.clear(gl.COLOR_BUFFER_BIT); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); d.draw(tri, [0.4, 0.2, 0.1, 0.5], gl.TRIANGLES); d.draw(tri, [0.3, 0.3, 0.3, 0.5], gl.TRIANGLES); },
+  'scissor': (gl, d) => { gl.enable(gl.SCISSOR_TEST); gl.scissor(5, 4, 10, 12); d.draw([-1, -1, 1, -1, -1, 1, 1, 1], [0.2, 0.6, 0.9, 1], gl.TRIANGLE_STRIP); },
+  'viewport': (gl, d) => { gl.viewport(4, 3, 14, 11); d.draw(tri, [0.9, 0.9, 0.2, 1], gl.TRIANGLES); },
+  'cull-back': (gl, d) => { gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); d.draw(tri, [1, 0, 1, 1], gl.TRIANGLES); d.draw([-0.8, 0.8, 0.8, 0.8, 0, -0.8], [0, 1, 1, 1], gl.TRIANGLES); },
+  'cull-front': (gl, d) => { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); d.draw(tri, [1, 0, 1, 1], gl.TRIANGLES); d.draw([-0.8, 0.8, 0.8, 0.8, 0, -0.8], [0, 1, 1, 1], gl.TRIANGLES); },
+  'depth': (gl, d) => { gl.enable(gl.DEPTH_TEST); gl.clear(gl.DEPTH_BUFFER_BIT); d.draw3([-0.9, -0.9, 0.5, 0.9, -0.9, 0.5, 0, 0.9, 0.5], [1, 0, 0, 1]); d.draw3([-0.9, 0.9, 0.2, 0.9, 0.9, 0.2, 0, -0.9, 0.8], [0, 0, 1, 1]); },
+  'color-mask': (gl, d) => { gl.colorMask(true, false, true, true); d.draw(tri, [1, 1, 1, 1], gl.TRIANGLES); },
+  'offset-uniform': (gl, d) => { gl.uniform2f(d.off, 0.3, -0.2); d.draw(tri, [0.5, 0.5, 1, 1], gl.TRIANGLES); },
+  'edge-aligned': (gl, d) => { d.draw([-1, -1, 0, -1, -1, 0], [1, 1, 1, 1], gl.TRIANGLES); d.draw([0, 0, 1, 0, 0, 1], [1, 0.5, 0, 1], gl.TRIANGLES); },
+  'tiny': (gl, d) => { d.draw([-0.05, -0.05, 0.05, -0.05, 0, 0.05], [1, 1, 0, 1], gl.TRIANGLES); },
+  // Com o antisserrilhado padrão (4 amostras): as bordas resolvem pela média das amostras cobertas.
+  'aa-triangle': (gl, d) => { d.draw(tri, [1, 0, 0, 1], gl.TRIANGLES); },
+  'aa-fractional': (gl, d) => { d.draw([-0.33, -0.71, 0.9, -0.12, 0.17, 0.83], [0.9, 0.5, 0.1, 1], gl.TRIANGLES); },
+  'aa-blend': (gl, d) => { gl.clearColor(0.1, 0.2, 0.3, 1); gl.clear(gl.COLOR_BUFFER_BIT); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); d.draw(tri, [1, 0.5, 0, 0.6], gl.TRIANGLES); },
+  'aa-depth': (gl, d) => { gl.enable(gl.DEPTH_TEST); gl.clear(gl.DEPTH_BUFFER_BIT); d.draw3([-0.9, -0.9, 0.5, 0.9, -0.9, 0.5, 0, 0.9, 0.5], [1, 0, 0, 1]); d.draw3([-0.9, 0.9, 0.2, 0.9, 0.9, 0.2, 0, -0.9, 0.8], [0, 0, 1, 1]); },
+};
+const out = {};
+for (const [name, fn] of Object.entries(scenes)) {
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const gl = canvas.getContext('webgl', { depth: true, antialias: name.startsWith('aa-') });
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+  const prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS1)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS1));
+  gl.bindAttribLocation(prog, 0, 'p'); gl.bindAttribLocation(prog, 1, 'c');
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const vb = gl.createBuffer(), cb = gl.createBuffer(), ib = gl.createBuffer();
+  const d = {
+    off: gl.getUniformLocation(prog, 'off'),
+    draw(pos, color, mode, three) {
+      const n = pos.length / 2;
+      gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pos), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      const colors = color.length === 4 ? Array.from({ length: n }, () => color).flat() : color;
+      gl.bindBuffer(gl.ARRAY_BUFFER, cb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(mode, 0, n);
+    },
+    drawIndexed(pos, color, idx) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pos), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, cb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Array.from({ length: pos.length / 2 }, () => color).flat()), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+      gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0);
+    },
+    // Posição com z: reaproveita o mesmo programa lendo três componentes (o quarto atributo padrão é 1).
+    draw3(pos, color) {
+      const p2 = gl.createProgram();
+      gl.attachShader(p2, sh(gl.VERTEX_SHADER, 'attribute vec3 p; attribute vec4 c; varying vec4 v; void main() { v = c; gl_Position = vec4(p, 1.0); }'));
+      gl.attachShader(p2, sh(gl.FRAGMENT_SHADER, FS1));
+      gl.bindAttribLocation(p2, 0, 'p'); gl.bindAttribLocation(p2, 1, 'c'); gl.linkProgram(p2); gl.useProgram(p2);
+      gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pos), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, cb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Array.from({ length: 3 }, () => color).flat()), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    },
+  };
+  fn(gl, d);
+  const px = new Uint8Array(W * H * 4);
+  gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  out[name] = b64(px);
+  // O canvas WebGL visto de fora: o toDataURL (de cima para baixo e sem pré-multiplicação) das cenas antisserrilhadas.
+  if (name.startsWith('aa-')) out[name + ':png'] = canvas.toDataURL();
+}
+document.body.setAttribute('data-out', JSON.stringify(out));
+</script></body>

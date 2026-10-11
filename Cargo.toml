@@ -3,9 +3,10 @@
 # dependencies dentro do workspace.
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+# O glob não pega crates/zbun (diretório sem manifesto, só agrupa os crates do porte do bun).
+members = ["crates/[!z]*", "crates/zjsc", "crates/zdeflate", "crates/zft", "crates/zhb", "crates/zjpeg", "crates/zsqlite", "crates/zbun/ast", "crates/zbun/bun_alloc", "crates/zbun/bun_collections", "crates/zbun/bun_core", "crates/zbun/bun_core_macros", "crates/zbun/bun_wyhash", "crates/zbun/js_parser", "crates/zbun/js_printer", "crates/zbun/options_types", "crates/zbun/paths", "crates/zbun/react_compiler", "crates/zbun/sourcemap", "crates/zbun/transpile"]
 # A bancada é outro workspace (testbench/Cargo.toml); o harness entra aqui só como dependência.
-exclude = ["testbench", "wip"]
+exclude = ["testbench"]
 
 [workspace.package]
 edition = "2024"
@@ -33,6 +34,18 @@ shell = { path = "crates/shell" }
 regex-posix = { path = "crates/regex-posix" }
 ul-common = { path = "crates/ul-common" }
 userland = { path = "crates/userland" }
+
+# Dependências do porte do transpilador do bun (crates/zbun/*) e do JavaScriptCore (crates/zjsc).
+bitflags = "2"
+bstr = "1"
+bytemuck = "1"
+enum-map = "2"
+enumset = "1"
+# A versão do upstream (Cargo.lock do bun 1.4.2): a ordem de iteração da tabela de membros do escopo é a dele.
+hashbrown = { version = "=0.15.5", default-features = false, features = ["inline-more", "raw-entry"] }
+smallvec = "1"
+strum = { version = "0.26", features = ["derive"] }
+thiserror = "2"
 
 [profile.dev]
 # Sem debuginfo: vários builds em paralelo precisam caber no disco e compilar rápido.
@@ -63,3 +76,12 @@ rusqlite = { path = "vendor/rusqlite" }
 # tracking-allocator 0.4.0 vendorizado: o cabeçalho de 8 bytes deixava o objeto em 8 mod 16, e o
 # unwinder do alvo musl exige 16 na exceção do panic (o binário estático caía em todo `execve`).
 tracking-allocator = { path = "vendor/tracking-allocator" }
+# blitz-dom 0.3.0-beta.2 vendorizado: o `:defined` dele é sempre falso. No Chromium só o custom
+# element ainda sem upgrade fica de fora; o upgrade liga o ElementState::DEFINED pela ponte.
+blitz-dom = { path = "vendor/blitz-dom" }
+# stylo_taffy 0.3.0-beta.2 vendorizado: a barra de rolagem dele tem 0px e `overflow: auto` vira `scroll`. O Chromium
+# reserva 15px só em `overflow: scroll` (`auto` sem transbordo não tem barra).
+stylo_taffy = { path = "vendor/stylo_taffy" }
+# stylo 0.20.0 vendorizado: o parser de seletores do motor `servo` recusa `:has()` e `:nth-child(... of S)`
+# (`parse_has` e `parse_nth_child_of` devolvem false). O Chromium os aceita em querySelector, matches e closest.
+stylo = { path = "vendor/stylo" }

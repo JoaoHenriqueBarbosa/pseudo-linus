@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>reopen probe</title>
+<script>
+const seen = [];
+for (let i = 0; i < localStorage.length; i++) {
+  const key = localStorage.key(i);
+  seen.push(key + '=' + localStorage.getItem(key));
+}
+localStorage.setItem('k3', 'terceiro');
+localStorage.removeItem('k1');
+document.title = 'seen:' + seen.join(',');
+</script>
+<body>reopen probe</body>

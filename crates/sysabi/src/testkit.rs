@@ -1989,6 +1989,12 @@ impl Syscalls for ProcHandle {
         Ok(tid)
     }
 
+    fn reserve_task(&self) -> SysResult<()> {
+        Ok(())
+    }
+
+    fn release_task(&self) {}
+
     fn join_thread(&self, tid: Tid) -> SysResult<()> {
         if tid == self.pid {
             return Err(Errno::EDEADLK);

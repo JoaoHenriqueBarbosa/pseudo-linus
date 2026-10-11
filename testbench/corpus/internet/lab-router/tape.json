@@ -1,0 +1,18 @@
+{
+ "url": "https://lab.test/lab-router/",
+ "recorded_at": 1791500000,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-router/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "2f5f29e5e489a581102c8bf55257e500512c83d20521d1a9a1f327ce3b2613a1"
+  }
+ ]
+}

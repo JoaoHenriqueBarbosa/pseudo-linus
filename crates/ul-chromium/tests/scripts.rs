@@ -1,0 +1,844 @@
+//! Comportamento de scripts em páginas pequenas servidas da memória: o DOM despejado e o que o console recebeu.
+//! Cada caso fixa uma semântica do navegador que uma página real do conjunto da internet expôs.
+
+mod common;
+
+use common::run;
+
+#[test]
+fn console_reaches_host() {
+    let (_, log) = run(&[("/", "<script>console.log('oi')</script>")]);
+    assert_eq!(log, "oi\n");
+}
+
+/// As propriedades próprias enumeráveis do `window`, na ordem e com a forma do descritor (valor ou acessor, com
+/// `set` e `configurable`) do Chromium do oráculo (`data/window-keys.json`). O `returnByValue` do
+/// DevTools e todo `Object.keys(window)` de página dependem delas.
+#[test]
+fn window_own_properties_match_the_oracle() {
+    let expected: Vec<(String, String)> = serde_json::from_str(include_str!("../data/window-keys.json")).unwrap();
+    let script = "console.log(JSON.stringify(Object.keys(window).map(k => { const d = Object.getOwnPropertyDescriptor(window, k); return [k, 'value' in d ? 'v' + (d.writable ? 'w' : '') + (d.configurable ? 'c' : '') : 'a' + (d.set ? 's' : '') + (d.configurable ? 'c' : '')]; })))";
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    let actual: Vec<(String, String)> = serde_json::from_str(log.trim()).unwrap();
+    let missing: Vec<&(String, String)> = expected.iter().filter(|e| !actual.contains(e)).collect();
+    let extra: Vec<&(String, String)> = actual.iter().filter(|a| !expected.contains(a)).collect();
+    assert!(extra.is_empty(), "sobram {extra:?}");
+    // O que existe sai na ordem e na forma do Chromium; o que ainda não foi portado falta (ausente como pede a regra,
+    // nunca imitado pela metade). A catraca só desce: 34 interfaces faltando quando o teste entrou.
+    let present: Vec<&(String, String)> = expected.iter().filter(|e| actual.contains(e)).collect();
+    assert_eq!(actual.iter().collect::<Vec<_>>(), present);
+    assert!(missing.is_empty(), "faltam {missing:?}");
+}
+
+/// As interfaces simples da janela, com os retornos e as mensagens que o oráculo deu (página em `http://127.0.0.1`).
+#[test]
+fn window_interfaces_as_the_oracle() {
+    let script = r#"const t = (f) => { try { return String(f()); } catch (e) { return e.name + ': ' + e.message; } };
+let inside; addEventListener('x', (e) => { inside = window.event === e; }); dispatchEvent(new Event('x'));
+console.log([inside, String(window.event), locationbar.visible, String(toolbar), t(() => new BarProp()), t(() => new External()),
+  String(external.AddSearchProvider()), String(styleMedia), styleMedia.type, styleMedia.matchMedium('screen'), styleMedia.matchMedium('print'),
+  clientInformation === navigator, frameElement, credentialless, fence, find('x'), String(captureEvents()),
+  t(() => webkitRequestAnimationFrame(5)), t(() => webkitCancelAnimationFrame()), t(() => requestResize()),
+  chrome.app.runningState(), String(chrome.app.getDetails()), String(chrome.loadTimes), chrome.loadTimes.name === '', Object.keys(chrome.csi()).join(),
+  t(() => chrome.app.installState(5)), Object.keys(chrome.loadTimes()).join(), oncommand, onanimationcancel, ongamepadconnected, outerWidth, outerHeight].join('\n'))"#;
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    let expected = [
+        "true", "undefined", "true", "[object BarProp]",
+        "TypeError: Failed to construct 'BarProp': Illegal constructor", "TypeError: Failed to construct 'External': Illegal constructor",
+        "undefined", "[object StyleMedia]", "screen", "true", "false",
+        "true", "", "false", "", "false", "undefined",
+        "TypeError: Failed to execute 'webkitRequestAnimationFrame' on 'Window': parameter 1 is not of type 'Function'.",
+        "TypeError: Failed to execute 'webkitCancelAnimationFrame' on 'Window': 1 argument required, but only 0 present.",
+        "NotAllowedError: Failed to execute 'requestResize' on 'Window': Requesting resize is allowed only from HTML documents with `responsive-embedded-sizing` meta tags.",
+        "cannot_run", "null", "function () { [native code] }", "true", "startE,onloadT,pageT,tran",
+        "TypeError: Error in invocation of app.installState(optional function callback): ",
+        "requestTime,startLoadTime,commitLoadTime,finishDocumentLoadTime,finishLoadTime,firstPaintTime,firstPaintAfterLoadTime,navigationType,wasFetchedViaSpdy,wasNpnNegotiated,npnNegotiatedProtocol,wasAlternateProtocolAvailable,connectionInfo",
+        "", "", "", "0", "0",
+    ];
+    assert_eq!(log, expected.join("\n") + "\n");
+}
+
+/// O `measureText` do canvas passa pelas fontes da VFS; os valores são os do Chromium do oráculo.
+#[test]
+fn canvas_measure_text() {
+    let script = "const c = document.createElement('canvas').getContext('2d'); const m = c.measureText('Hello'); c.font = 'bold 20px Arial'; const b = c.measureText('ação'); console.log([m.width, m.actualBoundingBoxAscent, m.fontBoundingBoxAscent, m.hangingBaseline, b.width, b.actualBoundingBoxDescent].join(' '))";
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    assert_eq!(log, "22.7880859375 8 9 7.199999809265137 45.5859375 4\n");
+}
+
+/// A pilha de erro da página no formato do V8: o frame do script clássico com URL, linha e coluna.
+#[test]
+fn error_stack_in_v8_format() {
+    let (_, log) = run(&[("/", "<script>\nfunction f() { return new Error('boom') }\nconsole.log(f().stack)</script>")]);
+    assert!(log.contains("    at f ("), "{log}");
+}
+
+/// Fala, agendador, `crashReport`, `launchQueue` e `viewport` como o oráculo: a ordem das tarefas por prioridade, a
+/// fala recusada sem ativação do usuário e as mensagens dos bindings.
+#[test]
+fn window_apis_as_the_oracle() {
+    let script = r#"const t = (f) => { try { return String(f()); } catch (e) { return e.name + ': ' + e.message; } };
+const out = [];
+const order = [];
+scheduler.postTask(() => order.push('bg'), { priority: 'background' });
+scheduler.postTask(() => order.push('uv'));
+scheduler.postTask(() => order.push('ub'), { priority: 'user-blocking' });
+setTimeout(() => order.push('timeout0'), 0);
+scheduler.postTask(() => order.push('d5'), { delay: 5 });
+(async () => { order.push('y-before'); await scheduler.yield(); order.push('y-after'); })();
+const tc = new TaskController();
+tc.signal.addEventListener('prioritychange', (e) => out.push(e.previousPriority + '>' + tc.signal.priority));
+tc.setPriority('background');
+out.push(t(() => tc.setPriority('x')), t(() => new TaskSignal()), t(() => new TaskController({ priority: 'x' })), String(tc.signal), tc.signal instanceof AbortSignal);
+const aborted = new TaskController();
+scheduler.postTask(() => 1, { signal: aborted.signal }).catch((e) => out.push('abort ' + e.name));
+aborted.abort();
+scheduler.postTask(() => 1, { priority: 'x' }).catch((e) => out.push(e.message));
+const u = new SpeechSynthesisUtterance('hi');
+u.onerror = (e) => out.push([e.type, e.error, e.constructor.name, e.utterance === u, e.charIndex].join(' '));
+speechSynthesis.speak(u);
+out.push(t(() => speechSynthesis.speak()), speechSynthesis.getVoices().length, speechSynthesis.speaking, (u.volume = 5, u.volume), (u.rate = 20, u.rate), t(() => { u.volume = 'x'; }));
+out.push(t(() => crashReport.set('a', 'b')), t(() => crashReport.set('a')), t(() => launchQueue.setConsumer(5)), t(() => launchQueue.setConsumer(() => {})));
+crashReport.initialize(10).then(() => { out.push('init ' + crashReport.set('a', 'b')); return crashReport.initialize(10); }).catch((e) => out.push(e.name + ': ' + e.message));
+out.push(viewport.segments.length, String(viewport.segments[0]), viewport.segments[0].width, viewport.segments !== viewport.segments);
+setTimeout(() => { out.push(order.join()); console.log(out.join('\n')); }, 50);"#;
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    let expected = [
+        "user-visible>background",
+        "TypeError: Failed to execute 'setPriority' on 'TaskController': The provided value 'x' is not a valid enum value of type TaskPriority.",
+        "TypeError: Failed to construct 'TaskSignal': Illegal constructor",
+        "TypeError: Failed to construct 'TaskController': Failed to read the 'priority' property from 'TaskControllerInit': The provided value 'x' is not a valid enum value of type TaskPriority.",
+        "[object TaskSignal]", "true",
+        "error not-allowed SpeechSynthesisErrorEvent true 0",
+        "TypeError: Failed to execute 'speak' on 'SpeechSynthesis': 1 argument required, but only 0 present.", "0", "false", "1", "10",
+        "TypeError: Failed to set the 'volume' property on 'SpeechSynthesisUtterance': The provided float value is non-finite.",
+        "InvalidStateError: Failed to execute 'set' on 'CrashReportContext': CrashReportContext is not initialized. Call initialize() and wait for it to resolve.",
+        "TypeError: Failed to execute 'set' on 'CrashReportContext': 2 arguments required, but only 1 present.",
+        "TypeError: Failed to execute 'setConsumer' on 'LaunchQueue': parameter 1 is not of type 'Function'.", "undefined",
+        "1", "[object DOMRect]", "780", "true",
+        "abort AbortError",
+        "Failed to execute 'postTask' on 'Scheduler': Failed to read the 'priority' property from 'SchedulerPostTaskOptions': The provided value 'x' is not a valid enum value of type TaskPriority.",
+        "init undefined",
+        "InvalidStateError: Failed to execute 'initialize' on 'CrashReportContext': The initialize() method has already been called.",
+    ];
+    // A tarefa `background` e a de 5 ms trocaram de ordem entre execuções do oráculo; as duas ordens valem.
+    let (head, order) = log.trim_end().rsplit_once('\n').unwrap_or_else(|| panic!("log: {log:?}"));
+    assert_eq!(head, expected.join("\n"));
+    assert!(["y-before,ub,y-after,uv,timeout0,bg,d5", "y-before,ub,y-after,uv,timeout0,d5,bg"].contains(&order), "{order}");
+}
+
+/// A API de sistema de arquivos legada como o oráculo: argumentos validados na hora, erros em tarefa própria e o
+/// armazenamento temporário ou persistente sem resposta (o headless não tem cota concedida).
+#[test]
+fn legacy_file_system_as_the_oracle() {
+    let script = r#"const out = []; const t = (f) => { try { return String(f()); } catch (e) { return e.name + ': ' + e.message; } };
+out.push(webkitRequestFileSystem.length, webkitResolveLocalFileSystemURL.length, t(() => webkitRequestFileSystem(0, 10)), t(() => webkitRequestFileSystem(0, 10, 5)), t(() => webkitRequestFileSystem(0, 10, null)), t(() => webkitResolveLocalFileSystemURL('x', () => {}, 5)));
+for (const type of [0, 1, 2, 3, 4, -1, 65536, 65537]) webkitRequestFileSystem(type, 10, () => out.push(type + ' ok'), (e) => out.push(type + ' ' + e.name + ' ' + e.code + ' ' + (e instanceof DOMException)));
+for (const url of ['x', '/relative', location.origin + '/x', 'filesystem:', 'filesystem:http://other.example/temporary/', 'filesystem:' + location.origin + '/bogus/', 'filesystem:' + location.origin + '/temporary/', 'filesystem:' + location.origin + '/persistent/a'])
+  webkitResolveLocalFileSystemURL(url, () => out.push(url + ' ok'), (e) => out.push(url.replace(location.origin, 'O') + ' ' + e.name));
+out.push('sync');
+setTimeout(() => console.log(out.join('\n')), 50);"#;
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    let request = "Failed to execute 'webkitRequestFileSystem' on 'Window'";
+    let resolve = "Failed to execute 'webkitResolveLocalFileSystemURL' on 'Window'";
+    let sync = [
+        "3".to_owned(), "2".to_owned(),
+        format!("TypeError: {request}: 3 arguments required, but only 2 present."),
+        format!("TypeError: {request}: parameter 3 is not of type 'Object'."),
+        format!("TypeError: {request}: parameter 3 is not of type 'Object'."),
+        format!("TypeError: {resolve}: parameter 3 is not of type 'Object'."),
+        "sync".to_owned(),
+    ];
+    let lines: Vec<&str> = log.lines().collect();
+    assert_eq!(lines[..sync.len()], sync.iter().map(String::as_str).collect::<Vec<_>>()[..], "{log}");
+    // Cada erro chega em tarefa própria; a ordem entre eles é a de postagem.
+    let want = [
+        "2 SecurityError 18 true", "3 SecurityError 18 true", "4 InvalidModificationError 13 true", "-1 InvalidModificationError 13 true",
+        "x EncodingError", "/relative EncodingError", "O/x EncodingError", "filesystem: SecurityError",
+        "filesystem:http://other.example/temporary/ SecurityError", "filesystem:O/bogus/ EncodingError", "filesystem:O/temporary/ NotFoundError",
+    ];
+    let mut got: Vec<&str> = lines[sync.len()..].to_vec();
+    got.sort_unstable();
+    let mut want = want.to_vec();
+    want.sort_unstable();
+    assert_eq!(got, want, "{log}");
+}
+
+/// Trusted Types como o oráculo: o roteiro e a saída esperada (`tests/fixtures`) vêm da execução no Chromium 154.
+#[test]
+fn trusted_types_as_the_oracle() {
+    let (_, log) = run(&[("/", &format!("<script>{}</script>", include_str!("fixtures/trusted-types.js")))]);
+    assert_eq!(log, include_str!("fixtures/trusted-types.expected"));
+}
+
+/// Trusted Types sob CSP como o oráculo: cada caso (`tests/fixtures/csp`) é um roteiro e a saída do Chromium 154 com
+/// o cabeçalho dado (ou o `<meta http-equiv>` do caso `meta`): sinks recusados, política padrão, diretiva
+/// `trusted-types`, modo só relatório e os eventos `securitypolicyviolation`, com a posição de cada chamada.
+#[test]
+fn trusted_types_csp_as_the_oracle() {
+    let origin = "http://127.0.0.1:8000";
+    let cases: [(&str, &[(&str, &str)], &str, &str); 9] = [
+        ("a", &[("Content-Security-Policy", "trusted-types a b 'allow-duplicates'; require-trusted-types-for 'script'")], include_str!("fixtures/csp/a.js"), include_str!("fixtures/csp/a.expected")),
+        ("b", &[("Content-Security-Policy", "trusted-types 'none'")], include_str!("fixtures/csp/b.js"), include_str!("fixtures/csp/b.expected")),
+        ("c", &[("Content-Security-Policy-Report-Only", "require-trusted-types-for 'script'")], include_str!("fixtures/csp/c.js"), include_str!("fixtures/csp/c.expected")),
+        ("d", &[("Content-Security-Policy", "require-trusted-types-for 'script'")], include_str!("fixtures/csp/d.js"), include_str!("fixtures/csp/d.expected")),
+        ("e", &[("Content-Security-Policy", "trusted-types *")], include_str!("fixtures/csp/e.js"), include_str!("fixtures/csp/e.expected")),
+        ("f", &[("Content-Security-Policy", "trusted-types default a; require-trusted-types-for 'script'")], include_str!("fixtures/csp/f.js"), include_str!("fixtures/csp/f.expected")),
+        ("g", &[("Content-Security-Policy", "trusted-types a")], include_str!("fixtures/csp/g.js"), include_str!("fixtures/csp/g.expected")),
+        ("h", &[("Content-Security-Policy", "require-trusted-types-for 'script'; trusted-types a"), ("Content-Security-Policy-Report-Only", "trusted-types b")], include_str!("fixtures/csp/h.js"), include_str!("fixtures/csp/h.expected")),
+        ("meta", &[], include_str!("fixtures/csp/meta.js"), include_str!("fixtures/csp/meta.expected")),
+    ];
+    for (name, headers, script, expected) in cases {
+        let meta = if name == "meta" { r#"<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">"# } else { "" };
+        let page = format!(r#"{meta}<pre id=o></pre><script src="/fx/csp-{name}.js"></script>"#);
+        let (_, log) = common::run_at(&format!("{origin}/{name}"), headers, &[(&format!("/{name}"), &page), (&format!("/fx/csp-{name}.js"), script)]);
+        assert_eq!(log.replace(origin, "O"), expected, "caso {name}");
+    }
+}
+
+/// Quando o CSP de um `<meta http-equiv>` passa a valer, medido no oráculo: o inserido por script vale na hora da
+/// inserção no `<head>` e não se desfaz ao remover; fora do `<head>` e o `Report-Only` não valem; o do documento só
+/// vale a partir do script que o segue na ordem do documento.
+/// A Navigation API como o oráculo em tempo real: a forma das interfaces, a ordem dos eventos e das promessas em cada
+/// tipo de navegação (fragmento, `pushState`, `replaceState`, `location.hash`, percursos, interceptação, cancelamento,
+/// aborto por outra navegação, `updateCurrentEntry`, `reload` interceptado, URL inválido e `javascript:`).
+#[test]
+fn navigation_api_as_the_oracle() {
+    let (_, log) = common::run_at_for(
+        "http://127.0.0.1:8000/p",
+        &[],
+        &[("/p", r#"<pre id=o></pre><script src="/probe.js"></script>"#), ("/probe.js", include_str!("fixtures/navigation.js"))],
+        Some(30000.0),
+    );
+    assert_eq!(log, include_str!("fixtures/navigation.expected"));
+    // A ativação no `--dump-dom` do oráculo: o histórico começa no about:blank e a página entra por `push`.
+    let probe = "addEventListener('load', () => setTimeout(() => console.log(JSON.stringify([history.length, navigation.activation.navigationType, \
+        navigation.entries().length, navigation.activation.from])), 0))";
+    let (_, log) = run(&[("/", &format!("<script>{probe}</script>"))]);
+    assert_eq!(log, "[2,\"push\",1,null]\n");
+}
+
+/// O storage atravessa a navegação como no oráculo (`persist.py` da medição): o documento seguinte da mesma origem, na
+/// mesma aba, vê o `localStorage` e o `sessionStorage`; outra origem do mesmo perfil não vê nada; outra aba do mesmo
+/// perfil vê o `localStorage` e não o `sessionStorage`; e num documento `data:` a leitura lança.
+#[test]
+fn storage_survives_navigation_as_the_oracle() {
+    use std::rc::Rc;
+    use std::sync::Arc;
+    use ul_chromium::session::{Profile, Tab};
+    let report = "<script>
+const report = (idb, dbs) => console.log(JSON.stringify([location.port + location.pathname, localStorage.length, localStorage.getItem('k'), sessionStorage.getItem('s'), idb, dbs]));
+indexedDB.databases().then((dbs) => {
+  const names = dbs.map((d) => d.name + ':' + d.version).join(',');
+  const r = indexedDB.open('db');
+  r.onsuccess = () => { const db = r.result; if (!db.objectStoreNames.contains('st')) { report('none v' + db.version, names); return; }
+    const q = db.transaction('st').objectStore('st').get('x'); q.onsuccess = () => report(q.result === undefined ? 'missing' : q.result, names); };
+  r.onerror = () => report('error', names);
+});
+</script>";
+    let writer = "<script>
+localStorage.setItem('k', 'v-' + location.pathname); sessionStorage.setItem('s', 'ss');
+const r = indexedDB.open('db', 1);
+r.onupgradeneeded = () => r.result.createObjectStore('st');
+r.onsuccess = () => { const t = r.result.transaction('st', 'readwrite'); t.objectStore('st').put('idb-value', 'x');
+  t.oncomplete = () => { r.result.close(); location.href = '/b'; }; };
+</script>";
+    let files = [("/a", writer), ("/b", report)];
+    let profile = Arc::new(Profile::default());
+    let tab = Rc::new(Tab::new(profile.clone()));
+    assert_eq!(common::run_in_tab("http://127.0.0.1:8000/a", &files, tab.clone()), "[\"8000/b\",1,\"v-/a\",\"ss\",\"idb-value\",\"db:1\"]\n");
+    assert_eq!(common::run_in_tab("http://127.0.0.1:8001/b", &files, Rc::new(Tab::new(profile.clone()))), "[\"8001/b\",0,null,null,\"none v1\",\"\"]\n");
+    assert_eq!(common::run_in_tab("http://127.0.0.1:8000/b", &files, Rc::new(Tab::new(profile))), "[\"8000/b\",1,\"v-/a\",null,\"idb-value\",\"db:1\"]\n");
+    assert_eq!(common::run_in_tab("http://127.0.0.1:8000/b", &files, Rc::new(Tab::default())), "[\"8000/b\",0,null,null,\"none v1\",\"\"]\n");
+    let probe = "<body><script>for(const n of ['localStorage','sessionStorage']){try{window[n];console.log(n+' ok');}catch(e){console.log(n+' '+e.name+': '+e.message);}}</script>";
+    let (_, log) = common::run_at(&format!("data:text/html,{}", probe.replace('%', "%25").replace('#', "%23")), &[], &[]);
+    assert_eq!(
+        log,
+        "localStorage SecurityError: Failed to read the 'localStorage' property from 'Window': Storage is disabled inside 'data:' URLs.\n\
+         sessionStorage SecurityError: Failed to read the 'sessionStorage' property from 'Window': Storage is disabled inside 'data:' URLs.\n"
+    );
+}
+
+/// A entrada `navigation` do Performance Timeline como o oráculo em tempo real, servida por HTTP/1.0 como o
+/// `http.server` da medição: a cadeia de protótipos, o `toJSON`, os instantes que são zero e a ordem dos demais, os
+/// tamanhos conferidos contra o corpo, e o legado `performance.timing` e `performance.navigation`.
+#[test]
+fn navigation_timing_as_the_oracle() {
+    let (_, log) = common::run_at_for(
+        "http://127.0.0.1:8000/p",
+        &[],
+        &[("/p", r#"<pre id=o></pre><script src="/probe.js"></script>"#), ("/probe.js", include_str!("fixtures/navigation-timing.js"))],
+        Some(30000.0),
+    );
+    assert_eq!(log, include_str!("fixtures/navigation-timing.expected"));
+}
+
+/// O IndexedDB como o oráculo em tempo real: a forma das interfaces e um roteiro de chaves, faixas, abertura com
+/// upgrade, stores, índices, transações (erros, abort, commit, ativação), cursores, `versionchange`, `blocked` e
+/// exclusão, com as mensagens do Blink.
+#[test]
+fn indexeddb_as_the_oracle() {
+    for (script, expected) in [
+        (include_str!("fixtures/indexeddb-shape.js"), include_str!("fixtures/indexeddb-shape.expected")),
+        (include_str!("fixtures/indexeddb.js"), include_str!("fixtures/indexeddb.expected")),
+    ] {
+        let (_, log) = common::run_at_for(
+            "http://127.0.0.1:8000/p",
+            &[],
+            &[("/p", r#"<pre id=o></pre><script src="/probe.js"></script>"#), ("/probe.js", script)],
+            Some(30000.0),
+        );
+        // O relato do erro não capturado vai ao console (que a gravação do oráculo não lê); o probe o registra pelo
+        // evento `error` da janela.
+        let log: String = log.lines().filter(|line| !line.starts_with("Uncaught ")).map(|line| format!("{line}\n")).collect();
+        assert_eq!(log, expected);
+    }
+}
+
+#[test]
+fn trusted_types_meta_timing_as_the_oracle() {
+    let (_, log) = common::run_at(
+        "http://127.0.0.1:8000/m",
+        &[],
+        &[("/m", r#"<pre id=o></pre><script src="/fx/metadyn.js"></script>"#), ("/fx/metadyn.js", include_str!("fixtures/csp/metadyn.js"))],
+    );
+    assert_eq!(log, include_str!("fixtures/csp/metadyn.expected"), "meta inserido por script");
+    let page = r#"<head><script src="/fx/staticfirst.js"></script><meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'"><script src="/fx/staticsecond.js"></script></head><body><pre id=o></pre></body>"#;
+    let (_, log) = common::run_at(
+        "http://127.0.0.1:8000/s",
+        &[],
+        &[("/s", page), ("/fx/staticfirst.js", include_str!("fixtures/csp/staticfirst.js")), ("/fx/staticsecond.js", include_str!("fixtures/csp/staticsecond.js"))],
+    );
+    assert_eq!(log, include_str!("fixtures/csp/static.expected"), "meta do documento");
+}
+
+#[test]
+fn timer_exception_does_not_stop_the_page() {
+    let (dom, log) = run(&[("/", "<body><script>setTimeout(() => { throw new Error('x') }, 0); setTimeout(() => document.body.append('depois'), 5)</script>")]);
+    assert!(dom.contains("depois"), "{dom}");
+    assert!(log.contains("Uncaught"), "{log}");
+}
+
+#[test]
+fn style_property_writes_attribute() {
+    let (dom, _) = run(&[("/", "<body><main id=m></main><script>document.getElementById('m').style.display = 'none'</script>")]);
+    assert!(dom.contains(r#"<main id="m" style="display: none;"></main>"#), "{dom}");
+}
+
+#[test]
+fn jquery_ready_runs() {
+    let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../testbench/corpus/internet/todomvc-jquery/bodies");
+    let jquery = std::fs::read_to_string(dir.join("a0fe8723dcf560fa17b2d6c4b25f76fd88c3b09f4ffcd5bb43db8a46d13e0adb")).unwrap_or_default();
+    let jquery = if jquery.is_empty() {
+        let name = std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().into_string().unwrap()).find(|n| n.starts_with("a0fe8723dcf5")).unwrap();
+        std::fs::read_to_string(dir.join(name)).unwrap()
+    } else {
+        jquery
+    };
+    let (_, log) = run(&[("/", "<body><script src=/jq.js></script><script>console.log(typeof jQuery); jQuery(function () { console.log('ready') })</script>"), ("/jq.js", &jquery)]);
+    assert_eq!(log, "function\nready\n");
+}
+
+/// Nenhum global de runtime de servidor (node, bun) nem nome interno da ponte aparece para a página.
+#[test]
+fn no_server_runtime_globals() {
+    let (_, log) = run(&[("/", "<script>console.log(Object.getOwnPropertyNames(globalThis).sort().join(' '))</script>")]);
+    if let Ok(path) = std::env::var("GLOBALS_OUT") {
+        std::fs::write(path, log.split(' ').collect::<Vec<_>>().join("\n")).unwrap();
+    }
+    for name in ["process", "Bun", "require", "module", "exports", "global", "Buffer", "__dirname", "__filename", "setImmediate", "$plHook", "__pl_dom", "__pl_eval"] {
+        assert!(!log.split_whitespace().any(|g| g == name), "global {name} visível");
+    }
+    // Binding léxico de topo não é propriedade do global: só o `typeof` o enxerga.
+    let (_, log) = run(&[("/", "<script>console.log(typeof $plHook, typeof hook, typeof op)</script>")]);
+    assert_eq!(log, "undefined undefined undefined\n");
+}
+
+/// O estado interno do navegador não aparece como propriedade própria de nenhum objeto da página.
+#[test]
+fn no_internal_own_properties() {
+    let script = "<div id=h></div><script>var el = document.getElementById('h'); el.attachShadow({mode:'open'}); el.classList.add('x'); \
+        var x = new XMLHttpRequest(); var e = new Event('a'); document.doctype; \
+        console.log([el, el.shadowRoot, document, x, e, document.doctype, history, location, window].map(o => Reflect.ownKeys(o).filter(k => String(k).startsWith('__') || String(k).startsWith('Symbol(__')).length).join(), \
+        Object.keys(x).length, 'withCredentials' in XMLHttpRequest.prototype, el.shadowRoot.mode, document.doctype.name)</script>";
+    let (_, log) = run(&[("/", &format!("<!DOCTYPE html>{script}"))]);
+    assert_eq!(log, "0,0,0,0,0,0,0,0,0 0 true open html\n");
+}
+
+/// O innerHTML da raiz de sombra cria elementos HTML (o contexto é o host) e o slot atribui por nome.
+#[test]
+fn shadow_root_slots() {
+    let script = "<div id=h><span slot=a>x</span><em>y</em></div><script>var r = document.getElementById('h').attachShadow({mode:'open'}); r.innerHTML = '<slot name=a></slot><slot></slot>'; var s = r.querySelector('slot'); console.log(s.constructor.name, s.namespaceURI,s.assignedNodes().map(n => n.textContent).join(), r.querySelector('slot:not([name])').assignedElements().map(n => n.localName).join())</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "HTMLSlotElement http://www.w3.org/1999/xhtml x em\n");
+}
+
+/// `overflow: scroll` reserva a barra clássica de 15px (o teste de barra visível do svelte.dev).
+#[test]
+fn scroll_container_reserves_scrollbar() {
+    let script = "<body><script>var d = document.createElement('div'); Object.assign(d.style, { width: '100px', height: '100px', overflow: 'scroll', position: 'absolute', top: '-9999px' }); document.body.append(d); console.log(d.offsetWidth, d.clientWidth, d.clientHeight)</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "100 85 85\n");
+}
+
+#[test]
+fn fractional_radix_strings_match_v8() {
+    // Saída do chromium do oráculo; o id do CodeGroup do VitePress é `Math.random().toString(36).substring(7)`.
+    let script = "<script>for (const x of [0.123456789, Math.PI / 10, 0.9876543210123, 1 / 3, 0.000123456, 123.456, 2 ** -30 + 0.1]) console.log(x.toString(36), x.toString(7), x.toString(16), x.toString(2))</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(
+        log,
+        "0.4fzzzxjylrx 0.0602263655133143611 0.1f9add3739635f 0.00011111100110101101110100110111001110010110001101011111\n\
+         0.bb5exfivbcc 0.212520344346455155 0.506cbdda73c38 0.0101000001101100101111011101101001110011110000111\n\
+         0.zk00001xj0a 0.662523354215303612 0.fcd6e9e0803be8 0.11111100110101101110100111100000100000000011101111101\n\
+         0.c 0.2222222222222222222 0.55555555555554 0.010101010101010101010101010101010101010101010101010101\n\
+         0.005rcwu8qgexl 0.00002034461564452542663 0.0008173f7b84ca6e8 0.00000000000010000001011100111111011110111000010011001010011011101\n\
+         3f.gez4w97ry 234.312256641535441 7b.74bc6a7ef9dc 1111011.0111010010111100011010100111111011111001110111\n\
+         0.3llllnmkyoi 0.04620462051066354516 0.1999999d99999a 0.0001100110011001100110011001110110011001100110011001101\n"
+    );
+}
+
+#[test]
+fn frames_stop_after_load() {
+    // Ordem medida no chromium do oráculo: o quadro que segue o `load` roda o rAF e entrega os observadores, o idle
+    // callback vem depois dele, e depois disso não há quadro (nem rAF nem entrega nova).
+    let html = "<body><div id=a style='height:50px'>a</div><div id=h style='display:none'>h</div><script>
+const log = (s) => console.log(s);
+const watch = (label, id = 'a') => { new IntersectionObserver((es) => log(label + ' io ' + es[0].isIntersecting)).observe(document.getElementById(id)); };
+requestAnimationFrame(() => log('raf sync'));
+watch('hidden', 'h');
+document.addEventListener('DOMContentLoaded', () => { log('dcl'); requestIdleCallback(() => { log('ric dcl'); watch('ric dcl'); }); });
+window.addEventListener('load', () => { log('load'); watch('load'); requestIdleCallback(() => { log('ric load'); watch('ric load'); }); requestAnimationFrame(() => log('raf load')); });
+setTimeout(() => { log('t10'); }, 10);
+setTimeout(() => { log('t30'); watch('t30'); requestAnimationFrame(() => log('raf t30')); }, 30);
+</script><script type=module>log('module'); watch('module'); requestIdleCallback(() => { log('ric module'); watch('ric module'); });</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "module\ndcl\nload\nt10\nraf sync\nraf load\nhidden io false\nmodule io true\nload io true\nric module\nric dcl\nric load\nt30\n");
+}
+
+#[test]
+fn unchanged_style_keeps_attribute_text() {
+    // Medido no oráculo: a escrita via CSSOM que não muda o bloco deixa o atributo como veio.
+    let html = r#"<body><div id=a style="--a:80;color:red"></div><div id=b style="--a:80;color:red"></div><div id=c style="color:red"></div><script>
+const [a, b, c] = ['a', 'b', 'c'].map((id) => document.getElementById(id));
+a.style.setProperty('--a', '80'); b.style.setProperty('--a', '81'); c.style.color = 'red'; c.style.removeProperty('width');
+for (const el of [a, b, c]) console.log(el.getAttribute('style'));
+</script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "--a:80;color:red\n--a: 81; color: red;\ncolor:red\n");
+}
+
+#[test]
+fn window_named_access() {
+    // Medido no oráculo: id e nome de form acham o elemento; homônimos viram HTMLCollection; declaração vence.
+    let html = r#"<body><div id=h></div><form name=f></form><p id=two></p><p id=two></p><div id=v></div><script>
+var v = 1;
+console.log(h.localName, window.f.localName, two.length, String(two), v, 'h' in window, typeof missing, window.missing);
+</script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "div form 2 [object HTMLCollection] 1 true undefined undefined\n");
+}
+
+#[test]
+fn created_script_is_force_async() {
+    // Medido no oráculo: script criado por script é async sem o atributo; escrever `async` limpa a flag.
+    let html = r#"<body><script async src="data:,"></script><script>
+const a = document.createElement('script'), b = document.createElement('script');
+b.async = false;
+const c = document.createElement('script'); c.setAttribute('async', '');
+console.log(a.async, a.hasAttribute('async'), b.async, b.hasAttribute('async'), c.async, document.scripts[0].async, document.scripts[1].async);
+</script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "true false false false true true false\n");
+}
+
+#[test]
+fn input_value_modes() {
+    // Medido no oráculo: radio e hidden guardam o valor no atributo, text guarda no valor sujo (wikipedia).
+    let html = "<body><input type=radio id=r><input type=text id=t><input type=hidden id=h><script>
+r.value = 'a'; t.value = 'b'; h.value = 'c';
+console.log([r.getAttribute('value'), t.getAttribute('value'), h.getAttribute('value'), r.value, t.value].join(' '));
+</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "a  c a b\n");
+}
+
+#[test]
+fn webgl_state_matches_swiftshader() {
+    // `tests/webgl/state.expected` é o `data-out` do oráculo (--disable-gpu, ANGLE sobre SwiftShader) para a mesma
+    // página: contexto, parâmetros, extensões, shaders, link, uniforms, buffers, texturas, framebuffer e erros.
+    let (_, log) = run(&[("/", include_str!("webgl/state.html"))]);
+    assert_eq!(log, include_str!("webgl/state.expected"));
+}
+
+#[test]
+fn request_resolves_against_document() {
+    // Medido no oráculo (em file:///, aqui na origem do teste): a URL relativa resolve contra a página (Rive do vite.dev).
+    let html = "<body><script>
+const r = new Request('/a?b', { method: 'POST' });
+console.log([r.url, r.method, Request.name, Request.length, String(Request), Object.prototype.toString.call(r), Object.getPrototypeOf(Request) === Function.prototype, new Request(r).url].join(' | '));
+</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "http://t.test/a?b | POST | Request | 1 | function Request() { [native code] } | [object Request] | true | http://t.test/a?b\n");
+}
+
+#[test]
+fn images_decode_svg_and_blob() {
+    // Medido no oráculo: tamanho intrínseco de SVG (atributos, viewBox, 300x150), erro em lixo, PNG de blob: URL.
+    let html = r#"<body><script>
+const cases = [
+  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 25"></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg" width="40" viewBox="0 0 50 25"></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg" width="50%" height="2em"></svg>',
+  'garbage',
+];
+const out = [];
+cases.forEach((c, i) => {
+  const img = new Image();
+  img.onload = () => { out[i] = 'load ' + img.naturalWidth + 'x' + img.naturalHeight + ' ' + img.width + 'x' + img.height + ' ' + img.complete; };
+  img.onerror = () => { out[i] = 'error ' + img.naturalWidth + ' ' + img.complete; };
+  img.src = 'data:image/svg+xml,' + encodeURIComponent(c);
+});
+const b = new Blob([new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1,8,6,0,0,0,31,21,196,137,0,0,0,13,73,68,65,84,120,156,99,248,207,192,240,31,0,5,0,1,255,137,153,61,29,0,0,0,0,73,69,78,68,174,66,96,130])], { type: 'image/png' });
+const u = URL.createObjectURL(b);
+const bi = new Image(); bi.onload = () => { out[6] = 'blob ' + bi.naturalWidth + 'x' + bi.naturalHeight + ' ' + /^blob:http:\/\/t\.test\/[0-9a-f-]{36}$/.test(u); }; bi.onerror = () => { out[6] = 'blob error'; }; bi.src = u;
+const before = new Image(); out[7] = 'before ' + before.complete + ' ' + before.naturalWidth;
+setTimeout(() => console.log(out.join('\n')), 200);
+</script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "load 40x20 40x20 true\nload 300x150 300x150 true\nload 40x20 40x20 true\nload 300x150 300x150 true\nload 300x32 300x32 true\nerror 0 true\nblob 1x1 true\nbefore true 0\n");
+}
+
+#[test]
+fn font_families_resolve_like_debian_chromium() {
+    // Medido no oráculo (`testbench/oracle/measured/font-families.html`): sans-serif e Arial são a Liberation Sans,
+    // família desconhecida cai na padrão (Liberation Serif), monospace é a DejaVu Sans Mono.
+    let html = "<body><script>
+const width = (family) => { const s = document.createElement('span'); s.style.font = '16px ' + family; s.style.display = 'inline-block'; s.textContent = 'Hamburgefonstiv WQ 0123'; document.body.append(s); const w = s.getBoundingClientRect().width; s.remove(); return w; };
+const named = (f) => width('\"' + f + '\"');
+const ref = { sans: named('Liberation Sans'), serif: named('Liberation Serif'), mono: named('DejaVu Sans Mono'), dvs: named('DejaVu Sans') };
+const pick = (w) => Object.keys(ref).find((k) => ref[k] === w) || w;
+console.log(ref.sans, ['sans-serif', 'Arial', 'Helvetica', 'serif', 'Foo', '\"Times New Roman\"', 'monospace', 'system-ui'].map((f) => f + '=' + pick(width(f))).join(' '));
+</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "192.984375 sans-serif=sans Arial=sans Helvetica=sans serif=serif Foo=serif \"Times New Roman\"=serif monospace=mono system-ui=dvs\n");
+}
+
+#[test]
+fn blink_only_properties_survive_cssom() {
+    // Medido no oráculo: `transform-box` (que o stylo do Servo não tem) fica no bloco, na ordem de escrita, e o
+    // getComputedStyle dá o inicial `view-box` sem declaração (o motion do nextjs.org escreve `fill-box`).
+    let html = "<body><div id=d></div><p id=p></p><script>
+const s = d.style;
+s.transformOrigin = '50% 50% 0px'; const a = s.cssText;
+s.transformBox = 'fill-box'; const b = s.cssText;
+s.transformOrigin = '10px 0px 0px'; const c = s.cssText;
+s.transformBox = 'bogus'; const e = s.cssText;
+console.log([a, b, c, e, getComputedStyle(d).transformBox, getComputedStyle(p).transformBox, getComputedStyle(p).writingMode].join(' | '));
+</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "transform-origin: 50% 50% 0px; | transform-origin: 50% 50% 0px; transform-box: fill-box; | transform-origin: 10px 0px 0px; transform-box: fill-box; | transform-origin: 10px 0px 0px; transform-box: fill-box; | fill-box | view-box | horizontal-tb\n");
+}
+
+#[test]
+fn switch_with_many_numeric_cases() {
+    // O getBumpedLaneForHydrationByLane do React 19.3 (nextjs.org): com o switch errado a hidratação nunca agenda.
+    let script = "<script>function e$(e){switch(e){case 2:e=1;break;case 8:e=4;break;case 32:e=16;break;case 256:case 512:case 1024:case 2048:case 4096:case 8192:case 16384:case 32768:case 65536:case 131072:case 262144:case 524288:case 1048576:case 2097152:case 4194304:case 8388608:case 0x1000000:case 0x2000000:e=128;break;case 0x10000000:e=0x8000000;break;default:e=0}return e}
+console.log([2, 8, 32, 256, 0x2000000, 0x10000000, 3].map(e$).join(' '))</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "1 4 16 128 128 134217728 0\n");
+}
+
+#[test]
+fn media_range_syntax_applies() {
+    // O Tailwind 4 escreve `@media (width>=48rem)`; a janela do headless tem 780px.
+    let html = "<style>body{margin:0}@media (width>=48rem){.g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}</style><div class=g><div id=a>a</div><div>b</div></div><script>console.log(document.getElementById('a').offsetWidth, matchMedia('(width>=48rem)').matches)</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "390 true\n");
+}
+
+#[test]
+fn computed_style_and_media_queries() {
+    // Saída do chromium do oráculo para a mesma página.
+    let html = r#"<body style="margin:0"><style>.b{box-sizing:border-box}</style><div id=a style="width:100px;padding:10px;border:1px solid red;color:rgb(1,2,3);--x: 5px;margin:4px"></div><div id=b class=b style="width:100px;padding:10px"></div><span id=c>s</span><div id=d style="display:none;width:50%"></div><script>
+const g = (id) => getComputedStyle(document.getElementById(id));
+const a = g('a'), b = g('b'), c = g('c'), d = g('d');
+console.log([a.width, a.height, a.color, a.getPropertyValue('--x'), a.margin, a.marginTop, a.display, b.width, c.display, c.width, d.width, d.display, a.position, a.opacity, matchMedia('(width>=48rem)').matches, matchMedia('(max-width: 700px)').matches, matchMedia('(prefers-color-scheme: dark)').matches].join('|'));
+</script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "100px|0px|rgb(1, 2, 3)|5px|4px|4px|block|100px|inline|auto|50%|none|static|1|true|false|false\n");
+}
+
+#[test]
+fn thin_scrollbar_width() {
+    // Medido no oráculo: barra fina de 10px (com ou sem scrollbar-color, em border-box ou content-box), a normal de 15.
+    let html = "<style>html{box-sizing:border-box}*{box-sizing:inherit;scrollbar-width:thin;scrollbar-color:#888 transparent;margin:0;padding:0}</style><body><script>
+const out = [];
+for (const style of [{}, { boxSizing: 'content-box' }, { scrollbarColor: 'auto' }, { scrollbarWidth: 'auto' }]) {
+  const d = document.createElement('div'); Object.assign(d.style, { width: '100px', height: '100px', overflow: 'scroll', position: 'absolute', top: '-9999px' }, style); document.body.append(d);
+  out.push(d.offsetWidth + '/' + d.clientWidth + '/' + d.clientHeight); d.remove();
+}
+console.log(out.join(' '));
+</script>";
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "100/90/90 100/90/90 100/90/90 100/85/85\n");
+}
+
+#[test]
+fn push_apply_in_timer() {
+    let script = "<script>setTimeout(function () { for (var n of [10, 1000, 70000, 200000]) { var a = []; var b = new Array(n).fill(1); a.push.apply(a, b); console.log(n, a.length) } }, 0)</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "10 10\n1000 1000\n70000 70000\n200000 200000\n");
+}
+
+#[test]
+fn xpath_attribute_prefix_query() {
+    let html = r#"<body><div id=a hx-on:click="x"></div><p id=b data-hx-on:load="y"></p><span id=c class=z></span><script>
+        var r = document.evaluate('.//*[@*[ starts-with(name(), "hx-on:")] or @*[ starts-with(name(), "data-hx-on:")]]', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        var ids = []; for (var i = 0; i < r.snapshotLength; i++) ids.push(r.snapshotItem(i).id);
+        console.log(ids.join(','), document.evaluate('count(//span[@class="z"])', document, null, 0, null).numberValue, document.evaluate('string(//p/@id)', document, null, 2, null).stringValue);
+    </script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "a,b 1 b\n");
+}
+
+#[test]
+fn cssom_write_serializes_canonically() {
+    let script = "<body><p id=p></p><script>var p = document.getElementById('p'); p.style.cssText = 'border: 0; clip: rect(0 0 0 0); word-wrap: normal; margin: -1px'; console.log(p.getAttribute('style'))</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "border: 0px; clip: rect(0px, 0px, 0px, 0px); overflow-wrap: normal; margin: -1px;\n");
+}
+
+#[test]
+fn two_value_transform_origin_keeps_no_z() {
+    // Medido no oráculo: o Blink não acrescenta o `0px` do eixo z que o stylo completa.
+    let script = "<body><p id=p></p><script>var p = document.getElementById('p'); p.style.transformOrigin = '50% 50%'; console.log(p.getAttribute('style'))</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "transform-origin: 50% 50%;\n");
+}
+
+#[test]
+fn parsed_images_load_and_pick_their_source() {
+    // Medido no oráculo (testbench/oracle, headless sob --virtual-time-budget, imagens que respondem 404): toda imagem
+    // do documento busca a fonte, lazy inclusive (a qualquer distância e com display: none, no primeiro quadro), e a
+    // lazy desconectada busca como a eager; a fonte vem do srcset pela densidade 1 e do primeiro <source> do <picture>
+    // que serve; o error não borbulha, e tudo termina antes do load da janela.
+    let html = r#"<body><img id=a src="a.png"><img id=b loading=lazy src="b.png">
+<img id=c srcset="c1.png 1x, c2.png 2x" src="c0.png">
+<img id=d srcset="d300.png 300w, d900.png 900w, d2000.png 2000w" sizes="(max-width: 500px) 100px, 50vw">
+<img id=e srcset="e2.png 2x" src="e1.png">
+<picture><source media="(min-width: 5000px)" srcset="f-big.png"><source type="image/x-unknown" srcset="f-unk.png"><source srcset="f-ok.png"><img id=f src="f-img.png"></picture>
+<img id=g><img id=h src=""><div style="height: 30000px"></div><img id=i loading=lazy src="i.png" style="display:none">
+<script>
+var ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'], seen = [];
+for (var id of ids) document.getElementById(id).addEventListener('error', function (ev) { seen.push(ev.target.id + (ev.bubbles ? '!' : '')); });
+var dyn = document.createElement('img'); dyn.loading = 'lazy'; dyn.onerror = function () { seen.push('dyn'); }; dyn.src = 'dyn.png';
+document.getElementById('h').decode().then(function () { console.log('h decodificou'); }, function (e) { console.log('h', e.name, e.message); });
+window.addEventListener('load', function () {
+  console.log(seen.slice().sort().join(','));
+  console.log(ids.map(function (id) { var el = document.getElementById(id); return id + '=' + el.complete + ':' + el.currentSrc.split('/').pop(); }).join(' '));
+});
+</script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(
+        log,
+        concat!(
+            "h EncodingError The source image cannot be decoded.\n",
+            "a,b,c,d,dyn,e,f,h,i\n",
+            "a=true:a.png b=true:b.png c=true:c1.png d=true:d900.png e=true:e1.png f=true:f-ok.png g=true: h=true: i=true:i.png\n",
+        )
+    );
+}
+
+#[test]
+fn transform_functions_keep_written_arity() {
+    // Medido no oráculo: o Blink guarda o segundo argumento de translate, scale e skew mesmo quando ele é o padrão.
+    let cases = ["translate(0px, 0px)", "translate(10px,0)", "translate(5px)", "translate(0px, 0%)", "scale(1,1)", "scale(2)", "scale(2, 2)", "skew(10deg, 0)", "skew(10deg)", "translate(0, 0) scale(1, 1)", "translate(-50%, -50%) rotate(45deg)"];
+    let list = cases.iter().map(|c| format!("'{c}'")).collect::<Vec<_>>().join(",");
+    let script = format!("<body><script>for (var c of [{list}]) {{ var p = document.createElement('p'); p.style.transform = c; var q = document.createElement('p'); q.setAttribute('style', 'transform: ' + c); console.log(p.getAttribute('style') + ' | ' + q.style.transform) }}</script>");
+    let (_, log) = run(&[("/", &script)]);
+    assert_eq!(
+        log,
+        concat!(
+            "transform: translate(0px, 0px); | translate(0px, 0px)\n",
+            "transform: translate(10px, 0px); | translate(10px, 0px)\n",
+            "transform: translate(5px); | translate(5px)\n",
+            "transform: translate(0px, 0%); | translate(0px, 0%)\n",
+            "transform: scale(1, 1); | scale(1, 1)\n",
+            "transform: scale(2); | scale(2)\n",
+            "transform: scale(2, 2); | scale(2, 2)\n",
+            "transform: skew(10deg, 0deg); | skew(10deg, 0deg)\n",
+            "transform: skew(10deg); | skew(10deg)\n",
+            "transform: translate(0px, 0px) scale(1, 1); | translate(0px, 0px) scale(1, 1)\n",
+            "transform: translate(-50%, -50%) rotate(45deg); | translate(-50%, -50%) rotate(45deg)\n",
+        )
+    );
+}
+
+#[test]
+fn module_scripts_with_dynamic_import_and_top_level_await() {
+    let html = "<body><script type=module>import { a } from './m.js'; const { b } = await import('/n.js'); console.log(a, b, document.currentScript, import.meta.url)</script><script type=module>console.log(typeof C)</script><script>var C = 1</script>";
+    let (_, log) = run(&[("/", html), ("/m.js", "export const a = 'a'"), ("/n.js", "export const b = 'b'")]);
+    // O clássico roda primeiro (bloqueia o parser); os módulos são adiados, e o segundo roda enquanto o primeiro espera.
+    assert_eq!(log, "number\na b null http://t.test/\n");
+}
+
+#[test]
+fn cross_origin_isolation_needs_coop_coep_in_a_secure_context() {
+    // Medido no oráculo (testbench/oracle/measured/frames.html, cenário sab): sem COOP e COEP não há
+    // SharedArrayBuffer e o relógio tem 100 µs; com os dois, em http://127.0.0.1, crossOriginIsolated, o
+    // SharedArrayBuffer volta e o relógio passa a 5 µs.
+    let script = "<script>var nows = []; for (var i = 0; i < 40; i++) { for (var j = 0, s = 0; j < 4000 * i; j++) s += j; nows.push(performance.now()); }\
+console.log(crossOriginIsolated, 'SharedArrayBuffer' in self, typeof SharedArrayBuffer, nows.every(function (v) { return Math.abs(v * 10 - Math.round(v * 10)) < 1e-6; }), nows.every(function (v) { return Math.abs(v * 200 - Math.round(v * 200)) < 1e-6; }))</script>";
+    let page = |address: &str, isolate: bool| {
+        let headers: &[(&str, &str)] = if isolate { &[("cross-origin-opener-policy", "same-origin"), ("cross-origin-embedder-policy", "require-corp")] } else { &[] };
+        common::run_at(address, headers, &[("/", script)]).1
+    };
+    assert_eq!(page("http://127.0.0.1/", false), "false false undefined true true\n");
+    let isolated = page("http://127.0.0.1/", true);
+    assert!(isolated.starts_with("true true function ") && isolated.ends_with(" true\n"), "{isolated}");
+    assert_eq!(page("http://t.test/", true), "false false undefined true true\n");
+}
+
+#[test]
+fn computed_style_inside_display_none_resolves_on_demand() {
+    // O estilo de um elemento que a travessia não estilizou sai sob demanda; o contexto do stylo tem que ser descartado
+    // ainda no estado de layout (em debug, o stylo confere isso ao rodar as tarefas sequenciais).
+    let script = "<body><div style='display:none'><p id=p style='color: rgb(1, 2, 3)'>x</p></div><script>console.log(getComputedStyle(document.getElementById('p')).color)</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "rgb(1, 2, 3)\n");
+}
+
+#[test]
+fn frames_after_load_follow_the_oracle_rule() {
+    // Medido no oráculo (testbench/oracle/measured/frames.html, sob --virtual-time-budget, duas rodadas): a cadeia de
+    // rAF pedida durante o parse ou no load sai 1 quadro depois do load, e uma segunda volta só quando o compositor
+    // de tempo real a alcança (1 ou 2 quadros, varia entre rodadas e com o isolamento); nenhum quadro pedido por
+    // timer depois do load sai, nem com timers vivos em paralelo. Aqui o laço é determinístico: o primeiro quadro
+    // depois do load, que está dentro do que o oráculo mostra.
+    let probe = |scenario: &str| {
+        let html = include_str!("../../../testbench/oracle/measured/frames.html").replace("location.search", &format!("'?s={scenario}'"));
+        run(&[("/", html.as_str())]).0
+    };
+    let count = |dom: &str, key: &str| dom.lines().filter(|line| line.starts_with(&format!("{key} ["))).count();
+    let parse = probe("parse");
+    assert_eq!(count(&parse, "p"), 1, "{parse}");
+    let load = probe("load");
+    assert!((1..=2).contains(&count(&load, "l")), "{load}");
+    let late = probe("late");
+    assert_eq!(count(&late, "t"), 0, "{late}");
+    let busy = probe("busy");
+    assert!((1..=2).contains(&count(&busy, "b")), "{busy}");
+    assert!(busy.contains("ticks [50,"), "{busy}");
+}
+
+#[test]
+fn hidden_is_on_html_element_prototype() {
+    let (_, log) = run(&[("/", "<script>console.log(Object.getOwnPropertyNames(HTMLElement.prototype).includes('hidden'), 'hidden' in Element.prototype)</script>")]);
+    assert_eq!(log, "true false\n");
+}
+
+#[test]
+fn clock_has_the_blink_grain_and_frames_the_vsync_grid() {
+    // Medido no oráculo (testbench/oracle/measured/clock.html): sem crossOriginIsolated, performance.now, timeOrigin e
+    // Event.timeStamp caem em múltiplos de 100 µs (o ruído da subtração de dois instantes grandes está no teste de
+    // time_clamper, porque aqui o relógio monotônico do processo de teste começa perto de zero); o carimbo do rAF sai
+    // redondo e na grade de 16666 µs. Depois do load, a cadeia de rAF anda 1 ou 2 quadros no oráculo (corrida com o
+    // compositor de tempo real, frames.html) e nenhum quadro pedido por timer depois do load sai.
+    let script = r#"<script>
+var grain = function (v) { return Math.abs(v * 10 - Math.round(v * 10)) < 1e-6; };
+var nows = []; for (var i = 0; i < 50; i++) { for (var j = 0, s = 0; j < 3000 * i; j++) s += j; nows.push(performance.now()); }
+console.log('now', nows.every(grain));
+console.log('origin', grain(performance.timeOrigin), 'event', grain(new Event('x').timeStamp), crossOriginIsolated);
+var frames = [];
+var step = function (t) { frames.push(t); if (frames.length < 3) requestAnimationFrame(step); };
+requestAnimationFrame(step);
+var late = 'nenhum';
+addEventListener('load', function () { setTimeout(function () { requestAnimationFrame(function () { late = 'saiu'; }); }, 50); });
+setTimeout(function () {
+  console.log('late', late);
+  var onGrid = function (t) { return Math.abs(t / 16.666 - Math.round(t / 16.666)) * 16.666 <= 0.1 + 1e-9; };
+  console.log('frames', frames.length >= 1, frames.every(function (t) { return /^\d+(\.\d)?$/.test(String(t)) && onGrid(t); }));
+  console.log('deltas', frames.slice(1).map(function (t, i) { return (t - frames[i]).toFixed(1); }).join(','));
+}, 200);
+</script>"#;
+    let (_, log) = run(&[("/", script)]);
+    let lines: Vec<&str> = log.lines().collect();
+    assert_eq!(lines[0], "now true", "{log}");
+    assert_eq!(lines[1], "origin true event true false", "{log}");
+    assert_eq!(lines[2], "late nenhum", "{log}");
+    assert_eq!(lines[3], "frames true true", "{log}");
+    let deltas = lines[4].strip_prefix("deltas").unwrap().trim();
+    assert!(deltas.is_empty() || deltas.split(',').all(|d| d == "16.6" || d == "16.7"), "{log}");
+}
+
+/// `:has()` e `:nth-child(... of S)` em `querySelector`, `matches` e `closest` (o parser do stylo `servo` os recusava e o WPT
+/// `css/selectors` reprovava 500 subtestes por `is not a valid selector`).
+#[test]
+fn has_and_nth_child_of_selectors_parse_and_match() {
+    let script = "const r = []; \
+        r.push(document.querySelector('div:has(> .q)')?.id, document.querySelector('p:has(+ p)')?.id, \
+        document.getElementById('b').matches('span:not(:has(i))'), document.getElementById('a').matches(':has(#b)'), \
+        document.getElementById('b').closest('div:has(span)')?.id, document.querySelector('li:nth-child(2 of .on)')?.id, \
+        document.querySelectorAll('div:has(.nope)').length); console.log(r.join(','))";
+    let page = format!(
+        "<div id=a class=p><span class=q id=b></span></div><p id=c></p><p id=d></p>\
+         <ul><li class=on id=l1></li><li id=l2></li><li class=on id=l3></li></ul><script>{script}</script>"
+    );
+    let (_, log) = run(&[("/", &page)]);
+    assert_eq!(log, "a,c,true,true,a,l3,0\n");
+}
+
+/// `ProcessingInstruction`, `CDATASection` e `XMLDocument`: o `createProcessingInstruction` do documento HTML, o
+/// `createCDATASection` só no XML, e o `createDocument` com o namespace (o WPT `dom/nodes` os usa em 170 subtestes).
+#[test]
+fn processing_instruction_cdata_and_xml_document() {
+    let script = "const pi = document.createProcessingInstruction('a', 'b'); const xml = document.implementation.createDocument(null, 'x'); \
+        const cd = xml.createCDATASection('c'); let html = 'sem erro'; try { document.createCDATASection('c'); } catch (e) { html = e.name; } \
+        let bad = 'sem erro'; try { document.createProcessingInstruction('a b', 'c'); } catch (e) { bad = e.name; } \
+        console.log([pi.nodeType, pi.target, pi.data, pi.nodeName, pi instanceof ProcessingInstruction, pi.cloneNode().target, \
+        cd.nodeType, cd.nodeName, cd instanceof CDATASection, xml instanceof XMLDocument, xml.contentType, xml.documentElement.localName, html, bad].join(','))";
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    assert_eq!(log, "7,a,b,a,true,a,4,#cdata-section,true,true,application/xml,x,NotSupportedError,InvalidCharacterError\n");
+}
+
+/// A instrução de processamento e a seção CDATA vivem como comentário no DOM do Blitz; nada disso pode aparecer. O
+/// Chromium 154 do oráculo (`pl-oracle-chromium`, `--dump-dom` de `fixtures/pi_cdata_probe.html`) deu o dump de
+/// `fixtures/pi_cdata_oracle.txt`: serialização (`innerHTML`, `outerHTML`, `XMLSerializer`, o `--dump-dom` com a instrução
+/// no corpo), `textContent`, `data`, `nodeValue`, `nodeName`, `nodeType`, `childNodes`, TreeWalker e NodeIterator com
+/// SHOW_COMMENT, SHOW_PROCESSING_INSTRUCTION e SHOW_CDATA_SECTION, `cloneNode`, `importNode`, `isEqualNode`, `splitText` e
+/// `wholeText`. A linha `xmlser div` fica de fora: o `XMLSerializer` ainda não escreve o `xmlns` do XHTML (divergência
+/// anterior, sem relação com a marca).
+#[test]
+fn processing_instruction_and_cdata_never_leak_the_comment_they_are_stored_as() {
+    let (dom, _) = run(&[("/", include_str!("fixtures/pi_cdata_probe.html"))]);
+    let strip = |text: &str| text.lines().filter(|line| !line.starts_with("xmlser div=")).collect::<Vec<_>>().join("\n");
+    assert_eq!(strip(dom.trim_end()), strip(include_str!("fixtures/pi_cdata_oracle.txt").trim_end()));
+}
+
+/// `document.compatMode` segue o doctype como o Chromium 154 do oráculo (`pl-oracle-chromium`, `--dump-dom`): sem doctype,
+/// HTML 4.01 transitional sem URL e o doctype do IETF dão `BackCompat`; HTML5, HTML 4.01 transitional com URL (quase-padrão),
+/// XHTML e comentário antes do doctype dão `CSS1Compat`; doctype depois de texto não conta.
+#[test]
+fn compat_mode_follows_the_doctype_like_the_oracle() {
+    let t401 = "-//W3C//DTD HTML 4.01 Transitional//EN";
+    let cases = [
+        ("", "BackCompat"),
+        ("<!DOCTYPE html>", "CSS1Compat"),
+        (&format!("<!DOCTYPE HTML PUBLIC \"{t401}\" \"http://www.w3.org/TR/html4/loose.dtd\">"), "CSS1Compat"),
+        (&format!("<!DOCTYPE HTML PUBLIC \"{t401}\">"), "BackCompat"),
+        ("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">", "CSS1Compat"),
+        ("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">", "CSS1Compat"),
+        ("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">", "CSS1Compat"),
+        ("<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML//EN\">", "BackCompat"),
+        ("<!-- c --><!DOCTYPE html>", "CSS1Compat"),
+        ("x<!DOCTYPE html>", "BackCompat"),
+    ];
+    for (doctype, expected) in cases {
+        let html = format!("{doctype}<html><body><script>console.log(document.compatMode)</script></body></html>");
+        let (_, log) = run(&[("/", &html)]);
+        assert_eq!(log, format!("{expected}\n"), "doctype: {doctype}");
+    }
+}

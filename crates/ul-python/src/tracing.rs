@@ -247,6 +247,13 @@ pub fn c_call(vm: &mut Vm, func: &Value, run: impl FnOnce(&mut Vm) -> PyResult<V
     result
 }
 
+/// Um evento `c_*` (`c_call`, `c_return`, `c_exception`) de `func` para o perfil, com o quadro que chama: o caminho de
+/// quem entrega o quadro da nativa-em-Python ao laço de instruções e fecha o evento quando ele acaba.
+pub fn c_event(vm: &mut Vm, event: &'static str, func: &Value) -> PyResult<()> {
+    let frame = current_frame(vm)?;
+    invoke_profile(vm, &frame, event, func.clone())
+}
+
 /// `sys.setprofile(f)` trocou um perfil ativo: a chamada já rodava instrumentada, então o novo perfil
 /// recebe o `c_return` dela. Ligar o perfil do zero não gera nada (o CPython 3.13 só instrumenta o
 /// quadro depois que a chamada começou).
@@ -294,7 +301,8 @@ pub fn is_c_function(func: &Value) -> bool {
 /// enxerga uma chamada de C, nunca o quadro Python que a implementa aqui.
 fn is_native_python_function(func: &Value) -> bool {
     match func {
-        Value::Function(f) => crate::vm::code_is_native(&f.code) && !stands_for_c_class(&f.code),
+        // O `<lambda>` do shim (o corpo de um segmento novo) é maquinaria de quem implementa, não função de C.
+        Value::Function(f) => crate::vm::code_is_native(&f.code) && !stands_for_c_class(&f.code) && f.code.name != "<lambda>",
         Value::BoundFn(b) => crate::vm::code_is_native(&b.1.code),
         _ => false,
     }
@@ -312,7 +320,12 @@ fn stands_for_c_class(code: &Code) -> bool {
 /// O quadro em execução é de código que no CPython seria C: nada dele gera evento, e as nativas que
 /// ele chama também não (o que ele chama de volta no código do usuário gera, porque o quadro é outro).
 fn in_native(vm: &Vm) -> bool {
-    vm.frames.borrow().last().is_some_and(|(code, _, _)| crate::vm::code_is_native(code))
+    // O fundo de uma thread verde (greenlet, thread) é o marcador do escalonador: o que ele chama não é do programa.
+    let frames = vm.frames.borrow();
+    match frames.last() {
+        Some((code, _, _)) => crate::vm::code_is_native(code),
+        None => crate::gthread::in_secondary(),
+    }
 }
 
 /// Gera as perguntas "a chamada de `func` gera evento no perfil?": o perfil está ligado, `$is_target` reconhece

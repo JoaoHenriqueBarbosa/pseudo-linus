@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ls order</title>
+<script>
+// Quarenta chaves gravadas fora de ordem na primeira execução; nas seguintes a página só lê, e a ordem de
+// `Object.keys` é a que o navegador monta ao carregar o banco.
+if (localStorage.length === 0) {
+  for (let i = 0; i < 40; i++) localStorage.setItem('key' + ((i * 7) % 40), 'v' + i);
+}
+document.title = 'order:' + Object.keys(localStorage).join(',');
+</script>
+<body>ls order</body>

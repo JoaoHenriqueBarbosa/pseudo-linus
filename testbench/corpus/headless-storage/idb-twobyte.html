@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>idb twobyte</title>
+<script>
+// Cadeias de dois bytes em posições de alinhamento diferentes, mais os tipos primitivos que o prelúdio guarda.
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 200 && !done; i++) await fetch('/idb-twobyte.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+const request = indexedDB.open('db2', 3);
+request.onupgradeneeded = (event) => {
+  const db = event.target.result;
+  const store = db.createObjectStore('v', { autoIncrement: true });
+  store.put('日');
+  store.put('a日');
+  store.put(['x', '日']);
+  store.put({ k: '日', u: undefined, f: false, big: 2147483648, neg: -5, s: 'abc' });
+  store.put(new Date(86400000));
+  store.put([1, , 3]);
+  store.put(1n);
+};
+request.onsuccess = () => { request.result.close(); setTimeout(() => { done = true; document.title = 'done'; }, 200); };
+</script>
+<body>idb twobyte</body>

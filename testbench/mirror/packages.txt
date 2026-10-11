@@ -98,3 +98,5 @@ pyasn1
 pyasn1-modules
 cachetools
 tenacity
+playwright
+pyppeteer

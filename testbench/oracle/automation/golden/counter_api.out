@@ -1,0 +1,21 @@
+repr Counter({'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1}) Counter({'z': 3, 'a': 2, 'b': -1}) Counter()
+most [('a', 5), ('b', 2), ('r', 2), ('c', 1), ('d', 1)] [('a', 5), ('b', 2)] [] [('b', 1)]
+elements ['a', 'a', 'a', 'a', 'a', 'b', 'b', 'c', 'd', 'r', 'r'] ['x', 'x']
+total 11 4
+ops Counter({'a': 7, 'z': 3, 'r': 2, 'b': 1, 'c': 1, 'd': 1}) Counter({'a': 3, 'b': 3, 'r': 2, 'c': 1, 'd': 1}) Counter({'a': 5, 'z': 3, 'b': 2, 'r': 2, 'c': 1, 'd': 1}) Counter({'a': 2}) Counter({'z': 3, 'a': 2}) Counter({'b': 1})
+iadd Counter({'a': 7, 'z': 3, 'r': 2, 'b': 1, 'c': 1, 'd': 1})
+isub Counter({'z': 3, 'r': 2, 'b': 1, 'c': 1, 'd': 1})
+ior Counter({'q': 4, 'z': 3, 'r': 2, 'b': 1, 'c': 1, 'd': 1})
+iand Counter({'q': 2, 'r': 1})
+cmp True True False True True False
+fromkeys Counter.fromkeys() is undefined.  Use Counter(iterable) instead.
+subtract Counter({'a': 0, 'b': -2})
+update Counter({'a': 5, 'z': 1, 'b': 0})
+del Counter({'a': 5, 'z': 1, 'b': 0}) 0
+copy Counter True
+reduce (<class 'collections.Counter'>, ({'a': 5, 'b': 0, 'z': 1},))
+notimpl NotImplemented NotImplemented
+typeerror unsupported operand type(s) for +: 'Counter' and 'int'
+unorderable Counter({1: 1, 'x': 1})
+doc Dict subclass for counting hashable items.  Sometimes called a bag
+heap [(0, 1), (1, 1), (2, 1)]

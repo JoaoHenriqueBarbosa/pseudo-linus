@@ -5,7 +5,7 @@
 //! vizinhos (`LINEAR_PROBES`), perturbação `i = i*5 + 1 + perturb` com `perturb >>= 5`, entradas
 //! removidas como marcador (`dummy`) e o redimensionamento do `set_table_resize`.
 
-use super::{hash, is, py_eq, repr_into, ObjError, ReprStack, Value};
+use super::{eq_bool, hash, repr_into, ObjError, ReprStack, Value};
 
 const MIN_SIZE: usize = 8;
 const LINEAR_PROBES: usize = 9;
@@ -134,8 +134,8 @@ impl Set {
     }
 
     /// `set_lookkey`/`set_add_entry`: posição da chave, ou `Err` com a primeira posição vazia
-    /// encontrada na sequência de sondagem.
-    fn probe(&self, h: i64, key: &Value) -> Result<usize, usize> {
+    /// encontrada na sequência de sondagem. O erro de fora é a exceção de um `__eq__` de usuário.
+    fn probe(&self, h: i64, key: &Value) -> Result<Result<usize, usize>, ObjError> {
         let mask = self.mask();
         let mut perturb = h as u64 as usize;
         let mut i = h as u64 as usize & mask;
@@ -143,8 +143,8 @@ impl Set {
             let probes = if i + LINEAR_PROBES <= mask { LINEAR_PROBES } else { 0 };
             for j in i..=i + probes {
                 match &self.table[j] {
-                    Slot::Empty => return Err(j),
-                    Slot::Active(eh, k) if *eh == h && (is(k, key) || py_eq(k, key)) => return Ok(j),
+                    Slot::Empty => return Ok(Err(j)),
+                    Slot::Active(eh, k) if *eh == h && eq_bool(k, key)? => return Ok(Ok(j)),
                     _ => {}
                 }
             }
@@ -174,14 +174,23 @@ impl Set {
     }
 
     pub fn contains(&self, key: &Value) -> Result<bool, ObjError> {
-        let h = hash(key)?;
-        Ok(self.probe(h, key).is_ok())
+        self.contains_hashed(hash(key)?, key)
+    }
+
+    /// `set_contains_entry`: pertinência com o hash já conhecido (o guardado na entrada de outro `set` ou
+    /// `dict`), sem chamar o `__hash__` de novo, como o CPython faz entre conjuntos.
+    pub fn contains_hashed(&self, h: i64, key: &Value) -> Result<bool, ObjError> {
+        Ok(self.probe(h, key)?.is_ok())
     }
 
     /// `set.add`.
     pub fn add(&mut self, key: Value) -> Result<(), ObjError> {
-        let h = hash(&key)?;
-        let Err(slot) = self.probe(h, &key) else { return Ok(()) };
+        self.add_hashed(hash(&key)?, key)
+    }
+
+    /// `set_add_entry` com o hash já conhecido (ver [`Set::contains_hashed`]).
+    pub fn add_hashed(&mut self, h: i64, key: Value) -> Result<(), ObjError> {
+        let Err(slot) = self.probe(h, &key)? else { return Ok(()) };
         // `set_add_entry`: a primeira posição removida da sequência de sondagem é reaproveitada.
         if let Some(free) = self.first_dummy(h, slot) {
             self.table[free] = Slot::Active(h, key);
@@ -199,8 +208,12 @@ impl Set {
 
     /// `set.discard`: devolve se a chave estava presente.
     pub fn discard(&mut self, key: &Value) -> Result<bool, ObjError> {
-        let h = hash(key)?;
-        match self.probe(h, key) {
+        self.discard_hashed(hash(key)?, key)
+    }
+
+    /// `set_discard_entry` com o hash já conhecido (ver [`Set::contains_hashed`]).
+    pub fn discard_hashed(&mut self, h: i64, key: &Value) -> Result<bool, ObjError> {
+        match self.probe(h, key)? {
             Ok(slot) => {
                 self.table[slot] = Slot::Dummy;
                 self.used -= 1;
@@ -249,10 +262,20 @@ impl Set {
 
     /// Elementos na ordem da tabela, que é a ordem de iteração do CPython.
     pub fn iter(&self) -> impl Iterator<Item = &Value> {
+        self.iter_hashed().map(|(_, k)| k)
+    }
+
+    /// Como [`Set::iter`], com o hash guardado de cada elemento.
+    pub fn iter_hashed(&self) -> impl Iterator<Item = (i64, &Value)> {
         self.table.iter().filter_map(|slot| match slot {
-            Slot::Active(_, k) => Some(k),
+            Slot::Active(h, k) => Some((*h, k)),
             _ => None,
         })
+    }
+
+    /// Os elementos com o hash, copiados (para iterar enquanto o próprio conjunto ou outro muda).
+    pub fn hashed_items(&self) -> Vec<(i64, Value)> {
+        self.iter_hashed().map(|(h, k)| (h, k.clone())).collect()
     }
 }
 
@@ -287,6 +310,14 @@ pub(super) fn set_repr(s: &Set, id: usize, out: &mut String, stack: &mut ReprSta
 }
 
 /// Igualdade de conjuntos: mesmo tamanho e todo elemento de `a` presente em `b`.
-pub(super) fn set_eq(a: &Set, b: &Set) -> bool {
-    a.len() == b.len() && a.iter().all(|k| b.contains(k).unwrap_or(false))
+pub(super) fn set_eq(a: &Set, b: &Set) -> crate::vm::PyResult<bool> {
+    if a.len() != b.len() {
+        return Ok(false);
+    }
+    for (h, k) in a.iter_hashed() {
+        if !b.contains_hashed(h, k)? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }

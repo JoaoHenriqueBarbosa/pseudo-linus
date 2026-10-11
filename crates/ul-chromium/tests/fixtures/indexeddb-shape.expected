@@ -1,0 +1,25 @@
+window.indexedDB ["get","set","enumerable","configurable"] [object IDBFactory]
+IDBCursor 0 source:aec,direction:aec,key:aec,primaryKey:aec,request:aec,advance:f1wec,continue:f0wec,continuePrimaryKey:f2wec,delete:f0wec,update:f1wec,constructor:f0wc Object static:
+ new TypeError: Failed to construct 'IDBCursor': Illegal constructor
+IDBCursorWithValue 0 value:aec,constructor:f0wc IDBCursor static:
+ new TypeError: Failed to construct 'IDBCursorWithValue': Illegal constructor
+IDBDatabase 0 name:aec,version:aec,objectStoreNames:aec,onabort:asec,onclose:asec,onerror:asec,onversionchange:asec,close:f0wec,createObjectStore:f1wec,deleteObjectStore:f1wec,transaction:f1wec,constructor:f0wc EventTarget static:
+ new TypeError: Failed to construct 'IDBDatabase': Illegal constructor
+IDBFactory 0 cmp:f2wec,databases:f0wec,deleteDatabase:f1wec,open:f1wec,constructor:f0wc Object static:
+ new TypeError: Failed to construct 'IDBFactory': Illegal constructor
+IDBIndex 0 name:asec,objectStore:aec,keyPath:aec,multiEntry:aec,unique:aec,count:f0wec,get:f1wec,getAll:f0wec,getAllKeys:f0wec,getAllRecords:f0wec,getKey:f1wec,openCursor:f0wec,openKeyCursor:f0wec,constructor:f0wc Object static:
+ new TypeError: Failed to construct 'IDBIndex': Illegal constructor
+IDBKeyRange 0 lower:aec,upper:aec,lowerOpen:aec,upperOpen:aec,includes:f1wec,constructor:f0wc Object static:bound:f2wec,lowerBound:f1wec,only:f1wec,upperBound:f1wec
+ new TypeError: Failed to construct 'IDBKeyRange': Illegal constructor
+IDBObjectStore 0 name:asec,keyPath:aec,indexNames:aec,transaction:aec,autoIncrement:aec,add:f1wec,clear:f0wec,count:f0wec,createIndex:f2wec,delete:f1wec,deleteIndex:f1wec,get:f1wec,getAll:f0wec,getAllKeys:f0wec,getAllRecords:f0wec,getKey:f1wec,index:f1wec,openCursor:f0wec,openKeyCursor:f0wec,put:f1wec,constructor:f0wc Object static:
+ new TypeError: Failed to construct 'IDBObjectStore': Illegal constructor
+IDBOpenDBRequest 0 onblocked:asec,onupgradeneeded:asec,constructor:f0wc IDBRequest static:
+ new TypeError: Failed to construct 'IDBOpenDBRequest': Illegal constructor
+IDBRecord 0 key:aec,primaryKey:aec,value:aec,constructor:f0wc Object static:
+ new TypeError: Failed to construct 'IDBRecord': Illegal constructor
+IDBRequest 0 result:aec,error:aec,source:aec,transaction:aec,readyState:aec,onsuccess:asec,onerror:asec,constructor:f0wc EventTarget static:
+ new TypeError: Failed to construct 'IDBRequest': Illegal constructor
+IDBTransaction 0 objectStoreNames:aec,mode:aec,durability:aec,db:aec,error:aec,onabort:asec,oncomplete:asec,onerror:asec,abort:f0wec,commit:f0wec,objectStore:f1wec,constructor:f0wc EventTarget static:
+ new TypeError: Failed to construct 'IDBTransaction': Illegal constructor
+IDBVersionChangeEvent 1 oldVersion:aec,newVersion:aec,dataLoss:aec,dataLossMessage:aec,constructor:f1wc Event static:
+ new TypeError: Failed to construct 'IDBVersionChangeEvent': 1 argument required, but only 0 present.

@@ -1,0 +1,16 @@
+goto: 200
+frames: [["http://127.0.0.1:8765/frames.html", "", false], ["http://127.0.0.1:8765/frame-child.html", "na", true], ["about:srcdoc", "fb", true]]
+main-url: "http://127.0.0.1:8765/frames.html"
+child-frames: [2, 0, 0]
+child-text: "dentro do filho"
+child-title: "Filho"
+child-evaluate: ["http://127.0.0.1:8765/frame-child.html", false, true]
+srcdoc-text: "dentro do srcdoc"
+frame-by-name: "http://127.0.0.1:8765/frame-child.html"
+frame-by-url: "na"
+click-in-frame: null
+after-click: "clicado"
+frame-locator: "dentro do srcdoc"
+content-frame: "http://127.0.0.1:8765/frame-child.html"
+owner: "skip"
+main-evaluate: [2, "/frame-child.html", true]

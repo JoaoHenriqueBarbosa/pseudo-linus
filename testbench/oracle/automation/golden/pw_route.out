@@ -1,0 +1,11 @@
+fulfilled: [201, "sim", {"falso": true}]
+unrouted: {"items": [1, 2, 3], "nome": "automação", "ok": true}
+aborted: "TypeError: Failed to fetch"
+continued: 200
+seen: [["GET", "/api.json", null]]
+route.fetch: {"items": [1, 2, 3], "nome": "mudada", "ok": true}
+page-fulfilled: ["interceptada", "falsa"]
+post_data: "corpo"
+extra-headers: 200
+request-fails: "<Response url='http://127.0.0.1:8765/api.json' request=<Request url='http://127.0.0.1:8765/api.json' method='GET'>>"
+context-route: [1]

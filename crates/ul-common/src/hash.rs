@@ -32,6 +32,7 @@ pub mod rapidhash;
 pub mod ripemd;
 pub mod sha512;
 pub mod sm3;
+pub mod superfast;
 
 pub use algo::{Algo, Hasher};
 pub use kdf::{hmac, pbkdf2, scrypt, Hmac};

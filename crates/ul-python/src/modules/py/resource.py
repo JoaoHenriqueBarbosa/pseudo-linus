@@ -25,68 +25,51 @@ RUSAGE_THREAD = 1
 
 error = OSError
 
-_limits = {
-    RLIMIT_CPU: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_FSIZE: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_DATA: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_STACK: (8388608, RLIM_INFINITY),
-    RLIMIT_CORE: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_RSS: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_NPROC: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_NOFILE: (1048576, 1048576),
-    RLIMIT_MEMLOCK: (8388608, 8388608),
-    RLIMIT_AS: (RLIM_INFINITY, RLIM_INFINITY),
-    # O 10 é o `RLIMIT_LOCKS` do kernel: o glibc 2.41 não o exporta, e o `resource` do Debian não tem o nome.
-    10: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_SIGPENDING: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_MSGQUEUE: (819200, 819200),
-    RLIMIT_NICE: (0, 0),
-    RLIMIT_RTPRIO: (0, 0),
-    RLIMIT_RTTIME: (RLIM_INFINITY, RLIM_INFINITY),
-}
-
-
-def getrlimit(resource):
-    if resource not in _limits:
-        raise ValueError('invalid resource specified')
-    return _limits[resource]
-
-
-def setrlimit(resource, limits):
-    if resource not in _limits:
-        raise ValueError('invalid resource specified')
-    soft, hard = limits
-    cur_soft, cur_hard = _limits[resource]
-    if cur_hard != RLIM_INFINITY and (hard == RLIM_INFINITY or hard > cur_hard):
-        raise ValueError('not allowed to raise maximum limit')
-    if hard != RLIM_INFINITY and (soft == RLIM_INFINITY or soft > hard):
-        raise ValueError('current limit exceeds maximum limit')
-    _limits[resource] = (soft, hard)
+# Os limites vivem no kernel (`RLIMIT_NPROC` e `RLIMIT_NOFILE` valem de verdade); o `_os` só os mostra e grava.
+from _os import getrlimit, setrlimit
 
 
 def prlimit(pid, resource, limits=None):
+    import errno
+    import operator
+    import os
+    pid = operator.index(pid)
+    if pid != 0 and pid != os.getpid():
+        if pid < 0:
+            raise ProcessLookupError(errno.ESRCH, os.strerror(errno.ESRCH))
+        os.kill(pid, 0)
+        # O kernel do sandbox só tem os limites do processo que chama.
+        raise PermissionError(errno.EPERM, os.strerror(errno.EPERM))
     old = getrlimit(resource)
     if limits is not None:
         setrlimit(resource, limits)
     return old
 
 
-class struct_rusage(tuple):
-    _fields = ('ru_utime', 'ru_stime', 'ru_maxrss', 'ru_ixrss', 'ru_idrss', 'ru_isrss', 'ru_minflt', 'ru_majflt',
-               'ru_nswap', 'ru_inblock', 'ru_oublock', 'ru_msgsnd', 'ru_msgrcv', 'ru_nsignals', 'ru_nvcsw',
-               'ru_nivcsw')
+_RUSAGE_FIELDS = ('ru_utime', 'ru_stime', 'ru_maxrss', 'ru_ixrss', 'ru_idrss', 'ru_isrss', 'ru_minflt', 'ru_majflt',
+                  'ru_nswap', 'ru_inblock', 'ru_oublock', 'ru_msgsnd', 'ru_msgrcv', 'ru_nsignals', 'ru_nvcsw',
+                  'ru_nivcsw')
 
-    def __new__(cls, values):
+
+class struct_rusage(tuple):
+    __slots__ = ()
+    n_fields = 16
+    n_sequence_fields = 16
+    n_unnamed_fields = 0
+
+    def __new__(cls, sequence):
+        values = tuple(sequence)
+        if len(values) != 16:
+            raise TypeError('resource.struct_rusage() takes a 16-sequence (%d-sequence given)' % len(values))
         return tuple.__new__(cls, values)
 
-    def __getattr__(self, name):
-        try:
-            return self[self._fields.index(name)]
-        except ValueError:
-            raise AttributeError(name) from None
-
     def __repr__(self):
-        return 'resource.struct_rusage(%s)' % ', '.join('%s=%r' % kv for kv in zip(self._fields, self))
+        return 'resource.struct_rusage(%s)' % ', '.join('%s=%r' % kv for kv in zip(_RUSAGE_FIELDS, self))
+
+
+for _i, _name in enumerate(_RUSAGE_FIELDS):
+    setattr(struct_rusage, _name, property(lambda self, i=_i: self[i]))
+del _i, _name
 
 
 def _rusage(utime, stime, maxrss):
@@ -95,6 +78,8 @@ def _rusage(utime, stime, maxrss):
 
 
 def getrusage(who):
+    import operator
+    who = operator.index(who)
     if who not in (RUSAGE_SELF, RUSAGE_CHILDREN, RUSAGE_THREAD):
         raise ValueError('invalid who parameter')
     if who == RUSAGE_CHILDREN:

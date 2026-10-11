@@ -3,6 +3,7 @@
 //! - [`net`]: a pilha comum (URL, TCP com prazo, TLS, HTTP/1.1, decodificação de corpo, cookies).
 
 pub mod net {
+    pub mod client;
     pub mod cookies;
     pub mod http;
     pub mod io;

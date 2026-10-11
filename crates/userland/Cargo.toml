@@ -8,7 +8,7 @@ publish.workspace = true
 description = "Tabela única de programas do pseudo-linus (agrega o programs() de cada crate de userland)"
 
 [features]
-default = ["shell", "coreutils", "findutils", "textproc", "awk", "jq", "yaml", "diff", "archive", "misc", "procps", "net", "sqlite", "git", "python"]
+default = ["shell", "coreutils", "findutils", "textproc", "awk", "jq", "yaml", "diff", "archive", "misc", "procps", "net", "sqlite", "git", "python", "browser"]
 shell = ["dep:shell"]
 coreutils = ["dep:ul-coreutils"]
 findutils = ["dep:ul-findutils"]
@@ -26,6 +26,7 @@ git = ["dep:ul-git"]
 python = ["dep:ul-python"]
 # O `bun` não vem no Debian mínimo: fora do default, ligado só onde o agente o instala.
 bun = ["dep:ul-bun"]
+browser = ["dep:ul-chromium"]
 
 [dependencies]
 sysabi = { workspace = true }
@@ -45,6 +46,7 @@ ul-sqlite = { path = "../ul-sqlite", optional = true }
 ul-git = { path = "../ul-git", optional = true }
 ul-python = { path = "../ul-python", optional = true }
 ul-bun = { path = "../ul-bun", optional = true }
+ul-chromium = { path = "../ul-chromium", optional = true }
 
 [lints]
 workspace = true

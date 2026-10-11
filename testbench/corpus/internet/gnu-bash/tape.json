@@ -1,0 +1,90 @@
+{
+ "url": "https://www.gnu.org/software/bash/",
+ "recorded_at": 1791582266,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://www.gnu.org/software/bash/",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "(null)"
+    ],
+    [
+     "content-language",
+     "en"
+    ],
+    [
+     "content-type",
+     "text/html"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ]
+   ],
+   "body": "a5bc5696617d99c243e89c7a7d03535e825ae0270a473fdf527e2b63842d2146"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.gnu.org/graphics/heckert_gnu.transp.small.png",
+   "status": 429,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "access-control-allow-origin",
+     "(null)"
+    ],
+    [
+     "content-type",
+     "text/html; charset=iso-8859-1"
+    ]
+   ],
+   "body": "3850dfdbf4489250268b5f0740240a9f4445e7c5c29e1d03aa0c5446808d7507"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.gnu.org/graphics/icons/search.png",
+   "status": 429,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "access-control-allow-origin",
+     "(null)"
+    ],
+    [
+     "content-type",
+     "text/html; charset=iso-8859-1"
+    ]
+   ],
+   "body": "3850dfdbf4489250268b5f0740240a9f4445e7c5c29e1d03aa0c5446808d7507"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.gnu.org/graphics/fsf-logo-notext-small.png",
+   "status": 429,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "access-control-allow-origin",
+     "(null)"
+    ],
+    [
+     "content-type",
+     "text/html; charset=iso-8859-1"
+    ]
+   ],
+   "body": "3850dfdbf4489250268b5f0740240a9f4445e7c5c29e1d03aa0c5446808d7507"
+  }
+ ]
+}

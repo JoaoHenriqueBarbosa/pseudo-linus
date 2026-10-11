@@ -13,7 +13,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU64, AtomicUsize, Ordering};
 
 use parking_lot::Mutex;
 use sysabi::{Mode, Pid, Resource, Rlimit, Rusage, SchedState, SigDisposition, Signal, Tid, WaitStatus, RLIM_INFINITY};
@@ -138,6 +138,8 @@ pub(crate) struct Proc {
     pub fds: Mutex<FdTable>,
     pub sig: Mutex<SigState>,
     pub threads: Mutex<Threads>,
+    /// Vagas de tarefa que o programa mantém sem thread do SO (`Syscalls::reserve_task`): contam no `RLIMIT_NPROC`.
+    pub virtual_tasks: AtomicUsize,
     pub exit: Mutex<ExitState>,
     /// Parado por SIGSTOP/SIGTSTP/SIGTTIN/SIGTTOU.
     pub stopped: AtomicBool,
@@ -167,6 +169,7 @@ impl Proc {
             fds: Mutex::new(fds),
             sig: Mutex::new(sig),
             threads: Mutex::new(Threads::default()),
+            virtual_tasks: AtomicUsize::new(0),
             exit: Mutex::new(ExitState::default()),
             stopped: AtomicBool::new(false),
             host_waiters: Mutex::new(WaitList::default()),

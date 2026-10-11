@@ -1,0 +1,21 @@
+<!doctype html><html><head><script>
+const out = {};
+for (const kind of ['webgl', 'webgl2']) {
+  const gl = document.createElement('canvas').getContext(kind);
+  const o = out[kind] = { ext: gl.getSupportedExtensions(), attrs: gl.getContextAttributes(), params: {}, consts: {} };
+  const proto = Object.getPrototypeOf(gl);
+  for (const k of Object.getOwnPropertyNames(proto)) if (/^[A-Z0-9_]+$/.test(k)) o.consts[k] = gl[k];
+  for (const [k, v] of Object.entries(o.consts)) {
+    let r; try { r = gl.getParameter(v); } catch (e) { r = 'throw ' + e.message; }
+    if (gl.getError() !== 0) continue;
+    if (r && typeof r === 'object') r = { type: Object.prototype.toString.call(r), value: ArrayBuffer.isView(r) ? Array.from(r) : String(r) };
+    o.params[k] = r;
+  }
+  o.methods = Object.getOwnPropertyNames(proto).filter((k) => !/^[A-Z0-9_]+$/.test(k));
+  const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+  if (dbg) o.renderer = [gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL), gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)];
+  for (const p of ['VERTEX_SHADER', 'FRAGMENT_SHADER']) for (const q of ['LOW_FLOAT', 'MEDIUM_FLOAT', 'HIGH_FLOAT', 'LOW_INT', 'MEDIUM_INT', 'HIGH_INT']) { const f = gl.getShaderPrecisionFormat(gl[p], gl[q]); o.params['prec ' + p + ' ' + q] = [f.rangeMin, f.rangeMax, f.precision]; }
+}
+const pre = document.createElement('pre'); pre.id = 'out'; pre.textContent = JSON.stringify(out);
+document.documentElement.append(pre);
+</script></head><body></body></html>

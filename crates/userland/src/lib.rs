@@ -32,6 +32,8 @@ pub fn all_programs() -> Vec<Program> {
     all.extend(ul_procps::programs());
     #[cfg(feature = "net")]
     all.extend(ul_net::programs());
+    #[cfg(feature = "browser")]
+    all.extend(ul_chromium::programs());
     #[cfg(feature = "sqlite")]
     all.extend(ul_sqlite::programs());
     #[cfg(feature = "git")]

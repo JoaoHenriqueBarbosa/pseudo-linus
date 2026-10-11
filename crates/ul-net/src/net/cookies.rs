@@ -18,7 +18,18 @@ pub struct Cookie {
     pub httponly: bool,
     /// Segundos desde a época; 0 = de sessão.
     pub expires: i64,
+    /// `Strict`, `Lax` ou `None`; vazio quando o cookie não disse.
+    pub same_site: String,
+    /// A porta do pedido que o criou; 0 quando o cookie não veio de um pedido.
+    pub source_port: u16,
     creation: u64,
+}
+
+impl Cookie {
+    /// Um cookie de fora do `Set-Cookie` (o `Storage.setCookies` do DevTools): `expires` 0 é de sessão.
+    pub fn new(name: &str, value: &str, domain: &str, tailmatch: bool, path: &str, secure: bool, httponly: bool, expires: i64, same_site: &str) -> Cookie {
+        Cookie { name: name.to_owned(), value: value.to_owned(), domain: domain.to_owned(), tailmatch, path: path.to_owned(), secure, httponly, expires, same_site: same_site.to_owned(), source_port: 0, creation: 0 }
+    }
 }
 
 /// O pote de cookies.
@@ -90,7 +101,8 @@ fn default_path(req_path: &str) -> String {
 }
 
 impl Jar {
-    fn insert(&mut self, mut c: Cookie) {
+    /// Guarda o cookie, trocando o que tem o mesmo nome, domínio e caminho.
+    pub fn insert(&mut self, mut c: Cookie) {
         self.next += 1;
         c.creation = self.next;
         if let Some(old) = self
@@ -134,6 +146,8 @@ impl Jar {
                 secure: f[3].eq_ignore_ascii_case("TRUE"),
                 httponly,
                 expires: f[4].parse().unwrap_or(0),
+                same_site: String::new(),
+                source_port: 0,
                 creation: 0,
             };
             if c.expires != 0 && c.expires < now {
@@ -145,6 +159,11 @@ impl Jar {
 
     /// Aplica um `Set-Cookie` recebido de `host` pra `req_path`.
     pub fn set_cookie(&mut self, header: &str, host: &str, req_path: &str, now: i64) {
+        self.set_cookie_from(header, host, 0, req_path, now);
+    }
+
+    /// Como [`Jar::set_cookie`], guardando a porta do pedido que trouxe o cookie.
+    pub fn set_cookie_from(&mut self, header: &str, host: &str, port: u16, req_path: &str, now: i64) {
         let mut parts = header.split(';');
         let Some(nv) = parts.next() else { return };
         let Some((name, value)) = nv.split_once('=') else { return };
@@ -161,6 +180,8 @@ impl Jar {
             secure: false,
             httponly: false,
             expires: 0,
+            same_site: String::new(),
+            source_port: port,
             creation: 0,
         };
         let mut max_age: Option<i64> = None;
@@ -181,6 +202,7 @@ impl Jar {
                 "path" if v.starts_with('/') => c.path = v.to_string(),
                 "secure" => c.secure = true,
                 "httponly" => c.httponly = true,
+                "samesite" => c.same_site = match v.to_ascii_lowercase().as_str() { "strict" => "Strict", "lax" => "Lax", "none" => "None", _ => "" }.to_owned(),
                 "expires" => {
                     if let Some(t) = parse_http_date(v) {
                         c.expires = t.max(1);
@@ -200,18 +222,15 @@ impl Jar {
         self.insert(c);
     }
 
-    /// Valor do `Cookie:` pra um pedido (ordem do curl: caminho mais longo, domínio mais longo, nome
-    /// mais longo, mais novo primeiro).
-    pub fn header_for(&self, host: &str, path: &str, secure: bool, now: i64) -> Option<String> {
+    /// Os cookies que vão num pedido a `host`/`path`, na ordem do curl: caminho mais longo, domínio mais longo,
+    /// nome mais longo, mais novo primeiro.
+    pub fn matching(&self, host: &str, path: &str, secure: bool, now: i64) -> Vec<&Cookie> {
         let mut list: Vec<&Cookie> = self
             .cookies
             .iter()
             .filter(|c| (c.expires == 0 || c.expires > now) && (!c.secure || secure))
             .filter(|c| domain_match(host, &c.domain, c.tailmatch) && path_match(path, &c.path))
             .collect();
-        if list.is_empty() {
-            return None;
-        }
         list.sort_by(|a, b| {
             b.path
                 .len()
@@ -220,6 +239,15 @@ impl Jar {
                 .then(b.name.len().cmp(&a.name.len()))
                 .then(b.creation.cmp(&a.creation))
         });
+        list
+    }
+
+    /// Valor do `Cookie:` pra um pedido (a ordem de [`Jar::matching`]).
+    pub fn header_for(&self, host: &str, path: &str, secure: bool, now: i64) -> Option<String> {
+        let list = self.matching(host, path, secure, now);
+        if list.is_empty() {
+            return None;
+        }
         Some(list.iter().map(|c| format!("{}={}", c.name, c.value)).collect::<Vec<_>>().join("; "))
     }
 

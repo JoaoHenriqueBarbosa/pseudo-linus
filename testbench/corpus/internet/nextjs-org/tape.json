@@ -1,0 +1,1786 @@
+{
+ "url": "https://nextjs.org/",
+ "recorded_at": 1791582454,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ],
+    [
+     "link",
+     "</_next/static/immutable/media/797e433ab948586e.p.1v5bejj26fx9h.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/Geist_Variable-s.p.2v-cf9syxr5ni.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/nextjs-logotype-light.00-_80jv8_dct.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/nextjs-logotype-dark.3h4a2z2v_dkod.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-light.3dl3lqjq1azpp.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-dark.1k-70sin_m3qn.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-light.3_gxxexgi1nmy.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-dark.1f3cgy23m5_jy.svg>; rel=preload; as=\"image\""
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ]
+   ],
+   "body": "26374414d76a11ac7d8c8b545a3e2347fc607b3920d7883bd86b5121b685696b"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0w9pt7yz4fv9n.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "50c7d7e36f2e8e9504233470a008152f77d891eafb63430c3e47f74c6bffdb7f"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/3spci--kp_o0c.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "0cce104300f608f526886b694851a8f7265997faaddfe157dbff2baaf33636b8"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/Geist_Variable-s.p.2v-cf9syxr5ni.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "affce75284deca6a9b57e425ee2cf3550e512982310473ec7ad6ce5083ea0a47"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2feic8vb1xod6.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "385b5af770ff59b308e4a77ab5c17864a669f69137e8611cc04bfb66eb16cec1"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/797e433ab948586e.p.1v5bejj26fx9h.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "5f3d6ad60f29d6cb708414ec6887163d63bf197377ef5417d2483ff31ace6c3b"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/nextjs-logotype-dark.3h4a2z2v_dkod.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "fe6e739a33312c8b79020928ba8ec416f40403171491add52b38ee7ad99b35ab"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/logo-bluesky-light.2may7hm2y7g6v.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "7a633773d55f47e3d06b1b9c5e4ea30fd4f760f6ca2e3e60a5d547614a95cde2"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2q6evjwm-565v.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "d43801f5709cc869420aea453dde724024c1a18db85e0b76b2bc4f4de674e9d3"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0t7wpg-lluzpj.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "b35149b544e95e6a7e47cec1fe95f4234001011656c3aeae9c1f92d05b84bb04"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0e3rce_ired_u.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "c7fb16c7a4fc82e4ce16891d25bb4d37af6c79079da0b5f0d7a8d3467559a386"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/1yt4k9mcw7k9e.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "af9c5e00262b9d7ef2b92aadb8c0caf74be9640a48ccc68dad90e180ee0a8a3b"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/26jhnm3x77ybc.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "5b364e085cb442bc72a5977e6dd95532dc8abcb05a7a37914c234eb41d17a5f4"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0jryw2r10plh6.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "69a89f09d750a633cf2d29bd9d12a563f63094144f0d5cd8ce51587f27a46f82"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0c_rex94skj94.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e2fd807502ef80d8a78c0c484ee79a582b7de7ae58f2d2418c77ab5fd5ff0c84"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0o_c0hks4g0ba.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "663871561501b56f3ddf9cca09b406510ecf682460c6820fa6bb8d0804097ebc"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/image?url=https%3A%2F%2Fh8DxKfmAPhn8O0p3.public.blob.vercel-storage.com%2Fnextjs%2Fspheres-light.png&w=300&q=75",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/avif"
+    ],
+    [
+     "content-security-policy",
+     "script-src 'none'; frame-src 'none'; sandbox;"
+    ]
+   ],
+   "body": "59ca22561d31cb4ba0696d2d8ffc65077b28d24441608ee4a57ce6deabe159b8"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/turbopack-0bsyd7obohie7.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e6579f582e0f7ddbb5198c87243257239cdef8c0ac9c3faf6daddbe37216feeb"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2g70aufap1-f8.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "5a366cf6f0958663c1a1eec7faa67cd9bb956780a06a6ba550862a2958618266"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/07h2gse8wfjry.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "c1e4dfdd508305b5bf35fc093f7c1b8617e92cf1f9b8a7274a2dbb6e9d2af01b"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/favicon.ico?favicon.38folom4sz_yx.ico",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/vnd.microsoft.icon"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "c28fdd2a4f31e2dc64f653962286da5c82a4cdfc518b242d32812c624e9a19a4"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/e25c61660ad7a6b3/script.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "b1fa9fc8104da15958badc63bbebe46eeea4d9ce88e587d7732b2c4f4238d8af"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/71950797d2e37b8a/script.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "c703720710415599d2f0b3f31fbfda63e34d6d19e730bada78b9b92197564f5b"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0e6jm31qzgult.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "c7d7a1d275c132f7922eeec812f950195e730ea0ea8dbaf156a45a979536041e"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/image?url=https%3A%2F%2Fh8DxKfmAPhn8O0p3.public.blob.vercel-storage.com%2Fnextjs%2Fwindows-light.png&w=300&q=75",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/avif"
+    ],
+    [
+     "content-security-policy",
+     "script-src 'none'; frame-src 'none'; sandbox;"
+    ]
+   ],
+   "body": "19ea323bc996f3f715a76a8726be510c44425cd8819ba9aaa0ca972f557c9f43"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/api/get-session",
+   "status": 401,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ]
+   ],
+   "body": "3be5b8e53fdc8b0a2996590589456db33504977f3d1ce9bb75016c8a707e1a71"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/1u6-q_2o0q_t7.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "c849d5b55576e875df9e7daa0a55359fb856597efbb774667d9b64b7d9252764"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/20wv22ji4ty3e.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e32de65c9493823fad918df44927a125a8467dae232204633cc77682b873eba4"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/3s__ei24z23iy.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "cd401a230846f74dc5ce97bc52a312c65f6d93e849643325b3bec1ed658ce8ee"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2v_qbd6wgmwe3.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "1f3c35c8144e86dc78539fea865c667360012ac28fd627014df15bd6d8619cfe"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/docs?_rsc=qsK8qbRE2sTqyjrm",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/x-component"
+    ],
+    [
+     "link",
+     "</_next/static/immutable/media/797e433ab948586e.p.1v5bejj26fx9h.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/Geist_Variable-s.p.2v-cf9syxr5ni.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/nextjs-logotype-light.00-_80jv8_dct.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/nextjs-logotype-dark.3h4a2z2v_dkod.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-light.3dl3lqjq1azpp.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-dark.1k-70sin_m3qn.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-light.3_gxxexgi1nmy.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-dark.1f3cgy23m5_jy.svg>; rel=preload; as=\"image\""
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "8d885caea93610cba8f5d8c2c8f762e47f7e1e4ca7f14607e34459b915e64a91"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/api/show-consent-banner",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ]
+   ],
+   "body": "ed13ee867f2f6c3180bdd9f1a300864fda50fa978c5a98ee946e955152b02989"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2-tj2nms2fws9.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "30d66969dbd72d990cfdb40efb3ae7e95b8b9715cafe993b78d512310217499c"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/learn?utm_source=next-site&utm_medium=homepage-cta&utm_campaign=home&_rsc=qsK8qbRE2sTqyjrm",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/x-component"
+    ],
+    [
+     "link",
+     "</_next/static/immutable/media/797e433ab948586e.p.1v5bejj26fx9h.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/Geist_Variable-s.p.2v-cf9syxr5ni.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/nextjs-logotype-light.00-_80jv8_dct.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/nextjs-logotype-dark.3h4a2z2v_dkod.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-light.3dl3lqjq1azpp.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-dark.1k-70sin_m3qn.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-light.3_gxxexgi1nmy.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-dark.1f3cgy23m5_jy.svg>; rel=preload; as=\"image\""
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "01bc144344ef8b244d5c3d357dbb0d1b8ef71c5d3bab8ca1c223b7e2670c6ca1"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/103jqt-l262xh.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "6b1c7864c13641e12494cf75ea5601738ad6247685bb235601277d722c071141"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0lbxv3ly8mlm7.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "ad4eb60c40b71073a5540b13174f110f960f8fa1302c30d4c43a790ae8f1638e"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0y33xq0m0eg7k.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "21327cc086f8aae1a35c01108974fc332f69d3a0ef34f2ac0814b2c271f19c29"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/1m_45crq_rkgw.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "d97ff183188a8a4f19aeaa4c59be374a7b43addeebc9838f12d7fd364adf8e77"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_stream/external/vercel.fides-cdn.ethyca.com/fides.js?geolocation=EEA",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "https://nextjs.org"
+    ]
+   ],
+   "body": "b965cb614966077b6fd2f3326419605eaf3e09ae87d4ad544a068afc5a392a8f"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/3tenbvxibjmol.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "dd8b19963876db6d54c9fe906080bb2dc6f35912d85ddacaa9b238809b399c4a"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2vnj7a1x9ldjn.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e39643c40ec71663cf6201afe833acb32dbe8263981ee4dd8e281f2b4b071e1d"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/docs?_rsc=y6blK94F5nlrfSOh",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/x-component"
+    ],
+    [
+     "link",
+     "</_next/static/immutable/media/797e433ab948586e.p.1v5bejj26fx9h.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/Geist_Variable-s.p.2v-cf9syxr5ni.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/nextjs-logotype-light.00-_80jv8_dct.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/nextjs-logotype-dark.3h4a2z2v_dkod.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-light.3dl3lqjq1azpp.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-dark.1k-70sin_m3qn.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-light.3_gxxexgi1nmy.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-dark.1f3cgy23m5_jy.svg>; rel=preload; as=\"image\""
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "57df92c969fe212d375f35ecfafac6d8801bb2cb519a7a660a8a8add6e36fe2a"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/docs?_rsc=GlZ7QMOjTVKERHQK",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/x-component"
+    ],
+    [
+     "link",
+     "</_next/static/immutable/media/797e433ab948586e.p.1v5bejj26fx9h.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/Geist_Variable-s.p.2v-cf9syxr5ni.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/nextjs-logotype-light.00-_80jv8_dct.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/nextjs-logotype-dark.3h4a2z2v_dkod.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-light.3dl3lqjq1azpp.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-dark.1k-70sin_m3qn.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-light.3_gxxexgi1nmy.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-dark.1f3cgy23m5_jy.svg>; rel=preload; as=\"image\""
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "62dd228858b39f1ed18d84e8cf60502d38ac3f006919ec351c4f8d9f0863fbae"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/1o-d44bktj9z7.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "d766aa07f2f7bd8777eff9c86e0dfb269054b2af56365055504ae6c91a552dc4"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/logo-bluesky-dark.39tbulfg2p-1z.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "7724bb682bbd776431111b79c34990e7d475bf56b3ce3c0ad80dd5f755c33ba7"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/39r_0zg1wjqfm.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "917bdabc2878c9f2e16b45f201d9508750c032040bb0464a5e9fa4a1bb55e9f5"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/17zk4in9cr8i2.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "1fe332ee8ee1e487c674b9e91b50cee2c1f4024d4ce2c3f7486711eb5384019d"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/172fayu1kp7k5.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "079df3d501d6dcbff34ef9543e4d3cd369e97c8377f11b4a1bce36905b147f96"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/logo-twitter-x-dark.1-i769nzu94hl.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "f0002543f3f6a1ffd30dae6cd5797870a89a7346f719038a3554c87bbb85af3a"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/vercel-light.3_gxxexgi1nmy.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "1c1507a4a4742f992a689fcb6b61ac8c48c62e1110509b68121356154e67ed91"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2h3y2rfblsz37.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "d25937164f9505ab7dcacee726357185e8331f5d3f749c0e407eff1a53eea5e9"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2t_7okxvtlnd9.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "93d58b997d05b2b83baeb5d915f928860c2dd923e6957605ec86ec22e6b4de9d"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0_ethtpbu4q8d.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "576a57d3fbe5e3fb8f596c0e090a559925ebc51fed1ed422462b0c1ad169cb40"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/265jqrnj_sahp.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "bd50977882a695f63db631310e94b2260ad18cbd32495bcb1f641f6589c3f671"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/1st1soum7-17q.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "beca3aea2e423fafaa413512920a59bfa26e4a075bfecd6966165c87942dd82e"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/07muziair1c_5.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "55453d3ec390b43e7e0c5b27eeea2645bbfd35b91c26cf3bab055bec8f62e579"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0qaz-qx__3swo.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "bca09716c83b59f097f47c6edb0ac7af2ea43f5e9aba15c9576ae3b223fe7558"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0mj-f_i2k6fn_.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "cb55e05870ed3ad58ec44115f8f0658fa8094de06291e9f542478708d2509297"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/0fjmc627bcrx4.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "57d8bb1b1441eeded4f7704fca9164eda4f9d0af2623a0ba97ed5d3bb4deafe2"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/06cnrlid4ubqg.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "654210eb2dce6011bcf1805b0f0050957977d99f89427c08db28648d96b72a52"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/vercel-logotype-light.0k7echqflwha4.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "4ee32b49f5b5c0260ed597440e49e1db7ba5feb55c9d3aaae8a1d72d332bd5ab"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/3661213jvrmpu.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "2b7eb79730cad81466aea445b64bfe8670e5d7e1bf506fbc4f789376d9cb91a7"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/logo-twitter-x-light.0dvkch_c5dvys.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "2acf4422055eb916903c7affbf7cf888c7fdd8cda7626a4f0a20288453f98614"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/logo-github-light.3dl3lqjq1azpp.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "c116336be3c1e97554c1e2aa6342000066087445f1664ee47f9a77869f8f3554"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/vercel-logotype-dark.3m9ycmsc1ql8m.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "4a95a0765d37e8847e34874671dd744c162d8fbfff571d48105d71d3e8caaef8"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/vercel-dark.1f3cgy23m5_jy.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "b9d0609118db4332f29e69efae32a8992136e3396a556c24467222992d5b6ead"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/logo-github-dark.1k-70sin_m3qn.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "c169c0d978f7c9e0dfc66d9005f05277291ebaa044773d6e0f0b57540c860adc"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2afiei_nu1qae.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "780d8ef9c4cde00c634b7e81fce1862ff98c58e2c345c0389a3111c58aa8643d"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/media/nextjs-logotype-light.00-_80jv8_dct.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e3b1507c8524d45c3e02faf086d37b8421e420d875eb9ff179e0a379204c6d6a"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2lra4q96-7lip.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "0463cc6aae76cf9f7fec6b4f603086951fb110ac2e2dc7cfe7be2dec616a6b82"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/19t0k1gbut827.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "13c5a803f7421fa1186ea0cc78814d41021495a633059ac902be702832e5358b"
+  },
+  {
+   "method": "POST",
+   "url": "https://nextjs.org/api/stream/internal",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "267cb8b29cd98122f8d4d8ae930e49e47610736e3b9629b7674aea2d1d88f474"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2p_zgj2a9ub_b.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "f0e368bd6049d7f5e43ebf22efcc1e3aa0672f857e16941e16c912b34a52a9b0"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/_next/static/immutable/chunks/2-x-r0f-km9ul.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "4f8b883f253239d00ec6dd6d0144c63f96cd05648175dbd0f10ef53466e0c6c8"
+  },
+  {
+   "method": "GET",
+   "url": "https://nextjs.org/learn?_rsc=qsK8qbRE2sTqyjrm",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/x-component"
+    ],
+    [
+     "link",
+     "</_next/static/immutable/media/797e433ab948586e.p.1v5bejj26fx9h.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/Geist_Variable-s.p.2v-cf9syxr5ni.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/immutable/media/nextjs-logotype-light.00-_80jv8_dct.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/nextjs-logotype-dark.3h4a2z2v_dkod.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-light.3dl3lqjq1azpp.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/logo-github-dark.1k-70sin_m3qn.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-light.3_gxxexgi1nmy.svg>; rel=preload; as=\"image\", </_next/static/immutable/media/vercel-dark.1f3cgy23m5_jy.svg>; rel=preload; as=\"image\""
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;script-src 'self' 'unsafe-inline' www.google.com www.google-analytics.com www.googleadservices.com www.gstatic.com *.youtube.com *.youtube-nocookie.com *.ytimg.com *.twimg.com cdn.ampproject.org www.googletagmanager.com *.googleapis.com *.fides-cdn.ethyca.com *.ethyca.com cdn.ethyca.com cdn.vercel-insights.com va.vercel-scripts.com app.cal.com *.cr-relay.com vercel.com *.vercel.com *.vercel.sh vercel.live nextjs.org *.nextjs.org localhost:* chrome-extension://*;child-src *.youtube.com *.youtube-nocookie.com *.stripe.com www.google.com td.doubleclick.net github.com calendly.com vercel.cal.com *.vercel.app *.vercel.dev nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;style-src 'self' 'unsafe-inline' *.googleapis.com nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;img-src * blob: data:;media-src 'self' videos.ctfassets.net user-images.githubusercontent.com replicate.delivery *.public.blob.vercel-storage.com blob: data: nextjs.org *.nextjs.org vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org localhost:*;connect-src 'self' data: vercel.com *.vercel.com *.vercel.sh vercel.live wss://*.vercel.com wss://*.nextjs.org nextjs.org *.nextjs.org localhost:* cdn.vercel-insights.com va.vercel-scripts.com cdp.vercel.com www.google-analytics.com www.googletagmanager.com *.googleapis.com *.cr-relay.com *.ethyca.com cdn.ethyca.com risk.clearbit.com *.ingest.sentry.io *.ingest.us.sentry.io *.public.blob.vercel-storage.com;font-src 'self' *.nextjs.org *.vercel.com *.gstatic.com vercel.live *.vercel.sh;worker-src 'self' *.nextjs.org *.vercel.com blob:"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "01bc144344ef8b244d5c3d357dbb0d1b8ef71c5d3bab8ca1c223b7e2670c6ca1"
+  }
+ ]
+}

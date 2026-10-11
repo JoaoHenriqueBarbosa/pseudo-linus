@@ -1,0 +1,36 @@
+{
+ "last_engagement_time": "13400000000000000",
+ "media_engagement": {
+  "http://127.0.0.1:8000,*": {
+   "expiration": "13400000000000000",
+   "last_modified": "13400000000000000",
+   "lifetime": "7776000000000",
+   "setting": {
+    "hasHighScore": false,
+    "lastMediaPlaybackTime": 0.0,
+    "mediaPlaybacks": 0,
+    "visits": 3
+   }
+  }
+ },
+ "site_engagement": {
+  "chrome://omnibox-popup.top-chrome/,*": {
+   "last_modified": "13400000000000000",
+   "setting": {
+    "lastEngagementTime": 1.34e+16,
+    "lastShortcutLaunchTime": 0.0,
+    "pointsAddedToday": 10.5,
+    "rawScore": 10.5
+   }
+  },
+  "http://127.0.0.1:8000,*": {
+   "last_modified": "13400000000000000",
+   "setting": {
+    "lastEngagementTime": 1.34e+16,
+    "lastShortcutLaunchTime": 0.0,
+    "pointsAddedToday": 6.0,
+    "rawScore": 6.0
+   }
+  }
+ }
+}

@@ -1,0 +1,122 @@
+{
+ "url": "https://danluu.com/",
+ "recorded_at": 1791582321,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://danluu.com/",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "931d939680a1f98f866304f3dda7dcb06f671b68f6cffd9c2cb08a0a82673dba"
+  },
+  {
+   "method": "GET",
+   "url": "https://danluu.com/cdn-cgi/speculation",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "https://danluu.com"
+    ],
+    [
+     "content-type",
+     "application/speculationrules+json"
+    ]
+   ],
+   "body": "4d958f26d792adc0b7c79e26bb5264ff3ae27f6f32c1f67cbdcbe8b765b7f9fb"
+  },
+  {
+   "method": "GET",
+   "url": "https://static.cloudflareinsights.com/beacon.min.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/javascript;charset=UTF-8"
+    ]
+   ],
+   "body": "3e5bc7ca508f5d5aa7255341243840c8d2b70c8aea323800b51610df3f5a8a2c"
+  },
+  {
+   "method": "OPTIONS",
+   "url": "https://cloudflareinsights.com/cdn-cgi/rum",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-headers",
+     "Content-Type"
+    ],
+    [
+     "access-control-allow-methods",
+     "POST,OPTIONS"
+    ],
+    [
+     "access-control-allow-origin",
+     "https://danluu.com"
+    ],
+    [
+     "content-type",
+     "text/plain"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "POST",
+   "url": "https://cloudflareinsights.com/cdn-cgi/rum",
+   "status": 204,
+   "headers": [
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-methods",
+     "POST,OPTIONS"
+    ],
+    [
+     "access-control-allow-origin",
+     "https://danluu.com"
+    ],
+    [
+     "content-type",
+     "text/plain"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://danluu.com/favicon.ico",
+   "status": 404,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+ ]
+}

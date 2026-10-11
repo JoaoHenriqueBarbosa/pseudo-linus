@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ss write</title>
+<script>
+// Grava no sessionStorage chaves Latin1 e de dois bytes, apaga uma e espera o commit do disco (o fetch mantém o
+// orçamento de tempo virtual ocupado).
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 300 && !done; i++) await fetch('/ss-write.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+sessionStorage.setItem('a', '1');
+sessionStorage.setItem('b', 'dois');
+sessionStorage.setItem('日', 'ü');
+sessionStorage.setItem('gone', 'x');
+sessionStorage.removeItem('gone');
+setTimeout(() => { done = true; document.title = 'done'; }, 7000);
+</script>
+<body>ss write</body>

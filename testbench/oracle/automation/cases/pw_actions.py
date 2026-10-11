@@ -1,0 +1,55 @@
+"""Playwright (async): ações sobre a página (preencher, clicar, teclar, marcar, selecionar) e leituras de estado."""
+import asyncio
+from playwright.async_api import async_playwright
+from common import BASE, EXE, serve, step
+
+
+async def main():
+    serve()
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(executable_path=EXE)
+        page = await browser.new_page()
+        await page.goto(BASE + "/")
+        await step("fill", page.fill("#name", "Ana"))
+        await step("input_value", page.input_value("#name"))
+        await step("click", page.click("#go"))
+        await step("out-text", page.text_content("#out"))
+        await step("fill-enter", page.fill("#name", "Bia"))
+        await step("press-enter", page.press("#name", "Enter"))
+        await step("out-text-2", page.text_content("#out"))
+        await step("type", page.type("#name", "Zé", delay=0))
+        await step("input_value-2", page.input_value("#name"))
+        await step("check", page.check("#agree"))
+        await step("is_checked", page.is_checked("#agree"))
+        await step("uncheck", page.uncheck("#agree"))
+        await step("is_checked-2", page.is_checked("#agree"))
+        await step("select_option", page.select_option("#color", "g"))
+        await step("select-value", page.eval_on_selector("#color", "e => e.value"))
+        await step("select-label", page.select_option("#color", label="Vermelho"))
+        await step("hover", page.hover("#box"))
+        await step("focus", page.focus("#name"))
+        await step("active", page.evaluate("document.activeElement.id"))
+        await step("dblclick", page.dblclick("#box"))
+        await step("is_visible", page.is_visible("#box"))
+        await step("is_visible-missing", page.is_visible("#nao"))
+        await step("is_enabled", page.is_enabled("#go"))
+        await step("is_hidden", page.is_hidden("#box"))
+        await step("get_attribute", page.get_attribute("#link", "href"))
+        await step("inner_html", page.inner_html("#list"))
+        await step("bbox", asyncio.sleep(0, (lambda b: [b["width"], b["height"]])(await page.locator("#box").bounding_box())))
+        await step("text_content-list", page.text_content("#list"))
+        await step("click-missing-timeout", page.click("#nao", timeout=300))
+        await step("click-hidden", page.evaluate("document.getElementById('box').style.display='none'"))
+        await step("click-hidden-timeout", page.click("#box", timeout=300))
+        await step("click-force", page.click("#box", force=True, timeout=300))
+        await step("keyboard", page.keyboard.press("Tab"))
+        await step("mouse-move", page.mouse.move(10, 10))
+        await step("mouse-click", page.mouse.click(10, 10))
+        await step("dispatch_event", page.dispatch_event("#go", "click"))
+        await step("out-after-dispatch", page.text_content("#out"))
+        await step("scroll", page.mouse.wheel(0, 100))
+        await step("scroll-y", page.evaluate("scrollY >= 0"))
+        await browser.close()
+
+
+asyncio.run(main())

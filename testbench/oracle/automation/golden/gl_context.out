@@ -1,0 +1,23 @@
+new_context None
+ctx_in default
+ctx_main main
+ctx_gr_context Context child
+ctx_back child
+dead_context <_contextvars.Context object at 0x?>
+ctx_in default
+ctx_main2 main
+ctx_back child
+main_is_none False
+main_type Context
+bad_int TypeError greenlet context must be a contextvars.Context or None
+bad_dict TypeError greenlet context must be a contextvars.Context or None
+shared_in main
+shared_main main
+shared_ctx in_shared
+none_ctx default
+copy_ctx ('main', 'main')
+token_in_main ValueError <Token var=<ContextVar name='var' default='default' at 0x?> at 0x?> was created in a different Context
+token_back default
+set_on_current None
+current_len 0
+main_var_after default

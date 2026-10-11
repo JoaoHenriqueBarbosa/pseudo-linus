@@ -1,0 +1,106 @@
+{
+ "url": "http://motherfuckingwebsite.com/",
+ "recorded_at": 1791582327,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "http://motherfuckingwebsite.com/",
+   "status": 307,
+   "headers": [
+    [
+     "location",
+     "https://motherfuckingwebsite.com/"
+    ]
+   ],
+   "body": null
+  },
+  {
+   "method": "GET",
+   "url": "https://motherfuckingwebsite.com/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html"
+    ]
+   ],
+   "body": "e3f5761a00cf7a5d16c8b9b87c06fe36beb9762ac7137e8d2da4888447cb239b"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.google-analytics.com/analytics.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript"
+    ]
+   ],
+   "body": "f1a61277e3f902f50ab42015d8b07218db9b7601bb0967e54a52bfdcb4fa7e81"
+  },
+  {
+   "method": "POST",
+   "url": "https://www.google-analytics.com/j/collect?v=1&_v=j102&a=120786797&t=pageview&_s=1&dl=https%3A%2F%2Fmotherfuckingwebsite.com%2F&ul=en-us&dt=Motherfucking%20Website&sr=800x600&vp=765x437&_u=IEBAAAABAAAAACAAI~&jid=1434409015&gjid=81861634&cid=49944669.1791582324&tid=UA-45956659-1&_gid=973225314.1791582324&_r=1&_slc=1&z=1460065098",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/plain"
+    ],
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "https://motherfuckingwebsite.com"
+    ]
+   ],
+   "body": "5b50f7d872e7b537122adbaad622a7ee5ff214761de139764607b3358840537b"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.googletagmanager.com/gtag/js?id=G-3PM3V2QKFE&cx=c&_slc=1",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ],
+    [
+     "access-control-allow-headers",
+     "Cache-Control"
+    ]
+   ],
+   "body": "9324c266eb07c1cd5143adaa4ee669ed20c6fb7558ad6af30324aa86da056977"
+  },
+  {
+   "method": "GET",
+   "url": "https://motherfuckingwebsite.com/favicon.ico",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/x-icon"
+    ]
+   ],
+   "body": "56b97f9bcb141cc4e04ebe1320dd6dab5fac7166c6977f92783e5762d2688e10"
+  }
+ ]
+}

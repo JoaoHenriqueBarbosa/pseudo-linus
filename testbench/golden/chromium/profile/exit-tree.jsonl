@@ -1,0 +1,245 @@
+{"mode": "0o700", "path": "ActorSafetyLists", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "AmountExtractionHeuristicRegexes", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "CaptchaProviders", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "CertificateRevocation", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Crowd Deny", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Default", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/.org.chromium.Chromium.Network Persistent State.lWgIEn", "size": 116, "type": "f"}
+{"mode": "0o600", "path": "Default/Account Web Data", "size": 77824, "type": "f"}
+{"mode": "0o600", "path": "Default/Account Web Data-journal", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Affiliation Database", "size": 53248, "type": "f"}
+{"mode": "0o600", "path": "Default/Affiliation Database-journal", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/AutofillAiModelCache", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/AutofillAiModelCache/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/AutofillAiModelCache/LOG", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/AutofillStrikeDatabase", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/AutofillStrikeDatabase/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/AutofillStrikeDatabase/LOG", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/BookmarkMergedSurfaceOrdering", "size": 4, "type": "f"}
+{"mode": "0o700", "path": "Default/BudgetDatabase", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/BudgetDatabase/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/BudgetDatabase/LOG", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/Cache", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Default/Cache/Cache_Data", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Cache/Cache_Data/index", "size": 24, "type": "f"}
+{"mode": "0o700", "path": "Default/Cache/Cache_Data/index-dir", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Cache/Cache_Data/index-dir/the-real-index", "size": 48, "type": "f"}
+{"mode": "0o700", "path": "Default/Cache/No_Vary_Search", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Cache/No_Vary_Search/journal.baj", "size": 4, "type": "f"}
+{"mode": "0o600", "path": "Default/Cache/No_Vary_Search/snapshot.baf", "size": 20, "type": "f"}
+{"mode": "0o700", "path": "Default/ClientCertificates", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/ClientCertificates/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/ClientCertificates/LOG", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/Code Cache", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Default/Code Cache/js", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Code Cache/js/index", "size": 24, "type": "f"}
+{"mode": "0o700", "path": "Default/Code Cache/js/index-dir", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Code Cache/js/index-dir/the-real-index", "size": 48, "type": "f"}
+{"mode": "0o700", "path": "Default/Code Cache/wasm", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Code Cache/wasm/index", "size": 24, "type": "f"}
+{"mode": "0o700", "path": "Default/Code Cache/wasm/index-dir", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Code Cache/wasm/index-dir/the-real-index", "size": 48, "type": "f"}
+{"mode": "0o600", "path": "Default/Cookies", "size": 20480, "type": "f"}
+{"mode": "0o600", "path": "Default/Cookies-journal", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/DIPS", "size": 4096, "type": "f"}
+{"mode": "0o600", "path": "Default/DIPS-wal", "size": 45352, "type": "f"}
+{"mode": "0o700", "path": "Default/DawnGraphiteCache", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/DawnGraphiteCache/data_0", "size": 8192, "type": "f"}
+{"mode": "0o600", "path": "Default/DawnGraphiteCache/data_1", "size": 270336, "type": "f"}
+{"mode": "0o600", "path": "Default/DawnGraphiteCache/data_2", "size": 8192, "type": "f"}
+{"mode": "0o600", "path": "Default/DawnGraphiteCache/data_3", "size": 8192, "type": "f"}
+{"mode": "0o600", "path": "Default/DawnGraphiteCache/index", "size": 262512, "type": "f"}
+{"mode": "0o700", "path": "Default/DawnWebGPUCache", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/DawnWebGPUCache/data_0", "size": 8192, "type": "f"}
+{"mode": "0o600", "path": "Default/DawnWebGPUCache/data_1", "size": 270336, "type": "f"}
+{"mode": "0o600", "path": "Default/DawnWebGPUCache/data_2", "size": 8192, "type": "f"}
+{"mode": "0o600", "path": "Default/DawnWebGPUCache/data_3", "size": 8192, "type": "f"}
+{"mode": "0o600", "path": "Default/DawnWebGPUCache/index", "size": 262512, "type": "f"}
+{"mode": "0o700", "path": "Default/Extension Rules", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Extension Rules/000003.log", "size": 38, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension Rules/CURRENT", "size": 16, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension Rules/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension Rules/LOG", "size": 195, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension Rules/MANIFEST-000001", "size": 41, "type": "f"}
+{"mode": "0o700", "path": "Default/Extension Scripts", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Extension Scripts/000003.log", "size": 19, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension Scripts/CURRENT", "size": 16, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension Scripts/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension Scripts/LOG", "size": 199, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension Scripts/MANIFEST-000001", "size": 41, "type": "f"}
+{"mode": "0o700", "path": "Default/Extension State", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Extension State/000003.log", "size": 57, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension State/CURRENT", "size": 16, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension State/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension State/LOG", "size": 195, "type": "f"}
+{"mode": "0o600", "path": "Default/Extension State/MANIFEST-000001", "size": 41, "type": "f"}
+{"mode": "0o600", "path": "Default/Favicons", "size": 20480, "type": "f"}
+{"mode": "0o600", "path": "Default/Favicons-journal", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/GCM Store", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/GCM Store/000003.log", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/GCM Store/CURRENT", "size": 16, "type": "f"}
+{"mode": "0o700", "path": "Default/GCM Store/Encryption", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/GCM Store/Encryption/000003.log", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/GCM Store/Encryption/CURRENT", "size": 16, "type": "f"}
+{"mode": "0o600", "path": "Default/GCM Store/Encryption/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/GCM Store/Encryption/LOG", "size": 205, "type": "f"}
+{"mode": "0o600", "path": "Default/GCM Store/Encryption/MANIFEST-000001", "size": 41, "type": "f"}
+{"mode": "0o600", "path": "Default/GCM Store/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/GCM Store/LOG", "size": 183, "type": "f"}
+{"mode": "0o600", "path": "Default/GCM Store/MANIFEST-000001", "size": 41, "type": "f"}
+{"mode": "0o700", "path": "Default/GPUCache", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/GPUCache/data_0", "size": 8192, "type": "f"}
+{"mode": "0o600", "path": "Default/GPUCache/data_1", "size": 270336, "type": "f"}
+{"mode": "0o600", "path": "Default/GPUCache/data_2", "size": 8192, "type": "f"}
+{"mode": "0o600", "path": "Default/GPUCache/data_3", "size": 8192, "type": "f"}
+{"mode": "0o600", "path": "Default/GPUCache/index", "size": 262512, "type": "f"}
+{"mode": "0o600", "path": "Default/History", "size": 163840, "type": "f"}
+{"mode": "0o600", "path": "Default/History-journal", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/LOG", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/Local Storage", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Default/Local Storage/leveldb", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Local Storage/leveldb/000003.log", "size": 30, "type": "f"}
+{"mode": "0o600", "path": "Default/Local Storage/leveldb/CURRENT", "size": 16, "type": "f"}
+{"mode": "0o600", "path": "Default/Local Storage/leveldb/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Local Storage/leveldb/LOG", "size": 207, "type": "f"}
+{"mode": "0o600", "path": "Default/Local Storage/leveldb/MANIFEST-000001", "size": 41, "type": "f"}
+{"mode": "0o600", "path": "Default/Login Data", "size": 40960, "type": "f"}
+{"mode": "0o600", "path": "Default/Login Data For Account", "size": 40960, "type": "f"}
+{"mode": "0o600", "path": "Default/Login Data For Account-journal", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Login Data-journal", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Network Action Predictor", "size": 53248, "type": "f"}
+{"mode": "0o600", "path": "Default/Network Action Predictor-journal", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/PersistentOriginTrials", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/PersistentOriginTrials/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/PersistentOriginTrials/LOG", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Preferences", "size": 15834, "type": "f"}
+{"mode": "0o644", "path": "Default/PreferredApps", "size": 33, "type": "f"}
+{"mode": "0o644", "path": "Default/README", "size": 170, "type": "f"}
+{"mode": "0o600", "path": "Default/Reporting and NEL", "size": 36864, "type": "f"}
+{"mode": "0o600", "path": "Default/Reporting and NEL-journal", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/SCT Auditing Pending Reports", "size": 2, "type": "f"}
+{"mode": "0o600", "path": "Default/Secure Preferences", "size": 95, "type": "f"}
+{"mode": "0o700", "path": "Default/Segmentation Platform", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Default/Segmentation Platform/SegmentInfoDB", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Segmentation Platform/SegmentInfoDB/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Segmentation Platform/SegmentInfoDB/LOG", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/Segmentation Platform/SignalDB", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Segmentation Platform/SignalDB/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Segmentation Platform/SignalDB/LOG", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/Segmentation Platform/SignalStorageConfigDB", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Segmentation Platform/SignalStorageConfigDB/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Segmentation Platform/SignalStorageConfigDB/LOG", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/ServerCertificate", "size": 20480, "type": "f"}
+{"mode": "0o600", "path": "Default/ServerCertificate-journal", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/Session Storage", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Session Storage/000003.log", "size": 49, "type": "f"}
+{"mode": "0o600", "path": "Default/Session Storage/CURRENT", "size": 16, "type": "f"}
+{"mode": "0o600", "path": "Default/Session Storage/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Session Storage/LOG", "size": 195, "type": "f"}
+{"mode": "0o600", "path": "Default/Session Storage/MANIFEST-000001", "size": 41, "type": "f"}
+{"mode": "0o700", "path": "Default/Sessions", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Sessions/Session_13436139456056751", "size": 1074, "type": "f"}
+{"mode": "0o700", "path": "Default/Shared Dictionary", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Default/Shared Dictionary/cache", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Shared Dictionary/cache/index", "size": 24, "type": "f"}
+{"mode": "0o700", "path": "Default/Shared Dictionary/cache/index-dir", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Shared Dictionary/cache/index-dir/the-real-index", "size": 48, "type": "f"}
+{"mode": "0o600", "path": "Default/Shared Dictionary/db", "size": 45056, "type": "f"}
+{"mode": "0o600", "path": "Default/Shared Dictionary/db-journal", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Shortcuts", "size": 20480, "type": "f"}
+{"mode": "0o600", "path": "Default/Shortcuts-journal", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/Site Characteristics Database", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Site Characteristics Database/000003.log", "size": 40, "type": "f"}
+{"mode": "0o600", "path": "Default/Site Characteristics Database/CURRENT", "size": 16, "type": "f"}
+{"mode": "0o600", "path": "Default/Site Characteristics Database/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Site Characteristics Database/LOG", "size": 223, "type": "f"}
+{"mode": "0o600", "path": "Default/Site Characteristics Database/MANIFEST-000001", "size": 41, "type": "f"}
+{"mode": "0o700", "path": "Default/Sync Data", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Default/Sync Data/LevelDB", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/Sync Data/LevelDB/000003.log", "size": 118, "type": "f"}
+{"mode": "0o600", "path": "Default/Sync Data/LevelDB/CURRENT", "size": 16, "type": "f"}
+{"mode": "0o600", "path": "Default/Sync Data/LevelDB/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Sync Data/LevelDB/LOG", "size": 199, "type": "f"}
+{"mode": "0o600", "path": "Default/Sync Data/LevelDB/MANIFEST-000001", "size": 41, "type": "f"}
+{"mode": "0o600", "path": "Default/Top Sites", "size": 20480, "type": "f"}
+{"mode": "0o600", "path": "Default/Top Sites-journal", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Trust Tokens", "size": 36864, "type": "f"}
+{"mode": "0o600", "path": "Default/Trust Tokens-journal", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/Web Data", "size": 157696, "type": "f"}
+{"mode": "0o600", "path": "Default/Web Data-journal", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/blob_storage", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Default/blob_storage/789759c6-dd52-42f5-a93e-afb6efba53ad", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Default/chrome_cart_db", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/chrome_cart_db/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/chrome_cart_db/LOG", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/commerce_subscription_db", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/commerce_subscription_db/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/commerce_subscription_db/LOG", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/declarative_performance_observer.db", "size": 32768, "type": "f"}
+{"mode": "0o600", "path": "Default/declarative_performance_observer.db-journal", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/discount_infos_db", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/discount_infos_db/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/discount_infos_db/LOG", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/discounts_db", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/discounts_db/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/discounts_db/LOG", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/heavy_ad_intervention_opt_out.db", "size": 16384, "type": "f"}
+{"mode": "0o600", "path": "Default/heavy_ad_intervention_opt_out.db-journal", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/optimization_guide_hint_cache_store", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/optimization_guide_hint_cache_store/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/optimization_guide_hint_cache_store/LOG", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/parcel_tracking_db", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/parcel_tracking_db/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/parcel_tracking_db/LOG", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "Default/shared_proto_db", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/shared_proto_db/000003.log", "size": 7194, "type": "f"}
+{"mode": "0o600", "path": "Default/shared_proto_db/CURRENT", "size": 16, "type": "f"}
+{"mode": "0o600", "path": "Default/shared_proto_db/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/shared_proto_db/LOG", "size": 195, "type": "f"}
+{"mode": "0o600", "path": "Default/shared_proto_db/MANIFEST-000001", "size": 41, "type": "f"}
+{"mode": "0o700", "path": "Default/shared_proto_db/metadata", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "Default/shared_proto_db/metadata/000003.log", "size": 938, "type": "f"}
+{"mode": "0o600", "path": "Default/shared_proto_db/metadata/CURRENT", "size": 16, "type": "f"}
+{"mode": "0o600", "path": "Default/shared_proto_db/metadata/LOCK", "size": 0, "type": "f"}
+{"mode": "0o600", "path": "Default/shared_proto_db/metadata/LOG", "size": 213, "type": "f"}
+{"mode": "0o600", "path": "Default/shared_proto_db/metadata/MANIFEST-000001", "size": 41, "type": "f"}
+{"mode": "0o700", "path": "Dictionaries", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "FileTypePolicies", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "FirstPartySetsPreloaded", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "GPUPersistentCache", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "GPUPersistentCache/GPUCache", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "GPUPersistentCache/GPUCache/BOYI7YJWAMYETP7UTLSRET53S6XBJN22", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "GPUPersistentCache/GPUCache/BOYI7YJWAMYETP7UTLSRET53S6XBJN22/cache.db", "size": 4096, "type": "f"}
+{"mode": "0o600", "path": "GPUPersistentCache/GPUCache/BOYI7YJWAMYETP7UTLSRET53S6XBJN22/cache.db-wal", "size": 12392, "type": "f"}
+{"mode": "0o600", "path": "GPUPersistentCache/GPUCache/BOYI7YJWAMYETP7UTLSRET53S6XBJN22/cache.journal", "size": 0, "type": "f"}
+{"mode": "0o644", "path": "Last Version", "size": 13, "type": "f"}
+{"mode": "0o600", "path": "Local State", "size": 2622, "type": "f"}
+{"mode": "0o700", "path": "MEIPreload", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "NativeMessagingHosts", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "OnDeviceHeadSuggestModel", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "OptimizationGuideModelsManifest", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "OptimizationHints", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "OriginTrials", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "PKIMetadata", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "PrivacySandboxAttestationsPreloaded", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "SSLErrorAssistant", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Safe Browsing", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "SafetyTips", "size": 4096, "type": "d"}
+{"link": "11873596056916537501", "mode": "0o777", "path": "SingletonCookie", "size": 20, "type": "l"}
+{"link": "4fbb088dde71-7", "mode": "0o777", "path": "SingletonLock", "size": 14, "type": "l"}
+{"link": "/tmp/org.chromium.Chromium.WKhMyu/SingletonSocket", "mode": "0o777", "path": "SingletonSocket", "size": 49, "type": "l"}
+{"mode": "0o700", "path": "Subresource Filter", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "Subresource Filter/Unindexed Rules", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "TrustTokenKeyCommitments", "size": 4096, "type": "d"}
+{"mode": "0o644", "path": "Variations", "size": 85, "type": "f"}
+{"mode": "0o700", "path": "WasmTtsEngine", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "ZxcvbnData", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "component_crx_cache", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "extensions_crx_cache", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "first_party_sets.db", "size": 49152, "type": "f"}
+{"mode": "0o600", "path": "first_party_sets.db-journal", "size": 0, "type": "f"}
+{"mode": "0o700", "path": "hyphen-data", "size": 4096, "type": "d"}
+{"mode": "0o700", "path": "segmentation_platform", "size": 4096, "type": "d"}
+{"mode": "0o600", "path": "segmentation_platform/ukm_db", "size": 4096, "type": "f"}
+{"mode": "0o600", "path": "segmentation_platform/ukm_db-wal", "size": 90672, "type": "f"}

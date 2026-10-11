@@ -1,0 +1,8 @@
+limit 4
+started 4
+failure ('RuntimeError', "can't start new thread", ("can't start new thread",), False, False, None)
+start_new_thread RuntimeError can't start new thread ("can't start new thread",) RuntimeError("can't start new thread")
+active 5
+join_failed cannot join thread before it is started
+active_after_join 1
+restart_ok True

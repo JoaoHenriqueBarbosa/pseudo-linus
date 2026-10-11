@@ -43,15 +43,18 @@ impl ExtObject for ComplexConst {
         Some(if combined == -1 { -2 } else { combined })
     }
 
-    fn eq_value(&self, other: &Value) -> Option<bool> {
+    fn eq_value(&self, other: &Value) -> Option<crate::vm::PyResult<bool>> {
         let (re, im) = parts(other)?;
-        Some(self.re == re && self.im == im)
+        Some(Ok(self.re == re && self.im == im))
     }
 
     /// `co_consts[i] == 2j`: o literal em execução é uma instância de `complex` de `_complex.py`, e o `richcmp` da
     /// extensão decide a igualdade antes do `__eq__` dela.
     fn richcmp(&self, op: &str, other: &Value) -> Option<Result<bool, crate::vm::PyException>> {
-        let same = self.eq_value(other)?;
+        let same = match self.eq_value(other)? {
+            Ok(same) => same,
+            Err(e) => return Some(Err(e)),
+        };
         match op {
             "==" => Some(Ok(same)),
             "!=" => Some(Ok(!same)),

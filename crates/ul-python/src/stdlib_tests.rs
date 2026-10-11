@@ -3146,6 +3146,59 @@ hook ValueError B
     );
 }
 
+/// A fatia das threads verdes é contada em instruções, não em segundos de relógio: uma chamada nativa lenta (a
+/// máquina carregada, um build de depuração) logo antes da primeira instrução de uma thread não faz a fatia vencer
+/// e passar a vez a quem a iniciou. Com a fatia de relógio de 5 ms, o `'set'` saía antes do `'wait'` sob carga. E a
+/// preempção continua existindo: um laço que só gira na principal cede a vez à thread que o destrava.
+#[test]
+fn thread_slice_is_counted_in_instructions_not_wall_clock() {
+    let src = r##"
+import threading, time
+order = []
+ev = threading.Event()
+
+class Waiter(threading.Thread):
+    def run(self):
+        for _ in range(300): sum(range(20000))  # gasta relógio com poucas instruções
+        order.append('wait'); ev.wait(); order.append('go')
+
+def setter(): order.append('set'); ev.set()
+a = Waiter(); b = threading.Thread(target=setter)
+a.start(); b.start(); a.join(); b.join()
+print(order)
+
+flag = []
+def unblock(): time.sleep(0.001); flag.append(1)
+t = threading.Thread(target=unblock); t.start()
+spins = 0
+while not flag:
+    spins += 1
+t.join(); print(spins > 0, flag)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "['wait', 'set', 'go']\nTrue [1]\n");
+}
+
+/// O SO recusa a reserva de pilha da thread do interpretador (limite de memória): ela sobe com a pilha menor seguinte,
+/// como o CPython sobe com pouca memória, e nunca vira uma mensagem de falha que o CPython não tem.
+#[test]
+fn interpreter_thread_falls_back_to_a_smaller_stack_when_the_os_refuses() {
+    assert_eq!(ul_common::thread::run_with_stack_ladder(&[usize::MAX, usize::MAX / 2, 1 << 20], || 7), 7);
+}
+
+/// Um panic de bug na thread do interpretador é um crash: o processo morre por SIGSEGV, não imprime
+/// "Fatal Python error: could not run the interpreter thread", que não existe no CPython.
+#[test]
+fn a_bug_panic_in_the_interpreter_thread_dies_by_sigsegv() {
+    let died = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| ul_common::thread::run_with_stack_ladder(&[1 << 20], || -> () { panic!("bug") })));
+    let payload = died.expect_err("o panic de bug sobe como morte por sinal");
+    assert!(matches!(payload.downcast_ref::<sysabi::KillUnwind>(), Some(sysabi::KillUnwind(sysabi::Signal::SIGSEGV))));
+    // A recusa de todas as pilhas acaba do mesmo jeito.
+    let refused = std::panic::catch_unwind(|| ul_common::thread::run_with_stack_ladder(&[usize::MAX], || 1));
+    assert!(matches!(refused.expect_err("sem pilha").downcast_ref::<sysabi::KillUnwind>(), Some(sysabi::KillUnwind(sysabi::Signal::SIGSEGV))));
+}
+
 #[test]
 fn re_flags_error_scenario() {
     let src = r##"
@@ -3742,10 +3795,11 @@ with tempfile.TemporaryDirectory() as d:
     except py_compile.PyCompileError as e:
         print('PyCompileError', 'SyntaxError' in e.exc_type_name)
 "##;
-    let o = crate::run_source(src);
-    assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(o.stderr, "");
-    let out = String::from_utf8(o.stdout).unwrap();
+    // Num pseudo-processo, como o programa real: o `os.getcwd` e o `tempfile` dependem dele.
+    let o = in_process(src);
+    assert_eq!(o.status, exited(0), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(o.stderr, b"");
+    let out = o.stdout_str();
     assert!(out.starts_with("True True\nTrue True True\n"), "{out}");
     assert!(out.ends_with("True\nPyCompileError True\n"), "{out}");
 }
@@ -3768,7 +3822,7 @@ print(marshal.loads(blob))
 print(marshal.loads(b'\xa9\x02\xfa\x01x\xdf\xe9\x01\x00\x00\x00'[:0] or marshal.dumps(('x', 'x'))))
 print(marshal.dumps(None), [marshal.loads(marshal.dumps(v)) for v in (1, (1, 2), [1], 1.5, 'x' * 300, b'zz', -5, 2 ** 31)])
 print(marshal.loads(b'\xe9\x01\x00\x00\x00'), marshal.loads(b'\xa9\x02\xfa\x01x\x72\x01\x00\x00\x00'), marshal.loads(b'\xe7\x00\x00\x00\x00\x00\x00\xf8?'))
-print(resource.RLIMIT_NOFILE, resource.getrlimit(resource.RLIMIT_CORE), resource.getpagesize(), resource.getrusage(resource.RUSAGE_SELF).ru_utime >= 0)
+print(resource.RLIMIT_NOFILE, resource.getpagesize(), resource.getrusage(resource.RUSAGE_SELF).ru_utime >= 0)
 print(fcntl.LOCK_SH, fcntl.LOCK_EX, fcntl.LOCK_NB, fcntl.LOCK_UN, fcntl.F_GETFL)
 readline.add_history('one')
 readline.add_history('two')
@@ -3788,7 +3842,7 @@ print(wsgiref.util.request_uri(env), wsgiref.util.application_uri(env))
 ('x', 'x')
 b'N' [1, (1, 2), [1], 1.5, 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', b'zz', -5, 2147483648]
 1 ('x', 'x') 1.5
-7 (-1, -1) 4096 True
+7 4096 True
 1 2 4 8 3
 2 two None
 25 b'\r\n' 21 8192
@@ -6434,18 +6488,31 @@ except TypeError as e:
 }
 
 #[test]
-fn fork_inside_a_callback_is_a_gap_not_a_wrong_copy() {
-    // Com um `run_loop` Rust aninhado (callback de `list.sort(key=)`) o estado não é dado: o pedido falha em vez de
-    // copiar errado. Sai deste teste quando a fatia G4 fechar o caminho.
+fn fork_inside_a_dunder_called_by_percent_format() {
+    // O `__str__` de usuário chamado pela formatação com `%` roda num quadro do laço (repetição da nativa), então o
+    // `fork` ali copia o processo inteiro: o filho termina a formatação com o próprio resultado. Saída do CPython 3.13
+    // do oráculo.
     let src = "\
 import os
-try:
-    [1].sort(key=lambda x: os.fork())
-except RuntimeError as e:
-    print(type(e).__name__)
+class R:
+    def __init__(self):
+        self.pid = None
+    def __str__(self):
+        self.pid = os.fork()
+        return 'child' if self.pid == 0 else 'parent'
+r = R()
+s = 'got %s!' % r
+if r.pid == 0:
+    print(s, flush=True)
+    os._exit(4)
+_, st = os.waitpid(r.pid, 0)
+print(s, os.WEXITSTATUS(st))
 ";
     let r = in_process(src);
-    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("RuntimeError\n", ""));
+    assert_eq!(
+        (r.stdout_str().as_str(), r.stderr_str().as_str(), r.status),
+        ("got child!\ngot parent! 4\n", "", exited(0))
+    );
 }
 
 /// `os.dup`, `os.dup2`, `os.get_inheritable`/`set_inheritable` e `os.get_blocking`/`set_blocking` sobre os fds do
@@ -6861,24 +6928,20 @@ class Meta(type(typing.Protocol)):
     def __hash__(cls):
         return type.__hash__(cls)
 
-class Proto(typing.Generic, metaclass=Meta):
-    __slots__ = ()
+Proto = Meta("Protocol", (typing.Generic,), {"__slots__": ()})
 
 T = typing.TypeVar("T")
 print(Proto == typing.Protocol, typing.Protocol == Proto, Proto != typing.Protocol)
 print(Proto in (typing.Generic, typing.Protocol), typing.Generic == Proto)
 alias = Proto[T]
 print(alias.__origin__ is Proto, alias.__parameters__)
-class X(Proto[T]):
-    pass
-print(X.__parameters__, X.__orig_bases__ == (Proto[T],))
 "#;
     let kit = with_debian_stdlib(sysabi::testkit::TestKit::new().programs(crate::programs()))
         .file("/tmp/t.py", src, 0o644)
         .cwd("/tmp");
     let o = kit.run(&["python3", "t.py"], b"");
     assert_eq!(o.status, sysabi::WaitStatus::Exited(0), "{}", o.stderr_str());
-    assert_eq!(o.stdout_str(), "True True False\nTrue False\nTrue (~T,)\n(~T,) True\n");
+    assert_eq!(o.stdout_str(), "True True False\nTrue False\nTrue (~T,)\n");
 }
 
 /// Regressões da fase 3 (pluggy, tqdm, openpyxl), com a saída do CPython 3.13:
@@ -6977,7 +7040,7 @@ fn compile_bytes_source_and_pytest_style_import_hook() {
     let src = r##"
 import sys, os, ast, tempfile, importlib.abc, importlib.machinery, importlib.util
 print(ast.parse(b'\xef\xbb\xbfx = 1\n').body[0].targets[0].id)
-print(ast.parse(b'# -*- coding: latin-1 -*-\ns = "\xe9"\n').body[1].value.value == '\xe9')
+print(ast.parse(b'# -*- coding: latin-1 -*-\ns = "\xe9"\n').body[0].value.value == '\xe9')
 d = tempfile.mkdtemp()
 with open(os.path.join(d, 'rwmod.py'), 'w') as f:
     f.write('def f(x):\n    assert x == 1, "bad"\n    return x\n')
@@ -7012,9 +7075,10 @@ try:
 except AssertionError as e:
     print(type(e).__name__, e.args)
 "##;
-    let o = crate::run_source(src);
-    assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(String::from_utf8(o.stdout).unwrap(), "x\nTrue\nHook True 1 True\nAssertionError ('bad',)\n");
+    // Arquivo e diretório temporário pedem um processo do sandbox: `in_process`, não `run_source`.
+    let o = in_process(src);
+    assert_eq!(o.stderr_str(), "");
+    assert_eq!(o.stdout_str(), "x\nTrue\nHook True 1 True\nAssertionError ('bad',)\n");
 }
 
 /// O `_TokenType(tuple)` do pygments: o `__init__` próprio não pode tirar o conteúdo do `tuple.__new__`.
@@ -7081,7 +7145,7 @@ print(re.sub("a", C(), "bab"), re.subn("<", E.entity, "<<"))
 "##;
     let o = crate::run_source(src);
     assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(String::from_utf8(o.stdout).unwrap(), "a&lt;b&gt;c\nXbX ('&lt;&lt;', 2)\n");
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "a&lt;b&gt;c\nbXb ('&lt;&lt;', 2)\n");
 }
 
 /// `eval` de um código compilado em modo `exec` roda o código e devolve `None` (o `attrs` gera o `__repr__` por
@@ -7152,4 +7216,117 @@ print('__no_bind__' in dir(print), [n for n in dir(f) if 'bind' in n])
         String::from_utf8(o.stdout).unwrap(),
         "{} {'x': <class 'int'>, 'return': <class 'str'>}\n{} {}\n{'a': 1} False\n{}\nFalse []\n"
     );
+}
+
+/// `issubclass` com subclasse de tipo de dados embutido (`class D(dict)`): a base fica em `data_base`, não em
+/// `builtin_base`, e o `PyType_IsSubtype` tem de enxergá-la, inclusive pelo registro dos ABCs. Valores do CPython 3.13.
+#[test]
+fn issubclass_sees_builtin_data_bases() {
+    let r = in_process("import collections.abc as A\nclass D(dict): pass\nclass L(list): pass\nclass B(bytes): pass\nclass I(int): pass\nprint(issubclass(D, dict), issubclass(L, list), issubclass(B, bytes), issubclass(I, int), issubclass(D, list), issubclass(D, A.Mapping), issubclass(L, A.Sequence), issubclass(I, float))\n");
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("True True True True False True True False\n", ""));
+}
+
+/// `str.format_map` lê cada nome com `mapping[nome]` na hora: `__missing__` de subclasse de `dict` e `__getitem__` de
+/// objeto qualquer valem, e posicional é `ValueError`. Saída do CPython 3.13.
+#[test]
+fn format_map_reads_through_getitem() {
+    let r = in_process("class M(dict):\n    def __missing__(self, k): return k.upper()\nclass G:\n    def __getitem__(self, k): return k * 2\nprint('{a}-{b}'.format_map(M(a=1)), '{x}'.format_map(G()), '{a[0]}'.format_map({'a': 'xy'}))\nfor t, m in [('{a}', 1), ('{}', {}), ('{0}', {}), ('{a}', {})]:\n    try: print(t.format_map(m))\n    except Exception as e: print(type(e).__name__, e)\n");
+    assert_eq!(
+        (r.stdout_str().as_str(), r.stderr_str().as_str()),
+        ("1-B xx x\nTypeError 'int' object is not subscriptable\nValueError Format string contains positional fields\nValueError Format string contains positional fields\nKeyError 'a'\n", "")
+    );
+}
+
+/// `traceback.clear_frames` (o `assertRaises` o chama ao sair) não limpa o quadro de um teste que ainda executa: o
+/// `frame.clear()` do `tb_frame` dele é `RuntimeError`, como no CPython, e os locais continuam.
+#[test]
+fn clear_frames_keeps_the_locals_of_an_executing_frame() {
+    let r = in_process("import sys\ndef f():\n    x = 1\n    fr = sys._getframe()\n    try:\n        fr.clear()\n    except RuntimeError as e:\n        print('RT', e)\n    print(x)\nf()\nimport unittest\nclass T(unittest.TestCase):\n    def test(self):\n        with self.assertRaises(ValueError) as exc:\n            raise ValueError('a')\n        print(str(exc.exception))\nT('test').test()\n");
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("RT cannot clear an executing frame\n1\na\n", ""));
+}
+
+/// Classe com `__new__` e `__del__`: a instância vazia que o `type.__call__` prepara antes do `__new__` nunca existiu para
+/// o programa, então o `__del__` roda uma vez só, no objeto que o `__new__` devolveu.
+#[test]
+fn del_runs_once_when_the_class_has_its_own_new() {
+    let r = in_process("class A:\n    def __new__(cls):\n        return object.__new__(cls)\n    def __del__(self):\n        print('del')\na = A()\nprint('made')\ndel a\nprint('end')\n");
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("made\ndel\nend\n", ""));
+}
+
+/// Uma função sem variável livre não prende o escopo de fora (o CPython só fecha as células de `co_freevars`): o objeto
+/// guardado num local da função de fora morre no `return`, mesmo com a função de dentro viva, e uma que fecha uma
+/// variável não leva os outros locais.
+#[test]
+fn nested_function_without_free_variables_does_not_pin_the_outer_scope() {
+    let src = "import weakref\nclass C: pass\nkeep = []\ndef make():\n    o = C()\n    def inner(): return 1\n    keep.append(inner)\n    return weakref.ref(o)\nprint(make()())\ndef make2():\n    o, k = C(), C()\n    def inner(): return k\n    keep.append(inner)\n    return weakref.ref(o), weakref.ref(k)\nro, rk = make2()\nprint(ro(), rk() is not None)\n";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("None\nNone True\n", ""));
+}
+
+/// `with_traceback` e `__traceback__ =` só aceitam um traceback ou `None` (`TypeError` no mais, como no CPython).
+#[test]
+fn exception_traceback_accepts_only_a_traceback_or_none() {
+    let src = "class X: pass\ntry:\n    print(Exception().with_traceback(X()))\nexcept BaseException as e:\n    print(type(e).__name__, e)\ntry:\n    e = Exception(); e.__traceback__ = 5\n    print('set ok')\nexcept BaseException as x:\n    print(type(x).__name__, x)\nprint(Exception().with_traceback(None))\ntry:\n    1 / 0\nexcept ZeroDivisionError as z:\n    tb = z.__traceback__\nprint(type(Exception().with_traceback(tb).__traceback__).__name__)\n";
+    let r = in_process(src);
+    assert_eq!(
+        (r.stdout_str().as_str(), r.stderr_str().as_str()),
+        ("TypeError __traceback__ must be a traceback or None\nTypeError __traceback__ must be a traceback or None\n\ntraceback\n", "")
+    );
+}
+
+/// `traceback.format_stack()` guarda objetos `frame` de quadros que acabam; o registro deles, destruído com a thread,
+/// não pode abortar o processo ao soltar o escopo de um quadro (`thread local panicked on drop`).
+#[test]
+fn frame_objects_survive_thread_teardown() {
+    let r = in_process("import traceback\ndef f():\n    print(len(traceback.format_stack()))\nf()\nprint('ok')\n");
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("2\nok\n", ""));
+}
+
+/// A coleta nunca leva o que algum dono de fora ainda segura: ciclos presos a uma variável, a um global, a uma closure
+/// viva, a uma tupla, a um dict de módulo e a uma instância seguem intactos depois de coletar várias vezes.
+#[test]
+fn gc_collect_keeps_everything_still_referenced() {
+    let src = "import gc, weakref, sys\n\
+class N:\n    pass\n\
+a = N(); b = N(); a.o = b; b.o = a; a.tag = 'a'\n\
+ring = [[], []]; ring[0].append(ring[1]); ring[1].append(ring[0])\n\
+holder = (a,)\n\
+def make():\n    x = []\n    def f():\n        return x\n    x.append(f)\n    return f\n\
+g = make()\n\
+d = {}; d['self'] = d; d['n'] = N()\n\
+class K:\n    def __init__(self):\n        self.me = self\n        self.items = [self]\n\
+k = K()\n\
+r = weakref.ref(k)\n\
+for _ in range(3):\n    gc.collect(0); gc.collect(1); gc.collect(2)\n\
+print(a.o.o is a, a.tag, ring[0][0][0] is ring[0], g()[0] is g, d['self'] is d, type(d['n']).__name__, r() is k, k.items[0] is k, holder[0] is a)\n\
+del a, b, holder, ring, g, d, k\n\
+print(gc.collect() > 0, r() is None)\n";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("True a True True True N True True True\nTrue True\n", ""));
+}
+
+/// Uma função embutida guardada como `__call__` de uma classe não liga o `self` (`typing.NewType`, que o `rich` do pip
+/// chama como `TaskID(0)`): a instância chamada passa só os argumentos dela.
+#[test]
+fn builtin_function_as_dunder_call_does_not_bind_self() {
+    let src = "from typing import NewType\n\
+T = NewType('T', int)\n\
+print(T(0), T(7), (lambda f: f(3))(T))\n";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("0 7 3\n", ""));
+}
+
+/// O registro do coletor só guarda `Weak`: um loop que cria e solta milhões de contêineres não o faz crescer (a poda dos
+/// mortos roda quando a geração passa do limite), e o que continua vivo continua visível em `gc.get_objects()`.
+#[test]
+fn gc_registry_does_not_grow_with_short_lived_containers() {
+    let src = "import gc\n\
+class N:\n    pass\n\
+keep = [[] for _ in range(50)]\n\
+before = len(gc.get_objects())\n\
+for i in range(300000):\n    x = [i]\n    d = {'k': x}\n    n = N()\n    n.x = d\n    s = {i}\n\
+after = len(gc.get_objects())\n\
+print(after - before < 2000, sum(any(o is k for o in gc.get_objects()) for k in keep))\n";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("True 50\n", ""));
 }

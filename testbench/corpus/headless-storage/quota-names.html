@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>quota-names</title>
+<script>
+// Mantém o orçamento de tempo virtual ocupado com E/S real até o IndexedDB terminar.
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 200 && !done; i++) await fetch('/quota-names.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+indexedDB.databases().then(() => setTimeout(() => { done = true; }, 200));
+</script>
+<body>quota-names</body>

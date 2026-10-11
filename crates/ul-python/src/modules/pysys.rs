@@ -125,7 +125,11 @@ fn frame_at_depth(vm: &mut Vm, depth: usize, fresh_innermost: bool) -> PyResult<
         });
         line = *caller_line;
     }
-    chain.push(FrameLink { line, name: "<module>".to_string(), file: script, code: None, env: None, caller_line: 0 });
+    // O `<module>` do script é o fundo da pilha da thread principal: a de uma thread verde (uma thread de `threading`,
+    // um greenlet) começa na função dela, sem quadro de módulo embaixo.
+    if !crate::gthread::in_secondary() {
+        chain.push(FrameLink { line, name: "<module>".to_string(), file: script, code: None, env: None, caller_line: 0 });
+    }
     crate::frameobj::live_frame_at(chain, depth, fresh_innermost)
         .ok_or_else(|| exc("ValueError", "call stack is not deep enough"))
 }
@@ -221,6 +225,168 @@ fn setrecursionlimit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value>
 
 /// `_builtin(f)`: marca uma função escrita em Python que no CPython é embutida (C). Ela não vira método
 /// ligado quando é guardada num atributo de classe (`converter = time.localtime` do `logging`).
+/// `_referents(obj)`: o que o `tp_traverse` do tipo de `obj` visita, para o `gc.get_referents`.
+fn referents(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let obj = args.first().cloned().unwrap_or(Value::None);
+    Ok(Value::list(crate::referents::referents(vm, &obj)))
+}
+
+/// `_gc_objects(generation)`: os objetos registrados vivos da geração (`None`: todos), em ordem de criação.
+fn gc_objects(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let generation = match args.first() {
+        None | Some(Value::None) => None,
+        Some(Value::Int(g)) if (0..=2).contains(g) => Some(*g as usize),
+        Some(Value::Int(_)) => return Err(exc("ValueError", "generation parameter must be less than the number of available generations (3)")),
+        Some(other) => return Err(crate::vm::type_error(format!("'{}' object cannot be interpreted as an integer", other.type_name()))),
+    };
+    let objects = crate::gcreg::live(generation).into_iter().filter_map(|l| match l {
+        crate::gcreg::Live::Value(v) if crate::gcreg::is_tracked(&v) => Some(v),
+        _ => None,
+    });
+    Ok(Value::list(objects.collect()))
+}
+
+/// `_gc_referrers(objs)`: os objetos registrados que seguram algum dos `objs` (o `gc.get_referrers`).
+fn gc_referrers(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let targets = match args.first() {
+        Some(Value::Tuple(t)) => t.to_vec(),
+        Some(Value::List(l)) => l.borrow().clone(),
+        _ => Vec::new(),
+    };
+    let mut found = Vec::new();
+    for object in crate::gcreg::live(None) {
+        let crate::gcreg::Live::Value(object) = object else { continue };
+        if crate::referents::referents(vm, &object).iter().any(|r| targets.iter().any(|t| crate::gcreg::same_object(r, t))) {
+            found.push(object);
+        }
+    }
+    Ok(Value::list(found))
+}
+
+/// `_gc_is_tracked(obj)`: o `gc.is_tracked`.
+fn gc_is_tracked(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(Value::Bool(args.first().is_some_and(crate::gcreg::is_tracked)))
+}
+
+/// `_gc_count()`: o `gc.get_count()`.
+fn gc_count(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(Value::tuple(crate::gcreg::counts().iter().map(|n| Value::Int(*n as i64)).collect()))
+}
+
+/// `_gc_collect(generation)`: `gc.collect`, devolve os objetos inalcançáveis achados.
+fn gc_collect(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let generation = match args.first() {
+        Some(Value::Int(g)) if (0..=2).contains(g) => *g as usize,
+        _ => return Err(exc("ValueError", "invalid generation")),
+    };
+    Ok(Value::Int(crate::gcreg::collect_generation(vm, generation) as i64))
+}
+
+/// `_gc_is_finalized(obj)`: o `gc.is_finalized`.
+fn gc_is_finalized(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(Value::Bool(matches!(args.first(), Some(Value::Instance(i)) if i.finalized.get())))
+}
+
+/// `_gc_bind(garbage, callbacks)` entrega as listas do módulo `gc`; `_gc_bind(None, None, flags)` as flags de debug.
+fn gc_bind(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let list = |v: Option<&Value>| match v {
+        Some(v @ Value::List(_)) => Some(v.clone()),
+        _ => None,
+    };
+    let debug = match args.get(2) {
+        Some(Value::Int(d)) => Some(*d),
+        _ => None,
+    };
+    crate::gcreg::bind(list(args.first()), list(args.get(1)), debug);
+    Ok(Value::None)
+}
+
+/// `_gc_stats()`: o `gc.get_stats()`, uma tupla `(collections, collected)` por geração.
+fn gc_stats(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let rows = crate::gcreg::stats().iter().map(|(c, f)| Value::tuple(vec![Value::Int(*c as i64), Value::Int(*f as i64)])).collect();
+    Ok(Value::tuple(rows))
+}
+
+/// `_gc_config(enabled, threshold)`: aplica (ou só lê, com `None`) e devolve `(enabled, (t0, t1, t2))`.
+fn gc_config(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let enabled = match args.first() {
+        Some(Value::Bool(b)) => Some(*b),
+        _ => None,
+    };
+    let threshold = match args.get(1) {
+        Some(Value::Tuple(t)) if t.len() == 3 => {
+            let n = |v: &Value| if let Value::Int(i) = v { (*i).max(0) as usize } else { 0 };
+            Some([n(&t[0]), n(&t[1]), n(&t[2])])
+        }
+        _ => None,
+    };
+    let (enabled, t) = crate::gcreg::configure(enabled, threshold);
+    Ok(Value::tuple(vec![Value::Bool(enabled), Value::tuple(t.iter().map(|n| Value::Int(*n as i64)).collect())]))
+}
+
+/// `_gc_freeze(on)`: `gc.freeze()` (verdadeiro) e `gc.unfreeze()` (falso); devolve o `gc.get_freeze_count()` de depois.
+fn gc_freeze(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.first() {
+        Some(Value::Bool(true)) => crate::gcreg::freeze(),
+        Some(Value::Bool(false)) => crate::gcreg::unfreeze(),
+        _ => {}
+    }
+    Ok(Value::Int(crate::gcreg::frozen_count() as i64))
+}
+
+/// `_task_reserve()`: a vaga de tarefa de uma thread nova de `_thread`, que conta no `RLIMIT_NPROC` do usuário como a
+/// thread de `clone` do CPython. Com o limite atingido: `RuntimeError("can't start new thread")`.
+fn task_reserve(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_task_reserve", &kw)?;
+    if let Some(sys) = sysabi::sys::try_current() {
+        sys.reserve_task().map_err(|_| exc("RuntimeError", "can't start new thread"))?;
+    }
+    Ok(Value::None)
+}
+
+/// `_task_release()`: devolve a vaga de `_task_reserve` (a thread acabou).
+fn task_release(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_task_release", &kw)?;
+    if let Some(sys) = sysabi::sys::try_current() {
+        sys.release_task();
+    }
+    Ok(Value::None)
+}
+
+/// O `dict` e o hash de `_dict_get_known` e `_dict_set_known`.
+/// Uma instância de subclasse de `dict` (o `Counter`) leva o `dict` no `payload`.
+fn known_hash_args(name: &str, args: &[Value]) -> PyResult<(Rc<std::cell::RefCell<crate::object::Dict>>, i64)> {
+    let dict = match args.first() {
+        Some(Value::Dict(d)) => Some(d.clone()),
+        Some(Value::Instance(i)) => match &*i.payload.borrow() {
+            Some(Value::Dict(d)) => Some(d.clone()),
+            _ => None,
+        },
+        _ => None,
+    };
+    match (dict, args.get(2)) {
+        (Some(d), Some(Value::Int(h))) if args.len() == 4 => Ok((d, *h)),
+        _ => Err(crate::vm::type_error(format!("{name}: bad arguments"))),
+    }
+}
+
+/// `_dict_get_known(d, key, hash, default)`: o `_PyDict_GetItem_KnownHash` do `_count_elements` do C, que busca a
+/// chave com o hash já calculado (o `__hash__` de usuário roda uma vez por elemento, como no CPython).
+fn dict_get_known(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_dict_get_known", &kw)?;
+    let (d, h) = known_hash_args("_dict_get_known", &args)?;
+    let found = d.borrow().get_hashed(h, &args[1])?;
+    Ok(found.unwrap_or_else(|| args[3].clone()))
+}
+
+/// `_dict_set_known(d, key, hash, value)`: o `_PyDict_SetItem_KnownHash` do mesmo laço.
+fn dict_set_known(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_dict_set_known", &kw)?;
+    let (d, h) = known_hash_args("_dict_set_known", &args)?;
+    d.borrow_mut().set_hashed(h, args[1].clone(), args[3].clone())?;
+    Ok(Value::None)
+}
+
 fn mark_builtin(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     if let Some(Value::Function(f)) = args.first() {
         f.no_bind.set(true);
@@ -231,6 +397,12 @@ fn mark_builtin(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 /// `_exc_hint(exc)`: o sufixo ". Did you mean: 'x'?" de um `AttributeError`/`NameError`/`ImportError`.
 fn exc_hint(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::str(args.first().map_or_else(String::new, |v| vm.exc_hint(v))))
+}
+
+/// `sys.is_finalizing()`: o desligamento já começou (a finalização dos objetos vivos depois do `atexit`).
+fn is_finalizing(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_is_finalizing", &kw)?;
+    Ok(Value::Bool(crate::finalize::is_finalizing()))
 }
 
 /// Instantâneo dos módulos carregados (`sys.modules`), com `__main__` montado das globais do script.
@@ -300,6 +472,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .value("stdout", Value::Native(vm.std_files[1].clone()))
         .value("stderr", Value::Native(vm.std_files[2].clone()))
         .func("exit", exit)
+        .func("_is_finalizing", is_finalizing)
         .func("exc_info", exc_info)
         .func("_getframe", getframe)
         .func("settrace", settrace)
@@ -310,6 +483,21 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_modules", modules_snapshot)
         .func("_exc_hint", exc_hint)
         .func("_builtin", mark_builtin)
+        .func("_referents", referents)
+        .func("_gc_objects", gc_objects)
+        .func("_gc_referrers", gc_referrers)
+        .func("_gc_count", gc_count)
+        .func("_gc_collect", gc_collect)
+        .func("_gc_stats", gc_stats)
+        .func("_gc_bind", gc_bind)
+        .func("_gc_is_finalized", gc_is_finalized)
+        .func("_gc_config", gc_config)
+        .func("_gc_is_tracked", gc_is_tracked)
+        .func("_gc_freeze", gc_freeze)
+        .func("_task_reserve", task_reserve)
+        .func("_dict_get_known", dict_get_known)
+        .func("_dict_set_known", dict_set_known)
+        .func("_task_release", task_release)
         .func("_source_line", source_line)
         .func("_frame_body", frame_body)
         .func("getrefcount", getrefcount)

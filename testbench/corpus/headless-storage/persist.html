@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>persist</title>
+<script>
+// Cada execução lê o que a anterior gravou no perfil (localStorage e IndexedDB), grava o seguinte e escreve as duas
+// leituras no <body> para o --dump-dom. O fetch mantém o orçamento de tempo virtual ocupado até o IndexedDB gravar.
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 200 && !done; i++) await fetch('/persist.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+const seen = localStorage.getItem('n');
+localStorage.setItem('n', String(Number(seen || 0) + 1));
+const request = indexedDB.open('persist', 1);
+request.onupgradeneeded = () => request.result.createObjectStore('runs', { autoIncrement: true });
+request.onsuccess = () => {
+  const tx = request.result.transaction('runs', 'readwrite');
+  const store = tx.objectStore('runs');
+  const count = store.count();
+  store.add(seen);
+  tx.oncomplete = () => { document.body.textContent = `ls=${seen} idb=${count.result}`; request.result.close(); setTimeout(() => { done = true; }, 200); };
+};
+</script>
+<body>carregando</body>

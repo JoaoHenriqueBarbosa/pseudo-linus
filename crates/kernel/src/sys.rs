@@ -3130,6 +3130,16 @@ impl Syscalls for Task {
         spawn::start_thread(self, body)
     }
 
+    fn reserve_task(&self) -> SysResult<()> {
+        self.enter();
+        spawn::reserve_task(self)
+    }
+
+    fn release_task(&self) {
+        self.enter();
+        spawn::release_task(self)
+    }
+
     fn join_thread(&self, tid: Tid) -> SysResult<()> {
         self.enter();
         if tid == self.tid() {

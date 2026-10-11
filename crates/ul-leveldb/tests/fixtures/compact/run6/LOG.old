@@ -1,0 +1,13 @@
+2026/10/10-21:42:54.718 29a Reusing MANIFEST /tmp/profile/Default/Local Storage/leveldb/MANIFEST-000001
+2026/10/10-21:42:54.718 29a Recovering log #10
+2026/10/10-21:42:54.718 29a Level-0 table #12: started
+2026/10/10-21:42:54.733 29a Level-0 table #12: 80341 bytes OK
+2026/10/10-21:42:54.739 29a Delete type=0 #10
+2026/10/10-21:42:54.740 29c Compacting 4@0 + 0@1 files
+2026/10/10-21:42:54.746 29c Generated table #14@0: 5 keys, 80360 bytes
+2026/10/10-21:42:54.746 29c Compacted 4@0 + 0@1 files => 80360 bytes
+2026/10/10-21:42:54.752 29c compacted to: files[ 0 1 0 0 0 0 0 ]
+2026/10/10-21:42:54.752 29c Delete type=2 #12
+2026/10/10-21:42:54.752 29c Delete type=2 #6
+2026/10/10-21:42:54.752 29c Delete type=2 #3
+2026/10/10-21:42:54.752 29c Delete type=2 #9

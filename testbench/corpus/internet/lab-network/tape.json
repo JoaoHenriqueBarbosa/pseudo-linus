@@ -1,0 +1,114 @@
+{
+ "url": "https://lab.test/lab-network/",
+ "recorded_at": 1791500000,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-network/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "60da1afd3b7ef3d56bef824e933a1453460d9d57aea3c399f199a7187b91683d"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-network/api/dados.bin",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/octet-stream"
+    ]
+   ],
+   "body": "21dae026b2706b493ef09bc11c16a1ef0951cdd77226eb0d271487a2614a3eb2"
+  },
+  {
+   "method": "POST",
+   "url": "https://lab.test/lab-network/api/eco",
+   "status": 201,
+   "headers": [
+    [
+     "content-type",
+     "text/plain; charset=utf-8"
+    ]
+   ],
+   "body": "444ed208e3f3cad4de1b294726bf3afcade964d730ed50a04a3bdd79440b41b1"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-network/api/itens.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "5a8c5e604d313b46dd59dd812826e4e495c8d52353ae75322a9026fc006dd605"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-network/api/texto.txt",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/plain; charset=utf-8"
+    ],
+    [
+     "x-lab",
+     "presente"
+    ],
+    [
+     "access-control-expose-headers",
+     "X-Lab"
+    ]
+   ],
+   "body": "894494c30081be6b24a884a1c2a40cf6f7b4b994e14baf4b8a555b48be860e02"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-network/api/item/9.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "71e34c0af47514118326605165507455378c09e002d34ba454b518ffd674d4ac"
+  },
+  {
+   "method": "GET",
+   "url": "https://cdn.lab.test/com-cors.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ],
+    [
+     "access-control-allow-origin",
+     "https://lab.test"
+    ]
+   ],
+   "body": "c3ce4efd15d9376b535b987e52f38c767e177b58953c9af1dad3e61db24d252b"
+  },
+  {
+   "method": "GET",
+   "url": "https://cdn.lab.test/sem-cors.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "1f8c504f8df55b66800e8cc25352ae1d3ae2a2a016b8b8939e55f04d06c8c275"
+  }
+ ]
+}

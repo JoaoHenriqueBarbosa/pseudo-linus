@@ -1,0 +1,69 @@
+[package]
+name = "ul-chromium"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "chromium --headless do pseudo-linus: busca a página pelo cliente do curl, monta o DOM com o html5ever, roda os scripts no JavaScriptCore portado (zjsc) e serializa o resultado"
+
+[dependencies]
+sysabi = { workspace = true }
+sysio = { workspace = true }
+ul-common = { workspace = true }
+ul-net = { path = "../ul-net" }
+# O banco do Local Storage e do IndexedDB do perfil, no formato em disco do leveldb do Chromium.
+ul-leveldb = { path = "../ul-leveldb" }
+# O History do perfil é SQLite de verdade, pelo VFS do sandbox (o mesmo do `sqlite3`).
+ul-sqlite = { path = "../ul-sqlite" }
+rusqlite = { version = "=0.40.2", default-features = false, features = ["modern_sqlite"] }
+# Parser de HTML conforme a especificação (o mesmo do Servo), na versão que o blitz-html usa.
+html5ever = "0.39"
+markup5ever = "0.39"
+encoding_rs = "0.8"
+# O DOM, o parser e os seletores vêm do Blitz (Dioxus), não de uma árvore própria. Sem `system-fonts`: as fontes
+# do hospedeiro não podem entrar (ver `fonts`).
+blitz-dom = { version = "=0.3.0-beta.2", default-features = false, features = ["svg", "woff", "accessibility", "file-input", "custom-widget"] }
+blitz-html = "=0.3.0-beta.2"
+blitz-traits = "=0.3.0-beta.2"
+# A pintura do documento (o `--screenshot` e o `Page.captureScreenshot`): o Blitz desenha pelo anyrender, aqui no
+# rasterizador em CPU do vello.
+blitz-paint = { version = "=0.3.0-beta.2", default-features = true }
+anyrender = "0.13"
+anyrender_vello_cpu = "0.17"
+# O contexto de fontes do Blitz, montado aqui com as fontes da VFS (sem as do sistema hospedeiro).
+parley = { version = "0.11.1", default-features = false, features = ["std"] }
+# Contornos e caixas dos glifos para o texto do canvas (o mesmo leitor de fonte do parley).
+skrifa = { version = "0.44", default-features = false, features = ["std"] }
+# O rasterizador do canvas 2D (caminhos, texto, gradientes e padrões com antisserrilhado), em CPU e sem unsafe nosso.
+vello_cpu = { version = "0.3", default-features = false, features = ["std", "u8_pipeline"] }
+# O traço e o tracejado do canvas como o Skia os expande (porte do `SkPathStroker` e do `SkDashPath`).
+tiny-skia-path = "0.12"
+# O motor de CSS do Servo (o mesmo que o Blitz usa): parse e serialização canônica do `style` escrito via CSSOM.
+stylo = "=0.20.0"
+# O parser de media query do `matchMedia` é o do stylo, que pede o tokenizador e os modos de parse dele.
+stylo_traits = "=0.20.0"
+cssparser = "0.37"
+selectors = "=0.40.0"
+url = "2.5"
+# O processador de `data:` URL da especificação de Fetch (o do Servo).
+data-url = "0.3"
+# Decodificação das imagens que a página carrega (dimensões e pixels), nos formatos que o Chromium aceita.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico"] }
+# A codificação do `toDataURL` e do `toBlob`: o PNG com o zlib do miniz_oxide (o que o `png` crate do Skia usa no
+# Chromium) e o JPEG pelo libjpeg-turbo portado (o mesmo do Chromium do Debian).
+miniz_oxide = "0.8"
+zjpeg = { path = "../zjpeg" }
+# Motor JavaScript: o JavaScriptCore portado, membro do workspace (crates/zjsc).
+zjsc = { path = "../zjsc" }
+# O texto do prelúdio (valores do IndexedDB que atravessam documentos) é JSON.
+serde_json = "1"
+
+[dev-dependencies]
+zjsc = { path = "../zjsc" }
+sysabi = { workspace = true, features = ["testkit"] }
+pl-testing = { path = "../pl-testing" }
+kernel = { workspace = true }
+
+[lints]
+workspace = true

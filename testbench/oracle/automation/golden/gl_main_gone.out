@@ -1,0 +1,8 @@
+True False None None -
+(otid=0x(nil)) (thread exited) dead>
+error cannot switch to a different thread (which happens to have exited)
+error cannot switch to a different thread (which happens to have exited)
+True None
+True True
+True True
+True True

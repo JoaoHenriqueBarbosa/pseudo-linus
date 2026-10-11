@@ -1,0 +1,38 @@
+list True
+dict_empty False
+dict_atoms False
+dict_list True
+tuple_empty False
+tuple_atoms False
+tuple_list True
+object False
+instance True
+int False
+str False
+bytes False
+float False
+none False
+class True
+lambda True
+set True
+frozenset True
+frozenset_atoms True
+bytearray False
+range False
+exception True
+slice True
+bound True
+generator True
+module True
+list_in_dict_value True
+tuple_in_tuple False
+tuple_nested_list True
+list True instance True dict True set True
+empty dict listed False
+all tracked True
+referrers True True False
+none refer True
+frozen grew True young after freeze True
+after unfreeze 0
+True
+ValueError generation parameter must be less than the number of available generations (3)

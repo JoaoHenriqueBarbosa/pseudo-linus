@@ -1,0 +1,11 @@
+exc_in_local 4 0
+exc_in_instance 5 0
+exc_chain 7 0
+abandoned_gen 0 0
+abandoned_gen_plain 0 0
+returned 0
+<module> ('live',)
+exc_in_local bounded True after collect True
+exc_in_instance bounded True after collect True
+exc_chain bounded True after collect True
+abandoned_gen bounded True after collect True

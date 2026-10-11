@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>xml</title>
+<iframe id="fx" src="/frames-dummy.xml"></iframe>
+<iframe id="fh" src="/frames-dummy.xhtml"></iframe>
+<script>
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 400 && !done; i++) await fetch('/frames-xml.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+window.addEventListener('load', () => setTimeout(() => {
+  const r = {};
+  const t = (name, f) => { try { r[name] = f(); } catch (e) { r[name] = 'ERR ' + e; } };
+  for (const id of ['fx', 'fh']) {
+    const d = () => document.getElementById(id).contentDocument;
+    t(id + '.null', () => d() === null);
+    t(id + '.ctor', () => d().constructor.name);
+    t(id + '.contentType', () => d().contentType);
+    t(id + '.root', () => [d().documentElement.localName, d().documentElement.namespaceURI, d().documentElement.constructor.name]);
+    t(id + '.doctype', () => d().doctype && [d().doctype.name, d().doctype.publicId, d().doctype.systemId]);
+    t(id + '.children', () => Array.from(d().childNodes).map((n) => n.nodeType));
+    t(id + '.text', () => d().documentElement.textContent);
+    t(id + '.body', () => d().body && d().body.localName);
+    t(id + '.title', () => d().title);
+    t(id + '.charset', () => [d().characterSet, d().compatMode, d().readyState]);
+    t(id + '.url', () => d().URL);
+    t(id + '.createElement', () => d().createElement('A').localName);
+  }
+  const pre = document.createElement('pre'); pre.id = 'result'; pre.textContent = JSON.stringify(r); document.body.append(pre);
+  done = true;
+}, 50));
+</script>

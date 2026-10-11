@@ -1,0 +1,11 @@
+png: [640, 480]
+jpeg: [true]
+full_page: [640, 480]
+clip: [100, 50]
+element: [120, 41]
+omit_background: [640, 480]
+scale-css: [640, 480]
+path: [640, 480]
+pdf: <5 bytes>
+png-small: [320, 200]
+full_page-tall: [320, 2041]

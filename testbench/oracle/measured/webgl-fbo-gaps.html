@@ -1,0 +1,123 @@
+<!doctype html><body><script>
+// Lacunas do framebuffer no oráculo (ANGLE sobre SwiftShader): anexo de cor em ponto flutuante (lido com readPixels
+// RGBA/FLOAT e guardado em base64 dos bytes do Float32Array), profundidade DEPTH_COMPONENT16 (faixas de z abaixo da
+// resolução de 16 bits) e o erro de feedback loop (getError depois de cada desenho). Rodar com `chromium --headless
+// --disable-gpu --dump-dom`; o resultado sai no atributo data-out do body.
+const W = 24, H = 24;
+const b64 = (view) => { const u8 = new Uint8Array(view.buffer, view.byteOffset, view.byteLength); let s = ''; for (const b of u8) s += String.fromCharCode(b); return btoa(s); };
+const VS = '#version 300 es\nin vec3 p; in vec4 c; out vec4 v; void main() { v = c; gl_Position = vec4(p, 1.0); }';
+const FS = '#version 300 es\nprecision highp float; in vec4 v; out vec4 o; void main() { o = v; }';
+const FS_SAMPLE = '#version 300 es\nprecision highp float; in vec4 v; uniform sampler2D t; out vec4 o; void main() { o = texture(t, v.xy) + v; }';
+const FS_UNUSED = '#version 300 es\nprecision highp float; in vec4 v; uniform sampler2D t; out vec4 o; void main() { o = v; }';
+const tri = [-0.8, -0.8, 0, 0.8, -0.8, 0, 0, 0.8, 0];
+const quad = [-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0];
+const strip = (i, n, z) => { const x0 = -1 + (2 * i) / n, x1 = -1 + (2 * (i + 1)) / n; return [x0, -1, z, x1, -1, z, x0, 1, z, x0, 1, z, x1, -1, z, x1, 1, z]; };
+const out = {};
+const context = () => {
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
+  out.ext = !!gl.getExtension('EXT_color_buffer_float');
+  out.extBlend = !!gl.getExtension('EXT_float_blend');
+  const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
+  const programs = new Map();
+  const program = (fs) => {
+    if (!programs.has(fs)) {
+      const prog = gl.createProgram();
+      gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
+      gl.bindAttribLocation(prog, 0, 'p'); gl.bindAttribLocation(prog, 1, 'c'); gl.linkProgram(prog);
+      programs.set(fs, prog);
+    }
+    return programs.get(fs);
+  };
+  const vb = gl.createBuffer(), cb = gl.createBuffer();
+  const draw = (pos, colors, fs = FS) => {
+    const n = pos.length / 3;
+    gl.useProgram(program(fs));
+    gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pos), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, cb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Array.from({ length: n }, (_, i) => colors[Math.min(i, colors.length - 1)]).flat()), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, n);
+  };
+  return { gl, draw };
+};
+const colorTarget = (gl, internal, format, type) => {
+  const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, internal, W, H, 0, format, type, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  return tex;
+};
+const readFloat = (gl, name) => {
+  out[name + ':status'] = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+  const px = new Float32Array(W * H * 4);
+  gl.readPixels(0, 0, W, H, gl.RGBA, gl.FLOAT, px);
+  out[name + ':error'] = gl.getError();
+  out[name] = b64(px);
+};
+const floatScenes = [
+  ['float-rgba32f', 'RGBA32F', 'RGBA', 'FLOAT', false],
+  ['float-rgba16f', 'RGBA16F', 'RGBA', 'HALF_FLOAT', false],
+  ['float-rgba16f-blend', 'RGBA16F', 'RGBA', 'HALF_FLOAT', true],
+  ['float-rgba32f-blend', 'RGBA32F', 'RGBA', 'FLOAT', true],
+  ['float-r11g11b10', 'R11F_G11F_B10F', 'RGB', 'FLOAT', false],
+  ['float-r32f', 'R32F', 'RED', 'FLOAT', false],
+];
+for (const [name, internal, format, type, blend] of floatScenes) {
+  const { gl, draw } = context();
+  colorTarget(gl, gl[internal], gl[format], gl[type]);
+  gl.viewport(0, 0, W, H);
+  gl.clearColor(0.1, -0.25, 2.5, 0.3); gl.clear(gl.COLOR_BUFFER_BIT);
+  if (blend) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); }
+  draw(tri, [[3.75, -1.5, 0.3333, 0.5], [0.1, 0.2, 1e-5, 0.25], [70000, 0.7, -0.6, 1.5]]);
+  out[name + ':drawError'] = gl.getError();
+  readFloat(gl, name);
+}
+// DEPTH_COMPONENT16: uma faixa de referência em z e, por cima, faixas com z + i * eps e LEQUAL/LESS/EQUAL.
+for (const [name, func, z, eps] of [['d16-less', 'LESS', 0.1, 2 ** -17], ['d16-lequal', 'LEQUAL', 0.37, 2 ** -17], ['d16-equal', 'EQUAL', -0.6, 2 ** -18], ['d16-less-far', 'LESS', 0.93, 2 ** -16]]) {
+  const { gl, draw } = context();
+  const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  const rb = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, rb); gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, W, H);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+  const ds = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, ds); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, W, H);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, ds);
+  gl.viewport(0, 0, W, H);
+  gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.ALWAYS);
+  draw(strip(0, 1, z), [[0.2, 0.2, 0.2, 1]]);
+  gl.depthFunc(gl[func]);
+  for (let i = -6; i < 6; i++) draw(strip(i + 6, 12, z + i * eps), [[(i + 6) / 11, 1 - (i + 6) / 11, 0.5, 1]]);
+  const px = new Uint8Array(W * H * 4);
+  gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  out[name] = b64(px);
+}
+// Feedback loop: a textura anexada ao framebuffer de desenho e ligada a uma unidade que o programa amostra.
+{
+  const { gl, draw } = context();
+  const tex = colorTarget(gl, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE);
+  gl.viewport(0, 0, W, H);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  draw(quad, [[0.5, 0.5, 0, 1]], FS_SAMPLE);
+  out['feedback-sampled'] = gl.getError();
+  draw(quad, [[0.5, 0.5, 0, 1]], FS_UNUSED);
+  out['feedback-unused-sampler'] = gl.getError();
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  out['feedback-clear'] = gl.getError();
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
+  const other = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, other);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+  draw(quad, [[0.5, 0.5, 0, 1]], FS_SAMPLE);
+  out['feedback-other-texture'] = gl.getError();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 1);
+  draw(quad, [[0.5, 0.5, 0, 1]], FS_SAMPLE);
+  out['feedback-other-level'] = gl.getError();
+  const px = new Uint8Array(W * H * 4);
+  gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  out['feedback-pixels'] = b64(px);
+}
+document.body.setAttribute('data-out', JSON.stringify(out));
+</script></body>

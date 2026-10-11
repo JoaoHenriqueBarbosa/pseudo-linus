@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ls modify</title>
+<script>
+// Remove uma chave, e grava chave e valor em Latin1 (com acento), em UTF-16 (fora do Latin1), vazio e com o mesmo
+// valor que já existe (que o Chromium trata como nada a gravar).
+localStorage.removeItem('k2');
+localStorage.setItem('k4', 'ação');
+localStorage.setItem('k5', '日本語');
+localStorage.setItem('chave中', 'v');
+localStorage.setItem('e', '');
+localStorage.setItem('k1', 'um');
+document.title = 'modify:' + localStorage.length;
+</script>
+<body>ls modify</body>

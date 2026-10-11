@@ -1,0 +1,41 @@
+<!doctype html><body><script>
+// Quando o toDataURL('image/webp') do canvas 2D leva o perfil ICC: a operação que cria a superfície do canvas.
+const icc = (setup) => { const c = document.createElement('canvas'); c.width = 8; c.height = 8; const x = c.getContext('2d'); setup(x, c); return c.toDataURL('image/webp').length > 300; };
+const out = {
+  none: icc(() => {}),
+  getImageData: icc((x) => x.getImageData(0, 0, 1, 1)),
+  clearRect: icc((x) => x.clearRect(0, 0, 8, 8)),
+  fillRectTransparent: icc((x) => { x.fillStyle = 'transparent'; x.fillRect(0, 0, 8, 8); }),
+  fillRectZero: icc((x) => x.fillRect(0, 0, 0, 0)),
+  fillRect: icc((x) => x.fillRect(0, 0, 1, 1)),
+  saveRestore: icc((x) => { x.save(); x.restore(); }),
+  translate: icc((x) => x.translate(1, 1)),
+  putImageData: icc((x) => x.putImageData(x.createImageData(1, 1), 0, 0)),
+  fillText: icc((x) => x.fillText('a', 2, 6)),
+  strokeEmpty: icc((x) => { x.beginPath(); x.stroke(); }),
+  fillAfterResize: icc((x, c) => { x.fillRect(0, 0, 1, 1); c.width = 8; }),
+  drawImage: icc((x) => { const o = document.createElement('canvas'); o.width = 2; o.height = 2; x.drawImage(o, 0, 0); }),
+  toDataURLFirst: icc((x, c) => { c.toDataURL(); }),
+  measureText: icc((x) => x.measureText('a')),
+  isPointInPath: icc((x) => { x.rect(0, 0, 2, 2); x.isPointInPath(1, 1); }),
+  scale: icc((x) => x.scale(2, 2)),
+  rotate: icc((x) => x.rotate(1)),
+  transform: icc((x) => x.transform(1, 0, 0, 1, 1, 1)),
+  setTransform: icc((x) => x.setTransform(1, 0, 0, 1, 1, 1)),
+  resetTransform: icc((x) => x.resetTransform()),
+  clip: icc((x) => { x.rect(0, 0, 2, 2); x.clip(); }),
+  isPointInStroke: icc((x) => { x.rect(0, 0, 2, 2); x.isPointInStroke(1, 1); }),
+  fillEmpty: icc((x) => { x.beginPath(); x.fill(); }),
+  strokeRect: icc((x) => x.strokeRect(1, 1, 2, 2)),
+  setLineDash: icc((x) => x.setLineDash([1, 2])),
+  fillStyle: icc((x) => { x.fillStyle = 'red'; }),
+  path: icc((x) => { x.moveTo(0, 0); x.lineTo(4, 4); }),
+  reset: icc((x) => x.reset()),
+  restoreOnly: icc((x) => x.restore()),
+  drawFocusIfNeeded: icc((x) => x.drawFocusIfNeeded(document.body)),
+  strokeText: icc((x) => x.strokeText('a', 2, 6)),
+  fillTextEmpty: icc((x) => x.fillText('', 2, 6)),
+  noContext: (() => { const c = document.createElement('canvas'); c.width = 8; c.height = 8; return c.toDataURL('image/webp').length > 300; })(),
+};
+document.body.setAttribute('data-out', JSON.stringify(out));
+</script></body>

@@ -22,3 +22,29 @@ pub fn run_with_stack<T: Send + 'static>(stack_bytes: usize, job: impl FnOnce() 
         _ => None,
     }
 }
+
+/// Como `run_with_stack`, mas tenta as pilhas de `stacks` da maior à menor: o SO que recusa a reserva (limite de
+/// memória) cai para a seguinte, como o CPython sobe com pouca memória. Nunca devolve falha: um panic de bug, ou a
+/// recusa de todas as pilhas, mata o processo por SIGSEGV (o desvio de controle que o kernel captura na entrada do
+/// pseudo-processo), o crash que o agente veria no programa real, sem mensagem que o programa real não tem.
+pub fn run_with_stack_ladder<T: Send + 'static>(stacks: &[usize], job: impl FnOnce() -> T + Send + 'static) -> T {
+    use std::sync::{Arc, Mutex};
+    // O `spawn` que falha descarta o fecho; o trabalho fica fora dele para a tentativa seguinte.
+    let job = Arc::new(Mutex::new(Some(job)));
+    for &size in stacks {
+        let slot = job.clone();
+        let taken = job.clone();
+        let result = run_with_stack(size, move || {
+            let job = slot.lock().unwrap_or_else(|e| e.into_inner()).take().expect("job taken once");
+            job()
+        });
+        if let Some(value) = result {
+            return value;
+        }
+        // Com o trabalho já retirado, a thread subiu e o job entrou em pânico: é bug, e bug é crash.
+        if taken.lock().unwrap_or_else(|e| e.into_inner()).is_none() {
+            break;
+        }
+    }
+    std::panic::resume_unwind(Box::new(sysabi::KillUnwind(sysabi::Signal::SIGSEGV)))
+}

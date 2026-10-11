@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>fill probe</title>
+<script>
+// Escreve ?kb=N KiB no localStorage, em valores de 1000 caracteres (Latin1: um byte por caractere no leveldb).
+const kb = Number(new URLSearchParams(location.search).get('kb') || '10');
+const value = 'v'.repeat(1000);
+for (let i = 0; i < kb; i++) localStorage.setItem('fill' + String(i).padStart(5, '0'), value);
+document.title = 'filled:' + kb;
+</script>
+<body>fill probe</body>
