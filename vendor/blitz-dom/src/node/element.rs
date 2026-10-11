@@ -149,6 +149,8 @@ pub struct DocumentData {
     pub scroll_offset: crate::Point<f64>,
     pub scrollable_overflow: KurboRect,
     pub transform: Option<Affine>,
+    /// O modo de compatibilidade que o parser de HTML decidiu pelo doctype (`TDocument::quirks_mode`).
+    pub quirks_mode: selectors::matching::QuirksMode,
 }
 
 // Hand-written like `ElementData`'s, because `ElementSelectorFlags` does not
@@ -194,6 +196,7 @@ impl DocumentData {
             scroll_offset: crate::Point::ZERO,
             scrollable_overflow: KurboRect::ZERO,
             transform: None,
+            quirks_mode: selectors::matching::QuirksMode::NoQuirks,
         }
     }
 }
@@ -210,6 +213,7 @@ impl Clone for DocumentData {
         // meaningfully cloneable), matching `ElementData`'s clone semantics.
         Self {
             guard: self.guard.clone(),
+            quirks_mode: self.quirks_mode,
             ..Self::new()
         }
     }

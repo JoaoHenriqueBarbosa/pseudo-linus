@@ -45,6 +45,7 @@ pub fn parse_page(html: &str, base_url: &str, net: Arc<QueuedNet>) -> BaseDocume
 
 fn parse_with(html: &str, config: DocumentConfig) -> BaseDocument {
     let mut doc = BaseDocument::new(config);
+    let mode;
     {
         let mut mutr = doc.mutate();
         let sink = DocumentHtmlParser::new(&mut mutr);
@@ -52,8 +53,17 @@ fn parse_with(html: &str, config: DocumentConfig) -> BaseDocument {
             tree_builder: TreeBuilderOpts { scripting_enabled: true, drop_doctype: false, ..Default::default() },
             ..Default::default()
         };
-        html5ever::parse_document(sink, opts).from_utf8().read_from(&mut html.as_bytes()).unwrap();
+        let mut parser = html5ever::parse_document(sink, opts);
+        parser.process(html.into());
+        // O modo de compatibilidade sai do doctype (ou da falta dele); o parser o diz antes do primeiro elemento.
+        mode = parser.tokenizer.sink.sink.quirks_mode.get();
+        parser.finish();
     }
+    doc.set_quirks_mode(match mode {
+        html5ever::interface::QuirksMode::Quirks => selectors::matching::QuirksMode::Quirks,
+        html5ever::interface::QuirksMode::LimitedQuirks => selectors::matching::QuirksMode::LimitedQuirks,
+        html5ever::interface::QuirksMode::NoQuirks => selectors::matching::QuirksMode::NoQuirks,
+    });
     doc
 }
 

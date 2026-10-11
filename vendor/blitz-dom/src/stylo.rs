@@ -231,7 +231,11 @@ impl<'a> TDocument for BlitzNode<'a> {
     }
 
     fn quirks_mode(&self) -> QuirksMode {
-        QuirksMode::NoQuirks
+        // A raiz da árvore do nó; uma subárvore solta (sem o documento na raiz) vale como modo padrão.
+        match &TNode::owner_doc(self).data {
+            NodeData::Document(data) => data.quirks_mode,
+            _ => QuirksMode::NoQuirks,
+        }
     }
 
     fn shared_lock(&self) -> &SharedRwLock {

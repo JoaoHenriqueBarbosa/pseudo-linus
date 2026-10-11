@@ -602,6 +602,9 @@ impl DomHost for Bridge {
                 };
                 Ok(root.children.iter().copied().find(|&c| doc.get_node(c).is_some_and(|n| n.is_element())).map_or(DomArg::Null, num))
             }
+            "compatMode" => Ok(DomArg::Str(
+                if matches!(self.doc.borrow().quirks_mode(), selectors::matching::QuirksMode::Quirks) { "BackCompat" } else { "CSS1Compat" }.to_owned(),
+            )),
             "doctype" => Ok(self.doctype.clone().map_or(DomArg::Null, DomArg::Str)),
             "kind" => {
                 let doc = self.doc.borrow();

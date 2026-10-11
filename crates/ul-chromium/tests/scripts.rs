@@ -817,3 +817,28 @@ fn processing_instruction_and_cdata_never_leak_the_comment_they_are_stored_as() 
     let strip = |text: &str| text.lines().filter(|line| !line.starts_with("xmlser div=")).collect::<Vec<_>>().join("\n");
     assert_eq!(strip(dom.trim_end()), strip(include_str!("fixtures/pi_cdata_oracle.txt").trim_end()));
 }
+
+/// `document.compatMode` segue o doctype como o Chromium 154 do oráculo (`pl-oracle-chromium`, `--dump-dom`): sem doctype,
+/// HTML 4.01 transitional sem URL e o doctype do IETF dão `BackCompat`; HTML5, HTML 4.01 transitional com URL (quase-padrão),
+/// XHTML e comentário antes do doctype dão `CSS1Compat`; doctype depois de texto não conta.
+#[test]
+fn compat_mode_follows_the_doctype_like_the_oracle() {
+    let t401 = "-//W3C//DTD HTML 4.01 Transitional//EN";
+    let cases = [
+        ("", "BackCompat"),
+        ("<!DOCTYPE html>", "CSS1Compat"),
+        (&format!("<!DOCTYPE HTML PUBLIC \"{t401}\" \"http://www.w3.org/TR/html4/loose.dtd\">"), "CSS1Compat"),
+        (&format!("<!DOCTYPE HTML PUBLIC \"{t401}\">"), "BackCompat"),
+        ("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">", "CSS1Compat"),
+        ("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">", "CSS1Compat"),
+        ("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">", "CSS1Compat"),
+        ("<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML//EN\">", "BackCompat"),
+        ("<!-- c --><!DOCTYPE html>", "CSS1Compat"),
+        ("x<!DOCTYPE html>", "BackCompat"),
+    ];
+    for (doctype, expected) in cases {
+        let html = format!("{doctype}<html><body><script>console.log(document.compatMode)</script></body></html>");
+        let (_, log) = run(&[("/", &html)]);
+        assert_eq!(log, format!("{expected}\n"), "doctype: {doctype}");
+    }
+}

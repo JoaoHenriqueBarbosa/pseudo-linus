@@ -45,7 +45,7 @@ class Document extends Node {
   get characterSet() { return 'UTF-8'; }
   get charset() { return 'UTF-8'; }
   get inputEncoding() { return 'UTF-8'; }
-  get compatMode() { return op('doctype') === null ? 'BackCompat' : 'CSS1Compat'; }
+  get compatMode() { return this === document ? op('compatMode') : 'CSS1Compat'; }
   get readyState() { return this[P.__readyState] || 'loading'; }
   get visibilityState() { return 'visible'; }
   get hidden() { return false; }

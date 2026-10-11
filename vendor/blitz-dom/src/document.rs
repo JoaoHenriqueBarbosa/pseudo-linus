@@ -1941,6 +1941,20 @@ impl BaseDocument {
         self.mousedown_node_id
     }
 
+    /// O modo de compatibilidade do documento (`NoQuirks`, `LimitedQuirks` ou `Quirks`), o que o parser de HTML decidiu
+    /// pelo doctype. Fica no `Stylist`, que o usa nos seletores e nas regras de estilo.
+    pub fn quirks_mode(&self) -> QuirksMode {
+        self.stylist.quirks_mode()
+    }
+
+    /// Troca o modo de compatibilidade (o parser chama quando lê o doctype).
+    pub fn set_quirks_mode(&mut self, mode: QuirksMode) {
+        self.stylist.set_quirks_mode(mode);
+        if let NodeData::Document(data) = &mut self.nodes[self.root_node_id].data {
+            data.quirks_mode = mode;
+        }
+    }
+
     pub fn set_viewport(&mut self, viewport: Viewport) {
         let scale_has_changed = viewport.scale_f64() != self.viewport.scale_f64();
         self.viewport = viewport;
