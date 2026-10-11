@@ -128,10 +128,23 @@ fn install_module_module(global_object: &JSGlobalObject) -> HostResult {
     Ok(module_object.as_value())
 }
 
+/// O módulo interno `bun:wrap`: o `src/runtime.js` do bun 1.4.2 (MIT), que o transpilador importa quando um arquivo usa
+/// os helpers dele (decorators do TC39, `__toESM`, `__require` e afins). É um módulo ES de fonte própria, então o
+/// carregador o lê daqui em vez de pedir ao host (`bun_wrap_source`).
+pub(crate) const BUN_WRAP: &str = "bun:wrap";
+
+/// O texto de `bun:wrap` quando `key` é a chave dele.
+pub(crate) fn bun_wrap_source(key: &str) -> Option<&'static str> {
+    (key == BUN_WRAP).then_some(include_str!("bun_wrap.js"))
+}
+
 /// O que o resolvedor do bun faz com um `import` de embutido, antes de olhar o disco: a chave canônica (`node:path`)
 /// do embutido instalado, a falha de `node:` fora da tabela (`ERR_UNKNOWN_BUILTIN_MODULE`), ou `None` quando
 /// `specifier` não é embutido e segue a resolução de arquivos.
 pub(crate) fn resolve_import(specifier: &str) -> Option<Result<String, String>> {
+    if specifier == BUN_WRAP {
+        return Some(Ok(BUN_WRAP.to_owned()));
+    }
     match resolve(specifier) {
         Resolved::Builtin(entry) => Some(Ok(format!("node:{}", entry.name))),
         Resolved::UnknownNode => Some(Err(crate::runtime::js_module_loader::unknown_builtin_message(specifier))),

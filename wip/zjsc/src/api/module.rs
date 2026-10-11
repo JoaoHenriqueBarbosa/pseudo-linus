@@ -136,6 +136,20 @@ fn split_suffix(specifier: &str) -> (&str, &str) {
 const PROBE_EXTENSIONS: [&str; 8] = [".tsx", ".jsx", ".ts", ".mjs", ".js", ".cjs", ".json", ".mts"];
 
 impl MemoryModuleHost {
+    /// O especificador nu `specifier` achado em `node_modules` a partir do diretório de `from`, como o bun resolve
+    /// (`react/jsx-dev-runtime` com `node_modules/react/jsx-dev-runtime.js`; o `exports` do pacote vale): a chave do
+    /// arquivo no mapa, ou `None`.
+    fn find_in_node_modules(&self, from: &str, specifier: &str) -> Option<String> {
+        let rooted = |key: &str| format!("/{}", key.trim_start_matches('/'));
+        let files: Vec<(String, &str)> = self.files.iter().map(|(key, text)| (rooted(key), text.as_str())).collect();
+        let borrowed: Vec<(&str, &str)> = files.iter().map(|(key, text)| (key.as_str(), *text)).collect();
+        let fs = crate::api::module_probe::MemoryFs::new(&borrowed);
+        let directory = rooted(from.rsplit_once('/').map_or("", |(directory, _)| directory));
+        let found = crate::api::module_probe::resolve_node_modules(&fs, directory.trim_end_matches('/'), specifier, true)?;
+        let bare = found.trim_start_matches('/');
+        self.files.contains_key(&found).then_some(found.clone()).or_else(|| self.files.contains_key(bare).then(|| bare.to_owned()))
+    }
+
     fn find_file(&self, key: &str) -> Option<String> {
         if self.files.contains_key(key) {
             return Some(key.to_owned());
@@ -208,6 +222,9 @@ impl ModuleHost for MemoryModuleHost {
         }
         if specifier.is_empty() {
             return Err(format!("Cannot find module '' imported from {from}"));
+        }
+        if let Some(key) = self.find_in_node_modules(from, specifier) {
+            return Ok(key);
         }
         // O pacote é o primeiro segmento (`@escopo/nome` tem dois): `nopkg/sub` falha em `nopkg`.
         let mut parts = specifier.split('/');

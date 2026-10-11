@@ -971,7 +971,11 @@ impl ModuleLoader {
             self.registry.borrow_mut().insert(registry_key, Rc::clone(&record));
             return Ok(record);
         }
-        let text = match self.host.fetch(key) {
+        let fetched = match crate::api::builtin_modules::bun_wrap_source(key) {
+            Some(source) => Ok(source.to_owned()),
+            None => self.host.fetch(key),
+        };
+        let text = match fetched {
             Ok(text) => text,
             Err(message) if self.host.failures_are_type_errors() => return Err(throw_type_error(global_object, &message)),
             Err(message) => return Err(throw_error(global_object, &message)),
