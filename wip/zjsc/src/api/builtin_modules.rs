@@ -66,6 +66,7 @@ pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "path/win32", scheme: Scheme::Both, install: install_path_win32 },
     BuiltinEntry { name: "querystring", scheme: Scheme::Both, install: crate::api::node_stream::install_querystring_module },
     BuiltinEntry { name: "stream", scheme: Scheme::Both, install: crate::api::node_stream::install_stream_module },
+    BuiltinEntry { name: "stream/promises", scheme: Scheme::Both, install: crate::api::node_stream::install_stream_promises_module },
     BuiltinEntry { name: "string_decoder", scheme: Scheme::Both, install: crate::api::node_stream::install_string_decoder_module },
     BuiltinEntry { name: "timers", scheme: Scheme::Both, install: crate::api::node_stream::install_timers_module },
     BuiltinEntry { name: "timers/promises", scheme: Scheme::Both, install: crate::api::node_stream::install_timers_promises_module },
@@ -205,6 +206,13 @@ pub(crate) fn load(global_object: &JSGlobalObject, entry: &'static BuiltinEntry)
         crate::api::builtin_source_texts::apply(global_object, entry.name, installed);
         Ok(installed)
     })
+}
+
+/// A propriedade `member` do módulo embutido `module` (`fs/promises` é o `promises` de `fs`).
+pub(crate) fn member_of(global_object: &JSGlobalObject, module: &str, member: &str) -> HostResult {
+    let Resolved::Builtin(entry) = resolve(module) else { return Ok(JSValue::undefined()) };
+    let loaded = load(global_object, entry)?;
+    get_object_property(global_object, loaded, &Identifier::from_span(global_object.vm(), member.as_bytes()))
 }
 
 /// O objeto de `name` guardado para o programa: `build` roda na primeira chamada (serve também aos auxiliares que não

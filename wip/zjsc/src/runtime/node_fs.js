@@ -684,7 +684,7 @@
       let failure;
       let failed = false;
       try {
-        result = sync(...args.map((argument, index) => (index === 0 && argument instanceof FileHandle ? argument.fd : argument)));
+        result = sync(...args.map((argument, index) => (index === 0 ? handleFd(argument) : argument)));
         if (adapt) result = adapt(result, args);
       } catch (error) {
         failed = true;
@@ -708,33 +708,189 @@
   const withWrittenBuffer = (callback, failure, result, args) => (failure ? callback(failure) : callback(null, result, args[1]));
   const existsCallback = (callback, failure, result) => callback(result);
 
-  class FileHandle {
-    #fd;
-    constructor(fd) {
-      this.#fd = fd;
+  // O `FileHandle` do bun (`fs.promises.ts`): um `EventEmitter` com contagem de referências, que adia o fechamento
+  // enquanto há operação em curso.
+  const EventEmitter = b.builtin("node:events");
+  const kFd = Symbol("kFd");
+  const kRefs = Symbol("kRefs");
+  const kClosePromise = Symbol("kClosePromise");
+  const kCloseResolve = Symbol("kCloseResolve");
+  const kCloseReject = Symbol("kCloseReject");
+  const kRef = Symbol("kRef");
+  const kUnref = Symbol("kUnref");
+  const kFlag = Symbol("kFlag");
+
+  function throwEBADFIfNecessary(syscall, fd) {
+    if (fd === -1) {
+      const error = new Error("Bad file descriptor");
+      error.code = "EBADF";
+      error.name = "SystemError";
+      error.syscall = syscall;
+      throw error;
     }
+  }
+
+  // Corpo comum dos métodos do `FileHandle`: confere o fd, segura uma referência e chama a versão de promise.
+  async function withHandle(handle, syscall, run) {
+    throwEBADFIfNecessary(syscall, handle[kFd]);
+    try {
+      handle[kRef]();
+      return await run(handle[kFd]);
+    } finally {
+      handle[kUnref]();
+    }
+  }
+
+  class FileHandle extends EventEmitter {
+    constructor(fd, flag) {
+      super();
+      this[kFd] = fd ? fd : -1;
+      this[kRefs] = 1;
+      this[kClosePromise] = null;
+      this[kFlag] = flag;
+    }
+
     get fd() {
-      return this.#fd;
+      return this[kFd];
+    }
+
+    async appendFile(data, options) {
+      let encoding = "utf8";
+      let flush = false;
+      if (options == null || typeof options === "function") {
+      } else if (typeof options === "string") {
+        encoding = options;
+      } else {
+        encoding = options?.encoding ?? encoding;
+        flush = options?.flush ?? flush;
+      }
+      return withHandle(this, "writeFile", (fd) => promises.writeFile(fd, data, { encoding, flush, flag: this[kFlag] }));
+    }
+
+    async chmod(mode) {
+      return withHandle(this, "fchmod", (fd) => promises.fchmod(fd, mode));
+    }
+
+    async datasync() {
+      return withHandle(this, "fdatasync", (fd) => promises.fdatasync(fd));
+    }
+
+    async sync() {
+      return withHandle(this, "fsync", (fd) => promises.fsync(fd));
+    }
+
+    async read(bufferOrParams, offset, length, position) {
+      throwEBADFIfNecessary("read", this[kFd]);
+      let buffer = bufferOrParams;
+      if (!ArrayBuffer.isView(buffer)) {
+        if (bufferOrParams !== undefined && (typeof bufferOrParams !== "object" || Array.isArray(bufferOrParams))) {
+          throw typeError('The "options" property must be of type object, got ' + (bufferOrParams === null ? "null" : typeof bufferOrParams));
+        }
+        ({ buffer = Buffer.alloc(16384), offset = 0, length = buffer.byteLength - offset, position = null } = bufferOrParams ?? {});
+      }
+      if (offset !== null && typeof offset === "object") {
+        ({ offset = 0, length = buffer?.byteLength - offset, position = null } = offset);
+      }
+      if (offset == null) offset = 0;
+      length ??= buffer?.byteLength - offset;
+      return withHandle(this, "read", async (fd) => {
+        const { bytesRead } = await promises.read(fd, buffer, offset, length, position);
+        return { buffer, bytesRead };
+      });
+    }
+
+    async readFile(options) {
+      return withHandle(this, "readFile", (fd) => promises.readFile(fd, options));
+    }
+
+    async stat(options) {
+      return withHandle(this, "fstat", (fd) => promises.fstat(fd, options));
+    }
+
+    async truncate(length = 0) {
+      return withHandle(this, "ftruncate", (fd) => promises.ftruncate(fd, length));
+    }
+
+    async utimes(atime, mtime) {
+      return withHandle(this, "futimes", (fd) => promises.futimes(fd, atime, mtime));
+    }
+
+    async write(buffer, offset, length, position) {
+      throwEBADFIfNecessary("write", this[kFd]);
+      if (buffer?.byteLength === 0) return { __proto__: null, bytesWritten: 0, buffer };
+      if (ArrayBuffer.isView(buffer)) {
+        if (typeof offset === "object") ({ offset = 0, length = buffer.byteLength - offset, position = null } = offset ?? {});
+        if (offset == null) offset = 0;
+        if (typeof length !== "number") length = buffer.byteLength - offset;
+        if (typeof position !== "number") position = null;
+      } else if (typeof buffer !== "string") {
+        throw typeError('The "buffer" property must be of type string, Buffer, TypedArray, or DataView, got ' + typeof buffer);
+      }
+      return withHandle(this, "write", async (fd) => ({ buffer, bytesWritten: (await promises.write(fd, buffer, offset, length, position)).bytesWritten }));
+    }
+
+    async writeFile(data, options = "utf8") {
+      let encoding = "utf8";
+      if (options == null || typeof options === "function") {
+      } else if (typeof options === "string") {
+        encoding = options;
+      } else {
+        encoding = options?.encoding ?? encoding;
+      }
+      return withHandle(this, "writeFile", (fd) => promises.writeFile(fd, data, { encoding, flag: this[kFlag] }));
+    }
+
+    async close() {
+      const fd = this[kFd];
+      if (fd === -1) return Promise.resolve();
+      if (this[kClosePromise]) return this[kClosePromise];
+      if (--this[kRefs] === 0) {
+        this[kFd] = -1;
+        this[kClosePromise] = promises.close(fd).finally(() => {
+          this[kClosePromise] = undefined;
+        });
+      } else {
+        this[kClosePromise] = new Promise((resolve, reject) => {
+          this[kCloseResolve] = resolve;
+          this[kCloseReject] = reject;
+        }).finally(() => {
+          this[kClosePromise] = undefined;
+          this[kCloseReject] = undefined;
+          this[kCloseResolve] = undefined;
+        });
+      }
+      this.emit("close");
+      return this[kClosePromise];
+    }
+
+    async [Symbol.asyncDispose]() {
+      return this.close();
+    }
+
+    createReadStream(options = {}) {
+      throwEBADFIfNecessary("createReadStream", this[kFd]);
+      return new (b.streams().ReadStream)(undefined, { highWaterMark: 64 * 1024, ...options, fd: this });
+    }
+
+    createWriteStream(options = {}) {
+      throwEBADFIfNecessary("createWriteStream", this[kFd]);
+      return new (b.streams().WriteStream)(undefined, { highWaterMark: 64 * 1024, ...options, fd: this });
+    }
+
+    [kRef]() {
+      this[kRefs]++;
+    }
+
+    [kUnref]() {
+      if (--this[kRefs] === 0) {
+        const fd = this[kFd];
+        this[kFd] = -1;
+        (fd !== -1 ? promises.close(fd) : Promise.resolve()).then(this[kCloseResolve], this[kCloseReject]);
+      }
     }
   }
-  const handleMethods = {
-    close() { const fd = this.fd; return promiseFor(() => { closeSync(fd); })(); },
-    readFile(options) { return promiseFor(readFileSync)(this.fd, options); },
-    writeFile(data, options) { return promiseFor(writeFileSync)(this.fd, data, options); },
-    appendFile(data, options) { return promiseFor(appendFileSync)(this.fd, data, options); },
-    stat(options) { return promiseFor(fstatSync)(this.fd, options); },
-    truncate(length) { return promiseFor(ftruncateSync)(this.fd, length); },
-    sync() { return promiseFor(fsyncSync)(this.fd); },
-    datasync() { return promiseFor(fsyncSync)(this.fd); },
-    chmod(mode) { return promiseFor(fchmodSync)(this.fd, mode); },
-    utimes(atime, mtime) { return promiseFor(futimesSync)(this.fd, atime, mtime); },
-    read(...args) { return promiseFor(readSyncLoose, (bytesRead, given) => ({ bytesRead, buffer: readArguments(given)[1] }))(this.fd, ...args); },
-    write(data, ...args) { return promiseFor(writeSync, (bytesWritten) => ({ bytesWritten, buffer: data }))(this.fd, data, ...args); },
-  };
-  for (const name of Object.keys(handleMethods)) {
-    Object.defineProperty(FileHandle.prototype, name, { value: handleMethods[name], writable: true, enumerable: false, configurable: true });
-  }
-  Object.defineProperty(FileHandle.prototype, Symbol.asyncDispose, { value: function () { return this.close(); }, writable: true, configurable: true });
+  // `promiseFor` aceita o FileHandle no lugar do fd (o `fileHandleOrFdOrPath?.[kFd]` do bun).
+  const handleFd = (argument) => (argument instanceof FileHandle ? argument[kFd] : argument);
 
   // Os pares (callback, promise) de cada operação do bun, pela versão síncrona.
   const operations = {
@@ -757,10 +913,17 @@
   promises.exists = promiseFor(existsSync);
   promises.read = promiseFor(readSyncLoose, (bytesRead, args) => ({ bytesRead, buffer: readArguments(args)[1] }));
   promises.write = promiseFor(writeSync, (bytesWritten, args) => ({ bytesWritten, buffer: args[1] }));
-  promises.open = promiseFor(openSync, (fd) => new FileHandle(fd));
+  promises.open = promiseFor(openSync, (fd, args) => new FileHandle(fd, args[1] === undefined ? "r" : args[1]));
 
+  const createReadStream = function createReadStream(path, options) {
+    return new (b.fsExports().ReadStream)(path, options);
+  };
+  const createWriteStream = function createWriteStream(path, options) {
+    return new (b.fsExports().WriteStream)(path, options);
+  };
   const implemented = {
     ...callbacks,
+    createReadStream, createWriteStream,
     appendFileSync, accessSync, chmodSync, closeSync, copyFileSync, existsSync, fchmodSync, fstatSync, fsyncSync, ftruncateSync, futimesSync,
     linkSync, lstatSync, lutimesSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync,
     renameSync, rmSync, rmdirSync, statSync, symlinkSync, truncateSync, unlinkSync, utimesSync, writeFileSync, writeSync,
@@ -771,7 +934,7 @@
     appendFileSync: 3, accessSync: 2, chmodSync: 2, closeSync: 1, copyFileSync: 3, existsSync: 1, fchmodSync: 2, fstatSync: 1, fsyncSync: 1,
     ftruncateSync: 1, futimesSync: 3, linkSync: 2, lstatSync: 1, lutimesSync: 3, mkdirSync: 2, mkdtempSync: 2, openSync: 3, readFileSync: 2,
     readSync: 5, readdirSync: 2, readlinkSync: 2, realpathSync: 2, renameSync: 2, rmSync: 2, rmdirSync: 2, statSync: 1, symlinkSync: 3,
-    truncateSync: 2, unlinkSync: 1, utimesSync: 3, writeFileSync: 3, writeSync: 5, fdatasyncSync: 1, _toUnixTimestamp: 1,
+    truncateSync: 2, unlinkSync: 1, utimesSync: 3, writeFileSync: 3, writeSync: 5, fdatasyncSync: 1, _toUnixTimestamp: 1, createReadStream: 2, createWriteStream: 2,
   };
   const setLength = (fn, value) => Object.defineProperty(fn, "length", { value, configurable: true });
   for (const name of Object.keys(LENGTHS)) setLength(implemented[name], LENGTHS[name]);
@@ -779,7 +942,8 @@
     setLength(callbacks[name], ASYNC_LENGTHS[name][0]);
     setLength(promises[name], ASYNC_LENGTHS[name][1]);
   }
-  const data = { Dirent, F_OK: 0, R_OK: 4, W_OK: 2, X_OK: 1, constants, Stats };
+  const streamData = { FileHandle, kRef, kUnref, kFd };
+  const data = { Dirent, F_OK: 0, R_OK: 4, W_OK: 2, X_OK: 1, constants, Stats, ReadStream: undefined, WriteStream: undefined, FileReadStream: undefined, FileWriteStream: undefined };
 
   // A ordem das chaves de `Object.keys(require("fs"))` do bun 1.4.2.
   const ORDER = [
@@ -803,7 +967,7 @@
   ];
 
   // Os exports na ordem do bun; `promises.X` são os do objeto `fs.promises` (o Rust os monta e põe em `fs.promises`).
-  const table = {};
+  const table = { $data: { v: streamData } };
   for (const name of ORDER) {
     if (name === "promises") {
       table.promises = { v: undefined };

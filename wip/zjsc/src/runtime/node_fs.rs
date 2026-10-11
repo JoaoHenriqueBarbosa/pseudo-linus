@@ -38,7 +38,18 @@ use crate::wtf::text::wtf_string::String as WtfString;
 /// O programa escondido com a semântica do módulo.
 const PRELUDE: &str = include_str!("node_fs.js");
 
+/// O fábrica de `fs.ReadStream` e `fs.WriteStream` (gerada de `internal/fs/streams.ts` do bun).
+const STREAMS: &str = include_str!("../api/node_fs_streams.js");
+
+/// Os exports de `node:fs` que são acessores preguiçosos no bun (`materializeStream`), e o que cada um entrega.
+const STREAM_EXPORTS: [(&str, &str); 4] = [("ReadStream", "ReadStream"), ("WriteStream", "WriteStream"), ("FileReadStream", "ReadStream"), ("FileWriteStream", "WriteStream")];
+
 thread_local! {
+    /// O objeto `{ FileHandle, kRef, kUnref, kFd }` (o `fs.promises.$data` do bun) e o módulo `fs` (raízes do coletor).
+    static STREAM_DATA: RefCell<Option<JSValue>> = const { RefCell::new(None) };
+    static FS_MODULE: RefCell<Option<JSValue>> = const { RefCell::new(None) };
+    /// Cada acessor de stream (getter e setter, pela célula) e o nome do export que ele materializa.
+    static STREAM_ACCESSORS: RefCell<HashMap<usize, (String, String)>> = RefCell::new(HashMap::new());
     /// O objeto `{ table }` do programa escondido (raiz do coletor): as funções que as nativas repassam.
     static IMPLEMENTATION: RefCell<Option<JSValue>> = const { RefCell::new(None) };
     /// Cada nativa exportada (pela célula) e o nome da função do programa escondido que ela repassa.
@@ -46,10 +57,15 @@ thread_local! {
 }
 
 pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.value(STREAM_DATA.with(|slot| slot.borrow().unwrap_or_else(JSValue::undefined)));
+    marker.value(FS_MODULE.with(|slot| slot.borrow().unwrap_or_else(JSValue::undefined)));
     marker.value(IMPLEMENTATION.with(|slot| slot.borrow().unwrap_or_else(JSValue::undefined)));
 }
 
 pub(crate) fn reset_for_program() {
+    let _ = STREAM_DATA.try_with(|slot| slot.borrow_mut().take());
+    let _ = FS_MODULE.try_with(|slot| slot.borrow_mut().take());
+    let _ = STREAM_ACCESSORS.try_with(|accessors| accessors.borrow_mut().clear());
     let _ = IMPLEMENTATION.try_with(|slot| slot.borrow_mut().take());
     let _ = SHIMS.try_with(|shims| shims.borrow_mut().clear());
 }
@@ -238,11 +254,47 @@ fn random_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 }
 host_function!(random_function, random_body);
 
+/// `builtin(nome)`: o `require` de outro módulo embutido (`node:events`).
+fn builtin_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let name = text_argument(global_object, call, 0)?;
+    match crate::api::builtin_modules::resolve(&name) {
+        crate::api::builtin_modules::Resolved::Builtin(entry) => crate::api::builtin_modules::load(global_object, entry),
+        _ => Ok(JSValue::undefined()),
+    }
+}
+host_function!(builtin_function, builtin_body);
+
+/// O módulo com o `ReadStream` e o `WriteStream` (montado uma vez por programa).
+fn streams_module(global_object: &JSGlobalObject) -> HostResult {
+    crate::api::builtin_modules::cached("internal:fs-streams", || {
+        let host = crate::api::node_js_host::module_host(
+            global_object,
+            &[("requireInternal", 1, crate::api::node_stream::require_internal), ("fsData", 0, stream_data_function)],
+        )?;
+        Ok(crate::api::node_js_host::run_factory(global_object, STREAMS, "fs-streams", &host))
+    })
+}
+
+fn streams_body(global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
+    streams_module(global_object)
+}
+host_function!(streams_function, streams_body);
+
+fn stream_data_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
+    Ok(STREAM_DATA.with(|slot| slot.borrow().unwrap_or_else(JSValue::undefined)))
+}
+host_function!(stream_data_function, stream_data_body);
+
+fn fs_exports_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
+    Ok(FS_MODULE.with(|slot| slot.borrow().unwrap_or_else(JSValue::undefined)))
+}
+host_function!(fs_exports_function, fs_exports_body);
+
 /// O objeto `binding` que o programa escondido recebe.
 fn binding(global_object: &JSGlobalObject) -> JSValue {
     let vm = global_object.vm();
     let object = construct_empty_object(global_object);
-    let functions: [(&str, u32, NativeFunction); 23] = [
+    let functions: [(&str, u32, NativeFunction); 26] = [
         ("open", 3, open_function),
         ("close", 1, close_function),
         ("read", 5, read_function),
@@ -266,6 +318,9 @@ fn binding(global_object: &JSGlobalObject) -> JSValue {
         ("utimes", 4, utimes_function),
         ("futimes", 3, futimes_function),
         ("random", 1, random_function),
+        ("builtin", 1, builtin_function),
+        ("streams", 0, streams_function),
+        ("fsExports", 0, fs_exports_function),
     ];
     for (name, length, function) in functions {
         put_direct_native_function_with_display_name(
@@ -355,7 +410,12 @@ pub(crate) fn install_fs_module(global_object: &JSGlobalObject) -> HostResult {
     let promises = construct_empty_object(global_object);
     for (identifier, value) in enumerable_own_entries(global_object, table)? {
         let name = String::from_utf8_lossy(&identifier.utf8()).into_owned();
-        if name == "promises" {
+        if name == "$data" {
+            let data = get_object_property(global_object, value, &Identifier::from_span(vm, b"v"))?;
+            STREAM_DATA.with(|slot| *slot.borrow_mut() = Some(data));
+        } else if let Some((_, class)) = STREAM_EXPORTS.iter().find(|(export, _)| *export == name) {
+            install_stream_accessor(global_object, &module, &identifier, &name, class);
+        } else if name == "promises" {
             module.put_direct(vm, &PropertyName::from_identifier(&identifier), promises.as_value(), 0);
         } else if let Some(member) = name.strip_prefix("promises.") {
             install_entry(global_object, &promises, &Identifier::from_span(vm, member.as_bytes()), &name, value)?;
@@ -363,14 +423,54 @@ pub(crate) fn install_fs_module(global_object: &JSGlobalObject) -> HostResult {
             install_entry(global_object, &module, &identifier, &name, value)?;
         }
     }
+    FS_MODULE.with(|slot| *slot.borrow_mut() = Some(module.as_value()));
     Ok(module.as_value())
 }
 
+/// O acessor preguiçoso de `ReadStream` e companhia (o `materializeStream` do bun): a primeira leitura monta o módulo de
+/// streams e troca o acessor por uma propriedade de dados; atribuir também a troca.
+fn install_stream_accessor(global_object: &JSGlobalObject, module: &JSObject, identifier: &Identifier, name: &str, class: &str) {
+    let vm = global_object.vm();
+    let getter = crate::runtime::timers::native(global_object, &format!("get {name}"), 0, stream_getter_function);
+    let setter = crate::runtime::timers::native(global_object, &format!("set {name}"), 1, stream_setter_function);
+    STREAM_ACCESSORS.with(|accessors| {
+        let mut accessors = accessors.borrow_mut();
+        for function in [getter, setter] {
+            if let JSValue::Cell(cell_id) = function {
+                accessors.insert(cell_id, (name.to_owned(), class.to_owned()));
+            }
+        }
+    });
+    let accessor = crate::runtime::js_getter_setter::GetterSetter::create_from_values(vm, getter, setter);
+    module.put_direct_non_index_accessor_without_transition(vm, &PropertyName::from_identifier(identifier), &accessor, crate::runtime::property_attribute::ACCESSOR);
+}
+
+/// Troca o acessor `name` de `this` por uma propriedade de dados com `value`.
+fn materialize_stream(global_object: &JSGlobalObject, this_value: JSValue, name: &str, value: JSValue) -> Result<(), Thrown> {
+    let vm = global_object.vm();
+    if let Some(target) = JSObject::from_value(&this_value) {
+        target.define_own_property(vm, &PropertyName::from_identifier(&Identifier::from_span(vm, name.as_bytes())), &crate::runtime::property_descriptor::PropertyDescriptor::new(value, 0), false)?;
+    }
+    Ok(())
+}
+
+fn stream_getter_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let Some((name, class)) = STREAM_ACCESSORS.with(|accessors| accessors.borrow().get(&call.callee()).cloned()) else { return Ok(JSValue::undefined()) };
+    let module = streams_module(global_object)?;
+    let value = get_object_property(global_object, module, &Identifier::from_span(global_object.vm(), class.as_bytes()))?;
+    materialize_stream(global_object, call.this_value(), &name, value)?;
+    Ok(value)
+}
+host_function!(stream_getter_function, stream_getter_body);
+
+fn stream_setter_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let Some((name, _)) = STREAM_ACCESSORS.with(|accessors| accessors.borrow().get(&call.callee()).cloned()) else { return Ok(JSValue::undefined()) };
+    materialize_stream(global_object, call.this_value(), &name, call.argument(0))?;
+    Ok(JSValue::undefined())
+}
+host_function!(stream_setter_function, stream_setter_body);
+
 /// Instalador de `fs/promises`: o mesmo objeto de `require("fs").promises`.
 pub(crate) fn install_fs_promises_module(global_object: &JSGlobalObject) -> HostResult {
-    let crate::api::builtin_modules::Resolved::Builtin(entry) = crate::api::builtin_modules::resolve("fs") else {
-        return Ok(JSValue::undefined());
-    };
-    let module = crate::api::builtin_modules::load(global_object, entry)?;
-    get_object_property(global_object, module, &Identifier::from_span(global_object.vm(), b"promises"))
+    crate::api::builtin_modules::member_of(global_object, "fs", "promises")
 }

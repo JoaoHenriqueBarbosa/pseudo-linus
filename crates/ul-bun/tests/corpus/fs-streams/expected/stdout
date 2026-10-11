@@ -1,0 +1,19 @@
+classes ReadStream WriteStream true function 2 createWriteStream
+rs true ReadStream /tmp/s/in.txt r 666 null 0 undefined undefined Infinity true
+open event number
+ready event
+read chunks [ "abcd", "efgh", "ij" ] 10 true null
+range cdef
+missing ENOENT: no such file or directory, open '/tmp/s/zz' ENOENT open /tmp/s/zz -2
+ws true WriteStream /tmp/s/out.txt w 666 0 undefined true
+write ret true true
+ws open
+ws finish
+written hello world! 12
+appended hello world!++
+pipeline abcdefghij
+handle stream abcdefghij ReadStream
+bad path The "path" argument must be of type string or URL. Received type number (5) ERR_INVALID_ARG_TYPE
+bad range The value of "start" is out of range. It must be <= "end" (here: 2). Received 5 ERR_OUT_OF_RANGE
+bad enc The argument 'encoding' is invalid encoding. Received 'zz' ERR_INVALID_ARG_VALUE
+done

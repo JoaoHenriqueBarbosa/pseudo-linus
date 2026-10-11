@@ -50,6 +50,11 @@ pub(crate) fn install_stream_module(global_object: &JSGlobalObject) -> HostResul
     Ok(run_factory(global_object, STREAM, "stream", &host))
 }
 
+/// Instalador de `node:stream/promises`: o `promises` de `node:stream`.
+pub(crate) fn install_stream_promises_module(global_object: &JSGlobalObject) -> HostResult {
+    crate::api::builtin_modules::member_of(global_object, "stream", "promises")
+}
+
 /// Instalador de `node:querystring`.
 pub(crate) fn install_querystring_module(global_object: &JSGlobalObject) -> HostResult {
     install_js_module(global_object, QUERYSTRING, "querystring")

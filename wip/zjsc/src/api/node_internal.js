@@ -45,6 +45,8 @@
     // Os validadores do bun são C++: o nome ausente vira o texto "undefined" (`validateFunction(fn)` sem nome dá
     // `The "undefined" argument must be of type function`, medido no bun 1.4.2).
     name = `${name}`;
+    // Um texto com a lista pronta ("string or URL", como o `streams.ts` do bun passa) entra verbatim.
+    const verbatim = typeof expected === "string" && expected.includes(" or ");
     if (!ArrayIsArray(expected)) expected = [expected];
     let message = "The ";
     if (name.endsWith(" argument")) {
@@ -53,6 +55,7 @@
       message += `"${name}" ${name.includes(".") ? "property" : "argument"} `;
     }
     message += "must be ";
+    if (verbatim) return makeError("TypeError", "ERR_INVALID_ARG_TYPE", `${message}of type ${expected[0]}. Received ${determineSpecificType(actual)}`);
     const types = [];
     const instances = [];
     const other = [];
@@ -237,6 +240,12 @@
     if (value < min || value > max) throw outOfRange(name, `>= ${min} && <= ${max}`, value);
   }
 
+  function validateInt32(value, name, min = -2147483648, max = 2147483647) {
+    if (typeof value !== "number") throw invalidArgType(name, "number", value);
+    if (!NumberIsInteger(value)) throw outOfRange(name, "an integer", value);
+    if (value < min || value > max) throw outOfRange(name, `>= ${min} && <= ${max}`, value);
+  }
+
   function validateObject(value, name, options = kValidateObjectNone) {
     if (options === kValidateObjectNone) {
       if (value === null || ArrayIsArray(value) || typeof value !== "object") throw invalidArgType(name, "object", value);
@@ -280,6 +289,7 @@
     kValidateObjectAllowFunction,
     validateObject,
     validateInteger,
+    validateInt32,
     validateUint32,
     validateNumber,
     validateString,
