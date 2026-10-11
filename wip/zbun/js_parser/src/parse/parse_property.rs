@@ -48,7 +48,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if opts.is_class && !is_computed {
             match &key.data {
                 js_ast::ExprData::EString(str_) => {
-                    if !opts.is_static && str_.eql_comptime(b"constructor") {
+                    if !opts.is_static && p.store[*str_].eql_comptime(&p.store, b"constructor") {
                         if kind == PropertyKind::Get {
                             p.lexer.log.add_range_error(
                                 Some(p.source),
@@ -76,7 +76,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         } else {
                             is_constructor = true;
                         }
-                    } else if opts.is_static && str_.eql_comptime(b"prototype") {
+                    } else if opts.is_static && p.store[*str_].eql_comptime(&p.store, b"prototype") {
                         p.lexer.log.add_range_error(
                             Some(p.source),
                             key_range,
@@ -144,7 +144,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         r,
                         format_args!(
                             "Getter {} must have zero arguments",
-                            bstr::BStr::new(key_name)
+                            bstr::BStr::new(&key_name)
                         ),
                     );
                 }
@@ -168,7 +168,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         r,
                         format_args!(
                             "Setter {} must have exactly 1 argument (there are {})",
-                            bstr::BStr::new(key_name),
+                            bstr::BStr::new(&key_name),
                             args.len()
                         ),
                     );
@@ -648,8 +648,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if !is_computed {
                     match &key.data {
                         js_ast::ExprData::EString(str_) => {
-                            if str_.eql_comptime(b"constructor")
-                                || (opts.is_static && str_.eql_comptime(b"prototype"))
+                            if p.store[*str_].eql_comptime(&p.store, b"constructor")
+                                || (opts.is_static && p.store[*str_].eql_comptime(&p.store, b"prototype"))
                             {
                                 // TODO: fmt error message to include string value.
                                 p.lexer.log.add_range_error(

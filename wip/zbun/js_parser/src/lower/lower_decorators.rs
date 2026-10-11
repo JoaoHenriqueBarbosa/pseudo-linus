@@ -300,7 +300,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // `E::Dot.name` is a UTF-8 `Str`; a UTF-16 `EString.data` stores
             // u16-count bytes that are garbage as UTF-8. Fall through to
             // `E::Index` for UTF-16 keys so the printer emits `["…"]`.
-            if s.is_utf8() {
+            if self.store[*s].is_utf8() {
                 return self.new_expr(
                     E::Dot {
                         target: target_expr,
@@ -447,7 +447,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             js_ast::ExprData::EIndex(e) => {
                 self.rewrite_expr(&mut self.store[*e].target, kind);
-                self.rewrite_expr(&mut e.index, kind);
+                self.rewrite_expr(&mut self.store[*e].index, kind);
             }
             js_ast::ExprData::EDot(e) => self.rewrite_expr(&mut self.store[*e].target, kind),
             js_ast::ExprData::ESpread(e) => self.rewrite_expr(&mut self.store[*e].value, kind),
@@ -723,21 +723,21 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut tgt = self.store[*e].target;
                 self.rewrite_private_accesses_in_expr(&mut tgt, map);
                 self.store[*e].target = tgt;
-                if let js_ast::ExprData::EPrivateIdentifier(pi) = &e.index.data {
+                if let js_ast::ExprData::EPrivateIdentifier(pi) = &self.store[*e].index.data {
                     if let Some(info) = map.get(&pi.ref_.inner_index()).copied() {
                         let target = self.store[*e].target;
                         *expr = self.private_get_expr(target, &info, expr_loc);
                         return;
                     }
                 }
-                let mut idx = e.index;
+                let mut idx = self.store[*e].index;
                 self.rewrite_private_accesses_in_expr(&mut idx, map);
-                e.index = idx;
+                self.store[*e].index = idx;
             }
             js_ast::ExprData::EBinary(e) => {
                 if self.store[*e].op == js_ast::OpCode::BinAssign {
                     if let js_ast::ExprData::EIndex(left_idx) = &mut self.store[*e].left.data {
-                        if let js_ast::ExprData::EPrivateIdentifier(pi) = &left_idx.index.data {
+                        if let js_ast::ExprData::EPrivateIdentifier(pi) = &self.store[*left_idx].index.data {
                             if let Some(info) = map.get(&pi.ref_.inner_index()).copied() {
                                 let mut lt = self.store[*left_idx].target;
                                 self.rewrite_private_accesses_in_expr(&mut lt, map);
@@ -769,7 +769,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             js_ast::ExprData::ECall(e) => {
                 if let js_ast::ExprData::EIndex(tgt_idx) = &mut self.store[*e].target.data {
-                    if let js_ast::ExprData::EPrivateIdentifier(pi) = &tgt_idx.index.data {
+                    if let js_ast::ExprData::EPrivateIdentifier(pi) = &self.store[*tgt_idx].index.data {
                         if let Some(info) = map.get(&pi.ref_.inner_index()).copied() {
                             let mut obj_expr = self.store[*tgt_idx].target;
                             self.rewrite_private_accesses_in_expr(&mut obj_expr, map);
@@ -1584,7 +1584,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let accessor_name: &'a [u8] = 'brk: {
                         if let Some(k) = prop.key {
                             if let js_ast::ExprData::EString(s) = &k.data
-                                && s.is_utf8()
+                                && p.store[*s].is_utf8()
                             {
                                 break 'brk p.bump_name2(b"_", &p.store[*s].data);
                             }
@@ -1622,27 +1622,28 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let wm_e2 = p.use_ref(wm_ref, loc);
                     let v_e = p.use_ref(setter_param_ref, loc);
                     let set_call = p.call_rt(loc, b"__privateSet", &[this_e2, wm_e2, v_e]);
-                    let set_body = bump.alloc_slice_copy(&[p.s(
+                    let set_body = p.s(
                         S::SExpr {
                             value: set_call,
                             ..Default::default()
                         },
                         loc,
-                    )]);
+                    );
                     let setter_binding = p.b(
                         B::Identifier {
                             r#ref: setter_param_ref,
                         },
                         loc,
                     );
-                    let setter_fn_args = bump.alloc(G::Arg {
+                    let args = p.store.alloc_slice([G::Arg {
                         binding: setter_binding,
                         ..Default::default()
-                    });
+                    }]);
+                    let stmts = p.store.alloc_slice([set_body]);
                     let set_fn = G::Fn {
-                        args: p.store.alloc_slice(core::slice::from_mut(setter_fn_args)),
+                        args,
                         body: G::FnBody {
-                            stmts: p.store.alloc_slice(set_body),
+                            stmts,
                             loc,
                         },
                         ..Default::default()
@@ -1832,7 +1833,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // Decorated public auto-accessor → WeakMap
                 let accessor_name: &'a [u8] = 'brk: {
                     if let js_ast::ExprData::EString(s) = &key_expr.data
-                        && s.is_utf8()
+                        && p.store[*s].is_utf8()
                     {
                         break 'brk p.bump_name2(b"_", &p.store[*s].data);
                     }
@@ -2337,7 +2338,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     continue;
                 }
                 let is_ctor = match &nprop.key.unwrap().data {
-                    js_ast::ExprData::EString(s) => s.eql_comptime(b"constructor"),
+                    js_ast::ExprData::EString(s) => p.store[*s].eql_comptime(&p.store, b"constructor"),
                     _ => false,
                 };
                 if !is_ctor {

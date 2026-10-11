@@ -371,7 +371,7 @@ impl<'a> ImportScanner<'a> {
                             for alias in &sorted {
                                 let item: LocRef = *existing.get(alias).unwrap();
                                 handle_oom(p.named_imports.put(
-                                    item.ref_,
+                                    &item.ref_,
                                     js_ast::NamedImport {
                                         alias: Some(p.store.alloc_str(*alias)),
                                         alias_loc: item.loc,
@@ -423,8 +423,8 @@ impl<'a> ImportScanner<'a> {
                             record!()
                                 .flags
                                 .insert(import_record::Flags::CONTAINS_IMPORT_STAR);
-                            p.named_imports.put_assume_capacity(
-                                namespace_ref,
+                            p.named_imports.put(
+                                &namespace_ref,
                                 js_ast::NamedImport {
                                     alias_is_star: true,
                                     alias: Some(p.store.alloc_str(b"")),
@@ -441,8 +441,8 @@ impl<'a> ImportScanner<'a> {
                             record!()
                                 .flags
                                 .insert(import_record::Flags::CONTAINS_DEFAULT_ALIAS);
-                            p.named_imports.put_assume_capacity(
-                                default.ref_,
+                            p.named_imports.put(
+                                &default.ref_,
                                 js_ast::NamedImport {
                                     alias: Some(p.store.alloc_str(b"default")),
                                     alias_loc: default.loc,
@@ -459,8 +459,8 @@ impl<'a> ImportScanner<'a> {
                             let name: LocRef = item.name;
                             let name_ref = name.ref_;
 
-                            p.named_imports.put_assume_capacity(
-                                name_ref,
+                            p.named_imports.put(
+                                &name_ref,
                                 js_ast::NamedImport {
                                     alias: Some(item.alias),
                                     alias_loc: name.loc,
@@ -491,7 +491,7 @@ impl<'a> ImportScanner<'a> {
                             let name_ref = name.ref_;
 
                             p.named_imports.put(
-                                name_ref,
+                                &name_ref,
                                 js_ast::NamedImport {
                                     alias: Some(item.alias),
                                     alias_loc: name.loc,
@@ -717,7 +717,7 @@ impl<'a> ImportScanner<'a> {
                     if let Some(alias) = &p.store[st].alias {
                         // "export * as ns from 'path'"
                         p.named_imports.put(
-                            p.store[st].namespace_ref,
+                            &p.store[st].namespace_ref,
                             js_ast::NamedImport {
                                 alias: None,
                                 alias_is_star: true,
@@ -752,7 +752,7 @@ impl<'a> ImportScanner<'a> {
                         // exported alias. This is somewhat confusing because each
                         // SExportFrom statement is basically SImport + SExportClause in one.
                         p.named_imports.put(
-                            ref_,
+                            &ref_,
                             js_ast::NamedImport {
                                 alias_is_star: false,
                                 alias: Some(item.original_name),

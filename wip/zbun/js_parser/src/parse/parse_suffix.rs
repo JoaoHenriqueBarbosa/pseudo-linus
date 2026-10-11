@@ -7,6 +7,7 @@ use crate::p::P;
 use crate::parser::DeferredErrors;
 use crate::scan::scan_side_effects::SideEffects;
 use bun_ast::expr::EFlags;
+use bun_ast::NodeStore as _;
 use bun_ast::op::Level;
 use bun_ast::{E, Expr, ExprData, OpCode, OptionalChain};
 

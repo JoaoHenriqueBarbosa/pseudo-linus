@@ -161,8 +161,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                             );
                                         }
                                         ExprData::EIndex(index) => {
-                                            if matches!(index.index.data, ExprData::EString(_)) {
-                                                break 'brk index.index;
+                                            if matches!(p.store[*index].index.data, ExprData::EString(_)) {
+                                                break 'brk p.store[*index].index;
                                             }
                                         }
                                         _ => {}

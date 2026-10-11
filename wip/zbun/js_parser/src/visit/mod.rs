@@ -439,7 +439,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .try_track_dynamic_import_destructure(
                                     namespace_ref,
                                     &records,
-                                    obj.properties(),
+                                    &self.store[self.store[obj].properties].to_vec(),
                                     is_export,
                                 )
                                 .is_some()
@@ -447,7 +447,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 self.note_tracked_namespace_use(namespace_ref);
                                 // Another `var` declaration is the same variable.
                                 if kind != LocalKind::KVar && !is_export {
-                                    self.note_destructured_locals(obj.properties());
+                                    self.note_destructured_locals(&self.store[self.store[obj].properties].to_vec());
                                 }
                             }
                         }
@@ -540,7 +540,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .try_track_dynamic_import_destructure(
                                     ns,
                                     &[req.import_record_index],
-                                    obj.properties(),
+                                    &self.store[self.store[obj].properties].to_vec(),
                                     is_export,
                                 )
                                 .is_none()
@@ -548,7 +548,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 self.dynamic_import_escaped_records
                                     .insert(req.import_record_index, ());
                             } else if kind != LocalKind::KVar && !is_export {
-                                self.note_destructured_locals(obj.properties());
+                                self.note_destructured_locals(&self.store[self.store[obj].properties].to_vec());
                             }
                         }
                         BData::BIdentifier(id) if kind != LocalKind::KVar && !is_export => {
@@ -658,7 +658,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                                 if let BData::BIdentifier(id) = property.value.data
                                                 {
                                                     self.const_values
-                                                        .put(self.store[id].r#ref, query.expr)
+                                                        .put(&self.store[id].r#ref, query.expr)
                                                         .expect("oom");
                                                 }
                                             }
@@ -699,7 +699,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             BData::BIdentifier(id) => {
                 if self.options.features.inlining {
-                    self.const_values.put(self.store[id].r#ref, expr).expect("oom");
+                    self.const_values.put(&self.store[id].r#ref, expr).expect("oom");
                 }
             }
             BData::BMissing(_) => {}
@@ -719,7 +719,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if could_be_const_value || (Self::ALLOW_MACROS && could_be_macro) {
                     if let Some(val) = decl.value {
                         if val.can_be_const_value(&self.store) {
-                            self.const_values.put(id_ref, val).expect("oom");
+                            self.const_values.put(&id_ref, val).expect("oom");
                         }
                     }
                 } else {
@@ -1126,7 +1126,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 {
                     if let Some(key) = property.key {
                         if let ExprData::EString(e_str) = key.data {
-                            name_to_keep = Some(e_str.string(self.arena).expect("oom"));
+                            name_to_keep = Some(self.store[e_str].string(self.arena).expect("oom"));
                         }
                     }
                 } else if property.flags.contains(flags::Property::IsMethod) {
@@ -1138,7 +1138,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             if let (ExprData::EFunction(e_func), ExprData::EString(e_str)) =
                                 (value.data, key.data)
                             {
-                                if e_str.eql_comptime(b"constructor") {
+                                if self.store[e_str].eql_comptime(&self.store, b"constructor") {
                                     // `StoreRef` points into property.value's arena slot,
                                     // so it can be re-read after visit_expr overwrites the
                                     // value below.
@@ -1320,7 +1320,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             let this_target = self.new_expr(E::This {}, key.loc);
                             let target = match &key.data {
                                 ExprData::EString(s)
-                                    if s.is_utf8()
+                                    if self.store[*s].is_utf8()
                                         && !prop.flags.contains(flags::Property::IsComputed) =>
                                 {
                                     self.new_expr(

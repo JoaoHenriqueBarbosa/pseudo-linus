@@ -289,7 +289,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
                         let fn_name: &[u8] =
                             p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
-                        exported_members.put(
+                        p.store[exported_members].put(
                             fn_name,
                             TSNamespaceMember {
                                 loc: locref.loc,
@@ -307,7 +307,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
                         let class_name: &[u8] =
                             p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
-                        exported_members.put(
+                        p.store[exported_members].put(
                             class_name,
                             TSNamespaceMember {
                                 loc: locref.loc,
@@ -326,7 +326,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // SAFETY: original_name is arena-owned, valid for 'a.
                             let ns_name: &[u8] =
                                 p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
-                            exported_members.put(
+                            p.store[exported_members].put(
                                 ns_name,
                                 TSNamespaceMember {
                                     data: clone_ts_member_data(&member_data),
@@ -345,7 +345,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // SAFETY: original_name is arena-owned, valid for 'a.
                             let enum_name: &[u8] =
                                 p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
-                            exported_members.put(
+                            p.store[exported_members].put(
                                 enum_name,
                                 TSNamespaceMember {
                                     data: clone_ts_member_data(&member_data),
@@ -440,12 +440,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // with the rest of the AST arena.
                 let mut underscores: usize = 1;
                 let prefixed: &'a [u8] = loop {
-                    let candidate = p
-                        .arena
-                        .alloc_slice_fill_copy(underscores + name_text.len(), b'_');
+                    let mut candidate = vec![b'_'; underscores + name_text.len()];
                     candidate[underscores..].copy_from_slice(name_text);
-                    if !p.current_scope().members.contains_key(candidate) {
-                        break candidate;
+                    if !p.current_scope().members.contains_key(&p.store, &candidate[..]) {
+                        break &*p.arena.alloc_slice_copy(&candidate);
                     }
                     underscores += 1;
                 };
@@ -663,7 +661,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let value_loc = value.loc;
             values.push(value);
 
-            exported_members.put(
+            p.store[exported_members].put(
                 p.store.str(value_name),
                 TSNamespaceMember {
                     loc: value_loc,

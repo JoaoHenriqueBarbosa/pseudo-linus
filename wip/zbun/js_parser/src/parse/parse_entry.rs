@@ -353,7 +353,7 @@ impl<'a> Parser<'a> {
     /// `bun run`, so keep the `_scan_imports` monomorphizations out of the hot
     /// `.text` between the lexer and the live `_parse` bodies.
     #[cold]
-    pub fn scan_imports(&mut self, scan_pass: &'a mut ScanPassResult) -> Result<(), Error> {
+    pub fn scan_imports(self, scan_pass: &'a mut ScanPassResult) -> Result<(), Error> {
         if self.options.ts {
             self._scan_imports::<true>(scan_pass)
         } else {
@@ -363,29 +363,20 @@ impl<'a> Parser<'a> {
 
     #[cold]
     fn _scan_imports<const TS: bool>(
-        &mut self,
+        self,
         scan_pass: &'a mut ScanPassResult,
     ) -> Result<(), Error> {
         type Pi<'a, const TS: bool> = P<'a, TS, true>;
-        // `Lexer` owns `Vec`s and `Options` owns
-        // `jsx: Pragma` boxes, so a bitwise `ptr::read` would double-free
-        // when `self` later drops. Move them out, leaving inert placeholders.
-        //
-        // The inert placeholder lexer is given its *own* arena-allocated `Log`
-        // so it does not alias `self.log` at all: keeps the placeholder fully
-        // disjoint from the real `Log` handed to `P` and never read again.
-        let lexer = core::mem::replace(
-            &mut self.lexer,
-            js_lexer::Lexer::init_without_reading(
-                // Disjoint dummy `Log` (empty `Vec`, arena-leaked); the
-                // placeholder is never read after this point.
-                self.bump.alloc(bun_ast::Log::default()),
-                self.source,
-                self.bump,
-            ),
-        );
-        let options = core::mem::take(&mut self.options);
-        let mut parser_box = <Pi<'_, TS>>::init(self.bump, self.source, self.define, lexer, options)?;
+        // O `Parser` é consumido, como em `parse`: o lexer (dono do `&mut Log`) e as opções vão direto para o `P`.
+        let Parser {
+            options,
+            lexer,
+            source,
+            define,
+            bump,
+            ..
+        } = self;
+        let mut parser_box = <Pi<'_, TS>>::init(bump, source, define, lexer, options)?;
         let p: &mut Pi<'_, TS> = &mut parser_box;
         p.import_records = crate::p::ImportRecordList::Borrowed(&mut scan_pass.import_records);
         p.named_imports = crate::p::NamedImportsType::Borrowed(&mut scan_pass.named_imports);
@@ -400,7 +391,7 @@ impl<'a> Parser<'a> {
             // when the map already retains enough capacity from a prior file.
             let _ = scan_pass
                 .used_symbols
-                .ensure_total_capacity(self.source.contents.len() / 16);
+                .ensure_total_capacity(source.contents.len() / 16);
             p.parse_pass_symbol_uses = Some(&mut scan_pass.used_symbols);
         }
 
@@ -501,28 +492,21 @@ impl<'a> Parser<'a> {
     }
 
     pub(crate) fn to_lazy_export_ast(
-        &mut self,
+        self,
         expr: Expr,
         runtime_api_call: &'static [u8],
         symbols: js_ast::symbol::List,
     ) -> Result<crate::Result, Error> {
-        // Move lexer/options out and leave inert
-        // placeholders so `self` may drop without double-free.
-        //
-        // The placeholder lexer gets its own arena `Log` so it does not alias
-        // `self.log` (see `_scan_imports`).
-        let lexer = core::mem::replace(
-            &mut self.lexer,
-            js_lexer::Lexer::init_without_reading(
-                // Disjoint dummy `Log` (empty `Vec`, arena-leaked); the
-                // placeholder is never read after this point.
-                self.bump.alloc(bun_ast::Log::default()),
-                self.source,
-                self.bump,
-            ),
-        );
-        let options = core::mem::take(&mut self.options);
-        let mut parser_box = <JavaScriptParser<'_>>::init(self.bump, self.source, self.define, lexer, options)?;
+        // O `Parser` é consumido, como em `parse` e `_scan_imports`.
+        let Parser {
+            options,
+            lexer,
+            source,
+            define,
+            bump,
+            ..
+        } = self;
+        let mut parser_box = <JavaScriptParser<'_>>::init(bump, source, define, lexer, options)?;
         let p: &mut JavaScriptParser<'_> = &mut parser_box;
 
         // Instead of doing "should_fold_typescript_constant_expressions or features.minify_syntax"
@@ -1228,7 +1212,7 @@ impl<'a> Parser<'a> {
                         || p.dynamic_import_escaped_records
                             .contains_key(&import_record_id)
                 };
-                let entry = bun_core::handle_oom(by_record.get_or_put(import_record_id));
+                let entry = bun_core::handle_oom(by_record.get_or_put(&import_record_id));
                 if !entry.found_existing {
                     *entry.value_ptr = PerRecord::default();
                 }
@@ -1296,7 +1280,7 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            for i in 0..by_record.len() {
+            for i in 0..by_record.count() {
                 let import_record_id = by_record.keys()[i];
                 let rec = &mut by_record.values_mut()[i];
                 if rec.escaped {
@@ -1308,7 +1292,7 @@ impl<'a> Parser<'a> {
                 let items = p.store.alloc_slice(rec.items.to_vec());
                 bun_core::handle_oom(
                     p.dynamic_import_aliases.put(
-                        import_record_id,
+                        &import_record_id,
                         bun_ast::ast_result::DynamicImportUse {
                             aliases,
                             items,

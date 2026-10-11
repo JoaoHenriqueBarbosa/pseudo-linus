@@ -824,11 +824,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if self.load_name_from_ref(ident.ref_) == b"require" && self.store[call].args.len_u32() == 1
                     {
                         if let js_ast::ExprData::EString(s) = self.store[self.store[call].args][0].data {
-                            let _ = self.add_import_record(
-                                ImportKind::Require,
-                                loc,
-                                s.string(self.arena).expect("unreachable"),
-                            );
+                            let node = self.store[s];
+                            let text = node.string(&mut self.store);
+                            let path = self.store.str(text).to_vec();
+                            let _ = self.add_import_record(ImportKind::Require, loc, &path);
                         }
                     }
                 }
@@ -886,17 +885,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if self.store[tmpl].tag.is_some() {
                 return Ok(b""); // tagged template: opaque
             }
-            match &self.store[tmpl].head {
+            match self.store[tmpl].head {
                 js_ast::e::TemplateContents::Cooked(head) => {
-                    buf.extend_from_slice(head.string(self.arena)?);
+                    let text = head.string(&mut self.store);
+                    buf.extend_from_slice(self.store.str(text));
                 }
                 js_ast::e::TemplateContents::Raw(_) => return Ok(b""), // shouldn't happen post-visit but be safe
             }
-            for part in tmpl.parts().iter() {
+            let parts = self.store[tmpl].parts;
+            for index in 0..parts.len() {
                 buf.push(0); // \x00 placeholder per interpolation
-                match &part.tail {
+                match self.store[parts][index].tail {
                     js_ast::e::TemplateContents::Cooked(tail) => {
-                        buf.extend_from_slice(tail.string(self.arena)?);
+                        let text = tail.string(&mut self.store);
+                        buf.extend_from_slice(self.store.str(text));
                     }
                     js_ast::e::TemplateContents::Raw(_) => return Ok(b""), // raw tail: treat as opaque
                 }
@@ -1114,7 +1116,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 self.symbols[item.local.inner_index() as usize].import_item_status =
                     bun_ast::ImportItemStatus::Generated;
                 bun_core::handle_oom(self.named_imports.put(
-                    item.local,
+                    &item.local,
                     js_ast::NamedImport {
                         alias: Some(item.alias),
                         alias_loc: bun_ast::Loc::EMPTY,
@@ -1368,7 +1370,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         .try_track_dynamic_import_destructure(
                             self.store[im].namespace_ref,
                             &[self.store[im].import_record_index],
-                            obj.properties(),
+                            self.store[obj].properties(),
                             false,
                         )
                         .is_some()
@@ -1431,8 +1433,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 return self.new_expr(E::Null {}, arg.loc);
             }
 
-            let import_record_index =
-                self.add_import_record(ImportKind::Dynamic, arg.loc, str_.slice(self.arena));
+            let mut node = self.store[str_];
+            let text = node.slice(&mut self.store);
+            self.store[str_] = node;
+            let path = self.store.str(text).to_vec();
+            let import_record_index = self.add_import_record(ImportKind::Dynamic, arg.loc, &path);
 
             if let Some(tag) = state.import_record_tag {
                 self.import_records.items_mut()[import_record_index as usize].tag = tag;
@@ -1460,7 +1465,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let namespace_ref = if self.options.bundle
                 && self.options.output_format != options::Format::InternalBakeDev
             {
-                let path_name = fs::PathName::init(str_.slice(self.arena));
+                let mut node = self.store[str_];
+                let text = node.slice(&mut self.store);
+                self.store[str_] = node;
+                let path_name = fs::PathName::init(self.store.str(text));
                 let name: &'a [u8] = bun_alloc::arena_format!(
                     in self.arena,
                     "import_{}",
@@ -1568,15 +1576,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return self.new_expr(E::Null {}, arg.loc);
         }
 
-        let import_record_index = self.add_import_record(
-            ImportKind::RequireResolve,
-            arg.loc,
-            arg.data
-                .e_string()
-                .expect("infallible: variant checked")
-                .string(self.arena)
-                .expect("unreachable"),
-        );
+        let node = self.store[arg.data.e_string().expect("infallible: variant checked")];
+        let text = node.string(&mut self.store);
+        let path = self.store.str(text).to_vec();
+        let import_record_index = self.add_import_record(ImportKind::RequireResolve, arg.loc, &path);
         self.import_records.items_mut()[import_record_index as usize]
             .flags
             .set(
@@ -1619,9 +1622,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     };
                 }
 
-                str_.resolve_rope_if_needed(self.arena);
-                let pathname = str_.string(self.arena).expect("unreachable");
-                let path = fs::Path::init(pathname);
+                let mut node = self.store[str_];
+                node.resolve_rope_if_needed(&mut self.store);
+                self.store[str_] = node;
+                let text = node.string(&mut self.store);
+                let pathname = self.store.str(text).to_vec();
+                let path = fs::Path::init(&pathname);
 
                 let handles_import_errors = self.fn_or_arrow_data_visit.try_body_count != 0;
 
@@ -1638,7 +1644,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     && !handles_import_errors;
 
                 if should_unwrap_require {
-                    let import_record_index = { let range = self.source.range_of_string(arg.loc); self.add_import_record_by_range(ImportKind::Stmt, range, pathname) };
+                    let import_record_index = { let range = self.source.range_of_string(arg.loc); self.add_import_record_by_range(ImportKind::Stmt, range, &pathname) };
                     self.import_records.items_mut()[import_record_index as usize]
                         .flags
                         .set(
@@ -1647,7 +1653,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         );
 
                     // Note that this symbol may be completely removed later.
-                    let path_name = fs::PathName::init(pathname);
+                    let path_name = fs::PathName::init(&pathname);
                     // Render the sanitized-identifier formatter into the bump arena.
                     let name: &'a [u8] = {
                         use core::fmt::Write as _;
@@ -1699,7 +1705,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     );
                 }
 
-                let import_record_index = { let range = self.source.range_of_string(arg.loc); self.add_import_record_by_range(ImportKind::Require, range, pathname) };
+                let import_record_index = { let range = self.source.range_of_string(arg.loc); self.add_import_record_by_range(ImportKind::Require, range, &pathname) };
                 self.import_records.items_mut()[import_record_index as usize]
                     .flags
                     .set(
@@ -2045,12 +2051,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     /// The current part's uses as a map; starts the next part.
     pub(crate) fn take_symbol_uses(&mut self) -> Result<SymbolUseMap, bun_alloc::AllocError> {
         let mut map = core::mem::take(&mut self.symbol_uses);
-        map.clear_retaining_capacity();
+        map.clear();
         map.ensure_total_capacity(self.part_uses.len())?;
         let generation = u64::from(self.part_generation) << 32;
         for (at, &(ref_, use_)) in self.part_uses.iter().enumerate() {
             if self.part_use_slot[ref_.inner_index() as usize] == generation | at as u64 {
-                map.put_assume_capacity(ref_, use_);
+                map.put(&ref_, use_);
             }
         }
         self.part_uses.clear();
@@ -2123,11 +2129,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     // Only reached while building diagnostics: keep it off the hot parse path.
     #[cold]
     #[inline(never)]
-    pub(crate) fn key_name_for_error(&mut self, key: &js_ast::Expr) -> &'a [u8] {
+    pub(crate) fn key_name_for_error(&mut self, key: &js_ast::Expr) -> Vec<u8> {
         match &key.data {
-            js_ast::ExprData::EString(s) => s.string(self.arena).expect("unreachable"),
-            js_ast::ExprData::EPrivateIdentifier(private) => self.load_name_from_ref(private.ref_),
-            _ => b"property",
+            js_ast::ExprData::EString(s) => {
+                let node = self.store[*s];
+                let text = node.string(&mut self.store);
+                self.store.str(text).to_vec()
+            }
+            js_ast::ExprData::EPrivateIdentifier(private) => self.load_name_from_ref(private.ref_).to_vec(),
+            _ => b"property".to_vec(),
         }
     }
 
@@ -2343,16 +2353,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.module_scope_mut().generated.push(bun_app_ns_ref);
 
         let response_ref = self.response_ref;
-        let clause_items =
-            arena.alloc_slice_fill_with::<js_ast::ClauseItem, _>(1, |_| js_ast::ClauseItem {
-                alias: self.store.alloc_str(b"Response"),
-                original_name: self.store.alloc_str(b"Response"),
-                alias_loc: bun_ast::Loc::default(),
-                name: LocRef {
-                    ref_: response_ref,
-                    loc: bun_ast::Loc::default(),
-                },
-            });
+        let alias = self.store.alloc_str(b"Response");
+        let original_name = self.store.alloc_str(b"Response");
+        let clause_items = self.store.alloc_slice([js_ast::ClauseItem {
+            alias,
+            original_name,
+            alias_loc: bun_ast::Loc::default(),
+            name: LocRef {
+                ref_: response_ref,
+                loc: bun_ast::Loc::default(),
+            },
+        }]);
 
         declared_symbols.append_assume_capacity(DeclaredSymbol {
             ref_: self.response_ref,
@@ -2368,7 +2379,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         self.is_import_item.insert(self.response_ref, ());
         self.named_imports.put(
-            self.response_ref,
+            &self.response_ref,
             js_ast::NamedImport {
                 alias: Some(self.store.alloc_str(b"Response")),
                 alias_loc: bun_ast::Loc::default(),
@@ -2392,7 +2403,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             },
             bun_ast::Loc::default(),
         );
-        let stmts = arena.alloc_slice_fill_with::<Stmt, _>(1, |_| import_stmt);
+        let stmts = self.store.alloc_slice([import_stmt]);
 
         // This import is placed in a part before the main code, however
         // the bundler ends up re-ordering this to be after... The order
@@ -2400,7 +2411,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         parts.push(js_ast::Part {
             stmts: stmts.into(),
             declared_symbols,
-            import_record_indices: self.store.alloc_slice([import_record_i]),
+            import_record_indices: vec![import_record_i],
             tag: bun_ast::PartTag::Runtime,
             ..Default::default()
         });
@@ -2453,15 +2464,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         namespace_identifier.extend_from_slice(import_path_identifier);
         let namespace_identifier = namespace_identifier.into_bump_slice();
 
-        let clause_items =
-            arena.alloc_slice_fill_with::<js_ast::ClauseItem, _>(imports.len(), |_| {
-                js_ast::ClauseItem {
-                    alias: self.store.alloc_str(b""),
-                    original_name: self.store.alloc_str(b""),
-                    alias_loc: bun_ast::Loc::default(),
-                    name: LocRef::default(),
-                }
-            });
+        let mut clause_items: Vec<js_ast::ClauseItem> = Vec::with_capacity(imports.len());
         let mut declared_symbols = bun_ast::DeclaredSymbolList::default();
         declared_symbols.ensure_total_capacity(imports.len() + 1)?;
 
@@ -2472,18 +2475,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         });
         // SAFETY: arena-owned Scope pointer valid for parser 'a lifetime; no aliasing &mut outstanding
         self.module_scope_mut().generated.push(namespace_ref);
-        for (alias, clause_item) in imports.iter().zip(clause_items.iter_mut()) {
+        for alias in imports.iter() {
             let ref_ = symbols.get(alias).expect("unreachable");
             let alias_name: &'static [u8] = symbols.alias_name(alias);
-            *clause_item = js_ast::ClauseItem {
-                alias: self.store.alloc_str(alias_name),
-                original_name: self.store.alloc_str(alias_name),
+            let item_alias = self.store.alloc_str(alias_name);
+            let original_name = self.store.alloc_str(alias_name);
+            clause_items.push(js_ast::ClauseItem {
+                alias: item_alias,
+                original_name,
                 alias_loc: bun_ast::Loc::default(),
                 name: LocRef {
                     ref_,
                     loc: bun_ast::Loc::default(),
                 },
-            };
+            });
             declared_symbols.append_assume_capacity(DeclaredSymbol {
                 ref_,
                 is_top_level: true,
@@ -2504,7 +2509,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             self.is_import_item.insert(ref_, ());
             self.named_imports.put(
-                ref_,
+                &ref_,
                 js_ast::NamedImport {
                     alias: Some(self.store.alloc_str(alias_name)),
                     alias_loc: bun_ast::Loc::default(),
@@ -2517,10 +2522,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             )?;
         }
 
+        let items = self.store.alloc_slice(clause_items);
         let import_stmt = self.s(
             S::Import {
                 namespace_ref,
-                items: clause_items.into(),
+                items,
                 import_record_index: import_record_i,
                 is_single_line: true,
                 default_name: None,
@@ -2529,13 +2535,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             },
             bun_ast::Loc::default(),
         );
-        let stmts = arena
-            .alloc_slice_fill_with::<Stmt, _>(1 + usize::from(additional_stmt.is_some()), |_| {
-                import_stmt
-            });
-        if let Some(add) = additional_stmt {
-            stmts[1] = add;
-        }
+        let stmts = self.store.alloc_slice(core::iter::once(import_stmt).chain(additional_stmt));
 
         // This import is placed in a part before the main code, however
         // the bundler ends up re-ordering this to be after... The order
@@ -2551,7 +2551,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         parts.push(js_ast::Part {
             stmts: stmts.into(),
             declared_symbols,
-            import_record_indices: self.store.alloc_slice([import_record_i]),
+            import_record_indices: vec![import_record_i],
             tag,
             can_be_removed_if_unused: is_jsx,
             force_tree_shaking: is_jsx,
@@ -2645,7 +2645,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 });
                 self.is_import_item.insert(entry.r#ref, ());
                 self.named_imports.put(
-                    entry.r#ref,
+                    &entry.r#ref,
                     js_ast::NamedImport {
                         alias: Some(self.store.alloc_str(entry.name)),
                         alias_loc: bun_ast::Loc::EMPTY,
@@ -2699,12 +2699,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 bun_ast::Loc::EMPTY,
             )
         };
-        let stmts = arena.alloc_slice_fill_with::<Stmt, _>(1, |_| stmt);
+        let stmts = self.store.alloc_slice([stmt]);
 
         parts.push(js_ast::Part {
             stmts: stmts.into(),
             declared_symbols,
-            import_record_indices: self.store.alloc_slice([import_record_index]),
+            import_record_indices: vec![import_record_index],
             tag: bun_ast::PartTag::Runtime,
             ..Default::default()
         });
@@ -2825,59 +2825,48 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 js_ast::ExprData::ENew(mut new) => {
-                    if let Some(done) = self.substitute_single_use_symbol_in_child(
-                        &mut self.store[new].target,
-                        expr,
-                        r#ref,
-                        replacement,
-                        replacement_can_be_removed,
-                    ) {
+                    let child = self.store[new].target;
+                    if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                        child,                    ) {
+                        self.store[new].target = child;
                         return done;
                     }
 
                     if replacement_can_be_removed {
-                        for arg in (&mut self.store[self.store[new].args]) {
-                            if let Some(done) = self.substitute_single_use_symbol_in_child(
-                                arg,
-                                expr,
-                                r#ref,
-                                replacement,
-                                replacement_can_be_removed,
-                            ) {
+                        let list = self.store[new].args;
+                        for index in 0..list.len() {
+                            let arg = self.store[list][index];
+                            if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                                arg,                        ) {
+                                self.store[list][index] = child;
                                 return done;
                             }
                         }
                     }
                 }
                 js_ast::ExprData::ESpread(mut spread) => {
-                    if let Some(done) = self.substitute_single_use_symbol_in_child(
-                        &mut self.store[spread].value,
-                        expr,
-                        r#ref,
-                        replacement,
-                        replacement_can_be_removed,
-                    ) {
+                    let child = self.store[spread].value;
+                    if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                        child,                    ) {
+                        self.store[spread].value = child;
                         return done;
                     }
                 }
                 js_ast::ExprData::EAwait(mut await_expr) => {
-                    if let Some(done) = self.substitute_single_use_symbol_in_child(
-                        &mut self.store[await_expr].value,
-                        expr,
-                        r#ref,
-                        replacement,
-                        replacement_can_be_removed,
-                    ) {
+                    let child = self.store[await_expr].value;
+                    if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                        child,                    ) {
+                        self.store[await_expr].value = child;
                         return done;
                     }
                 }
                 js_ast::ExprData::EYield(mut yield_) => {
-                    let mut value = self.store[yield_].value.unwrap_or(Expr {
+                    let value = self.store[yield_].value.unwrap_or(Expr {
                         data: js_ast::ExprData::EMissing(E::Missing {}),
                         loc: expr.loc,
                     });
-                    if let Some(done) = self.substitute_single_use_symbol_in_child(
-                        &mut value,
+                    if let Some((done, value)) = self.substitute_single_use_symbol_in_child(
+                        value,
                         expr,
                         r#ref,
                         replacement,
@@ -2888,13 +2877,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 js_ast::ExprData::EImport(mut import) => {
-                    if let Some(done) = self.substitute_single_use_symbol_in_child(
-                        &mut self.store[import].expr,
-                        expr,
-                        r#ref,
-                        replacement,
-                        replacement_can_be_removed,
-                    ) {
+                    let child = self.store[import].expr;
+                    if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                        child,                    ) {
+                        self.store[import].expr = child;
                         return done;
                     }
 
@@ -2919,39 +2905,30 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // Do not substitute into an assignment position
                         }
                         _ => {
-                            if let Some(done) = self.substitute_single_use_symbol_in_child(
-                                &mut self.store[e].value,
-                                expr,
-                                r#ref,
-                                replacement,
-                                replacement_can_be_removed,
-                            ) {
+                            let child = self.store[e].value;
+                            if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                                child,                            ) {
+                                self.store[e].value = child;
                                 return done;
                             }
                         }
                     }
                 }
                 js_ast::ExprData::EDot(mut e) => {
-                    if let Some(done) = self.substitute_single_use_symbol_in_child(
-                        &mut self.store[e].target,
-                        expr,
-                        r#ref,
-                        replacement,
-                        replacement_can_be_removed,
-                    ) {
+                    let child = self.store[e].target;
+                    if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                        child,                    ) {
+                        self.store[e].target = child;
                         return done;
                     }
                 }
                 js_ast::ExprData::EBinary(mut e) => {
                     // Do not substitute into an assignment position
                     if js_ast::op::Code::binary_assign_target(self.store[e].op) == js_ast::AssignTarget::None {
-                        if let Some(done) = self.substitute_single_use_symbol_in_child(
-                            &mut self.store[e].left,
-                            expr,
-                            r#ref,
-                            replacement,
-                            replacement_can_be_removed,
-                        ) {
+                        let child = self.store[e].left;
+                        if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                            child,                        ) {
+                            self.store[e].left = child;
                             return done;
                         }
                     } else if !self.expr_can_be_removed_if_unused(&self.store[e].left) {
@@ -2979,24 +2956,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                     // If we get here then it should be safe to attempt to substitute the
                     // replacement past the left operand into the right operand.
-                    if let Some(done) = self.substitute_single_use_symbol_in_child(
-                        &mut self.store[e].right,
-                        expr,
-                        r#ref,
-                        replacement,
-                        replacement_can_be_removed,
-                    ) {
+                    let child = self.store[e].right;
+                    if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                        child,                    ) {
+                        self.store[e].right = child;
                         return done;
                     }
                 }
                 js_ast::ExprData::EIf(mut e) => {
-                    if let Some(done) = self.substitute_single_use_symbol_in_child(
-                        &mut self.store[e].test,
-                        expr,
-                        r#ref,
-                        replacement,
-                        replacement_can_be_removed,
-                    ) {
+                    let child = self.store[e].test;
+                    if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                        child,                    ) {
+                        self.store[e].test = child;
                         return done;
                     }
 
@@ -3041,26 +3012,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 js_ast::ExprData::EIndex(mut index) => {
-                    if let Some(done) = self.substitute_single_use_symbol_in_child(
-                        &mut self.store[index].target,
-                        expr,
-                        r#ref,
-                        replacement,
-                        replacement_can_be_removed,
-                    ) {
+                    let child = self.store[index].target;
+                    if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                        child,                    ) {
+                        self.store[index].target = child;
                         return done;
                     }
 
                     // Do not substitute our unconditionally-executed value into a branch
                     // unless the value itself has no side effects
                     if replacement_can_be_removed || self.store[index].optional_chain.is_none() {
-                        if let Some(done) = self.substitute_single_use_symbol_in_child(
-                            &mut index.index,
-                            expr,
-                            r#ref,
-                            replacement,
-                            replacement_can_be_removed,
-                        ) {
+                        let child = self.store[index].index;
+                        if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                            child,                        ) {
+                            self.store[index].index = child;
                             return done;
                         }
                     }
@@ -3077,57 +3042,53 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         _ => {}
                     }
 
-                    if let Some(done) = self.substitute_single_use_symbol_in_child(
-                        &mut self.store[e].target,
-                        expr,
-                        r#ref,
-                        replacement,
-                        replacement_can_be_removed,
-                    ) {
+                    let child = self.store[e].target;
+                    if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                        child,                    ) {
+                        self.store[e].target = child;
                         return done;
                     }
 
                     // Do not substitute our unconditionally-executed value into a branch
                     // unless the value itself has no side effects
                     if replacement_can_be_removed || self.store[e].optional_chain.is_none() {
-                        for arg in (&mut self.store[self.store[e].args]) {
-                            if let Some(done) = self.substitute_single_use_symbol_in_child(
-                                arg,
-                                expr,
-                                r#ref,
-                                replacement,
-                                replacement_can_be_removed,
-                            ) {
+                        let list = self.store[e].args;
+                        for index in 0..list.len() {
+                            let arg = self.store[list][index];
+                            if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                                arg,                        ) {
+                                self.store[list][index] = child;
                                 return done;
                             }
                         }
                     }
                 }
                 js_ast::ExprData::EArray(mut e) => {
-                    for item in (&mut self.store[self.store[e].items]) {
-                        if let Some(done) = self.substitute_single_use_symbol_in_child(
-                            item,
-                            expr,
-                            r#ref,
-                            replacement,
-                            replacement_can_be_removed,
-                        ) {
+                    let list = self.store[e].items;
+                    for index in 0..list.len() {
+                        let item = self.store[list][index];
+                        if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                            item,                    ) {
+                            self.store[list][index] = child;
                             return done;
                         }
                     }
                 }
                 js_ast::ExprData::EObject(mut e) => {
-                    for property in (&mut self.store[self.store[e].properties]) {
+                    let properties = self.store[e].properties;
+                    for index in 0..properties.len() {
+                        let property = &self.store[properties][index];
                         // Check the key
                         if property.flags.contains(Flags::Property::IsComputed) {
-                            let key = property.key.as_mut().expect("infallible: prop has key");
-                            if let Some(done) = self.substitute_single_use_symbol_in_child(
+                            let key = property.key.expect("infallible: prop has key");
+                            if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
                                 key,
                                 expr,
                                 r#ref,
                                 replacement,
                                 replacement_can_be_removed,
                             ) {
+                                self.store[properties][index].key = Some(child);
                                 return done;
                             }
 
@@ -3136,47 +3097,46 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
 
                         // Check the value
-                        if let Some(value) = property.value.as_mut() {
-                            if let Some(done) = self.substitute_single_use_symbol_in_child(
+                        if let Some(value) = property.value {
+                            if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
                                 value,
                                 expr,
                                 r#ref,
                                 replacement,
                                 replacement_can_be_removed,
                             ) {
-                                if matches!(value.data, js_ast::ExprData::EMissing(_)) {
-                                    property.value = None;
-                                }
+                                self.store[properties][index].value =
+                                    if matches!(child.data, js_ast::ExprData::EMissing(_)) { None } else { Some(child) };
                                 return done;
                             }
                         }
                     }
                 }
                 js_ast::ExprData::ETemplate(mut e) => {
-                    if let Some(tag) = self.store[e].tag.as_mut() {
-                        if let Some(done) = self.substitute_single_use_symbol_in_child(
+                    if let Some(tag) = self.store[e].tag {
+                        if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
                             tag,
                             expr,
                             r#ref,
                             replacement,
                             replacement_can_be_removed,
                         ) {
+                            self.store[e].tag = Some(child);
                             return done;
                         }
                     }
 
-                    // `E::Template.parts` is `StoreSlice<TemplatePart>` (arena-owned, mutable
-                    // provenance preserved end-to-end) so derive the unique view directly.
-                    // SAFETY: arena-owned slice; single-threaded visit pass has exclusive
-                    // access and no other borrow of this slice is live across the loop body.
-                    for part in e.parts_mut().iter_mut() {
-                        if let Some(done) = self.substitute_single_use_symbol_in_child(
-                            &mut part.value,
+                    let parts = self.store[e].parts;
+                    for index in 0..parts.len() {
+                        let value = self.store[parts][index].value;
+                        if let Some((done, child)) = self.substitute_single_use_symbol_in_child(
+                            value,
                             expr,
                             r#ref,
                             replacement,
                             replacement_can_be_removed,
                         ) {
+                            self.store[parts][index].value = child;
                             // todo: mangle template parts
                             return done;
                         }
@@ -3201,30 +3161,21 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         Substitution::Failure(expr)
     }
 
-    /// `None` is `Continue`; otherwise `slot` was rewritten and this is `parent`'s outcome.
+    /// `None` é `Continue`; senão, o resultado do `parent` junto com o filho reescrito, que quem chama grava de volta
+    /// no campo de onde leu `slot`. O upstream escreve por um ponteiro para esse campo; a recursão só desce pelo
+    /// filho, então nada mais toca o campo entre a leitura e a gravação (README, "Escrita durante a visita").
     fn substitute_single_use_symbol_in_child(
         &mut self,
-        slot: &mut Expr,
+        slot: Expr,
         parent: Expr,
         r#ref: Ref,
         replacement: Expr,
         replacement_can_be_removed: bool,
-    ) -> Option<Substitution> {
-        match self.substitute_single_use_symbol_in_expr(
-            *slot,
-            r#ref,
-            replacement,
-            replacement_can_be_removed,
-        ) {
+    ) -> Option<(Substitution, Expr)> {
+        match self.substitute_single_use_symbol_in_expr(slot, r#ref, replacement, replacement_can_be_removed) {
             Substitution::Continue => None,
-            Substitution::Success(child) => {
-                *slot = child;
-                Some(Substitution::Success(parent))
-            }
-            Substitution::Failure(child) => {
-                *slot = child;
-                Some(Substitution::Failure(parent))
-            }
+            Substitution::Success(child) => Some((Substitution::Success(parent), child)),
+            Substitution::Failure(child) => Some((Substitution::Failure(parent), child)),
         }
     }
 
@@ -3352,7 +3303,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         self.module_scope_mut()
             .generated
-            .ensure_unused_capacity(generated_symbols_count as usize * 3);
+            .reserve(generated_symbols_count as usize * 3);
 
         self.exports_ref =
             self.declare_common_js_symbol(js_ast::symbol::Kind::Hoisted, b"exports")?;
@@ -3792,28 +3743,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         loc: bun_ast::Loc,
     ) -> Result<usize, crate::Error> {
         let mut parent: js_ast::StoreRef<Scope> = self.current_scope;
-        let arena = self.arena;
-        // Consume the arena `&mut Scope` directly into a `NonNull` so the
-        // SharedRW raw-pointer tag derived inside `NonNull::from` is the one
-        // stored in `parent.children` / `current_scope` / `scopes_in_order`.
-        // Deriving `scope_nn` from a `&mut` reborrow and then writing through
-        // the original `&mut` would pop `scope_nn`'s tag off the borrow stack
-        // (Stacked Borrows); going `&mut → NonNull → StoreRef` avoids that -
-        // every later deref/store goes through the `StoreRef` wrapping `scope_nn`.
-        // `..Scope::EMPTY` (a `const`) instead of `..Default::default()` so the
-        // remaining fields are filled from a compile-time value: no temporary
-        // `Scope` is built via the `Default` chain and then partially dropped,
-        // and the `members`/`children`/`generated` empty headers const-fold.
-        // This runs once per pushed scope (every block/fn/class body).
-        let scope_nn: NonNull<Scope> = NonNull::from(arena.alloc(Scope {
+        // O escopo novo nasce no `Store` do arquivo (README, "Arena tipada"); `..Scope::EMPTY` preenche o resto a
+        // partir de um valor `const`, como no upstream.
+        let scope = self.store.alloc(Scope {
             kind: KIND,
             parent: Some(parent),
             ..Scope::EMPTY
-        }));
-        // `StoreRef` wraps the SharedRW `NonNull` derived above; every later
-        // `Deref`/`DerefMut` goes through `scope_nn`, so reborrows do not pop
-        // its tag (see comment above).
-        let mut scope = js_ast::StoreRef::from(scope_nn);
+        });
 
         // `parent != scope` (fresh alloc) so the two `&mut` do not alias.
         self.store[parent].children.push(scope);
@@ -4164,7 +4100,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let r#ref = self.declare_symbol(js_ast::symbol::Kind::Other, name_loc.loc, name)?;
                 self.is_import_item.insert(r#ref, ());
                 self.macro_.refs.put(
-                    r#ref,
+                    &r#ref,
                     crate::parser::MacroRefData {
                         import_record_id: id,
                         name: Some(b"default"),
@@ -4177,7 +4113,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let r#ref = self.declare_symbol(js_ast::symbol::Kind::Other, star, name)?;
                 stmt.namespace_ref = r#ref;
                 self.macro_.refs.put(
-                    r#ref,
+                    &r#ref,
                     crate::parser::MacroRefData {
                         import_record_id: id,
                         name: None,
@@ -4193,7 +4129,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 self.is_import_item.insert(r#ref, ());
                 // `ClauseItem.alias` is an arena-owned `StoreStr` valid for 'a.
                 self.macro_.refs.put(
-                    r#ref,
+                    &r#ref,
                     crate::parser::MacroRefData {
                         import_record_id: id,
                         name: Some(self.store.str(item.alias)),
@@ -4351,7 +4287,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let new_import_id =
                             self.add_import_record(ImportKind::Stmt, path.loc, remapped_path);
                         self.macro_.refs.put(
-                            r#ref,
+                            &r#ref,
                             crate::parser::MacroRefData {
                                 import_record_id: new_import_id,
                                 name: Some(b"default"),
@@ -4429,7 +4365,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let new_import_id =
                         self.add_import_record(ImportKind::Stmt, path.loc, remapped_path);
                     self.macro_.refs.put(
-                        r#ref,
+                        &r#ref,
                         crate::parser::MacroRefData {
                             import_record_id: new_import_id,
                             name: Some(alias),
@@ -4468,7 +4404,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
 
-            item_refs.put_assume_capacity(alias, item.name);
+            item_refs.put(alias, item.name);
             items_slice[end] = item;
             end += 1;
         }
@@ -5483,7 +5419,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.declared_symbols.clear_retaining_capacity();
         self.scopes_for_current_part.clear();
         self.import_records_for_current_part.clear();
-        self.import_symbol_property_uses.clear_retaining_capacity();
+        self.import_symbol_property_uses.clear();
 
         self.had_commonjs_named_exports_this_visit = false;
 
@@ -5671,7 +5607,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     Some(Expr {
                         data: js_ast::ExprData::EString(key),
                         ..
-                    }) => !key.eql_comptime(b"__proto__"),
+                    }) => !store[*key].eql_comptime(store, b"__proto__"),
                     _ => false,
                 }
         })
@@ -5692,7 +5628,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     Some(Expr {
                         data: js_ast::ExprData::EString(literal_key),
                         ..
-                    }) if literal_key.eql_string(key)
+                    }) if store[*literal_key].eql_string(store, key)
                 )
             })
             .and_then(|property| {
@@ -5848,7 +5784,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if !self.is_revisit_for_substitution {
                 let call = self
                     .import_symbol_property_uses
-                    .get_or_put_value(self.exports_ref, Default::default())
+                    .get_or_put_value(&self.exports_ref, Default::default())
                     .expect("OOM")
                     .value_ptr
                     .get_or_put_value(name, Default::default())
@@ -5909,7 +5845,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .sum();
             if count > 0 {
                 part.symbol_uses
-                    .get_or_put_value(self.exports_ref, Default::default())
+                    .get_or_put_value(&self.exports_ref, Default::default())
                     .expect("OOM")
                     .value_ptr
                     .merge(js_ast::symbol::Use::unscoped(count));
@@ -6437,7 +6373,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     return false;
                 };
 
-                ((compare_str.eql_comptime(b"undefined") == is_yes_branch)
+                ((self.store[compare_str].eql_comptime(&self.store, b"undefined") == is_yes_branch)
                     == (self.store[binary].op == js_ast::op::Code::BinStrictNe
                         || self.store[binary].op == js_ast::op::Code::BinLooseNe))
                     && id.ref_.eql(id2.ref_)
@@ -6464,7 +6400,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         && self.store[unary]
                             .flags
                             .contains(E::UnaryFlags::WAS_ORIGINALLY_TYPEOF_IDENTIFIER)
-                        && s.eql_comptime(b"u")
+                        && self.store[s].eql_comptime(&self.store, b"u")
                     {
                         if let js_ast::ExprData::EIdentifier(id2) = self.store[unary].value.data {
                             // In "typeof x < 'u' ? x : null", the reference to "x" is side-effect free
@@ -6595,7 +6531,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let gop = self
             .import_symbol_property_uses
-            .get_or_put_value(base, Default::default())
+            .get_or_put_value(&base, Default::default())
             .expect("unreachable");
         let inner_use = gop
             .value_ptr
@@ -6637,7 +6573,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     continue;
                 }
                 js_ast::ExprData::EIndex(index) => {
-                    if index.index.is_string() {
+                    if self.store[*index].index.is_string() {
                         current = self.store[*index].target;
                         continue;
                     }
@@ -6936,12 +6872,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             )
         };
 
-        // `G::Arg` is not `Copy` (contains `Vec<Decorator>`); use
-        // `alloc_slice_fill_iter` instead of `alloc_slice_copy`.
-        let func_args = self.store.alloc_slice(arena.alloc_slice_fill_iter([G::Arg {
-            binding: self.b(B::Identifier { r#ref: arg_ref }, name_loc),
+        let binding = self.b(B::Identifier { r#ref: arg_ref }, name_loc);
+        let func_args = self.store.alloc_slice([G::Arg {
+            binding,
             ..Default::default()
-        }]));
+        }]);
 
         let args_list = self.store.alloc_slice([arg_expr]);
 
@@ -7119,13 +7054,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // the intent is to handle people using this form instead of E.Dot. So we really only want to do this if the accessor can also be an identifier
             js_ast::ExprData::EIndex(index) => {
                 if parts.len() > 1 {
-                    if let js_ast::ExprData::EString(mut s) = index.index.data {
-                        if s.is_utf8() {
+                    if let js_ast::ExprData::EString(mut s) = self.store[index].index.data {
+                        if self.store[s].is_utf8() {
                             if self.store[index].optional_chain.is_some() {
                                 return false;
                             }
                             let last = parts.len() - 1;
-                            let is_tail_match = strings::eql(&parts[last], s.slice(self.arena));
+                            let is_tail_match = strings::eql(&parts[last], self.store[s].slice(self.arena));
                             return is_tail_match
                                 && self.is_dot_define_match(self.store[index].target, &parts[..last]);
                         }
@@ -7239,7 +7174,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if let Some(prop_value) = prop.value {
                             match prop_value.data {
                                 js_ast::ExprData::EFunction(func) => {
-                                    let is_constructor = matches!(prop.key, Some(k) if matches!(k.data, js_ast::ExprData::EString(s) if s.eql_comptime(b"constructor")));
+                                    let is_constructor = matches!(prop.key, Some(k) if matches!(k.data, js_ast::ExprData::EString(s) if self.store[s].eql_comptime(&self.store, b"constructor")));
 
                                     if is_constructor {
                                         constructor_function = Some(func);
@@ -7389,7 +7324,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let key = prop.key.expect("infallible: prop has key");
                         target = match &key.data {
                             js_ast::ExprData::EString(s)
-                                if s.is_utf8()
+                                if self.store[*s].is_utf8()
                                     && !prop.flags.contains(Flags::Property::IsComputed) =>
                             {
                                 self.new_expr(
@@ -8138,7 +8073,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         for item in self.store[to_flatten].children.as_slice() {
             let mut item = *item;
-            item.parent = Some(parent);
+            self.store[item].parent = Some(parent);
             self.store[parent].children.push(item);
         }
     }
@@ -8546,7 +8481,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         } else {
             match &hook_call.target.data {
                 js_ast::ExprData::EIdentifier(id) => {
-                    let gop = ctx.user_hooks.get_or_put(id.ref_).expect("oom");
+                    let gop = ctx.user_hooks.get_or_put(&id.ref_).expect("oom");
                     if !gop.found_existing {
                         *gop.value_ptr = Expr {
                             data: js_ast::ExprData::EIdentifier(*id),
@@ -8555,7 +8490,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 js_ast::ExprData::EImportIdentifier(id) => {
-                    let gop = ctx.user_hooks.get_or_put(id.ref_).expect("oom");
+                    let gop = ctx.user_hooks.get_or_put(&id.ref_).expect("oom");
                     if !gop.found_existing {
                         *gop.value_ptr = Expr {
                             data: js_ast::ExprData::EImportIdentifier(*id),
@@ -8564,7 +8499,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 js_ast::ExprData::ECommonjsExportIdentifier(id) => {
-                    let gop = ctx.user_hooks.get_or_put(id.ref_).expect("oom");
+                    let gop = ctx.user_hooks.get_or_put(&id.ref_).expect("oom");
                     if !gop.found_existing {
                         *gop.value_ptr = Expr {
                             data: js_ast::ExprData::ECommonjsExportIdentifier(*id),
@@ -8841,7 +8776,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             part.import_record_indices = self.import_records_for_current_part.as_slice().to_vec();
                         } else {
                             part.import_record_indices
-                                .append_slice(self.import_records_for_current_part.as_slice());
+                                .extend_from_slice(self.import_records_for_current_part.as_slice());
                         }
 
                         parts[parts_end] = part;
@@ -8984,25 +8919,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             total_stmts_count += usize::from(preserve_strict_mode);
 
             // Stmt is not Default; fill with `Stmt::empty()`.
-            let stmts_to_copy = arena.alloc_slice_fill_with(total_stmts_count, |_| Stmt::empty());
-            {
-                let mut remaining_stmts = &mut stmts_to_copy[..];
-                if preserve_strict_mode {
-                    remaining_stmts[0] = self.s(
-                        S::Directive {
-                            value: self.store.alloc_str(b"use strict"),
-                        },
-                        self.module_scope_directive_loc,
-                    );
-                    remaining_stmts = &mut remaining_stmts[1..];
-                }
-
-                for part in parts.iter() {
-                    let src = (&self.store[part.stmts]);
-                    remaining_stmts[..src.len()].copy_from_slice(src);
-                    remaining_stmts = &mut remaining_stmts[src.len()..];
-                }
-                let _ = remaining_stmts;
+            let mut stmts_to_copy: Vec<Stmt> = Vec::with_capacity(total_stmts_count);
+            if preserve_strict_mode {
+                let value = self.store.alloc_str(b"use strict");
+                let directive = self.s(S::Directive { value }, self.module_scope_directive_loc);
+                stmts_to_copy.push(directive);
+            }
+            for part in parts.iter() {
+                stmts_to_copy.extend_from_slice(&self.store[part.stmts]);
             }
 
             let wrapper = self.new_expr(
@@ -9022,20 +8946,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 bun_ast::Loc::EMPTY,
             );
 
-            let top_level_stmts = arena.alloc_slice_copy(&[self.s(
+            let top_level_stmt = self.s(
                 S::SExpr {
                     value: wrapper,
                     ..Default::default()
                 },
                 bun_ast::Loc::EMPTY,
-            )]);
+            );
 
             // BumpVec has no `set_len`-on-grow path; ensure at least one slot then truncate.
             if parts.is_empty() {
                 parts.push(js_ast::Part::default());
             }
             parts.truncate(1);
-            parts[0].stmts = self.store.alloc_slice(top_level_stmts);
+            parts[0].stmts = self.store.alloc_slice([top_level_stmt]);
         }
 
         // REPL mode transforms
@@ -9282,13 +9206,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let val = &ns.values()[i];
                 match val.data {
                     js_ast::ts::Data::EnumNumber(num) => {
-                        inner_map.put_assume_capacity(
+                        inner_map.put(
                             key,
                             InlinedEnumValue::encode(InlinedEnumValueDecoded::Number(num)),
                         );
                     }
                     js_ast::ts::Data::EnumString(str_) => {
-                        inner_map.put_assume_capacity(
+                        inner_map.put(
                             key,
                             InlinedEnumValue::encode(InlinedEnumValueDecoded::String(
                                 str_.as_ptr(),
@@ -9298,7 +9222,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     _ => continue,
                 }
             }
-            map.put_assume_capacity(*r#ref, inner_map);
+            map.put(*r#ref, inner_map);
         }
         Ok(map)
     }
@@ -9354,7 +9278,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         return true;
                     }
                     js_ast::StmtData::SExportDefault(ed) => {
-                        if !ed.can_be_moved() {
+                        if !self.store[*ed].can_be_moved() {
                             return true;
                         }
                     }
@@ -9838,7 +9762,7 @@ impl LowerUsingDeclarationsContext {
         let is_top_level = scope == p.module_scope;
         p.store[scope]
             .generated
-            .append_slice(&[self.stack_ref, caught_ref, err_ref, has_err_ref]);
+            .extend_from_slice(&[self.stack_ref, caught_ref, err_ref, has_err_ref]);
         p.declared_symbols
             .ensure_unused_capacity(
                 // 5 to include the _promise decl later on:

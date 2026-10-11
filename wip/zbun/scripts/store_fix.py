@@ -5,11 +5,13 @@ Lê os diagnósticos de `cargo check --message-format=json` e aplica trocas que 
 STORE é `self.store` ou `p.store`, conforme a assinatura da função que envolve o trecho.
 
   E0609  campo em `StoreRef<T>`        `r.campo`           ->  `STORE[r].campo`
+  E0616  o mesmo, com o nome do campo privado do `StoreRef` (`index`)
   E0277  `Store` indexado por `&Ref`   `STORE[r]`          ->  `STORE[*r]`
   E0599  `StoreStr::slice()`           `r.slice()`         ->  `STORE.str(r)`
   E0599  `StoreSlice::slice()/_mut()`  `r.slice()`         ->  `(&STORE[r])` / `(&mut STORE[r])`
   E0599  `StoreSlice::iter()` e afins  `r.iter()`          ->  `STORE[r].iter()`
   E0599  `StoreRef::get()/get_mut()`   `r.get()`           ->  `(&STORE[r])` / `(&mut STORE[r])`
+  E0599  método do nó em `StoreRef`    `r.m(..)`           ->  `STORE[r].m(..)` (os de NODE_METHODS)
 
 Uso: python3 -I store_fix.py DIAGNOSTICOS.json RAIZ_DO_WORKSPACE [--apply]
 Sem `--apply` só relata. O resultado é conferido pelo compilador a cada rodada.
@@ -20,6 +22,11 @@ import sys
 from collections import defaultdict
 
 FIELD_RE = re.compile(r"^no field `([^`]+)` on type `(&(?:mut )?)?StoreRef<")
+NODE_METHODS = {
+    "eql_comptime", "eql_string", "is_utf8", "is_present", "order", "can_be_moved", "is_identifier", "string",
+    "slice", "resolve_rope_if_needed", "put", "items", "properties",
+}
+PRIVATE_FIELD_RE = re.compile(r"^field `([^`]+)` of struct `StoreRef` is private")
 INDEX_RE = re.compile(r"^the type `Store` cannot be indexed by `&(?:mut )?(?:StoreRef|StoreSlice)<")
 METHOD_RE = re.compile(
     r"^no method named `(\w+)` found for (?:struct|reference|mutable reference) "
@@ -162,6 +169,10 @@ def collect(diagnostics):
             rule = ("deref", "", "", "")
         elif code == "E0609" and (found := FIELD_RE.match(text)):
             rule = ("field", found.group(1), found.group(2) or "", "")
+        elif code == "E0616" and (found := PRIVATE_FIELD_RE.match(text)):
+            # campo do nó com o mesmo nome do campo privado do `StoreRef` (`E::Index.index`): o compilador acusa a
+            # privacidade no lugar do E0609, e a troca é a mesma
+            rule = ("field", found.group(1), "", "")
         elif code == "E0277" and INDEX_RE.match(text):
             rule = ("index", "", "", "")
         elif code == "E0599" and (found := METHOD_RE.match(text)):
@@ -179,6 +190,10 @@ def collect(diagnostics):
             }
             if (kind, method) in table:
                 rule = (table[(kind, method)], method, found.group(2) or "", "")
+            elif kind == "StoreRef" and method in NODE_METHODS:
+                # método do próprio nó, que o upstream chamava pelo `Deref` do ponteiro: o receptor vira o nó no
+                # Store, como num campo; os argumentos que eram a arena e passam a ser o Store ficam para a mão
+                rule = ("field", method, found.group(2) or "", "")
         elif code == "E0308":
             label = span.get("label") or ""
             if re.match(r"expected `StoreStr`, found `&[^`]*\[u8[^`]*\]`$", label):

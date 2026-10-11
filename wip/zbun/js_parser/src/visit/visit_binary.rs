@@ -25,7 +25,7 @@ fn try_optimize_typeof_undefined<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bo
         if let ExprData::EUnary(unary) = &e_.left.data {
             if p.store[*unary].op == Op::Code::UnTypeof {
                 if let ExprData::EString(s) = &e_.right.data {
-                    if s.eql_comptime(b"undefined") {
+                    if p.store[*s].eql_comptime(&p.store, b"undefined") {
                         break 'exprs (e_.left, e_.right, false);
                     }
                 }
@@ -37,7 +37,7 @@ fn try_optimize_typeof_undefined<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bo
         if let ExprData::EUnary(unary) = &e_.right.data {
             if p.store[*unary].op == Op::Code::UnTypeof {
                 if let ExprData::EString(s) = &e_.left.data {
-                    if s.eql_comptime(b"undefined") {
+                    if p.store[*s].eql_comptime(&p.store, b"undefined") {
                         break 'exprs (e_.right, e_.left, true);
                     }
                 }
@@ -599,7 +599,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = vals[0].order((&p.store[vals[1]]));
+                        let ord = p.store[vals[0]].order((&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: ord == Ordering::Less,
@@ -624,7 +624,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = vals[0].order((&p.store[vals[1]]));
+                        let ord = p.store[vals[0]].order((&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: ord == Ordering::Greater,
@@ -649,7 +649,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = vals[0].order((&p.store[vals[1]]));
+                        let ord = p.store[vals[0]].order((&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: matches!(ord, Ordering::Equal | Ordering::Less),
@@ -674,7 +674,7 @@ impl BinaryExpressionVisitor {
                     if let Some(vals) =
                         Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
                     {
-                        let ord = vals[0].order((&p.store[vals[1]]));
+                        let ord = p.store[vals[0]].order((&p.store[vals[1]]));
                         return p.new_expr(
                             E::Boolean {
                                 value: matches!(ord, Ordering::Equal | Ordering::Greater),

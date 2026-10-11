@@ -230,7 +230,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if opts.ts_decorators.len() > 0 {
                     if let Some(key) = prop_key {
                         if let js_ast::expr::Data::EString(str_) = &key.data {
-                            if str_.eql_comptime(b"constructor") {
+                            if p.store[*str_].eql_comptime(&p.store, b"constructor") {
                                 p.lexer.log.add_error(
                                     Some(p.source),
                                     first_decorator_loc,
@@ -522,7 +522,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut is_spread = false;
                 if let js_ast::expr::Data::ESpread(v) = &items[i].data {
                     is_spread = true;
-                    let inner = p.store[v].value;
+                    let inner = p.store[*v].value;
                     items[i] = inner;
                 }
 
@@ -1489,7 +1489,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if !p.store[*str_].prefer_template {
                             is_directive_prologue = true;
 
-                            if str_.eql_comptime(b"use strict") {
+                            if p.store[*str_].eql_comptime(&p.store, b"use strict") {
                                 skip = true;
                                 // Track "use strict" directives
                                 p.current_scope_mut().strict_mode =
@@ -1497,14 +1497,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 if p.current_scope == p.module_scope {
                                     p.module_scope_directive_loc = stmt.loc;
                                 }
-                            } else if str_.eql_comptime(b"use asm") && !p.options.repl_mode {
+                            } else if p.store[*str_].eql_comptime(&p.store, b"use asm") && !p.options.repl_mode {
                                 // In the REPL the directive stays a string
                                 // statement so it evaluates as the result,
                                 // like node ('use asm' prints 'use asm').
                                 skip = true;
                                 stmt.data = js_ast::stmt::Data::SEmpty(S::Empty {});
                             } else {
-                                let bytes = str_.string(p.arena).expect("OOM");
+                                let bytes = p.store[*str_].string(p.arena).expect("OOM");
                                 stmt = Stmt::alloc(&mut p.store, 
                                     S::Directive {
                                         value: p.store.alloc_str(bytes),

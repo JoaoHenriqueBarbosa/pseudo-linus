@@ -653,13 +653,17 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                 });
             }
             B::B::BArray(arr) => {
-                for item in arr.items().iter() {
-                    self.repl_extract_identifiers_from_binding(item.binding, decls)?;
+                let items = self.store[arr].items;
+                for index in 0..items.len() {
+                    let binding = self.store[items][index].binding;
+                    self.repl_extract_identifiers_from_binding(binding, decls)?;
                 }
             }
             B::B::BObject(obj) => {
-                for prop in obj.properties().iter() {
-                    self.repl_extract_identifiers_from_binding(prop.value, decls)?;
+                let properties = self.store[obj].properties;
+                for index in 0..properties.len() {
+                    let value = self.store[properties][index].value;
+                    self.repl_extract_identifiers_from_binding(value, decls)?;
                 }
             }
             B::B::BMissing(_) => {}

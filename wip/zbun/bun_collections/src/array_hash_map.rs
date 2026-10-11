@@ -192,6 +192,50 @@ impl<K: Hash + Eq + Clone, V> ArrayHashMap<K, V> {
         self.index.clear();
     }
 
+    /// Garante espaço para `n` entradas no total, sem realocar até lá.
+    pub fn ensure_total_capacity(&mut self, n: usize) -> Result<(), AllocError> {
+        let extra = n.saturating_sub(self.keys.len());
+        self.ensure_unused_capacity(extra)
+    }
+
+    /// Garante espaço para mais `n` entradas além das que já existem.
+    pub fn ensure_unused_capacity(&mut self, n: usize) -> Result<(), AllocError> {
+        self.keys.reserve(n);
+        self.values.reserve(n);
+        self.index.reserve(n);
+        Ok(())
+    }
+
+    /// Fica só com as `n` primeiras entradas (na ordem de inserção) e solta a capacidade que sobra.
+    pub fn shrink_and_free(&mut self, n: usize) {
+        if n >= self.keys.len() {
+            return;
+        }
+        for key in self.keys.drain(n..) {
+            self.index.remove(&key);
+        }
+        self.values.truncate(n);
+        self.keys.shrink_to_fit();
+        self.values.shrink_to_fit();
+        self.index.shrink_to_fit();
+    }
+
+    /// Como o `get_or_put`, mas a entrada nova nasce com `value` no lugar de `V::default()`.
+    pub fn get_or_put_value<Q: ?Sized + Hash + Eq>(
+        &mut self,
+        key: &Q,
+        value: V,
+    ) -> Result<GetOrPutResult<'_, K, V>, AllocError>
+    where
+        K: Borrow<Q> + OwnKey<Q>,
+    {
+        let (found_existing, index) = match self.get_index(key) {
+            Some(i) => (true, i),
+            None => (false, self.push_new(K::own(key), value)),
+        };
+        Ok(GetOrPutResult { found_existing, index, key_ptr: &mut self.keys[index], value_ptr: &mut self.values[index] })
+    }
+
     fn push_new(&mut self, key: K, value: V) -> usize {
         let i = self.keys.len();
         self.index.insert(key.clone(), i);
@@ -207,11 +251,7 @@ impl<K: Hash + Eq + Clone, V: Default> ArrayHashMap<K, V> {
     where
         K: Borrow<Q> + OwnKey<Q>,
     {
-        let (found_existing, index) = match self.get_index(key) {
-            Some(i) => (true, i),
-            None => (false, self.push_new(K::own(key), V::default())),
-        };
-        Ok(GetOrPutResult { found_existing, index, key_ptr: &mut self.keys[index], value_ptr: &mut self.values[index] })
+        self.get_or_put_value(key, V::default())
     }
 }
 

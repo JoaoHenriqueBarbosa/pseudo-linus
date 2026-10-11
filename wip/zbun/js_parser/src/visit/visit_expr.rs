@@ -223,7 +223,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     ..Default::default()
                 }]);
 
-                let is_error = p.const_values.contains_key(&result.r#ref) || p.options.bundle;
+                let is_error = p.const_values.contains(&result.r#ref) || p.options.bundle;
                 match is_error {
                     true => p.lexer.log.add_range_error_fmt_with_notes(
                         Some(p.source),
@@ -370,19 +370,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // `P` and dropped when `Parser::parse` returns: but the parts are
                         // stored in symbols / `E::Dot.name` and read later by the printer.
                         // Dupe each part into the arena (which backs the AST) so they
-                        // outlive the parse. Build the `&[&'a [u8]]` slice
-                        // directly in the AST arena instead of a throwaway global-heap
-                        // `Vec`: keeps the visitor off the `#[global_allocator]`.
+                        // outlive the parse. A lista das partes é um `Vec` local: a arena do porte
+                        // só guarda bytes e unidades UTF-16.
                         let arena = p.arena;
-                        let parts: &[&'a [u8]] = arena.alloc_slice_fill_iter(
-                            p.options
-                                .jsx
-                                .fragment
-                                .iter()
-                                .map(|b| -> &'a [u8] { arena.alloc_slice_copy(b) }),
-                        );
+                        let parts: Vec<&'a [u8]> = p
+                            .options
+                            .jsx
+                            .fragment
+                            .iter()
+                            .map(|b| -> &'a [u8] { arena.alloc_slice_copy(b) })
+                            .collect();
                         break 'tagger p
-                            .jsx_strings_to_member_expression(expr.loc, parts)
+                            .jsx_strings_to_member_expression(expr.loc, &parts)
                             .expect("unreachable");
                     }
                     break 'tagger p.jsx_import(JSXImport::Fragment, expr.loc);
@@ -447,16 +446,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // see fragment note above: `options.jsx.factory` is
                         // owned by `P` and freed when the parser drops; dupe each part
                         // into the arena so the symbol/E::Dot names outlive the printer.
-                        // Build the parts slice in the AST arena (no global-heap `Vec`).
+                        // A lista das partes é um `Vec` local, como no fragmento acima.
                         let arena = p.arena;
-                        let parts: &[&'a [u8]] = arena.alloc_slice_fill_iter(
-                            p.options
-                                .jsx
-                                .factory
-                                .iter()
-                                .map(|b| -> &'a [u8] { arena.alloc_slice_copy(b) }),
-                        );
-                        p.jsx_strings_to_member_expression(expr.loc, parts)
+                        let parts: Vec<&'a [u8]> = p
+                            .options
+                            .jsx
+                            .factory
+                            .iter()
+                            .map(|b| -> &'a [u8] { arena.alloc_slice_copy(b) })
+                            .collect();
+                        p.jsx_strings_to_member_expression(expr.loc, &parts)
                             .expect("unreachable")
                     } else {
                         // jsxStringsToMemberExpression(factory) must run
@@ -881,12 +880,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // "a['b']" => "a.b"
         if p.options.features.minify_syntax {
-            if let Some(mut s) = e_.index.data.e_string() {
-                if !s.is_utf16 && s.is_identifier(p.arena) {
+            if let Some(mut s) = p.store[e_].index.data.e_string() {
+                if !p.store[s].is_utf16 && p.store[s].is_identifier(p.arena) {
                     let dot = p.new_expr(
                         E::Dot {
-                            name: s.data,
-                            name_loc: e_.index.loc,
+                            name: p.store[s].data,
+                            name_loc: p.store[e_].index.loc,
                             target: p.store[e_].target,
                             optional_chain: p.store[e_].optional_chain,
                             ..Default::default()
@@ -910,10 +909,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         p.visit_expr_in_out(&mut p.store[e_].target, ExprIn::default());
 
-        match e_.index.data {
+        match p.store[e_].index.data {
             Data::EPrivateIdentifier(mut private) => {
                 let name = p.load_name_from_ref(private.ref_);
-                let result = p.find_symbol(e_.index.loc, name).expect("unreachable");
+                let result = p.find_symbol(p.store[e_].index.loc, name).expect("unreachable");
                 private.ref_ = result.r#ref;
 
                 // Unlike regular identifiers, there are no unbound private identifiers
@@ -921,7 +920,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     p.symbols[result.r#ref.inner_index() as usize].kind;
                 if !kind.is_private() {
                     let r = bun_ast::Range {
-                        loc: e_.index.loc,
+                        loc: p.store[e_].index.loc,
                         len: i32::try_from(name.len()).expect("int cast"),
                     };
                     p.lexer.log.add_range_error_fmt(
@@ -938,7 +937,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             || kind == js_ast::symbol::Kind::PrivateStaticMethod)
                     {
                         let r = bun_ast::Range {
-                            loc: e_.index.loc,
+                            loc: p.store[e_].index.loc,
                             len: i32::try_from(name.len()).expect("int cast"),
                         };
                         p.lexer.log.add_range_warning_fmt(
@@ -954,7 +953,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             || kind == js_ast::symbol::Kind::PrivateStaticGet)
                     {
                         let r = bun_ast::Range {
-                            loc: e_.index.loc,
+                            loc: p.store[e_].index.loc,
                             len: i32::try_from(name.len()).expect("int cast"),
                         };
                         p.lexer.log.add_range_warning_fmt(
@@ -970,7 +969,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             || kind == js_ast::symbol::Kind::PrivateStaticSet)
                     {
                         let r = bun_ast::Range {
-                            loc: e_.index.loc,
+                            loc: p.store[e_].index.loc,
                             len: i32::try_from(name.len()).expect("int cast"),
                         };
                         p.lexer.log.add_range_warning_fmt(
@@ -984,26 +983,26 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
 
-                e_.index = Expr {
+                p.store[e_].index = Expr {
                     data: Data::EPrivateIdentifier(private),
-                    loc: e_.index.loc,
+                    loc: p.store[e_].index.loc,
                 };
             }
             _ => {
-                p.visit_expr(&mut e_.index);
+                p.visit_expr(&mut p.store[e_].index);
 
-                let unwrapped = e_.index.unwrap_inlined();
+                let unwrapped = p.store[e_].index.unwrap_inlined(&p.store);
                 if let Some(mut s) = unwrapped.data.e_string() {
-                    if !s.is_utf16 {
+                    if !p.store[s].is_utf16 {
                         // A folded `"a" + "b"` is a rope whose `data` is only "a".
-                        s.resolve_rope_if_needed(p.arena);
+                        p.store[s].resolve_rope_if_needed(p.arena);
 
                         // "a['b' + '']" => "a.b"
                         // "enum A { B = 'b' }; a[A.B]" => "a.b"
-                        if p.options.features.minify_syntax && s.is_identifier(p.arena) {
+                        if p.options.features.minify_syntax && p.store[s].is_identifier(p.arena) {
                             let dot = p.new_expr(
                                 E::Dot {
-                                    name: s.data,
+                                    name: p.store[s].data,
                                     name_loc: unwrapped.loc,
                                     target: p.store[e_].target,
                                     optional_chain: p.store[e_].optional_chain,
@@ -1034,7 +1033,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .with_is_template_tag(is_template_tag)
                                 .with_is_delete_target(is_delete_target)
                                 .with_assign_target(in_.assign_target);
-                            let key_bytes = p.store.str(s.data).to_vec();
+                            let key_bytes = p.store.str(p.store[s].data).to_vec();
                             let target = p.store[e_].target;
                             if let Some(rewrite) = p.maybe_rewrite_property_access(
                                 expr.loc,
@@ -1056,7 +1055,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         let target = p.store[e_].target.unwrap_inlined(&p.store);
-        let index = e_.index.unwrap_inlined();
+        let index = p.store[e_].index.unwrap_inlined(&p.store);
 
         // `[x][0] = v` writes into the temporary, not `x`.
         if p.options.features.minify_syntax && in_.assign_target == js_ast::AssignTarget::None {
@@ -1701,10 +1700,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     && !property.flags.contains(Flags::Property::IsMethod)
                     && in_.assign_target == js_ast::AssignTarget::None
                     && key.data.is_string_value()
-                    && key
+                    && p.store[key
                         .data
                         .e_string()
-                        .expect("infallible: variant checked")
+                        .expect("infallible: variant checked")]
                         .eql_comptime(b"__proto__")
                 {
                     if has_proto {
@@ -2056,13 +2055,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             if p.try_track_dynamic_import_destructure(
                                 p.store[im].namespace_ref,
                                 &[p.store[im].import_record_index],
-                                obj.properties(),
+                                &p.store[p.store[obj].properties].to_vec(),
                                 false,
                             )
                             .is_some()
                             {
                                 p.note_tracked_namespace_use(p.store[im].namespace_ref);
-                                p.note_destructured_locals(obj.properties());
+                                p.note_destructured_locals(&p.store[p.store[obj].properties].to_vec());
                             }
                         }
                         js_ast::binding::Data::BIdentifier(id) => {
@@ -2094,7 +2093,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 _ => None,
             };
 
-            possible_macro_ref.is_some() && p.macro_.refs.contains_key(&possible_macro_ref.unwrap())
+            possible_macro_ref.is_some() && p.macro_.refs.contains(&possible_macro_ref.unwrap())
         } else {
             false
         };

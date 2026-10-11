@@ -396,7 +396,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return Err(crate::Error::SyntaxError);
         }
         if let ExprData::EIndex(e_index) = &value.data {
-            if let ExprData::EPrivateIdentifier(private) = &e_index.index.data {
+            if let ExprData::EPrivateIdentifier(private) = &p.store[*e_index].index.data {
                 let name = p.load_name_from_ref(private.ref_);
                 let range = bun_ast::Range {
                     loc: value.loc,

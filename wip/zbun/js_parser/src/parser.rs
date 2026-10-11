@@ -1345,9 +1345,9 @@ impl ScanPassResult {
     }
 
     pub fn reset(&mut self) {
-        self.named_imports.clear_retaining_capacity();
+        self.named_imports.clear();
         self.import_records.clear();
-        self.used_symbols.clear_retaining_capacity();
+        self.used_symbols.clear();
         self.approximate_newline_count = 0;
     }
 }
@@ -1648,7 +1648,7 @@ pub fn new_lazy_export_ast_impl<'bump>(
 ) -> crate::CrateResult<Option<js_ast::Ast>> {
     let mut temp_log = bun_ast::Log::init();
     let lexer = js_lexer::Lexer::init_without_reading(&mut temp_log, source, bump);
-    let mut parser = Parser {
+    let parser = Parser {
         options: opts,
         bump,
         lexer,
@@ -1659,8 +1659,12 @@ pub fn new_lazy_export_ast_impl<'bump>(
     let result = match parser.to_lazy_export_ast(expr, runtime_api_call, symbols) {
         Ok(r) => r,
         Err(err) => {
-            let range = parser.lexer.range();
-            drop(parser);
+            // O upstream lê `parser.lexer.range()` de uma cópia do lexer de antes do `P::init`, que nunca andou: a
+            // faixa vazia na posição 0. Aqui o lexer foi consumido junto com o `Parser`.
+            let range = bun_ast::Range {
+                loc: bun_ast::Loc { start: 0 },
+                len: 0,
+            };
             if temp_log.errors == 0 {
                 log_to_copy_into.add_range_error(Some(source), range, err.name().as_bytes());
             }
@@ -1668,7 +1672,6 @@ pub fn new_lazy_export_ast_impl<'bump>(
             return Ok(None);
         }
     };
-    drop(parser);
 
     let _ = temp_log.append_to_maybe_recycled(log_to_copy_into, source);
     match result {

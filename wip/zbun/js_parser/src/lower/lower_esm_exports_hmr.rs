@@ -196,7 +196,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                             })?;
                         self.last_part
                             .symbol_uses
-                            .put_no_clobber(temp_id, js_ast::symbol::Use::unscoped(1))?;
+                            .put(&temp_id, js_ast::symbol::Use::unscoped(1))?;
                         // SAFETY: `current_scope` is a live arena ptr for the parser lifetime.
                         p.current_scope_mut().generated.push(temp_id);
 
@@ -575,7 +575,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                 })?;
             self.last_part
                 .symbol_uses
-                .put_no_clobber(arg1, js_ast::symbol::Use::unscoped(1))?;
+                .put(&arg1, js_ast::symbol::Use::unscoped(1))?;
             // SAFETY: `current_scope` is a live arena ptr for the parser lifetime.
             p.current_scope_mut().generated.push(arg1);
 
@@ -665,7 +665,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             // mark a dependency on module_ref so it is renamed
             self.last_part
                 .symbol_uses
-                .put(p.module_ref, js_ast::symbol::Use::unscoped(1))?;
+                .put(&p.module_ref, js_ast::symbol::Use::unscoped(1))?;
             self.last_part
                 .declared_symbols
                 .append(js_ast::DeclaredSymbol {
@@ -710,13 +710,13 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                 .append_list(&core::mem::take(&mut part.declared_symbols))?;
             self.last_part
                 .import_record_indices
-                .append_slice(part.import_record_indices.as_slice());
+                .extend_from_slice(part.import_record_indices.as_slice());
             // Note: reshaped for borrowck: index loop avoids
             // holding two shared borrows of `part.symbol_uses` while &mut-borrowing `last_part`.
             for i in 0..part.symbol_uses.count() {
                 let k = part.symbol_uses.keys()[i];
                 let v = part.symbol_uses.values()[i];
-                let gop = self.last_part.symbol_uses.get_or_put(k)?;
+                let gop = self.last_part.symbol_uses.get_or_put(&k)?;
                 if !gop.found_existing {
                     *gop.value_ptr = v;
                 } else {
@@ -726,7 +726,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             part.stmts = bun_ast::StoreSlice::EMPTY;
             // Note: `declared_symbols` already cleared via `mem::take` above.
             part.tag = bun_ast::PartTag::DeadDueToInlining;
-            part.dependencies.clear_retaining_capacity();
+            part.dependencies.clear();
             part.dependencies.push(bun_ast::Dependency {
                 part_index: u32::try_from(last_idx).expect("int cast"),
                 source_index: p.source.index,
@@ -735,7 +735,7 @@ impl<'a> ConvertESMExportsForHmr<'a> {
 
         self.last_part
             .import_record_indices
-            .append_slice(p.import_records_for_current_part.as_slice());
+            .extend_from_slice(p.import_records_for_current_part.as_slice());
         self.last_part
             .declared_symbols
             .append_list(&p.declared_symbols)?;
