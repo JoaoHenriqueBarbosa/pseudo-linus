@@ -370,6 +370,15 @@ def _switch_to(target, payload, event):
     _check_thread(target)
     was_dead = _st(target).dead
     target = _resolve(target)
+    # `UnswitchableGreenlet`: o `slp_switch` do alvo falha de propósito (o ajudante de teste do greenlet).
+    if isinstance(target, UnswitchableGreenlet) and target is not _current():
+        if target.force_slp_switch_error:
+            import faulthandler
+            faulthandler._die(6, 'g_switchstack: greenlet: Failed low-level slp_switch(). The stack is probably corrupt.', True)
+        if target.force_switch_error:
+            if _st(target).started:
+                raise SystemError('Failed to switch stacks into a running greenlet.')
+            raise SystemError('Failed to switch stacks into a greenlet for the first time.')
     origin = _current()
     if target is origin:
         if payload[0] == 'throw':
@@ -631,12 +640,16 @@ def _reap():
         state = _st(glet)
         if state.dead:
             continue
+        # O `deallocGreenlet` do C põe o corrente como pai só durante o `kill` e devolve o pai de antes depois.
+        old_parent = state.parent
         state.parent = _current()
         try:
             _switch_to(glet, ('throw', GreenletExit()), 'throw')
         except BaseException as exc:
             import _unraisable
             _sysmod.unraisablehook(_unraisable.UnraisableHookArgs((type(exc), exc, exc.__traceback__, None, glet)))
+        finally:
+            state.parent = old_parent
 
 
 greenlet.GreenletExit = GreenletExit

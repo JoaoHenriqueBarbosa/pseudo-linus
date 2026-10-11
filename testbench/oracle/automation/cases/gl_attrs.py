@@ -187,3 +187,26 @@ def _reparent_cases():
 
 
 _reparent_cases()
+
+
+def _parent_restored():
+    hub = G(lambda: None)
+    main = greenlet.getcurrent()
+    result = []
+
+    def worker():
+        try:
+            main.switch()
+        except greenlet.GreenletExit:
+            result.append(greenlet.getcurrent().parent is main)
+            result.append(greenlet.getcurrent())
+            hub.switch()
+
+    g = G(worker, parent=hub)
+    g.switch()
+    del g
+    print('parent during kill is main', result[0], 'restored to hub', result[1].parent is hub)
+    del result[:]
+
+
+_parent_restored()

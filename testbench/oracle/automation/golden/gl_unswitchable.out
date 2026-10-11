@@ -1,0 +1,4 @@
+first EXC SystemError Failed to switch stacks into a greenlet for the first time.
+after 1
+running EXC SystemError Failed to switch stacks into a running greenlet.
+[1, 2, 3]
