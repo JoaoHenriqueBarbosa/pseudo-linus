@@ -46,6 +46,13 @@ const KEPT_ACROSS_RUNS: [&[u8]; 2] = [b"Default/History", b"Default/History-jour
 const OWN_DBS: [&[u8]; 2] = [LOCAL_STORAGE_DB, SESSION_STORAGE_DB];
 /// O QuotaManager de uma execução sem buckets (medido no oráculo): o esquema 11 e três chaves de `meta`.
 const QUOTA_MANAGER_TEMPLATE: &[u8] = include_bytes!("../profile/quota-manager.db");
+/// O `Network Persistent State` que o `--dump-dom` deixa ao sair, medido no oráculo sem rede (cinco execuções, com
+/// `about:blank` e com página, idênticas): sem servidores e com a qualidade de rede "Offline" da chave do tipo de
+/// conexão nenhum (116 bytes). Com rede o conteúdo é o do tráfego de fundo do Chromium (servidores do Google,
+/// `TransportSecurity` com o HSTS deles; de 1049 a 1079 bytes, variável). Decisão do coordenador: o sandbox não emula
+/// esse tráfego, então grava a forma sem rede e nenhum `TransportSecurity`; nenhum agente lê esse arquivo para decidir.
+/// Com o DevTools (SIGTERM) o oráculo sem rede não grava o arquivo (3 de 3 execuções).
+const NETWORK_STATE_OFFLINE: &[u8] = br#"{"net":{"http_server_properties":{"servers":[],"version":5},"network_qualities":{"CAYSABiAgICA+P////8B":"Offline"}}}"#;
 /// O diretório do IndexedDB no perfil: só existe depois que uma página o usa.
 const INDEXED_DB_DIR: &[u8] = b"Default/IndexedDB";
 
@@ -384,8 +391,19 @@ impl DiskProfile {
             let _ = sysabi::util::write_file(&path, QUOTA_MANAGER_TEMPLATE, 0o600);
         }
         let uses = self.indexed_db.get().map(|store| store.bucket_uses()).unwrap_or_default();
-        let bootstrapped = !uses.is_empty() || random_below(2) == 1;
+        let bootstrapped = quota_manager::bootstrapped(!uses.is_empty(), random_below(2));
         let _ = quota_manager::write(&String::from_utf8_lossy(&path), &uses, bootstrapped);
+        // O journal vazio fica mesmo quando a execução não grava nada no banco.
+        let journal = [folder.as_slice(), b"/QuotaManager-journal"].concat();
+        if sys::lstat(&journal).is_err() {
+            let _ = sysabi::util::write_file(&journal, b"", 0o600);
+        }
+    }
+
+    /// O `Network Persistent State` da saída do `--dump-dom`.
+    fn write_network_state(&self) {
+        let Some(dir) = &self.user_data_dir else { return };
+        let _ = sysabi::util::write_file(&[dir.as_slice(), b"/Default/Network Persistent State"].concat(), NETWORK_STATE_OFFLINE, 0o600);
     }
 
     /// O `Preferences` da saída do `--dump-dom` com o engajamento de cada site visitado.
@@ -465,6 +483,7 @@ impl DiskProfile {
         let previous_preferences = self.user_data_dir.as_ref().and_then(|dir| sys::read_file(&[dir.as_slice(), b"/Default/Preferences"].concat()).ok()).map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
         let _ = self.write_layer(template(self.run), LAYER_EXIT);
         if self.run == Run::DumpDom {
+            self.write_network_state();
             self.write_preferences(previous_preferences);
             self.write_quota();
             self.write_history();

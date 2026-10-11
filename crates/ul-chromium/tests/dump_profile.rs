@@ -12,31 +12,13 @@ use sysabi::sys;
 use sysabi::*;
 
 const PAGE: &str = include_str!("../../../testbench/corpus/headless-storage/persist.html");
+mod support;
 const PORT: u16 = 8000;
-
-/// Responde toda requisição com a página, em HTTP/1.0 como o `http.server` do Python.
-fn serve(listener: Fd) -> i32 {
-    let s = sys::current();
-    loop {
-        let Ok((fd, _)) = s.tcp_accept(listener, false, true) else { continue };
-        let mut request = Vec::new();
-        let mut buffer = [0u8; 4096];
-        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
-            match sys::read(fd, &mut buffer) {
-                Ok(0) | Err(_) => break,
-                Ok(n) => request.extend_from_slice(&buffer[..n]),
-            }
-        }
-        let response = format!("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\n\r\n{PAGE}", PAGE.len());
-        let _ = sys::write_all(fd, response.as_bytes());
-        let _ = sys::close(fd);
-    }
-}
 
 fn dump_client(ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
     let s = sys::current();
     let (listener, _) = s.tcp_listen_at(std::net::Ipv4Addr::LOCALHOST.into(), PORT, 16, false, true).unwrap();
-    let server = s.spawn_fn(ProcAttrs::default(), b"server".to_vec(), Box::new(move || serve(listener))).unwrap();
+    let server = s.spawn_fn(ProcAttrs::default(), b"server".to_vec(), Box::new(move || support::serve(listener, PAGE))).unwrap();
     for _ in 0..3 {
         let argv: Vec<Vec<u8>> =
             ["chromium", "--headless", "--no-sandbox", "--disable-gpu", "--user-data-dir=/tmp/p", "--virtual-time-budget=20000", "--dump-dom", "http://127.0.0.1:8000/persist.html"]
@@ -58,6 +40,9 @@ fn dump_client(ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
     let _ = s.wait4(WaitTarget::Pid(pid), WaitOptions::empty());
     let size = |path: &[u8]| sys::read_file(path).map_or(-1, |bytes| bytes.len() as i64);
     let _ = ctx.stdout().write_all(format!("quota {} journal {}\n", size(b"/tmp/p/Default/WebStorage/QuotaManager"), size(b"/tmp/p/Default/WebStorage/QuotaManager-journal")).as_bytes());
+    // O estado de rede sem rede (como o oráculo em contêiner sem rede) e nenhum TransportSecurity.
+    let network = sys::read_file(b"/tmp/p/Default/Network Persistent State").map(|bytes| String::from_utf8_lossy(&bytes).into_owned()).unwrap_or_default();
+    let _ = ctx.stdout().write_all(format!("network {network} transport {}\n", sys::lstat(b"/tmp/p/Default/TransportSecurity").is_ok()).as_bytes());
     // Os arquivos de sessão da saída levam o endereço navegado (SNSS: o `Session_*` e o `Tabs_*`).
     for prefix in ["Session_", "Tabs_"] {
         let found = sys::read_dir(b"/tmp/p/Default/Sessions").unwrap_or_default().into_iter().find(|e| e.name.starts_with(prefix.as_bytes()));
@@ -97,6 +82,7 @@ fn each_dump_reads_what_the_previous_one_wrote() {
     assert!(stdout.contains("http://127.0.0.1:8000/persist.html|persist|3|3\n3|1|939524097|1\n1\n3|6\n"), "{stdout}");
     assert!(stdout.contains("1|http://127.0.0.1:8000/|127.0.0.1|_default|6|0|0|0|0\nIsBucketsBootstrapped|1\nIsMediaLicenseDatabaseRemoved|1\nlast_compatible_version|11\nmmap_status|-1\nversion|11\n"), "{stdout}");
     assert!(stdout.contains("quota 40960 journal 0\n"), "{stdout}");
+    assert!(stdout.contains(r#"network {"net":{"http_server_properties":{"servers":[],"version":5},"network_qualities":{"CAYSABiAgICA+P////8B":"Offline"}}} transport false"#), "{stdout}");
     assert!(stdout.contains("Session_ has url true\nTabs_ has url true\n"), "{stdout}");
     assert!(stdout.contains("cache entries 2 index 96\n"), "{stdout}");
     assert!(stdout.contains("prefs omnibox true site true media true\n"), "{stdout}");

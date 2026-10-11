@@ -27,14 +27,19 @@ fn host(origin: &str) -> &str {
     }
 }
 
-/// Grava os buckets de `uses` no banco em `path`, e as chaves do bootstrap se `bootstrapped`. Toda execução passa por
-/// uma transação (o Chromium deixa o `QuotaManager-journal` com zero byte). O erro do SQLite vem como texto.
+/// Se as chaves do bootstrap entram no `meta`: sempre com bucket; sem bucket, o sorteio `draw` (0 ou 1) decide, e dá
+/// 1 em cerca de metade das vezes, como no oráculo (10 de 20 execuções de `ss-none`).
+pub fn bootstrapped(has_bucket: bool, draw: u64) -> bool {
+    has_bucket || draw == 1
+}
+
+/// Grava os buckets de `uses` no banco em `path`, e as chaves do bootstrap se `bootstrapped`. O Chromium deixa o
+/// `QuotaManager-journal` com zero byte, o que o chamador garante mesmo sem nada a gravar. O erro do SQLite vem como texto.
 pub fn write(path: &str, uses: &[(String, BucketUse)], bootstrapped: bool) -> Result<(), String> {
     let mut connection = ul_sqlite::cli::open_conn(path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
     let sql = |e: rusqlite::Error| e.to_string();
     connection.query_row("PRAGMA journal_mode=TRUNCATE", [], |_| Ok(())).map_err(sql)?;
     let tx = connection.transaction().map_err(sql)?;
-    tx.execute("UPDATE meta SET value = value WHERE key = 'version'", []).map_err(sql)?;
     if bootstrapped {
         for key in ["IsBucketsBootstrapped", "IsMediaLicenseDatabaseRemoved"] {
             tx.execute("INSERT OR REPLACE INTO meta(key, value) VALUES (?1, '1')", params![key]).map_err(sql)?;
@@ -67,6 +72,14 @@ mod tests {
     fn host_drops_scheme_and_port() {
         assert_eq!(host("http://127.0.0.1:8000"), "127.0.0.1");
         assert_eq!(host("https://example.com"), "example.com");
+    }
+
+    #[test]
+    fn bootstrap_keys_follow_the_bucket_and_then_the_draw() {
+        assert!(bootstrapped(true, 0));
+        assert!(bootstrapped(true, 1));
+        assert!(bootstrapped(false, 1));
+        assert!(!bootstrapped(false, 0));
     }
 
     #[test]
