@@ -175,7 +175,12 @@ def _resolve(target):
 def _trace(event, origin, target):
     tracer = _thread().gtrace
     if tracer is not None:
-        tracer(event, (origin, target))
+        try:
+            tracer(event, (origin, target))
+        except BaseException:
+            # Um erro do rastreador o desliga (o `g_calltrace` limpa o `tracefunc`) e a troca não acontece.
+            _thread().gtrace = None
+            raise
 
 
 # O `_stack_saved` conta bytes da pilha de máquina que o greenlet do C copiou para o heap. Aqui não há pilha de máquina:
