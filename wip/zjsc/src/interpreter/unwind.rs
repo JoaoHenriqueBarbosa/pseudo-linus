@@ -30,7 +30,7 @@ use crate::bytecode::opcode::OpcodeID;
 use crate::interpreter::call_frame::CallFrame;
 use crate::interpreter::interpreter::Interpreter;
 use crate::bytecode::bytecode_index::BytecodeIndex;
-use crate::interpreter::stack_visitor::{line_and_column_for, Frame, FrameCodeType, IterationStatus, StackVisitor};
+use crate::interpreter::stack_visitor::{Frame, FrameCodeType, IterationStatus, StackVisitor};
 use crate::parser::parser_modes::is_generator_or_async_function_body_parse_mode;
 use crate::runtime::executable::ExecutableBaseRef;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
@@ -272,7 +272,7 @@ impl Interpreter {
             };
             BytecodeIndex::from_offset(u32::try_from(offset).unwrap_or(0))
         };
-        let line_column = line_and_column_for(&code_block, bytecode_index);
+        let (line_column, _) = crate::runtime::stack_frame::displayed_position(&code_block, &code_block.borrow(), bytecode_index);
         let mut frame = StackFrame::resolved(Location {
             function_name: name,
             source_url: source_url_stripped_of(&owner),

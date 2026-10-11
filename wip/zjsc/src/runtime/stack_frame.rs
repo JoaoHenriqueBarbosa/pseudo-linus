@@ -221,6 +221,36 @@ pub(crate) fn is_line_terminator_unit(unit: u16) -> bool {
     unit == 0x0A || unit == 0x0D || unit == 0x2028 || unit == 0x2029
 }
 
+/// A linha e a coluna que o frame da instrução `bytecode_index` de `block` mostra, e se a coluna recuou ao último token
+/// mapeável: a posição do JSC, a coluna remapeada pelo source map do transpilador do `Bun` e o mapa de posições dos goldens. Vale
+/// também para o frame `async` que `getAsyncStackTrace` acrescenta, que o bun remapeia como qualquer outro (medido no
+/// bun 1.4.2: `return await b()` sai no `b`, não no `(`).
+pub(crate) fn displayed_position(
+    code_block: &CodeBlockRef,
+    block: &CodeBlock,
+    bytecode_index: BytecodeIndex,
+) -> (crate::bytecode::line_column::LineColumn, bool) {
+    let mut line_column = line_and_column_for(code_block, bytecode_index);
+    let mut remapped_to_token = false;
+    if v8_stack_format() {
+        // O V8 não tem transpilador nem recuo de `CallSite`: a coluna já é a do `SourcePosition`.
+        let shift = crate::runtime::v8_stack::position_shift(block, bytecode_index);
+        line_column.column = u32::try_from((i64::from(line_column.column) + shift).max(1)).unwrap_or(1);
+    } else {
+        // O texto de `stack` mostra a coluna remapeada pelo source map do transpilador do `Bun` (o último
+        // token mapeável até o `divot`, ver `callee_back_offset`), não o `(`.
+        let raw_name_back_offset = callee_back_offset(block, bytecode_index);
+        let name_back_offset = raw_name_back_offset.min(line_column.column.saturating_sub(1));
+        line_column.column -= name_back_offset;
+        remapped_to_token = raw_name_back_offset > 0;
+    }
+    // O harness dos goldens roda o texto reimpresso e o bun mostra a posição no fonte original.
+    if let Some(map) = block.owner_executable().source().provider().and_then(|provider| provider.position_map()) {
+        (line_column.line, line_column.column) = map.map(line_column.line, line_column.column);
+    }
+    (line_column, remapped_to_token)
+}
+
 /// Quem escreve o frame: a linha de `stack`, o `CallSite.toString` ou o `console.trace` do bun.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Style {
@@ -421,30 +451,11 @@ impl StackFrame {
             let block = source.code_block.borrow();
             let owner = block.owner_executable();
             let source_url = source_url_stripped_of(owner);
-            let line_column = line_and_column_for(&source.code_block, source.bytecode_index);
-            let mut line_column = line_column;
-            let mut construct_back_offset = construct_back_offset(&block, source.bytecode_index);
-            if v8_stack_format() {
-                // O V8 não tem transpilador nem recuo de `CallSite`: a coluna já é a do `SourcePosition`.
-                let shift = crate::runtime::v8_stack::position_shift(&block, source.bytecode_index);
-                line_column.column = u32::try_from((i64::from(line_column.column) + shift).max(1)).unwrap_or(1);
-                construct_back_offset = 0;
-            } else {
-                // O texto de `stack` mostra a coluna remapeada pelo source map do transpilador do `Bun` (o último
-                // token mapeável até o `divot`, ver `callee_back_offset`), não o `(`; o recuo do `CallSite` até o
-                // `new` continua medido a partir do `(`, por isso entra descontado desse recuo.
-                let raw_name_back_offset = callee_back_offset(&block, source.bytecode_index);
-                let name_back_offset = raw_name_back_offset.min(line_column.column.saturating_sub(1));
-                line_column.column -= name_back_offset;
-                // Com source map (arquivo transpilado) a construção também fica no último mapping até o `(`, sem recuo ao `new`.
-                if raw_name_back_offset > 0 {
-                    construct_back_offset = 0;
-                }
-            }
-            // O harness dos goldens roda o texto reimpresso e o bun mostra a posição no fonte original.
-            if let Some(map) = owner.source().provider().and_then(|provider| provider.position_map()) {
-                (line_column.line, line_column.column) = map.map(line_column.line, line_column.column);
-            }
+            let (line_column, remapped_to_token) = displayed_position(&source.code_block, &block, source.bytecode_index);
+            // O V8 não tem recuo de `CallSite`, e com source map (arquivo transpilado) a construção fica no último mapping
+            // até o `(`, sem recuo ao `new`.
+            let construct_back_offset =
+                if v8_stack_format() || remapped_to_token { 0 } else { construct_back_offset(&block, source.bytecode_index) };
             let is_builtin = matches!(owner, ScriptExecutableRef::Function(function) if function.borrow().is_builtin_function());
             // Um builtin com `sourceURL` (os módulos embutidos do bun, `node:events`) mostra a posição real no fonte dele;
             // só o builtin do próprio JSC, sem URL, vira `native:1:11`.
