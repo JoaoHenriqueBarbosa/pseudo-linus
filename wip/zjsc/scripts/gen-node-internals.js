@@ -57,6 +57,7 @@ const modules = [
   ["internal/async_context_frame", "internal/async_context_frame.ts", asyncContextReplacements],
   ["internal/cluster/isPrimary", "internal/cluster/isPrimary.ts", []],
   ["internal/freelist", "internal/freelist.ts", []],
+  ["internal/promisify", "internal/promisify.ts", [[/\$isPromise\(/g, "(value => value instanceof Promise)("]]],
   ["internal/url", "internal/url.ts", []],
   ["internal/util/deprecate", "internal/util/deprecate.ts", []],
   ["internal/http", "internal/http.ts", httpReplacements],

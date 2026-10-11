@@ -67,6 +67,6 @@ const commonPrologue = `  const { validators, toClass, codes, makeAbortError } =
   const notImplemented = what => () => host.internal.throwNotImplemented(what);
 `;
 
-const exportDefault = [[/^export default (\w+|\{[\s\S]*?\n\});?\s*$/m, "return $1;"]];
+const exportDefault = [[/^export default (\w+|\{[^\n]*\}|\{[\s\S]*?\n\});?\s*$/m, "return $1;"]];
 
 module.exports = { convert, indent, common, commonPrologue, exportDefault };

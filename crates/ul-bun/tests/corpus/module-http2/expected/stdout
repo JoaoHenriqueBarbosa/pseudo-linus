@@ -1,0 +1,8 @@
+12 constants,createServer,createSecureServer,getDefaultSettings,getPackedSettings,getUnpackedSettings,performServerHandshake,sensitiveHeaders,Http2ServerRequest,Http2ServerResponse,connect,ClientHttp2Session
+function function function function object
+240 :status 0 200
+{"headerTableSize":4096,"enablePush":true,"maxConcurrentStreams":4294967295,"initialWindowSize":65535,"maxFrameSize":16384,"maxHeaderListSize":65535,"maxHeaderSize":65535,"enableConnectProtocol":false}
+Symbol(nodejs.http2.sensitiveHeaders) true
+pack [0,1,0,0,0,100]
+unpack {"headerTableSize":100}
+bad pack throws TypeError ERR_HTTP2_INVALID_SETTING_VALUE Invalid value for setting "enablePush": 5

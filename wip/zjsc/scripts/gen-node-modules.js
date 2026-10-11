@@ -73,6 +73,18 @@ const dns = [
   [/\$newRustFunction\("runtime\/dns_jsc\/dns\.rs", "Resolver\.newResolver", 1\)/, "((options) => Object.assign(Object.create(Bun.dns), { cancel() {} }))"],
 ];
 
+// `node:http2`: o analisador de quadros H2 nativo (`H2FrameParser`) ainda não existe e o `new` lança "not implemented"; o `$data`
+// do `fs/promises` é o `FileHandle` quando ele existe.
+const http2 = [
+  [/const \{ \$data \} = require\("node:fs\/promises"\);\s*\n/, ""],
+  [/const FileHandle = \$data\.FileHandle;/, 'const FileHandle = require("node:fs/promises").FileHandle ?? class FileHandle {};'],
+  [
+    /\$rust\("h2_frame_parser\.rs", "H2FrameParserConstructor"\)/,
+    '(native => (toClass(native, "H2FrameParser"), native))(function H2FrameParser() { host.internal.throwNotImplemented("http2 frame parser"); })',
+  ],
+  ...asyncContext,
+];
+
 // [nome do módulo embutido, arquivo, substituições próprias, o que o `export` final vira]
 const modules = [
   ["diagnostics_channel", "node/diagnostics_channel.ts", []],
@@ -87,6 +99,15 @@ const modules = [
   ["child_process", "node/child_process.ts", childProcess],
   ["zlib", "node/zlib.ts", zlib],
   ["dns", "node/dns.ts", dns],
+  [
+    "_http2_upgrade",
+    "node/_http2_upgrade.ts",
+    [
+      [/\$newRustFunction\("runtime\/socket\/socket\.rs", "jsUpgradeDuplexToTLS", 2\)/, 'notImplemented("http2 TLS upgrade")'],
+      [/\.\$write\(/g, ".write("],
+    ],
+  ],
+  ["http2", "node/http2.ts", http2],
   ["dns_promises", "node/dns.promises.ts", [[/^export default (require\(.*\)\.\w+);?\s*$/m, "return $1;"]]],
 ];
 

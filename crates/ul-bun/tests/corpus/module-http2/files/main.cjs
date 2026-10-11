@@ -1,0 +1,11 @@
+const h2 = require("node:http2");
+const keys = Object.keys(h2);
+console.log(keys.length, keys.join(","));
+console.log(typeof h2.connect, typeof h2.createServer, typeof h2.createSecureServer, typeof h2.getDefaultSettings, typeof h2.constants);
+console.log(Object.keys(h2.constants).length, h2.constants.HTTP2_HEADER_STATUS, h2.constants.NGHTTP2_NO_ERROR, h2.constants.HTTP_STATUS_OK);
+console.log(JSON.stringify(h2.getDefaultSettings()));
+console.log(h2.sensitiveHeaders.toString(), require("node:http2") === require("http2"));
+const t = (l, f) => { try { console.log(l, JSON.stringify(f())); } catch (e) { console.log(l, "throws", e.name, e.code, e.message); } };
+t("pack", () => Array.from(h2.getPackedSettings({ headerTableSize: 100 })));
+t("unpack", () => h2.getUnpackedSettings(Buffer.from([0, 1, 0, 0, 0, 100])));
+t("bad pack", () => h2.getPackedSettings({ enablePush: 5 }));

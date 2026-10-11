@@ -52,6 +52,7 @@ pub(crate) enum Resolved<'a> {
 
 /// Os módulos instalados. Acrescentar aqui, na ordem alfabética.
 pub(crate) static BUILTINS: &[BuiltinEntry] = &[
+    BuiltinEntry { name: "_http2_upgrade", scheme: Scheme::NodeOnly, install: crate::runtime::node_http::install_http2_upgrade_module },
     BuiltinEntry { name: "_http_agent", scheme: Scheme::Both, install: crate::runtime::node_http::install_http_agent_module },
     BuiltinEntry { name: "_http_client", scheme: Scheme::Both, install: crate::runtime::node_http::install_http_client_module },
     BuiltinEntry { name: "_http_common", scheme: Scheme::Both, install: crate::runtime::node_http::install_http_common_module },
@@ -72,6 +73,7 @@ pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "fs", scheme: Scheme::Both, install: crate::runtime::node_fs::install_fs_module },
     BuiltinEntry { name: "fs/promises", scheme: Scheme::Both, install: crate::runtime::node_fs::install_fs_promises_module },
     BuiltinEntry { name: "http", scheme: Scheme::Both, install: crate::runtime::node_http::install_http_module },
+    BuiltinEntry { name: "http2", scheme: Scheme::Both, install: crate::runtime::node_http::install_http2_module },
     BuiltinEntry { name: "https", scheme: Scheme::Both, install: crate::runtime::node_http::install_https_module },
     BuiltinEntry { name: "module", scheme: Scheme::Both, install: install_module_module },
     BuiltinEntry { name: "net", scheme: Scheme::Both, install: crate::runtime::node_net::install_net_module },
