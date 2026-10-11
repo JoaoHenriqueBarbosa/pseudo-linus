@@ -32,6 +32,12 @@ fn start_and_finish_dump(_ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
     0
 }
 
+fn start_and_close(_ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
+    let profile = DiskProfile::start(Some(USER_DATA_DIR), Run::DevTools);
+    profile.finish(Exit::Close);
+    0
+}
+
 fn start_without_user_data_dir(_ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
     let _profile = DiskProfile::start(None, Run::DevTools);
     0
@@ -40,7 +46,7 @@ fn start_without_user_data_dir(_ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
 fn kit() -> TestKit {
     TestKit::new()
         .env("HOME", "/root")
-        .programs([Program::bin("start", start), Program::bin("finish", start_and_finish), Program::bin("finish-dump", start_and_finish_dump), Program::bin("bare", start_without_user_data_dir)])
+        .programs([Program::bin("start", start), Program::bin("finish", start_and_finish), Program::bin("finish-dump", start_and_finish_dump), Program::bin("finish-close", start_and_close), Program::bin("bare", start_without_user_data_dir)])
 }
 
 #[derive(Debug, PartialEq)]
@@ -160,6 +166,25 @@ fn dump_dom_exit_tree_matches_the_oracle() {
         assert!(!kit.tree("/tmp/profile").iter().any(|(path, _)| path == name.as_bytes()), "{name} sobrou");
     }
     assert!(!kit.tree("/tmp").iter().any(|(path, _)| path.starts_with(b"org.chromium.Chromium.")), "o diretório do soquete sobrou");
+}
+
+/// A saída do `Browser.close` (medida em quatro execuções com `measure-navigation.sh` `MODO=close` `REDE=none`, `about:blank`,
+/// 8 s): a árvore de uma saída limpa, bem diferente da do SIGTERM (cache, `DIPS`, `Shortcuts`, `GCM Store`, o `ukm_db` de
+/// 49152 bytes e os `Singleton*` apagados). Os arquivos de sessão ficam de fora: são do `SessionsLog` do servidor.
+#[test]
+fn browser_close_exit_tree_matches_the_oracle() {
+    let kit = kit();
+    assert_eq!(kit.run(&["finish-close"], b"").status.shell_status(), 0);
+    let mut actual = actual(&kit, "/tmp/profile");
+    let mut expected = golden("close-exit-tree.jsonl");
+    for key in ["Default/Sessions/Session_N", "Default/Sessions/Tabs_N"] {
+        actual.remove(key);
+        expected.remove(key);
+    }
+    assert_matches_oracle(&actual, &expected);
+    for name in ["SingletonCookie", "SingletonLock", "SingletonSocket"] {
+        assert!(!kit.tree("/tmp/profile").iter().any(|(path, _)| path == name.as_bytes()), "{name} sobrou");
+    }
 }
 
 fn symlink_target(kit: &TestKit, root: &str, name: &str) -> String {

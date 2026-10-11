@@ -93,9 +93,9 @@ fn load(ctx: &mut Ctx, options: &Options, first: &str, disk: &DiskProfile) -> i3
             page.budget_ms = budget;
         }
         page.run();
-        disk.record_navigation(Navigation { url: page.url(), redirected_from: page.redirects(), title: page.title(), start_us: started_us });
+        disk.visits.record_navigation(Navigation { url: page.url(), redirected_from: page.redirects(), title: page.title(), start_us: started_us });
         if let Some(captured) = page.captured() {
-            disk.record_resource(&page.url(), captured.clone());
+            disk.visits.record_resource(&page.url(), captured.clone());
         }
         if let Some(next) = page.pending_navigation() {
             address = next;
@@ -103,7 +103,7 @@ fn load(ctx: &mut Ctx, options: &Options, first: &str, disk: &DiskProfile) -> i3
         }
         // O navegador pede o `/favicon.ico` da página que ficou e guarda a resposta, mesmo a 404.
         if let Some(favicon) = fetch::favicon(&fetch::network(), &page.url()) {
-            disk.record_resource(&page.url(), favicon);
+            disk.visits.record_resource(&page.url(), favicon);
         }
         if options.dump_dom {
             let _ = ctx.stdout().write_all(page.dump_dom().as_bytes());

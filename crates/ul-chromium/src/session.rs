@@ -204,6 +204,8 @@ pub struct Profile {
     pub history: Option<Arc<crate::history::HistoryLog>>,
     /// Os arquivos de sessão do navegador de pé: a página da linha de comando e o `Tabs_` do `Browser.close`.
     pub sessions: Option<Arc<crate::sessions::SessionsLog>>,
+    /// As navegações e respostas que as abas anotam para a saída (History, UKM, cache de disco, engajamento).
+    pub visits: Option<Arc<crate::disk_profile::Visits>>,
     /// O pote de cookies do contexto: as abas o leem e o escrevem (`document.cookie`, `Set-Cookie`, `Storage.*Cookies`).
     pub cookies: Mutex<ul_net::net::cookies::Jar>,
     /// O que o DevTools concedeu (`Browser.grantPermissions`): origem (vazia vale para todas) e nome da permissão.
@@ -214,12 +216,12 @@ impl Profile {
     /// O perfil do `--user-data-dir`: o `localStorage` e o IndexedDB persistem nos bancos dele.
     pub fn on_disk(local_storage: Option<Arc<LocalStorageStore>>, indexed_db: Option<Arc<IndexedDbStore>>) -> Profile {
         let store = local_storage.clone().map(|store| store as Arc<dyn AreaStore>);
-        Profile { local: Mutex::new(Areas { map: HashMap::new(), store }), indexed_db: indexed_db.unwrap_or_default(), local_storage, session_storage: None, history: None, sessions: None, cookies: Mutex::default(), permissions: Mutex::default() }
+        Profile { local: Mutex::new(Areas { map: HashMap::new(), store }), indexed_db: indexed_db.unwrap_or_default(), local_storage, session_storage: None, history: None, sessions: None, visits: None, cookies: Mutex::default(), permissions: Mutex::default() }
     }
 
     /// O perfil com todos os bancos do `DiskProfile`, o `sessionStorage` incluído.
     pub fn from_disk(disk: &DiskProfile) -> Profile {
-        Profile { session_storage: disk.session_storage(), history: disk.history_log(), sessions: disk.sessions_log(), ..Profile::on_disk(disk.local_storage(), disk.indexed_db()) }
+        Profile { session_storage: disk.session_storage(), history: disk.history_log(), sessions: disk.sessions_log(), visits: Some(disk.visits.clone()), ..Profile::on_disk(disk.local_storage(), disk.indexed_db()) }
     }
 
     /// Algum banco do perfil grava o que as páginas guardam.

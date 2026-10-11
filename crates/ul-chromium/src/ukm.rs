@@ -13,8 +13,10 @@
 //!   página, que o oráculo tem, não foi modelada;
 //! - o arquivo fica com 49152 bytes e o WAL é apagado na saída.
 //!
-//! Fora do medido: a saída do navegador de pé (`--remote-debugging-port`), onde o SIGTERM deixa o banco de 4096 bytes e
-//! o WAL de 90 KB e o `Browser.close` o de 49152 bytes com a fonte 49, e as execuções que dão mais de um evento.
+//! No `Browser.close` do navegador de pé (`--remote-debugging-port`) o banco sai igual (49152 bytes, sem WAL), com a
+//! fonte 49 e sempre um evento, de 3,4 a 4,1 ms antes do instante da saída (sete de sete execuções, com página; sem
+//! página não há linha nenhuma). Fora do medido: o SIGTERM do navegador de pé, que deixa o banco de 4096 bytes e o WAL
+//! de 90 KB, e as execuções que dão mais de um evento.
 
 use rusqlite::{params, OpenFlags};
 
@@ -24,6 +26,8 @@ const EVENT_HASH: &str = "AC722301695B9315";
 const METRIC_HASH: &str = "64BD7CCE5A95BF00";
 /// A fonte do evento na saída do `--dump-dom`.
 pub const DUMP_SOURCE: i64 = 81;
+/// A fonte do evento na saída do `Browser.close` do navegador de pé.
+pub const CLOSE_SOURCE: i64 = 49;
 
 /// Os atrasos (µs) do `last_timestamp` depois da visita, nas 44 execuções do `--dump-dom` do oráculo com um endereço só.
 const URL_DELAYS_US: [i64; 44] = [

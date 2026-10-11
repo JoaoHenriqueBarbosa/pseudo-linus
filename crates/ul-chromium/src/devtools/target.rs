@@ -444,6 +444,7 @@ impl Tab {
         }
         self.apply_engine_overrides();
         let fetcher = self.fetcher();
+        let started_us = (ul_common::time::realtime_nanos() / 1000) as i64;
         let (page, error) = match Page::load(&url, fetcher.clone()) {
             Ok(page) => (page, None),
             Err(error) => {
@@ -457,6 +458,9 @@ impl Tab {
         self.requested.clear();
         self.restoring = matches!(kind, NavKind::History(_));
         page.enter_tab(self.session.clone());
+        if error.is_none() {
+            self.record_visit(&page, started_us);
+        }
         let next_url = if error.is_some() { "chrome-error://chromewebdata/".to_owned() } else { page.bridge.url.borrow().clone() };
         // Troca de processo (medido no oráculo): a primeira navegação da aba fica no processo do `about:blank` inicial, o
         // `about:blank` nunca troca, e o resto troca quando o documento novo tem origem opaca (data, página de erro) ou
@@ -669,6 +673,21 @@ impl Tab {
         self.finishing = Some((meta.data_length, meta.last.head.len() + meta.body_encoded));
     }
 
+    /// Anota a página carregada para a saída (UKM, cache de disco, engajamento, QuotaManager): o endereço com os
+    /// redirecionamentos e a resposta (o favicon entra quando o navegador o pede). As páginas internas (`chrome://`) e o
+    /// `about:blank` não entram.
+    fn record_visit(&self, page: &Page, started_us: i64) {
+        let Some(visits) = &self.session.profile.visits else { return };
+        let url = page.url();
+        if url.starts_with("chrome") {
+            return;
+        }
+        visits.record_navigation(crate::history::Navigation { url: url.clone(), redirected_from: page.redirects(), title: page.title(), start_us: started_us });
+        if let Some(captured) = page.captured() {
+            visits.record_resource(&url, captured.clone());
+        }
+    }
+
     /// O `/favicon.ico` que o navegador pede depois de carregar uma página `http` ou `https`, uma vez por origem (o
     /// oráculo não o repete na navegação seguinte à mesma origem). O pedido sai sempre, o servidor o vê; os eventos de
     /// `Network` só vão a quem os ligou. O `dataReceived` só existe com corpo.
@@ -684,7 +703,11 @@ impl Tab {
             seen.push(origin);
         }
         let started = (monotonic_seconds(), ul_common::time::realtime_nanos() as f64 / 1e9);
+        let requested = ul_common::time::webkit_now_micros();
         let Some(response) = fetch::favicon_response(&self.fetcher(), &self.url) else { return };
+        if let Some(visits) = &self.session.profile.visits {
+            visits.record_resource(&self.url, crate::http_cache::Captured::from_response(&response, requested, ul_common::time::webkit_now_micros()));
+        }
         let observation = Observation { kind: fetch::Kind::Other, address: String::new(), started: started.0, wall: started.1, result: Ok(crate::netmeta::NetMeta::from_response(&response)) };
         self.emit_resource(&observation, Json::object([("type", Json::str("other"))]), "High", false);
     }

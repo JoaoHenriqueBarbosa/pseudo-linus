@@ -91,11 +91,12 @@ vite.dev, htmx.org, solidjs.com).
   (nenhum abaixo de 46 ms, todos acima de 90 ms); o `metric_value` é sorteado na faixa medida, sem a relação com a
   página. Fora do medido: o navegador de pé (SIGTERM deixa o banco de 4096 bytes e o WAL de 90 KB, o `Browser.close` o de
   49152 bytes com a fonte 49 e sempre um evento).
-- Perfil, saída do `Browser.close` do navegador de pé: a árvore do oráculo é a de uma saída limpa (medido em
-  `redir-close`), bem diferente da do SIGTERM: cache de disco, `DIPS` (36864 bytes), `Shortcuts`, `Network Action
-  Predictor`, `GCM Store`, `Download Service`, `BudgetDatabase`, `heavy_ad_intervention_opt_out.db`, `Network
-  Persistent State` de 1474 bytes e `TransportSecurity`, `Singleton*` removidos, `ukm_db` de 49152 bytes sem WAL. Só o
-  History e o Sessions do `Browser.close` estão feitos; o resto da árvore ainda sai como o do SIGTERM.
+- Perfil, saída do `Browser.close` do navegador de pé: a árvore da saída limpa vem do molde `template-close.pack`
+  (quatro execuções do oráculo sem rede, `about:blank`; `tests/disk_profile.rs`), e com página o cache de disco (página
+  e favicon), o `Preferences` com o engajamento, o QuotaManager, o `ukm_db` (fonte 49, sempre um evento) e o
+  `Network Persistent State` sem rede saem como no oráculo (`tests/close_profile.rs`). Fora do medido: o
+  `Site Characteristics Database/000003.log` (112 bytes com página contra 40 do molde), o `shared_proto_db/000003.log`
+  com página (6787 bytes contra 7194 do molde) e as sessões com mais de uma navegação no mesmo `Browser.close`.
 - Perfil, redirecionamento: medido com um salto de servidor (`301`); cadeias maiores e o redirecionamento do cliente
   depois do de servidor seguem sem medida (`crates/ul-chromium/src/history.rs`).
 

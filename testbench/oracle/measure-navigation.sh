@@ -51,4 +51,6 @@ asyncio.run(main())"
 fi
 cp -a /tmp/profile /out/profile
 profile-tree.py /tmp/profile > /out/profile-tree.jsonl
+(cp -a /root/.config /out/config 2>/dev/null || true)
+profile-tree.py /root/.config > /out/config-tree.jsonl
 chmod -R a+rX /out'

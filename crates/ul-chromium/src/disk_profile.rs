@@ -12,7 +12,7 @@
 //! a árvore estar completa e pede um molde à parte. O banco do Local Storage já não vem do molde: o leveldb próprio
 //! (`ul-leveldb`) o cria e o `LocalStorageStore` grava nele o que as páginas guardam.
 
-use std::sync::{Arc, Mutex, OnceLock, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
 use sysabi::{sys, AtFlags, Errno, Fd, Mode};
 
@@ -37,6 +37,12 @@ use ul_leveldb::env::Env;
 static PACK: &[u8] = include_bytes!("../profile/template.pack");
 /// A saída do `--dump-dom` (o começo é o mesmo do DevTools): a árvore inteira da saída e o que ela apaga.
 static PACK_DUMP: &[u8] = include_bytes!("../profile/template-dump.pack");
+/// A saída do `Browser.close` do navegador com DevTools (o começo é o mesmo): a árvore de uma saída limpa, medida em
+/// quatro execuções do oráculo sem rede com `about:blank`.
+static PACK_CLOSE: &[u8] = include_bytes!("../profile/template-close.pack");
+/// O que o molde da saída do `Browser.close` não escreve: os arquivos de sessão são do `SessionsLog`, que grava o
+/// `Tabs_` com a página.
+const CLOSE_EXCLUDED: [&[u8]; 1] = [b"Default/Sessions/"];
 /// O diretório do banco do Local Storage no perfil: o molde o traz (de uma execução do oráculo), mas quem o grava é o
 /// leveldb próprio, com o log, o MANIFEST e o `LOG` de verdade.
 const LOCAL_STORAGE_DB: &[u8] = b"Default/Local Storage/leveldb";
@@ -99,9 +105,17 @@ pub enum Run {
 /// O molde de `run`. O começo do perfil é o mesmo nas duas execuções e vem do molde do DevTools (o do `--dump-dom` só
 /// leva a saída).
 fn template(run: Run) -> &'static [Entry] {
-    static TEMPLATES: OnceLock<[Vec<Entry>; 2]> = OnceLock::new();
-    let templates = TEMPLATES.get_or_init(|| [PACK, PACK_DUMP].map(|pack| parse_pack(pack).expect("o molde do perfil embutido é válido")));
-    &templates[run as usize]
+    &templates()[run as usize]
+}
+
+/// O molde da saída do `Browser.close`.
+fn close_template() -> &'static [Entry] {
+    &templates()[2]
+}
+
+fn templates() -> &'static [Vec<Entry>; 3] {
+    static TEMPLATES: OnceLock<[Vec<Entry>; 3]> = OnceLock::new();
+    TEMPLATES.get_or_init(|| [PACK, PACK_DUMP, PACK_CLOSE].map(|pack| parse_pack(pack).expect("o molde do perfil embutido é válido")))
 }
 
 fn parse_pack(pack: &[u8]) -> Option<Vec<Entry>> {
@@ -292,12 +306,39 @@ pub struct DiskProfile {
     history: OnceLock<Arc<history::HistoryLog>>,
     /// Os arquivos de sessão do navegador de pé, criados na primeira vez que o DevTools os pede.
     sessions_log: OnceLock<Arc<sessions::SessionsLog>>,
-    /// As navegações da aba nesta execução, para o History.
-    navigations: Mutex<Vec<Navigation>>,
-    /// As respostas que o navegador buscou nesta execução, cada uma com a página de topo, para o cache de disco.
-    resources: Mutex<Vec<(String, Captured)>>,
+    /// O que a execução visitou e buscou, e que as abas (o `--dump-dom` e o DevTools) anotam na saída.
+    pub visits: Arc<Visits>,
     /// O id da janela das anotações de contexto do History: aleatório por execução.
     window_id: i64,
+}
+
+/// As navegações da aba nesta execução (para o History, o UKM, o engajamento e o QuotaManager) e as respostas que o
+/// navegador buscou (para o cache de disco), anotadas pelas abas e lidas na saída.
+#[derive(Debug, Default)]
+pub struct Visits {
+    navigations: Mutex<Vec<Navigation>>,
+    /// Cada resposta com a página de topo.
+    resources: Mutex<Vec<(String, Captured)>>,
+}
+
+impl Visits {
+    /// Anota uma navegação concluída da aba.
+    pub fn record_navigation(&self, navigation: Navigation) {
+        // O `about:blank` não entra no History nem na sessão: o molde já tem a forma dele.
+        if navigation.url == "about:blank" {
+            return;
+        }
+        self.navigations.lock().unwrap_or_else(PoisonError::into_inner).push(navigation);
+    }
+
+    /// Anota uma resposta buscada pelo navegador (a página ou o favicon dela): o cache de disco a guarda na saída.
+    pub fn record_resource(&self, top_url: &str, captured: Captured) {
+        self.resources.lock().unwrap_or_else(PoisonError::into_inner).push((top_url.to_owned(), captured));
+    }
+
+    fn navigations(&self) -> MutexGuard<'_, Vec<Navigation>> {
+        self.navigations.lock().unwrap_or_else(PoisonError::into_inner)
+    }
 }
 
 impl DiskProfile {
@@ -306,7 +347,7 @@ impl DiskProfile {
     /// subir: o Chromium também segue sem o perfil quando o disco recusa.
     pub fn start(user_data_dir: Option<&[u8]>, run: Run) -> DiskProfile {
         let mut profile = DiskProfile::new(user_data_dir, run);
-        let _ = profile.write_layer(template(Run::DevTools), LAYER_START);
+        let _ = profile.write_layer(template(Run::DevTools), LAYER_START, &[]);
         profile.socket_dir = profile.write_singletons().ok();
         profile.local_storage = profile.open_db(LOCAL_STORAGE_DB, LocalStorageStore::open);
         profile.session_storage = profile.open_db(SESSION_STORAGE_DB, |env, dir, thread_id| {
@@ -323,7 +364,7 @@ impl DiskProfile {
             Some(path) if !path.is_empty() => path,
             _ => [home.as_slice(), b"/.config"].concat(),
         };
-        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None, indexed_db: OnceLock::new(), history: OnceLock::new(), sessions_log: OnceLock::new(), navigations: Mutex::new(Vec::new()), resources: Mutex::new(Vec::new()), window_id: random_below(1 << 31) as i64 }
+        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None, indexed_db: OnceLock::new(), history: OnceLock::new(), sessions_log: OnceLock::new(), visits: Arc::default(), window_id: random_below(1 << 31) as i64 }
     }
 
     /// O IndexedDB do perfil (`Default/IndexedDB`): cada origem ganha o leveldb dela no primeiro uso.
@@ -350,24 +391,11 @@ impl DiskProfile {
         open(Arc::new(SysEnv::new()), &String::from_utf8_lossy(&dir), thread_id).ok().map(Arc::new)
     }
 
-    /// Anota uma navegação concluída da aba: o History a grava na saída.
-    pub fn record_navigation(&self, navigation: Navigation) {
-        // O `about:blank` não entra no History nem na sessão: o molde já tem a forma dele.
-        if navigation.url == "about:blank" {
-            return;
-        }
-        self.navigations.lock().unwrap_or_else(PoisonError::into_inner).push(navigation);
-    }
-
-    /// Anota uma resposta buscada pelo navegador (a página ou o favicon dela): o cache de disco a guarda na saída.
-    pub fn record_resource(&self, top_url: &str, captured: Captured) {
-        self.resources.lock().unwrap_or_else(PoisonError::into_inner).push((top_url.to_owned(), captured));
-    }
 
     /// O cache de disco da saída do `--dump-dom`: um arquivo por resposta e o índice com as que já estavam lá.
     fn write_cache(&self) {
         let Some(dir) = &self.user_data_dir else { return };
-        let resources = self.resources.lock().unwrap_or_else(PoisonError::into_inner);
+        let resources = self.visits.resources.lock().unwrap_or_else(PoisonError::into_inner);
         if resources.is_empty() {
             return;
         }
@@ -392,7 +420,7 @@ impl DiskProfile {
     /// com a duração da execução), e aqui o sorteio faz a mesma conta.
     fn write_quota(&self) {
         let Some(dir) = &self.user_data_dir else { return };
-        if self.navigations.lock().unwrap_or_else(PoisonError::into_inner).is_empty() {
+        if self.visits.navigations().is_empty() {
             return;
         }
         let folder = [dir.as_slice(), b"/Default/WebStorage"].concat();
@@ -458,7 +486,7 @@ impl DiskProfile {
     /// O `Preferences` da saída do `--dump-dom` com o engajamento de cada site visitado.
     fn write_preferences(&self, previous: Option<String>) {
         let Some(dir) = &self.user_data_dir else { return };
-        let navigations = self.navigations.lock().unwrap_or_else(PoisonError::into_inner);
+        let navigations = self.visits.navigations();
         if navigations.is_empty() {
             return;
         }
@@ -479,11 +507,13 @@ impl DiskProfile {
         let _ = sysabi::util::write_file(&path, text.as_bytes(), 0o600);
     }
 
-    /// O UKM da saída do `--dump-dom`: o endereço de cada visita (os da cadeia de redirecionamento, um depois do outro) e,
-    /// se a página viveu o bastante, o evento da saída.
-    fn write_ukm(&self) {
+    /// O UKM da saída: o endereço de cada visita (os da cadeia de redirecionamento, um depois do outro) e o evento da saída.
+    /// No `--dump-dom` o evento só sai se a página viveu o bastante (fonte 81); no `Browser.close` sai sempre que houve
+    /// página (fonte 49, sete de sete execuções), de 3,4 a 4,1 ms antes do instante da saída.
+    fn write_ukm(&self, exit: Exit) {
         let Some(dir) = &self.user_data_dir else { return };
-        let navigations = self.navigations.lock().unwrap_or_else(PoisonError::into_inner);
+        let closing = exit == Exit::Close;
+        let navigations = self.visits.navigations().clone();
         let Some(last) = navigations.last() else { return };
         let mut visits = Vec::new();
         for nav in navigations.iter() {
@@ -493,9 +523,10 @@ impl DiskProfile {
             }
         }
         let exit_us = (ul_common::time::realtime_nanos() / 1000) as i64;
-        let event = ukm::has_event(exit_us - last.start_us, random_below(11)).then(|| ukm::Event {
-            timestamp: exit_us + WEBKIT_EPOCH_US + 3_000 + random_below(8_000) as i64,
-            source: ukm::DUMP_SOURCE,
+        let (source, timestamp) = if closing { (ukm::CLOSE_SOURCE, exit_us + WEBKIT_EPOCH_US - 3_400 - random_below(700) as i64) } else { (ukm::DUMP_SOURCE, exit_us + WEBKIT_EPOCH_US + 3_000 + random_below(8_000) as i64) };
+        let event = (closing || ukm::has_event(exit_us - last.start_us, random_below(11))).then(|| ukm::Event {
+            timestamp,
+            source,
             id: i64::from_le_bytes(random_bytes::<8>()),
             value: 22 + random_below(208) as i64,
         });
@@ -507,7 +538,7 @@ impl DiskProfile {
     fn write_history(&self) {
         let Some(dir) = &self.user_data_dir else { return };
         let path = String::from_utf8_lossy(&[dir.as_slice(), b"/Default/History"].concat()).into_owned();
-        let navigations = self.navigations.lock().unwrap_or_else(PoisonError::into_inner);
+        let navigations = self.visits.navigations();
         let process = history::Process { start_us: self.start_us, exit_us: (ul_common::time::realtime_nanos() / 1000) as i64, window_id: self.window_id, ending: history::Ending::Dump };
         let _ = history::write(&path, &navigations, process);
     }
@@ -516,7 +547,7 @@ impl DiskProfile {
     /// ganham as entradas da página (os nomes ficam; deles vem o relógio da saída).
     fn write_sessions(&self) {
         let Some(dir) = &self.user_data_dir else { return };
-        let Some(page) = self.navigations.lock().unwrap_or_else(PoisonError::into_inner).last().cloned() else { return };
+        let Some(page) = self.visits.navigations().last().cloned() else { return };
         let folder = [dir.as_slice(), b"/Default/Sessions"].concat();
         let found = |prefix: &[u8]| sys::read_dir(&folder).unwrap_or_default().into_iter().find(|e| e.name.starts_with(prefix)).map(|e| e.name);
         let (Some(session), Some(tabs)) = (found(b"Session_"), found(b"Tabs_")) else { return };
@@ -555,9 +586,18 @@ impl DiskProfile {
             let _ = store.finish(exit);
         }
         let previous_preferences = self.user_data_dir.as_ref().and_then(|dir| sys::read_file(&[dir.as_slice(), b"/Default/Preferences"].concat()).ok()).map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
-        let _ = self.write_layer(template(self.run), LAYER_EXIT);
+        let closing = self.run == Run::DevTools && exit == Exit::Close;
+        let _ = if closing { self.write_layer(close_template(), LAYER_EXIT, &CLOSE_EXCLUDED) } else { self.write_layer(template(self.run), LAYER_EXIT, &[]) };
         if self.run == Run::DevTools {
             self.leave_hot_history_journal();
+        }
+        if closing {
+            self.write_network_state();
+            self.write_preferences(previous_preferences.clone());
+            self.write_quota();
+            self.write_ukm(exit);
+            self.write_cache();
+            self.remove_singletons();
         }
         if self.run == Run::DumpDom {
             self.write_shared_proto_db();
@@ -565,7 +605,7 @@ impl DiskProfile {
             self.write_preferences(previous_preferences);
             self.write_quota();
             self.write_history();
-            self.write_ukm();
+            self.write_ukm(exit);
             self.write_sessions();
             self.write_cache();
             self.remove_singletons();
@@ -585,10 +625,10 @@ impl DiskProfile {
     }
 
     /// As entradas de `layer`: primeiro as remoções, depois diretórios e arquivos na ordem do molde.
-    fn write_layer(&self, entries: &[Entry], layer: u8) -> Result<(), Errno> {
+    fn write_layer(&self, entries: &[Entry], layer: u8, excluded: &[&[u8]]) -> Result<(), Errno> {
         let user_dir = self.user_data_dir.as_deref().unwrap_or(b"");
         let expander = Expander { start_us: self.start_us, user_dir };
-        let selected = || entries.iter().filter(|e| e.layer == layer && !(e.root == ROOT_USER_DATA && (OWN_DBS.iter().any(|db| e.path.starts_with(db)) || (self.run == Run::DumpDom && e.path.starts_with(SHARED_PROTO_DB)))));
+        let selected = || entries.iter().filter(|e| e.layer == layer && !(e.root == ROOT_USER_DATA && (excluded.iter().any(|prefix| e.path.starts_with(prefix)) || OWN_DBS.iter().any(|db| e.path.starts_with(db)) || (self.run == Run::DumpDom && e.path.starts_with(SHARED_PROTO_DB)))));
         for entry in selected().filter(|e| e.kind == KIND_REMOVE) {
             let (Some(dir), ROOT_USER_DATA) = (&self.user_data_dir, entry.root) else { continue };
             let path = [dir.as_slice(), b"/", &expander.expand(&entry.path)].concat();
