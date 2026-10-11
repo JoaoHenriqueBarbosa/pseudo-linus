@@ -59,7 +59,7 @@ pub fn main(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     if options.devtools.port.is_some() || options.devtools.pipe {
         let url = options.urls.first().cloned().unwrap_or_else(|| "about:blank".to_owned());
         let disk = DiskProfile::start(options.user_data_dir.as_deref().map(str::as_bytes));
-        let code = devtools::server::run(ctx, &options.devtools, &url, disk.local_storage());
+        let code = devtools::server::run(ctx, &options.devtools, &url, disk.local_storage(), disk.indexed_db());
         disk.finish();
         return code;
     }

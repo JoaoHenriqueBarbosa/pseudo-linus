@@ -435,18 +435,19 @@ impl DomHost for Bridge {
                     _ => run(tab.session.borrow_mut().area(&origin), &mut |_| {}),
                 }
             }
-            // `[ação, nome, texto]`: os bancos do IndexedDB da origem no perfil (`load` devolve `[[nome, texto], ...]`).
+            // `[ação, nome, texto]`: os bancos do IndexedDB da origem no perfil (`load` devolve `[[nome, texto], ...]`,
+            // `commit` grava o diário de uma transação). Falha de disco não chega à página: o Chromium também segue.
             "idb" => {
                 let origin = self.storage_origin();
                 let profile = self.tab.borrow().profile.clone();
                 match str_arg(args, 0)? {
-                    "load" => Ok(DomArg::List(profile.databases_of(&origin).into_iter().map(|(name, text)| DomArg::List(vec![DomArg::Str(name), DomArg::Str(text)])).collect())),
-                    "save" => {
-                        profile.save_database(&origin, str_arg(args, 1)?, str_arg(args, 2)?);
+                    "load" => Ok(DomArg::List(profile.indexed_db.load(&origin).into_iter().map(|(name, text)| DomArg::List(vec![DomArg::Str(name), DomArg::Str(text)])).collect())),
+                    "commit" => {
+                        let _ = profile.indexed_db.commit(&origin, str_arg(args, 1)?, str_arg(args, 2)?);
                         Ok(DomArg::Undefined)
                     }
                     "delete" => {
-                        profile.delete_database(&origin, str_arg(args, 1)?);
+                        let _ = profile.indexed_db.delete(&origin, str_arg(args, 1)?);
                         Ok(DomArg::Undefined)
                     }
                     _ => Err(illegal()),

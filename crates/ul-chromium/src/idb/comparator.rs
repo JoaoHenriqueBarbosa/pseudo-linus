@@ -7,7 +7,10 @@
 
 use std::cmp::Ordering;
 
+use ul_leveldb::coding::Input;
 use ul_leveldb::comparator::Comparator;
+
+use super::coding::{decode_int, read_string_bytes};
 
 const MAX_SIMPLE_GLOBAL_TYPE: u8 = 7;
 const SCOPES_PREFIX: u8 = 50;
@@ -27,41 +30,28 @@ const MINIMUM_INDEX_ID: u64 = 30;
 #[derive(Debug)]
 pub struct IdbComparator;
 
-/// Uma fatia que se consome da frente, como o `StringPiece` do Chromium.
-struct Cursor<'a>(&'a [u8]);
+/// Uma fatia que se consome da frente, como o `StringPiece` do Chromium (o `Input` do leveldb, sem os erros).
+struct Cursor<'a>(Input<'a>);
 
 impl<'a> Cursor<'a> {
     fn byte(&mut self) -> Option<u8> {
-        let (first, rest) = self.0.split_first()?;
-        self.0 = rest;
-        Some(*first)
+        Some(self.take(1)?[0])
     }
 
     fn take(&mut self, length: usize) -> Option<&'a [u8]> {
-        if self.0.len() < length {
-            return None;
-        }
-        let (head, rest) = self.0.split_at(length);
-        self.0 = rest;
-        Some(head)
+        self.0.take(length).ok()
     }
 
     fn varint(&mut self) -> Option<u64> {
-        let mut value = 0u64;
-        for shift in (0..64).step_by(7) {
-            let byte = self.byte()?;
-            value |= u64::from(byte & 0x7f) << shift;
-            if byte & 0x80 == 0 {
-                return Some(value);
-            }
-        }
-        None
+        self.0.varint64().ok()
     }
 
-    /// O texto com o tamanho em unidades UTF-16 na frente; os bytes ficam em UTF-16BE, que se ordena como memcmp.
+    fn rest(&self) -> &'a [u8] {
+        self.0.remaining()
+    }
+
     fn string_with_length(&mut self) -> Option<&'a [u8]> {
-        let length = self.varint()? as usize;
-        self.take(length.checked_mul(2)?)
+        read_string_bytes(&mut self.0)
     }
 
     fn double(&mut self) -> Option<f64> {
@@ -75,16 +65,12 @@ struct Prefix {
     index: u64,
 }
 
-fn little_endian(bytes: &[u8]) -> u64 {
-    bytes.iter().rev().fold(0, |value, byte| (value << 8) | u64::from(*byte))
-}
-
 fn decode_prefix(cursor: &mut Cursor) -> Option<Prefix> {
     let first = cursor.byte()?;
     let widths = [((first >> 5) & 7) as usize + 1, ((first >> 2) & 7) as usize + 1, (first & 3) as usize + 1];
-    let database = little_endian(cursor.take(widths[0])?);
-    let store = little_endian(cursor.take(widths[1])?);
-    let index = little_endian(cursor.take(widths[2])?);
+    let database = decode_int(cursor.take(widths[0])?);
+    let store = decode_int(cursor.take(widths[1])?);
+    let index = decode_int(cursor.take(widths[2])?);
     Some(Prefix { database, store, index })
 }
 
@@ -130,12 +116,12 @@ fn compare_idb_keys(a: &mut Cursor, b: &mut Cursor) -> Option<Ordering> {
 }
 
 fn compare_remaining(a: &mut Cursor, b: &mut Cursor) -> Ordering {
-    a.0.len().cmp(&b.0.len())
+    a.rest().len().cmp(&b.rest().len())
 }
 
 /// O corpo de uma chave de dados: a chave IDB (e, no índice, o número de sequência e a chave primária).
 fn compare_data(prefix_index: u64, a: &mut Cursor, b: &mut Cursor) -> Option<Ordering> {
-    if a.0.is_empty() || b.0.is_empty() {
+    if a.rest().is_empty() || b.rest().is_empty() {
         return Some(compare_remaining(a, b));
     }
     let keys = compare_idb_keys(a, b)?;
@@ -146,7 +132,7 @@ fn compare_data(prefix_index: u64, a: &mut Cursor, b: &mut Cursor) -> Option<Ord
     if sequence != Ordering::Equal {
         return Some(sequence);
     }
-    Some(match (a.0.is_empty(), b.0.is_empty()) {
+    Some(match (a.rest().is_empty(), b.rest().is_empty()) {
         (true, true) => Ordering::Equal,
         (true, false) => Ordering::Less,
         (false, true) => Ordering::Greater,
@@ -163,7 +149,7 @@ fn compare_global(a: &mut Cursor, b: &mut Cursor) -> Option<Ordering> {
         return Some(Ordering::Equal);
     }
     Some(match type_a {
-        SCOPES_PREFIX => a.0.cmp(b.0),
+        SCOPES_PREFIX => a.rest().cmp(b.rest()),
         DATABASE_FREE_LIST => a.varint()?.cmp(&b.varint()?),
         DATABASE_NAME => {
             let origin = a.string_with_length()?.cmp(b.string_with_length()?);
@@ -223,7 +209,7 @@ fn compare_database(a: &mut Cursor, b: &mut Cursor) -> Option<Ordering> {
 }
 
 fn compare_decoded(a: &[u8], b: &[u8]) -> Option<Ordering> {
-    let (mut cursor_a, mut cursor_b) = (Cursor(a), Cursor(b));
+    let (mut cursor_a, mut cursor_b) = (Cursor(Input::new(a)), Cursor(Input::new(b)));
     let (prefix_a, prefix_b) = (decode_prefix(&mut cursor_a)?, decode_prefix(&mut cursor_b)?);
     let prefixes = (prefix_a.database, prefix_a.store, prefix_a.index).cmp(&(prefix_b.database, prefix_b.store, prefix_b.index));
     if prefixes != Ordering::Equal {

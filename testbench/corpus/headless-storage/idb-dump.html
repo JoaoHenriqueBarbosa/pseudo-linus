@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>idb dump</title>
+<script>
+// Lê, sem escrever, todos os bancos da origem e escreve o conteúdo no elemento out (e no console): versão, cada
+// repositório com keyPath, autoIncrement, registros (chave e valor) e cada índice com unique, multiEntry e as chaves.
+// Serve para o oráculo ler o banco que o plinus gravou, e o plinus o do oráculo, e comparar as duas leituras.
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 400 && !done; i++) await fetch('/idb-dump.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+let seen = new Map();
+const show = (value) => {
+  if (typeof value === 'object' && value !== null) {
+    if (seen.has(value)) return { ref: seen.get(value) };
+    seen.set(value, seen.size);
+  }
+  if (value === undefined) return { undefined: true };
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') return value;
+  if (typeof value === 'number') return Object.is(value, -0) ? { number: '-0' } : Number.isFinite(value) ? value : { number: String(value) };
+  if (typeof value === 'bigint') return { bigint: String(value) };
+  if (value instanceof Date) return { date: value.getTime() };
+  if (value instanceof RegExp) return { regexp: String(value) };
+  if (value instanceof ArrayBuffer) return { arraybuffer: [...new Uint8Array(value)] };
+  if (ArrayBuffer.isView(value)) return { [value.constructor.name]: [...new Uint8Array(value.buffer, value.byteOffset, value.byteLength)] };
+  if (value instanceof Map) return { map: [...value].map(([k, v]) => [show(k), show(v)]) };
+  if (value instanceof Set) return { set: [...value].map(show) };
+  if (value instanceof Error) return { error: [value.name, value.message] };
+  if (Array.isArray(value)) return { array: Object.keys(value).map((k) => [k, show(value[k])]), length: value.length };
+  if (value instanceof Boolean || value instanceof Number || value instanceof String) return { boxed: show(value.valueOf()) };
+  return { object: Object.keys(value).map((k) => [k, show(value[k])]) };
+};
+const request = (r) => new Promise((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
+(async () => {
+  const out = [];
+  const names = (await indexedDB.databases()).map((d) => [d.name, d.version]).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  for (const [name, version] of names) {
+    const db = await request(indexedDB.open(name));
+    const stores = [];
+    for (const storeName of [...db.objectStoreNames]) {
+      const tx = db.transaction(storeName);
+      const store = tx.objectStore(storeName);
+      seen = new Map();
+      const keys = await request(store.getAllKeys());
+      const values = await request(store.getAll());
+      const indexes = [];
+      for (const indexName of [...store.indexNames]) {
+        const index = store.index(indexName);
+        indexes.push([indexName, show(index.keyPath), index.unique, index.multiEntry, (await request(index.getAllKeys())).map((k) => { seen = new Map(); return show(k); })]);
+      }
+      stores.push([storeName, show(store.keyPath), store.autoIncrement, keys.map((k, i) => { seen = new Map(); const key = show(k); seen = new Map(); return [key, show(values[i])]; }), indexes]);
+    }
+    db.close();
+    out.push([name, version, db.version, stores]);
+  }
+  const text = JSON.stringify(out);
+  document.getElementById('out').textContent = text;
+  console.log(text);
+  setTimeout(() => { done = true; document.title = 'done'; }, 200);
+})().catch((error) => { document.getElementById('out').textContent = 'erro: ' + error; console.log('erro: ' + error); done = true; });
+</script>
+<body><pre id="out"></pre></body>

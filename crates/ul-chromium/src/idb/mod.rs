@@ -4,5 +4,6 @@
 
 pub mod coding;
 pub mod comparator;
+pub mod disk;
 pub mod js_value;
 pub mod v8;

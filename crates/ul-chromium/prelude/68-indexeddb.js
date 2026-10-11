@@ -281,10 +281,24 @@ const loadDatabases = () => {
   for (const [name, text] of op('idb', 'load')) {
     if (databases.has(name)) continue;
     const saved = deserializeValue(text);
+    // O disco guarda as entradas dos índices com as remoções atrasadas do Chromium; a página vê as que os registros dão.
+    for (const store of saved.stores.values()) {
+      for (const index of store.indexes.values()) {
+        index.entries = [];
+        for (const record of store.records) addIndexEntries(index, record.key, record.value);
+      }
+    }
     databases.set(name, { name, version: saved.version, stores: saved.stores, connections: new Set(), transactions: [], waiting: null, creating: false });
   }
 };
-const persistDatabase = (database) => op('idb', 'save', database.name, serializeValue({ version: database.version, stores: database.stores }));
+// Cada transação que escreve devolve ao perfil o diário das mutações, na ordem em que as requisições rodaram: é o
+// perfil que sabe os lotes que o Chromium grava para cada uma (o banco em memória continua sendo a fonte da página).
+const commitJournal = (state) => op('idb', 'commit', state.database.name, serializeValue({
+  mode: state.mode,
+  version: state.database.version,
+  scope: [...state.scope],
+  journal: state.journal,
+}));
 const MAX_GENERATED_KEY = 2 ** 53;
 const findRecord = (store, key) => {
   const position = searchSorted(store.records, (record) => compareKeys(record.key, key));
@@ -308,8 +322,9 @@ const removeRecordAt = (store, position) => {
 const constraintError = (message) => domException(message, 'ConstraintError');
 // "Store a record into an object store": a chave gerada, a unicidade dos índices e a troca do registro. Devolve a
 // chave, ou lança o erro que vira o `error` da requisição.
-const storeRecord = (store, value, key, noOverwrite) => {
-  if (store.autoIncrement && key === undefined) {
+const storeRecord = (store, value, key, noOverwrite, journal) => {
+  const generated = store.autoIncrement && key === undefined;
+  if (generated) {
     if (store.generator > MAX_GENERATED_KEY) throw constraintError('Key generator overflow.');
     key = { type: KEY_NUMBER, value: store.generator++ };
     if (store.keyPath !== null) injectKey(value, store.keyPath, key);
@@ -328,10 +343,17 @@ const storeRecord = (store, value, key, noOverwrite) => {
   if (existing !== -1) removeRecordAt(store, existing);
   store.records.splice(searchSorted(store.records, (record) => compareKeys(record.key, key)), 0, { key, value });
   for (const index of store.indexes.values()) addIndexEntries(index, key, value);
+  journal.push(['put', store.name, key, value, [...store.indexes.values()].map((index) => [index.name, indexKeysOf(index, value)]), store.generator, generated]);
   return key;
 };
-const deleteRange = (store, range) => {
-  for (let position = store.records.length - 1; position >= 0; position--) if (rangeIncludes(range, store.records[position].key)) removeRecordAt(store, position);
+const deleteRange = (store, range, journal) => {
+  const removed = [];
+  for (let position = store.records.length - 1; position >= 0; position--) {
+    if (!rangeIncludes(range, store.records[position].key)) continue;
+    removed.unshift(store.records[position].key);
+    removeRecordAt(store, position);
+  }
+  for (const key of removed) journal.push(['delete', store.name, key]);
 };
 // Cópia para a reversão do `abort`: os registros, o gerador e as entradas dos índices de um store.
 const snapshotStore = (store) => ({ store, records: store.records.slice(), generator: store.generator, entries: new Map([...store.indexes].map(([name, index]) => [name, index.entries.slice()])) });
@@ -448,7 +470,7 @@ const maybeCommit = (state) => {
       schedulePump(state);
       return;
     }
-    if (state.mode !== 'readonly') persistDatabase(state.database);
+    if (state.mode !== 'readonly') commitJournal(state);
     finishTransaction(state);
     const event = new Event('complete');
     event.isTrusted = true;
@@ -641,7 +663,10 @@ class IDBCursor {
     const store = cursor.target.store;
     return queueRequest(cursor.transaction, this, () => {
       const position = findRecord(store, primaryKey);
-      if (position !== -1) removeRecordAt(store, position);
+      if (position !== -1) {
+        removeRecordAt(store, position);
+        stateOf(cursor.transaction).journal.push(['delete', store.name, primaryKey]);
+      }
       return undefined;
     });
   }
@@ -659,7 +684,7 @@ class IDBCursor {
       }
     }
     const primaryKey = cursor.primaryKey;
-    return queueRequest(cursor.transaction, this, () => keyValue(storeRecord(store, clone, primaryKey, false)));
+    return queueRequest(cursor.transaction, this, () => keyValue(storeRecord(store, clone, primaryKey, false, stateOf(cursor.transaction).journal)));
   }
 }
 blinkInterface(IDBCursor, 'IDBCursor', ['constructor']);
@@ -850,6 +875,7 @@ class IDBObjectStore {
     if (name === store.name) return;
     if (state.database.stores.has(name)) throw domException("Failed to set the 'name' property on 'IDBObjectStore': An object store with the specified name already exists.", 'ConstraintError');
     state.database.stores.delete(store.name);
+    state.journal.push(['renameStore', store.name, name]);
     store.name = name;
     state.database.stores.set(name, store);
   }
@@ -892,7 +918,7 @@ const writeRecord = (self, operation, value, key, noOverwrite) => {
   const state = stateOf(transaction);
   return queueRequest(transaction, self, () => {
     touchStore(state, store);
-    return keyValue(storeRecord(store, clone, recordKey, noOverwrite));
+    return keyValue(storeRecord(store, clone, recordKey, noOverwrite, state.journal));
   });
 };
 const storeOperations = {
@@ -910,6 +936,7 @@ const storeOperations = {
       touchStore(state, store);
       store.records = [];
       for (const index of store.indexes.values()) index.entries = [];
+      state.journal.push(['clear', store.name]);
       return undefined;
     });
   },
@@ -931,6 +958,7 @@ const storeOperations = {
     const index = { name: indexName, keyPath: path, unique: !!opts.unique, multiEntry, entries: [] };
     for (const record of store.records) addIndexEntries(index, record.key, record.value);
     store.indexes.set(indexName, index);
+    state.journal.push(['createIndex', store.name, { name: indexName, keyPath: path, unique: index.unique, multiEntry }, store.records.map((record) => [record.key, indexKeysOf(index, record.value)])]);
     if (index.unique && index.entries.some((entry, position) => position > 0 && compareKeys(index.entries[position - 1].key, entry.key) === 0)) {
       setTimeout(() => abortTransaction(state, constraintError(`Unable to add key to index '${indexName}': at least one key does not satisfy the uniqueness requirements.`)), 0);
     }
@@ -945,7 +973,7 @@ const storeOperations = {
     const state = stateOf(transaction);
     return queueRequest(transaction, this, () => {
       touchStore(state, store);
-      deleteRange(store, range);
+      deleteRange(store, range, state.journal);
       return undefined;
     });
   },
@@ -961,6 +989,7 @@ const storeOperations = {
     if (index === undefined) throw domException(`${prefix}The specified index was not found.`, 'NotFoundError');
     index.deleted = true;
     store.indexes.delete(index.name);
+    state.journal.push(['deleteIndex', store.name, index.name]);
   },
   index(name) {
     requireCount(arguments.length, 1, 'index', 'IDBObjectStore');
@@ -1001,6 +1030,7 @@ class IDBIndex {
     if (name === index.name) return;
     if (store.indexes.has(name)) throw domException("Failed to set the 'name' property on 'IDBIndex': An index with the specified name already exists.", 'ConstraintError');
     store.indexes.delete(index.name);
+    state.journal.push(['renameIndex', store.name, index.name, name]);
     index.name = name;
     store.indexes.set(name, index);
   }
@@ -1078,7 +1108,7 @@ const storeObject = (state, store) => {
 const createTransaction = (connection, scope, mode, durability) => {
   const state = {
     connection, database: connection.database, mode, durability, scope, phase: 'active', queue: [], pumping: false, started: false, snapshots: new Map(), schema: null, error: null,
-    stores: new Map(), onFinish: null, transaction: null,
+    stores: new Map(), onFinish: null, transaction: null, journal: [],
   };
   state.transaction = new IDBTransaction(ILLEGAL, state);
   eventParents.set(state.transaction, connection.object);
@@ -1125,6 +1155,7 @@ class IDBDatabase extends EventTarget {
     if (autoIncrement && (keyPath === '' || Array.isArray(keyPath))) throw domException(`${prefix}The autoIncrement option was set but the keyPath option was empty or an array.`, 'InvalidAccessError');
     const store = { name: storeName, keyPath, autoIncrement, generator: 1, records: [], indexes: new Map(), deleted: false };
     connection.database.stores.set(storeName, store);
+    upgrade.journal.push(['createStore', { name: storeName, keyPath, autoIncrement }]);
     return storeObject(upgrade, store);
   }
   deleteObjectStore(name) {
@@ -1139,6 +1170,7 @@ class IDBDatabase extends EventTarget {
     if (store === undefined) throw domException(`${prefix}The specified object store was not found.`, 'NotFoundError');
     store.deleted = true;
     connection.database.stores.delete(store.name);
+    upgrade.journal.push(['deleteStore', store.name]);
   }
   transaction(storeNames, mode = 'readonly', options = {}) {
     receiver(this, P.__idbConnection);

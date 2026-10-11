@@ -78,6 +78,16 @@ pub struct Db {
 }
 
 
+/// `InternalKey::DebugString`: `'<chave escapada>' @ <sequência> : <tipo>`.
+fn debug_internal_key(key: &[u8]) -> String {
+    let (user, sequence, value_type) = match parse_internal_key(key) {
+        Some((user, sequence, value_type)) => (user, sequence, value_type as u8),
+        None => (key, 0, 0),
+    };
+    let escaped: String = user.iter().map(|byte| if (b' '..=b'~').contains(byte) { (*byte as char).to_string() } else { format!("\\x{byte:02x}") }).collect();
+    format!("'{escaped}' @ {sequence} : {value_type}")
+}
+
 fn corruption(message: impl Into<String>) -> Error {
     Error::Corruption(message.into())
 }
@@ -345,6 +355,58 @@ impl Db {
             db.delete_obsolete_files();
             db.compact_if_needed()
         })
+    }
+
+    /// `DB::CompactRange`: leva a memtable para uma tabela (trocando o log, mesmo vazia) e compacta a faixa
+    /// `[begin, end]` (chaves do usuário) em cada nível abaixo do último que tinha tabelas nela, como o leveldb faz.
+    pub fn compact_range(&mut self, begin: &[u8], end: &[u8]) -> Result<()> {
+        let _scope = comparator::scoped(&self.options.comparator);
+        let max_level_with_files = (1..NUM_LEVELS).filter(|level| self.versions.current().overlap_in_level(*level, begin, end)).max().unwrap_or(1);
+        self.flush_memtable()?;
+        for level in 0..max_level_with_files {
+            self.in_background(|db| db.manual_compaction(level, begin, end))?;
+        }
+        Ok(())
+    }
+
+    /// `TEST_CompactMemTable`: um log novo e a memtable antiga numa tabela.
+    fn flush_memtable(&mut self) -> Result<()> {
+        let number = self.versions.new_file_number();
+        let path = log_file_name(&self.dir, number);
+        self.env.write_file(&path, b"")?;
+        self.logfile_number = number;
+        self.log = Some(LogFile { path, writer: Writer::new() });
+        let imm = std::mem::take(&mut self.mem);
+        self.in_background(|db| {
+            let mut edit = VersionEdit::default();
+            db.write_level0_table(&imm, &mut edit, true)?;
+            edit.prev_log_number = Some(0);
+            edit.log_number = Some(db.logfile_number);
+            db.versions.log_and_apply(db.env.as_ref(), &mut edit)?;
+            db.delete_obsolete_files();
+            db.compact_if_needed()
+        })
+    }
+
+    /// `TEST_CompactRange` de um nível: pedaço a pedaço até a faixa acabar, cada um com a linha do `LOG`.
+    fn manual_compaction(&mut self, level: usize, begin: &[u8], end: &[u8]) -> Result<()> {
+        let mut from = internal_key(begin, MAX_SEQUENCE_NUMBER, VALUE_TYPE_FOR_SEEK);
+        let until = internal_key(end, 0, ValueType::Deletion);
+        loop {
+            let mut messages = Vec::new();
+            let picked = compaction::manual(self.versions.current(), level, user_key(&from), end, self.options.max_file_size, &mut |message| messages.push(message.to_owned()));
+            let stop = picked.as_ref().map_or_else(|| "(end)".to_owned(), |compaction| debug_internal_key(&compaction.inputs[0][compaction.inputs[0].len() - 1].largest));
+            // O `Expanding` sai dentro do `VersionSet::CompactRange`, antes da linha da compactação manual.
+            for message in messages {
+                self.info(&message);
+            }
+            self.info(&format!("Manual compaction at level-{level} from {} .. {}; will stop at {stop}", debug_internal_key(&from), debug_internal_key(&until)));
+            let Some(mut compaction) = picked else { return Ok(()) };
+            let largest = compaction.inputs[0][compaction.inputs[0].len() - 1].largest.clone();
+            self.do_compaction_work(&mut compaction)?;
+            self.delete_obsolete_files();
+            from = largest;
+        }
     }
 
     /// `DBImpl::MaybeScheduleCompaction` e `BackgroundCompaction`: enquanto algum nível passa de nota 1, compacta.

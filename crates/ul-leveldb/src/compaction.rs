@@ -96,6 +96,38 @@ pub fn pick(version: &Version, pointers: &[Vec<u8>; NUM_LEVELS], max_file_size: 
     Some(compaction)
 }
 
+/// `VersionSet::CompactRange`: as tabelas do nível que cobrem `[begin, end]` (chaves do usuário) e o que
+/// `SetupOtherInputs` junta a elas. Acima do nível 0 a entrada para quando passa do tamanho de um arquivo, para a
+/// compactação manual andar em pedaços. `None` quando nada no nível cobre a faixa.
+pub fn manual(version: &Version, level: usize, begin: &[u8], end: &[u8], max_file_size: usize, info: &mut dyn FnMut(&str)) -> Option<Compaction> {
+    let mut inputs0 = version.overlapping_inputs(level, begin, end);
+    if inputs0.is_empty() {
+        return None;
+    }
+    if level > 0 {
+        let mut total = 0;
+        if let Some(stop) = inputs0.iter().position(|file| {
+            total += file.file_size;
+            total >= max_file_size as u64
+        }) {
+            inputs0.truncate(stop + 1);
+        }
+    }
+    let mut compaction = Compaction {
+        level,
+        inputs: [inputs0, Vec::new()],
+        edit: VersionEdit::default(),
+        max_file_size,
+        grandparents: Vec::new(),
+        grandparent_index: 0,
+        seen_key: false,
+        overlapped_bytes: 0,
+        deeper: version.files[(level + 2).min(NUM_LEVELS)..].iter().flatten().cloned().collect(),
+    };
+    compaction.setup_other_inputs(version, info);
+    Some(compaction)
+}
+
 impl Compaction {
     /// `VersionSet::SetupOtherInputs`.
     fn setup_other_inputs(&mut self, version: &Version, info: &mut dyn FnMut(&str)) {
