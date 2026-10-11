@@ -11,7 +11,6 @@ use sysabi::WaitStatus;
 
 /// `(caso, causa medida no oráculo)`.
 const KNOWN: &[(&str, &str)] = &[
-    ("fs-read", "o zjsc ainda não tem o módulo node:fs (readFileSync, existsSync sobre o VFS do sandbox)"),
     ("http-server", "o zjsc ainda não tem Bun.serve nem a rede do fetch local"),
 ];
 
@@ -33,7 +32,7 @@ fn run_case(case: &Path) -> Result<(), String> {
         // Um array JSON de strings; o corpus não usa escape além de `\"`, `\\` e `\n`.
         parse_json_strings(&text)
     };
-    let mut kit = TestKit::new().programs(ul_bun::programs()).dir("/app", 0o755).cwd("/app");
+    let mut kit = TestKit::new().programs(ul_bun::programs()).dir("/app", 0o755).dir("/tmp", 0o1777).cwd("/app");
     let mut files = Vec::new();
     collect(&case.join("files"), &case.join("files"), &mut files);
     for (rel, data) in &files {

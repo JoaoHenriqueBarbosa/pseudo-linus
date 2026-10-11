@@ -1,0 +1,35 @@
+import fs from 'node:fs';
+const base = '/tmp/e';
+fs.mkdirSync(base);
+fs.writeFileSync(`${base}/f`, 'abc');
+const t = (name: string, fn: () => unknown) => {
+  try { console.log(name, 'ok', fn()); } catch (e: any) { console.log(name, e.message, JSON.stringify(Object.keys(e)), e.errno, e.code, e.syscall, e.path, e.dest, e.name); }
+};
+t('read dir', () => fs.readFileSync(base));
+t('read missing', () => fs.readFileSync(`${base}/zz`));
+t('rename', () => fs.renameSync(`${base}/zz`, `${base}/yy`));
+t('copy', () => fs.copyFileSync(`${base}/zz`, `${base}/yy`));
+t('mkdir exists', () => fs.mkdirSync(base));
+t('mkdir parent', () => fs.mkdirSync(`${base}/q/w`));
+t('rmdir nonempty', () => fs.rmdirSync(base));
+t('rm nonempty', () => fs.rmSync(base));
+t('rm missing', () => fs.rmSync(`${base}/zz`));
+t('rm force', () => fs.rmSync(`${base}/zz`, { force: true }));
+t('unlink dir', () => fs.unlinkSync(base));
+t('stat missing', () => fs.statSync(`${base}/zz`));
+t('stat nothrow', () => fs.statSync(`${base}/zz`, { throwIfNoEntry: false }));
+t('readdir file', () => fs.readdirSync(`${base}/f`));
+t('readdir missing', () => fs.readdirSync(`${base}/zz`));
+t('access', () => fs.accessSync(`${base}/zz`));
+t('open', () => fs.openSync(`${base}/zz`));
+t('open wx', () => fs.openSync(`${base}/f`, 'wx'));
+t('write num', () => fs.writeFileSync(`${base}/f`, 123 as any));
+t('write undefined', () => fs.writeFileSync(`${base}/f`, undefined as any));
+t('read obj path', () => fs.readFileSync({} as any));
+t('read nopath', () => (fs.readFileSync as any)());
+t('read bad enc', () => fs.readFileSync(`${base}/f`, 'zzz' as any));
+t('stat obj', () => fs.statSync({} as any));
+t('open bad flags', () => fs.openSync(`${base}/f`, 'zz'));
+t('realpath missing', () => fs.realpathSync(`${base}/zz`));
+t('close bad', () => fs.closeSync(9999));
+t('stack', () => { try { fs.readFileSync(`${base}/zz`); } catch (e: any) { return String(e.stack).split('\n').slice(0, 3); } });

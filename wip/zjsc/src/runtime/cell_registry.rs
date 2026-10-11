@@ -777,6 +777,7 @@ fn reset_program_state() {
     crate::api::eval::reset_for_program();
     crate::runtime::text_decoder::reset_for_program();
     crate::runtime::node_buffer::reset_for_program();
+    crate::runtime::node_fs::reset_for_program();
     crate::runtime::waiter_list_manager::reset_for_program();
     crate::runtime::timers::reset_for_program();
     crate::runtime::process_exit::reset_for_program();

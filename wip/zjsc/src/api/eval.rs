@@ -1669,7 +1669,7 @@ thread_local! {
 const RUN_IN_THIS_CONTEXT_CALLER_FILE: &str = "case.js";
 
 /// `require` do script chamador: os embutidos do registro (`builtin_modules`, hoje `node:vm`) e, para qualquer outro id,
-/// o `fs` de teste (só `readFileSync`, que devolve o programa; some quando `node:fs` entrar no registro).
+/// o `fs` de teste (só `readFileSync`, que devolve o programa em memória: o corredor não tem arquivo `case_source.js`).
 const RUN_IN_THIS_CONTEXT_BOOT: &str =
     "(function (builtin, fs) { return function require(id) { var module = builtin(id); return module === undefined ? fs : module } })";
 
@@ -1677,7 +1677,12 @@ const RUN_IN_THIS_CONTEXT_BOOT: &str =
 fn runner_builtin_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let id = call.argument(0);
     if id.is_string() {
-        if let crate::api::builtin_modules::Resolved::Builtin(entry) = crate::api::builtin_modules::resolve(&rust_string(&id.to_wtf_string())) {
+        let request = rust_string(&id.to_wtf_string());
+        // O `fs` do corredor é o de teste (o programa vem da memória), então `fs` não sai do registro aqui.
+        if request.trim_start_matches("node:") == "fs" {
+            return Ok(JSValue::undefined());
+        }
+        if let crate::api::builtin_modules::Resolved::Builtin(entry) = crate::api::builtin_modules::resolve(&request) {
             return crate::api::builtin_modules::load(global_object, entry);
         }
     }

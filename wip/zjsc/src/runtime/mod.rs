@@ -52,6 +52,7 @@ pub mod js_dom_exception;
 pub mod native_class_support;
 pub mod node_buffer;
 pub mod node_error;
+pub mod node_fs;
 pub mod node_os;
 pub mod node_path;
 pub mod node_validators;

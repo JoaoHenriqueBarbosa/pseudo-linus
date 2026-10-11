@@ -1,0 +1,28 @@
+read buf <Buffer 68 c3 a9 6c 6c 6f>
+read utf8 héllo
+read hex 68c3a96c6c6f
+exists [ true, false ]
+append hélloXY
+stat [ 8, true, false, false, "644", true, 1, "dev,ino,mode,nlink,uid,gid,rdev,size,blksize,blocks,atimeMs,mtimeMs,ctimeMs,birthtimeMs,mtime" ]
+stat bigint [ "bigint", 8n, "dev,ino,mode,nlink,uid,gid,rdev,size,blksize,blocks,atimeMs,mtimeMs,ctimeMs,birthtimeMs,atimeNs,mtimeNs,ctimeNs,birthtimeNs" ]
+readdir [ "a.txt" ]
+readdir types [
+  [ "a.txt", true, "/tmp/w" ]
+]
+mkdir rec /tmp/w/n1
+mkdir rec again undefined
+readdir rec [ "a.txt", "n1", "n1/n2", "n1/n2/n3" ]
+rename [ "b.txt", "n1" ]
+copy hélloXY
+symlink [ "/tmp/w/b.txt", true, true, "/tmp/w/b.txt" ]
+truncate h�
+fd [ true, 2, <Buffer 68 c3 00 00>, 1, 2, "hZ" ]
+chmod 600
+utimes [ 1000000, 2000000, "1970-01-01T00:33:20.000Z" ]
+mkdtemp 17
+url path hZ
+consts [ 0, 1, 0, 4, 58 ]
+names [ "readFileSync", 2, 3, 1, "function readFileSync() { [native code] }" ]
+unlink false
+rmdir false
+rm rec false

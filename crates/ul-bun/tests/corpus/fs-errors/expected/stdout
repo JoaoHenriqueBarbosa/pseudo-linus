@@ -1,0 +1,30 @@
+read dir EISDIR: illegal operation on a directory, read ["code","syscall","errno"] -21 EISDIR read undefined undefined Error
+read missing ENOENT: no such file or directory, open '/tmp/e/zz' ["code","path","syscall","errno"] -2 ENOENT open /tmp/e/zz undefined Error
+rename ENOENT: no such file or directory, rename '/tmp/e/zz' -> '/tmp/e/yy' ["code","path","dest","syscall","errno"] -2 ENOENT rename /tmp/e/zz /tmp/e/yy Error
+copy ENOENT: no such file or directory, copyfile '/tmp/e/zz' -> '/tmp/e/yy' ["code","path","dest","syscall","errno"] -2 ENOENT copyfile /tmp/e/zz /tmp/e/yy Error
+mkdir exists EEXIST: file already exists, mkdir '/tmp/e' ["code","path","syscall","errno"] -17 EEXIST mkdir /tmp/e undefined Error
+mkdir parent ENOENT: no such file or directory, mkdir '/tmp/e/q/w' ["code","path","syscall","errno"] -2 ENOENT mkdir /tmp/e/q/w undefined Error
+rmdir nonempty ENOTEMPTY: directory not empty, rmdir '/tmp/e' ["code","path","syscall","errno"] -39 ENOTEMPTY rmdir /tmp/e undefined Error
+rm nonempty Path is a directory: rm returned EISDIR (is a directory) /tmp/e ["name","info","errno","syscall","path"] 21 ERR_FS_EISDIR rm /tmp/e undefined SystemError
+rm missing ENOENT: no such file or directory, lstat '/tmp/e/zz' ["code","path","syscall","errno"] -2 ENOENT lstat /tmp/e/zz undefined Error
+rm force ok undefined
+unlink dir EISDIR: illegal operation on a directory, unlink '/tmp/e' ["code","path","syscall","errno"] -21 EISDIR unlink /tmp/e undefined Error
+stat missing ENOENT: no such file or directory, stat '/tmp/e/zz' ["code","path","syscall","errno"] -2 ENOENT stat /tmp/e/zz undefined Error
+stat nothrow ok undefined
+readdir file ENOTDIR: not a directory, scandir '/tmp/e/f' ["code","path","syscall","errno"] -20 ENOTDIR scandir /tmp/e/f undefined Error
+readdir missing ENOENT: no such file or directory, scandir '/tmp/e/zz' ["code","path","syscall","errno"] -2 ENOENT scandir /tmp/e/zz undefined Error
+access ENOENT: no such file or directory, access '/tmp/e/zz' ["code","path","syscall","errno"] -2 ENOENT access /tmp/e/zz undefined Error
+open ENOENT: no such file or directory, open '/tmp/e/zz' ["code","path","syscall","errno"] -2 ENOENT open /tmp/e/zz undefined Error
+open wx EEXIST: file already exists, open '/tmp/e/f' ["code","path","syscall","errno"] -17 EEXIST open /tmp/e/f undefined Error
+write num The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView [] undefined ERR_INVALID_ARG_TYPE undefined undefined undefined TypeError
+write undefined The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView [] undefined ERR_INVALID_ARG_TYPE undefined undefined undefined TypeError
+read obj path path must be a string or a file descriptor [] undefined ERR_INVALID_ARG_TYPE undefined undefined undefined TypeError
+read nopath path must be a string or a file descriptor [] undefined ERR_INVALID_ARG_TYPE undefined undefined undefined TypeError
+read bad enc encoding 'zzz' is an invalid encoding [] undefined ERR_INVALID_ARG_VALUE undefined undefined undefined TypeError
+stat obj path must be a string or TypedArray [] undefined ERR_INVALID_ARG_TYPE undefined undefined undefined TypeError
+open bad flags The argument 'flags' is invalid. Received 'zz' [] undefined ERR_INVALID_ARG_VALUE undefined undefined undefined TypeError
+realpath missing ENOENT: no such file or directory, lstat '/tmp/e/zz' ["code","path","syscall","errno"] -2 ENOENT lstat /tmp/e/zz undefined Error
+close bad EBADF: bad file descriptor, close ["code","fd","syscall","errno"] -9 EBADF close undefined undefined Error
+stack ok [ "Error: ENOENT: no such file or directory, open '/tmp/e/zz'", "    at readFileSync (unknown)",
+  "    at <anonymous> (/app/main.ts:35:29)"
+]

@@ -262,6 +262,7 @@ fn visit_host_roots(marker: &mut Marker) {
     rt::process_env::visit_gc_roots(marker);
     rt::ordered_hash_table_storage::visit_gc_roots(marker);
     rt::node_buffer::visit_gc_roots(marker);
+    rt::node_fs::visit_gc_roots(marker);
     rt::js_web_assembly_gc_object::visit_gc_roots(marker);
     rt::headers::visit_gc_roots(marker);
     rt::form_data::visit_gc_roots(marker);

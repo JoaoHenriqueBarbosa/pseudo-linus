@@ -22,6 +22,41 @@ pub type Errno = i32;
 pub const ENOENT: Errno = 2;
 pub const ESRCH: Errno = 3;
 pub const EACCES: Errno = 13;
+pub const ENOSYS: Errno = 38;
+
+/// O `struct stat` inteiro, com os tempos em (segundos, nanossegundos).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct FsStat {
+    pub dev: u64,
+    pub ino: u64,
+    pub mode: u32,
+    pub nlink: u64,
+    pub uid: u32,
+    pub gid: u32,
+    pub rdev: u64,
+    pub size: u64,
+    pub blksize: u64,
+    pub blocks: u64,
+    pub atime: (i64, i64),
+    pub mtime: (i64, i64),
+    pub ctime: (i64, i64),
+    pub birthtime: (i64, i64),
+}
+
+/// Uma entrada de diretório (sem `.` e `..`); `mode_type` são os bits `S_IFMT` do tipo.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FsDirEntry {
+    pub name: Vec<u8>,
+    pub mode_type: u32,
+}
+
+/// Como um tempo do `utimes` é dado.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FsTime {
+    Now,
+    Omit,
+    At(i64, i64),
+}
 
 /// O que o motor pergunta de um caminho.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -79,6 +114,82 @@ pub trait Host {
     fn write_stderr(&self, bytes: &[u8]);
     /// Termina o processo.
     fn exit(&self, code: i32) -> !;
+
+    // ---- sistema de arquivos (o que o `node:fs` pede, no nível das chamadas de sistema) ----
+    /// `open(2)`: `flags` e `mode` como no Linux x86_64. Devolve o descritor.
+    fn fs_open(&self, _path: &str, _flags: u32, _mode: u32) -> Result<i32, Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_close(&self, _fd: i32) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    /// `read(2)` de até `len` bytes (`pread(2)` quando há `offset`); vazio é o fim do arquivo.
+    fn fs_read(&self, _fd: i32, _len: usize, _offset: Option<u64>) -> Result<Vec<u8>, Errno> {
+        Err(ENOSYS)
+    }
+    /// `write(2)` (`pwrite(2)` quando há `offset`); devolve os bytes escritos.
+    fn fs_write(&self, _fd: i32, _bytes: &[u8], _offset: Option<u64>) -> Result<usize, Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_fstat(&self, _fd: i32) -> Result<FsStat, Errno> {
+        Err(ENOSYS)
+    }
+    /// `stat(2)` (`follow`) ou `lstat(2)`.
+    fn fs_stat(&self, _path: &str, _follow: bool) -> Result<FsStat, Errno> {
+        Err(ENOSYS)
+    }
+    /// As entradas do diretório, na ordem do sistema de arquivos, sem `.` e `..`.
+    fn fs_readdir(&self, _path: &str) -> Result<Vec<FsDirEntry>, Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_mkdir(&self, _path: &str, _mode: u32) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_unlink(&self, _path: &str) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_rmdir(&self, _path: &str) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_rename(&self, _from: &str, _to: &str) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_link(&self, _from: &str, _to: &str) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_symlink(&self, _target: &str, _path: &str) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_readlink(&self, _path: &str) -> Result<Vec<u8>, Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_chmod(&self, _path: &str, _mode: u32) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_fchmod(&self, _fd: i32, _mode: u32) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    /// `utimensat(2)`; `follow` falso é o `lutimes`.
+    fn fs_utimes(&self, _path: &str, _atime: FsTime, _mtime: FsTime, _follow: bool) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_futimes(&self, _fd: i32, _atime: FsTime, _mtime: FsTime) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_ftruncate(&self, _fd: i32, _len: u64) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_fsync(&self, _fd: i32) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    /// `access(2)` com `mode` (`F_OK` 0, `R_OK` 4, `W_OK` 2, `X_OK` 1).
+    fn fs_access(&self, _path: &str, _mode: u32) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    /// `realpath(3)`.
+    fn fs_realpath(&self, _path: &str) -> Result<String, Errno> {
+        Err(ENOSYS)
+    }
 }
 
 /// A máquina vazia de quando ninguém instalou um host.
