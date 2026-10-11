@@ -7330,3 +7330,23 @@ print(after - before < 2000, sum(any(o is k for o in gc.get_objects()) for k in 
     let r = in_process(src);
     assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("True 50\n", ""));
 }
+
+/// O `__getattr__` que é um objeto com `__get__` passa pelo protocolo de descritor, como no `slot_tp_getattr_hook`
+/// do CPython: o `LocalProxy` do werkzeug (`__getattr__ = _ProxyLookup(getattr)`) é assim, e o `request` do Flask
+/// depende dele.
+#[test]
+fn getattr_hook_that_is_a_descriptor_is_bound_before_the_call() {
+    let src = r##"
+class Lookup:
+    def __get__(self, instance, owner=None):
+        return lambda name: (name, 7)
+
+class Proxy:
+    __getattr__ = Lookup()
+
+print(Proxy().foo)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "('foo', 7)\n");
+}

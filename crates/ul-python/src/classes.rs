@@ -2548,8 +2548,17 @@ impl Vm {
             return Ok(crate::modules::weakrefmod::first_weakref(inst));
         }
         if hook {
-            if let Some(Value::Function(f)) = inst.class().lookup("__getattr__") {
-                return self.call_or_defer(&Value::Function(f), vec![obj.clone(), Value::str(name)], defer);
+            match inst.class().lookup("__getattr__") {
+                Some(Value::Function(f)) => {
+                    return self.call_or_defer(&Value::Function(f), vec![obj.clone(), Value::str(name)], defer);
+                }
+                // O `__getattr__` é achado na classe e passa pelo protocolo de descritor, como no `slot_tp_getattr_hook`
+                // do CPython (o `_ProxyLookup` do werkzeug, atrás do `request` e do `g` do Flask, é um objeto com `__get__`).
+                Some(other) => {
+                    let bound = self.bind_class_attr(&other, obj.clone(), &inst.class())?;
+                    return self.call_or_defer(&bound, vec![Value::str(name)], defer);
+                }
+                None => {}
             }
         }
         // `object.__reduce_ex__`, `__reduce__` e `__getstate__` (pickle, copy): no CPython são métodos embutidos de
