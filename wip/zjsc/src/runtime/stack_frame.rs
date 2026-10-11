@@ -232,6 +232,20 @@ pub(crate) fn displayed_position(
 ) -> (crate::bytecode::line_column::LineColumn, bool) {
     let mut line_column = line_and_column_for(code_block, bytecode_index);
     let mut remapped_to_token = false;
+    // O fonte que passou pelo transpilador do zbun carrega o mapa de verdade do impressor: o `Mapping::find` do bun
+    // sobre a posição crua, sem a varredura de tokens que simula o mapa quando ele não existe.
+    let exact_map = block
+        .owner_executable()
+        .source()
+        .provider()
+        .and_then(|provider| provider.position_map())
+        .filter(|map| map.is_exact());
+    if let Some(map) = exact_map {
+        if let Some((line, column)) = map.map_exact(line_column.line, line_column.column) {
+            (line_column.line, line_column.column) = (line, column);
+        }
+        return (line_column, true);
+    }
     if v8_stack_format() {
         // O V8 não tem transpilador nem recuo de `CallSite`: a coluna já é a do `SourcePosition`.
         let shift = crate::runtime::v8_stack::position_shift(block, bytecode_index);

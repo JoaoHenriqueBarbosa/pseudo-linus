@@ -5,10 +5,14 @@
 //! mensagens do Bun: `Cannot find module './x' imported from /app/main.mjs` e
 //! `Cannot find package 'x' imported from /app/main.mjs`.
 
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::api::builtin_modules;
 use crate::api::module_probe::{file_url_from_path, file_url_path, import_not_found_message, resolve_require, ModuleFs};
+use crate::api::source_transpiler::transpile_source;
+use crate::parser::position_map::PositionMap;
 use crate::runtime::host_call::Thrown;
 use crate::runtime::identifier::Identifier;
 use crate::runtime::js_global_object::JSGlobalObject;
@@ -17,11 +21,13 @@ use crate::runtime::js_value::JSValue;
 
 pub struct FsModuleHost {
     fs: Rc<dyn ModuleFs>,
+    /// Os mapas dos módulos que `fetch` passou pelo transpilador de fonte, por chave (o loader os pede depois).
+    maps: RefCell<HashMap<String, Rc<PositionMap>>>,
 }
 
 impl FsModuleHost {
     pub fn new(fs: Rc<dyn ModuleFs>) -> Self {
-        Self { fs }
+        Self { fs, maps: RefCell::new(HashMap::new()) }
     }
 }
 
@@ -53,7 +59,19 @@ impl ModuleHost for FsModuleHost {
     }
 
     fn fetch(&self, key: &str) -> Result<String, String> {
-        self.fs.read_file(key).ok_or_else(|| format!("Could not open the module '{key}'."))
+        let text = self.fs.read_file(key).ok_or_else(|| format!("Could not open the module '{key}'."))?;
+        // O módulo ES reimpresso pelo transpilador de fonte (o CommonJS que um `import` puxa segue como está).
+        match transpile_source(key, &text, false) {
+            Some(done) if !done.is_commonjs => {
+                self.maps.borrow_mut().insert(key.to_owned(), done.map);
+                Ok(done.text)
+            }
+            _ => Ok(text),
+        }
+    }
+
+    fn position_map(&self, key: &str) -> Option<Rc<PositionMap>> {
+        self.maps.borrow().get(key).cloned()
     }
 
     fn import_meta_url(&self, key: &str) -> String {

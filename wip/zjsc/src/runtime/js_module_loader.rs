@@ -124,6 +124,13 @@ pub trait ModuleHost {
     /// um módulo Text).
     fn fetch(&self, key: &str) -> Result<String, String>;
 
+    /// O mapa de posições do texto que `fetch` acabou de devolver para `key`, quando ele passou pelo transpilador de
+    /// fonte (`api::source_transpiler`): o fonte reimpresso é o texto do módulo e o mapa leva as posições ao original.
+    fn position_map(&self, key: &str) -> Option<std::rc::Rc<crate::parser::position_map::PositionMap>> {
+        let _ = key;
+        None
+    }
+
     /// A resolução do `import()` dinâmico; só difere da estática na mensagem de falha de quem quer outra (o
     /// navegador).
     fn resolve_dynamic(&self, specifier: &str, referrer: Option<&str>) -> Result<String, String> {
@@ -825,6 +832,12 @@ impl ModuleLoader {
             TextPosition::default(),
             source_type,
         );
+        if source_type == SourceProviderSourceType::Module {
+            if let (Some(map), Some(provider)) = (self.host.position_map(key), source.provider()) {
+                provider.set_position_map(map);
+                provider.set_comments_stripped();
+            }
+        }
         let module_key = Identifier::from_string(vm, &WtfString::from_utf8(key.as_bytes()));
 
         match source_type {

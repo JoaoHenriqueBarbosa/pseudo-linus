@@ -1,0 +1,9 @@
+TypeError: undefined is not an object (evaluating 'x.y.z')
+    at f (/app/main.js:5:14)
+    at <anonymous> (/app/main.js:8:7)
+undefined is not a constructor (evaluating 'new module.exports.f.x')
+function f(x) {
+    return x.y.z;
+  }
+function object /app/main.js
+    at <anonymous> (/app/main.js:12:17)

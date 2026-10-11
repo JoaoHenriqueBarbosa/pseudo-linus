@@ -13,20 +13,31 @@ em três caixas: pânico/regressão (corrige), golden desatualizado por gerador 
 se for rápido, senão deixa IN_SCOPE como está e anota), divergência de conformidade (anota);
 (4) commit sem assinatura; (5) PLAN.md com o estado medido.
 
-### Texto reimpresso pelo transpilador do bun (medido em 2026-10-11)
+### Texto reimpresso pelo transpilador do bun (fechado em 2026-10-11)
 
-O bun reimprime o arquivo principal (e o código do `_compile`) pelo transpilador antes de entregar ao JSC, e o JSC
-recorta trechos desse texto reimpresso. Isso explica duas famílias de divergência que não se corrigem no motor:
+O bun reimprime o arquivo principal (e todo módulo que carrega) pelo transpilador antes de entregar ao JSC, e o JSC recorta
+trechos desse texto. Fechou com o printer do zbun alimentando o provider de fonte: `wip/zbun/transpile` (`bun_transpile`)
+reproduz o transpilador do runtime (alvo `bun`, `minify_syntax`, `inlining`, impressão ASCII, wrapper CommonJS) e devolve
+o texto e os segmentos do mapa do impressor; o zjsc os recebe por `api::source_transpiler` (`SourceTranspiler`, instalado
+pelo hospedeiro, a biblioteca não depende do zbun), o texto vira o fonte do `SourceProvider` e o mapa
+(`PositionMap::from_segments`, o `Mapping::find` do bun: maior segmento da mesma linha gerada com coluna <=, posição original
+sem somar deslocamento) remapeia `Error.stack`, `line` e `column`. Sem transpilador instalado nada muda (os goldens que já
+guardam o texto reimpresso seguem como estão).
 
-- o texto da expressão no erro de não-construtor: `new a.b()` vira `'new a.b'`, `new a.b(1,2)` vira `'new a.b(1, 2)'`,
-  `new (a.b)()` vira `'new a.b'`, `new a["class"]()` vira `'new a.class'`, e há propagação de constante
-  (`const k="b"; new a[k]()` vira `'new a.b'`; `const g=1; new g()` vira `'new 1'`). No `eval` o JSC mantém os
-  parênteses, então `engine_error_text_escape` com `new 日()` está certo;
-- `String(fn)` do arquivo principal sai reimpresso (sem comentário, sem const morta);
-- as colunas de pilha de `cjs_require` (`stack_compiled`, `stack_sites`, 2 de 65), contadas no texto reimpresso.
+Medido no oráculo (`bun run`) com `tests/transpiled_main_bun_golden.rs` (5 programas originais, `tests/golden/transpiled_main`,
+esperados por `scripts/gen-transpiled-main-golden.sh`): 5 de 5 batem byte a byte com o transpilador instalado (antes o
+motor recebia o fonte cru, que não escapa `日`, não dobra `const` nem tira comentário; a medição "antes" não foi rodada):
 
-Fecha quando o printer do zbun alimentar o provider de fonte do zjsc com o texto reimpresso e o mapa de posições. Remendo
-por token daria fidelidade parcial e fica proibido.
+- o texto da expressão no erro de não-construtor (`new a.b()` vira `'new a.b'`, `new a["class"]()` vira `'new a.class'`,
+  `new 日()` vira `'new \u{65e5}'`, `undefined()` vira `(void 0)`);
+- `String(fn)` do arquivo principal reimpresso (sem comentário, sem `const` morto, recuo de 2 espaços), ESM, CJS e TypeScript;
+- linhas e colunas de `Error.stack` do arquivo principal, ESM, CJS (wrapper do impressor) e `.ts`.
+
+Também ligado: módulo ES importado pelo `FsModuleHost` (reimpresso, com mapa). Fica de fora: `module._compile` e `require` de
+arquivo seguem com o fonte cru embrulhado (o transpilador do `_compile` do bun reimprime o corpo e as colunas de `cjs_require`
+dependem do texto dele; ver backlog), e o `CommonJS` importado por `import` segue cru. O texto do runtime do `zbun` bate com
+`bun build --no-bundle --target=bun --minify-syntax` em 60 de 61 entradas (a divergência é `using c = null` que o porte não
+funde no `mangle_stmts`).
 
 ### Segunda passada de correções (2026-10-09, depois do commit 9c21851a)
 
@@ -1167,14 +1178,17 @@ Falta: `bun`/`bun:*` (esquema exato, sem `node:`: acrescentar `Scheme::Bun` quan
 Erro que estoura com informação para depurar e sem vazamento da simulação já é funcional. As divergências abaixo ficam
 declaradas e não se perseguem até o printer do zbun alimentar o zjsc (as de reimpressão) ou até aparecer um vazamento.
 
-- `error_stack_bun_golden`, 19 de 954 (era 93): 8 de callback nativo (`toString` por coerção, `for-of`, template
+- `error_stack_bun_golden`, 19 de 957 (era 93; a medição com o transpilador integrado não muda: o golden guarda o texto já reimpresso e não instala o transpilador): 8 de callback nativo (`toString` por coerção, `for-of`, template
   marcado: linha ou coluna do frame de fora), 4 de IIFE `function(){}()` (6 colunas a mais no frame de fora), 4 de frame
   `async` (a linha sai uma a mais, 7:17 onde o bun dá 6:16), 3 do transpilador do bun (`const c=1; c=2`, o regex sobre
   `f().stack`, `(void 0).p`) e 1 de `Function` com `sourceURL`.
-- `module_bun_golden`, 72 de 445 (era 81): 53 `BuildMessage`, 8 de reimpressão do texto (`a_default`), 3 de hoisting de
+- `module_bun_golden`, 72 de 445 (era 81; igual com o transpilador integrado, mesma razão): 53 `BuildMessage`, 8 de reimpressão do texto (`a_default`), 3 de hoisting de
   `export let`, 3 de `this` no topo (os quatro grupos são do transpilador), 4 de sintaxe (tipo ou texto) e 1 frame
   `at a.mjs` sem o caminho absoluto (o `MemoryModuleHost` usa chaves relativas).
-- `cjs_require`, 2 de 65: colunas de pilha do `x.js`, contadas no texto reimpresso.
+- `cjs_require`, 2 de 65, declaradas em `REPRINTED` no teste (medido no oráculo): `stack_compiled` dá `x.js:1:119` onde o
+  porte dá `1:115` e `stack_sites` dá a coluna 55 onde o porte dá 64. Causa: o `module._compile` do bun reimprime o corpo
+  (`remove_cjs_module_wrapper`, sem mapa, cabeçalho do wrapper na mesma linha, `function f(){}()` vira `(function f() {})()`); ligar
+  isso ao `compile_module` quebra o resto da linha 1 e fica para depois.
 - `iter_protocol_bun_golden`, 18 de texto de mensagem: o spread de `null`/`undefined` perde o sufixo
   `(evaluating '...X')`.
 - Desvio de timing sem golden que o pegue: depois do abort do sinal, o `pipeTo` rejeita 1 tempo depois do oráculo (5

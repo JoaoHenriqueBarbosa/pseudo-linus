@@ -19,3 +19,4 @@ pub mod node_util;
 pub mod node_util_types;
 pub mod package_exports;
 pub mod package_json;
+pub mod source_transpiler;

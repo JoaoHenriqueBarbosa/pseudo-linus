@@ -1,0 +1,19 @@
+5 6 x function area(s, scale = 2) {
+  return s.n * scale;
+}
+class P {
+  v;
+  w;
+  constructor(v, w = 1) {
+    this.v = v;
+    this.w = w;
+  }
+  get() {
+    return this.v;
+  }
+}
+p.nope is not a function. (In 'p.nope()', 'p.nope' is undefined)
+    at /app/main.ts:16:17
+Error: t
+    at thrower (/app/main.ts:17:39)
+    at /app/main.ts:18:7

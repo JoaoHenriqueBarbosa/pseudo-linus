@@ -1,0 +1,24 @@
+Error: deep
+    at thrower (/app/main.js:3:15)
+    at /app/main.js:10:7
+ReferenceError: missing is not defined
+    at g (/app/main.js:12:20)
+    at run (/app/main.js:13:18)
+    at /app/main.js:15:11
+TypeError: cb
+    at <anonymous> (/app/main.js:16:33)
+    at map (native:1:11)
+    at /app/main.js:16:11
+SyntaxError: JSON Parse error: Expected '}'
+    at <parse> (:0)
+    at parse (unknown)
+    at /app/main.js:17:12
+    at /app/main.js:18:16
+    at /app/main.js:21:13
+    at <anonymous> (/app/main.js:22:24)
+    at new A (/app/main.js:23:40)
+31 111 /app/main.js
+Error: async
+    at af (/app/main.js:27:13)
+RangeError: then
+    at <anonymous> (/app/main.js:30:42)

@@ -18,6 +18,8 @@ use crate::wtf::text::conversion_mode::ConversionMode;
 struct EntryHost {
     specifier: String,
     source: String,
+    /// O mapa do `source`, quando ele é o texto que o transpilador de fonte reimprimiu.
+    position_map: Option<Rc<crate::parser::position_map::PositionMap>>,
     inner: Rc<dyn ModuleHost>,
 }
 
@@ -42,6 +44,13 @@ impl ModuleHost for EntryHost {
             return Ok(self.source.clone());
         }
         self.inner.fetch(key)
+    }
+
+    fn position_map(&self, key: &str) -> Option<Rc<crate::parser::position_map::PositionMap>> {
+        if key == self.specifier {
+            return self.position_map.clone();
+        }
+        self.inner.position_map(key)
     }
 
     fn import_meta_url(&self, key: &str) -> String {
@@ -210,19 +219,29 @@ impl ModuleHost for MemoryModuleHost {
 /// Instala o carregador de módulos do arquivo principal `url` (fonte `source`) no global já montado, como o bun faz
 /// com `bun main.js`: os `import` resolvem pelo sistema de arquivos do global, quando há um, e pelos embutidos. Serve
 /// ao principal módulo ES e ao `import()` do principal CommonJS, que no bun passa pelo mesmo carregador.
-pub(crate) fn install_main_module_loader(global_object: &crate::runtime::js_global_object::JSGlobalObjectRef, source: &str, url: &str) {
+pub(crate) fn install_main_module_loader(
+    global_object: &crate::runtime::js_global_object::JSGlobalObjectRef,
+    source: &str,
+    url: &str,
+    position_map: Option<Rc<crate::parser::position_map::PositionMap>>,
+) {
     let inner: Rc<dyn ModuleHost> = match global_object.module_fs() {
         Some(fs) => Rc::new(FsModuleHost::new(fs)),
         None => Rc::new(FileUrlHost { inner: MemoryModuleHost::new(Vec::<(String, String)>::new()) }),
     };
-    install_module_loader(global_object, Rc::new(EntryHost { specifier: url.to_owned(), source: source.to_owned(), inner }));
+    install_module_loader(global_object, Rc::new(EntryHost { specifier: url.to_owned(), source: source.to_owned(), position_map, inner }));
 }
 
 /// Começa a avaliar o arquivo principal `url` (fonte `source`) como módulo ES no global já montado, como o bun faz com
 /// `bun main.js` quando o arquivo não tem marcador de CommonJS. Devolve a promessa da avaliação; quem chama esvazia as
 /// microtarefas.
-pub(crate) fn start_main_module(global_object: &crate::runtime::js_global_object::JSGlobalObjectRef, source: &str, url: &str) -> crate::runtime::js_promise::JSPromiseRef {
-    install_main_module_loader(global_object, source, url);
+pub(crate) fn start_main_module(
+    global_object: &crate::runtime::js_global_object::JSGlobalObjectRef,
+    source: &str,
+    url: &str,
+    position_map: Option<Rc<crate::parser::position_map::PositionMap>>,
+) -> crate::runtime::js_promise::JSPromiseRef {
+    install_main_module_loader(global_object, source, url, position_map);
     load_and_evaluate_module(global_object, url)
 }
 
@@ -237,7 +256,7 @@ pub fn evaluate_module(source: &str, specifier: &str, host: Rc<dyn ModuleHost>) 
         let _finalizer = VmFinalizer::new(&vm);
         install_module_loader(
             &global_object,
-            Rc::new(EntryHost { specifier: specifier.to_owned(), source: source.to_owned(), inner: host }),
+            Rc::new(EntryHost { specifier: specifier.to_owned(), source: source.to_owned(), position_map: None, inner: host }),
         );
         let promise = load_and_evaluate_module(&global_object, specifier);
         vm.drain_microtasks();
@@ -351,7 +370,7 @@ pub fn evaluate_module_map(files: &[(String, String)], entry: &str) -> ModuleMap
 /// resolvem como o Bun, com a sonda de arquivo e `node_modules`). `source` é o fonte do módulo de entrada,
 /// de chave `entry_key` (caminho absoluto, ex. `/app/main.mjs`).
 pub fn evaluate_module_with_fs(fs: Rc<dyn ModuleFs>, source: &str, entry_key: &str) -> ModuleMapOutcome {
-    let host = EntryHost { specifier: entry_key.to_owned(), source: source.to_owned(), inner: Rc::new(FsModuleHost::new(fs)) };
+    let host = EntryHost { specifier: entry_key.to_owned(), source: source.to_owned(), position_map: None, inner: Rc::new(FsModuleHost::new(fs)) };
     evaluate_logged_module(Rc::new(host), entry_key, LogPoint::EntrySettled)
 }
 

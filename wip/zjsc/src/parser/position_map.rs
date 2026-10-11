@@ -12,6 +12,11 @@
 //! O gerador alinha os tokens do texto gravado com os do original e emite uma corrida só onde o deslocamento
 //! muda (um recuo uniforme de 2 colunas é uma corrida; uma `class` içada ou um `var` desmembrado abrem outras).
 //! Posição antes da primeira corrida fica como está.
+//!
+//! O outro formato é o de segmentos (`PositionMap::from_segments`): o mapa que o impressor do transpilador do bun
+//! emite de verdade, uma entrada por token mapeado, que o `Mapping::find` do bun consulta pela maior entrada da
+//! mesma linha gerada com coluna `<=` à pedida e devolve a posição ORIGINAL dela sem somar deslocamento. Esse é o
+//! caminho do fonte que passou pelo transpilador do zbun (`wip/zbun/transpile`); as corridas são o do golden.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Run {
@@ -21,6 +26,16 @@ struct Run {
     column_delta: i64,
 }
 
+/// Uma entrada do mapa do impressor: a posição gerada `(generated_line, generated_column)` é a original
+/// `(original_line, original_column)`. As quatro são de base 0, como no campo `mappings` de um source map.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MapSegment {
+    pub generated_line: u32,
+    pub generated_column: u32,
+    pub original_line: u32,
+    pub original_column: u32,
+}
+
 /// O mapa de um programa; vive no `SourceProviderBase` (`SourceProvider::set_position_map`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PositionMap {
@@ -28,6 +43,8 @@ pub struct PositionMap {
     /// relação ao gravado (o wrapper CJS põe o cabeçalho na primeira linha e a diretiva "use strict" sai).
     line_shift: i64,
     runs: Vec<Run>,
+    /// Os segmentos do impressor, ordenados por posição gerada; não vazio só no mapa de `from_segments`.
+    segments: Vec<MapSegment>,
 }
 
 impl PositionMap {
@@ -41,7 +58,26 @@ impl PositionMap {
             .chunks_exact(4)
             .map(|chunk| Run { line: chunk[0], column: chunk[1], line_delta: chunk[2], column_delta: chunk[3] })
             .collect();
-        Some(PositionMap { line_shift, runs })
+        Some(PositionMap { line_shift, runs, segments: Vec::new() })
+    }
+
+    /// O mapa do impressor do transpilador. `segments` vem ordenado por posição gerada, como o VLQ o entrega.
+    pub fn from_segments(segments: Vec<MapSegment>) -> PositionMap {
+        PositionMap { line_shift: 0, runs: Vec::new(), segments }
+    }
+
+    /// O mapa é de segmentos do impressor (`from_segments`) e se consulta por `map_exact`.
+    pub fn is_exact(&self) -> bool {
+        !self.segments.is_empty()
+    }
+
+    /// `Mapping::find` do bun: a posição original do maior segmento da linha gerada `line` (base 1) com coluna `<=`
+    /// a `column` (base 1); `None` quando a linha não tem segmento até a coluna, e a posição crua fica.
+    pub fn map_exact(&self, line: u32, column: u32) -> Option<(u32, u32)> {
+        let key = (line.checked_sub(1)?, column.checked_sub(1)?);
+        let after = self.segments.partition_point(|segment| (segment.generated_line, segment.generated_column) <= key);
+        let segment = self.segments[after.checked_sub(1)?];
+        (segment.generated_line == key.0).then(|| (segment.original_line + 1, segment.original_column + 1))
     }
 
     /// Posição original de `(line, column)` (base 1) do texto que o porte executa.
@@ -96,6 +132,30 @@ mod tests {
         assert_eq!(map.map(1, 30), (1, 30));
         assert_eq!(PositionMap::new(&[], 0).unwrap().map(4, 4), (4, 4));
         assert!(PositionMap::new(&[1, 2, 3], 0).is_none());
+    }
+
+    fn segment(generated: (u32, u32), original: (u32, u32)) -> MapSegment {
+        MapSegment { generated_line: generated.0, generated_column: generated.1, original_line: original.0, original_column: original.1 }
+    }
+
+    #[test]
+    fn exact_lookup_returns_the_covering_segment_of_the_same_line() {
+        let map = PositionMap::from_segments(vec![
+            segment((0, 0), (0, 0)),
+            segment((0, 8), (1, 2)),
+            segment((2, 4), (5, 9)),
+        ]);
+        assert!(map.is_exact());
+        // Base 1 dos dois lados; a coluna 8 de base 0 é a 9 de base 1.
+        assert_eq!(map.map_exact(1, 1), Some((1, 1)));
+        assert_eq!(map.map_exact(1, 9), Some((2, 3)));
+        // Depois do último segmento da linha vale o dele, sem somar o excesso.
+        assert_eq!(map.map_exact(1, 80), Some((2, 3)));
+        // A linha 2 gerada não tem segmento: a posição crua fica.
+        assert_eq!(map.map_exact(2, 1), None);
+        assert_eq!(map.map_exact(3, 3), None);
+        assert_eq!(map.map_exact(3, 5), Some((6, 10)));
+        assert_eq!(map.map_exact(0, 1), None);
     }
 
     #[test]

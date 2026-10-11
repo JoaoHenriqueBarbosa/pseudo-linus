@@ -452,9 +452,21 @@ pub fn evaluate_main_script_reporting_signal(
 /// módulo com `await` no topo ainda pendente segue no laço de eventos, e uma rejeição tardia dele chega ao relato como
 /// rejeição sem tratador, como no bun.
 fn run_main_program(global_object: &JSGlobalObjectRef, source: &str, url: &str) -> Result<(), JSValue> {
-    match main_module_kind(source) {
+    // Com transpilador instalado o arquivo principal roda reimpresso, como no bun, e quem decide ESM ou CJS é o
+    // parser dele (`exports_kind`); sem ele vale a medição de `main_module_kind` sobre o fonte cru.
+    let transpiled = crate::api::source_transpiler::transpile_source(url, source, false);
+    let kind = match &transpiled {
+        Some(done) if done.is_commonjs => MainModuleKind::Cjs,
+        Some(_) => MainModuleKind::Esm,
+        None => main_module_kind(source),
+    };
+    match kind {
         MainModuleKind::Esm => {
-            let promise = crate::api::module::start_main_module(global_object, source, url);
+            let (text, map) = match &transpiled {
+                Some(done) => (done.text.as_str(), Some(done.map.clone())),
+                None => (source, None),
+            };
+            let promise = crate::api::module::start_main_module(global_object, text, url, map);
             // `process.exit()` no corpo do módulo termina o programa ali: nem tick nem microtarefa pendente roda.
             if crate::runtime::process_exit::exit_requested() {
                 return Ok(());
@@ -481,8 +493,8 @@ fn run_main_program(global_object: &JSGlobalObjectRef, source: &str, url: &str) 
                 None => ".",
             };
             // O `import()` do CommonJS principal passa pelo mesmo carregador do principal módulo ES.
-            crate::api::module::install_main_module_loader(global_object, source, url);
-            run_commonjs_wrapper(global_object, &body, url, false, &[], dirname)
+            crate::api::module::install_main_module_loader(global_object, source, url, None);
+            run_commonjs_wrapper(global_object, &body, url, false, &[], dirname, transpiled.as_ref())
         }
     }
 }
@@ -604,7 +616,7 @@ fn evaluate_cjs_program_inner(
             None => (false, canonical),
         };
         // Como o bun ao rodar o arquivo: o SyntaxError ou a exceção não capturada não impede a leitura de `result_name`.
-        let _ = run_commonjs_wrapper(&global_object, body, url, strict, position_runs, ".");
+        let _ = run_commonjs_wrapper(&global_object, body, url, strict, position_runs, ".", None);
         vm.drain_microtasks();
         if run_loop {
             crate::runtime::timers::run_event_loop(&global_object);
@@ -616,7 +628,17 @@ fn evaluate_cjs_program_inner(
 /// Monta o carregador de CJS do bun no global (`exports`, `require` e `module` do arquivo `url`), embrulha `body` em
 /// `function(exports, require, module, __filename, __dirname)` e chama o wrapper com `this` = `exports`. `Err` é o
 /// `SyntaxError` do corpo ou a exceção que ele lançou.
-fn run_commonjs_wrapper(global_object: &JSGlobalObjectRef, body: &[u16], url: &str, strict: bool, position_runs: &[i64], dirname: &str) -> Result<(), JSValue> {
+/// Com `prebuilt` (o arquivo que o transpilador de fonte reimprimiu) o texto já é a função de wrapper inteira, com o
+/// cabeçalho do impressor na linha 1, e o mapa é o do impressor: nada é embrulhado nem deslocado aqui.
+fn run_commonjs_wrapper(
+    global_object: &JSGlobalObjectRef,
+    body: &[u16],
+    url: &str,
+    strict: bool,
+    position_runs: &[i64],
+    dirname: &str,
+    prebuilt: Option<&crate::api::source_transpiler::Transpiled>,
+) -> Result<(), JSValue> {
     let vm = global_object.vm();
     let global_object = global_object.clone();
     CJS_FILENAME.with(|name| *name.borrow_mut() = url.to_owned());
@@ -699,19 +721,27 @@ fn run_commonjs_wrapper(global_object: &JSGlobalObjectRef, body: &[u16], url: &s
             wrapper: JSValue::undefined(),
         })
     });
-    let mut text = utf16_units(&format!(
-        "{}(function(exports, require, module, __filename, __dirname) {{\n",
-        if strict { CJS_STRICT_DIRECTIVE.trim_end() } else { "" }
-    ));
-    text.extend_from_slice(body);
-    text.extend(utf16_units("})"));
+    let text = match prebuilt {
+        Some(done) => utf16_units(&done.text),
+        None => {
+            let mut text = utf16_units(&format!(
+                "{}(function(exports, require, module, __filename, __dirname) {{\n",
+                if strict { CJS_STRICT_DIRECTIVE.trim_end() } else { "" }
+            ));
+            text.extend_from_slice(body);
+            text.extend(utf16_units("})"));
+            text
+        }
+    };
     let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{url}").as_bytes())));
     // Sem mapa de posições, o bun embrulha o módulo sem mudar linha nem coluna: o corpo está na linha 1. O cabeçalho
     // do porte ocupa a linha 1 e o corpo a 2; o mapa identidade com deslocamento de uma linha acerta tanto as
     // linhas de `stack` quanto as dos executáveis de função (o `SourceCode` de função prende a primeira linha em 1,
     // então um `start_position` negativo não chega a elas).
     let named = transpiled_source(&wtf_from_units(&text), &origin, WtfString::from_latin1(url.as_bytes()));
-    if position_runs.is_empty() && !strict {
+    if let Some(done) = prebuilt {
+        named.provider().expect("SourceCode sem provedor").set_position_map(done.map.clone());
+    } else if position_runs.is_empty() && !strict {
         let map = PositionMap::new(&[1, 1, 0, 0], 1).expect("mapa de posições");
         named.provider().expect("SourceCode sem provedor").set_position_map(Rc::new(map));
     } else if !position_runs.is_empty() {
@@ -1074,12 +1104,13 @@ fn cjs_compile_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResu
 fn compile_module(global_object: &JSGlobalObject, module: JSValue, text: &WtfString, file: &WtfString) -> HostResult {
     let vm = global_object.vm();
     let file_units = code_units(file).into_owned();
+    let file_text = rust_string(file);
     let mut units = utf16_units("(function(exports, require, module, __filename, __dirname) {");
     units.extend_from_slice(&code_units(text));
     units.extend(utf16_units("\n})"));
-    let file_text = rust_string(file);
     let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{file_text}").as_bytes())));
     let source = transpiled_source(&wtf_from_units(&units), &origin, file.clone());
+
     let Some((global, require)) = module_index(&module).and_then(|index| {
         CJS_STATE.with(|state| state.borrow().as_ref().map(|state| (state.global_object.clone(), state.modules[index].require.clone())))
     }) else {
