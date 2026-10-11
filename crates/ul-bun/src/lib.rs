@@ -4,6 +4,7 @@
 
 pub mod cli;
 pub mod console;
+pub mod help;
 pub mod host;
 pub mod transpiler;
 

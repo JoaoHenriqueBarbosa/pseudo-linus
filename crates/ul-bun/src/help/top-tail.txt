@@ -1,0 +1,2 @@
+Learn more about Bun:            https://bun.com/docs
+Join our Discord community:      https://bun.com/discord

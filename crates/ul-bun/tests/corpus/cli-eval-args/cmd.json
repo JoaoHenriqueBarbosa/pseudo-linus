@@ -1,0 +1,1 @@
+["-e", "console.log(process.argv.length, process.argv.slice(1), Bun.main)", "a", "--flag", "b"]

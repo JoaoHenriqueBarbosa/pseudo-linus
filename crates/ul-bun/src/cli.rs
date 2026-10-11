@@ -12,12 +12,16 @@ use zjsc::runtime::process_system::set_script_arguments;
 use zjsc::runtime::vm::VM;
 
 use crate::console::{FdConsole, SandboxFs};
+use crate::help;
 use crate::host::SysabiHost;
 use crate::transpiler::BunTranspiler;
 use zjsc::api::source_transpiler::install_source_transpiler;
 
 /// A versão do bun que o zjsc reproduz.
 const VERSION: &str = "1.4.2";
+
+/// A revisão do bun 1.4.2 (`bun --revision`).
+const REVISION: &str = "1.4.2+744846f84";
 
 /// A pilha da thread do motor (o interpretador recursa no C do bun, que roda em 8 MiB de pilha nativa com a CLoopStack
 /// de 1 MiB; aqui a pilha nativa de cada nível é maior, então a thread leva uma grande, reservada e não comprometida).
@@ -27,30 +31,143 @@ const STACK_BYTES: usize = 256 * 1024 * 1024;
 const STACK_GUARD_BYTES: usize = 16 * 1024 * 1024;
 
 enum Job {
-    Eval(String),
+    Eval(String, Vec<String>),
     File(String, Vec<String>),
+}
+
+/// O que a linha de comando pede: escrever um texto e sair, ou rodar um programa.
+enum Action {
+    Output { stdout: String, stderr: String, code: i32 },
+    Run(Job),
+}
+
+/// Um erro de linha de comando do bun: a ajuda curta no stdout e a mensagem no stderr, código 1.
+fn usage_error(message: String) -> Action {
+    Action::Output { stdout: help::top(false), stderr: format!("error: {message}\n"), code: 1 }
+}
+
+/// O que a varredura das opções achou antes do primeiro argumento posicional.
+#[derive(Default)]
+struct Scan {
+    help: bool,
+    version: bool,
+    revision: bool,
+    run: bool,
+    eval: Option<String>,
+    invalid_short: Option<char>,
+    missing_value: Option<String>,
+    /// Índice do primeiro argumento posicional.
+    positional: usize,
+}
+
+/// Varre as opções como o bun: valem até o primeiro argumento que não é opção (o resto é do script); opção longa
+/// desconhecida é ignorada, opção curta desconhecida é erro (medido no oráculo, 1.4.2). O `run` solto antes do
+/// primeiro posicional é o subcomando.
+fn scan(args: &[String]) -> Scan {
+    let table = help::flags();
+    let mut found = Scan::default();
+    let mut index = 0;
+    while index < args.len() {
+        let arg = args[index].as_str();
+        if arg == "run" && !found.run {
+            found.run = true;
+            index += 1;
+            continue;
+        }
+        if let Some(long) = arg.strip_prefix("--").filter(|long| !long.is_empty()) {
+            let (name, inline) = long.split_once('=').map_or((long, None), |(name, value)| (name, Some(value)));
+            match name {
+                "help" => found.help = true,
+                "version" => found.version = true,
+                "revision" => found.revision = true,
+                _ => {}
+            }
+            let takes_value = table.iter().any(|flag| flag.long.as_deref() == Some(name) && flag.takes_value);
+            let value = match (takes_value, inline) {
+                (true, Some(value)) => Some(value.to_string()),
+                (true, None) => {
+                    index += 1;
+                    let value = args.get(index).cloned();
+                    if value.is_none() && found.missing_value.is_none() {
+                        found.missing_value = Some(format!("--{name}"));
+                    }
+                    value
+                }
+                (false, _) => None,
+            };
+            if matches!(name, "eval" | "print") {
+                found.eval = value.or(found.eval);
+            }
+        } else if arg.starts_with('-') && arg.len() > 1 {
+            let letters: Vec<char> = arg[1..].chars().collect();
+            for (position, letter) in letters.iter().copied().enumerate() {
+                match letter {
+                    'h' => found.help = true,
+                    'v' => found.version = true,
+                    _ => {}
+                }
+                let Some(flag) = table.iter().find(|flag| flag.short == Some(letter)) else {
+                    found.invalid_short.get_or_insert(letter);
+                    continue;
+                };
+                // `-pe CODE`: só a última letra do grupo consome o valor.
+                if flag.takes_value && position + 1 == letters.len() {
+                    index += 1;
+                    let value = args.get(index).cloned();
+                    if value.is_none() && found.missing_value.is_none() {
+                        found.missing_value = Some(format!("-{letter}"));
+                    }
+                    if matches!(letter, 'e' | 'p') {
+                        found.eval = value.or(found.eval);
+                    }
+                }
+            }
+        } else {
+            break;
+        }
+        index += 1;
+    }
+    found.positional = index.min(args.len());
+    found
+}
+
+fn parse(args: &[String]) -> Action {
+    let found = scan(args);
+    if let Some(letter) = found.invalid_short {
+        return usage_error(format!("Invalid Argument '-{letter}'"));
+    }
+    if let Some(flag) = &found.missing_value {
+        return usage_error(format!("The argument '{flag}' requires a value but none was supplied."));
+    }
+    let output = |stdout: String| Action::Output { stdout, stderr: String::new(), code: 0 };
+    if found.help {
+        return output(if found.run { help::RUN.to_string() } else { help::top(true) });
+    }
+    if found.version {
+        return output(format!("{VERSION}\n"));
+    }
+    if found.revision {
+        return output(format!("{REVISION}\n"));
+    }
+    let rest = &args[found.positional..];
+    if found.run {
+        return match rest.split_first() {
+            Some((file, arguments)) => Action::Run(Job::File(file.clone(), arguments.to_vec())),
+            None => output(format!("{}\nNo package.json found.\n", help::RUN)),
+        };
+    }
+    if let Some(code) = found.eval {
+        return Action::Run(Job::Eval(code, rest.to_vec()));
+    }
+    match rest.split_first() {
+        Some((file, arguments)) => Action::Run(Job::File(file.clone(), arguments.to_vec())),
+        None => output(help::top(false)),
+    }
 }
 
 fn fail(message: &str) -> i32 {
     let _ = sys::write_all(Fd::STDERR, format!("error: {message}\n").as_bytes());
     1
-}
-
-fn parse(args: &[String]) -> Result<Option<Job>, String> {
-    let Some(first) = args.first() else { return Err(String::from("no script or command given")) };
-    match first.as_str() {
-        "--version" | "-v" => Ok(None),
-        "-e" | "--eval" => match args.get(1) {
-            Some(code) => Ok(Some(Job::Eval(code.clone()))),
-            None => Err(String::from("Missing code for -e")),
-        },
-        "run" => match args.get(1) {
-            Some(file) => Ok(Some(Job::File(file.clone(), args[2..].to_vec()))),
-            None => Err(String::from("Missing script to run")),
-        },
-        file if !file.starts_with('-') => Ok(Some(Job::File(file.to_string(), args[1..].to_vec()))),
-        option => Err(format!("Unknown option: {option}")),
-    }
 }
 
 /// `file` resolvido no diretório de trabalho do processo.
@@ -79,15 +196,15 @@ fn run_program(source: String, url: String, arguments: Vec<String>) -> (i32, boo
 pub fn bun_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     let args: Vec<String> = argv.iter().skip(1).map(|arg| arg.to_string_lossy().into_owned()).collect();
     let job = match parse(&args) {
-        Ok(Some(job)) => job,
-        Ok(None) => {
-            let _ = sys::write_all(Fd::STDOUT, format!("{VERSION}\n").as_bytes());
-            return 0;
+        Action::Run(job) => job,
+        Action::Output { stdout, stderr, code } => {
+            let _ = sys::write_all(Fd::STDOUT, stdout.as_bytes());
+            let _ = sys::write_all(Fd::STDERR, stderr.as_bytes());
+            return code;
         }
-        Err(message) => return fail(&message),
     };
     let (source, url, arguments) = match job {
-        Job::Eval(code) => (code, absolute("[eval]"), Vec::new()),
+        Job::Eval(code, arguments) => (code, absolute("[eval]"), arguments),
         Job::File(file, arguments) => {
             let path = absolute(&file);
             match sysio::fs::read(&path).map(String::from_utf8) {

@@ -60,7 +60,9 @@ pub fn set_working_directory(directory: &str) {
 
 /// O programa principal começou: guarda o caminho do script, que é o `argv[1]`.
 pub(crate) fn begin_main_script(path: &str) {
-    PROGRAM.with(|state| state.borrow_mut().script = Some(path.to_string()));
+    // `bun -e` não tem script: o `argv` é `[execPath, ...argumentos]` e o `main_path` cai em `<cwd>/[eval]`.
+    let script = (!path.ends_with("/[eval]")).then(|| path.to_string());
+    PROGRAM.with(|state| state.borrow_mut().script = script);
 }
 
 /// O `vm.main()` do bun: o caminho do script principal, ou `<cwd>/[eval]` sem script (`bun -e`).

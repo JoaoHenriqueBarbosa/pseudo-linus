@@ -26,6 +26,18 @@ fn collect(dir: &Path, base: &Path, out: &mut Vec<(String, Vec<u8>)>) {
     }
 }
 
+/// A ajuda de nível superior sorteia a cada execução o argumento de exemplo de sete comandos: o caso com o arquivo
+/// `random-help` compara sem essa coluna (a coluna do exemplo, da 12 à 32, de cada uma das sete linhas).
+fn without_examples(text: &str) -> String {
+    const COMMANDS: [&str; 7] = ["x", "add", "remove", "update", "info", "why", "create"];
+    text.split_inclusive('\n')
+        .map(|line| {
+            let listed = COMMANDS.iter().any(|command| line.starts_with(&format!("  {command} ")));
+            if listed && line.len() > 33 { format!("{}{}", &line[..12], &line[33..]) } else { line.to_string() }
+        })
+        .collect()
+}
+
 fn run_case(case: &Path) -> Result<(), String> {
     let argv: Vec<String> = {
         let text = std::fs::read_to_string(case.join("cmd.json")).expect("cmd.json");
@@ -59,8 +71,13 @@ fn run_case(case: &Path) -> Result<(), String> {
     let expected = |name: &str| std::fs::read_to_string(case.join("expected").join(name)).expect("esperado");
     let code: i32 = expected("code").trim().parse().expect("código");
     let mut problems = Vec::new();
-    if stdout != expected("stdout") {
-        problems.push(format!("stdout\n--- esperado\n{}--- obtido\n{}", expected("stdout"), stdout));
+    let (stdout, wanted_stdout) = if case.join("random-help").exists() {
+        (without_examples(&stdout), without_examples(&expected("stdout")))
+    } else {
+        (stdout, expected("stdout"))
+    };
+    if stdout != wanted_stdout {
+        problems.push(format!("stdout\n--- esperado\n{wanted_stdout}--- obtido\n{stdout}"));
     }
     if stderr != expected("stderr") {
         problems.push(format!("stderr\n--- esperado\n{}--- obtido\n{}", expected("stderr"), stderr));

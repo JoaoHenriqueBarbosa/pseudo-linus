@@ -1278,6 +1278,16 @@ Feito: `Bun.serve` (com a página e o relato de erro de desenvolvimento, o códi
 - WebSocket (`upgrade`, `websocket`, `publish`), `tls`, `unix`, `idleTimeout`, `maxRequestBodySize`, `requestIP` real.
 - `fetch` de `https:`, de outros hosts e de `::1` (o `Host` só tem TCP em `127.0.0.1`); `Content-Encoding` na resposta (gzip, deflate, br, zstd), reuso de conexão (keep-alive), `proxy`, `unix`.
 
+### CLI do bun (2026-10-11)
+
+Feito em `crates/ul-bun/src/cli.rs` e `help.rs`, tudo medido no oráculo bun 1.4.2 (casos `cli-*` do corpus): `--version`/`-v`, `--revision`, a ajuda curta (`bun` sem argumentos) e a longa (`--help`/`-h`) com os sete exemplos sorteados a cada execução (as listas vêm de 400 execuções; o corpus compara sem a coluna sorteada, marcador `random-help`), a ajuda de `bun run` (com `No package.json found.` quando não há script), o erro de opção curta inválida (`Invalid Argument '-x'`, ajuda curta no stdout, código 1), o erro de `-e`/`-p` sem valor, `--help` vencendo `--version`, opção longa desconhecida ignorada, e `bun -e CODE ARGS...` com `process.argv = [execPath, ...ARGS]` (sem o `[eval]` como `argv[1]`, `begin_main_script` do motor).
+
+Falta, medido mas não portado:
+- `-p`/`--print` (e `-pe`): o bun imprime o valor da última expressão (`bun -p 1+2` escreve `3`; `-pe 'console.log(2)'` escreve `2` e `undefined`). O porte do transpilador não tem a opção (só o modo REPL do parser, que embrulha outra coisa); precisa de uma transformação no parser e de sondas para `const`, `await` no topo e instruções que não são expressão. Hoje `-p` roda como `-e`, sem imprimir.
+- `bun run` com `package.json` (lista os scripts do pacote) e `bun run SCRIPT`; hoje só o caso sem `package.json`.
+- As opções de execução (`--preload`, `--cwd`, `--env-file`, `--define`, `--watch` e as demais da tabela de `bun run --help`) são aceitas e ignoradas.
+- Subcomandos além de `run` (`test`, `x`, `install`, `build`, `init`...).
+
 ## Suíte completa em lotes, grupo 1 com o transpilador instalado (2026-10-11)
 
 Os goldens de `error`, `function_error` e `console_dir` guardavam o texto reimpresso e declaravam 55, 29 e 17 linhas com uma causa
