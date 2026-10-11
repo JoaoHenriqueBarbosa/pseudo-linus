@@ -688,10 +688,6 @@ pub struct P<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> {
     /// associated with that namespace or namespace member: "ref_to_ts_namespace_member".
     /// This gives enough info to be able to resolve queries into the namespace.
     pub(crate) ref_to_ts_namespace_member: HashMap<Ref, js_ast::ts::Data>,
-    /// Arena-allocated `TSNamespaceScope`s; their global-heap maps are freed in `Drop`.
-    pub(crate) ts_namespace_scopes: Vec<js_ast::StoreRef<js_ast::TSNamespaceScope>>,
-    /// Companion list (sibling scopes share a map, so the scope list can't free it).
-    pub(crate) ts_namespace_member_maps: Vec<js_ast::StoreRef<js_ast::TSNamespaceMemberMap>>,
     /// When visiting expressions, namespace metadata is associated with the most
     /// recently visited node. If namespace metadata is present, "tsNamespaceTarget"
     /// will be set to the most recently visited node (as a way to mark that this
@@ -727,19 +723,6 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> AsMut<bun_ast::Store> fo
     #[inline]
     fn as_mut(&mut self) -> &mut bun_ast::Store {
         &mut self.store
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> Drop for P<'a, TYPESCRIPT, SCAN_ONLY> {
-    fn drop(&mut self) {
-        // Arena-allocated structs never run Drop; free their global-heap maps here.
-        for mut scope in self.ts_namespace_scopes.drain(..) {
-            drop(core::mem::take(&mut self.store[scope].property_accesses));
-        }
-        for mut map in self.ts_namespace_member_maps.drain(..) {
-            drop(core::mem::take(&mut self.store[map]));
-        }
     }
 }
 
@@ -4807,7 +4790,6 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 arg_ref: Ref::NONE,
                 property_accesses: Default::default(),
             });
-            self.ts_namespace_scopes.push(scope);
             return scope;
         }
 
@@ -4816,14 +4798,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // map field can't be null-then-patched, and same-arena allocation
         // keeps the locality while avoiding a self-referential init.
         let map = self.store.alloc(Default::default());
-        self.ts_namespace_member_maps.push(map);
         let scope = self.store.alloc(js_ast::TSNamespaceScope {
             exported_members: map,
             is_enum_scope,
             arg_ref: Ref::NONE,
             property_accesses: Default::default(),
         });
-        self.ts_namespace_scopes.push(scope);
         scope
     }
 
@@ -9225,6 +9205,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             has_lazy_export: false,
             redirect_import_record_index: None,
             target: js_ast::Target::Browser,
+            // Por último: os `alloc_str` acima (`directive`, `hashbang`) gravam no `Store` que segue com a `Ast`.
+            store: core::mem::take(&mut self.store),
         }))
     }
 
@@ -9378,6 +9360,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             ScopeOrderList::with_capacity((source.contents.len() / 64).max(1));
         // O escopo do módulo vive no Store do arquivo (nasce como cópia do Store dos Define) e é endereçado por índice.
         let mut store = define.store.clone();
+        // O fonte entra uma vez no vetor de bytes do `Store`, e as fatias dele (`Lexer::source_str`) viram faixas
+        // a partir desta base.
+        lexer.source_base = u32::try_from(store.bytes().len()).expect("o Store passa de 4 GiB de bytes");
+        store.alloc_str(&source.contents);
         let scope = store.alloc(Scope {
             members: Default::default(),
             children: Vec::new(),
@@ -9601,8 +9587,6 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             binary_expression_stack: BumpVec::new_in(arena),
             binary_expression_simplify_stack: BumpVec::new_in(arena),
             ref_to_ts_namespace_member: Default::default(),
-            ts_namespace_scopes: Vec::new(),
-            ts_namespace_member_maps: Vec::new(),
             ts_namespace: RecentlyVisitedTSNamespace {
                 expr: null_expr_data(),
                 map: None,

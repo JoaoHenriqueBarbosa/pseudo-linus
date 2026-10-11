@@ -101,6 +101,10 @@ pub struct Ast {
     pub has_commonjs_export_names: bool,
     pub has_import_meta: bool,
     pub import_meta_ref: Ref,
+    /// O `Store` do arquivo: o parser o cria e é o dono durante a análise, e o entrega aqui no `to_ast`. Os
+    /// `StoreRef`, `StoreSlice` e `StoreStr` de `parts`, `symbols` e `module_scope` valem só dentro dele; o printer
+    /// recebe `&Store` junto com a `Ast`.
+    pub store: crate::Store,
 }
 
 impl Default for Ast {
@@ -144,6 +148,7 @@ impl Default for Ast {
             has_commonjs_export_names: false,
             has_import_meta: false,
             import_meta_ref: Ref::NONE,
+            store: Default::default(),
         }
     }
 }

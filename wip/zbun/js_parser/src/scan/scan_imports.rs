@@ -52,10 +52,11 @@ impl<'a> ImportScanner<'a> {
             let mut stmt = stmts[i]; // copy
             match stmt.data {
                 js_ast::StmtData::SImport(mut import_ptr) => {
-                    // A cópia do `Import` evita o empréstimo longo de `p.store`: grava de volta ao fim, e o `continue` do laço
-                    // externo vira `break 'body` para a gravação não ser pulada.
+                    // A cópia do `Import` evita o empréstimo longo de `p.store`: grava de volta ao fim. O `continue` do laço
+                    // externo vira `break 'body true`, para a gravação não ser pulada, e o `continue` de verdade vem
+                    // depois dela: o statement removido não vai para a saída (nem para o `convert_stmt` do HMR).
                     let mut st: S::Import = p.store[import_ptr].clone();
-                    'body: {
+                    let skip_stmt: bool = 'body: {
 
                         let import_record_index = st.import_record_index;
                         // O registro é relido pelo índice a cada uso: um `&mut ImportRecord` não convive com os outros
@@ -70,7 +71,7 @@ impl<'a> ImportScanner<'a> {
                             // `Path::isMacro()` inlined (no Rust method yet).
                             record!().flags.insert(import_record::Flags::IS_UNUSED);
                             record!().path.is_disabled = true;
-                            break 'body;
+                            break 'body true;
                         }
 
                         // The official TypeScript compiler always removes unused imported
@@ -267,7 +268,7 @@ impl<'a> ImportScanner<'a> {
                                         .contains(import_record::Flags::WAS_ORIGINALLY_REQUIRE)
                                 {
                                     record!().flags.insert(import_record::Flags::IS_UNUSED);
-                                    break 'body;
+                                    break 'body true;
                                 }
                             }
                         }
@@ -574,8 +575,12 @@ impl<'a> ImportScanner<'a> {
                                     .insert(import_record::Flags::CONTAINS_ES_MODULE_ALIAS);
                             }
                         }
-                    }
+                        false
+                    };
                     p.store[import_ptr] = st;
+                    if skip_stmt {
+                        continue;
+                    }
                 }
 
                 js_ast::StmtData::SFunction(st) => {

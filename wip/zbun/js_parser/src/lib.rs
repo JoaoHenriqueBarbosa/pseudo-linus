@@ -47,6 +47,9 @@ pub mod lexer;
 #[cfg(test)]
 mod lexer_tests;
 
+#[cfg(all(test, feature = "parser"))]
+mod parser_tests;
+
 // O parser copiado do upstream (README, "Próximos passos", passo 2) fica atrás da feature `parser` até compilar:
 // `cargo check -p bun_js_parser --features parser` mede o que falta. O `Macro` (FFI com o `bun_js_parser_jsc`) e o
 // `react_compiler_host` ficam fora por decisão da coordenação.

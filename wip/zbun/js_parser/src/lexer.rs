@@ -202,6 +202,9 @@ pub struct Lexer<'a> {
     /// for the whole token loop. `source` is kept for
     /// error-reporting paths that need `path` / `identifier_name`.
     pub(crate) contents: &'a [u8],
+    /// Onde o fonte começa no vetor de bytes do `Store` do arquivo (o `P::init` grava o fonte uma vez, depois dos
+    /// bytes que o `Store` do `Define` já tinha); `source_str` soma esta base ao deslocamento da fatia no fonte.
+    pub(crate) source_base: u32,
     pub current: usize,
     pub(crate) start: usize,
     pub end: usize,
@@ -273,10 +276,10 @@ impl<'a> LexerLog<'a> for Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     /// A `StoreStr` de uma fatia do código-fonte: o `StoreStr::new` do upstream aponta para dentro do fonte, e no
-    /// porte o fonte ocupa o começo do vetor de bytes do `Store` (README, "Arena tipada"), então a faixa é o
-    /// deslocamento da fatia no fonte.
+    /// porte o fonte é gravado uma vez no vetor de bytes do `Store` (README, "Arena tipada"), em `source_base`,
+    /// então a faixa é a base mais o deslocamento da fatia no fonte.
     pub(crate) fn source_str(&self, text: &[u8]) -> js_ast::StoreStr {
-        js_ast::StoreStr::from_range(loc_u32(self.source_offset(text)), loc_u32(text.len()))
+        js_ast::StoreStr::from_range(self.source_base + loc_u32(self.source_offset(text)), loc_u32(text.len()))
     }
 
     /// O deslocamento de uma fatia do código-fonte dentro dele.
@@ -2238,6 +2241,7 @@ impl<'a> Lexer<'a> {
             log,
             source,
             contents,
+            source_base: 0,
             current: 0,
             start: 0,
             end: 0,
