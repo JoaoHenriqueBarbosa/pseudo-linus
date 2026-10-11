@@ -6,6 +6,8 @@
 #            depois do SIGTERM
 #   copy     como cdp, mas copia os bytes do perfil para $OUT/live (navegador vivo, 8 s) e $OUT/profile (depois do
 #            SIGTERM); OUT=diretório do host
+#   dump-copy --user-data-dir=/tmp/profile --dump-dom (o processo sai sozinho): copia o perfil da saída para
+#            $OUT/profile e a árvore para $OUT/profile-tree.jsonl; OUT=diretório do host
 #   tmp      sem --user-data-dir, com DevTools remoto: /tmp e /root/.config/chromium listados com o navegador vivo e
 #            depois do SIGTERM
 # Saída: a árvore em JSON (profile-tree.py), uma entrada por linha, separada por "== <rótulo>".
@@ -30,6 +32,13 @@ copy)
   mkdir -p "$OUT"
   mounts="$mounts -v $OUT:/out"
   script='chromium --headless --no-sandbox --disable-gpu --user-data-dir=/tmp/profile --remote-debugging-port=9222 --remote-allow-origins=* "$PAGE" >/dev/null 2>&1 & pid=$!; sleep 8; cp -a /tmp/profile /out/live; profile-tree.py /tmp/profile > /out/live-tree.jsonl; kill -TERM $pid; wait $pid 2>/dev/null || true; cp -a /tmp/profile /out/profile; profile-tree.py /tmp/profile > /out/profile-tree.jsonl; (cp -a /root/.config /out/config 2>/dev/null || true); profile-tree.py /root/.config > /out/config-tree.jsonl; profile-tree.py /tmp > /out/tmp-tree.jsonl; chmod -R a+rX /out'
+  ;;
+dump-copy)
+  # O que o --dump-dom deixa no disco ao sair (o vivo é o mesmo do DevTools, medido com `copy`).
+  : "${OUT:?OUT: diretório do host que recebe a cópia}"
+  mkdir -p "$OUT"
+  mounts="$mounts -v $OUT:/out"
+  script='chromium --headless --no-sandbox --disable-gpu --user-data-dir=/tmp/profile --dump-dom "$PAGE" >/dev/null 2>&1; cp -a /tmp/profile /out/profile; profile-tree.py /tmp/profile > /out/profile-tree.jsonl; (cp -a /root/.config /out/config 2>/dev/null || true); profile-tree.py /root/.config > /out/config-tree.jsonl; chmod -R a+rX /out'
   ;;
 *) echo "modo desconhecido: $mode" >&2; exit 2 ;;
 esac

@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use sysabi::testkit::TestKit;
 use sysabi::{Ctx, Program};
-use ul_chromium::disk_profile::DiskProfile;
+use ul_chromium::disk_profile::{DiskProfile, Run};
 use ul_chromium::session::{Profile, Tab};
 
 const WRITE: &str = "<script>localStorage.setItem('k1', 'um'); localStorage.setItem('k2', 'dois'); localStorage.setItem('k3', 'tres'); console.log('wrote ' + localStorage.length);</script>";
@@ -27,7 +27,7 @@ fn browser(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
         "clear" => CLEAR_AND_WRITE_OTHER,
         _ => READ_ALL,
     };
-    let disk = DiskProfile::start(Some(b"/tmp/profile"));
+    let disk = DiskProfile::start(Some(b"/tmp/profile"), Run::DevTools);
     let profile = Profile::on_disk(Some(disk.local_storage().expect("o banco do Local Storage abriu")), disk.indexed_db());
     let tab = Rc::new(Tab::new(Arc::new(profile)));
     let log = common::run_in_tab("http://127.0.0.1:8000/", &[("/", page)], tab);

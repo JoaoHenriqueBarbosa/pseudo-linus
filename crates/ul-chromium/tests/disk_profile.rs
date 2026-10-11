@@ -1,6 +1,6 @@
 //! O perfil em disco do navegador contra a árvore que o Chromium 154 do oráculo cria (`testbench/golden/chromium/
 //! profile/`, medida por `testbench/oracle/measure-profile.sh`): os mesmos caminhos, tipos, modos e tamanhos, ignorando
-//! só o que o oráculo varia de uma execução para outra (o nome do `Session_*` e do diretório de `blob_storage`, o
+//! só o que o oráculo varia de uma execução para outra (o nome do `Session_*`, do `Tabs_*` e do diretório de `blob_storage`, o
 //! tamanho dos JSON, os arquivos temporários que o SIGTERM deixa).
 
 use std::collections::BTreeMap;
@@ -10,30 +10,36 @@ use std::path::Path;
 use serde_json::Value;
 use sysabi::testkit::{TestKit, TreeEntry};
 use sysabi::{Ctx, Program};
-use ul_chromium::disk_profile::DiskProfile;
+use ul_chromium::disk_profile::{DiskProfile, Run};
 
 const USER_DATA_DIR: &[u8] = b"/tmp/profile";
 
 fn start(_ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
-    let _profile = DiskProfile::start(Some(USER_DATA_DIR));
+    let _profile = DiskProfile::start(Some(USER_DATA_DIR), Run::DevTools);
     0
 }
 
 fn start_and_finish(_ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
-    let profile = DiskProfile::start(Some(USER_DATA_DIR));
+    let profile = DiskProfile::start(Some(USER_DATA_DIR), Run::DevTools);
+    profile.finish();
+    0
+}
+
+fn start_and_finish_dump(_ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
+    let profile = DiskProfile::start(Some(USER_DATA_DIR), Run::DumpDom);
     profile.finish();
     0
 }
 
 fn start_without_user_data_dir(_ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
-    let _profile = DiskProfile::start(None);
+    let _profile = DiskProfile::start(None, Run::DevTools);
     0
 }
 
 fn kit() -> TestKit {
     TestKit::new()
         .env("HOME", "/root")
-        .programs([Program::bin("start", start), Program::bin("finish", start_and_finish), Program::bin("bare", start_without_user_data_dir)])
+        .programs([Program::bin("start", start), Program::bin("finish", start_and_finish), Program::bin("finish-dump", start_and_finish_dump), Program::bin("bare", start_without_user_data_dir)])
 }
 
 #[derive(Debug, PartialEq)]
@@ -48,8 +54,10 @@ struct Item {
 fn normalize(path: &str) -> String {
     let mut parts: Vec<String> = path.split('/').map(str::to_owned).collect();
     for index in 0..parts.len() {
-        if parts[index].starts_with("Session_") && parts[index][8..].chars().all(|c| c.is_ascii_digit()) {
-            parts[index] = "Session_N".to_owned();
+        for prefix in ["Session_", "Tabs_"] {
+            if parts[index].starts_with(prefix) && parts[index][prefix.len()..].chars().all(|c| c.is_ascii_digit()) {
+                parts[index] = format!("{prefix}N");
+            }
         }
         if index > 0 && parts[index - 1] == "blob_storage" && parts[index].len() == 36 {
             parts[index] = "<uuid>".to_owned();
@@ -138,6 +146,19 @@ fn clean_exit_tree_matches_the_oracle() {
     let kit = kit();
     assert_eq!(kit.run(&["finish"], b"").status.shell_status(), 0);
     assert_matches_oracle(&actual(&kit, "/tmp/profile"), &golden("exit-tree.jsonl"));
+}
+
+/// A saída do `--dump-dom` (medida com `measure-profile.sh dump-copy`): apaga os bancos que o carregamento curto não
+/// chega a usar, os `Singleton*` e o diretório do soquete em `/tmp`.
+#[test]
+fn dump_dom_exit_tree_matches_the_oracle() {
+    let kit = kit();
+    assert_eq!(kit.run(&["finish-dump"], b"").status.shell_status(), 0);
+    assert_matches_oracle(&actual(&kit, "/tmp/profile"), &golden("dump-exit-tree.jsonl"));
+    for name in ["SingletonCookie", "SingletonLock", "SingletonSocket"] {
+        assert!(!kit.tree("/tmp/profile").iter().any(|(path, _)| path == name.as_bytes()), "{name} sobrou");
+    }
+    assert!(!kit.tree("/tmp").iter().any(|(path, _)| path.starts_with(b"org.chromium.Chromium.")), "o diretório do soquete sobrou");
 }
 
 fn symlink_target(kit: &TestKit, root: &str, name: &str) -> String {
