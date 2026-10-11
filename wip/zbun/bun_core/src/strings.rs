@@ -965,6 +965,26 @@ pub fn write_wtf8_as_utf16le(bytes: &[u8], first_non_ascii: usize, out: &mut Vec
     }
 }
 
+/// Primeiro índice de `slice_[offset..]` (somado a `offset`) com byte `> 127` ou `< 0x20`: quebra de linha, controle
+/// (o tab incluído) ou não ASCII. O upstream faz a busca com SIMD (highway); aqui é o laço escalar do mesmo predicado.
+/// Com `CHECK_START`, o primeiro byte é conferido antes (tab não conta ali, mas a busca o acha do mesmo jeito).
+#[inline]
+pub fn index_of_newline_or_non_ascii_check_start<const CHECK_START: bool>(slice_: &[u8], offset: u32) -> Option<u32> {
+    let remaining = &slice_[offset as usize..];
+    if remaining.is_empty() {
+        return None;
+    }
+    if CHECK_START && (remaining[0] > 127 || (remaining[0] < 0x20 && remaining[0] != 0x09)) {
+        return Some(offset);
+    }
+    let i = remaining.iter().position(|&c| c > 127 || c < 0x20)?;
+    Some(i as u32 + offset)
+}
+
+pub fn index_of_newline_or_non_ascii(slice_: &[u8], offset: u32) -> Option<u32> {
+    index_of_newline_or_non_ascii_check_start::<true>(slice_, offset)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

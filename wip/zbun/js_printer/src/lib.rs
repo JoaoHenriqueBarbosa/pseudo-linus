@@ -1370,7 +1370,7 @@ pub struct Options<'a> {
     /// source can print into multiple part-ranges/chunks, so the table must
     /// not be consumed. `get_source_map_builder` moves the borrow into the
     /// builder as `LineOffsetTables::Borrowed`.
-    pub line_offset_tables: Option<&'a SourceMap::line_offset_table::List<bun_alloc::AstAlloc>>,
+    pub line_offset_tables: Option<&'a SourceMap::line_offset_table::List>,
 
     pub mangled_props: Option<&'a crate::MangledProps>,
 }
@@ -4719,7 +4719,7 @@ pub(crate) mod __gated_printer {
                 value: item_in.value,
                 initializer: item_in.initializer,
                 // Vec is not Copy: re-slice instead of move.
-                ts_decorators: bun_alloc::AstAlloc::vec(),
+                ts_decorators: Default::default(),
                 ts_metadata: Default::default(),
             };
             if !IS_JSON {
@@ -7620,12 +7620,9 @@ use self::__gated_printer::{Printer, slice_of};
 use SourceMap::chunk::LineOffsetTables;
 use js_ast::Ast;
 
-// `generate_source_map` is a runtime arg: `generic_const_exprs`
-// can't compute a non-`bool` const-generic from a `bool` const-generic without
-// viral `where` clauses, and the body only does runtime branches anyway. The
-// `IS_BUN_PLATFORM` axis stays const so `prepend_count` is still a compile-time
-// constant in the monomorphized callers.
-pub(crate) fn get_source_map_builder<'a, const IS_BUN_PLATFORM: bool>(
+// `generate_source_map` é argumento de execução: o corpo só ramifica em tempo de execução. O `prepend_count` do
+// upstream (modo preguiçoso do runtime do bun, que usa o `InternalSourceMap`) não existe no porte.
+pub(crate) fn get_source_map_builder<'a>(
     generate_source_map: GenerateSourceMap,
     opts: &mut Options<'a>,
     source: &'a bun_ast::Source,
@@ -7636,13 +7633,9 @@ pub(crate) fn get_source_map_builder<'a, const IS_BUN_PLATFORM: bool>(
     }
 
     let mut builder = SourceMap::chunk::Builder {
-        source_map: SourceMap::chunk::SourceMapFormat::init(
-            // opts.source_map_allocator orelse opts.allocator: allocator dropped
-            IS_BUN_PLATFORM && generate_source_map == GenerateSourceMap::Lazy,
-        ),
+        source_map: SourceMap::chunk::SourceMapFormat::init(),
         cover_lines_without_mappings: true,
         approximate_input_line_count: tree.approximate_newline_count,
-        prepend_count: IS_BUN_PLATFORM && generate_source_map == GenerateSourceMap::Lazy,
         line_offset_tables: match opts.line_offset_tables.take() {
             Some(table) => LineOffsetTables::Borrowed(table),
             None if generate_source_map == GenerateSourceMap::Lazy => LineOffsetTables::Deferred {
@@ -7654,18 +7647,10 @@ pub(crate) fn get_source_map_builder<'a, const IS_BUN_PLATFORM: bool>(
         },
         ..Default::default()
     };
-    // Pre-size the VLQ mappings buffer. With `--minify` we emit roughly one
-    // mapping per token; growing from 0 by doubling means ~16 reallocs and
-    // O(n) memmoves on a large module. The estimate is intentionally
-    // conservative: undershooting still saves the early small reallocs and
-    // the buffer doubles from there. Only the bundler/external path uses
-    // `data` directly; the prepend-count (Lazy) path writes through
-    // `internal` and would just waste the reservation.
-    if builder.source_map.ctx.internal.is_none() {
-        let hint =
-            (source.contents.len() / 4).max(tree.approximate_newline_count.saturating_mul(4));
-        let _ = builder.source_map.ctx.data.grow_if_needed(hint);
-    }
+    // Pré-dimensiona o buffer de VLQ: com `--minify` sai um mapeamento por token, e crescer do zero dobrando custa
+    // dezenas de realocações num módulo grande. A estimativa é conservadora de propósito.
+    let hint = (source.contents.len() / 4).max(tree.approximate_newline_count.saturating_mul(4));
+    let _ = builder.source_map.ctx.data.grow_if_needed(hint);
     builder
 }
 
@@ -7681,9 +7666,6 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
     source: &'a bun_ast::Source,
     opts: Options<'a>,
 ) -> crate::Result<usize> {
-    let _restore =
-        bun_crash_handler::scoped_action(bun_crash_handler::Action::Print(source.path.text));
-
     // `Renamer<'r,'src>` is invariant in `'src` (it holds `&'r mut`
     // NoOpRenamer<'src>`), so the two arms must agree on `'src`; constructing the
     // `MinifyRenamer` variant inline (rather than via `to_renamer() ->
@@ -7793,7 +7775,7 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
     let _ = writer.reserve(source.contents().len() as u64);
 
     let mut opts = opts;
-    let source_map_builder = get_source_map_builder::<ASCII_ONLY>(
+    let source_map_builder = get_source_map_builder(
         GenerateSourceMap::lazy_if(GENERATE_SOURCE_MAP),
         &mut opts,
         source,
@@ -8027,9 +8009,6 @@ pub(crate) fn print_with_writer_and_platform<
     parts: &[js_ast::Part],
     renamer: rename::Renamer<'a, 'a>,
 ) -> PrintResult {
-    let _restore =
-        bun_crash_handler::scoped_action(bun_crash_handler::Action::Print(source.path.text));
-
     // See `print_ast`: pre-size the output buffer to avoid grow+memmove churn.
     let _ = writer.reserve(source.contents().len() as u64);
 
@@ -8037,7 +8016,7 @@ pub(crate) fn print_with_writer_and_platform<
         Printer<'a, W, /*ASCII_ONLY=*/ B, B, false, G>;
     let module_type = opts.module_type;
     let mut opts = opts;
-    let source_map_builder = get_source_map_builder::<IS_BUN_PLATFORM>(
+    let source_map_builder = get_source_map_builder(
         GenerateSourceMap::eager_if(GENERATE_SOURCE_MAPS),
         &mut opts,
         source,

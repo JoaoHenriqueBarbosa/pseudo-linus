@@ -177,9 +177,29 @@ de chegar aos tipos. O que falta, por grupo:
   copia os dois campos do símbolo velho em vez de segurar dois empréstimos). `E::JsonValue`, `ObjectJSON` e
   `ArrayJSON` não entram: a `Data` do porte não tem essas variantes (só o loader de JSON as cria), então os braços e
   as três funções `print_*_json` do printer saíram, e voltam junto com o loader;
-- ainda faltam: `AstAlloc` (sai, como no parser), `hashbrown` com a feature `raw-entry`, `bun_core::vec`, `bun_ptr::BackRef`,
-  `bun_sourcemap` (o `Chunk::Builder`, os line offset tables e o VLQ, 4,8 mil linhas no upstream, 62 `unsafe`) e
-  `bun_crash_handler` (fora por decisão da coordenação: as quatro chamadas a `scoped_action` saem);
+- **Lacuna registrada: os nós JSON.** Ao imprimir um arquivo `.json` o bun usa `E::ObjectJSON`, `E::ArrayJSON` e
+  `E::JsonValue` (o JSON em fita, `JsonTape` e `TapeAlloc` em `ast/e.rs` do upstream), criados só pelo
+  `parsers/json_stage2.rs`. O porte não os tem, então o printer perdeu os braços `ExprData::EObjectJSON` e
+  `ExprData::EArrayJSON` do `print_expr` e as funções `print_object_json`, `print_array_json` e `print_json_value`
+  (cópia em `js_printer/lib.rs` do upstream, logo depois de `number_property_key_must_be_computed`). Para voltar:
+  (1) portar `JsonValue`, `JsonTape`, `ObjectJSON` e `ArrayJSON` para o `Store` (a fita vira um `Vec` do `Store`, sem
+  `TapeAlloc` nem ponteiro), (2) acrescentar `EObjectJSON(StoreRef<E::ObjectJSON>)` e `EArrayJSON(...)` à `Data` em
+  `expr.rs` (a `Tag` já tem as duas), (3) portar o `json_stage2.rs`, que é quem os cria (`.json` não passa pelo
+  parser de JS), e (4) copiar de volta os dois braços e as três funções do upstream, trocando `.get()` por acesso ao
+  `Store`. Sem isso, `bun build --no-bundle x.json` não tem como bater.
+- `bun_sourcemap` (crate `sourcemap/`, sem `unsafe`): `vlq` (codifica e decodifica), `SourceMapState`,
+  `append_mapping_to_buffer`, `line_offset_table` (as colunas viram três `Vec`, no lugar do `MultiArrayList`) e `chunk`
+  (`Chunk`, `VLQSourceMap`, `LineOffsetTables`, `NewBuilder`/`Builder` com `add_source_mapping`,
+  `update_generated_line_and_column` e `generate_chunk`). **Lacunas registradas:** (1) o `InternalSourceMap`, formato
+  privado em processo do modo preguiçoso (`GenerateSourceMap::Lazy` com `IS_BUN_PLATFORM`) do runtime do bun, 1,3 mil
+  linhas com ponteiros crus; sem ele o `prepend_count` do `Builder` não existe, e o Lazy gera o mesmo VLQ do Eager;
+  (2) a leitura de mapas (`Mapping`, `ParsedSourceMap`, `SavedSourceMap`); (3) o `print_source_map_contents` (o JSON do
+  `.map`), que entra com o `quote_for_json` movido para `bun_core::printer`, como no upstream. O teste de mapa contra
+  `bun build --no-bundle --sourcemap` do oráculo fica para quando o printer compilar (parte 4): as colunas de
+  `columns_for_non_ascii` ainda só têm teste de tamanho;
+- ainda faltam: `bun_core::vec` e `bun_ptr::BackRef` (os dois somem na parte 3, ao tirar o `unsafe`). `AstAlloc` saiu
+  (o printer usa `Default::default()`), `hashbrown` ganhou a feature `raw-entry` e as quatro chamadas a
+  `bun_crash_handler::scoped_action` saíram (fora por decisão da coordenação);
 - 14 usos de `unsafe` (e 6 `unsafe impl`) e o `#![feature(adt_const_params)]`, que pede trocar os parâmetros
   const de enum (`Encoding`) por `u8` ou por argumento de execução.
 
