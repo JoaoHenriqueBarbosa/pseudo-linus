@@ -313,6 +313,15 @@ impl ExtObject for Unbound {
                 return e.clone().call_method(vm, self.name, args, kw);
             }
         }
+        // O wrapper de um slot de um tipo de C que o shim escreve em Python (`greenlet.greenlet.__init__(self, ...)`):
+        // roda a implementação do próprio tipo, não a da classe do receptor, que a sobrescreve e costuma chamá-la.
+        if let Value::Instance(inst) = &recv {
+            let owner = inst.class().mro().iter().find(|c| c.name == self.tname && c.emulates_c_type()).cloned();
+            if let Some(Value::Function(f)) = owner.and_then(|c| c.dict.borrow().get(self.name).cloned()) {
+                args.insert(0, recv);
+                return vm.call_function(&f, args, kw);
+            }
+        }
         // `dict.__getitem__(self, k)` numa subclasse que sobrescreve `__getitem__`: vale o método do tipo
         // embutido sobre o dado de dentro da instância, não a sobrescrita (senão recursa).
         let target = crate::vm::unwrap_payload(&recv);

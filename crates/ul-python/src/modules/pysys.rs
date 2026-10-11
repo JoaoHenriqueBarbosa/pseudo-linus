@@ -125,7 +125,11 @@ fn frame_at_depth(vm: &mut Vm, depth: usize, fresh_innermost: bool) -> PyResult<
         });
         line = *caller_line;
     }
-    chain.push(FrameLink { line, name: "<module>".to_string(), file: script, code: None, env: None, caller_line: 0 });
+    // O `<module>` do script é o fundo da pilha da thread principal: a de uma thread verde (uma thread de `threading`,
+    // um greenlet) começa na função dela, sem quadro de módulo embaixo.
+    if !crate::gthread::in_secondary() {
+        chain.push(FrameLink { line, name: "<module>".to_string(), file: script, code: None, env: None, caller_line: 0 });
+    }
     crate::frameobj::live_frame_at(chain, depth, fresh_innermost)
         .ok_or_else(|| exc("ValueError", "call stack is not deep enough"))
 }

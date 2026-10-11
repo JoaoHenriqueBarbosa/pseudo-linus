@@ -1,0 +1,16 @@
+A del dict None
+A set dict EXC TypeError __dict__ must be set to a dictionary, not a 'int'
+fresh run EXC AttributeError run
+del run fresh None
+del run set None
+after del EXC AttributeError run
+run=None switch EXC TypeError 'NoneType' object is not callable
+g3.run None
+g3.run=5 5
+dict {}
+dict x {'x': 1}
+del dict EXC TypeError __dict__ may not be deleted
+set dict EXC TypeError __dict__ must be a dictionary
+ctx del EXC AttributeError can't delete context attribute
+sub type 'S'
+sub switch 7

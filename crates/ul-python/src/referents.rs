@@ -222,7 +222,9 @@ fn greenlet_referents(mut out: Vec<Value>, state: &Value, view: Option<Rc<std::c
         out.extend(main_greenlet(st));
     }
     if !started {
-        out.extend(field(st, "run"));
+        // `_NoRun` marca o `run_callable` `NULL`; o `run=None` explícito é um objeto como outro qualquer.
+        let run = st.dict.borrow().get("run").cloned().filter(|v| !matches!(v, Value::Instance(n) if n.class().name == "_NoRun"));
+        out.extend(run);
     }
     out.extend(field(st, "context"));
     out

@@ -40,6 +40,14 @@ _getattr = object.__getattribute__
 _setattr = object.__setattr__
 
 
+# O `run` que nunca foi posto (o `run=None` explícito é um `run` que vale `None`, e chamá-lo é `TypeError`).
+class _NoRun:
+    pass
+
+
+_NO_RUN = _NoRun()
+
+
 class _State:
     """O estado de um greenlet, separado do objeto: o segmento suspenso o segura sem segurar o greenlet (o objeto só
     morre quando o programa solta a última referência, e aí o `__del__` mata o segmento)."""
@@ -49,7 +57,7 @@ class _State:
         self.parent = parent
         self.main = main
         self.call_run = False
-        self.run = None
+        self.run = _NO_RUN
         self.tid = None
         self.started = main
         self.dead = False
@@ -378,7 +386,7 @@ def _entry(state, run):
         result = ('throw', exc)
     del run, payload
     state.dead = True
-    state.run = None
+    state.run = _NO_RUN
     state.frame = None
     me = _thread().glet
     target = _resolve(state.parent)
@@ -425,7 +433,7 @@ def _get_run(glet):
     state = _st(glet)
     if state.main:
         raise AttributeError('Main greenlets do not have a run attribute.')
-    if state.started or state.run is None:
+    if state.started or state.run is _NO_RUN:
         raise AttributeError('run')
     return state.run
 
@@ -438,7 +446,7 @@ def _set_run(glet, value):
 
 
 def _del_run(glet):
-    _set_run(glet, None)
+    _set_run(glet, _NO_RUN)
 
 
 class greenlet:
@@ -457,8 +465,8 @@ Creates a new greenlet object (without running it).
         _setattr(self, '_greenlet__st', _State(_thread(), current, False))
         return self
 
-    def __init__(self, run=None, parent=None):
-        if run is not None:
+    def __init__(self, run=_NO_RUN, parent=None):
+        if run is not _NO_RUN:
             _set_run(self, run)
         if parent is not None:
             _set_parent(self, parent)
@@ -530,6 +538,10 @@ from ``g_raiser`` to ``g``.
         if self is getattr(_thread(), 'glet', None):
             return _thread().ctx
         return _st(self).context
+
+    @gr_context.deleter
+    def gr_context(self):
+        raise AttributeError("can't delete context attribute")
 
     @gr_context.setter
     def gr_context(self, value):
