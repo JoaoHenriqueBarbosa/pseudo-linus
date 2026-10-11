@@ -1473,6 +1473,7 @@ impl CallLink {
             Dunder::Import(_) => "import".into(),
             Dunder::Exec(_) => "exec".into(),
             Dunder::CReturn(_) => return None,
+            Dunder::Finalize { .. } => "finalize".into(),
             // A nativa repetida (a embutida ou o método com o tipo do receptor, ou a instrução com os tipos dos
             // operandos).
             Dunder::Replay(run) => match &run.op {
@@ -1727,6 +1728,10 @@ pub(crate) enum Dunder {
     /// A função Python que no CPython é C (`greenlet.switch`), chamada com o perfil ligado: o `c_return` (ou o
     /// `c_exception`) sai quando o quadro acaba, e o valor segue para o chamador.
     CReturn(Value),
+    /// O `__del__` de uma instância solta, empilhado entre duas instruções (o ponto seguro da finalização): o valor é
+    /// descartado, uma exceção vai ao `sys.unraisablehook` (com `del` como objeto) e as exceções tratadas voltam ao
+    /// número de antes (`handled`). Por ser quadro do laço, o `__del__` pode trocar de greenlet.
+    Finalize { del: Value, handled: usize, floor: u64 },
 }
 
 /// O que se repete: a chamada da nativa, ou a instrução do laço sobre os operandos que ela consumiu.
@@ -2157,8 +2162,8 @@ impl Vm {
             }
             // Ponto seguro da finalização: logo depois da instrução que soltou a última referência de um
             // objeto com `__del__`, o `__del__` roda (nunca com uma exceção em voo).
-            if crate::finalize::pending() && pending.is_none() {
-                self.run_finalizers();
+            if crate::finalize::pending() && pending.is_none() && spawn.is_none() {
+                spawn = self.finalizer_frame();
             }
             // Sinais capturados chegam entre instruções, como no CPython (só depois de um `signal.signal`). O
             // tratador ganha quadro neste laço (o quadro em execução espera em `frames_stack`), então um `fork`
@@ -2819,6 +2824,12 @@ impl Vm {
                         (Ok(v), _, None) => caller.stack.push(Slot::Val(v)),
                         // O tratador de um sinal levantou: a exceção nasce na instrução interrompida, que ainda não rodou.
                         (Err(e), _, Some(Dunder::Signal)) => pending = Some(e),
+                        // O `__del__` levantou: o erro não sobe, vai ao `unraisablehook`, e a instrução interrompida segue.
+                        (Err(e), _, Some(Dunder::Finalize { del, handled, floor })) => {
+                            self.handled.borrow_mut().truncate(handled);
+                            crate::finalize::frame_closed(floor);
+                            self.write_unraisable(&del, e);
+                        }
                         // O `__next__` ou o `__getitem__` de uma fonte folha acabou com o fim dela (`StopIteration`,
                         // no protocolo antigo também `IndexError`): a máquina da coleta segue com o fim.
                         (Err(e), _, Some(Dunder::Callback(callback)))
@@ -3626,7 +3637,7 @@ fn is_resume_call(b: &BoundMethod, args: &[Value], kwargs: &[(String, Value)]) -
 impl Vm {
     /// Liga os argumentos e abre a chamada. Gerador e corrotina terminam aqui, com o valor. A função
     /// de outro módulo troca `Vm::globals` pelas dela até o fechamento (`end_call`).
-    fn enter_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Entered> {
+    pub(crate) fn enter_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Entered> {
         if Rc::ptr_eq(&self.globals, &f.globals) {
             return self.open_call(f, args, kwargs);
         }
@@ -3971,6 +3982,11 @@ impl Vm {
             Dunder::Chain(chain) => self.advance_chain(chain, Some(v)),
             Dunder::Push => Ok(Next::Value(v)),
             Dunder::Discard | Dunder::Signal => Ok(Next::Nothing),
+            Dunder::Finalize { handled, floor, .. } => {
+                self.handled.borrow_mut().truncate(handled);
+                crate::finalize::frame_closed(floor);
+                Ok(Next::Nothing)
+            }
             Dunder::Boolean { negate } => Ok(Next::Value(Value::Bool(v.is_true() != negate))),
             Dunder::Iter => iterator_from_dunder(v).map(Next::Iter),
             Dunder::Text(name) => crate::classes::text_result(name, v).map(Next::Value),

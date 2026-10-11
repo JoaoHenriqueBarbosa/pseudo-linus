@@ -377,6 +377,7 @@ enum DunderNode {
     Callback(Box<CallbackNode>),
     Signal,
     CReturn(Item),
+    Finalize { del: Item, handled: usize, floor: u64 },
     Import(Box<ImportNode>),
     Exec(Box<ExecNode>),
     Replay(Box<ReplayNode>),
@@ -1245,6 +1246,7 @@ impl Encoder {
             Dunder::Callback(s) => DunderNode::Callback(Box::new(self.callback_node(s)?)),
             Dunder::Signal => DunderNode::Signal,
             Dunder::CReturn(func) => DunderNode::CReturn(self.item(func)?),
+            Dunder::Finalize { del, handled, floor } => DunderNode::Finalize { del: self.item(del)?, handled: *handled, floor: *floor },
             Dunder::Replay(run) => {
                 let op = match &run.op {
                     ReplayOp::Call { func, args, kwargs } => {
@@ -1678,6 +1680,7 @@ impl Rebuilt {
             DunderNode::Callback(s) => Dunder::Callback(Box::new(self.callback_of(s)?)),
             DunderNode::Signal => Dunder::Signal,
             DunderNode::CReturn(func) => Dunder::CReturn(self.value(*func)?),
+            DunderNode::Finalize { del, handled, floor } => Dunder::Finalize { del: self.value(*del)?, handled: *handled, floor: *floor },
             DunderNode::Replay(n) => {
                 let op = match &n.op {
                     ReplayOpNode::Call { func, args, kwargs } => {

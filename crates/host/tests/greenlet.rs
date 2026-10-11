@@ -425,3 +425,14 @@ fn deleteme_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_deleteme.out"),
     );
 }
+
+/// O `__del__` como quadro do laço: troca de greenlet, irmãos em sequência (sem empilhar), o que morre dentro de um
+/// `__del__` roda dentro dele, o erro vai ao `unraisablehook`. Como no oráculo.
+#[test]
+fn finalizer_frames_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_finalizer_frames",
+        include_str!("../../../testbench/oracle/automation/cases/gl_finalizer_frames.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_finalizer_frames.out"),
+    );
+}

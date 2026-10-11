@@ -424,6 +424,9 @@ def _entry(state, run):
         # O rastreador roda no greenlet novo, antes do `run`: um erro dele o mata e sobe ao pai, como o do `run`.
         _trace(payload[0], origin, _thread().glet)
         del origin
+        # O `inner_bootstrap` solta o `run` guardado antes de rodar: o `__del__` dele roda aqui e pode trocar de greenlet
+        # antes de o `run` começar (quando o `__getattribute__` de uma subclasse devolveu outro `run`).
+        state.run = _NO_RUN
         if payload[0] == 'throw':
             raise payload[1]
         result = ('switch', (run(*payload[1], **payload[2]),), {})
