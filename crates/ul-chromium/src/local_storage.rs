@@ -14,13 +14,15 @@
 //! prefixo, no que o banco tem), depois as chaves alteradas que existem (em ordem de chave), as apagadas, e por fim os
 //! metadados (`METAACCESS` e `META`, ou a remoção dos dois quando a origem ficou vazia).
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use ul_leveldb::batch::WriteBatch;
 use ul_leveldb::coding::put_varint64;
 use ul_leveldb::env::Env;
 use ul_leveldb::{Db, Options, Result};
+
+use crate::storage_state::{AreaStore, Change, Tracked};
 
 /// Microssegundos de 1601 (a época do tempo WebKit) até 1970.
 const WEBKIT_EPOCH_US: u64 = 11_644_473_600_000_000;
@@ -30,14 +32,6 @@ const META_PREFIX: &[u8] = b"META:";
 const META_ACCESS_PREFIX: &[u8] = b"METAACCESS:";
 const FORMAT_UTF16: u8 = 0;
 const FORMAT_LATIN1: u8 = 1;
-
-/// Uma mudança que a página fez na área da origem dela.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Change<'a> {
-    Set(&'a str, &'a str),
-    Remove(&'a str),
-    Clear,
-}
 
 /// O texto como o Chromium o grava: o byte de formato e os caracteres (Latin1 se todos cabem em um byte).
 fn encode(text: &str) -> Vec<u8> {
@@ -86,10 +80,8 @@ fn meta_value(time: u64, size: Option<u64>) -> Vec<u8> {
 #[derive(Default)]
 struct Area {
     /// Chave e valor codificados (sem o prefixo da origem), em ordem de chave: a ordem em que o banco os entrega ao
-    /// carregar a origem.
-    map: BTreeMap<Vec<u8>, Vec<u8>>,
-    changed: BTreeSet<Vec<u8>>,
-    clear_all_first: bool,
+    /// carregar a origem, e o que falta gravar.
+    tracked: Tracked,
     /// A origem foi aberta nesta execução (o commit atualiza `METAACCESS`).
     accessed: bool,
     /// Desde quando há algo a gravar: a abertura da origem, ou a primeira mudança depois dela (o atraso de commit
@@ -119,7 +111,7 @@ impl Inner {
                 .into_iter()
                 .filter_map(|(key, value)| Some((key.strip_prefix(prefix.as_slice())?.to_vec(), value)))
                 .collect();
-            self.areas.insert(origin.to_owned(), Area { map, accessed: true, pending_since: Some(now), ..Area::default() });
+            self.areas.insert(origin.to_owned(), Area { tracked: Tracked { map, ..Tracked::default() }, accessed: true, pending_since: Some(now), ..Area::default() });
             self.order.push(origin.to_owned());
         }
         self.areas.get_mut(origin).expect("a área foi carregada acima")
@@ -130,13 +122,14 @@ impl Inner {
     fn commit_batch(&mut self, origin: &str, now: u64) -> Option<WriteBatch> {
         let prefix = area_prefix(origin);
         let persisted: Vec<Vec<u8>> = match self.areas.get(origin) {
-            Some(area) if area.clear_all_first => self.db.entries().unwrap_or_default().into_iter().map(|(key, _)| key).filter(|key| key.starts_with(&prefix)).collect(),
+            Some(area) if area.tracked.clear_all_first => self.db.entries().unwrap_or_default().into_iter().map(|(key, _)| key).filter(|key| key.starts_with(&prefix)).collect(),
             _ => Vec::new(),
         };
         let area = self.areas.get_mut(origin)?;
-        let has_changes = area.clear_all_first || !area.changed.is_empty();
+        let has_changes = area.tracked.has_changes();
+        let Tracked { map, changed, .. } = &area.tracked;
         area.pending_since = None;
-        if !has_changes && (!area.accessed || area.map.is_empty()) {
+        if !has_changes && (!area.accessed || map.is_empty()) {
             area.accessed = false;
             return None;
         }
@@ -145,28 +138,27 @@ impl Inner {
             batch.delete(key);
         }
         let full = |key: &[u8]| [prefix.as_slice(), key].concat();
-        for key in &area.changed {
-            if let Some(value) = area.map.get(key) {
+        for key in changed {
+            if let Some(value) = map.get(key) {
                 batch.put(&full(key), value);
             }
         }
-        for key in area.changed.iter().filter(|key| !area.map.contains_key(*key)) {
+        for key in changed.iter().filter(|key| !map.contains_key(*key)) {
             batch.delete(&full(key));
         }
         let (access_key, modified_key) = (meta_key(META_ACCESS_PREFIX, origin), meta_key(META_PREFIX, origin));
         let time = now + WEBKIT_EPOCH_US;
-        if area.map.is_empty() {
+        if map.is_empty() {
             batch.delete(&access_key);
             batch.delete(&modified_key);
         } else {
             batch.put(&access_key, &meta_value(time, None));
             if has_changes {
-                let size: usize = area.map.iter().map(|(key, value)| key.len() + value.len()).sum();
+                let size: usize = map.iter().map(|(key, value)| key.len() + value.len()).sum();
                 batch.put(&modified_key, &meta_value(time, Some(size as u64)));
             }
         }
-        area.changed.clear();
-        area.clear_all_first = false;
+        area.tracked.settle();
         area.accessed = false;
         Some(batch)
     }
@@ -198,52 +190,6 @@ impl LocalStorageStore {
         self.inner.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    /// Abre a área da origem: as entradas que o banco tem, na ordem de chave (a ordem em que o Blink monta a tabela
-    /// da página). Abrir conta como acesso: o commit seguinte atualiza `METAACCESS`.
-    pub fn open_area(&self, origin: &str) -> Vec<(String, String)> {
-        let now = self.env.now_micros();
-        let mut inner = self.lock();
-        let area = inner.area(origin, now);
-        area.map.iter().filter_map(|(key, value)| Some((decode(key)?, decode(value)?))).collect()
-    }
-
-    /// Anota uma mudança da página; ela vai ao disco no próximo `flush`. O que não muda nada (gravar o valor que já
-    /// está lá, remover o que não existe, limpar uma área vazia) não é mudança: o Blink nem avisa o navegador.
-    pub fn record(&self, origin: &str, change: Change) {
-        let now = self.env.now_micros();
-        let mut inner = self.lock();
-        let area = inner.area(origin, now);
-        let first_change = area.changed.is_empty() && !area.clear_all_first;
-        match change {
-            Change::Set(key, value) => {
-                let (key, value) = (encode(key), encode(value));
-                if area.map.get(&key) == Some(&value) {
-                    return;
-                }
-                area.map.insert(key.clone(), value);
-                area.changed.insert(key);
-            }
-            Change::Remove(key) => {
-                let key = encode(key);
-                if area.map.remove(&key).is_none() {
-                    return;
-                }
-                area.changed.insert(key);
-            }
-            Change::Clear => {
-                if area.map.is_empty() {
-                    return;
-                }
-                area.map.clear();
-                area.changed.clear();
-                area.clear_all_first = true;
-            }
-        }
-        if first_change {
-            area.pending_since = Some(now);
-        }
-    }
-
     /// O commit: grava o que está pendente, um lote por origem, na ordem dos primeiros acessos.
     pub fn flush(&self) -> Result<()> {
         self.commit(|_| true)
@@ -268,5 +214,26 @@ impl LocalStorageStore {
             }
         }
         Ok(())
+    }
+}
+
+impl AreaStore for LocalStorageStore {
+    /// Abrir a área conta como acesso: o commit seguinte atualiza `METAACCESS`.
+    fn open_area(&self, origin: &str) -> Vec<(String, String)> {
+        let now = self.env.now_micros();
+        let mut inner = self.lock();
+        let area = inner.area(origin, now);
+        area.tracked.map.iter().filter_map(|(key, value)| Some((decode(key)?, decode(value)?))).collect()
+    }
+
+    fn record(&self, origin: &str, change: Change) {
+        let now = self.env.now_micros();
+        let mut inner = self.lock();
+        let area = inner.area(origin, now);
+        let first_change = !area.tracked.has_changes();
+        let change = change.encode(encode, encode);
+        if area.tracked.apply(change) && first_change {
+            area.pending_since = Some(now);
+        }
     }
 }

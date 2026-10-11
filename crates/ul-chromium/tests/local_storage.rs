@@ -6,7 +6,8 @@
 
 use std::sync::Arc;
 
-use ul_chromium::local_storage::{Change, LocalStorageStore};
+use ul_chromium::local_storage::LocalStorageStore;
+use ul_chromium::storage_state::{AreaStore, Change};
 use ul_leveldb::batch::{Op, WriteBatch};
 use ul_leveldb::env::{Env, MemEnv};
 use ul_leveldb::log::read_records;

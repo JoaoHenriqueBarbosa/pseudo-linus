@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ss edge</title>
+<script>
+// Bordas do sessionStorage: gravar e remover a mesma chave (mapa vazio no fim), gravar o mesmo valor duas vezes, e
+// clear() com uma chave que ficou.
+sessionStorage.setItem('k', 'v');
+sessionStorage.removeItem('k');
+sessionStorage.setItem('same', '1');
+sessionStorage.setItem('same', '1');
+sessionStorage.setItem('x', 'y');
+sessionStorage.setItem('z', 'w');
+sessionStorage.clear();
+sessionStorage.setItem('after', 'clear');
+document.title = 'done';
+</script>
+<body>ss edge</body>

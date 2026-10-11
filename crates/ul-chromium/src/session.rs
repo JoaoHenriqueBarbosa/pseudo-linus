@@ -8,8 +8,11 @@ use std::sync::{Arc, Mutex};
 
 use ul_common::hash::rapidhash::{wtf_string_hash, DEFAULT_SEED};
 
+use crate::disk_profile::DiskProfile;
 use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
+use crate::session_storage::SessionStorageStore;
+use crate::storage_state::AreaStore;
 
 /// Um balde da tabela.
 #[derive(Debug, Clone)]
@@ -164,7 +167,7 @@ impl StorageArea {
 #[derive(Debug, Default)]
 pub struct Areas {
     map: HashMap<String, StorageArea>,
-    store: Option<Arc<LocalStorageStore>>,
+    store: Option<Arc<dyn AreaStore>>,
 }
 
 impl Areas {
@@ -182,7 +185,7 @@ impl Areas {
     }
 
     /// O banco que guarda estas áreas, se o perfil é o de um navegador com `--user-data-dir`.
-    pub fn store(&self) -> Option<Arc<LocalStorageStore>> {
+    pub fn store(&self) -> Option<Arc<dyn AreaStore>> {
         self.store.clone()
     }
 }
@@ -194,12 +197,36 @@ pub struct Profile {
     pub local: Mutex<Areas>,
     /// O IndexedDB do contexto: no leveldb de cada origem, como o Chromium o grava.
     pub indexed_db: Arc<IndexedDbStore>,
+    local_storage: Option<Arc<LocalStorageStore>>,
+    /// O banco do `sessionStorage`: cada aba ganha o `namespace` dela nele.
+    session_storage: Option<Arc<SessionStorageStore>>,
 }
 
 impl Profile {
     /// O perfil do `--user-data-dir`: o `localStorage` e o IndexedDB persistem nos bancos dele.
     pub fn on_disk(local_storage: Option<Arc<LocalStorageStore>>, indexed_db: Option<Arc<IndexedDbStore>>) -> Profile {
-        Profile { local: Mutex::new(Areas { map: HashMap::new(), store: local_storage }), indexed_db: indexed_db.unwrap_or_default() }
+        let store = local_storage.clone().map(|store| store as Arc<dyn AreaStore>);
+        Profile { local: Mutex::new(Areas { map: HashMap::new(), store }), indexed_db: indexed_db.unwrap_or_default(), local_storage, session_storage: None }
+    }
+
+    /// O perfil com todos os bancos do `DiskProfile`, o `sessionStorage` incluído.
+    pub fn from_disk(disk: &DiskProfile) -> Profile {
+        Profile { session_storage: disk.session_storage(), ..Profile::on_disk(disk.local_storage(), disk.indexed_db()) }
+    }
+
+    /// Algum banco do perfil grava o que as páginas guardam.
+    pub fn persists(&self) -> bool {
+        self.local_storage.is_some() || self.session_storage.is_some()
+    }
+
+    /// Grava o que passou do atraso de commit: o que o navegador faz sozinho enquanto está de pé.
+    pub fn flush_due(&self) {
+        if let Some(store) = &self.local_storage {
+            let _ = store.flush_due();
+        }
+        if let Some(store) = &self.session_storage {
+            let _ = store.flush_due();
+        }
     }
 }
 
@@ -212,7 +239,8 @@ pub struct Tab {
 
 impl Tab {
     pub fn new(profile: Arc<Profile>) -> Tab {
-        Tab { profile, session: RefCell::new(Areas::default()) }
+        let store = profile.session_storage.as_ref().map(|store| store.namespace() as Arc<dyn AreaStore>);
+        Tab { profile, session: RefCell::new(Areas { map: HashMap::new(), store }) }
     }
 }
 

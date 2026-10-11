@@ -237,16 +237,11 @@ pub mod record_index {
     pub const MINIMUM_INDEX_ID: u64 = 30;
 }
 
-/// `ObjectStoreDataKey`: o registro de um repositório (chave primária codificada).
-pub fn object_store_data_key(database_id: u64, object_store_id: u64, primary_key: &IdbKey) -> Vec<u8> {
-    let mut key = key_prefix(database_id, object_store_id, record_index::OBJECT_STORE_DATA);
-    primary_key.encode(&mut key);
-    key
-}
-
-/// `ExistsEntryKey`: marca que a chave primária existe.
-pub fn exists_entry_key(database_id: u64, object_store_id: u64, primary_key: &IdbKey) -> Vec<u8> {
-    let mut key = key_prefix(database_id, object_store_id, record_index::EXISTS_ENTRY);
+/// A chave de uma família de registros de um repositório (`record_index`) para uma chave primária: o registro
+/// (`ObjectStoreDataKey`, `record_index::OBJECT_STORE_DATA`) e a marca de que a chave existe (`ExistsEntryKey`,
+/// `record_index::EXISTS_ENTRY`).
+pub fn record_key(database_id: u64, object_store_id: u64, family: u64, primary_key: &IdbKey) -> Vec<u8> {
+    let mut key = key_prefix(database_id, object_store_id, family);
     primary_key.encode(&mut key);
     key
 }
@@ -327,8 +322,8 @@ mod tests {
     #[test]
     fn record_keys_match_the_oracle() {
         let one = IdbKey::Number(1.0);
-        assert_eq!(object_store_data_key(1, 1, &one), hex("00 01 01 01 03 00 00 00 00 00 00 f0 3f"));
-        assert_eq!(exists_entry_key(1, 1, &one), hex("00 01 01 02 03 00 00 00 00 00 00 f0 3f"));
+        assert_eq!(record_key(1, 1, record_index::OBJECT_STORE_DATA, &one), hex("00 01 01 01 03 00 00 00 00 00 00 f0 3f"));
+        assert_eq!(record_key(1, 1, record_index::EXISTS_ENTRY, &one), hex("00 01 01 02 03 00 00 00 00 00 00 f0 3f"));
         assert_eq!(
             index_data_key(1, 1, 31, &IdbKey::String(units("a")), 0, &one),
             hex("00 01 01 1f 01 01 00 61 00 03 00 00 00 00 00 00 f0 3f")

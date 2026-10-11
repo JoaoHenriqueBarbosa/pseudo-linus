@@ -11,6 +11,7 @@ use serde_json::Value;
 use sysabi::testkit::{TestKit, TreeEntry};
 use sysabi::{Ctx, Program};
 use ul_chromium::disk_profile::{DiskProfile, Run};
+use ul_chromium::session_storage::Exit;
 
 const USER_DATA_DIR: &[u8] = b"/tmp/profile";
 
@@ -21,13 +22,13 @@ fn start(_ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
 
 fn start_and_finish(_ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
     let profile = DiskProfile::start(Some(USER_DATA_DIR), Run::DevTools);
-    profile.finish();
+    profile.finish(Exit::Signal);
     0
 }
 
 fn start_and_finish_dump(_ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
     let profile = DiskProfile::start(Some(USER_DATA_DIR), Run::DumpDom);
-    profile.finish();
+    profile.finish(Exit::DumpDom);
     0
 }
 

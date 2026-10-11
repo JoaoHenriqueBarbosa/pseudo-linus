@@ -10,6 +10,7 @@ use super::json::{self, Json};
 use super::target::{self, Link};
 use super::websocket::{self, Decoder, Incoming};
 use super::{token, uuid};
+use crate::session_storage::Exit;
 
 /// Como o DevTools remoto foi pedido na linha de comando.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -72,15 +73,13 @@ pub struct Browser {
     /// O perfil de cada contexto de navegação (o padrão e os de `Target.createBrowserContext`), que as abas dele
     /// compartilham.
     profiles: std::collections::HashMap<String, std::sync::Arc<crate::session::Profile>>,
-    /// O banco do Local Storage do `--user-data-dir`, que o laço manda gravar o que passou do atraso de commit.
-    local_storage: Option<std::sync::Arc<crate::local_storage::LocalStorageStore>>,
     targets: Vec<Target>,
     sessions: Vec<Session>,
     conns: Vec<Conn>,
     next_key: u64,
     allowed_origins: Vec<String>,
-    /// `Browser.close` pedido: o laço termina depois de mandar a resposta.
-    quit: bool,
+    /// A saída pedida (`Browser.close` ou um sinal): o laço termina depois de mandar a resposta.
+    quit: Option<Exit>,
     /// Abas a fechar depois da resposta corrente.
     closing: Vec<String>,
     /// Janelas abertas até aqui: a da aba inicial e, sem `--user-data-dir`, a do primeiro alvo criado, cada uma com
@@ -149,27 +148,30 @@ impl http::Browser for Browser {
 }
 
 impl Browser {
-    pub fn new(options: &Options, local_storage: Option<std::sync::Arc<crate::local_storage::LocalStorageStore>>, indexed_db: Option<std::sync::Arc<crate::idb::disk::IndexedDbStore>>) -> Browser {
+    pub fn new(options: &Options, default_profile: crate::session::Profile) -> Browser {
         let context_id = token();
-        let default_profile = crate::session::Profile::on_disk(local_storage.clone(), indexed_db);
         let profiles = std::collections::HashMap::from([(context_id.clone(), std::sync::Arc::new(default_profile))]);
         Browser {
             browser_id: uuid(),
             context_id,
             contexts: Vec::new(),
             profiles,
-            local_storage,
             targets: Vec::new(),
             sessions: Vec::new(),
             conns: Vec::new(),
             next_key: 1,
             allowed_origins: options.allowed_origins.clone(),
-            quit: false,
+            quit: None,
             closing: Vec::new(),
             windows: 0,
             max_windows: if options.user_data_dir { 1 } else { 2 },
             schema: super::protocol::Schema::load(),
         }
+    }
+
+    /// O perfil do contexto padrão, o do `--user-data-dir`.
+    fn default_profile(&self) -> &std::sync::Arc<crate::session::Profile> {
+        &self.profiles[&self.context_id]
     }
 
     fn target(&self, id: &str) -> Option<&Target> {
@@ -441,7 +443,7 @@ impl Browser {
                 ("jsVersion", Json::str(http::V8_VERSION)),
             ])),
             "Browser.close" => {
-                self.quit = true;
+                self.quit = Some(Exit::Close);
                 Ok(Json::object([]))
             }
             "Browser.getWindowForTarget" => match target_id {
@@ -814,7 +816,7 @@ impl Browser {
     /// O laço: espera conexão, mensagem ou saída de página, trata, e escreve o que ficou pendente.
     fn serve(&mut self, listener: Option<Fd>) {
         let sys = sysabi::sys::current();
-        while !self.quit || self.conns.iter().any(|c| !c.outbox.is_empty()) {
+        while self.quit.is_none() || self.conns.iter().any(|c| !c.outbox.is_empty()) {
             let mut fds = Vec::new();
             if let Some(listener) = listener {
                 fds.push(PollFd { fd: listener, events: PollEvents::IN, revents: PollEvents::empty() });
@@ -831,18 +833,16 @@ impl Browser {
             }
             let pending = self.targets.iter().any(|t| !t.pending.is_empty()) || self.conns.iter().any(|c| matches!(c.transport, Transport::Pipe { .. }) && !c.outbox.is_empty());
             // Com o banco do Local Storage de pé, o laço acorda a cada segundo para gravar o que passou dos 5 s.
-            let commit_tick = self.local_storage.as_ref().map(|_| std::time::Duration::from_secs(1));
+            let commit_tick = self.default_profile().persists().then_some(std::time::Duration::from_secs(1));
             let wait = if pending { Some(std::time::Duration::from_millis(1)) } else { commit_tick };
             if matches!(sys.poll(&mut fds, wait), Err(e) if e != sysabi::Errno::EINTR) {
                 return;
             }
             // SIGTERM, SIGINT e SIGHUP encerram como o `Browser.close`: o laço termina e a saída limpa grava o perfil.
             if !sys.take_caught_signals().is_empty() {
-                self.quit = true;
+                self.quit.get_or_insert(Exit::Signal);
             }
-            if let Some(store) = &self.local_storage {
-                let _ = store.flush_due();
-            }
+            self.default_profile().flush_due();
             let mut at = 0;
             if let Some(listener) = listener {
                 if fds[0].revents.contains(PollEvents::IN) {
@@ -871,9 +871,10 @@ impl Browser {
 }
 
 /// O navegador com DevTools remoto: abre a primeira aba em `url`, anuncia o endereço no stderr e serve até o
-/// `Browser.close`. Com `local_storage` (o banco do `--user-data-dir`), o `localStorage` do contexto padrão persiste nele.
-pub fn run(ctx: &mut Ctx, options: &Options, url: &str, local_storage: Option<std::sync::Arc<crate::local_storage::LocalStorageStore>>, indexed_db: Option<std::sync::Arc<crate::idb::disk::IndexedDbStore>>) -> i32 {
-    let mut browser = Browser::new(options, local_storage, indexed_db);
+/// `Browser.close`. Com o perfil em disco (`--user-data-dir`), o `localStorage` e o `sessionStorage` do contexto padrão persistem nele; devolve
+/// como o navegador saiu.
+pub fn run(ctx: &mut Ctx, options: &Options, url: &str, default_profile: crate::session::Profile) -> Exit {
+    let mut browser = Browser::new(options, default_profile);
     // Os sinais do encerramento do Chromium (medidos no oráculo: saída 0 e perfil gravado; o SIGPIPE é ignorado, o
     // SIGQUIT e o SIGUSR1 seguem a ação padrão).
     let sys = sysabi::sys::current();
@@ -893,5 +894,5 @@ pub fn run(ctx: &mut Ctx, options: &Options, url: &str, local_storage: Option<st
     }
     browser.open_target(url, true, false, None);
     browser.serve(listener);
-    0
+    browser.quit.unwrap_or(Exit::Signal)
 }
