@@ -17,7 +17,7 @@ use crate::api::eval::{evaluate_hidden_program, js_text};
 use crate::host_function;
 use crate::llint::LLIntFailure;
 use crate::runtime::call_data::{call as call_function, get_call_data, CallData};
-use crate::runtime::host::{host, FsStat, FsTime};
+use crate::runtime::host::{host, FsDirEntry, FsStat, FsTime};
 use crate::runtime::host_call::{pending_or, HostCall, HostResult, Thrown};
 use crate::runtime::identifier::Identifier;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
@@ -82,7 +82,17 @@ fn optional_offset(global_object: &JSGlobalObject, call: &HostCall, index: usize
     Ok((number >= 0.0).then_some(number as u64))
 }
 
-fn stat_array(global_object: &JSGlobalObject, stat: &FsStat) -> JSValue {
+/// As entradas do diretório como `[nome, tipo, nome, tipo...]`, com o tipo em bits `S_IFMT`.
+fn entries_array(global_object: &JSGlobalObject, entries: Vec<FsDirEntry>) -> JSValue {
+    let mut values = Vec::with_capacity(entries.len() * 2);
+    for entry in entries {
+        values.push(js_text(global_object.vm(), &String::from_utf8_lossy(&entry.name)));
+        values.push(js_number(f64::from(entry.mode_type)));
+    }
+    construct_array_of(global_object, &values).as_value()
+}
+
+fn stat_array(global_object: &JSGlobalObject, stat: FsStat) -> JSValue {
     let number = |value: u64| js_number(value as f64);
     let signed = |value: i64| js_number(value as f64);
     let values = [
@@ -108,153 +118,13 @@ fn stat_array(global_object: &JSGlobalObject, stat: &FsStat) -> JSValue {
     construct_array_of(global_object, &values).as_value()
 }
 
-/// `open(path, flags, mode)`.
-fn open_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let path = text_argument(global_object, call, 0)?;
-    let flags = number_argument(global_object, call, 1)? as u32;
-    let mode = number_argument(global_object, call, 2)? as u32;
-    host().fs_open(&path, flags, mode).map(|fd| js_number(f64::from(fd))).map_err(|errno| fail(global_object, errno))
-}
-host_function!(open_function, open_body);
-
-fn close_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let fd = int_argument(global_object, call, 0)?;
-    host().fs_close(fd).map(|()| JSValue::undefined()).map_err(|errno| fail(global_object, errno))
-}
-host_function!(close_function, close_body);
-
-/// `read(fd, buffer, offset, length, position)`: lê para dentro de `buffer` e devolve quantos bytes.
-fn read_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let fd = int_argument(global_object, call, 0)?;
-    let Some(view) = JSGenericTypedArrayView::from_value(&call.argument(1)) else {
-        return Err(Thrown::type_error("buffer must be a TypedArray"));
-    };
-    let offset = number_argument(global_object, call, 2)? as usize;
-    let length = number_argument(global_object, call, 3)? as usize;
-    let position = optional_offset(global_object, call, 4)?;
-    let bytes = host().fs_read(fd, length, position).map_err(|errno| fail(global_object, errno))?;
-    view.with_vector_mut(|destination| destination[offset..offset + bytes.len()].copy_from_slice(&bytes));
-    Ok(js_number(bytes.len() as f64))
-}
-host_function!(read_function, read_body);
-
-/// `write(fd, buffer, offset, length, position)`: escreve o trecho de `buffer` e devolve quantos bytes.
-fn write_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let fd = int_argument(global_object, call, 0)?;
-    let Some(view) = JSGenericTypedArrayView::from_value(&call.argument(1)) else {
-        return Err(Thrown::type_error("buffer must be a TypedArray"));
-    };
-    let offset = number_argument(global_object, call, 2)? as usize;
-    let length = number_argument(global_object, call, 3)? as usize;
-    let position = optional_offset(global_object, call, 4)?;
-    let bytes = view.with_view_bytes(|source| source[offset..offset + length].to_vec());
-    host().fs_write(fd, &bytes, position).map(|written| js_number(written as f64)).map_err(|errno| fail(global_object, errno))
-}
-host_function!(write_function, write_body);
-
-fn fstat_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let fd = int_argument(global_object, call, 0)?;
-    host().fs_fstat(fd).map(|stat| stat_array(global_object, &stat)).map_err(|errno| fail(global_object, errno))
-}
-host_function!(fstat_function, fstat_body);
-
-/// `stat(path, follow)`.
-fn stat_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let path = text_argument(global_object, call, 0)?;
-    let follow = call.argument(1).to_boolean();
-    host().fs_stat(&path, follow).map(|stat| stat_array(global_object, &stat)).map_err(|errno| fail(global_object, errno))
-}
-host_function!(stat_function, stat_body);
-
-/// `readdir(path)`: `[nome, tipo, nome, tipo...]`, com o tipo em bits `S_IFMT`.
-fn readdir_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let path = text_argument(global_object, call, 0)?;
-    let entries = host().fs_readdir(&path).map_err(|errno| fail(global_object, errno))?;
-    let mut values = Vec::with_capacity(entries.len() * 2);
-    for entry in entries {
-        values.push(js_text(global_object.vm(), &String::from_utf8_lossy(&entry.name)));
-        values.push(js_number(f64::from(entry.mode_type)));
+/// Os bytes do typed array do argumento `index` (o trecho que a visão enxerga).
+fn bytes_argument(_global_object: &JSGlobalObject, call: &HostCall, index: usize) -> Result<Vec<u8>, Thrown> {
+    match JSGenericTypedArrayView::from_value(&call.argument(index)) {
+        Some(view) => Ok(view.with_view_bytes(|bytes| bytes.to_vec())),
+        None => Err(Thrown::type_error("buffer must be a TypedArray")),
     }
-    Ok(construct_array_of(global_object, &values).as_value())
 }
-host_function!(readdir_function, readdir_body);
-
-/// Define o corpo de uma função do binding que chama o `Host` com um caminho e um modo (`mkdir`, `chmod`, `access`).
-macro_rules! path_mode_function {
-    ($function:ident, $body:ident, $method:ident) => {
-        fn $body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-            let path = text_argument(global_object, call, 0)?;
-            let mode = number_argument(global_object, call, 1)? as u32;
-            host().$method(&path, mode).map(|()| JSValue::undefined()).map_err(|errno| fail(global_object, errno))
-        }
-        host_function!($function, $body);
-    };
-}
-path_mode_function!(mkdir_function, mkdir_body, fs_mkdir);
-path_mode_function!(chmod_function, chmod_body, fs_chmod);
-path_mode_function!(access_function, access_body, fs_access);
-
-/// Define o corpo de uma função do binding que chama o `Host` com um caminho só.
-macro_rules! path_function {
-    ($function:ident, $body:ident, $method:ident) => {
-        fn $body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-            let path = text_argument(global_object, call, 0)?;
-            host().$method(&path).map(|()| JSValue::undefined()).map_err(|errno| fail(global_object, errno))
-        }
-        host_function!($function, $body);
-    };
-}
-path_function!(unlink_function, unlink_body, fs_unlink);
-path_function!(rmdir_function, rmdir_body, fs_rmdir);
-
-/// Define o corpo de uma função do binding que chama o `Host` com dois caminhos.
-macro_rules! two_paths_function {
-    ($function:ident, $body:ident, $method:ident) => {
-        fn $body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-            let first = text_argument(global_object, call, 0)?;
-            let second = text_argument(global_object, call, 1)?;
-            host().$method(&first, &second).map(|()| JSValue::undefined()).map_err(|errno| fail(global_object, errno))
-        }
-        host_function!($function, $body);
-    };
-}
-two_paths_function!(rename_function, rename_body, fs_rename);
-two_paths_function!(link_function, link_body, fs_link);
-two_paths_function!(symlink_function, symlink_body, fs_symlink);
-
-fn readlink_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let path = text_argument(global_object, call, 0)?;
-    let target = host().fs_readlink(&path).map_err(|errno| fail(global_object, errno))?;
-    Ok(js_text(global_object.vm(), &String::from_utf8_lossy(&target)))
-}
-host_function!(readlink_function, readlink_body);
-
-fn realpath_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let path = text_argument(global_object, call, 0)?;
-    let resolved = host().fs_realpath(&path).map_err(|errno| fail(global_object, errno))?;
-    Ok(js_text(global_object.vm(), &resolved))
-}
-host_function!(realpath_function, realpath_body);
-
-fn fchmod_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let fd = int_argument(global_object, call, 0)?;
-    let mode = number_argument(global_object, call, 1)? as u32;
-    host().fs_fchmod(fd, mode).map(|()| JSValue::undefined()).map_err(|errno| fail(global_object, errno))
-}
-host_function!(fchmod_function, fchmod_body);
-
-fn ftruncate_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let fd = int_argument(global_object, call, 0)?;
-    let length = number_argument(global_object, call, 1)?.max(0.0) as u64;
-    host().fs_ftruncate(fd, length).map(|()| JSValue::undefined()).map_err(|errno| fail(global_object, errno))
-}
-host_function!(ftruncate_function, ftruncate_body);
-
-fn fsync_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let fd = int_argument(global_object, call, 0)?;
-    host().fs_fsync(fd).map(|()| JSValue::undefined()).map_err(|errno| fail(global_object, errno))
-}
-host_function!(fsync_function, fsync_body);
 
 /// Um tempo em segundos (com fração) como o `utimensat` o quer; `NaN` é "agora".
 fn time_argument(global_object: &JSGlobalObject, call: &HostCall, index: usize) -> Result<FsTime, Thrown> {
@@ -266,23 +136,97 @@ fn time_argument(global_object: &JSGlobalObject, call: &HostCall, index: usize) 
     Ok(FsTime::At(whole as i64, ((seconds - whole) * 1e9).round() as i64))
 }
 
-/// `utimes(path, atime, mtime, follow)`.
-fn utimes_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let path = text_argument(global_object, call, 0)?;
-    let atime = time_argument(global_object, call, 1)?;
-    let mtime = time_argument(global_object, call, 2)?;
-    let follow = call.argument(3).to_boolean();
-    host().fs_utimes(&path, atime, mtime, follow).map(|()| JSValue::undefined()).map_err(|errno| fail(global_object, errno))
+/// O argumento `$index` da chamada, lido no tipo que o método do `Host` pede.
+macro_rules! host_argument {
+    ($global_object:ident, $call:ident, $index:literal, text) => {
+        &text_argument($global_object, $call, $index)?
+    };
+    ($global_object:ident, $call:ident, $index:literal, int) => {
+        int_argument($global_object, $call, $index)?
+    };
+    ($global_object:ident, $call:ident, $index:literal, unsigned) => {
+        number_argument($global_object, $call, $index)? as u32
+    };
+    ($global_object:ident, $call:ident, $index:literal, length) => {
+        number_argument($global_object, $call, $index)?.max(0.0) as u64
+    };
+    ($global_object:ident, $call:ident, $index:literal, time) => {
+        time_argument($global_object, $call, $index)?
+    };
+    ($global_object:ident, $call:ident, $index:literal, bytes) => {
+        &bytes_argument($global_object, $call, $index)?
+    };
+    ($global_object:ident, $call:ident, $index:literal, position) => {
+        optional_offset($global_object, $call, $index)?
+    };
+    ($global_object:ident, $call:ident, $index:literal, flag) => {
+        $call.argument($index).to_boolean()
+    };
 }
-host_function!(utimes_function, utimes_body);
 
-fn futimes_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let fd = int_argument(global_object, call, 0)?;
-    let atime = time_argument(global_object, call, 1)?;
-    let mtime = time_argument(global_object, call, 2)?;
-    host().fs_futimes(fd, atime, mtime).map(|()| JSValue::undefined()).map_err(|errno| fail(global_object, errno))
+/// Define a função do binding que chama o método `$method` do `Host` com os argumentos dados e converte o resultado
+/// com `$convert` (`unit` não devolve nada, `text` devolve a string, `stat` o array do `stat`).
+macro_rules! host_binding {
+    ($function:ident, $body:ident, $method:ident($($index:literal $kind:ident),*) => $convert:expr) => {
+        fn $body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+            host().$method($(host_argument!(global_object, call, $index, $kind)),*).map(|value| $convert(global_object, value)).map_err(|errno| fail(global_object, errno))
+        }
+        host_function!($function, $body);
+    };
 }
-host_function!(futimes_function, futimes_body);
+
+fn unit(_global_object: &JSGlobalObject, _value: ()) -> JSValue {
+    JSValue::undefined()
+}
+
+fn text(global_object: &JSGlobalObject, value: String) -> JSValue {
+    js_text(global_object.vm(), &value)
+}
+
+fn descriptor(_global_object: &JSGlobalObject, value: i32) -> JSValue {
+    js_number(f64::from(value))
+}
+
+fn count(_global_object: &JSGlobalObject, value: usize) -> JSValue {
+    js_number(value as f64)
+}
+
+host_binding!(open_function, open_body, fs_open(0 text, 1 unsigned, 2 unsigned) => descriptor);
+host_binding!(close_function, close_body, fs_close(0 int) => unit);
+host_binding!(fstat_function, fstat_body, fs_fstat(0 int) => stat_array);
+host_binding!(stat_function, stat_body, fs_stat(0 text, 1 flag) => stat_array);
+host_binding!(readdir_function, readdir_body, fs_readdir(0 text) => entries_array);
+host_binding!(mkdir_function, mkdir_body, fs_mkdir(0 text, 1 unsigned) => unit);
+host_binding!(chmod_function, chmod_body, fs_chmod(0 text, 1 unsigned) => unit);
+host_binding!(access_function, access_body, fs_access(0 text, 1 unsigned) => unit);
+host_binding!(unlink_function, unlink_body, fs_unlink(0 text) => unit);
+host_binding!(rmdir_function, rmdir_body, fs_rmdir(0 text) => unit);
+host_binding!(rename_function, rename_body, fs_rename(0 text, 1 text) => unit);
+host_binding!(link_function, link_body, fs_link(0 text, 1 text) => unit);
+host_binding!(symlink_function, symlink_body, fs_symlink(0 text, 1 text) => unit);
+host_binding!(readlink_function, readlink_body, fs_readlink(0 text) => text);
+host_binding!(realpath_function, realpath_body, fs_realpath(0 text) => text);
+host_binding!(fchmod_function, fchmod_body, fs_fchmod(0 int, 1 unsigned) => unit);
+host_binding!(ftruncate_function, ftruncate_body, fs_ftruncate(0 int, 1 length) => unit);
+host_binding!(fsync_function, fsync_body, fs_fsync(0 int) => unit);
+host_binding!(utimes_function, utimes_body, fs_utimes(0 text, 1 time, 2 time, 3 flag) => unit);
+host_binding!(futimes_function, futimes_body, fs_futimes(0 int, 1 time, 2 time) => unit);
+
+/// `read(fd, buffer, offset, length, position)`: lê para dentro de `buffer` e devolve quantos bytes.
+fn read_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let fd = int_argument(global_object, call, 0)?;
+    let Some(view) = JSGenericTypedArrayView::from_value(&call.argument(1)) else {
+        return Err(Thrown::type_error("buffer must be a TypedArray"));
+    };
+    let offset = number_argument(global_object, call, 2)? as usize;
+    let length = number_argument(global_object, call, 3)? as usize;
+    let bytes = host().fs_read(fd, length, optional_offset(global_object, call, 4)?).map_err(|errno| fail(global_object, errno))?;
+    view.with_vector_mut(|destination| destination[offset..offset + bytes.len()].copy_from_slice(&bytes));
+    Ok(count(global_object, bytes.len()))
+}
+host_function!(read_function, read_body);
+
+host_binding!(write_function, write_body, fs_write(0 int, 1 bytes, 2 position) => count);
 
 /// `random(length)`: bytes aleatórios do sistema (o sufixo do `mkdtemp`).
 fn random_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
@@ -301,7 +245,7 @@ fn binding(global_object: &JSGlobalObject) -> JSValue {
         ("open", 3, open_function),
         ("close", 1, close_function),
         ("read", 5, read_function),
-        ("write", 5, write_function),
+        ("write", 3, write_function),
         ("fstat", 1, fstat_function),
         ("stat", 2, stat_function),
         ("readdir", 1, readdir_function),

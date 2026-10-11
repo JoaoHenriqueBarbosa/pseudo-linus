@@ -160,7 +160,7 @@ pub trait Host {
     fn fs_symlink(&self, _target: &str, _path: &str) -> Result<(), Errno> {
         Err(ENOSYS)
     }
-    fn fs_readlink(&self, _path: &str) -> Result<Vec<u8>, Errno> {
+    fn fs_readlink(&self, _path: &str) -> Result<String, Errno> {
         Err(ENOSYS)
     }
     fn fs_chmod(&self, _path: &str, _mode: u32) -> Result<(), Errno> {

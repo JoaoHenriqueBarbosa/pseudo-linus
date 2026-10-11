@@ -239,7 +239,7 @@
   function writeAll(fd, buffer) {
     let offset = 0;
     while (offset < buffer.length) {
-      offset += sys("write", undefined, undefined, b.write, fd, buffer, offset, buffer.length - offset, null);
+      offset += sys("write", undefined, undefined, b.write, fd, buffer.subarray(offset), null);
     }
   }
 
@@ -476,7 +476,7 @@
             const read = b.read(input, chunk, 0, 65536, null);
             if (read === 0) break;
             let offset = 0;
-            while (offset < read) offset += b.write(output, chunk, offset, read - offset, null);
+            while (offset < read) offset += b.write(output, chunk.subarray(offset, read), null);
           }
         } finally {
           b.close(output);
@@ -599,7 +599,7 @@
     if (typeof data === "string") {
       bytes = Buffer.from(data, typeof lengthOrEncoding === "string" ? lengthOrEncoding : "utf8");
       at = offsetOrPosition === undefined ? null : offsetOrPosition;
-      return sysFd("write", fd, b.write, fd, bytes, 0, bytes.length, at);
+      return sysFd("write", fd, b.write, fd, bytes, at);
     }
     if (!ArrayBuffer.isView(data)) throw typeError('The "buffer" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received ' + describe(data));
     let offset = offsetOrPosition;
@@ -608,7 +608,7 @@
     if (offset === undefined || offset === null) offset = 0;
     if (length === undefined || length === null) length = data.byteLength - offset;
     const view = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-    return sysFd("write", fd, b.write, fd, view, offset, length, position === undefined ? null : position);
+    return sysFd("write", fd, b.write, fd, view.subarray(offset, offset + length), position === undefined ? null : position);
   }
 
   const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

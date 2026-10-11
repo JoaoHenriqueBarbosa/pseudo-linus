@@ -39,7 +39,7 @@ pairs_of() {
 				split(line, sides, / <-> /)
 				for (k = 1; k <= 2; k++) {
 					s = sides[k]
-					sub(/:[0-9]+-[0-9]+ function /, " ", s)
+					sub(/:[0-9]+-[0-9]+ (function|method) /, " ", s)
 					gsub(/^[ \t]+|[ \t]+$/, "", s)
 					sides[k] = s
 				}
