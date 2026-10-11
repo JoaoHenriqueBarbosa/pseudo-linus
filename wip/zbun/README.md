@@ -241,7 +241,9 @@ de chegar aos tipos. O que falta, por grupo:
   descolava o empréstimo com ponteiro cru: os 30 chamadores usam `self.renamer.name_for_symbol` direto. `slice_of`
   (que o `store_fix.py` deixou com `self` num fn livre) saiu: `self.store[x]` (ou `tree.store`/`ast.store` nos drivers).
   **O que falta, por grupo** (de `cargo check -p bun_js_printer --features printer`, 71 erros depois da 3a, 54 depois da 3b):
-  (c) `BackRef` (3 usos) vira cópia do valor; (d) `EString` com `flattened`, `slice8`, `slice16` e `string` pedem o `Store` (`str.flattened(self.store)`,
+  **Parte 3c, `BackRef` (feita):** os três usos saíram sem cópia: com o `Renamer` `Copy` (`symbols(self)` devolve `&'r Map`),
+  `self.renamer.symbols().get_const(..)` já não prende `self`, e a chave de `commonjs_named_exports` é `&'a`. O helper
+  `Printer::symbols`, que só repassava, saiu. Falta: (d) `EString` com `flattened`, `slice8`, `slice16` e `string` pedem o `Store` (`str.flattened(self.store)`,
   `slice8(self.store)`), e o `flattened(self.bump)` que escrevia na arena vira um `Cow` sobre a cadeia de cordas;
   (e) os 24 `E0308` são `StoreStr` no lugar de `&[u8]`, `Option<StoreRef<Scope>>` no lugar de `&Scope` e
   `*mut Symbol`; (f) `If.no`, `For.body` e afins (`E0609` em `s::*`): o campo existe, falta o `self.store[..]`.

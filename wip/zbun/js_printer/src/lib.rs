@@ -1852,7 +1852,7 @@ pub(crate) mod __gated_printer {
         }
 
         pub(crate) fn mangled_prop_name(&mut self, ref_: Ref) -> &'a [u8] {
-            let ref_ = self.symbols().follow(ref_);
+            let ref_ = self.renamer.symbols().follow(ref_);
             // TODO: we don't support that
             if let Some(mangled_props) = self.options.mangled_props {
                 if let Some(name) = mangled_props.get(&ref_) {
@@ -2290,7 +2290,7 @@ pub(crate) mod __gated_printer {
             if id.must_keep_due_to_with_stmt() {
                 return false;
             }
-            let Some(symbol) = self.symbols().get_const(target_ref) else {
+            let Some(symbol) = self.renamer.symbols().get_const(target_ref) else {
                 return false;
             };
             if symbol.has_been_assigned_to() || symbol.namespace_alias.is_some() {
@@ -2517,7 +2517,7 @@ pub(crate) mod __gated_printer {
                     if ident.ref_.is_source_contents_slice() {
                         return false;
                     }
-                    let Some(symbol) = self.symbols().get_const(self.symbols().follow(ident.ref_))
+                    let Some(symbol) = self.renamer.symbols().get_const(self.renamer.symbols().follow(ident.ref_))
                     else {
                         return false;
                     };
@@ -2526,11 +2526,6 @@ pub(crate) mod __gated_printer {
                 }
                 _ => false,
             }
-        }
-
-        #[inline]
-        fn symbols(&self) -> &js_ast::symbol::Map {
-            self.renamer.symbols()
         }
 
         // Emitting a `throw` shim is a diagnostic/error path: keep it out of the
@@ -2554,7 +2549,7 @@ pub(crate) mod __gated_printer {
                 return false;
             };
             let ref_ = id.ref_;
-            let Some(symbol) = self.symbols().get_const(self.symbols().follow(ref_)) else {
+            let Some(symbol) = self.renamer.symbols().get_const(self.renamer.symbols().follow(ref_)) else {
                 return false;
             };
             symbol.kind == js_ast::symbol::Kind::Unbound
@@ -4019,15 +4014,12 @@ pub(crate) mod __gated_printer {
                     let mut did_print = false;
 
                     let ref_ = if self.options.module_type != bundle_opts::Format::InternalBakeDev {
-                        self.symbols().follow(e.ref_)
+                        self.renamer.symbols().follow(e.ref_)
                     } else {
                         e.ref_
                     };
-                    // reshaped for borrowck: `get_const` borrows self;
-                    // capture as `BackRef` so the `&self` borrow is dropped before the
-                    // `&mut self` print calls below. Symbol table is arena-backed and
-                    // outlives the print pass (BackRef invariant).
-                    let symbol = BackRef::<Symbol>::new(self.symbols().get_const(ref_).unwrap());
+                    // O `Renamer` é `Copy` e devolve o mapa com o lifetime `'a`, então `symbol` não prende `self`.
+                    let symbol = self.renamer.symbols().get_const(ref_).unwrap();
 
                     if symbol.import_item_status == js_ast::ImportItemStatus::Missing {
                         self.print_undefined(expr.loc, level);
@@ -4380,10 +4372,8 @@ pub(crate) mod __gated_printer {
             else {
                 return;
             };
-            // `commonjs_named_exports` keys borrow `'a` (Options<'a>); capture
-            // as `BackRef<[u8]>` so the `&self` borrow is dropped before the
-            // `&mut self` print calls below.
-            let key = BackRef::<[u8]>::new(&exports.keys()[idx][..]);
+            // `exports` é `&'a` (copiado de `Options<'a>`): a chave não prende `self`.
+            let key: &[u8] = &exports.keys()[idx][..];
             let value = &exports.values()[idx];
             let (binding, needs_decl) = (value.loc_ref.ref_, value.needs_decl);
             let call_needs_this = is_call_target
@@ -4406,7 +4396,6 @@ pub(crate) mod __gated_printer {
                 self.print_symbol(self.options.commonjs_named_exports_ref);
             }
 
-            let key: &[u8] = key.get();
             if lexer::is_identifier(key) {
                 self.print(b".");
                 self.print(key);
@@ -4664,11 +4653,11 @@ pub(crate) mod __gated_printer {
                                     }
                                 }
                                 ExprData::EImportIdentifier(e) => 'inner: {
-                                    let ref_ = self.symbols().follow(e.ref_);
+                                    let ref_ = self.renamer.symbols().follow(e.ref_);
                                     if self.options.input_files_for_dev_server.is_some() {
                                         break 'inner;
                                     }
-                                    if let Some(symbol) = self.symbols().get_const(ref_) {
+                                    if let Some(symbol) = self.renamer.symbols().get_const(ref_) {
                                         if symbol.namespace_alias.is_none()
                                             && key_str.slice8() == self.renamer.name_for_symbol(e.ref_)
                                         {
@@ -4706,8 +4695,8 @@ pub(crate) mod __gated_printer {
                                     }
                                 }
                                 ExprData::EImportIdentifier(e) => {
-                                    let ref_ = self.symbols().follow(e.ref_);
-                                    if let Some(symbol) = self.symbols().get_const(ref_) {
+                                    let ref_ = self.renamer.symbols().follow(e.ref_);
+                                    if let Some(symbol) = self.renamer.symbols().get_const(ref_) {
                                         if symbol.namespace_alias.is_none()
                                             && strings::utf16_eql_string(
                                                 key_str.slice16(),
@@ -5330,12 +5319,7 @@ pub(crate) mod __gated_printer {
                             let item = array[i];
 
                             if !self.store.str(item.original_name).is_empty() {
-                                // reshaped for borrowck: detach symbol from
-                                // `&self` via `BackRef` (arena-backed; outlives the print pass).
-                                let symbol = self
-                                    .symbols()
-                                    .get_const(item.name.ref_)
-                                    .map(BackRef::<Symbol>::new);
+                                let symbol = self.renamer.symbols().get_const(item.name.ref_);
                                 if let Some(symbol) = symbol {
                                     if let Some(namespace) = &symbol.namespace_alias {
                                         if namespace.was_originally_property_access {
@@ -6338,7 +6322,7 @@ pub(crate) mod __gated_printer {
             !properties.is_empty()
                 && properties.iter().all(|property| {
                     matches!(&property.value.data, BindingData::BIdentifier(id)
-                        if self.symbols().get_const((&self.store[*id]).r#ref)
+                        if self.renamer.symbols().get_const((&self.store[*id]).r#ref)
                             .is_some_and(|symbol| symbol.is_bound_import_item()))
                 })
         }
@@ -6427,8 +6411,8 @@ pub(crate) mod __gated_printer {
         ) -> Option<js_ast::InlinedEnumValueDecoded> {
             let base = self.import_ref(target)?;
             {
-                let ref_ = self.symbols().follow(base);
-                if let Some(symbol) = self.symbols().get_const(ref_) {
+                let ref_ = self.renamer.symbols().follow(base);
+                if let Some(symbol) = self.renamer.symbols().get_const(ref_) {
                     if symbol.kind == js_ast::symbol::Kind::TsEnum {
                         if let Some(enum_value) = self.options.ts_enums.and_then(|m| m.get(&ref_)) {
                             if let Some(value) = enum_value.get(name) {
