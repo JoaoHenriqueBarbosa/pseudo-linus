@@ -13,6 +13,7 @@ pub mod encoding;
 pub mod fetch;
 pub mod fonts;
 pub mod history;
+pub mod http_cache;
 pub mod idb;
 pub mod imaging;
 pub mod local_storage;

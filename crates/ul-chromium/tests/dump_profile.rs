@@ -57,6 +57,10 @@ fn dump_client(ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
         let has_url = found.and_then(|e| sys::read_file(&[b"/tmp/p/Default/Sessions/".as_slice(), &e.name].concat()).ok()).is_some_and(|bytes| bytes.windows(33).any(|w| w == b"http://127.0.0.1:8000/persist.html"[..33].as_ref()));
         let _ = ctx.stdout().write_all(format!("{prefix} has url {has_url}\n").as_bytes());
     }
+    // O cache de disco: a página e o favicon (a mesma resposta nas três execuções), o índice com as duas.
+    let entries = sys::read_dir(b"/tmp/p/Default/Cache/Cache_Data").unwrap_or_default().into_iter().filter(|e| e.name.ends_with(b"_0")).count();
+    let index = sys::read_file(b"/tmp/p/Default/Cache/Cache_Data/index-dir/the-real-index").map_or(0, |bytes| bytes.len());
+    let _ = ctx.stdout().write_all(format!("cache entries {entries} index {index}\n").as_bytes());
     let singletons = ["SingletonCookie", "SingletonLock", "SingletonSocket"].iter().filter(|n| sys::lstat(format!("/tmp/p/{n}").as_bytes()).is_ok()).count();
     let _ = ctx.stdout().write_all(format!("singletons {singletons}\n").as_bytes());
     let _ = s.kill(KillTarget::Pid(server), Signal::SIGKILL);
@@ -80,5 +84,6 @@ fn each_dump_reads_what_the_previous_one_wrote() {
     // visita de cada execução termina com o fechamento do processo (motivo 6).
     assert!(stdout.contains("http://127.0.0.1:8000/persist.html|persist|3|3\n3|1|939524097|1\n1\n3|6\n"), "{stdout}");
     assert!(stdout.contains("Session_ has url true\nTabs_ has url true\n"), "{stdout}");
+    assert!(stdout.contains("cache entries 2 index 96\n"), "{stdout}");
     assert!(stdout.ends_with("singletons 0\n"), "{stdout}");
 }

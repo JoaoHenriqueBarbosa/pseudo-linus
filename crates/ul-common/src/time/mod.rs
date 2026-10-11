@@ -25,6 +25,14 @@ pub fn realtime_nanos() -> i128 {
     })
 }
 
+/// Microssegundos de 1601 (a época do tempo WebKit, a do Chromium) até 1970.
+pub const WEBKIT_EPOCH_US: i64 = 11_644_473_600_000_000;
+
+/// O relógio de parede no tempo WebKit: microssegundos desde 1601.
+pub fn webkit_now_micros() -> i64 {
+    (realtime_nanos() / 1000) as i64 + WEBKIT_EPOCH_US
+}
+
 /// Nanossegundos no `CLOCK_MONOTONIC` do pseudo-processo (o tempo desde o boot do sandbox). Fora de um
 /// pseudo-processo, o tempo desde a primeira leitura.
 pub fn monotonic_nanos() -> i128 {

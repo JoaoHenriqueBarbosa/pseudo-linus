@@ -17,6 +17,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
+use ul_common::time::WEBKIT_EPOCH_US;
 use ul_leveldb::batch::WriteBatch;
 use ul_leveldb::coding::put_varint64;
 use ul_leveldb::env::Env;
@@ -24,8 +25,6 @@ use ul_leveldb::{Db, Options, Result};
 
 use crate::storage_state::{AreaStore, Change, Tracked};
 
-/// Microssegundos de 1601 (a época do tempo WebKit) até 1970.
-const WEBKIT_EPOCH_US: u64 = 11_644_473_600_000_000;
 const SCHEMA_VERSION_KEY: &[u8] = b"VERSION";
 const SCHEMA_VERSION: &[u8] = b"1";
 const META_PREFIX: &[u8] = b"META:";
@@ -147,7 +146,7 @@ impl Inner {
             batch.delete(&full(key));
         }
         let (access_key, modified_key) = (meta_key(META_ACCESS_PREFIX, origin), meta_key(META_PREFIX, origin));
-        let time = now + WEBKIT_EPOCH_US;
+        let time = now + WEBKIT_EPOCH_US as u64;
         if map.is_empty() {
             batch.delete(&access_key);
             batch.delete(&modified_key);
