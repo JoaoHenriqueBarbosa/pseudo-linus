@@ -26,13 +26,27 @@ const GOLDEN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../testbench/oracl
 /// As cenas com o Playwright, da mais simples à mais cheia.
 const SCENES: [&str; 3] = ["pw_evaluate", "pw_locators", "pw_actions"];
 
+/// Os textos grandes que a gravação guardou em `blobs/<sha256>.txt` (`<sha256:HEX len=N>`) voltam ao lugar, nas mensagens
+/// que o cliente mandou: o script injetado do Playwright é um deles.
+fn expand(value: Value) -> Value {
+    match value {
+        Value::String(s) if s.starts_with("<sha256:") => {
+            let digest = s["<sha256:".len()..].split(' ').next().unwrap_or_default();
+            std::fs::read_to_string(format!("{GOLDEN}blobs/{digest}.txt")).map(Value::String).unwrap_or(Value::String(s))
+        }
+        Value::Array(items) => Value::Array(items.into_iter().map(expand).collect()),
+        Value::Object(map) => Value::Object(map.into_iter().map(|(k, v)| (k, expand(v))).collect()),
+        other => other,
+    }
+}
+
 fn golden(name: &str) -> Vec<(bool, Value)> {
     let text = std::fs::read_to_string(format!("{GOLDEN}{name}.cdp.jsonl")).unwrap();
     text.lines()
         .map(|line| {
             let entry: Value = serde_json::from_str(line).unwrap();
             match entry.get("out") {
-                Some(message) => (true, message.clone()),
+                Some(message) => (true, expand(message.clone())),
                 None => (false, entry["in"].clone()),
             }
         })
