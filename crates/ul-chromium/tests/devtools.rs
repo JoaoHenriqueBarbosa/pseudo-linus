@@ -68,6 +68,11 @@ fn cdp_client(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     let scenarios: Value = serde_json::from_str(SCENARIOS).unwrap();
     let scenario = scenarios.as_array().unwrap().iter().find(|s| s["name"] == name.as_str()).unwrap().clone();
     let s = sys::current();
+    // O servidor local das navegações http: os mesmos bytes do `serve` do `cdp-record.py`.
+    if scenario.get("server").and_then(Value::as_bool) == Some(true) {
+        let (listener, _) = s.tcp_listen_at(std::net::Ipv4Addr::LOCALHOST.into(), 8765, 16, false, true).unwrap();
+        s.spawn_fn(ProcAttrs::default(), b"server".to_vec(), Box::new(move || support::serve_routes(listener))).unwrap();
+    }
     // Os mesmos argumentos com que o `cdp-record.py` gravou o oráculo.
     let argv: Vec<Vec<u8>> = ["chromium", "--headless", "--no-sandbox", "--disable-gpu", &format!("--remote-debugging-port={PORT}"), "--user-data-dir=/tmp/profile", "about:blank"]
         .iter()
@@ -160,6 +165,9 @@ fn normalize(value: &Value, key: &str) -> Value {
                     .collect(),
             )
         }
+        // Os instantes e as durações da troca de rede variam a cada execução; os campos que o Chromium deixa em -1 por
+        // não ter feito DNS nem conexão (conexão reaproveitada) também variam com o estado do pool de sockets.
+        Value::Object(map) if key == "timing" || key == "connectTiming" => Value::Object(map.keys().map(|k| (k.clone(), Value::String("<n>".into()))).collect()),
         Value::Object(map) => Value::Object(map.iter().map(|(k, v)| (k.clone(), normalize(v, k))).collect()),
         // O `getTargets` do oráculo sai na ordem de um mapa de hash, que muda de uma execução para outra: qualquer
         // ordem vale, então a comparação é como conjunto.
@@ -169,7 +177,13 @@ fn normalize(value: &Value, key: &str) -> Value {
             Value::Array(items)
         }
         Value::Array(items) => Value::Array(items.iter().map(|v| normalize(v, key)).collect()),
-        Value::Number(_) if key == "timestamp" || key == "wallTime" => Value::String("<timestamp>".into()),
+        Value::Number(_) if key == "timestamp" || key == "wallTime" || key == "responseTime" => Value::String("<timestamp>".into()),
+        // O id da conexão e o reaproveitamento dela dependem do pool de sockets do processo (o oráculo mostrou
+        // `connectionReused` verdadeiro e falso para o mesmo pedido em corridas diferentes).
+        Value::Number(_) if key == "connectionId" => Value::String("<n>".into()),
+        Value::Bool(_) if key == "connectionReused" => Value::String("<bool>".into()),
+        // O `requestId` de subrecurso é `pid.n`.
+        Value::String(s) if key == "requestId" && s.split_once('.').is_some_and(|(a, b)| !a.is_empty() && a.bytes().all(|c| c.is_ascii_digit()) && b.bytes().all(|c| c.is_ascii_digit())) => Value::String("<requestId>".into()),
         Value::Number(_) if key == "windowId" => Value::String("<windowId>".into()),
         Value::String(s) if token(s) => Value::String("<token>".into()),
         Value::String(s) if uuid(s) => Value::String("<uuid>".into()),
@@ -223,7 +237,7 @@ fn score(name: &str) -> (usize, usize) {
 fn transcripts_match_the_oracle() {
     let mut same = 0;
     let mut total = 0;
-    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics"] {
+    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics", "network_http"] {
         let (s, t) = score(name);
         same += s;
         total += t;

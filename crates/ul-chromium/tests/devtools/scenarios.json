@@ -135,5 +135,13 @@
   {"method": "Target.setAutoAttach", "params": {"autoAttach": true, "waitForDebuggerOnStart": true, "flatten": true}, "after": 0.5},
   {"method": "Target.createTarget", "params": {"url": "data:text/html,<title>W</title>"}, "save": "t", "save_field": "targetId", "after": 1.0},
   {"method": "Target.closeTarget", "params": {"targetId": "$t"}, "after": 0.5}
- ]}
+ ]},
+ {"name": "network_http", "server": true, "steps": [
+  {"method": "Target.getTargets"},
+  {"method": "Target.attachToTarget", "params": {"targetId": "$TARGET", "flatten": true}, "save": "s", "save_field": "sessionId", "after": 0.3},
+  {"method": "Page.enable", "session": "s", "after": 0.2},
+  {"method": "Network.enable", "session": "s", "after": 0.2},
+  {"method": "Runtime.enable", "session": "s", "after": 0.2},
+  {"method": "Page.navigate", "session": "s", "params": {"url": "http://127.0.0.1:8765/page"}, "after": 1.5},
+  {"method": "Page.navigate", "session": "s", "params": {"url": "http://127.0.0.1:8765/redirect"}, "after": 1.5}]}
 ]

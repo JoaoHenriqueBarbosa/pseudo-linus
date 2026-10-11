@@ -2,8 +2,38 @@
 """Grava transcrições CDP no oráculo: cada cenário é uma lista de passos; cada passo manda uma mensagem (no
 browser ou numa sessão já anexada) e espera a resposta; tudo que chega, respostas e eventos, vai para a saída na
 ordem de chegada. Uso: cdp-record.py <cenários.json> <saída.json>"""
-import json, subprocess, sys, time, urllib.request
+import json, socket, subprocess, sys, threading, time, urllib.request
 from websockets.sync.client import connect
+
+
+ROUTES = {
+    "/page": b"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 29\r\n\r\n<title>H</title><p>hello</p>\n",
+    "/redirect": b"HTTP/1.0 302 Found\r\nLocation: /page\r\nContent-Length: 0\r\n\r\n",
+}
+
+
+def serve(port=8765):
+    """O servidor local das navegações http (os mesmos bytes do `support::serve_routes` do teste, HTTP/1.0)."""
+    listener = socket.socket()
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind(("127.0.0.1", port))
+    listener.listen(16)
+
+    def loop():
+        while True:
+            conn, _ = listener.accept()
+            request = b""
+            while b"\r\n\r\n" not in request:
+                chunk = conn.recv(4096)
+                if not chunk:
+                    break
+                request += chunk
+            path = request.split(b" ")[1].decode() if request.count(b" ") >= 2 else "/"
+            conn.sendall(ROUTES.get(path, b"HTTP/1.0 404 Not Found\r\nContent-Length: 0\r\n\r\n"))
+            conn.close()
+
+    threading.Thread(target=loop, daemon=True).start()
+    return listener
 
 
 def launch():
@@ -80,7 +110,10 @@ def run(scenario, ws):
 def main():
     scenarios = json.load(open(sys.argv[1]))
     out = {}
+    listener = None
     for scenario in scenarios:
+        if scenario.get("server") and listener is None:
+            listener = serve()
         proc, url = launch()
         try:
             with connect(url, max_size=None) as ws:

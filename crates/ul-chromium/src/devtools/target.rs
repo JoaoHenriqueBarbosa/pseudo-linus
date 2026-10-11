@@ -68,6 +68,8 @@ struct Tab {
     /// O `dataReceived` e o `loadingFinished` do documento, que saem depois do contexto de execução novo: os bytes
     /// do corpo e os do fio.
     finishing: Option<(usize, usize)>,
+    /// Quantos `favicon.ico` esta aba já pediu (o contador do `requestId` `pid.n`).
+    favicon_requests: u32,
     security_enabled: Vec<String>,
     /// Os marcos do carregador corrente com o seu `timestamp`, repetidos a quem liga os eventos de ciclo de vida depois.
     lifecycle: Vec<(String, f64)>,
@@ -111,6 +113,7 @@ impl Tab {
             runtime_enabled: Vec::new(),
             network_enabled: Vec::new(),
             finishing: None,
+            favicon_requests: 0,
             security_enabled: Vec::new(),
             lifecycle: Vec::new(),
             context: None,
@@ -311,95 +314,111 @@ impl Tab {
         self.announce();
     }
 
-    /// Os eventos de `Network` do pedido do documento: `requestWillBeSent` e a resposta (`responseReceived`) ou a falha
-    /// (`loadingFailed`). O `dataReceived` e o `loadingFinished` saem no `commit`. `about:blank` e `file:` não têm
-    /// (`meta` vazio e sem erro).
-    fn network_document(&mut self, url: &str, meta: Option<&crate::page::NetMeta>, error: Option<&str>) {
+    /// Os eventos de `Network` do pedido do documento: `requestWillBeSent` (um por redirecionamento), os `ExtraInfo` do
+    /// fio e a resposta (`responseReceived`) ou a falha (`loadingFailed`). O `dataReceived` e o `loadingFinished` saem no
+    /// `commit`. `about:blank` e `file:` não têm (`meta` vazio e sem erro).
+    fn network_document(&mut self, url: &str, meta: Option<&crate::netmeta::NetMeta>, error: Option<&str>) {
+        use super::network;
         if meta.is_none() && error.is_none() {
             return;
         }
         let sessions = self.network_enabled.clone();
-        let id = Json::str(&self.loader_id);
-        let frame = Json::str(&self.target_id);
-        let remote = meta.is_some_and(|m| m.protocol != "data") || error.is_some();
-        let headers: Vec<(String, Json)> = if remote {
-            [
+        let id = self.loader_id.clone();
+        let frame = self.target_id.clone();
+        let wire = meta.is_some_and(|m| m.last.protocol != "data") || error.is_some();
+        let headers: &[(&str, &str)] = if wire {
+            &[
                 ("Upgrade-Insecure-Requests", "1"),
                 ("User-Agent", super::http::USER_AGENT),
                 ("sec-ch-ua", "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Linux\""),
             ]
-            .into_iter()
-            .map(|(k, v)| (k.to_owned(), Json::str(v)))
-            .collect()
         } else {
-            Vec::new()
+            &[]
         };
-        let sent = Json::object([
-            ("requestId", id.clone()),
-            ("loaderId", id.clone()),
-            ("documentURL", Json::str(url)),
-            (
-                "request",
-                Json::object([
-                    ("url", Json::str(url)),
-                    ("method", Json::str("GET")),
-                    ("headers", Json::Object(headers)),
-                    ("mixedContentType", Json::str("none")),
-                    ("initialPriority", Json::str("VeryHigh")),
-                    ("referrerPolicy", Json::str("strict-origin-when-cross-origin")),
-                    ("isSameSite", Json::Bool(true)),
-                ]),
-            ),
-            ("timestamp", Json::Number(monotonic_seconds())),
-            ("wallTime", Json::Number(ul_common::time::realtime_nanos() as f64 / 1e9)),
-            ("initiator", Json::object([("type", Json::str("other"))])),
-            ("redirectHasExtraInfo", Json::Bool(false)),
-            ("type", Json::str("Document")),
-            ("frameId", frame.clone()),
-            ("hasUserGesture", Json::Bool(false)),
-        ]);
-        self.emit(&sessions, "Network.requestWillBeSent", &sent);
+        let wall = || ul_common::time::realtime_nanos() as f64 / 1e9;
+        let sent = |this: &Self, document: &str, request: &str, redirect: Option<Json>| {
+            let params = network::request_will_be_sent(&id, &id, &frame, document, request, headers, "Document", "VeryHigh", true, Json::object([("type", Json::str("other"))]), redirect, monotonic_seconds(), wall());
+            this.emit(&sessions, "Network.requestWillBeSent", &params);
+        };
         if let Some(error) = error {
-            let failed = Json::object([("requestId", id), ("timestamp", Json::Number(monotonic_seconds())), ("type", Json::str("Document")), ("errorText", Json::str(error)), ("canceled", Json::Bool(false))]);
+            sent(self, url, url, None);
+            let failed = Json::object([("requestId", Json::str(&id)), ("timestamp", Json::Number(monotonic_seconds())), ("type", Json::str("Document")), ("errorText", Json::str(error)), ("canceled", Json::Bool(false))]);
             self.emit(&sessions, "Network.loadingFailed", &failed);
             return;
         }
         let Some(meta) = meta else { return };
-        let secure = if url.starts_with("https:") || meta.protocol == "data" { "secure" } else { "insecure" };
-        let mut response = vec![
-            ("url", Json::str(&meta.url)),
-            ("status", Json::Number(f64::from(meta.status))),
-            ("statusText", Json::str(&meta.status_text)),
-            ("headers", Json::Object(meta.headers.iter().map(|(k, v)| (k.clone(), Json::str(v))).collect())),
-            ("mimeType", Json::str(&meta.mime_type)),
-            ("charset", Json::str(&meta.charset)),
-            ("connectionReused", Json::Bool(false)),
-            ("connectionId", Json::Number(0.0)),
-            ("remoteIPAddress", Json::str(&meta.remote_ip)),
-            ("remotePort", Json::Number(f64::from(meta.remote_port))),
-            ("fromDiskCache", Json::Bool(false)),
-            ("fromServiceWorker", Json::Bool(false)),
-            ("fromPrefetchCache", Json::Bool(false)),
-            ("encodedDataLength", Json::Number(-1.0)),
-            ("protocol", Json::str(&meta.protocol)),
-        ];
-        if meta.protocol == "data" {
-            response.push(("alternateProtocolUsage", Json::str("alternativeJobWonWithoutRace")));
+        let now_ms = wall() * 1000.0;
+        let trustworthy = |u: &str| meta.last.protocol == "data" || crate::page::potentially_trustworthy(u);
+        let mut previous: Option<&crate::netmeta::NetExchange> = None;
+        for exchange in meta.redirects.iter().chain(std::iter::once(&meta.last)) {
+            let redirect = previous.map(|p| network::response(p, trustworthy(&p.url), monotonic_seconds(), now_ms));
+            sent(self, &exchange.url, &exchange.url, redirect);
+            previous = Some(exchange);
         }
-        response.push(("securityState", Json::str(secure)));
+        if wire {
+            for exchange in meta.redirects.iter().chain(std::iter::once(&meta.last)) {
+                self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, exchange, monotonic_seconds(), false));
+                self.emit(&sessions, "Network.responseReceivedExtraInfo", &network::response_extra_info(&id, exchange));
+            }
+        }
+        let response = vec![
+            ("requestId".to_owned(), Json::str(&id)),
+            ("loaderId".to_owned(), Json::str(&id)),
+            ("timestamp".to_owned(), Json::Number(monotonic_seconds())),
+            ("type".to_owned(), Json::str("Document")),
+            ("response".to_owned(), network::response(&meta.last, trustworthy(&meta.last.url), monotonic_seconds(), now_ms)),
+            ("hasExtraInfo".to_owned(), Json::Bool(wire)),
+            ("frameId".to_owned(), Json::str(&frame)),
+        ];
+        self.emit(&sessions, "Network.responseReceived", &Json::Object(response));
+        self.finishing = Some((meta.data_length, meta.last.head.len() + meta.body_encoded));
+    }
+
+    /// O `/favicon.ico` que o navegador pede depois de carregar uma página `http` ou `https`, uma vez por origem (o
+    /// oráculo não o repete na navegação seguinte à mesma origem). O pedido sai sempre, o servidor o vê; os eventos de
+    /// `Network` só vão a quem os ligou. O `dataReceived` só existe com corpo.
+    fn favicon(&mut self) {
+        use super::network;
+        static SEEN: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+        let Some(origin) = crate::bridge::origin_of(&self.url) else { return };
+        {
+            let Ok(mut seen) = SEEN.lock() else { return };
+            if seen.contains(&origin) {
+                return;
+            }
+            seen.push(origin);
+        }
+        let started = monotonic_seconds();
+        let wall = ul_common::time::realtime_nanos() as f64 / 1e9;
+        let Some(response) = fetch::favicon_response(&fetch::network(), &self.url) else { return };
+        let meta = crate::netmeta::NetMeta::from_response(&response);
+        self.favicon_requests += 1;
+        let id = format!("{}.{}", sysabi::sys::current().getpid(), self.favicon_requests + 1);
+        let sessions = self.network_enabled.clone();
+        let headers = [("sec-ch-ua-platform", "\"Linux\""), ("Referer", self.url.as_str()), ("User-Agent", super::http::USER_AGENT), ("sec-ch-ua", "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\""), ("sec-ch-ua-mobile", "?0")];
+        let initiator = Json::object([("type", Json::str("other"))]);
+        let sent = network::request_will_be_sent(&id, &self.loader_id, &self.target_id, &self.url, &meta.last.url, &headers, "Other", "High", true, initiator, None, started, wall);
+        self.emit(&sessions, "Network.requestWillBeSent", &sent);
+        self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, &meta.last, started, true));
+        self.emit(&sessions, "Network.responseReceivedExtraInfo", &network::response_extra_info(&id, &meta.last));
         let received = Json::object([
-            ("requestId", id),
+            ("requestId", Json::str(&id)),
             ("loaderId", Json::str(&self.loader_id)),
             ("timestamp", Json::Number(monotonic_seconds())),
-            ("type", Json::str("Document")),
-            ("response", Json::Object(response.into_iter().map(|(k, v)| (k.to_owned(), v)).collect())),
-            ("hasExtraInfo", Json::Bool(false)),
-            ("frameId", frame),
+            ("type", Json::str("Other")),
+            ("response", network::response(&meta.last, true, started, wall * 1000.0)),
+            ("hasExtraInfo", Json::Bool(true)),
+            ("frameId", Json::str(&self.target_id)),
         ]);
         self.emit(&sessions, "Network.responseReceived", &received);
-        self.finishing = Some((meta.data_length, meta.encoded_length));
+        if meta.data_length > 0 {
+            let params = Json::object([("requestId", Json::str(&id)), ("timestamp", Json::Number(monotonic_seconds())), ("dataLength", Json::Number(meta.data_length as f64)), ("encodedDataLength", Json::Number(0.0))]);
+            self.emit(&sessions, "Network.dataReceived", &params);
+        }
+        let finished = Json::object([("requestId", Json::str(&id)), ("timestamp", Json::Number(monotonic_seconds())), ("encodedDataLength", Json::Number((meta.last.head.len() + meta.body_encoded) as f64))]);
+        self.emit(&sessions, "Network.loadingFinished", &finished);
     }
 
     /// Título e URL para o `TargetInfo`. Sem `<title>`, o título é a URL; a aba que ainda vai navegar mostra o destino.
@@ -447,6 +466,7 @@ impl Tab {
                     self.emit(&sessions, "Page.loadEventFired", &Json::object([("timestamp", Json::Number(now))]));
                     self.lifecycle_event("load", now);
                     self.emit(&sessions, "Page.frameStoppedLoading", &Json::object([("frameId", Json::str(&self.target_id))]));
+                    self.favicon();
                     let paint = monotonic_seconds();
                     let contentful = item.get("contentful").and_then(Json::as_bool) == Some(true);
                     if contentful {

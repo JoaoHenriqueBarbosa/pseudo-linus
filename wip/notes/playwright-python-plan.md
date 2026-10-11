@@ -242,3 +242,24 @@ que os testes que falham sejam exatamente os de `DECLARED_DIVERGENCES`, cada um 
    por rodada; os três `test_untracked_memory_*` passam. Resta o custo por greenlet (~0,3 ms), bem acima do CPython.
 8. **`gr_context` dentro de `Context.run`**: feito. A causa era comportamento: o `Context.run` guardava como anterior o contexto
    corrente criando um vazio quando não havia, e o devolvia ao sair; o CPython guarda o `NULL` como está.
+
+## Page.captureScreenshot: lacuna declarada (2026-10-11)
+
+Decisão do coordenador: paridade de CDP vence renderização, a pintura não entra agora. `pyppeteer_screenshot` segue
+`#[ignore]` com o motivo. Medido:
+
+- O ul-chromium tem blitz-dom (parse, estilo, layout por `doc.resolve`) e `vello_cpu`, mas o `vello_cpu` só é usado no
+  canvas 2D (`canvas.rs`, `bridge.rs`, `canvas_gradient.rs`). Nenhum código percorre o documento pintando fundo, borda,
+  texto, imagem e SVG: falta ligar o blitz-paint (cena) ao `vello_cpu`, com fontes e imagens.
+- O PNG já existe para `toDataURL` (crate `png`, miniz_oxide). Falta ligar `clip`, `format` (jpeg, webp), `quality`,
+  `captureBeyondViewport` e o tamanho da janela (780x493 no JS contra 780x437 do oráculo).
+- Fidelidade byte a byte exige o rasterizador e as fontes do oráculo; para o pyppeteer basta um PNG com as dimensões
+  certas, mas só vale se a pintura existir de verdade.
+
+## Network do documento (2026-10-11)
+
+Cenários `network_navigate` (data:, 49/74, o resto é o interior da página de erro) e `network_http` (servidor local,
+200 e redirect, 49/49) gravados no Chromium 154. Normalizados no scorer por serem do estado do pool de sockets:
+`timing`, `connectTiming`, `connectionId`, `connectionReused`, `responseTime`. Fora do cenário: `timing` real
+(dns/connect/send em ms) sai com -1 e 0, sem medir; `remoteIPAddress` é o host da URL (sem resolução de nome); o
+favicon sai uma vez por origem por processo, bloqueando a aba por até 3 s.

@@ -17,6 +17,7 @@ pub mod http_cache;
 pub mod idb;
 pub mod imaging;
 pub mod local_storage;
+pub mod netmeta;
 pub mod preferences;
 pub mod quota_manager;
 pub mod page;

@@ -26,6 +26,31 @@ pub fn serve(listener: Fd, page: &'static str) -> i32 {
     }
 }
 
+/// O servidor das navegações http do `cdp-record.py` (HTTP/1.0): `/page` responde 200 com o corpo e `/redirect` leva a
+/// `/page`; o resto é 404 sem corpo.
+pub fn serve_routes(listener: Fd) -> i32 {
+    let s = sys::current();
+    loop {
+        let Ok((fd, _)) = s.tcp_accept(listener, false, true) else { continue };
+        let mut request = Vec::new();
+        let mut buffer = [0u8; 4096];
+        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+            match sys::read(fd, &mut buffer) {
+                Ok(0) | Err(_) => break,
+                Ok(n) => request.extend_from_slice(&buffer[..n]),
+            }
+        }
+        let path = String::from_utf8_lossy(&request).split(' ').nth(1).unwrap_or("/").to_owned();
+        let response: &[u8] = match path.as_str() {
+            "/page" => b"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 29\r\n\r\n<title>H</title><p>hello</p>\n",
+            "/redirect" => b"HTTP/1.0 302 Found\r\nLocation: /page\r\nContent-Length: 0\r\n\r\n",
+            _ => b"HTTP/1.0 404 Not Found\r\nContent-Length: 0\r\n\r\n",
+        };
+        let _ = sys::write_all(fd, response);
+        let _ = sys::close(fd);
+    }
+}
+
 /// Escreve todos os bytes no descritor.
 pub fn send_all(fd: Fd, bytes: &[u8]) {
     let mut at = 0;

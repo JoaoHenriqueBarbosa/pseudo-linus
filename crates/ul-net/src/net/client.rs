@@ -25,6 +25,24 @@ pub struct Response {
     pub url: Url,
     /// O que o Resource Timing do navegador mostra da troca.
     pub transfer: Transfer,
+    /// A cabeça da resposta como chegou no fio (a `headersText` do DevTools).
+    pub head: Vec<u8>,
+    /// Os cabeçalhos que o pedido levou, na ordem em que saíram.
+    pub sent: Vec<(String, String)>,
+    /// Os redirecionamentos seguidos antes da resposta final, em ordem.
+    pub hops: Vec<Hop>,
+}
+
+/// Um redirecionamento seguido: a troca que respondeu com a `Location`.
+#[derive(Debug, Clone)]
+pub struct Hop {
+    pub url: Url,
+    pub status: u16,
+    pub reason: String,
+    pub headers: Vec<(Vec<u8>, Vec<u8>)>,
+    pub head: Vec<u8>,
+    pub sent: Vec<(String, String)>,
+    pub version: (u8, u8),
 }
 
 /// A troca vista de fora do corpo: a versão do protocolo da resposta final, o corpo como veio no fio (antes do
@@ -134,12 +152,14 @@ pub fn request(target: &str, spec: &RequestSpec<'_>) -> Result<Response, FetchEr
     let mut current = url::parse(target, false).map_err(FetchError::InvalidUrl)?;
     let mut method = spec.method.to_owned();
     let mut body = spec.body.to_vec();
+    let mut hops = Vec::new();
     for redirects in 0..=spec.max_redirects {
         if current.scheme != "http" && current.scheme != "https" {
             return Err(FetchError::UnknownScheme(current.scheme));
         }
         let (mut response, location) = exchange(&current, &method, spec, &body)?;
         if let Some(location) = location {
+            hops.push(Hop { url: current.clone(), status: response.status, reason: response.reason.clone(), headers: response.headers.clone(), head: response.head.clone(), sent: response.sent.clone(), version: response.transfer.version });
             current = url::resolve(&current, &location).map_err(FetchError::InvalidUrl)?;
             // 301, 302 e 303 viram GET sem corpo, como o navegador faz.
             if matches!(response.status, 301..=303) && method != "GET" && method != "HEAD" {
@@ -149,6 +169,7 @@ pub fn request(target: &str, spec: &RequestSpec<'_>) -> Result<Response, FetchEr
             continue;
         }
         response.transfer.redirects = redirects;
+        response.hops = hops;
         return Ok(response);
     }
     Err(FetchError::TooManyRedirects)
@@ -191,7 +212,10 @@ fn exchange(u: &Url, method: &str, spec: &RequestSpec<'_>, body: &[u8]) -> Resul
     if !lines.iter().any(|(name, _)| name.eq_ignore_ascii_case("Accept-Encoding")) {
         lines.push(("Accept-Encoding".into(), "gzip, deflate, br, zstd".into()));
     }
-    lines.push(("Connection".into(), "close".into()));
+    // O pedido fecha a conexão depois da resposta; o `Connection` do chamador (o `keep-alive` do navegador) vale.
+    if !lines.iter().any(|(name, _)| name.eq_ignore_ascii_case("Connection")) {
+        lines.push(("Connection".into(), "close".into()));
+    }
     let mut wire = format!("{method} {} HTTP/1.1\r\n", u.target()).into_bytes();
     for (name, value) in &lines {
         wire.extend_from_slice(format!("{name}: {value}\r\n").as_bytes());
@@ -247,6 +271,9 @@ fn exchange(u: &Url, method: &str, spec: &RequestSpec<'_>, body: &[u8]) -> Resul
             redirects: 0,
             timing: Some(Timing { connect_start, secure_start, connect_end, request_start, response_start, response_end: now() }),
         },
+        head: head.raw.clone(),
+        sent: lines,
+        hops: Vec::new(),
     };
     Ok((response, location))
 }
