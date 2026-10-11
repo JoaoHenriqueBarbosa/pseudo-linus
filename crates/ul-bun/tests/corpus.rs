@@ -18,6 +18,7 @@ const CAUSE_PRINT: &str = "-p precisa do valor de conclusão do ECMAScript no mo
 /// `(caso, causa medida no oráculo)`; o nome que termina em `*` vale para todo caso com esse prefixo.
 const KNOWN: &[(&str, &str)] = &[
     ("module-module-createrequire", "node:module só tem builtinModules: faltam createRequire, isBuiltin, Module._load, _resolveFilename e _cache"),
+    ("module-zlib-engine", "node:zlib sem o motor de fluxo: NativeZlib, NativeBrotli e NativeZstd lançam not implemented no new (os motores deflate, brotli e zstd já existem no CompressionStream)"),
     ("cli-p-*", CAUSE_PRINT),
     ("cli-p2-*", CAUSE_PRINT),
     ("cli-p3-*", CAUSE_PRINT),

@@ -1,5 +1,5 @@
 //! Os módulos do bun 1.4.2 que só dependem do registro de `internal/*` (`api/node_internals.js`): `node:diagnostics_channel`,
-//! `node:http`, `node:https`, `node:child_process` e os `node:_http_*`, gerados por `scripts/gen-node-modules.js` (um arquivo `api/node_<nome>.js` por
+//! `node:http`, `node:https`, `node:child_process`, `node:zlib` e os `node:_http_*`, gerados por `scripts/gen-node-modules.js` (um arquivo `api/node_<nome>.js` por
 //! módulo). O servidor (`Bun.serve` com `onNodeHTTPRequest`) e o analisador HTTP nativo ainda não existem e lançam "not
 //! implemented" no ponto de uso.
 
@@ -35,6 +35,7 @@ installers! {
     install_http_module => ("../api/node_http.js", "http"),
     install_https_module => ("../api/node_https.js", "https"),
     install_child_process_module => ("../api/node_child_process.js", "child_process"),
+    install_zlib_module => ("../api/node_zlib.js", "zlib"),
     install_http_agent_module => ("../api/node__http_agent.js", "_http_agent"),
     install_http_client_module => ("../api/node__http_client.js", "_http_client"),
     install_http_common_module => ("../api/node__http_common.js", "_http_common"),

@@ -89,6 +89,7 @@ pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "util", scheme: Scheme::Both, install: crate::api::node_util::install_util_module },
     BuiltinEntry { name: "util/types", scheme: Scheme::Both, install: crate::api::node_util_types::install_util_types_module },
     BuiltinEntry { name: "vm", scheme: Scheme::Both, install: crate::api::eval::install_vm_module },
+    BuiltinEntry { name: "zlib", scheme: Scheme::Both, install: crate::runtime::node_http::install_zlib_module },
 ];
 
 /// `require("module").builtinModules` do bun 1.4.2, na ordem exata medida com `bun -e` (76 nomes). Os `bun:*` já

@@ -1,0 +1,20 @@
+deflate 789ccb48cdc9c957c8c020ab723293100417a6825165a3019234bc52080024151b94
+gzip 1f8b0800000000000003cb48cdc9c957c8c020ab723293100417a6825165a3019234bc520800a565b9110c030000
+raw cb48cdc9c957c8c020ab723293100417a6825165a3019234bc520800
+level0 791
+level9 78dacb48cdc9c957c8c020ab723293100457c6a8b25165c35d190024151b94
+brotli 1b0b03f81da9539f3b5ea1e9358858199b5648637b93e0ccd3581270800d413771f52706
+zstd 28b52ffd600c020501005868656c6c6f207a6c69620a0700bc942a68695094869a0310e52fca46e29522
+roundtrip true
+gunzip true
+unzip true
+raw rt true
+brotli rt true
+zstd rt true
+bad inflate throws Error Z_DATA_ERROR -3 incorrect header check
+bad gunzip throws Error Z_DATA_ERROR -3 incorrect header check
+truncated throws Error Z_BUF_ERROR -5 unexpected end of file
+bad arg throws TypeError ERR_INVALID_ARG_TYPE undefined The "buffer" argument must be of type string, Buffer, TypedArray, DataView, or ArrayBuffer. Received type number (5)
+bad level throws RangeError ERR_OUT_OF_RANGE undefined The value of "options.level" is out of range. It must be >= -1 and <= 9. Received 99
+gzip cb null 46
+stream 1f8b0800000000000003cb48cdc9c957c8c020ab723293100417a6825165a3019234bc520800a565b9110c030000

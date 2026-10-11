@@ -38,6 +38,34 @@ const childProcess = [
   [/\$newRustFunction\("node_util_binding\.rs", "enobufsErrorCode", 0\)/, "(() => -105)"],
 ];
 
+// `node:zlib`: as constantes saem do JSON medido no bun 1.4.2 (`Z_MAX_CHUNK` é `Infinity`); `crc32` vai sobre o `Bun.hash.crc32`
+// com a validação medida no oráculo; as classes nativas (`NativeZlib`, `NativeBrotli`, `NativeZstd`) existem com o protótipo, e o
+// `new` lança "not implemented" até o motor de fluxo entrar.
+const zlibConstants = JSON.parse(fs.readFileSync(path.join(__dirname, "../src/api/node_zlib_constants.json"), "utf8"));
+zlibConstants.Z_MAX_CHUNK = Infinity;
+const zlibNative = name => `(native => (toClass(native, "${name}"), native))(function ${name}() { host.internal.throwNotImplemented("zlib.${name}"); })`;
+const zlib = [
+  [/process\.binding\("constants"\)/g, `({ zlib: Object.freeze(${JSON.stringify(zlibConstants).replace('"Z_MAX_CHUNK":null', '"Z_MAX_CHUNK":Infinity')}) })`],
+  [
+    /\$newRustFunction\("node_zlib_binding\.rs", "crc32", 1\)/,
+    `((hashCrc32) => function crc32(data, ...rest) {
+      let value = rest[0];
+      if (typeof data === "string") data = new TextEncoder().encode(data);
+      else if (data === undefined) throw host.internal.codes.INVALID_ARG_TYPE("data", ["string", "Buffer", "TypedArray", "DataView"], data);
+      else if (!ArrayBuffer.isView(data) && !(data instanceof ArrayBuffer) && !(data instanceof SharedArrayBuffer)) {
+        throw host.internal.makeError("TypeError", "ERR_INVALID_ARG_TYPE", \`The "data" property must be an instance of Buffer, TypedArray, DataView, or ArrayBuffer. Received \${data === null ? "object" : typeof data}\`);
+      }
+      if (rest.length === 0) value = 0;
+      else if (typeof value !== "number") throw host.internal.codes.INVALID_ARG_TYPE("value", "number", value);
+      else if (!Number.isInteger(value)) throw host.internal.codes.OUT_OF_RANGE("value", "an integer", value);
+      else if (value < 0 || value > 4294967295) throw host.internal.codes.OUT_OF_RANGE("value", ">= 0 and <= 4294967295", value);
+      return hashCrc32(data instanceof ArrayBuffer || data instanceof SharedArrayBuffer ? new Uint8Array(data) : data, value);
+    })(Bun.hash.crc32)`,
+  ],
+  [/\$rust\("node_zlib_binding\.rs", "(Native\w+)"\)/g, (_, name) => zlibNative(name)],
+  [/\$requireMap\.\$get\("buffer"\)\?\.exports\.kMaxLength \?\? /, ""],
+];
+
 // [nome do módulo embutido, arquivo, substituições próprias, o que o `export` final vira]
 const modules = [
   ["diagnostics_channel", "node/diagnostics_channel.ts", []],
@@ -50,6 +78,7 @@ const modules = [
   ["http", "node/http.ts", httpCommon],
   ["https", "node/https.ts", httpCommon],
   ["child_process", "node/child_process.ts", childProcess],
+  ["zlib", "node/zlib.ts", zlib],
 ];
 
 const prologue = `  "use strict";

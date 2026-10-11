@@ -1,0 +1,30 @@
+keys crc32,Deflate,Inflate,Gzip,Gunzip,DeflateRaw,InflateRaw,Unzip,BrotliCompress,BrotliDecompress,ZstdCompress,ZstdDecompress,deflate,deflateSync,gzip,gzipSync,deflateRaw,deflateRawSync,unzip,unzipSync,inflate,inflateSync,gunzip,gunzipSync,inflateRaw,inflateRawSync,brotliCompress,brotliCompressSync,brotliDecompress,brotliDecompressSync,zstdCompress,zstdCompressSync,zstdDecompress,zstdDecompressSync,createDeflate,createInflate,createDeflateRaw,createInflateRaw,createGzip,createGunzip,createUnzip,createBrotliCompress,createBrotliDecompress,createZstdCompress,createZstdDecompress,constants,codes
+constants 170 true Infinity 4842
+sample 9 1 2 4880
+codes Z_DATA_ERROR -3 18
+legacy 1 -1 undefined 91
+classes Gzip 1 createGzip gzipSync crc32 1
+crc str 907060870
+crc buf 907060870
+crc u8 1438416925
+crc dv 558161692
+crc value 3088217944
+crc empty 0
+crc u16 2882460411
+crc ab 1104745215
+crc sab 1104745215
+crc utf8 4207779724
+crc chain 907060870
+crc num throws TypeError ERR_INVALID_ARG_TYPE The "data" property must be an instance of Buffer, TypedArray, DataView, or ArrayBuffer. Received number
+crc undef throws TypeError ERR_INVALID_ARG_TYPE The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received undefined
+crc obj throws TypeError ERR_INVALID_ARG_TYPE The "data" property must be an instance of Buffer, TypedArray, DataView, or ArrayBuffer. Received object
+crc null throws TypeError ERR_INVALID_ARG_TYPE The "data" property must be an instance of Buffer, TypedArray, DataView, or ArrayBuffer. Received object
+crc fn throws TypeError ERR_INVALID_ARG_TYPE The "data" property must be an instance of Buffer, TypedArray, DataView, or ArrayBuffer. Received function
+crc big throws TypeError ERR_INVALID_ARG_TYPE The "data" property must be an instance of Buffer, TypedArray, DataView, or ArrayBuffer. Received bigint
+crc neg throws RangeError ERR_OUT_OF_RANGE The value of "value" is out of range. It must be >= 0 and <= 4294967295. Received -1
+crc over throws RangeError ERR_OUT_OF_RANGE The value of "value" is out of range. It must be >= 0 and <= 4294967295. Received 4294967296
+crc vstr throws TypeError ERR_INVALID_ARG_TYPE The "value" argument must be of type number. Received type string ('x')
+crc vfloat throws RangeError ERR_OUT_OF_RANGE The value of "value" is out of range. It must be an integer. Received 1.5
+crc vnan throws RangeError ERR_OUT_OF_RANGE The value of "value" is out of range. It must be an integer. Received NaN
+crc vundef throws TypeError ERR_INVALID_ARG_TYPE The "value" argument must be of type number. Received undefined
+crc vnull throws TypeError ERR_INVALID_ARG_TYPE The "value" argument must be of type number. Received null
