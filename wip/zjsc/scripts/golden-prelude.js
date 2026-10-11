@@ -783,7 +783,12 @@ function prepareProgram(original, sloppy = false) {
     try {
       const source = canonicalSource(original, forcedMode);
       const mode = forcedMode || moduleMode(original);
-      prepared = { source, executable: executableSource(original, forcedMode), meta: [mode === "esm" ? 0 : mode === "cjs" ? 1 : 2, ...positionRuns(original, source)], file_extension: sloppy ? ".cjs" : ".js" };
+      // O mapa vai do texto gravado para o que o bun EXECUTA, não para o original: no CJS são o mesmo, mas no ESM o bun roda
+      // o texto canônico sem a diretiva, e o stack dele sai nas posições desse texto (o `Error` de `return Error("x")` na
+      // 3:10, não na 2:42 do original de uma linha). Mapear para o original fazia o porte mostrar a posição que o bun só
+      // mostraria rodando o original.
+      const executable = executableSource(original, forcedMode);
+      prepared = { source, executable, meta: [mode === "esm" ? 0 : mode === "cjs" ? 1 : 2, ...positionRuns(executable, source)], file_extension: sloppy ? ".cjs" : ".js" };
     } catch (e) {
       prepared = { source: original, executable: original, meta: null, file_extension: ".js" };
     }

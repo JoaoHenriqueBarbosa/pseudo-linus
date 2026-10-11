@@ -476,7 +476,11 @@ programs.push(
 );
 
 // ---- Execução.
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), "error-stack-golden-"));
+// Sufixo só de letras: três casos trocam os dígitos do frame por `N` antes de o caminho sair do texto, e um dígito no
+// nome aleatório do `mkdtemp` fazia o caminho sobreviver e o caso cair por "caminho da máquina" numa execução sim, noutra não.
+const letters = () => Array.from({ length: 10 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join("");
+const dir = path.join(os.tmpdir(), "error-stack-golden-" + letters());
+fs.mkdirSync(dir);
 const file = path.join(dir, "error_stack_case.js");
 const preload = path.join(dir, "preload.js");
 fs.writeFileSync(
