@@ -91,6 +91,11 @@ fn corpus_matches_bun() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/corpus");
     let mut cases: Vec<PathBuf> = std::fs::read_dir(&root).expect("corpus").map(|e| e.expect("caso").path()).collect();
     cases.sort();
+    // `CORPUS_ONLY=prefixo` roda só os casos cujo nome começa assim (para iterar num caso sem a suíte inteira).
+    let only = std::env::var("CORPUS_ONLY").ok().filter(|prefix| !prefix.is_empty());
+    if let Some(prefix) = &only {
+        cases.retain(|case| case.file_name().is_some_and(|name| name.to_string_lossy().starts_with(prefix.as_str())));
+    }
     let mut failures = Vec::new();
     for case in &cases {
         let name = case.file_name().expect("nome").to_string_lossy().into_owned();
@@ -103,6 +108,6 @@ fn corpus_matches_bun() {
             (Err(diff), None) => failures.push(format!("=== {name}\n{diff}")),
         }
     }
-    assert!(cases.len() >= 15, "o corpus tem só {} casos", cases.len());
+    assert!(only.is_some() || cases.len() >= 15, "o corpus tem só {} casos", cases.len());
     assert!(failures.is_empty(), "{} de {} divergem do bun:\n{}", failures.len(), cases.len(), failures.join("\n"));
 }

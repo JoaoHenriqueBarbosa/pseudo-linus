@@ -6,7 +6,6 @@
 (function (host) {
   "use strict";
 
-  const defer = setImmediate;
   const EAGAIN = 11;
   const ECONNREFUSED = 111;
   const kReadyOpen = 1;
@@ -14,6 +13,10 @@
 
   const states = new WeakMap();
   const listeners = new WeakMap();
+  // A porta de cada listener: a conexão de loopback que chega a ele é aceita no mesmo turno em que o cliente completa.
+  const listenersByPort = new Map();
+  // As conexões de loopback ainda não completadas, por porta: o accept delas é do turno do cliente, não do listener.
+  const connectingByPort = new Map();
   const noop = () => {};
 
   function fail(kind, code, message) {
@@ -56,11 +59,11 @@
     const handler = state.handlers[name];
     if (typeof handler !== "function") return undefined;
     try {
-      return handler.call(state.handlers, state.socket, ...args);
+      return handler.call(state.socket, state.socket, ...args);
     } catch (error) {
       if (name !== "error" && typeof state.handlers.error === "function") {
         try {
-          state.handlers.error.call(state.handlers, state.socket, error);
+          state.handlers.error.call(state.socket, state.socket, error);
           return undefined;
         } catch (inner) {
           error = inner;
@@ -75,13 +78,17 @@
 
   function rewatch(state) {
     if (state.fd < 0) return;
-    host.netWatch(state.fd, !state.paused, state.needsDrain, (readable, writable, hangup, error) => {
+    host.netWatch(state.fd, !state.paused && !state.readEnded, state.needsDrain || state.pending.length > 0, (readable, writable, hangup, error) => {
       if (state.fd < 0) return;
-      if (writable && state.needsDrain) {
-        state.needsDrain = false;
-        call(state, "drain");
+      if (writable) {
+        flushPending(state);
+        if (state.fd < 0) return;
+        if (state.needsDrain && state.pending.length === 0) {
+          state.needsDrain = false;
+          call(state, "drain");
+        }
       }
-      if (readable || hangup || error) pump(state);
+      if (state.fd >= 0 && !state.readEnded && (readable || hangup || error)) pump(state);
       if (state.fd >= 0) rewatch(state);
     });
     host.netRef(state.fd, state.refed);
@@ -105,12 +112,27 @@
         return;
       }
       if (result.length === 0) {
-        finish(state, "end", undefined);
+        if (state.allowHalfOpen) {
+          state.readEnded = true;
+          call(state, "end");
+          // Com o nosso lado já fechado (`shutdown`), o EOF encerra a conexão na mesma volta.
+          if (state.fd >= 0 && state.writeClosed) finish(state, "close", undefined);
+          else if (state.fd >= 0) rewatch(state);
+        } else {
+          finish(state, "end", undefined);
+        }
         return;
       }
       state.received += result.length;
       call(state, "data", globalThis.Buffer.from(result.buffer, result.byteOffset, result.length));
     }
+  }
+
+  // A conexão de loopback de `state` deixou de estar pendente (completou ou morreu antes).
+  function settleConnecting(state) {
+    if (state.connectPort === undefined) return;
+    connectingByPort.set(state.connectPort, connectingByPort.get(state.connectPort) - 1);
+    state.connectPort = undefined;
   }
 
   // Fecha o descritor e avisa o programa uma vez: `end` (se veio do outro lado) ou `error`, depois `close`.
@@ -119,15 +141,17 @@
     const fd = state.fd;
     state.fd = -1;
     state.readyState = kReadyClosed;
+    settleConnecting(state);
     host.netClose(fd);
+    state.pending = [];
     if (why === "end") call(state, "end");
     if (why === "error") call(state, "error", error);
     if (!state.closeCalled) {
       state.closeCalled = true;
+      state.listener = undefined;
       call(state, "close", error);
     }
     if (state.owner !== undefined) state.owner.sockets.delete(state.socket);
-    states.delete(state.socket);
   }
 
   function stateOf(socket) {
@@ -154,6 +178,54 @@
   const getter = (name, read, write) => {
     Object.defineProperty(SocketPrototype, name, { get: read, set: write, configurable: true, enumerable: false });
   };
+
+  // Manda o que o descritor aceita agora e guarda o resto na fila; a fila sai no próximo `writable`. Devolve os bytes
+  // aceitos (todos, fila incluída) ou o `-errno` de uma falha de envio.
+  function sendQueued(state, bytes) {
+    if (state.pending.length === 0) {
+      let sent = 0;
+      while (sent < bytes.length) {
+        const result = host.netSend(state.fd, sent === 0 ? bytes : bytes.subarray(sent));
+        if (result < 0) {
+          if (result === -EAGAIN) break;
+          return result;
+        }
+        sent += result;
+      }
+      if (sent < bytes.length) state.pending.push(sent === 0 ? bytes : bytes.subarray(sent));
+    } else {
+      state.pending.push(bytes);
+    }
+    state.written += bytes.length;
+    if (state.pending.length > 0) rewatch(state);
+    return bytes.length;
+  }
+
+  function flushPending(state) {
+    while (state.pending.length > 0 && state.fd >= 0) {
+      const head = state.pending[0];
+      const result = host.netSend(state.fd, head);
+      if (result < 0) {
+        if (result === -EAGAIN) return;
+        state.pending = [];
+        finish(state, "error", Object.assign(new Error("write failed"), { errno: result, code: "EPIPE" }));
+        return;
+      }
+      if (result < head.length) state.pending[0] = head.subarray(result);
+      else state.pending.shift();
+    }
+    if (state.pending.length === 0 && state.shutdownPending) closeWrite(state);
+  }
+
+  // Manda o FIN (depois da fila); com o EOF do outro lado já recebido, a conexão acabou.
+  function closeWrite(state) {
+    state.shutdownPending = false;
+    if (state.fd < 0 || state.writeClosed) return;
+    state.writeClosed = true;
+    host.netShutdown(state.fd, false, true);
+    // Com o EOF do outro lado já recebido, a conexão acabou: o `close` chega na volta seguinte, como no bun.
+    if (state.readEnded) host.netDefer(() => finish(state, "close", undefined));
+  }
 
   method("write", 3, function (data, offset, length) {
     const state = stateOf(this);
@@ -186,7 +258,9 @@
   });
   method("shutdown", 1, function () {
     const state = stateOf(this);
-    if (state.fd >= 0) host.netShutdown(state.fd, false, true);
+    if (state.fd < 0) return;
+    if (state.pending.length > 0) state.shutdownPending = true;
+    else closeWrite(state);
   });
   method("close", 0, function () {
     const state = stateOf(this);
@@ -279,12 +353,16 @@
     return stateOf(this).remotePort;
   });
 
-  function createSocket(fd, handlers, data, listener, localPort, remotePort) {
+  function createSocket(fd, handlers, data, listener, localPort, remotePort, options) {
     const socket = Object.create(SocketPrototype);
     const state = {
       socket, fd, handlers, data, listener, localPort, remotePort, readyState: kReadyOpen, paused: false, refed: true,
-      needsDrain: false, closeCalled: false, ending: false, written: 0, received: 0, timeoutSeconds: 0,
+      needsDrain: false, pending: [], shutdownPending: false, writeClosed: false, readEnded: false, allowHalfOpen: false, closeCalled: false, ending: false, written: 0, received: 0, timeoutSeconds: 0,
     };
+    if (options !== undefined) {
+      state.allowHalfOpen = options.allowHalfOpen === true;
+      state.paused = options.pauseOnConnect === true;
+    }
     states.set(socket, state);
     return state;
   }
@@ -338,9 +416,10 @@
     return this;
   });
   listenerMethod("getsockname", 1, function (state, out) {
-    const info = { family: "IPv4", address: state.hostname, port: state.port };
-    if (out !== null && typeof out === "object") return Object.assign(out, info);
-    return info;
+    if (out === null || typeof out !== "object") fail("TypeError", "ERR_INVALID_ARG_TYPE", "Expected object");
+    out.family = "IPv4";
+    out.address = state.hostname;
+    out.port = state.port;
   });
   listenerGetter("data", state => state.data, (state, value) => {
     state.data = value;
@@ -356,7 +435,7 @@
       const accepted = host.netAccept(state.fd);
       if (typeof accepted === "number") return;
       const [fd, peer] = accepted;
-      const connection = createSocket(fd, state.handlers, state.data, state.listener, state.port, peer);
+      const connection = createSocket(fd, state.handlers, state.data, state.listener, state.port, peer, state.options);
       state.sockets.add(connection.socket);
       connection.owner = state;
       call(connection, "open");
@@ -378,58 +457,106 @@
     }
     const [fd, port] = result;
     const listener = Object.create(ListenerPrototype);
-    const state = { fd, port, hostname, handlers, data: options.data, refed: true, sockets: new Set(), listener };
+    const state = { fd, port, hostname, handlers, data: options.data, refed: true, sockets: new Set(), listener, options };
     listeners.set(listener, state);
-    host.netWatch(fd, true, false, () => accept(state));
+    listenersByPort.set(port, state);
+    host.netWatch(fd, true, false, () => {
+      if (!connectingByPort.get(port)) accept(state);
+    });
     return listener;
   }
 
   // ---- cliente ----
 
-  function connect(options) {
-    const handlers = validate(options, "connect");
+  // Conecta o `state` (um socket novo, ou o destacado que o `node:net` já tem na mão) a `options`. A conexão se completa
+  // num turno do laço de eventos, depois do accept do listener: o `open` e a recusa esperam o `poll` (a recusa, o `netDefer`,
+  // pronta na ordem do pedido, junto dos descritores de verdade).
+  function startConnect(state, options) {
+    state.handlers = options.socket;
+    state.data = options.data;
+    state.allowHalfOpen = options.allowHalfOpen === true;
+    state.paused = options.pauseOnConnect === true;
     return new Promise((resolve, reject) => {
       const hostname = options.hostname ?? options.host ?? "localhost";
       const port = Number(options.port);
+      state.remotePort = port;
       const refuse = errno => {
         const error = new Error("Failed to connect");
         error.code = errno === ECONNREFUSED ? "ECONNREFUSED" : "ENETUNREACH";
         error.errno = -errno;
         error.syscall = "connect";
-        const stub = createSocket(-1, handlers, options.data, undefined, 0, port);
-        stub.readyState = kReadyClosed;
-        if (typeof handlers.connectError === "function") {
+        if (state.fd >= 0) host.netClose(state.fd);
+        state.fd = -1;
+        state.readyState = kReadyClosed;
+        if (typeof state.handlers.connectError === "function") {
           try {
-            handlers.connectError.call(handlers, stub.socket, error);
+            state.handlers.connectError.call(state.socket, state.socket, error);
           } catch (thrown) {
             queueMicrotask(() => {
               throw thrown;
             });
           }
         }
-        states.delete(stub.socket);
         reject(error);
       };
-      // No bun a conexão se completa num turno do laço de eventos, depois do accept do listener: o `open` e a
-      // recusa esperam o `poll` (a recusa, o `defer`, que é o `setImmediate`, depois dele).
       if (!loopback(hostname)) {
-        defer(() => refuse(ECONNREFUSED));
+        host.netDefer(() => refuse(ECONNREFUSED));
         return;
       }
       const result = host.netConnect(port);
       if (typeof result === "number") {
-        defer(() => refuse(-result));
+        host.netDefer(() => refuse(-result));
         return;
       }
       const [fd, localPort] = result;
+      state.fd = fd;
+      state.localPort = localPort;
+      state.connectPort = port;
+      connectingByPort.set(port, (connectingByPort.get(port) ?? 0) + 1);
       host.netWatch(fd, false, true, () => {
-        const connection = createSocket(fd, handlers, options.data, undefined, localPort, port);
-        call(connection, "open");
-        rewatch(connection);
-        resolve(connection.socket);
+        if (state.fd !== fd) return;
+        // No bun a conexão fica pronta dos dois lados ao mesmo tempo: o accept do listener vem antes do `open` do cliente.
+        settleConnecting(state);
+        const listener = listenersByPort.get(port);
+        if (listener !== undefined) accept(listener);
+        state.readyState = kReadyOpen;
+        call(state, "open");
+        rewatch(state);
+        resolve(state.socket);
       });
     });
   }
 
-  return { listen, connect };
+  function connect(options) {
+    validate(options, "connect");
+    return startConnect(createSocket(-1, options.socket, options.data, undefined, 0, 0, options), options);
+  }
+
+  // O que o `node:net` usa por dentro: o que o bun faz com nomes privados (`$write`) e funções nativas (`doConnect`,
+  // `newDetachedSocket`, `jsGetBufferedAmount`).
+  const internals = {
+    // Os bytes de `chunk` (texto na codificação `encoding`) entram na fila do descritor: devolve o que coube (tudo, o resto
+    // espera o `writable`) ou o `-errno` do envio.
+    write(socket, chunk, encoding) {
+      const state = stateOf(socket);
+      if (state.fd < 0 || state.writeClosed) return -32;
+      const bytes = typeof chunk === "string" ? globalThis.Buffer.from(chunk, encoding) : chunk;
+      if (bytes.length === 0) return 1;
+      return sendQueued(state, bytes);
+    },
+    newDetachedSocket() {
+      const state = createSocket(-1, {}, undefined, undefined, 0, 0);
+      state.readyState = 0;
+      return state.socket;
+    },
+    doConnect(socket, options) {
+      return startConnect(stateOf(socket), options);
+    },
+    getBufferedAmount(socket) {
+      const state = states.get(socket);
+      return state === undefined ? 0 : state.pending.reduce((total, chunk) => total + chunk.length, 0);
+    },
+  };
+
+  return { listen, connect, internals };
 });

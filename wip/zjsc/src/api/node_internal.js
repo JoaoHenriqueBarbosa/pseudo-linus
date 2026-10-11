@@ -188,6 +188,24 @@
     INVALID_ASYNC_ID: (type, id) => makeError("RangeError", "ERR_INVALID_ASYNC_ID", `Invalid ${type} value: ${id}`),
     ASYNC_TYPE: type => makeError("TypeError", "ERR_ASYNC_TYPE", `Invalid name for async "type": ${type}`),
     ASYNC_CALLBACK: name => makeError("TypeError", "ERR_ASYNC_CALLBACK", `${name} must be a function`),
+    // Os de `node:net` (ErrorCode.cpp do bun 1.4.2).
+    SOCKET_CLOSED: () => makeError("Error", "ERR_SOCKET_CLOSED", "Socket is closed"),
+    SOCKET_CLOSED_BEFORE_CONNECTION: () => makeError("Error", "ERR_SOCKET_CLOSED_BEFORE_CONNECTION", "Socket closed before the connection was established"),
+    SOCKET_CONNECTION_TIMEOUT: () => makeError("Error", "ERR_SOCKET_CONNECTION_TIMEOUT", "Socket connection timeout"),
+    TLS_HANDSHAKE_TIMEOUT: () => makeError("Error", "ERR_TLS_HANDSHAKE_TIMEOUT", "TLS handshake timeout"),
+    SERVER_NOT_RUNNING: () => makeError("Error", "ERR_SERVER_NOT_RUNNING", "Server is not running."),
+    SERVER_ALREADY_LISTEN: () => makeError("Error", "ERR_SERVER_ALREADY_LISTEN", "Listen method has been called more than once without closing."),
+    IP_BLOCKED: ip => makeError("Error", "ERR_IP_BLOCKED", `IP(${ip}) is blocked by net.BlockList`),
+    INVALID_FD_TYPE: type => makeError("TypeError", "ERR_INVALID_FD_TYPE", `Unsupported fd type: ${type}`),
+    INVALID_IP_ADDRESS: ip => makeError("TypeError", "ERR_INVALID_IP_ADDRESS", `Invalid IP address: ${ip}`),
+    INVALID_ADDRESS_FAMILY(family, host, port) {
+      const error = makeError("RangeError", "ERR_INVALID_ADDRESS_FAMILY", `Invalid address family: ${family} ${host}:${port}`);
+      error.host = host;
+      error.port = port;
+      return error;
+    },
+    SOCKET_BAD_PORT: message => makeError("RangeError", "ERR_SOCKET_BAD_PORT", message),
+    TLS_ALPN_CALLBACK_INVALID_RESULT: message => makeError("TypeError", "ERR_TLS_ALPN_CALLBACK_INVALID_RESULT", message),
   };
   // Os que o bun declara só com a mensagem pronta (`$ERR_FS_CP_EEXIST(message)`): o argumento é a mensagem.
   for (const [name, kind] of [
@@ -285,6 +303,16 @@
     }
   }
 
+  // `jsFunction_validatePort` do bun (NodeValidator.cpp): número ou texto inteiro de 0 (ou 1) a 65535.
+  function validatePort(port, name = "Port", allowZero = true) {
+    const bad = () => codes.SOCKET_BAD_PORT(`${name} should be ${allowZero ? ">=" : ">"} 0 and < 65536. Received ${String(port)}`);
+    if (typeof port !== "number" && typeof port !== "string") throw bad();
+    if (typeof port === "string" && port.trim().length === 0) throw bad();
+    const value = Number(port);
+    if (Number.isNaN(value) || !Number.isFinite(value) || value % 1 !== 0 || value < 0 || value > 0xffff || (value === 0 && !allowZero)) throw bad();
+    return port;
+  }
+
   function validateAbortSignal(signal, name) {
     if (signal !== undefined && (signal === null || typeof signal !== "object" || !("aborted" in signal))) {
       throw invalidArgType(name, "AbortSignal", signal);
@@ -342,6 +370,7 @@
     validateFunction,
     validateBoolean,
     validateAbortSignal,
+    validatePort,
     validateArray,
     validateOneOf,
     getValidatedPath,

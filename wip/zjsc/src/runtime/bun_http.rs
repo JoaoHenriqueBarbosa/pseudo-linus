@@ -49,6 +49,11 @@ fn module(global_object: &JSGlobalObject, cache_name: &'static str, source: &str
     })
 }
 
+/// Os exports do `bun_socket.js` (`listen`, `connect`, `internals`), para o `node:net`.
+pub(crate) fn socket_exports(global_object: &JSGlobalObject) -> HostResult {
+    module(global_object, "internal:bun-socket", SOCKET_SOURCE)
+}
+
 /// Chama o export `name` do programa `cache_name` com os argumentos do chamador.
 fn call_program(global_object: &JSGlobalObject, cache_name: &'static str, source: &str, name: &str, arguments: &[crate::runtime::js_value::JSValue]) -> HostResult {
     let exports = module(global_object, cache_name, source)?;

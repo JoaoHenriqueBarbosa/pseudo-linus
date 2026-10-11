@@ -61,6 +61,7 @@ pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "fs", scheme: Scheme::Both, install: crate::runtime::node_fs::install_fs_module },
     BuiltinEntry { name: "fs/promises", scheme: Scheme::Both, install: crate::runtime::node_fs::install_fs_promises_module },
     BuiltinEntry { name: "module", scheme: Scheme::Both, install: install_module_module },
+    BuiltinEntry { name: "net", scheme: Scheme::Both, install: crate::runtime::node_net::install_net_module },
     BuiltinEntry { name: "os", scheme: Scheme::Both, install: crate::runtime::node_os::install_os_module },
     BuiltinEntry { name: "path", scheme: Scheme::Both, install: crate::runtime::node_path::install_path_module },
     BuiltinEntry { name: "path/posix", scheme: Scheme::Both, install: install_path_posix },

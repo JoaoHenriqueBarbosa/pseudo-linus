@@ -5,11 +5,11 @@
 //!
 //! As funções nativas devolvem o resultado ou o errno negativo (`-11` é `EAGAIN`): o JavaScript decide o que fazer.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::time::Duration;
 
 use crate::host_function;
-use crate::runtime::host::{host, NetWatch};
+use crate::runtime::host::{host, NetReady, NetWatch};
 use crate::runtime::host_call::{HostCall, HostResult};
 use crate::runtime::js_array::construct_array;
 use crate::runtime::js_global_object::JSGlobalObject;
@@ -27,6 +27,8 @@ struct Watch {
 }
 
 thread_local! {
+    /// O próximo descritor de mentira das conclusões imediatas (`netDefer`): negativos, que nenhum descritor de verdade é.
+    static NEXT_DEFERRED: Cell<i32> = const { Cell::new(-2) };
     static WATCHES: RefCell<Vec<Watch>> = const { RefCell::new(Vec::new()) };
 }
 
@@ -62,12 +64,25 @@ pub(crate) fn dispatch(global_object: &JSGlobalObject, timeout: Option<Duration>
     if snapshot.is_empty() {
         return false;
     }
-    let list: Vec<NetWatch> = snapshot.iter().map(|(watch, _)| *watch).collect();
-    let Ok(ready) = host().net_poll(&list, timeout) else { return false };
+    // As conclusões imediatas (`fd < 0`) não passam pelo `poll(2)`: contam como prontas na posição em que foram pedidas,
+    // na mesma volta que os descritores de verdade, como uma conexão recusada que o bun só entrega no turno do laço.
+    let deferred = snapshot.iter().any(|(watch, _)| watch.fd < 0);
+    let real: Vec<NetWatch> = snapshot.iter().map(|(watch, _)| *watch).filter(|watch| watch.fd >= 0).collect();
+    let mut polled = if real.is_empty() {
+        Vec::new()
+    } else {
+        let Ok(ready) = host().net_poll(&real, if deferred { Some(Duration::ZERO) } else { timeout }) else { return false };
+        ready
+    }
+    .into_iter();
     let mut ran = false;
-    for ((watch, callback), outcome) in snapshot.into_iter().zip(ready) {
+    for (watch, callback) in snapshot {
+        let outcome = if watch.fd < 0 { NetReady { writable: true, ..NetReady::default() } } else { polled.next().unwrap_or_default() };
         if !outcome.any() || !still_watching(watch.fd, callback) {
             continue;
+        }
+        if watch.fd < 0 {
+            WATCHES.with(|watches| watches.borrow_mut().retain(|existing| existing.fd != watch.fd));
         }
         ran = true;
         let flags = [outcome.readable, outcome.writable, outcome.hangup, outcome.error].map(JSValue::Bool);
@@ -146,6 +161,13 @@ fn watch_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     Ok(JSValue::undefined())
 }
 
+/// `netDefer(callback)`: o callback roda na próxima volta do laço, na ordem dos outros pedidos de rede.
+fn defer_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let fd = NEXT_DEFERRED.with(|next| next.replace(next.get() - 1));
+    WATCHES.with(|watches| watches.borrow_mut().push(Watch { fd, read: false, write: true, callback: call.argument(0), refed: true }));
+    Ok(JSValue::undefined())
+}
+
 fn unwatch_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let fd = fd_of(call);
     WATCHES.with(|watches| watches.borrow_mut().retain(|watch| watch.fd != fd));
@@ -168,10 +190,11 @@ host_function!(shutdown_function, shutdown_body);
 host_function!(close_function, close_body);
 host_function!(watch_function, watch_body);
 host_function!(unwatch_function, unwatch_body);
+host_function!(defer_function, defer_body);
 host_function!(ref_function, ref_body);
 
 /// As funções que o `bun_http.js` recebe no `host`.
-pub(crate) const NATIVES: [(&str, u32, NativeFunction); 10] = [
+pub(crate) const NATIVES: [(&str, u32, NativeFunction); 11] = [
     ("netListen", 2, listen_function),
     ("netAccept", 1, accept_function),
     ("netConnect", 1, connect_function),
@@ -182,4 +205,5 @@ pub(crate) const NATIVES: [(&str, u32, NativeFunction); 10] = [
     ("netWatch", 4, watch_function),
     ("netUnwatch", 1, unwatch_function),
     ("netRef", 2, ref_function),
+    ("netDefer", 1, defer_function),
 ];

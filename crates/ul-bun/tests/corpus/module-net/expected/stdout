@@ -1,0 +1,17 @@
+exports BlockList,Server,Socket,SocketAddress,Stream,_normalizeArgs,_setSimultaneousAccepts,connect,createConnection,createServer,getDefaultAutoSelectFamily,getDefaultAutoSelectFamilyAttemptTimeout,isIP,isIPv4,isIPv6,setDefaultAutoSelectFamily,setDefaultAutoSelectFamilyAttemptTimeout
+isIP 4 6 0 true true
+autoSelect true 500
+bad port RangeError ERR_SOCKET_BAD_PORT Port should be >= 0 and < 65536. Received 70000
+listening
+address 127.0.0.1 IPv4 true
+refused error ECONNREFUSED connect ECONNREFUSED 127.0.0.1:1 connect -111 127.0.0.1 1
+server connection 127.0.0.1 number 127.0.0.1
+client connect false true
+refused close true
+server data ping
+client data pong:ping
+client end
+client close false 4 9
+server end
+server socket close false
+server closed

@@ -54,6 +54,7 @@ pub mod node_buffer;
 pub mod node_crypto;
 pub mod node_error;
 pub mod node_fs;
+pub mod node_net;
 pub mod node_os;
 pub mod node_tty;
 pub mod node_path;

@@ -11,10 +11,10 @@ listener data,fd,getsockname,hostname,port,ref,reload,stop,unix,unref 127.0.0.1 
   tag: "srv",
 } Object
 listener keys []
-srv open string {
+srv open this true string {
   tag: "srv",
 } 1 true alpnProtocol,authorized,bytesWritten,close,data,disableRenegotiation,end,exportKeyingMaterial,fd,flush,getAuthorizationError,getCertificate,getCipher,getEphemeralKeyInfo,getPeerCertificate,getServername,getSession,getSharedSigalgs,getTLSFinishedMessage,getTLSPeerFinishedMessage,getTLSTicket,getTLSVersion,getTypeOfService,isSessionReused,listener,localAddress,localFamily,localPort,pause,readyState,ref,reload,remoteAddress,remoteFamily,remotePort,renegotiate,resume,resumeSNI,setKeepAlive,setKeyCert,setMaxSendFragment,setNoDelay,setServername,setSession,setTypeOfService,setVerifyMode,shutdown,terminate,timeout,unref,upgradeTLS,write
-cli open {
+cli open this true {
   tag: "cli",
 } 1 alpnProtocol,authorized,bytesWritten,close,data,disableRenegotiation,end,exportKeyingMaterial,fd,flush,getAuthorizationError,getCertificate,getCipher,getEphemeralKeyInfo,getPeerCertificate,getServername,getSession,getSharedSigalgs,getTLSFinishedMessage,getTLSPeerFinishedMessage,getTLSTicket,getTLSVersion,getTypeOfService,isSessionReused,listener,localAddress,localFamily,localPort,pause,readyState,ref,reload,remoteAddress,remoteFamily,remotePort,renegotiate,resume,resumeSNI,setKeepAlive,setKeyCert,setMaxSendFragment,setNoDelay,setServername,setSession,setTypeOfService,setVerifyMode,shutdown,terminate,timeout,unref,upgradeTLS,write Object []
 write ret 4
@@ -22,7 +22,9 @@ connect resolved Object function
 refused connectError Error ECONNREFUSED Failed to connect -111 connect
 refused rejected Error ECONNREFUSED Failed to connect
 srv data <Buffer 70 69 6e 67> Buffer
-srv close undefined
+srv close undefined undefined {
+  tag: "srv",
+}
 cli data pong:ping
 cli end
 cli close undefined
