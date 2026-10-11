@@ -268,12 +268,14 @@ pub fn live_frame_at(chain: Vec<FrameLink>, depth: usize, fresh_innermost: bool)
     let mut result = None;
     let mut back = Value::None;
     let mut positions: HashSet<Key> = HashSet::new();
+    // O que sai do registro morre depois do empréstimo: o `FrameHold` de um quadro volta a ele ao soltar os locais.
+    let mut dead: Vec<Entry> = Vec::new();
     REGISTRY.with(|reg| {
         let mut reg = reg.borrow_mut();
         for (i, link) in chain.into_iter().enumerate().rev() {
             let key = key_of(&link, n - 1 - i);
             if i == 0 && fresh_innermost {
-                reg.remove(&key);
+                dead.extend(reg.remove(&key));
             }
             if matches!(key, Key::Pos(..)) {
                 positions.insert(key);
@@ -295,11 +297,18 @@ pub fn live_frame_at(chain: Vec<FrameLink>, depth: usize, fresh_innermost: bool)
             }
         }
         // Quadros que já saíram: o `Env` morreu, ou a posição não está mais no empilhamento.
-        reg.retain(|k, e| match k {
-            Key::Env(_) => e.obj.env.borrow().strong_count() > 0,
-            Key::Pos(..) => positions.contains(k),
-        });
+        let gone: Vec<Key> = reg
+            .iter()
+            .filter(|(k, e)| match k {
+                // Só o registro guarda o objeto de um quadro que acabou: o escopo que ele segurava solta junto.
+                Key::Env(_) => e.obj.env.borrow().strong_count() == 0 || (Rc::strong_count(&e.obj) == 1 && e.obj.held.borrow().is_some()),
+                Key::Pos(..) => !positions.contains(*k),
+            })
+            .map(|(k, _)| *k)
+            .collect();
+        dead.extend(gone.into_iter().filter_map(|k| reg.remove(&k)));
     });
+    drop(dead);
     result
 }
 
@@ -371,6 +380,17 @@ impl Drop for FrameHold {
 /// último dono do quadro leva os locais.
 pub fn finish(code: &Code, env: &Rc<Env>) {
     env.finished.set(true);
+    // Um objeto `frame` que o programa ainda guarda (`sys._getframe`) leva o quadro com ele: os locais vivem enquanto
+    // o objeto viver, como no CPython, mesmo quando nenhuma função de dentro fechou o escopo.
+    REGISTRY.with(|reg| {
+        if let Some(entry) = reg.borrow().get(&Key::Env(Rc::as_ptr(env) as usize)) {
+            if Rc::strong_count(&entry.obj) > 1 && entry.obj.held.borrow().is_none() {
+                if let Some(owner) = &entry.obj.code {
+                    *entry.obj.held.borrow_mut() = Some(FrameHold::new(env.clone(), owner.clone(), None));
+                }
+            }
+        }
+    });
     release_locals(code, env);
 }
 
