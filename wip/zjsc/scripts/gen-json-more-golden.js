@@ -258,7 +258,7 @@ add('T(()=>{var l=[];JSON.stringify({a:1,b:{c:2},d:[3]},function(k,v){l.push(k+"
   'T(()=>JSON.stringify({a:1},async function(k,v){return v}))', 'T(()=>JSON.stringify({a:1},function*(k,v){yield v}))', 'T(()=>JSON.stringify({a:1},new Proxy(function(k,v){return v},{})))',
   'T(()=>JSON.stringify({a:1},Function.prototype))', 'T(()=>JSON.stringify({a:1},Math.abs))', 'T(()=>JSON.stringify({a:-1},Math.abs))', 'T(()=>JSON.stringify({a:1},String))',
   'T(()=>JSON.stringify({a:1},Number))', 'T(()=>JSON.stringify({a:1},Boolean))', 'T(()=>JSON.stringify({a:1},Array))', 'T(()=>JSON.stringify({a:1},Object))',
-  'T(()=>JSON.stringify({a:1},Symbol))', 'T(()=>JSON.stringify({a:1},BigInt))', 'T(()=>JSON.stringify({a:1},Date))', 'T(()=>JSON.stringify({a:1},Error))',
+  'T(()=>JSON.stringify({a:1},Symbol))', 'T(()=>JSON.stringify({a:1},BigInt))', 'T(()=>typeof JSON.stringify({a:1},Date))', 'T(()=>JSON.stringify({a:1},Error))',
   'T(()=>JSON.stringify({a:1},class{}))', 'T(()=>JSON.stringify({a:1},Function.prototype.call.bind(function(){return 1})))');
 
 // ---- 12. Space.
@@ -354,8 +354,8 @@ add('T(()=>JSON.stringify(new Proxy({a:1},{ownKeys(){return[]}})))', 'T(()=>JSON
   'T(()=>JSON.stringify(1n))', 'T(()=>JSON.stringify([1n]))', 'T(()=>JSON.stringify({a:{b:[1n]}}))', 'T(()=>JSON.stringify(BigInt(2**53)))', 'T(()=>JSON.stringify(0n))', 'T(()=>JSON.stringify(-0n))',
   'T(()=>JSON.stringify({a:1n},null,2))', 'T(()=>JSON.stringify({a:1n},["a"]))', 'T(()=>JSON.stringify({a:1n},["b"]))', 'T(()=>JSON.stringify({a:1n},()=>1))', 'T(()=>JSON.stringify(1n,()=>1))',
   'T(()=>JSON.stringify({toJSON(){return 1n}}))', 'T(()=>JSON.stringify(Object.assign(Object(1n),{toJSON(){return 2}})))',
-  'T(()=>{Date.prototype.toJSON=function(){return "dj"};try{return JSON.stringify([new Date(0),new Date(NaN)])}finally{delete Date.prototype.toJSON}})',
-  'T(()=>{Object.defineProperty(Date.prototype,"toISOString",{value(){return "iso"},configurable:true,writable:true});try{return JSON.stringify(new Date(0))}finally{delete Date.prototype.toISOString}})',
+  'T(()=>{var d=Object.getOwnPropertyDescriptor(Date.prototype,"toJSON");Date.prototype.toJSON=function(){return "dj"};try{return JSON.stringify([new Date(0),new Date(NaN)])}finally{Object.defineProperty(Date.prototype,"toJSON",d)}})',
+  'T(()=>{var d=Object.getOwnPropertyDescriptor(Date.prototype,"toISOString");Object.defineProperty(Date.prototype,"toISOString",{value(){return "iso"},configurable:true,writable:true});try{return JSON.stringify(new Date(0))}finally{Object.defineProperty(Date.prototype,"toISOString",d)}})',
   'T(()=>JSON.stringify(new Date(2e12)))', 'T(()=>JSON.stringify(new Date(-1e12)))', 'T(()=>JSON.stringify(new Date(-62167219200000)))', 'T(()=>JSON.stringify(new Date(-62167219200001)))',
   'T(()=>JSON.stringify(new Date(253402300799999)))', 'T(()=>JSON.stringify(new Date(253402300800000)))', 'T(()=>JSON.stringify(new Date(8.64e15)))', 'T(()=>JSON.stringify(new Date(8.64e15+1)))',
   'T(()=>JSON.stringify(new Date(-8.64e15)))', 'T(()=>JSON.stringify(new Date(-8.64e15-1)))', 'T(()=>JSON.stringify({d:new Date(0)},null,1))', 'T(()=>JSON.stringify(new Date(0),["x"]))',
@@ -396,7 +396,7 @@ add('T(()=>JSON.rawJSON(1))', 'T(()=>JSON.rawJSON(undefined))', 'T(()=>JSON.rawJ
   'T(()=>JSON.stringify({a:JSON.rawJSON("1"),b:JSON.rawJSON("1")},["b"]))', 'T(()=>JSON.stringify(JSON.rawJSON("1"),["rawJSON"]))', 'T(()=>JSON.stringify(Object(JSON.rawJSON("1"))))');
 
 // ---- 18. Meta de JSON.
-add('JSON[Symbol.toStringTag]', 'T(()=>{"use strict";JSON[Symbol.toStringTag]="x"})', 'T(()=>{"use strict";delete JSON[Symbol.toStringTag]})', 'JSON.stringify(Object.getOwnPropertyDescriptor(JSON,Symbol.toStringTag))',
+add('JSON[Symbol.toStringTag]', 'T(()=>{"use strict";JSON[Symbol.toStringTag]="x"})', 'T(()=>{"use strict";var d=Object.getOwnPropertyDescriptor(JSON,Symbol.toStringTag);try{delete JSON[Symbol.toStringTag]}finally{Object.defineProperty(JSON,Symbol.toStringTag,d)}})', 'JSON.stringify(Object.getOwnPropertyDescriptor(JSON,Symbol.toStringTag))',
   'Object.prototype.toString.call(JSON)', 'Object.prototype.toString.call(Object.create(JSON))', 'String(Object.create(JSON))', 'Object.getOwnPropertyNames(JSON).join()',
   'JSON.stringify(Object.getOwnPropertyNames(JSON).map(k=>[k,typeof JSON[k]==="function"?JSON[k].length:-1]))',
   'JSON.stringify(Object.getOwnPropertyNames(JSON).map(k=>Object.getOwnPropertyDescriptor(JSON,k)).map(d=>[d.writable,d.enumerable,d.configurable]))',
