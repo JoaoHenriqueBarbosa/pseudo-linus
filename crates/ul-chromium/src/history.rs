@@ -58,7 +58,7 @@ fn segment_name(url: &str) -> String {
 }
 
 /// A origem serializada do endereço, com a barra final (`http://127.0.0.1:8000/`).
-fn origin_with_slash(url: &str) -> String {
+pub fn origin_with_slash(url: &str) -> String {
     match url.split_once("://") {
         Some((scheme, rest)) => format!("{scheme}://{}/", rest.split('/').next().unwrap_or_default()),
         None => url.to_owned(),

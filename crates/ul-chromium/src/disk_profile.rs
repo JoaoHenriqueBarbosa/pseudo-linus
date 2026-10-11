@@ -21,6 +21,7 @@ use ul_common::time::{Civil, WEBKIT_EPOCH_US};
 
 use crate::history::{self, Navigation};
 use crate::http_cache::{self, Captured};
+use crate::preferences;
 use crate::sessions;
 use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
@@ -361,6 +362,30 @@ impl DiskProfile {
         let _ = sysabi::util::write_file(&index_path, &http_cache::index_file(&index, ul_common::time::webkit_now_micros() - 30_000), 0o600);
     }
 
+    /// O `Preferences` da saída do `--dump-dom` com o engajamento de cada site visitado.
+    fn write_preferences(&self, previous: Option<String>) {
+        let Some(dir) = &self.user_data_dir else { return };
+        let navigations = self.navigations.lock().unwrap_or_else(PoisonError::into_inner);
+        if navigations.is_empty() {
+            return;
+        }
+        let exit_us = (ul_common::time::realtime_nanos() / 1000) as i64;
+        let visits: Vec<preferences::SiteVisit> = navigations
+            .iter()
+            .enumerate()
+            .map(|(index, nav)| preferences::SiteVisit {
+                origin: history::origin_with_slash(&nav.url).trim_end_matches('/').to_owned(),
+                time: nav.start_us + WEBKIT_EPOCH_US,
+                duration: navigations.get(index + 1).map_or(exit_us, |next| next.start_us) - nav.start_us,
+            })
+            .collect();
+        let path = [dir.as_slice(), b"/Default/Preferences"].concat();
+        let Ok(bytes) = sys::read_file(&path) else { return };
+        let floor = self.start_us + WEBKIT_EPOCH_US;
+        let text = preferences::apply(&String::from_utf8_lossy(&bytes), previous.as_deref(), floor, &visits, float_text);
+        let _ = sysabi::util::write_file(&path, text.as_bytes(), 0o600);
+    }
+
     /// O History da saída do `--dump-dom`: a cadeia de navegações da aba, no banco que o molde trouxe.
     fn write_history(&self) {
         let Some(dir) = &self.user_data_dir else { return };
@@ -411,8 +436,10 @@ impl DiskProfile {
         if let Some(store) = &self.session_storage {
             let _ = store.finish(exit);
         }
+        let previous_preferences = self.user_data_dir.as_ref().and_then(|dir| sys::read_file(&[dir.as_slice(), b"/Default/Preferences"].concat()).ok()).map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
         let _ = self.write_layer(template(self.run), LAYER_EXIT);
         if self.run == Run::DumpDom {
+            self.write_preferences(previous_preferences);
             self.write_history();
             self.write_sessions();
             self.write_cache();
