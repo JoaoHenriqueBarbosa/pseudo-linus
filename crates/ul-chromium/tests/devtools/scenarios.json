@@ -236,5 +236,23 @@
   {"method": "Page.navigate", "params": {"url": "http://127.0.0.1:8765/login"}, "session": "s", "after": 2.0},
   {"method": "Runtime.evaluate", "params": {"expression": "document.cookie", "returnByValue": true}, "session": "s"},
   {"method": "Storage.getCookies"},
-  {"method": "Page.navigate", "params": {"url": "http://127.0.0.1:8765/page?second"}, "session": "s", "after": 1.5}]}
+  {"method": "Page.navigate", "params": {"url": "http://127.0.0.1:8765/page?second"}, "session": "s", "after": 1.5}]},
+ {"name": "playwright_locale", "server": true, "steps": [
+  {"method": "Target.getTargets"},
+  {"method": "Target.attachToTarget", "params": {"targetId": "$TARGET", "flatten": true}, "save": "s", "save_field": "sessionId", "after": 0.3},
+  {"method": "Page.enable", "session": "s", "after": 0.2},
+  {"method": "Runtime.enable", "session": "s", "after": 0.2},
+  {"method": "Page.navigate", "params": {"url": "http://127.0.0.1:8765/page"}, "session": "s", "after": 1.5},
+  {"method": "Runtime.evaluate", "params": {"expression": "[Intl.DateTimeFormat().resolvedOptions().locale, Intl.DateTimeFormat().resolvedOptions().timeZone, new Date(0).getTimezoneOffset(), (1234.5).toLocaleString(), new Date(0).toLocaleDateString(), navigator.language]", "returnByValue": true}, "session": "s"},
+  {"method": "Emulation.setLocaleOverride", "params": {"locale": "pt-BR"}, "session": "s"},
+  {"method": "Emulation.setTimezoneOverride", "params": {"timezoneId": "America/Sao_Paulo"}, "session": "s"},
+  {"method": "Runtime.evaluate", "params": {"expression": "[Intl.DateTimeFormat().resolvedOptions().locale, Intl.DateTimeFormat().resolvedOptions().timeZone, new Date(0).getTimezoneOffset(), (1234.5).toLocaleString(), new Date(0).toLocaleDateString(), navigator.language]", "returnByValue": true}, "session": "s"},
+  {"method": "Page.navigate", "params": {"url": "http://127.0.0.1:8765/page?again"}, "session": "s", "after": 1.5},
+  {"method": "Runtime.evaluate", "params": {"expression": "[Intl.DateTimeFormat().resolvedOptions().locale, Intl.DateTimeFormat().resolvedOptions().timeZone, new Date(0).getTimezoneOffset(), (1234.5).toLocaleString(), new Date(0).toLocaleDateString(), navigator.language]", "returnByValue": true}, "session": "s"},
+  {"method": "Emulation.setLocaleOverride", "params": {"locale": "ja-JP"}, "session": "s"},
+  {"method": "Emulation.setTimezoneOverride", "params": {"timezoneId": "Asia/Tokyo"}, "session": "s"},
+  {"method": "Runtime.evaluate", "params": {"expression": "[Intl.DateTimeFormat().resolvedOptions().locale, Intl.DateTimeFormat().resolvedOptions().timeZone, new Date(0).getTimezoneOffset(), (1234.5).toLocaleString(), new Date(0).toLocaleDateString(), navigator.language]", "returnByValue": true}, "session": "s"},
+  {"method": "Emulation.setLocaleOverride", "params": {}, "session": "s"},
+  {"method": "Emulation.setTimezoneOverride", "params": {"timezoneId": ""}, "session": "s"},
+  {"method": "Runtime.evaluate", "params": {"expression": "[Intl.DateTimeFormat().resolvedOptions().locale, Intl.DateTimeFormat().resolvedOptions().timeZone, new Date(0).getTimezoneOffset(), (1234.5).toLocaleString(), new Date(0).toLocaleDateString(), navigator.language]", "returnByValue": true}, "session": "s"}]}
 ]

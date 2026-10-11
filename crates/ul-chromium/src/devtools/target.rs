@@ -161,9 +161,9 @@ struct Emulation {
     loads: u32,
     /// `Emulation.setUserAgentOverride` com `platform`: o `navigator.platform`.
     nav_platform: String,
-    /// `Emulation.setLocaleOverride`. Guardado e devolvido; o `Intl` do motor ainda não o lê.
+    /// `Emulation.setLocaleOverride`: o locale padrão do `Intl` do motor.
     locale: String,
-    /// `Emulation.setTimezoneOverride`: vale para o documento seguinte (o motor resolve o fuso ao criar a página).
+    /// `Emulation.setTimezoneOverride`: o fuso do motor, também no documento vivo.
     timezone: String,
     /// `Emulation.setGeolocationOverride`: latitude, longitude e precisão.
     geo: Option<(f64, f64, f64)>,
@@ -253,6 +253,13 @@ impl Tab {
             idle: None,
             session: std::rc::Rc::new(crate::session::Tab::new(profile)),
         }
+    }
+
+    /// O fuso e o locale padrão do motor (por thread, e esta é a do realm da página): o `Emulation` do DevTools vale já no
+    /// documento vivo e no seguinte. Vazio volta ao ambiente do processo e ao `en-US`.
+    fn apply_engine_overrides(&self) {
+        zjsc::runtime::process_time_zone::set_time_zone_spec_override((!self.emu.timezone.is_empty()).then_some(self.emu.timezone.as_str()));
+        zjsc::runtime::intl_locale_data::set_default_locale((!self.emu.locale.is_empty()).then_some(self.emu.locale.as_str()));
     }
 
     /// O fetcher da aba: a rede com as substituições do DevTools e o pote de cookies do perfil.
@@ -435,8 +442,7 @@ impl Tab {
             self.emit(&sessions, "Page.frameStartedNavigating", &started);
             self.emit(&sessions, "Page.frameStartedLoading", &Json::object([("frameId", Json::str(&self.target_id))]));
         }
-        // O motor resolve o fuso ao criar a página: o override do DevTools vale daqui em diante.
-        zjsc::runtime::process_time_zone::set_time_zone_spec_override((!self.emu.timezone.is_empty()).then_some(self.emu.timezone.as_str()));
+        self.apply_engine_overrides();
         let fetcher = self.fetcher();
         let (page, error) = match Page::load(&url, fetcher.clone()) {
             Ok(page) => (page, None),
@@ -1076,10 +1082,12 @@ impl Tab {
             "Network.setCacheDisabled" => self.reply(&message, Json::object([])),
             "Emulation.setLocaleOverride" => {
                 self.emu.locale = params.get("locale").and_then(Json::as_str).unwrap_or_default().to_owned();
+                self.apply_engine_overrides();
                 self.reply(&message, Json::object([]));
             }
             "Emulation.setTimezoneOverride" => {
                 self.emu.timezone = params.get("timezoneId").and_then(Json::as_str).unwrap_or_default().to_owned();
+                self.apply_engine_overrides();
                 self.reply(&message, Json::object([]));
             }
             "Emulation.setGeolocationOverride" => {
