@@ -363,10 +363,15 @@ def _enter(target, payload, run, finishing):
 
 def _switch_to(target, payload, event):
     _check_thread(target)
+    was_dead = _st(target).dead
     target = _resolve(target)
     origin = _current()
     if target is origin:
         if payload[0] == 'throw':
+            # Um `GreenletExit` jogado num morto sobe ao pai, que é o corrente: é engolido e devolvido como valor,
+            # como o que sai de um greenlet que acaba nele. Jogado direto no corrente, levanta.
+            if was_dead and isinstance(payload[1], GreenletExit):
+                return payload[1]
             raise payload[1]
         return _unpack(payload[1], payload[2])
     # O `PyRequireAttr(self, "run")` do `g_initialstub`: o `run` de uma subclasse vence o campo do tipo.

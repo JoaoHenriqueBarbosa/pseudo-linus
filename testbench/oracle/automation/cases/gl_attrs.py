@@ -121,3 +121,10 @@ def set_ctx():
 t('ctx set other thread', set_ctx)
 release.set()
 th.join()
+
+dead = G(lambda: 1)
+dead.switch()
+t('dead throw', lambda: type(dead.throw()).__name__)
+t('dead throw twice', lambda: type(dead.throw()).__name__)
+t('self throw exit', lambda: type(greenlet.getcurrent().throw()).__name__)
+t('throw bad tb', lambda: greenlet.getcurrent().throw(Exception, Exception(), object()))

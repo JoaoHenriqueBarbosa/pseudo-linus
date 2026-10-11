@@ -18,3 +18,7 @@ get default no ctx 3 None
 new greenlet ctx (None, None)
 ctx get other thread EXC ValueError cannot get context of a greenlet that is running in a different thread
 ctx set other thread EXC ValueError cannot set context of a greenlet that is running in a different thread
+dead throw 'GreenletExit'
+dead throw twice 'GreenletExit'
+self throw exit EXC GreenletExit 
+throw bad tb EXC TypeError throw() third argument must be a traceback object

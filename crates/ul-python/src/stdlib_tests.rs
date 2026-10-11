@@ -7265,3 +7265,14 @@ fn nested_function_without_free_variables_does_not_pin_the_outer_scope() {
     let r = in_process(src);
     assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("None\nNone True\n", ""));
 }
+
+/// `with_traceback` e `__traceback__ =` só aceitam um traceback ou `None` (`TypeError` no mais, como no CPython).
+#[test]
+fn exception_traceback_accepts_only_a_traceback_or_none() {
+    let src = "class X: pass\ntry:\n    print(Exception().with_traceback(X()))\nexcept BaseException as e:\n    print(type(e).__name__, e)\ntry:\n    e = Exception(); e.__traceback__ = 5\n    print('set ok')\nexcept BaseException as x:\n    print(type(x).__name__, x)\nprint(Exception().with_traceback(None))\ntry:\n    1 / 0\nexcept ZeroDivisionError as z:\n    tb = z.__traceback__\nprint(type(Exception().with_traceback(tb).__traceback__).__name__)\n";
+    let r = in_process(src);
+    assert_eq!(
+        (r.stdout_str().as_str(), r.stderr_str().as_str()),
+        ("TypeError __traceback__ must be a traceback or None\nTypeError __traceback__ must be a traceback or None\n\ntraceback\n", "")
+    );
+}

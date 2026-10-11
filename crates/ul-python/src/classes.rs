@@ -1298,6 +1298,7 @@ impl ExtObject for ExcWithTraceback {
     fn call_method(&self, _vm: &mut Vm, _name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         let [tb] = <[Value; 1]>::try_from(args)
             .map_err(|a| type_error(format!("with_traceback() takes exactly one argument ({} given)", a.len())))?;
+        check_traceback(&tb)?;
         match &self.obj {
             Value::Exception(e) => *e.traceback.borrow_mut() = Some(tb),
             Value::Instance(i) => {
@@ -2919,6 +2920,7 @@ impl Vm {
             Value::Ext(e) if e.setattr(name, value.clone()).is_some() => e.setattr(name, value).unwrap_or(Ok(())),
             // `exc.__traceback__ = tb` (o `contextlib` devolve o traceback original ao propagar).
             Value::Exception(x) if name == "__traceback__" => {
+                check_traceback(&value)?;
                 *x.traceback.borrow_mut() = if matches!(value, Value::None) { None } else { Some(value) };
                 Ok(())
             }
@@ -3771,4 +3773,13 @@ fn ns_to_dict(ns: &[(String, Value)]) -> PyResult<Value> {
 /// A classe herda do `greenlet.greenlet`, cujo `__dict__` é um getset de C com mensagens próprias.
 fn has_greenlet_dict(cls: &Rc<ClassObj>) -> bool {
     cls.mro().iter().any(|c| c.name == "greenlet" && c.emulates_c_type())
+}
+
+/// O valor de `__traceback__` (ou o argumento de `with_traceback`): um traceback ou `None`.
+fn check_traceback(value: &Value) -> PyResult<()> {
+    match value {
+        Value::None => Ok(()),
+        Value::Ext(e) if e.type_name() == "traceback" => Ok(()),
+        _ => Err(type_error("__traceback__ must be a traceback or None")),
+    }
 }
