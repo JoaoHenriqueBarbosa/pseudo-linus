@@ -18,6 +18,8 @@
 //! mesma linha gerada com coluna `<=` à pedida e devolve a posição ORIGINAL dela sem somar deslocamento. Esse é o
 //! caminho do fonte que passou pelo transpilador do zbun (`wip/zbun/transpile`); as corridas são o do golden.
 
+use std::rc::Rc;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Run {
     line: i64,
@@ -45,6 +47,9 @@ pub struct PositionMap {
     runs: Vec<Run>,
     /// Os segmentos do impressor, ordenados por posição gerada; não vazio só no mapa de `from_segments`.
     segments: Vec<MapSegment>,
+    /// O fonte original que o transpilador reimprimiu: o trecho de código que o relato de erro mostra sai dele (as linhas e
+    /// colunas já são as do original), como no bun, e não do texto reimpresso que o motor executa.
+    original_source: Option<Rc<str>>,
 }
 
 impl PositionMap {
@@ -58,12 +63,23 @@ impl PositionMap {
             .chunks_exact(4)
             .map(|chunk| Run { line: chunk[0], column: chunk[1], line_delta: chunk[2], column_delta: chunk[3] })
             .collect();
-        Some(PositionMap { line_shift, runs, segments: Vec::new() })
+        Some(PositionMap { line_shift, runs, segments: Vec::new(), original_source: None })
     }
 
     /// O mapa do impressor do transpilador. `segments` vem ordenado por posição gerada, como o VLQ o entrega.
     pub fn from_segments(segments: Vec<MapSegment>) -> PositionMap {
-        PositionMap { line_shift: 0, runs: Vec::new(), segments }
+        PositionMap { line_shift: 0, runs: Vec::new(), segments, original_source: None }
+    }
+
+    /// Guarda o fonte original de que este mapa leva as posições.
+    pub fn with_original_source(mut self, source: &str) -> PositionMap {
+        self.original_source = Some(Rc::from(source));
+        self
+    }
+
+    /// O fonte original, quando o mapa é de um arquivo reimpresso.
+    pub fn original_source(&self) -> Option<&str> {
+        self.original_source.as_deref()
     }
 
     /// O mapa é de segmentos do impressor (`from_segments`) e se consulta por `map_exact`.

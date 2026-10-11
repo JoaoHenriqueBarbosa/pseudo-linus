@@ -93,7 +93,7 @@ pub(crate) fn attempt_transpile(path: &str, source: &str, compile_body: bool) ->
     };
     Some(Ok(Transpiled {
         text: done.text,
-        map: Rc::new(PositionMap::from_segments(done.segments)),
+        map: Rc::new(PositionMap::from_segments(done.segments).with_original_source(source)),
         is_commonjs: done.is_commonjs,
     }))
 }

@@ -498,6 +498,10 @@ impl StackFrame {
         let block = source.code_block.borrow();
         let code = block.owner_executable().source();
         let provider = code.provider()?;
+        // Arquivo reimpresso pelo transpilador: o trecho de código do relato de erro é o do fonte original, como no bun.
+        if let Some(original) = provider.position_map().and_then(|map| map.original_source().map(str::to_string)) {
+            return Some(original);
+        }
         Some(crate::runtime::js_module_loader::rust_string(&provider.source()))
     }
 

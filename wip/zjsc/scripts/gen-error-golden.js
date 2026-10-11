@@ -5,6 +5,8 @@
 // Colunas: a fonte do programa (JSON) e o valor da variável global `R` (JSON), igual a gen-function-error-golden.js.
 // O arquivo se chama `error_case.js` dos dois lados, então nome, linha e coluna de cada frame são idênticos.
 // Uso: bun scripts/gen-error-golden.js > tests/golden/error_bun.tsv
+// Com `ORIGINALS=1` grava `tests/golden/error_originals_bun.tsv`: o programa ORIGINAL (sem o texto canônico nem o mapa) rodado como `bun run` o roda; o teste
+// roda o mesmo fonte no zjsc com o transpilador do zbun instalado (`tests/error_originals_bun_golden.rs`).
 const fs = require("fs");
 const { emitFactoredLines, prepareProgram } = require("./golden-prelude.js");
 const os = require("os");
@@ -759,7 +761,8 @@ for (const body of programs) {
   const original = '"use strict";\n' + body.replace(/\bR = /g, "globalThis.R = ");
   // O bun transpila o arquivo antes do JSC (`undefined` vira `void 0`, `'a'` vira `"a"`, `new` some das posições do stack):
   // o programa gravado é o texto canônico e o que o bun executa é `executableSource(original)` (ver golden-prelude.js).
-  const { source, executable, meta } = prepareProgram(original);
+  const originals = process.env.ORIGINALS === "1";
+  const { source, executable, meta } = originals ? { source: original, executable: original, meta: null } : prepareProgram(original);
   fs.writeFileSync(file, executable);
   const run = spawnSync(process.execPath, ["--preload", preload, file], { encoding: "utf8", cwd: dir, timeout: 20000 });
   const marked = (run.stdout || "").split("\n").find(line => line.startsWith("\u0001"));
@@ -778,5 +781,5 @@ for (const body of programs) {
   lines.push(JSON.stringify(source) + "\t" + JSON.stringify(result) + (meta ? "\t" + JSON.stringify(meta) : ""));
 }
 process.stderr.write(`mantidos ${kept}, descartados ${dropped}\n`);
-process.stdout.write(emitFactoredLines("error", lines));
+process.stdout.write(process.env.ORIGINALS === "1" ? lines.join("\n") + "\n" : emitFactoredLines("error", lines));
 fs.rmSync(dir, { recursive: true, force: true });

@@ -37,6 +37,12 @@ fn run(source: &str) -> Result<String, String> {
     }
 }
 
+/// Linhas 824 e 848: a recursão `f.bind(null)(n - 1)` de 10000 e 20000 níveis. O golden saiu de um bun com JIT, que neste padrão chega a
+/// 79822 níveis; o mesmo bun com `BUN_JSC_useJIT=0` (a régua dos testes de profundidade, `stack_depth_bun_nojit`) chega a 6793 e
+/// estoura nos dois. O motor não tem JIT, então estoura como o bun sem JIT: RangeError capturável, e a profundidade depende do JIT.
+const CAUSE: &str = "profundidade com JIT (79822 no bun) contra sem JIT (6793): o motor não tem JIT";
+const KNOWN: &[common::KnownCase] = &[common::KnownCase { label: "824", cause: CAUSE }, common::KnownCase { label: "848", cause: CAUSE }];
+
 /// Pilha da thread do golden: a recursão de 10000 a 1000000 níveis e os `apply` gigantes precisam de pilha grande
 /// (o orçamento padrão do VM é 1 MiB).
 const THREAD_STACK_BYTES: usize = 256 * 1024 * 1024;
@@ -81,13 +87,17 @@ fn call_edge_body() {
         total += 1;
         match run(&source) {
             Ok(actual) if actual == expected => {}
-            Ok(actual) => failures.push(format!("{source}\n    esperado {expected:?}\n    veio     {actual:?}")),
-            Err(reason) => failures.push(format!("{source}\n    esperado {expected:?}\n    {reason}")),
+            Ok(actual) => failures.push(format!("[{}] {source}\n    esperado {expected:?}\n    veio     {actual:?}", index + 1)),
+            Err(reason) => failures.push(format!("[{}] {source}\n    esperado {expected:?}\n    {reason}", index + 1)),
         }
         if range.is_some() {
             eprintln!("linha {}: {:?}", index + 1, started.elapsed());
         }
     }
     assert!(range.is_some() || total >= 1000, "golden com só {total} programas");
-    assert!(failures.is_empty(), "{} de {} divergem do bun:\n{}", failures.len(), total, failures.join("\n"));
+    if range.is_some() {
+        assert!(failures.is_empty(), "{} de {} divergem do bun:\n{}", failures.len(), total, failures.join("\n"));
+    } else {
+        common::assert_only_known(&failures, KNOWN);
+    }
 }

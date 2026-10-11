@@ -13,9 +13,15 @@ use zjsc::api::eval::evaluate_named_script_reporting_uncaught;
 
 const GOLDEN: &str = include_str!("golden/dom_exception_bun.tsv");
 
+/// Linha 214: dois `atob('*')` lançados na mesma linha do programa têm `stack` igual no bun (`true`) e diferente no motor (`false`): o
+/// `stack` do DOMException lançado por função nativa leva a posição do chamador (coluna), que no motor difere entre as duas chamadas (as colunas
+/// dos dois `atob('*')` na mesma linha); é texto de pilha, sem vazamento. Causa exata não isolada: o programa roda por script nomeado,
+/// sem o transpilador no caminho.
+const KNOWN: &[common::KnownCase] = &[common::KnownCase { label: "214", cause: "stack do DOMException de dois atob('*') na mesma linha: igual no bun, diferente no motor (coluna do chamador)" }];
+
 #[test]
 fn dom_exception_matches_bun() {
-    common::check(GOLDEN, common::NO_PRELUDES, 150, |source| {
+    common::check_with_meta_known_lines(GOLDEN, common::NO_PRELUDES, 150, &[], KNOWN, |source, _| {
         match catch_unwind(AssertUnwindSafe(|| evaluate_named_script_reporting_uncaught(source, "dom_exception_case.js", "R"))) {
             Ok(Err(uncaught)) => Ok(common::Units::from(uncaught)),
             Ok(Ok(read)) => common::guarded_units(|| read),

@@ -811,7 +811,8 @@ for (const body of programs) {
   const original = '"use strict";\n' + body.replace(/\bR = /g, "globalThis.R = ");
   // O bun transpila o arquivo antes do JSC (colunas e `evaluating '...'` citam o texto transpilado): grava-se o texto
   // canônico e o bun executa `executableSource(original)` (ver golden-prelude.js).
-  const { source, executable, meta } = prepareProgram(original);
+  const originals = process.env.ORIGINALS === "1";
+  const { source, executable, meta } = originals ? { source: original, executable: original, meta: null } : prepareProgram(original);
   fs.writeFileSync(file, executable);
   const run = spawnSync(process.execPath, ["--preload", preload, file], { encoding: "utf8", cwd: dir });
   const marked = run.stdout.split("\n").find(line => line.startsWith("\u0001"));
@@ -830,5 +831,5 @@ for (const body of programs) {
   outLines.push(JSON.stringify(source) + "	" + JSON.stringify(result) + (meta ? "	" + JSON.stringify(meta) : ""));
 }
 process.stderr.write(`mantidos ${kept}, descartados ${dropped}\n`);
-process.stdout.write(emitFactoredLines("function_error", outLines));
+process.stdout.write(process.env.ORIGINALS === "1" ? outLines.join("\n") + "\n" : emitFactoredLines("function_error", outLines));
 fs.rmSync(dir, { recursive: true, force: true });

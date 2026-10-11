@@ -1269,3 +1269,25 @@ Declaradas e em backlog (todas de transpilador, exceto a última):
 - `fs.watch`, `fs.watchFile` e `fs.promises.watch`: o sysabi (e o `kernel`) não tem inotify (conferido por busca em `crates/sysabi` e `crates/kernel`; só o `tail` vendorizado do coreutils o menciona). O observador do zjsc (`scripts/node-fs-watch-prelude.js`) compara `stat` e `readdir` a cada 50 ms: `change` quando o conteúdo ou os atributos mudam, `rename` quando um nome aparece ou some. Um mesmo gesto gera os eventos de uma comparação, não a fila do kernel (o bun no Linux emite, por exemplo, vários `change` por `writeFileSync`). Fechar de verdade pede `inotify_init1`, `inotify_add_watch` e `inotify_rm_watch` no sysabi (testkit e kernel) e um `Host::fs_watch`; fatia própria, só depois que a fase corrente deixar.
 - `Bun.Glob` não existe: o `ignore` por texto do `fs.watch` usa o minimatch do `fs.glob`.
 - Caso `fs-utf8-buffer` em KNOWN: o bun 1.4.2 lança TypeError em `mergeBuf` no `Utf8Stream` síncrono com `contentMode: 'buffer'`; reproduzir a stack de fonte interno não faz sentido, e a divergência fica declarada.
+
+## Suíte completa em lotes, grupo 1 com o transpilador instalado (2026-10-11)
+
+Os goldens de `error`, `function_error` e `console_dir` guardavam o texto reimpresso e declaravam 55, 29 e 17 linhas com uma causa
+genérica. Agora rodam o programa ORIGINAL pelo `source_transpiler` instalado (`tests/common/originals.rs`, goldens
+`error_originals_bun.tsv` e `function_error_originals_bun.tsv` gerados com `ORIGINALS=1`); os testes mapeados antigos
+(`error_bun_golden`, `function_error_bun_golden`) e seus tsv saíram, porque os de originais cobrem os mesmos programas.
+Para o trecho de código do relato de erro mostrar o fonte original, como o bun, o `PositionMap` passou a guardar o texto original
+(`with_original_source`) e `StackFrame::source_text` o prefere.
+
+- `function_error` originais: 915 de 915, sem declaração (as 29 eram artefato do texto reimpresso).
+- `error` originais: 6 declaradas de 2797. Cinco (689, 698, 941, 950, 1309) são o frame de `new X()` no principal transpilado, 4
+  colunas (`new `) depois do bun, o mesmo desvio do `console_dir` 380; a 2620 é o texto do TDZ (`Cannot access 'globalThis'`), que o
+  JSC tira do fonte na posição da variável e depende do texto do preload do gerador, não do motor.
+- `console_dir` originais: 5 declaradas: 380 (a mesma coluna de `new K()`), 383, 384 e 385 (frames `eval` e `anonymous` do principal
+  ESM sem `file:///`, a origem do módulo é a chave plana em `js_module_loader.rs`), 412 (`at <anonymous>` contra `at new `).
+- Fora do transpilador (rodam por eval ou script nomeado, não medidos com ele): `call_edge` 824 e 848 (profundidade com JIT, 79822,
+  contra sem JIT, 6793), `global_semantics` 4205 e 4211 e `eval_forin` (ordem das chaves do global no JSC), `function_proto`
+  2885 a 2887 (profundidade do apply de Proxy), `error_api` 454 (`unknown` contra `native`) e 465 (frame `at unknown` do `super()`),
+  `dom_exception` 214 (stack igual entre dois `atob('*')` no bun).
+- `'str'.length = 1` e `const c = 1; c = 2` em arquivo: o golden de originais passa sem declaração, ou seja, o `bun run` recusa
+  com o BuildMessage e `R` fica fora, igual no zjsc com o transpilador. A string de 1 GiB dá RangeError capturável.
