@@ -447,3 +447,14 @@ fn main_gone_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_main_gone.out"),
     );
 }
+
+/// O pai que ainda não começou e não tem `run` (o `__getattribute__` levanta): o erro sobe ao avô e o pai segue
+/// pendente, então cada troca para o filho morto levanta de novo. Como no oráculo.
+#[test]
+fn perverse_parent_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_perverse_parent",
+        include_str!("../../../testbench/oracle/automation/cases/gl_perverse_parent.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_perverse_parent.out"),
+    );
+}

@@ -453,8 +453,6 @@ def _entry(state, run):
         except BaseException as exc:
             # O pai não pôde receber (sem `run`): a falha sobe ao avô, como a propagação do C.
             result = ('throw', exc)
-            parent_state.started = True
-            parent_state.dead = True
             target = _resolve(parent_state.parent)
     del me
     _enter(target, result, run, True)

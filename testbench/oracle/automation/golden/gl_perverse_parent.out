@@ -1,0 +1,10 @@
+parent before (False, False, 'pending>', False)
+0 SomeError
+ seen [42] child (True, False, 'dead>', False) parent (False, False, 'pending>', False)
+ child.parent is parent True
+1 SomeError
+ seen [42] child (True, False, 'dead>', False) parent (False, False, 'pending>', False)
+ child.parent is parent True
+2 SomeError
+ seen [42] child (True, False, 'dead>', False) parent (False, False, 'pending>', False)
+ child.parent is parent True
