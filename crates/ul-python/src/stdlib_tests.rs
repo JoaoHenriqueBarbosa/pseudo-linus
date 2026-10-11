@@ -7239,3 +7239,11 @@ fn format_map_reads_through_getitem() {
         ("1-B xx x\nTypeError 'int' object is not subscriptable\nValueError Format string contains positional fields\nValueError Format string contains positional fields\nKeyError 'a'\n", "")
     );
 }
+
+/// `traceback.clear_frames` (o `assertRaises` o chama ao sair) não limpa o quadro de um teste que ainda executa: o
+/// `frame.clear()` do `tb_frame` dele é `RuntimeError`, como no CPython, e os locais continuam.
+#[test]
+fn clear_frames_keeps_the_locals_of_an_executing_frame() {
+    let r = in_process("import sys\ndef f():\n    x = 1\n    fr = sys._getframe()\n    try:\n        fr.clear()\n    except RuntimeError as e:\n        print('RT', e)\n    print(x)\nf()\nimport unittest\nclass T(unittest.TestCase):\n    def test(self):\n        with self.assertRaises(ValueError) as exc:\n            raise ValueError('a')\n        print(str(exc.exception))\nT('test').test()\n");
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("RT cannot clear an executing frame\n1\na\n", ""));
+}

@@ -540,12 +540,14 @@ impl ExtObject for FrameObj {
         })
     }
 
-    fn call_method(&self, _vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    fn call_method(&self, vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         debug_assert_eq!(name, "clear");
         if !args.is_empty() {
             return Err(type_error(format!("frame.clear() takes no arguments ({} given)", args.len())));
         }
-        if self.live {
+        // Um quadro de traceback (`tb_frame`) cujo quadro ainda executa é o mesmo do CPython: não se limpa.
+        let executing = self.env().is_some_and(|env| vm.frames.borrow().iter().any(|(_, _, e)| Rc::ptr_eq(e, &env)));
+        if self.live || executing {
             return Err(exc("RuntimeError", "cannot clear an executing frame"));
         }
         *self.trace.borrow_mut() = Value::None;
