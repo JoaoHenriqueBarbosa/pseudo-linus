@@ -259,16 +259,7 @@ pub mod analyze_transpiled_module {
                     if !blob.len().is_multiple_of(2) {
                         blob.push(0);
                     }
-                    blob.reserve(2 * wtf8.len());
-                    // SAFETY: `2 * wtf8.len()` spare bytes reserved, the bound `write_wtf8_as_utf16le` requires.
-                    unsafe {
-                        let n = bun_core::strings::write_wtf8_as_utf16le(
-                            wtf8,
-                            first_non_ascii as usize,
-                            blob.as_mut_ptr().add(blob.len()),
-                        );
-                        blob.set_len(blob.len() + n);
-                    }
+                    bun_core::strings::write_wtf8_as_utf16le(wtf8, first_non_ascii as usize, &mut blob);
                 }
             }
         }

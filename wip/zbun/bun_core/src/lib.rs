@@ -11,6 +11,7 @@ pub mod generic_index;
 pub mod identifier;
 pub mod lexer_tables;
 pub mod output;
+pub mod printer;
 pub mod stack_check;
 pub mod strings;
 

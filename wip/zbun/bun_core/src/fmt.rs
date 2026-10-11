@@ -255,6 +255,119 @@ pub fn parse_double(buf: &[u8]) -> Result<f64, InvalidCharacter> {
     text.parse::<f64>().map_err(|_| InvalidCharacter)
 }
 
+// ─── hex e inteiro → ASCII ──────────────────────────────────────────────────
+
+const UPPER_HEX_TABLE: [u8; 16] = *b"0123456789ABCDEF";
+
+/// Dois dígitos hexadecimais maiúsculos de `b` (o `\xHH` do printer).
+#[inline]
+pub const fn hex2_upper(b: u8) -> [u8; 2] {
+    [UPPER_HEX_TABLE[(b >> 4) as usize], UPPER_HEX_TABLE[(b & 0x0F) as usize]]
+}
+
+/// Quatro dígitos hexadecimais maiúsculos de `v` (o `\uHHHH`).
+#[inline]
+pub const fn hex4_upper(v: u16) -> [u8; 4] {
+    [
+        UPPER_HEX_TABLE[((v >> 12) & 0xF) as usize],
+        UPPER_HEX_TABLE[((v >> 8) & 0xF) as usize],
+        UPPER_HEX_TABLE[((v >> 4) & 0xF) as usize],
+        UPPER_HEX_TABLE[(v & 0xF) as usize],
+    ]
+}
+
+/// Área de rascunho do [`itoa`]: 40 bytes cabem `i128::MIN`.
+pub struct ItoaBuf {
+    bytes: [u8; 40],
+}
+
+impl ItoaBuf {
+    pub const fn new() -> Self {
+        Self { bytes: [0; 40] }
+    }
+}
+
+impl Default for ItoaBuf {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Inteiro que o [`itoa`] aceita: módulo e sinal de qualquer largura até 128 bits.
+pub trait ItoaInteger: Copy {
+    fn magnitude_and_sign(self) -> (u128, bool);
+}
+
+macro_rules! itoa_integer {
+    (unsigned: $($t:ty),+) => {$(impl ItoaInteger for $t {
+        fn magnitude_and_sign(self) -> (u128, bool) { (self as u128, false) }
+    })+};
+    (signed: $($t:ty),+) => {$(impl ItoaInteger for $t {
+        fn magnitude_and_sign(self) -> (u128, bool) { (self.unsigned_abs() as u128, self < 0) }
+    })+};
+}
+itoa_integer!(unsigned: u8, u16, u32, u64, u128, usize);
+itoa_integer!(signed: i8, i16, i32, i64, i128, isize);
+
+/// Escreve `n` em base 10 no `buf` e devolve os dígitos (com `-` nos negativos).
+pub fn itoa<T: ItoaInteger>(buf: &mut ItoaBuf, n: T) -> &[u8] {
+    let (mut magnitude, negative) = n.magnitude_and_sign();
+    let mut at = buf.bytes.len();
+    loop {
+        at -= 1;
+        buf.bytes[at] = b'0' + (magnitude % 10) as u8;
+        magnitude /= 10;
+        if magnitude == 0 {
+            break;
+        }
+    }
+    if negative {
+        at -= 1;
+        buf.bytes[at] = b'-';
+    }
+    &buf.bytes[at..]
+}
+
+/// Se `val` é exatamente `10^e` com `e` em `4..=9`, devolve `Some(e)`: o printer imprime `1e4` a `1e9`, que são
+/// mais curtos que a expansão (até `e = 3` não é, e `e >= 10` passa pelo caminho de `f64`).
+#[inline]
+pub const fn pow10_exp_1e4_to_1e9(val: u64) -> Option<u8> {
+    match val {
+        10_000 => Some(4),
+        100_000 => Some(5),
+        1_000_000 => Some(6),
+        10_000_000 => Some(7),
+        100_000_000 => Some(8),
+        1_000_000_000 => Some(9),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod itoa_tests {
+    use super::*;
+
+    #[test]
+    fn itoa_matches_display() {
+        let mut buf = ItoaBuf::new();
+        assert_eq!(itoa(&mut buf, 0u8), b"0");
+        assert_eq!(itoa(&mut buf, -1i32), b"-1");
+        assert_eq!(itoa(&mut buf, i128::MIN), i128::MIN.to_string().as_bytes());
+        assert_eq!(itoa(&mut buf, u128::MAX), u128::MAX.to_string().as_bytes());
+        assert_eq!(itoa(&mut buf, i64::MIN), i64::MIN.to_string().as_bytes());
+    }
+
+    #[test]
+    fn pow10_only_for_1e4_to_1e9() {
+        assert_eq!(pow10_exp_1e4_to_1e9(1_000), None);
+        assert_eq!(pow10_exp_1e4_to_1e9(10_000), Some(4));
+        assert_eq!(pow10_exp_1e4_to_1e9(1_000_000_000), Some(9));
+        assert_eq!(pow10_exp_1e4_to_1e9(10_000_000_000), None);
+        assert_eq!(hex2_upper(0xAB), *b"AB");
+        assert_eq!(hex4_upper(0x0a1f), *b"0A1F");
+    }
+}
+
 #[cfg(test)]
 mod parse_tests {
     use super::*;

@@ -891,6 +891,80 @@ pub mod lexer_step {
     }
 }
 
+/// Primeiro índice de `text` que o literal JavaScript de `quote_char` precisa escapar: byte `>= 127`, controle
+/// (`< 0x20`), `\`, o próprio `quote_char` e, no template (`` ` ``), o `$`. O upstream faz a busca com SIMD
+/// (highway); aqui é o laço escalar equivalente.
+pub fn index_of_needs_escape_for_java_script_string(text: &[u8], quote_char: u8) -> Option<u32> {
+    text.iter()
+        .position(|&c| c >= 127 || c < 0x20 || c == b'\\' || c == quote_char || (quote_char == b'`' && c == b'$'))
+        .map(|i| i as u32)
+}
+
+/// Verdadeiro se `text` está vazio, tem um ponto de código fora do plano básico ou não é um identificador ES
+/// (primeiro ponto de código `ID_Start`, os demais `ID_Continue`): o printer só imprime a chave sem aspas quando dá falso.
+pub fn contains_non_bmp_code_point_or_is_invalid_identifier(text: &[u8]) -> bool {
+    let iter = CodepointIterator::init(text);
+    let mut curs = Cursor::default();
+    if !iter.next(&mut curs) {
+        return true;
+    }
+    if curs.c > 0xFFFF || !crate::identifier::is_identifier_start(curs.c) {
+        return true;
+    }
+    while iter.next(&mut curs) {
+        if curs.c > 0xFFFF || !crate::identifier::is_identifier_part(curs.c) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Acrescenta a `out` o WTF-8 `bytes` como UTF-16 little-endian. `bytes[..first_non_ascii]` é ASCII. Byte inválido
+/// ou sequência truncada vira U+FFFD; surrogate solto codificado em WTF-8 é mantido; ponto de código acima de
+/// U+FFFF vira o par de surrogates. Cada byte de entrada gera no máximo uma unidade.
+pub fn write_wtf8_as_utf16le(bytes: &[u8], first_non_ascii: usize, out: &mut Vec<u8>) {
+    debug_assert!(is_all_ascii(&bytes[..first_non_ascii]));
+    out.reserve(2 * bytes.len());
+    let mut put = |unit: u16| out.extend_from_slice(&unit.to_le_bytes());
+    for &b in &bytes[..first_non_ascii] {
+        put(u16::from(b));
+    }
+    let bytes = &bytes[first_non_ascii..];
+    let mut i = 0usize;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if b < 0x80 {
+            put(u16::from(b));
+            i += 1;
+            continue;
+        }
+        let width = wtf8_byte_sequence_length_with_invalid(b);
+        if width == 1 {
+            put(UNICODE_REPLACEMENT as u16);
+            i += 1;
+            continue;
+        }
+        let take = (width as usize).min(bytes.len() - i);
+        let mut buf = [0u8; 4];
+        buf[..take].copy_from_slice(&bytes[i..i + take]);
+        let cp = decode_wtf8_rune_t::<i32>(buf, width, -1);
+        if cp < 0 {
+            put(UNICODE_REPLACEMENT as u16);
+            i += 1;
+            continue;
+        }
+        let cp = cp as u32;
+        if cp < 0x10000 {
+            put(cp as u16);
+        } else {
+            let [lead, trail] = encode_surrogate_pair(cp);
+            put(lead);
+            put(trail);
+        }
+        i += take;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

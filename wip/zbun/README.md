@@ -164,9 +164,11 @@ mil linhas, travessões trocados na cópia) entra em `js_printer/` atrás da fea
 "printer")]`, como o `parser`), e `cargo check -p bun_js_printer --features printer` mede 72 erros de resolução, antes
 de chegar aos tipos. O que falta, por grupo:
 
-- `bun_core`: `MutableString`, `printer` (o que o printer lê do `Output`), `env_var`, `FeatureFlags`, `fmt::{ItoaBuf,
-  itoa, hex2_upper, pow10_exp_1e4_to_1e9}`, `vec`, e `strings::{write_wtf8_as_utf16le,
-  index_of_needs_escape_for_java_script_string, contains_non_bmp_code_point_or_is_invalid_identifier}`;
+- `bun_core`: `MutableString`, `env_var`, `FeatureFlags` e `vec` (parte 2). Entraram na parte 1: `printer` (constantes
+  e `bmp_escape`/`surrogate_pair_escape`), `fmt::{ItoaBuf, itoa, hex2_upper, hex4_upper, pow10_exp_1e4_to_1e9}` (o
+  `itoa` é escrito à mão, sem o crate) e `strings::{index_of_needs_escape_for_java_script_string,
+  contains_non_bmp_code_point_or_is_invalid_identifier, write_wtf8_as_utf16le}` (esta última sem `unsafe`: acrescenta
+  a um `Vec<u8>`; os escapes conferidos no bun 1.4.2 do oráculo);
 - `bun_collections`: `hashbrown` reexportado e `AutoBitSet`; `bun_alloc`: `AstAlloc` (sai, como no parser);
 - `bun_ast`: `Indentation` e `IndentationCharacter`, `E::{JsonValue, ObjectJSON, ArrayJSON}` e `symbol::Map`;
 - crates que o printer importa e o porte ainda não tem: `bun_io` (o `Write`), `bun_sourcemap` (o construtor de mapa de
