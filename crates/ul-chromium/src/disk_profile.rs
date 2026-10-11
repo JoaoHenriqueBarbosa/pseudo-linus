@@ -24,6 +24,7 @@ use crate::http_cache::{self, Captured};
 use crate::preferences;
 use crate::quota_manager;
 use crate::sessions;
+use crate::shared_proto_db;
 use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
 use crate::session_storage::{Exit, SessionStorageStore};
@@ -44,6 +45,8 @@ const SESSION_STORAGE_DB: &[u8] = b"Default/Session Storage";
 const KEPT_ACROSS_RUNS: [&[u8]; 2] = [b"Default/History", b"Default/History-journal"];
 /// Os bancos que o molde traz mas que o leveldb próprio grava.
 const OWN_DBS: [&[u8]; 2] = [LOCAL_STORAGE_DB, SESSION_STORAGE_DB];
+/// O `shared_proto_db`: no `--dump-dom` o leveldb próprio o grava (o molde só vale para a primeira execução do DevTools).
+const SHARED_PROTO_DB: &[u8] = b"Default/shared_proto_db";
 /// O QuotaManager de uma execução sem buckets (medido no oráculo): o esquema 11 e três chaves de `meta`.
 const QUOTA_MANAGER_TEMPLATE: &[u8] = include_bytes!("../profile/quota-manager.db");
 /// O `Network Persistent State` que o `--dump-dom` deixa ao sair, medido no oráculo sem rede (cinco execuções, com
@@ -400,6 +403,15 @@ impl DiskProfile {
         }
     }
 
+    /// O `shared_proto_db` da saída do `--dump-dom`: o roteiro de cada execução, pelo leveldb próprio.
+    fn write_shared_proto_db(&self) {
+        let Some(dir) = &self.user_data_dir else { return };
+        let path = String::from_utf8_lossy(&[dir.as_slice(), b"/", SHARED_PROTO_DB].concat()).into_owned();
+        let thread_id = sys::current().gettid() as u64;
+        let now_secs = (ul_common::time::webkit_now_micros() / 1_000_000) as u64;
+        let _ = shared_proto_db::run(Arc::new(SysEnv::new()), &path, thread_id, now_secs, &mut random_below);
+    }
+
     /// O `Network Persistent State` da saída do `--dump-dom`.
     fn write_network_state(&self) {
         let Some(dir) = &self.user_data_dir else { return };
@@ -483,6 +495,7 @@ impl DiskProfile {
         let previous_preferences = self.user_data_dir.as_ref().and_then(|dir| sys::read_file(&[dir.as_slice(), b"/Default/Preferences"].concat()).ok()).map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
         let _ = self.write_layer(template(self.run), LAYER_EXIT);
         if self.run == Run::DumpDom {
+            self.write_shared_proto_db();
             self.write_network_state();
             self.write_preferences(previous_preferences);
             self.write_quota();
@@ -509,7 +522,7 @@ impl DiskProfile {
     fn write_layer(&self, entries: &[Entry], layer: u8) -> Result<(), Errno> {
         let user_dir = self.user_data_dir.as_deref().unwrap_or(b"");
         let expander = Expander { start_us: self.start_us, user_dir };
-        let selected = || entries.iter().filter(|e| e.layer == layer && !(e.root == ROOT_USER_DATA && OWN_DBS.iter().any(|db| e.path.starts_with(db))));
+        let selected = || entries.iter().filter(|e| e.layer == layer && !(e.root == ROOT_USER_DATA && (OWN_DBS.iter().any(|db| e.path.starts_with(db)) || (self.run == Run::DumpDom && e.path.starts_with(SHARED_PROTO_DB)))));
         for entry in selected().filter(|e| e.kind == KIND_REMOVE) {
             let (Some(dir), ROOT_USER_DATA) = (&self.user_data_dir, entry.root) else { continue };
             let path = [dir.as_slice(), b"/", &expander.expand(&entry.path)].concat();

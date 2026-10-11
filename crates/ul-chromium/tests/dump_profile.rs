@@ -40,6 +40,12 @@ fn dump_client(ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
     let _ = s.wait4(WaitTarget::Pid(pid), WaitOptions::empty());
     let size = |path: &[u8]| sys::read_file(path).map_or(-1, |bytes| bytes.len() as i64);
     let _ = ctx.stdout().write_all(format!("quota {} journal {}\n", size(b"/tmp/p/Default/WebStorage/QuotaManager"), size(b"/tmp/p/Default/WebStorage/QuotaManager-journal")).as_bytes());
+    // O shared_proto_db: depois de três execuções os tamanhos do oráculo (RUNS=3: 14853, 237 e 774, 255), com os dois LOG
+    // 18 bytes menores: o caminho do perfil aqui (/tmp/p) tem 6 caracteres a menos que o do oráculo (/tmp/profile) e aparece três vezes.
+    let spdb: Vec<i64> = ["000003.log", "LOG", "LOG.old", "metadata/000003.log", "metadata/LOG", "metadata/LOG.old"].iter().map(|name| size(format!("/tmp/p/Default/shared_proto_db/{name}").as_bytes())).collect();
+    let _ = ctx.stdout().write_all(format!("spdb {spdb:?}\n").as_bytes());
+    let hex = |path: &[u8]| sys::read_file(path).unwrap_or_default().iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+    let _ = ctx.stdout().write_all(format!("SPDB-MAIN {}\nSPDB-META {}\n", hex(b"/tmp/p/Default/shared_proto_db/000003.log"), hex(b"/tmp/p/Default/shared_proto_db/metadata/000003.log")).as_bytes());
     // O estado de rede sem rede (como o oráculo em contêiner sem rede) e nenhum TransportSecurity.
     let network = sys::read_file(b"/tmp/p/Default/Network Persistent State").map(|bytes| String::from_utf8_lossy(&bytes).into_owned()).unwrap_or_default();
     let _ = ctx.stdout().write_all(format!("network {network} transport {}\n", sys::lstat(b"/tmp/p/Default/TransportSecurity").is_ok()).as_bytes());
@@ -82,6 +88,7 @@ fn each_dump_reads_what_the_previous_one_wrote() {
     assert!(stdout.contains("http://127.0.0.1:8000/persist.html|persist|3|3\n3|1|939524097|1\n1\n3|6\n"), "{stdout}");
     assert!(stdout.contains("1|http://127.0.0.1:8000/|127.0.0.1|_default|6|0|0|0|0\nIsBucketsBootstrapped|1\nIsMediaLicenseDatabaseRemoved|1\nlast_compatible_version|11\nmmap_status|-1\nversion|11\n"), "{stdout}");
     assert!(stdout.contains("quota 40960 journal 0\n"), "{stdout}");
+    assert!(stdout.contains("spdb [14853, 219, 219, 774, 237, 237]\n"), "{stdout}");
     assert!(stdout.contains(r#"network {"net":{"http_server_properties":{"servers":[],"version":5},"network_qualities":{"CAYSABiAgICA+P////8B":"Offline"}}} transport false"#), "{stdout}");
     assert!(stdout.contains("Session_ has url true\nTabs_ has url true\n"), "{stdout}");
     assert!(stdout.contains("cache entries 2 index 96\n"), "{stdout}");
@@ -129,4 +136,86 @@ fn preferences_after_three_runs_match_the_oracle() {
     let time = |key: &str| ours["site_engagement"][key]["setting"]["lastEngagementTime"].as_f64().unwrap();
     assert!(time("chrome://omnibox-popup.top-chrome/,*") < time("http://127.0.0.1:8000,*"));
     assert_eq!(ours["last_engagement_time"].as_str().unwrap().parse::<f64>().unwrap(), time("http://127.0.0.1:8000,*"));
+}
+
+/// Os registros de um log do leveldb como (sequência, operações), com os instantes em segundos WebKit que fecham os
+/// valores de proto (varint de cinco bytes entre 13 e 14 bilhões; mudam a cada execução) trocados por zeros.
+fn log_batches(bytes: &[u8]) -> Vec<(u64, Vec<ul_leveldb::batch::Op>)> {
+    use ul_leveldb::batch::{Op, WriteBatch};
+    let is_time = |chunk: &[u8]| {
+        chunk[..4].iter().all(|byte| byte & 0x80 != 0) && chunk[4] & 0x80 == 0 && {
+            let value = chunk.iter().enumerate().fold(0u64, |acc, (i, byte)| acc | u64::from(byte & 0x7F) << (7 * i));
+            (13_000_000_000..14_000_000_000).contains(&value)
+        }
+    };
+    ul_leveldb::log::read_records(bytes)
+        .unwrap()
+        .iter()
+        .map(|record| {
+            let ops = WriteBatch::from_contents(record).unwrap().ops().unwrap();
+            let masked = ops
+                .into_iter()
+                .map(|op| match op {
+                    Op::Put { key, mut value } => {
+                        let mut at = 0;
+                        while at + 5 <= value.len() {
+                            if is_time(&value[at..at + 5]) {
+                                value[at..at + 5].fill(0);
+                                at += 5;
+                            } else {
+                                at += 1;
+                            }
+                        }
+                        Op::Put { key, value }
+                    }
+                    other => other,
+                })
+                .collect();
+            (u64::from_le_bytes(record[..8].try_into().unwrap()), masked)
+        })
+        .collect()
+}
+
+/// O `shared_proto_db` de três execuções confere com o do oráculo (`RUNS=3`): o principal registro a registro (sequência,
+/// chaves e valores, menos o instante) e o `metadata` com as lojas na ordem que o oráculo sorteia (a ordem muda a cada
+/// execução, então cada volta é comparada como conjunto).
+#[test]
+fn shared_proto_db_after_three_runs_matches_the_oracle() {
+    let kernel = Kernel::new(KernelConfig::default());
+    let mut programs = ul_chromium::programs();
+    programs.extend(ul_sqlite::programs());
+    programs.push(Program::bin("dump_client", dump_client));
+    let sandbox = kernel.create_sandbox(SandboxConfig { programs, ..SandboxConfig::default() }).unwrap();
+    let output = sandbox.run(RunRequest { argv: vec![b"dump_client".to_vec()], timeout: Some(Duration::from_secs(120)), ..RunRequest::default() }).unwrap();
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let from_hex = |label: &str| -> Vec<u8> {
+        let line = stdout.lines().find_map(|line| line.strip_prefix(label)).unwrap_or_else(|| panic!("{stdout}"));
+        (0..line.len() / 2).map(|i| u8::from_str_radix(&line[2 * i..2 * i + 2], 16).unwrap()).collect()
+    };
+    let main = log_batches(&from_hex("SPDB-MAIN "));
+    let oracle_main = log_batches(include_bytes!("fixtures/shared_proto_db/persist-3-runs-main.log"));
+    assert_eq!(main.len(), oracle_main.len());
+    for (index, (ours, theirs)) in main.iter().zip(&oracle_main).enumerate() {
+        assert_eq!(ours, theirs, "registro {index}");
+    }
+
+    let meta = log_batches(&from_hex("SPDB-META "));
+    let oracle_meta = log_batches(include_bytes!("fixtures/shared_proto_db/persist-3-runs-metadata.log"));
+    assert_eq!(meta.len(), oracle_meta.len());
+    // Dois `__global`, duas voltas de onze lojas e um `__global` por execução seguinte; as voltas como conjunto.
+    let sorted = |slice: &[(u64, Vec<ul_leveldb::batch::Op>)]| {
+        let mut ops: Vec<_> = slice.iter().map(|(_, ops)| ops.clone()).collect();
+        ops.sort_by(|a, b| format!("{a:?}").cmp(&format!("{b:?}")));
+        ops
+    };
+    assert_eq!(meta[..2], oracle_meta[..2]);
+    assert_eq!(sorted(&meta[2..13]), sorted(&oracle_meta[2..13]));
+    assert_eq!(sorted(&meta[13..24]), sorted(&oracle_meta[13..24]));
+    assert_eq!(meta[24..], oracle_meta[24..]);
+    assert_eq!(meta.iter().map(|(sequence, _)| *sequence).collect::<Vec<_>>(), oracle_meta.iter().map(|(sequence, _)| *sequence).collect::<Vec<_>>());
+    // O `50_` vem primeiro nas duas voltas, como nas 68 amostras do oráculo.
+    for lap in [&meta[2..13], &meta[13..24]] {
+        let ul_leveldb::batch::Op::Put { key, .. } = &lap[0].1[0] else { panic!() };
+        assert_eq!(key, b"50_");
+    }
 }
