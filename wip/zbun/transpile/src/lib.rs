@@ -101,6 +101,9 @@ impl OnSourceMapChunk for ChunkSink<'_> {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Config {
     pub like_build: bool,
+    /// O texto é o corpo de `module._compile`: o parser não o embrulha na função de wrapper (o runtime do bun liga
+    /// `remove_cjs_module_wrapper`) e o impressor o imprime como programa comum; quem chama põe o cabeçalho.
+    pub compile_body: bool,
 }
 
 /// Transpila `source` (o arquivo `path`) como o runtime do bun faz antes de entregá-lo ao JSC.
@@ -125,6 +128,7 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
     opts.warn_about_unbundled_modules = false;
     opts.features.allow_runtime = true;
     opts.features.top_level_await = true;
+    opts.features.remove_cjs_module_wrapper = config.compile_body;
     opts.features.auto_import_jsx = true;
     // O JSC implementa `using` e `await using`: com o alvo `bun` nada se rebaixa.
     opts.features.lower_using = false;
@@ -166,7 +170,7 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
         minify_syntax: true,
         hmr_ref: ast.wrapper_ref,
         mangled_props: None,
-        module_type: if is_commonjs && !config.like_build {
+        module_type: if is_commonjs && !config.like_build && !config.compile_body {
             bun_options_types::bundle_enums::Format::Cjs
         } else {
             bun_options_types::bundle_enums::Format::Esm
