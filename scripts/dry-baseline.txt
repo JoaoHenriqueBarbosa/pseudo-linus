@@ -277,9 +277,6 @@ pair crates/sysabi/src/linux.rs:67-72 method fmt <-> crates/sysabi/src/linux.rs:
 pair crates/sysabi/src/program.rs:23-25 method bin <-> crates/sysabi/src/program.rs:27-29 method sbin
 pair crates/sysabi/src/sched.rs priority_max <-> crates/sysabi/src/sched.rs priority_min
 pair crates/sysabi/src/sys.rs tcgetpgrp <-> crates/sysabi/src/sys.rs tcgetsid
-pair crates/sysabi/src/testkit.rs:1018-1075 method write <-> crates/sysabi/src/testkit.rs:964-1016 method read
-pair crates/sysabi/src/testkit.rs:1077-1093 method pread <-> crates/sysabi/src/testkit.rs:1095-1116 method pwrite
-pair crates/sysabi/src/testkit.rs:1654-1657 method getpgid <-> crates/sysabi/src/testkit.rs:1667-1670 method getsid
 pair crates/sysio/src/env.rs args <-> crates/sysio/src/env.rs vars
 pair crates/sysio/src/fd.rs:127-129 method as_fd <-> crates/sysio/src/fd.rs:133-135 method as_fd
 pair crates/sysio/src/fd.rs:127-129 method as_fd <-> crates/sysio/src/fd.rs:145-147 method as_fd

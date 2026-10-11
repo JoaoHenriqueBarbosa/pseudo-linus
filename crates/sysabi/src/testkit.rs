@@ -210,6 +210,53 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
+/// Copia de `data` a partir de `off` para `buf`; offset além do fim lê 0 bytes, como no Linux.
+fn copy_out(data: &[u8], off: usize, buf: &mut [u8]) -> usize {
+    let start = off.min(data.len());
+    let n = (data.len() - start).min(buf.len());
+    buf[..n].copy_from_slice(&data[start..start + n]);
+    n
+}
+
+/// Grava `buf` em `data` a partir de `off`, estendendo com zeros o que faltar; devolve o fim da escrita.
+fn copy_in(data: &mut Vec<u8>, off: usize, buf: &[u8]) -> usize {
+    let end = off + buf.len();
+    if data.len() < end {
+        data.resize(end, 0);
+    }
+    data[off..end].copy_from_slice(buf);
+    end
+}
+
+/// `read`, `write`, `pread` e `pwrite` diferem só no sentido da cópia e no deslocamento explícito.
+enum Io<'a> {
+    Read(&'a mut [u8]),
+    Write(&'a [u8]),
+}
+
+macro_rules! io_syscall {
+    ($name:ident($buf:ident: $ty:ty) => $io:ident) => {
+        fn $name(&self, fd: Fd, $buf: $ty) -> SysResult<usize> {
+            self.file_io(fd, None, Io::$io($buf))
+        }
+    };
+    ($name:ident($buf:ident: $ty:ty, at) => $io:ident) => {
+        fn $name(&self, fd: Fd, $buf: $ty, offset: u64) -> SysResult<usize> {
+            self.file_io(fd, Some(offset), Io::$io($buf))
+        }
+    };
+}
+
+/// `getpgid` e `getsid`: um campo do processo `pid` (0 é o chamador); `ESRCH` se não existe.
+macro_rules! proc_getter {
+    ($name:ident => $field:ident) => {
+        fn $name(&self, pid: Pid) -> SysResult<Pid> {
+            let pid = if pid == 0 { self.pid } else { pid };
+            self.w().procs.get(&pid).map(|p| p.$field).ok_or(Errno::ESRCH)
+        }
+    };
+}
+
 fn split(path: &[u8]) -> Vec<&[u8]> {
     path.split(|b| *b == b'/').filter(|c| !c.is_empty()).collect()
 }
@@ -591,6 +638,113 @@ impl ProcHandle {
     fn with_proc<R>(&self, f: impl FnOnce(&mut World, Pid) -> R) -> R {
         let mut w = self.w();
         f(&mut w, self.pid)
+    }
+
+    /// `read`, `write`, `pread` e `pwrite`: `at` é o deslocamento explícito (None usa e avança o do descritor).
+    fn file_io(&self, fd: Fd, at: Option<u64>, io: Io<'_>) -> SysResult<usize> {
+        if at.is_none() {
+            self.check_pending();
+        }
+        let e = self.fd_entry(fd)?;
+        let mut f = lock(&e.file);
+        let allowed = match io {
+            Io::Read(_) => f.flags.readable(),
+            Io::Write(_) => f.flags.writable(),
+        };
+        if at.is_none() && !allowed {
+            return Err(Errno::EBADF);
+        }
+        match &f.kind {
+            OpenKind::Dir { .. } => return Err(Errno::EISDIR),
+            OpenKind::Inode(ino) => {
+                let ino = *ino;
+                return self.inode_io(ino, &mut f, at, io);
+            }
+            _ if at.is_some() => return Err(Errno::ESPIPE),
+            _ => {}
+        }
+        match (&f.kind, io) {
+            (OpenKind::PipeRead(p), Io::Read(buf)) => {
+                let mut p = lock(p);
+                let n = buf.len().min(p.data.len());
+                for (i, b) in p.data.drain(..n).enumerate() {
+                    buf[i] = b;
+                }
+                Ok(n)
+            }
+            (OpenKind::PipeWrite(p), Io::Write(buf)) => {
+                let full = {
+                    let mut p = lock(p);
+                    if p.readers == 0 || p.data.len() + buf.len() > PIPE_LIMIT {
+                        true
+                    } else {
+                        p.data.extend(buf.iter().copied());
+                        false
+                    }
+                };
+                if full {
+                    drop(f);
+                    self.deliver(Signal::SIGPIPE)?;
+                    return Err(Errno::EPIPE);
+                }
+                Ok(buf.len())
+            }
+            (OpenKind::Socket(s), Io::Read(buf)) => lock(s).stream.read(buf).map_err(|e| Errno::from_io(&e)),
+            (OpenKind::Socket(s), Io::Write(buf)) => lock(s).stream.write(buf).map_err(|e| Errno::from_io(&e)),
+            _ => Err(Errno::EBADF),
+        }
+    }
+
+    /// A parte de `file_io` que toca o inode: arquivo regular e dispositivos.
+    fn inode_io(&self, ino: Ino, f: &mut OpenFile, at: Option<u64>, io: Io<'_>) -> SysResult<usize> {
+        let off = at.unwrap_or(f.offset) as usize;
+        let append = at.is_none() && f.flags.contains(OFlags::APPEND);
+        let mut w = self.w();
+        let now = w.now;
+        let (n, advance) = match io {
+            Io::Read(buf) => {
+                let n = match &w.node(ino).kind {
+                    Kind::File(d) => copy_out(d, off, buf),
+                    Kind::Device(Dev::Null) => 0,
+                    Kind::Device(Dev::Zero | Dev::Full) => {
+                        buf.fill(0);
+                        buf.len()
+                    }
+                    Kind::Device(Dev::Random) => {
+                        for b in buf.iter_mut() {
+                            *b = w.rand() as u8;
+                        }
+                        buf.len()
+                    }
+                    Kind::Device(Dev::Tty) => return Err(Errno::ENXIO),
+                    _ if at.is_some() => return Err(Errno::ESPIPE),
+                    _ => return Err(Errno::EINVAL),
+                };
+                w.node_mut(ino).atime = now;
+                (n, Some((off + n) as u64))
+            }
+            Io::Write(buf) => {
+                let node = w.node_mut(ino);
+                match &mut node.kind {
+                    Kind::File(d) => {
+                        let start = if append { d.len() } else { off };
+                        let end = copy_in(d, start, buf);
+                        node.mtime = now;
+                        node.ctime = now;
+                        (buf.len(), Some(end as u64))
+                    }
+                    Kind::Device(Dev::Null | Dev::Zero | Dev::Random) => (buf.len(), None),
+                    Kind::Device(Dev::Full) => return Err(Errno::ENOSPC),
+                    _ if at.is_some() => return Err(Errno::ESPIPE),
+                    _ => return Err(Errno::EINVAL),
+                }
+            }
+        };
+        drop(w);
+        if let (None, Some(end)) = (at, advance) {
+            f.offset = end;
+        }
+        Ok(n)
     }
 
     fn fd_entry(&self, fd: Fd) -> SysResult<FdEntry> {
@@ -1013,159 +1167,10 @@ impl Syscalls for ProcHandle {
         removed.map(drop).ok_or(Errno::EBADF)
     }
 
-    fn read(&self, fd: Fd, buf: &mut [u8]) -> SysResult<usize> {
-        self.check_pending();
-        let e = self.fd_entry(fd)?;
-        let mut f = lock(&e.file);
-        if !f.flags.readable() {
-            return Err(Errno::EBADF);
-        }
-        match &f.kind {
-            OpenKind::PipeRead(p) => {
-                let mut p = lock(p);
-                let n = buf.len().min(p.data.len());
-                for (i, b) in p.data.drain(..n).enumerate() {
-                    buf[i] = b;
-                }
-                Ok(n)
-            }
-            OpenKind::PipeWrite(_) => Err(Errno::EBADF),
-            OpenKind::Socket(s) => lock(s).stream.read(buf).map_err(|e| Errno::from_io(&e)),
-            OpenKind::Dir { .. } => Err(Errno::EISDIR),
-            OpenKind::Inode(ino) => {
-                let ino = *ino;
-                let mut w = self.w();
-                let off = f.offset as usize;
-                let n = match &w.node(ino).kind {
-                    Kind::File(d) => {
-                        // Offset além do fim (lseek depois do EOF) lê 0 bytes, como no Linux.
-                        let start = off.min(d.len());
-                        let n = (d.len() - start).min(buf.len());
-                        buf[..n].copy_from_slice(&d[start..start + n]);
-                        n
-                    }
-                    Kind::Device(Dev::Null) => 0,
-                    Kind::Device(Dev::Zero | Dev::Full) => {
-                        buf.fill(0);
-                        buf.len()
-                    }
-                    Kind::Device(Dev::Random) => {
-                        for b in buf.iter_mut() {
-                            *b = w.rand() as u8;
-                        }
-                        buf.len()
-                    }
-                    Kind::Device(Dev::Tty) => return Err(Errno::ENXIO),
-                    _ => return Err(Errno::EINVAL),
-                };
-                let now = w.now;
-                w.node_mut(ino).atime = now;
-                drop(w);
-                f.offset += n as u64;
-                Ok(n)
-            }
-        }
-    }
-
-    fn write(&self, fd: Fd, buf: &[u8]) -> SysResult<usize> {
-        self.check_pending();
-        let e = self.fd_entry(fd)?;
-        let mut f = lock(&e.file);
-        if !f.flags.writable() {
-            return Err(Errno::EBADF);
-        }
-        match &f.kind {
-            OpenKind::PipeWrite(p) => {
-                let full = {
-                    let mut p = lock(p);
-                    if p.readers == 0 || p.data.len() + buf.len() > PIPE_LIMIT {
-                        true
-                    } else {
-                        p.data.extend(buf.iter().copied());
-                        false
-                    }
-                };
-                if full {
-                    drop(f);
-                    self.deliver(Signal::SIGPIPE)?;
-                    return Err(Errno::EPIPE);
-                }
-                Ok(buf.len())
-            }
-            OpenKind::PipeRead(_) => Err(Errno::EBADF),
-            OpenKind::Socket(s) => lock(s).stream.write(buf).map_err(|e| Errno::from_io(&e)),
-            OpenKind::Dir { .. } => Err(Errno::EISDIR),
-            OpenKind::Inode(ino) => {
-                let ino = *ino;
-                let append = f.flags.contains(OFlags::APPEND);
-                let mut w = self.w();
-                let now = w.now;
-                let n = w.node_mut(ino);
-                match &mut n.kind {
-                    Kind::File(d) => {
-                        let off = if append { d.len() } else { f.offset as usize };
-                        if d.len() < off {
-                            d.resize(off, 0);
-                        }
-                        let end = off + buf.len();
-                        if d.len() < end {
-                            d.resize(end, 0);
-                        }
-                        d[off..end].copy_from_slice(buf);
-                        n.mtime = now;
-                        n.ctime = now;
-                        drop(w);
-                        f.offset = end as u64;
-                        Ok(buf.len())
-                    }
-                    Kind::Device(Dev::Null | Dev::Zero | Dev::Random) => Ok(buf.len()),
-                    Kind::Device(Dev::Full) => Err(Errno::ENOSPC),
-                    _ => Err(Errno::EINVAL),
-                }
-            }
-        }
-    }
-
-    fn pread(&self, fd: Fd, buf: &mut [u8], offset: u64) -> SysResult<usize> {
-        let e = self.fd_entry(fd)?;
-        let f = lock(&e.file);
-        match &f.kind {
-            OpenKind::Inode(ino) => match &self.w().node(*ino).kind {
-                Kind::File(d) => {
-                    let start = (offset as usize).min(d.len());
-                    let n = (d.len() - start).min(buf.len());
-                    buf[..n].copy_from_slice(&d[start..start + n]);
-                    Ok(n)
-                }
-                _ => Err(Errno::ESPIPE),
-            },
-            OpenKind::Dir { .. } => Err(Errno::EISDIR),
-            _ => Err(Errno::ESPIPE),
-        }
-    }
-
-    fn pwrite(&self, fd: Fd, buf: &[u8], offset: u64) -> SysResult<usize> {
-        let e = self.fd_entry(fd)?;
-        let f = lock(&e.file);
-        match &f.kind {
-            OpenKind::Inode(ino) => {
-                let mut w = self.w();
-                match &mut w.node_mut(*ino).kind {
-                    Kind::File(d) => {
-                        let off = offset as usize;
-                        let end = off + buf.len();
-                        if d.len() < end {
-                            d.resize(end, 0);
-                        }
-                        d[off..end].copy_from_slice(buf);
-                        Ok(buf.len())
-                    }
-                    _ => Err(Errno::ESPIPE),
-                }
-            }
-            _ => Err(Errno::ESPIPE),
-        }
-    }
+    io_syscall!(read(buf: &mut [u8]) => Read);
+    io_syscall!(write(buf: &[u8]) => Write);
+    io_syscall!(pread(buf: &mut [u8], at) => Read);
+    io_syscall!(pwrite(buf: &[u8], at) => Write);
 
     fn lseek(&self, fd: Fd, offset: i64, whence: Whence) -> SysResult<u64> {
         let e = self.fd_entry(fd)?;
@@ -1730,10 +1735,7 @@ impl Syscalls for ProcHandle {
         self.w().procs[&self.pid].ppid
     }
 
-    fn getpgid(&self, pid: Pid) -> SysResult<Pid> {
-        let pid = if pid == 0 { self.pid } else { pid };
-        self.w().procs.get(&pid).map(|p| p.pgid).ok_or(Errno::ESRCH)
-    }
+    proc_getter!(getpgid => pgid);
 
     fn setpgid(&self, pid: Pid, pgid: Pid) -> SysResult<()> {
         let pid = if pid == 0 { self.pid } else { pid };
@@ -1743,10 +1745,7 @@ impl Syscalls for ProcHandle {
         Ok(())
     }
 
-    fn getsid(&self, pid: Pid) -> SysResult<Pid> {
-        let pid = if pid == 0 { self.pid } else { pid };
-        self.w().procs.get(&pid).map(|p| p.sid).ok_or(Errno::ESRCH)
-    }
+    proc_getter!(getsid => sid);
 
     fn setsid(&self) -> SysResult<Pid> {
         let mut w = self.w();
