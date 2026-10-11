@@ -361,3 +361,14 @@ fn finalizing_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_finalizing.out"),
     );
 }
+
+/// `run=None` explícito, o `__init__` do tipo chamado pelo de uma subclasse, o `__dict__` (apagar e trocar) e o
+/// `gr_context` que não se apaga, como no oráculo.
+#[test]
+fn attrs_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_attrs",
+        include_str!("../../../testbench/oracle/automation/cases/gl_attrs.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_attrs.out"),
+    );
+}

@@ -2832,6 +2832,10 @@ impl Vm {
                 if name == "__dict__" && inst.class().slots_allow("__dict__") {
                     // `obj.__dict__ = d`: o próprio `d` passa a ser o espaço de atributos (vivo).
                     let Value::Dict(d) = value else {
+                        // O getset próprio do `greenlet.greenlet` tem mensagem sua.
+                        if has_greenlet_dict(&inst.class()) {
+                            return Err(type_error("__dict__ must be a dictionary"));
+                        }
                         return Err(type_error(format!(
                             "__dict__ must be set to a dictionary, not a '{}'",
                             value.type_name()
@@ -2989,6 +2993,15 @@ impl Vm {
                         };
                         return self.call_or_defer(&f, vec![obj.clone()], defer).map(|_| ());
                     }
+                }
+                if name == "__dict__" && inst.class().slots_allow("__dict__") {
+                    // `del obj.__dict__` esvazia o espaço de atributos (o `greenlet.greenlet` o recusa).
+                    if has_greenlet_dict(&inst.class()) {
+                        return Err(type_error("__dict__ may not be deleted"));
+                    }
+                    *inst.view.borrow_mut() = None;
+                    inst.dict.borrow_mut().clear();
+                    return Ok(());
                 }
                 if inst.remove_own(name).is_none() {
                     return Err(slot_delete_error(inst, name));
@@ -3753,4 +3766,9 @@ fn ns_to_dict(ns: &[(String, Value)]) -> PyResult<Value> {
         d.set(Value::str(k.clone()), v.clone()).map_err(|_| type_error("unhashable type"))?;
     }
     Ok(Value::dict(d))
+}
+
+/// A classe herda do `greenlet.greenlet`, cujo `__dict__` é um getset de C com mensagens próprias.
+fn has_greenlet_dict(cls: &Rc<ClassObj>) -> bool {
+    cls.mro().iter().any(|c| c.name == "greenlet" && c.emulates_c_type())
 }
