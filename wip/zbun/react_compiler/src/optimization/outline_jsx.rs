@@ -17,7 +17,7 @@ use crate::hir::{
     IdentifierId, IdentifierName, Instruction, InstructionId, InstructionKind, InstructionValue,
     JsxAttribute, JsxTag, LValuePattern, NonLocalBinding, NonLocalKind, ObjectPattern,
     ObjectProperty, ObjectPropertyKey, ObjectPropertyOrSpread, ObjectPropertyType, ParamPattern,
-    Pattern, Place, ReactFunctionType, ReturnVariant, StoreStr, Terminal,
+    Pattern, Place, ReactFunctionType, ReturnVariant, HirStr, Terminal,
 };
 use crate::hir_vec;
 
@@ -41,8 +41,8 @@ struct JsxInstrInfo {
 }
 
 struct OutlinedJsxAttribute {
-    original_name: StoreStr,
-    new_name: StoreStr,
+    original_name: HirStr,
+    new_name: HirStr,
     place: Place,
 }
 
@@ -245,7 +245,7 @@ fn process_jsx_group(
     let props = collect_props(func, env, jsx_group)?;
 
     let outlined_tag = env.generate_globally_unique_identifier_name(None);
-    let new_instrs = emit_outlined_jsx(func, env, jsx_group, &props, outlined_tag)?;
+    let new_instrs = emit_outlined_jsx(func, env, jsx_group, &props, outlined_tag.clone())?;
     let outlined_fn = emit_outlined_fn(func, env, jsx_group, &props, globals)?;
 
     // Set the outlined function's id
@@ -264,11 +264,11 @@ fn collect_props(
     jsx_group: &[JsxInstrInfo],
 ) -> Option<Vec<OutlinedJsxAttribute>> {
     let mut id_counter = 1u32;
-    let mut seen: HashSet<StoreStr> = HashSet::new();
+    let mut seen: HashSet<HirStr> = HashSet::new();
     let mut attributes = Vec::new();
     let jsx_ids: HashSet<IdentifierId> = jsx_group.iter().map(|j| j.lvalue_id).collect();
 
-    let mut generate_name = |old_name: &[u8], _env: &mut Environment| -> StoreStr {
+    let mut generate_name = |old_name: &[u8], _env: &mut Environment| -> HirStr {
         let mut buf: Vec<u8> = old_name.to_vec();
         let mut itoa = bun_core::fmt::ItoaBuf::new();
         while seen.contains(buf.as_slice()) {
@@ -279,7 +279,7 @@ fn collect_props(
         }
         // TS: env.programContext.addNewReference(newName)
         // We don't have programContext in Rust, but this is needed for unique name tracking
-        let stored = StoreStr::new(bun_ast::data_store_dupe_str(&buf));
+        let stored = HirStr::new(&buf);
         seen.insert(stored);
         stored
     };
@@ -338,10 +338,10 @@ fn emit_outlined_jsx(
     env: &mut Environment,
     jsx_group: &[JsxInstrInfo],
     outlined_props: &[OutlinedJsxAttribute],
-    outlined_tag: StoreStr,
+    outlined_tag: HirStr,
 ) -> Option<Vec<Instruction>> {
     let props = Vec::from_iter(outlined_props.iter().map(|p| JsxAttribute::Attribute {
-        name: p.new_name,
+        name: p.new_name.clone(),
         place: p.place.clone(),
     }));
 
@@ -542,7 +542,7 @@ fn emit_updated_jsx(
                     .get(&place.identifier)
                     .expect("Expected a new property for identifier");
                 new_props.push(JsxAttribute::Attribute {
-                    name: new_prop.original_name,
+                    name: new_prop.original_name.clone(),
                     place: new_prop.place.clone(),
                 });
             }
@@ -593,7 +593,7 @@ fn create_old_to_new_props_mapping(
         }
 
         let new_id = env.next_identifier_id();
-        env.identifiers[new_id.0 as usize].name = Some(IdentifierName::Named(old_prop.new_name));
+        env.identifiers[new_id.0 as usize].name = Some(IdentifierName::Named(old_prop.new_name.clone()));
 
         let new_place = Place {
             identifier: new_id,
@@ -605,8 +605,8 @@ fn create_old_to_new_props_mapping(
         old_to_new.insert(
             old_prop.place.identifier,
             OutlinedJsxAttribute {
-                original_name: old_prop.original_name,
-                new_name: old_prop.new_name,
+                original_name: old_prop.original_name.clone(),
+                new_name: old_prop.new_name.clone(),
                 place: new_place,
             },
         );
@@ -624,7 +624,7 @@ fn emit_destructure_props(
     for prop in old_to_new_props.values() {
         properties.push(ObjectPropertyOrSpread::Property(ObjectProperty {
             key: ObjectPropertyKey::String {
-                name: prop.new_name,
+                name: prop.new_name.clone(),
             },
             property_type: ObjectPropertyType::Property,
             place: prop.place.clone(),

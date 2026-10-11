@@ -397,7 +397,7 @@ pub(crate) fn collect_maybe_memo_dependencies(
     match value {
         InstructionValue::LoadGlobal { binding, loc, .. } => Some(ManualMemoDependency {
             root: ManualMemoDependencyRoot::Global {
-                identifier_name: crate::hir::StoreStr::new(binding.name()),
+                identifier_name: crate::hir::HirStr::new(binding.name()),
             },
             path: hir_vec![],
             loc: loc.clone(),

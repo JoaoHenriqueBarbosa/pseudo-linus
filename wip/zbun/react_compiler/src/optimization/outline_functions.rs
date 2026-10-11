@@ -102,13 +102,13 @@ pub(crate) fn outline_functions(
 
                 // Then generate the name and outline (after recursion, matching TS order)
                 let hint = env.functions[function_id.0 as usize]
-                    .id
-                    .or(env.functions[function_id.0 as usize].name_hint);
+                    .id.clone()
+                    .or(env.functions[function_id.0 as usize].name_hint.clone());
                 let generated_name =
                     env.generate_globally_unique_identifier_name(hint.map(|s| s.slice()));
 
                 // Set the id on the inner function
-                env.functions[function_id.0 as usize].id = Some(generated_name);
+                env.functions[function_id.0 as usize].id = Some(generated_name.clone());
 
                 // Outline the function
                 let outlined_func = env.functions[function_id.0 as usize].clone();

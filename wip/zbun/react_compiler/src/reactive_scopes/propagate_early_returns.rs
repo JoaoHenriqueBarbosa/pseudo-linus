@@ -15,7 +15,7 @@ use crate::hir::{
     NonLocalBinding, NonLocalKind, Place, ReactiveFunction, ReactiveInstruction, ReactiveLabel,
     ReactiveScopeBlock, ReactiveScopeDeclaration, ReactiveScopeEarlyReturn, ReactiveStatement,
     ReactiveTerminal, ReactiveTerminalStatement, ReactiveTerminalTargetKind, ReactiveValue,
-    StoreStr, environment::Environment,
+    HirStr, environment::Environment,
 };
 
 use crate::reactive_scopes::visitors::{
@@ -220,7 +220,7 @@ fn apply_early_return_to_scope(
                 binding: NonLocalBinding {
                     ref_: bun_ast::Ref::NONE,
                     kind: NonLocalKind::ModuleLocal {
-                        name: StoreStr::new(b"$rc_early"),
+                        name: HirStr::new(b"$rc_early"),
                     },
                 },
                 loc,

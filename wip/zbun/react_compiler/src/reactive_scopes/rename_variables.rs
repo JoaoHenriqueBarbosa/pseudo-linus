@@ -23,7 +23,7 @@ use crate::hir::ReactiveBlock;
 use crate::hir::ReactiveFunction;
 use crate::hir::ReactiveScopeBlock;
 use crate::hir::ReactiveValue;
-use crate::hir::StoreStr;
+use crate::hir::HirStr;
 use crate::hir::environment::Environment;
 
 use crate::reactive_scopes::visitors::ReactiveFunctionVisitor;
@@ -35,13 +35,13 @@ use crate::reactive_scopes::visitors::{self};
 
 struct Scopes {
     seen: IdMap<DeclarationId, IdentifierName>,
-    stack: Vec<HashMap<StoreStr, DeclarationId>>,
-    globals: HashSet<StoreStr>,
-    names: HashSet<StoreStr>,
+    stack: Vec<HashMap<HirStr, DeclarationId>>,
+    globals: HashSet<HirStr>,
+    names: HashSet<HirStr>,
 }
 
 impl Scopes {
-    fn new(globals: HashSet<StoreStr>) -> Self {
+    fn new(globals: HashSet<HirStr>) -> Self {
         Self {
             seen: IdMap::new(),
             stack: vec![HashMap::new()],
@@ -94,7 +94,7 @@ impl Scopes {
             id += 1;
         }
 
-        let stored = StoreStr::new(bun_ast::data_store_dupe_str(&name));
+        let stored = HirStr::new(&name);
         self.seen
             .insert(declaration_id, IdentifierName::Named(stored));
         self.stack
@@ -212,7 +212,7 @@ pub(crate) fn rename_variables(
 fn rename_variables_with_parent(
     func: &mut ReactiveFunction,
     env: &mut Environment,
-    parent_names: Option<&HashSet<StoreStr>>,
+    parent_names: Option<&HashSet<HirStr>>,
 ) -> HashSet<String> {
     let globals = collect_referenced_globals(&func.body, env);
 
@@ -230,7 +230,7 @@ fn rename_variables_with_parent(
                 .stack
                 .last_mut()
                 .unwrap()
-                .insert(name, DeclarationId(u32::MAX));
+                .insert(name.clone(), DeclarationId(u32::MAX));
             scopes.names.insert(name);
         }
     }
@@ -269,7 +269,7 @@ fn rename_variables_impl(func: &ReactiveFunction, visitor: &Visitor, scopes: &mu
 
 /// Collects all globally referenced names from the reactive function.
 /// TS: `collectReferencedGlobals`
-fn collect_referenced_globals(block: &ReactiveBlock, env: &Environment) -> HashSet<StoreStr> {
+fn collect_referenced_globals(block: &ReactiveBlock, env: &Environment) -> HashSet<HirStr> {
     let mut globals = HashSet::new();
     collect_globals_block(block, &mut globals, env);
     globals
@@ -277,7 +277,7 @@ fn collect_referenced_globals(block: &ReactiveBlock, env: &Environment) -> HashS
 
 fn collect_globals_block(
     block: &ReactiveBlock,
-    globals: &mut HashSet<StoreStr>,
+    globals: &mut HashSet<HirStr>,
     env: &Environment,
 ) {
     for stmt in block {
@@ -300,13 +300,13 @@ fn collect_globals_block(
 
 fn collect_globals_value(
     value: &ReactiveValue,
-    globals: &mut HashSet<StoreStr>,
+    globals: &mut HashSet<HirStr>,
     env: &Environment,
 ) {
     match value {
         ReactiveValue::Instruction(iv) => {
             if let InstructionValue::LoadGlobal { binding, .. } = iv {
-                globals.insert(StoreStr::new(binding.name()));
+                globals.insert(HirStr::new(binding.name()));
             }
             // Visit inner functions
             match iv {
@@ -350,7 +350,7 @@ fn collect_globals_value(
 /// Recursively collects LoadGlobal names from an inner HIR function.
 fn collect_globals_hir_function(
     func_id: FunctionId,
-    globals: &mut HashSet<StoreStr>,
+    globals: &mut HashSet<HirStr>,
     env: &Environment,
 ) {
     let inner_func = &env.functions[func_id.0 as usize];
@@ -361,7 +361,7 @@ fn collect_globals_hir_function(
         for instr_id in &block.instructions {
             let instr = &inner_func.instructions[instr_id.0 as usize];
             if let InstructionValue::LoadGlobal { binding, .. } = &instr.value {
-                globals.insert(StoreStr::new(binding.name()));
+                globals.insert(HirStr::new(binding.name()));
             }
             // Recurse into nested function expressions
             match &instr.value {
@@ -377,7 +377,7 @@ fn collect_globals_hir_function(
 
 fn collect_globals_terminal(
     stmt: &crate::hir::ReactiveTerminalStatement,
-    globals: &mut HashSet<StoreStr>,
+    globals: &mut HashSet<HirStr>,
     env: &Environment,
 ) {
     match &stmt.terminal {

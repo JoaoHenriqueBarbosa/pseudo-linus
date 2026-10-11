@@ -39,9 +39,9 @@ pub(crate) fn build_reactive_function(
 
     Ok(ReactiveFunction {
         loc: hir.loc,
-        id: hir.id.map(|s| bstr::BStr::new(s.slice()).to_string()),
+        id: hir.id.clone().map(|s| bstr::BStr::new(s.slice()).to_string()),
         name_hint: hir
-            .name_hint
+            .name_hint.clone()
             .map(|s| bstr::BStr::new(s.slice()).to_string()),
         params: hir.params.to_vec(),
         generator: hir.generator,

@@ -68,10 +68,11 @@ pub use reactive::*;
 /// buffer's `deallocate` is a no-op. Nonetheless, HIR types must NOT own
 /// global-heap allocations (`String`, `Box<T>`, `Vec<T>`): the arena bulk-
 /// frees on reset without walking elements, so any nested global allocation
-/// leaks per parse. Use [`StoreStr`] / [`HirVec`] instead.
+/// leaks per parse. Use [`HirStr`] / [`HirVec`] instead.
 pub type HirVec<T> = Vec<T>;
 /// Arena-owned (or `'static`) byte string. Copy; no Drop. See [`HirVec`].
-pub use bun_ast::StoreStr;
+mod hir_str;
+pub use hir_str::HirStr;
 
 /// `vec![..]` for [`HirVec`]. `Vec<T, A>` has no `Default`/`From<[T; N]>` for
 /// non-`Global` `A`, so the std macro doesn't apply.
@@ -274,18 +275,18 @@ impl core::fmt::Write for StackCursor<'_> {
 #[derive(Debug, Clone)]
 pub struct HirFunction {
     pub loc: Option<SourceLocation>,
-    pub id: Option<StoreStr>,
-    pub name_hint: Option<StoreStr>,
+    pub id: Option<HirStr>,
+    pub name_hint: Option<HirStr>,
     pub fn_type: ReactFunctionType,
     pub params: HirVec<ParamPattern>,
-    pub return_type_annotation: Option<StoreStr>,
+    pub return_type_annotation: Option<HirStr>,
     pub returns: Place,
     pub context: HirVec<Place>,
     pub body: HIR,
     pub instructions: HirVec<Instruction>,
     pub generator: bool,
     pub is_async: bool,
-    pub directives: HirVec<StoreStr>,
+    pub directives: HirVec<HirStr>,
     pub aliasing_effects: Option<HirVec<AliasingEffect>>,
 }
 
@@ -716,7 +717,7 @@ pub enum InstructionValue {
     },
     DeclareLocal {
         lvalue: LValue,
-        type_annotation: Option<StoreStr>,
+        type_annotation: Option<HirStr>,
         loc: Option<SourceLocation>,
     },
     DeclareContext {
@@ -726,7 +727,7 @@ pub enum InstructionValue {
     StoreLocal {
         lvalue: LValue,
         value: Place,
-        type_annotation: Option<StoreStr>,
+        type_annotation: Option<HirStr>,
         loc: Option<SourceLocation>,
     },
     StoreContext {
@@ -744,7 +745,7 @@ pub enum InstructionValue {
         loc: Option<SourceLocation>,
     },
     JSXText {
-        value: StoreStr,
+        value: HirStr,
         loc: Option<SourceLocation>,
     },
     BinaryExpression {
@@ -779,12 +780,12 @@ pub enum InstructionValue {
     TypeCastExpression {
         value: Place,
         type_: Type,
-        type_annotation_name: Option<StoreStr>,
+        type_annotation_name: Option<HirStr>,
         type_annotation_kind: Option<&'static str>,
         /// The original AST type annotation node, preserved for codegen.
         /// For Flow: the inner type from TypeAnnotation.typeAnnotation
         /// For TS: the TSType node from TSAsExpression/TSSatisfiesExpression
-        type_annotation: Option<StoreStr>,
+        type_annotation: Option<HirStr>,
         loc: Option<SourceLocation>,
     },
     JsxExpression {
@@ -812,8 +813,8 @@ pub enum InstructionValue {
         loc: Option<SourceLocation>,
     },
     RegExpLiteral {
-        pattern: StoreStr,
-        flags: StoreStr,
+        pattern: HirStr,
+        flags: HirStr,
         loc: Option<SourceLocation>,
     },
     MetaProperty {
@@ -858,15 +859,15 @@ pub enum InstructionValue {
         loc: Option<SourceLocation>,
     },
     StoreGlobal {
-        name: StoreStr,
+        name: HirStr,
         /// The original Bun symbol being assigned to. `Ref::NONE` if synthetic.
         ref_: bun_ast::Ref,
         value: Place,
         loc: Option<SourceLocation>,
     },
     FunctionExpression {
-        name: Option<StoreStr>,
-        name_hint: Option<StoreStr>,
+        name: Option<HirStr>,
+        name_hint: Option<HirStr>,
         lowered_func: LoweredFunction,
         expr_type: FunctionExpressionType,
         loc: Option<SourceLocation>,
@@ -929,7 +930,7 @@ pub enum InstructionValue {
     UnsupportedNode {
         node_type: Option<&'static str>,
         /// The original AST node serialized as JSON, so codegen can emit it verbatim.
-        original_node: Option<StoreStr>,
+        original_node: Option<HirStr>,
         loc: Option<SourceLocation>,
     },
 }
@@ -1099,8 +1100,8 @@ pub enum FunctionExpressionType {
 
 #[derive(Debug, Clone)]
 pub struct TemplateQuasi {
-    pub raw: StoreStr,
-    pub cooked: Option<StoreStr>,
+    pub raw: HirStr,
+    pub cooked: Option<HirStr>,
 }
 
 #[derive(Debug, Clone)]
@@ -1113,7 +1114,7 @@ pub struct ManualMemoDependency {
 #[derive(Debug, Clone)]
 pub enum ManualMemoDependencyRoot {
     NamedLocal { value: Place, constant: bool },
-    Global { identifier_name: StoreStr },
+    Global { identifier_name: HirStr },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1173,8 +1174,8 @@ impl MutableRange {
 
 #[derive(Debug, Clone)]
 pub enum IdentifierName {
-    Named(StoreStr),
-    Promoted(StoreStr),
+    Named(HirStr),
+    Promoted(HirStr),
 }
 
 impl IdentifierName {
@@ -1192,9 +1193,9 @@ impl IdentifierName {
         buf[0] = b'#';
         buf[1] = kind;
         buf[2..2 + digits.len()].copy_from_slice(digits);
-        IdentifierName::Promoted(StoreStr::new(bun_ast::data_store_dupe_str(
+        IdentifierName::Promoted(HirStr::new(
             &buf[..2 + digits.len()],
-        )))
+        ))
     }
 }
 
@@ -1285,8 +1286,8 @@ pub struct ObjectProperty {
 
 #[derive(Debug, Clone)]
 pub enum ObjectPropertyKey {
-    String { name: StoreStr },
-    Identifier { name: StoreStr },
+    String { name: HirStr },
+    Identifier { name: HirStr },
     Computed { name: Place },
     Number { name: FloatValue },
 }
@@ -1308,7 +1309,7 @@ impl std::fmt::Display for ObjectPropertyType {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PropertyLiteral {
-    String(StoreStr),
+    String(HirStr),
     Number(FloatValue),
 }
 
@@ -1358,7 +1359,7 @@ pub struct LoweredFunction {
 
 #[derive(Debug, Clone)]
 pub struct BuiltinTag {
-    pub name: StoreStr,
+    pub name: HirStr,
     pub loc: Option<SourceLocation>,
 }
 
@@ -1371,7 +1372,7 @@ pub enum JsxTag {
 #[derive(Debug, Clone)]
 pub enum JsxAttribute {
     SpreadAttribute { argument: Place },
-    Attribute { name: StoreStr, place: Place },
+    Attribute { name: HirStr, place: Place },
 }
 
 // =============================================================================
@@ -1397,23 +1398,23 @@ pub enum VariableBinding {
         binding_kind: BindingKind,
     },
     Global {
-        name: StoreStr,
+        name: HirStr,
     },
     ImportDefault {
-        name: StoreStr,
-        module: StoreStr,
+        name: HirStr,
+        module: HirStr,
     },
     ImportSpecifier {
-        name: StoreStr,
-        module: StoreStr,
-        imported: StoreStr,
+        name: HirStr,
+        module: HirStr,
+        imported: HirStr,
     },
     ImportNamespace {
-        name: StoreStr,
-        module: StoreStr,
+        name: HirStr,
+        module: HirStr,
     },
     ModuleLocal {
-        name: StoreStr,
+        name: HirStr,
     },
 }
 
@@ -1426,26 +1427,26 @@ pub struct NonLocalBinding {
     pub kind: NonLocalKind,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum NonLocalKind {
     ImportDefault {
-        name: StoreStr,
-        module: StoreStr,
+        name: HirStr,
+        module: HirStr,
     },
     ImportSpecifier {
-        name: StoreStr,
-        module: StoreStr,
-        imported: StoreStr,
+        name: HirStr,
+        module: HirStr,
+        imported: HirStr,
     },
     ImportNamespace {
-        name: StoreStr,
-        module: StoreStr,
+        name: HirStr,
+        module: HirStr,
     },
     ModuleLocal {
-        name: StoreStr,
+        name: HirStr,
     },
     Global {
-        name: StoreStr,
+        name: HirStr,
     },
     /// A Bun-synthetic value expression the compiler treats as an opaque frozen
     /// constant. The original `Expr` is carried whole so codegen emits it
@@ -1556,7 +1557,7 @@ pub enum Type {
     },
     Property {
         object_type: Box<Type>,
-        object_name: StoreStr,
+        object_name: HirStr,
         property_name: PropertyNameKind,
     },
     ObjectMethod,

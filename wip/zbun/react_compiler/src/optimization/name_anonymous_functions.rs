@@ -17,7 +17,7 @@ use crate::hir::environment::Environment;
 use crate::hir::object_shape::HookKind;
 use crate::hir::{
     FunctionId, HirFunction, IdentifierId, IdentifierName, Instruction, InstructionValue,
-    JsxAttribute, JsxTag, PlaceOrSpread, StoreStr,
+    JsxAttribute, JsxTag, PlaceOrSpread, HirStr,
 };
 use bstr::BStr;
 
@@ -67,19 +67,19 @@ pub(crate) fn name_anonymous_functions(func: &mut HirFunction, env: &mut Environ
     if updates.is_empty() {
         return;
     }
-    let update_map: HashMap<FunctionId, StoreStr> = updates
+    let update_map: HashMap<FunctionId, HirStr> = updates
         .iter()
         .map(|(fid, name)| {
             (
                 *fid,
-                StoreStr::new(bun_ast::data_store_dupe_str(name.as_bytes())),
+                HirStr::new(name.as_bytes()),
             )
         })
         .collect();
 
     // Apply name updates to the inner HirFunction in the arena
     for (function_id, name) in &update_map {
-        env.functions[function_id.0 as usize].name_hint = Some(*name);
+        env.functions[function_id.0 as usize].name_hint = Some(*name.clone());
     }
 
     // Update name_hint on FunctionExpression instruction values in the outer function
@@ -97,7 +97,7 @@ pub(crate) fn name_anonymous_functions(func: &mut HirFunction, env: &mut Environ
 /// Apply name hints to FunctionExpression instruction values.
 fn apply_name_hints_to_instructions(
     instructions: &mut [Instruction],
-    update_map: &HashMap<FunctionId, StoreStr>,
+    update_map: &HashMap<FunctionId, HirStr>,
 ) {
     for instr in instructions.iter_mut() {
         if let InstructionValue::FunctionExpression {
@@ -107,7 +107,7 @@ fn apply_name_hints_to_instructions(
         } = &mut instr.value
         {
             if let Some(new_name) = update_map.get(&lowered_func.func) {
-                *name_hint = Some(*new_name);
+                *name_hint = Some(*new_name.clone());
             }
         }
     }
@@ -119,9 +119,9 @@ struct Node {
     /// The generated name for this anonymous function (set based on usage context)
     generated_name: Option<String>,
     /// The existing `name` on the FunctionExpression (non-anonymous functions have this)
-    fn_name: Option<StoreStr>,
+    fn_name: Option<HirStr>,
     /// Whether the inner HirFunction already has a name_hint
-    existing_name_hint: Option<StoreStr>,
+    existing_name_hint: Option<HirStr>,
     /// Nested function nodes
     inner: Vec<Node>,
 }
@@ -168,8 +168,8 @@ fn name_anonymous_functions_impl(func: &HirFunction, env: &Environment) -> Vec<N
                     let node = Node {
                         function_id: lowered_func.func,
                         generated_name: None,
-                        fn_name: *name,
-                        existing_name_hint: inner_func.name_hint,
+                        fn_name: *name.clone(),
+                        existing_name_hint: inner_func.name_hint.clone(),
                         inner,
                     };
                     let idx = nodes.len();

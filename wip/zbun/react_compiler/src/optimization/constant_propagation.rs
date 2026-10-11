@@ -306,8 +306,8 @@ fn evaluate_instruction(
                     PrimitiveValue::String(s) if s.as_bytes().is_some_and(is_valid_identifier) => {
                         let object = object.clone();
                         let loc = *loc;
-                        let new_property = PropertyLiteral::String(crate::hir::StoreStr::new(
-                            bun_ast::data_store_dupe_str(s.as_bytes().expect("guarded")),
+                        let new_property = PropertyLiteral::String(crate::hir::HirStr::new(
+                            s.as_bytes().expect("guarded"),
                         ));
                         func.instructions[instr_id.0 as usize].value =
                             InstructionValue::PropertyLoad {
@@ -351,8 +351,8 @@ fn evaluate_instruction(
                         let object = object.clone();
                         let store_value = value.clone();
                         let loc = *loc;
-                        let new_property = PropertyLiteral::String(crate::hir::StoreStr::new(
-                            bun_ast::data_store_dupe_str(s.as_bytes().expect("guarded")),
+                        let new_property = PropertyLiteral::String(crate::hir::HirStr::new(
+                            s.as_bytes().expect("guarded"),
                         ));
                         func.instructions[instr_id.0 as usize].value =
                             InstructionValue::PropertyStore {

@@ -13,7 +13,7 @@ use crate::hir::visitors::{
 use crate::hir::{
     ArrayElement, BlockId, DependencyPathEntry, HirFunction, HirVec, Identifier,
     IdentifierId, InstructionKind, InstructionValue, ManualMemoDependency,
-    ManualMemoDependencyRoot, NonLocalBinding, Place, PlaceOrSpread, PropertyLiteral, StoreStr,
+    ManualMemoDependencyRoot, NonLocalBinding, Place, PlaceOrSpread, PropertyLiteral, HirStr,
     Terminal, Type, hir_vec,
 };
 use bstr::BStr;
@@ -935,7 +935,7 @@ fn collect_dependencies(
                                                         ManualMemoDependency {
                                                             root:
                                                                 ManualMemoDependencyRoot::Global {
-                                                                    identifier_name: StoreStr::new(
+                                                                    identifier_name: HirStr::new(
                                                                         binding.name(),
                                                                     ),
                                                                 },
@@ -1047,7 +1047,7 @@ fn collect_dependencies(
                                                         ManualMemoDependency {
                                                             root:
                                                                 ManualMemoDependencyRoot::Global {
-                                                                    identifier_name: StoreStr::new(
+                                                                    identifier_name: HirStr::new(
                                                                         binding.name(),
                                                                     ),
                                                                 },

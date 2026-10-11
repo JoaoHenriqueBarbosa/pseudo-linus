@@ -71,7 +71,7 @@ struct State {
     /// SSA-specific usages (by IdentifierId)
     identifiers: HashSet<IdentifierId>,
     /// Named variable usages (any version)
-    named: HashSet<crate::hir::StoreStr>,
+    named: HashSet<crate::hir::HirStr>,
 }
 
 impl State {
@@ -96,7 +96,7 @@ fn reference(
     state.identifiers.insert(identifier_id);
     let ident = &identifiers[identifier_id.0 as usize];
     if let Some(ref name) = ident.name {
-        state.named.insert(crate::hir::StoreStr::new(name.value()));
+        state.named.insert(crate::hir::HirStr::new(name.value()));
     }
 }
 

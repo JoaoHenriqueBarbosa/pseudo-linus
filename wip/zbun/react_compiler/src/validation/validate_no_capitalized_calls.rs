@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::diagnostics::{CompilerError, CompilerErrorDetail, ErrorCategory};
 use crate::hir::environment::Environment;
-use crate::hir::{HirFunction, IdentifierId, InstructionValue, PropertyLiteral, StoreStr};
+use crate::hir::{HirFunction, IdentifierId, InstructionValue, PropertyLiteral, HirStr};
 use bstr::BStr;
 
 /// Validates that capitalized functions are not called directly (they should be rendered as JSX).
@@ -24,8 +24,8 @@ pub(crate) fn validate_no_capitalized_calls(
         }
     }
 
-    let mut capital_load_globals: HashMap<IdentifierId, StoreStr> = HashMap::new();
-    let mut capitalized_properties: HashMap<IdentifierId, StoreStr> = HashMap::new();
+    let mut capital_load_globals: HashMap<IdentifierId, HirStr> = HashMap::new();
+    let mut capitalized_properties: HashMap<IdentifierId, HirStr> = HashMap::new();
 
     let reason = "Capitalized functions are reserved for components, which must be invoked with JSX. If this is a component, render it with JSX. Otherwise, ensure that it has no hook calls and rename it to begin with a lowercase letter. Alternatively, if you know for a fact that this function is not a component, you can allowlist it via the compiler config";
 
@@ -43,7 +43,7 @@ pub(crate) fn validate_no_capitalized_calls(
                         && name.iter().any(u8::is_ascii_lowercase)
                         && !allow_list.contains(name)
                     {
-                        capital_load_globals.insert(lvalue_id, StoreStr::new(name));
+                        capital_load_globals.insert(lvalue_id, HirStr::new(name));
                     }
                 }
                 InstructionValue::CallExpression { callee, loc, .. } => {
@@ -69,7 +69,7 @@ pub(crate) fn validate_no_capitalized_calls(
                             .first()
                             .is_some_and(u8::is_ascii_uppercase)
                         {
-                            capitalized_properties.insert(lvalue_id, *prop_name);
+                            capitalized_properties.insert(lvalue_id, *prop_name.clone());
                         }
                     }
                 }

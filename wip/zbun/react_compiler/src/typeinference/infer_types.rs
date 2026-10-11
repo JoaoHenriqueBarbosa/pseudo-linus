@@ -23,7 +23,7 @@ use crate::hir::{
     ArrayPatternElement, BinaryOperator, FunctionId, HirFunction, HirVec, Identifier,
     IdentifierId, IdentifierName, InstructionId, InstructionKind, InstructionValue, JsxAttribute,
     LoweredFunction, NonLocalBinding, ObjectPropertyKey, ObjectPropertyOrSpread, ParamPattern,
-    Pattern, PropertyLiteral, PropertyNameKind, ReactFunctionType, SourceLocation, StoreStr,
+    Pattern, PropertyLiteral, PropertyNameKind, ReactFunctionType, SourceLocation, HirStr,
     Terminal, Type, TypeId,
 };
 use crate::ssa::enter_ssa::placeholder_function;
@@ -298,14 +298,14 @@ fn type_equals(a: &Type, b: &Type) -> bool {
     }
 }
 
-fn set_name(names: &mut IdMap<IdentifierId, StoreStr>, id: IdentifierId, source: &Identifier) {
+fn set_name(names: &mut IdMap<IdentifierId, HirStr>, id: IdentifierId, source: &Identifier) {
     if let Some(IdentifierName::Named(name)) = source.name {
         names.insert(id, name);
     }
 }
 
-fn get_name(names: &IdMap<IdentifierId, StoreStr>, id: IdentifierId) -> StoreStr {
-    names.get(id).copied().unwrap_or(StoreStr::EMPTY)
+fn get_name(names: &IdMap<IdentifierId, HirStr>, id: IdentifierId) -> HirStr {
+    names.get(id).cloned().unwrap_or_default()
 }
 
 /// Array-destructure index → property key. Static table covers every index a
@@ -318,7 +318,7 @@ fn index_property_literal(i: usize) -> PropertyLiteral {
         b"27", b"28", b"29", b"30", b"31",
     ];
     if let Some(&s) = INDEX_STRINGS.get(i) {
-        return PropertyLiteral::String(StoreStr::new(s));
+        return PropertyLiteral::String(HirStr::new(s));
     }
     debug_assert!(i >= 32);
     let mut buf = [0u8; 20];
@@ -329,7 +329,7 @@ fn index_property_literal(i: usize) -> PropertyLiteral {
         buf[pos] = b'0' + (n % 10) as u8;
         n /= 10;
     }
-    PropertyLiteral::String(StoreStr::new(Vec::from(&buf[pos..]).leak()))
+    PropertyLiteral::String(HirStr::new(&buf[pos..]))
 }
 
 // =============================================================================
@@ -400,7 +400,7 @@ fn generate(
         }
     }
 
-    let mut names: IdMap<IdentifierId, StoreStr> = IdMap::new();
+    let mut names: IdMap<IdentifierId, HirStr> = IdMap::new();
     let mut return_types: HirVec<Type> = Vec::new();
 
     for (_block_id, block) in &func.body.blocks {
@@ -502,7 +502,7 @@ fn generate_for_function_id(
 
     // TS creates a fresh `names` Map per recursive `generate` call, so inner
     // functions don't inherit or pollute the outer function's name mappings.
-    let mut inner_names: IdMap<IdentifierId, StoreStr> = IdMap::new();
+    let mut inner_names: IdMap<IdentifierId, HirStr> = IdMap::new();
     let mut inner_return_types: HirVec<Type> = Vec::new();
 
     for (_block_id, block) in &inner.body.blocks {
@@ -566,7 +566,7 @@ fn generate_instruction_types(
     identifiers: &[Identifier],
     types: &mut HirVec<Type>,
     functions: &mut HirVec<HirFunction>,
-    names: &mut IdMap<IdentifierId, StoreStr>,
+    names: &mut IdMap<IdentifierId, HirStr>,
     global_types: &HashMap<(u32, InstructionId), Type>,
     shapes: &ShapeRegistry,
     unifier: &mut Unifier,
@@ -818,7 +818,7 @@ fn generate_instruction_types(
                                         object_type: Box::new(value_type),
                                         object_name,
                                         property_name: PropertyNameKind::Literal {
-                                            value: PropertyLiteral::String(*name),
+                                            value: PropertyLiteral::String(*name.clone()),
                                         },
                                     },
                                     shapes,
@@ -1290,7 +1290,7 @@ impl Unifier {
                 let object_type = self.try_resolve_type(v, &resolved_obj)?;
                 Some(Type::Property {
                     object_type: Box::new(object_type),
-                    object_name: *object_name,
+                    object_name: *object_name.clone(),
                     property_name: property_name.clone(),
                 })
             }

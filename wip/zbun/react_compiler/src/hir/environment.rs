@@ -23,10 +23,10 @@ use crate::hir::*;
 
 /// A variable rename from lowering: the binding at `declaration_start` position
 /// was renamed from `original` to `renamed`.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct BindingRename {
-    pub original: StoreStr,
-    pub renamed: StoreStr,
+    pub original: HirStr,
+    pub renamed: HirStr,
     pub declaration_start: u32,
 }
 
@@ -61,16 +61,16 @@ pub struct Environment {
     pub output_mode: OutputMode,
 
     // Source file code (for fast refresh hash computation)
-    pub code: Option<StoreStr>,
+    pub code: Option<HirStr>,
 
     // Source file name (for instrumentation)
-    pub filename: Option<StoreStr>,
+    pub filename: Option<HirStr>,
 
     // Pre-resolved import local names for instrumentation/hook guards.
     // Set by the program-level code before compilation.
-    pub instrument_fn_name: Option<StoreStr>,
-    pub instrument_gating_name: Option<StoreStr>,
-    pub hook_guard_name: Option<StoreStr>,
+    pub instrument_fn_name: Option<HirStr>,
+    pub instrument_gating_name: Option<HirStr>,
+    pub hook_guard_name: Option<HirStr>,
 
     // Renames: tracks variable renames from lowering (original_name → new_name)
     // keyed by binding declaration position, for applying back to the Babel AST.
@@ -95,8 +95,8 @@ pub struct Environment {
     // Type system registries
     globals: GlobalRegistry,
     pub shapes: ShapeRegistry,
-    module_types: HashMap<StoreStr, Option<Global>>,
-    module_type_errors: HashMap<StoreStr, Vec<String>>,
+    module_types: HashMap<HirStr, Option<Global>>,
+    module_type_errors: HashMap<HirStr, Vec<String>>,
 
     // Environment configuration (feature flags, custom hooks, etc.)
     pub config: EnvironmentConfig,
@@ -111,7 +111,7 @@ pub struct Environment {
     // Known names for collision-aware UID generation. Lazily populated from
     // identifiers on first use, then updated with each generated name.
     // Matches Babel's generateUid behavior of checking hasBinding/hasReference.
-    uid_known_names: Option<HashSet<StoreStr>>,
+    uid_known_names: Option<HashSet<HirStr>>,
 }
 
 /// An outlined function entry, stored on Environment during compilation.
@@ -164,11 +164,11 @@ impl Environment {
         }
 
         // Register reanimated module type when enabled
-        let mut module_types: HashMap<StoreStr, Option<Global>> = HashMap::new();
+        let mut module_types: HashMap<HirStr, Option<Global>> = HashMap::new();
         if config.enable_custom_type_definition_for_reanimated {
             let reanimated_module_type = globals::get_reanimated_module_type(&mut shapes);
             module_types.insert(
-                StoreStr::new(b"react-native-reanimated"),
+                HirStr::new(b"react-native-reanimated"),
                 Some(reanimated_module_type),
             );
         }
@@ -427,7 +427,7 @@ impl Environment {
 
                 // Try module type provider. We resolve first, then do property
                 // lookup on the cloned result to avoid double-borrow of self.
-                let module_type = self.resolve_module_type(*module);
+                let module_type = self.resolve_module_type(*module.clone());
 
                 // Check for module type validation errors (hook-name vs hook-type mismatches)
                 if let Some(errors) = self.module_type_errors.remove(module) {
@@ -474,7 +474,7 @@ impl Environment {
                     return Ok(None);
                 }
 
-                let module_type = self.resolve_module_type(*module);
+                let module_type = self.resolve_module_type(*module.clone());
 
                 // Check for module type validation errors (hook-name vs hook-type mismatches)
                 if let Some(errors) = self.module_type_errors.remove(module) {
@@ -634,13 +634,13 @@ impl Environment {
     /// Resolve the module type provider for a given module name.
     /// Caches results. Checks pre-resolved provider results first, then falls
     /// back to `defaultModuleTypeProvider` (hardcoded).
-    fn resolve_module_type(&mut self, module_name: StoreStr) -> Option<Global> {
+    fn resolve_module_type(&mut self, module_name: HirStr) -> Option<Global> {
         if let Some(cached) = self.module_types.get(&module_name) {
             return cached.clone();
         }
 
         // Check pre-resolved provider results first, then fall back to default
-        let module_str = core::str::from_utf8(module_name.slice()).ok();
+        let module_str = core::str::from_utf8(module_name.clone().slice()).ok();
         let module_config = self
             .config
             .module_type_provider
@@ -663,7 +663,7 @@ impl Environment {
                 &mut type_errors,
             );
             if !type_errors.is_empty() {
-                self.module_type_errors.insert(module_name, type_errors);
+                self.module_type_errors.insert(module_name.clone(), type_errors);
             }
             ty
         });
@@ -714,7 +714,7 @@ impl Environment {
     /// Like Babel's `generateUid`, checks for collisions against existing
     /// bindings (source-level identifier names) and previously generated UIDs,
     /// rather than using a blind counter.
-    pub fn generate_globally_unique_identifier_name(&mut self, name: Option<&[u8]>) -> StoreStr {
+    pub fn generate_globally_unique_identifier_name(&mut self, name: Option<&[u8]>) -> HirStr {
         let base = name.unwrap_or(b"temp");
         // Apply Babel's toIdentifier sanitization in a single pass:
         // 1. Replace non-identifier chars with '-'
@@ -768,7 +768,7 @@ impl Environment {
             let mut known = HashSet::new();
             for id in &self.identifiers {
                 if let Some(name) = &id.name {
-                    known.insert(StoreStr::new(name.value()));
+                    known.insert(HirStr::new(name.value()));
                 }
             }
             self.uid_known_names = Some(known);
@@ -800,7 +800,7 @@ impl Environment {
             }
         }
 
-        let result = StoreStr::new(uid.leak());
+        let result = HirStr::new(&uid);
         known.insert(result);
         result
     }
@@ -808,7 +808,7 @@ impl Environment {
     /// Seed the UID known names set with external names (e.g. from ProgramContext).
     /// This ensures UID generation avoids names generated by previous function compilations,
     /// matching Babel's behavior where the program scope accumulates all generated UIDs.
-    pub fn seed_uid_known_names(&mut self, names: &HashSet<StoreStr>) {
+    pub fn seed_uid_known_names(&mut self, names: &HashSet<HirStr>) {
         match &mut self.uid_known_names {
             Some(existing) => existing.extend(names.iter().copied()),
             None => self.uid_known_names = Some(names.clone()),
@@ -816,7 +816,7 @@ impl Environment {
     }
 
     /// Return the UID known names accumulated during this compilation.
-    pub fn take_uid_known_names(&mut self) -> Option<HashSet<StoreStr>> {
+    pub fn take_uid_known_names(&mut self) -> Option<HashSet<HirStr>> {
         self.uid_known_names.take()
     }
 
