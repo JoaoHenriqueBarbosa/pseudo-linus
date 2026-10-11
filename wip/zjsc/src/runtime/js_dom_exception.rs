@@ -280,7 +280,11 @@ fn add_native_error_info(global_object: &JSGlobalObject, call: &HostCall, cell: 
                     (1, 11, String::new())
                 } else {
                     let line_column = frame.compute_line_and_column();
-                    (line_column.line, line_column.column, frame.source_url())
+                    // Medido no bun 1.4.2: o código de `eval` não tem `sourceURL` próprio (a pilha mostra a origem do chamador, o
+                    // acessor não).
+                    let from_eval = frame.code_block().is_some_and(|code_block| code_block.borrow().owner_executable().source().provider().is_some_and(|provider| provider.is_eval_code()));
+                    let source_url = if from_eval { String::new() } else { frame.source_url() };
+                    (line_column.line, line_column.column, source_url)
                 });
             }
             lines.push(frame.to_string(vm));

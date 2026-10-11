@@ -291,6 +291,9 @@ impl Interpreter {
             TextPosition::default(),
             SourceProviderSourceType::Program,
         );
+        if let Some(provider) = source.provider() {
+            provider.mark_eval_code();
+        }
         // Formato de pilha do V8: os frames do código mostram de onde o `eval` veio.
         if let (Some(origin), Some(provider)) = (eval_origin, source.provider()) {
             provider.set_eval_origin(origin);

@@ -81,6 +81,8 @@ pub struct SourceProviderBase {
     /// No formato de pilha do V8, o fonte de `eval` e de `new Function` guarda de onde veio (`eval at f (url:L:C)`),
     /// que os frames dele escrevem no lugar da URL.
     eval_origin: RefCell<Option<String>>,
+    /// O fonte veio de um `eval` indireto: a pilha mostra a origem do chamador, mas o `sourceURL` próprio dos erros não.
+    eval_code: Cell<bool>,
 }
 
 impl SourceProviderBase {
@@ -111,6 +113,7 @@ impl SourceProviderBase {
             hidden: Cell::new(false),
             comments_stripped: Cell::new(false),
             eval_origin: RefCell::new(None),
+            eval_code: Cell::new(false),
         }
     }
 }
@@ -171,6 +174,16 @@ pub trait SourceProvider: std::fmt::Debug {
     /// De onde veio o fonte de `eval` ou `new Function` (`eval at f (url:L:C)`), no formato de pilha do V8.
     fn eval_origin(&self) -> Option<String> {
         self.base().eval_origin.borrow().clone()
+    }
+
+    /// O fonte veio de um `eval` indireto (ver `mark_eval_code`).
+    fn is_eval_code(&self) -> bool {
+        self.base().eval_code.get()
+    }
+
+    /// Marca o fonte como código de `eval` indireto.
+    fn mark_eval_code(&self) {
+        self.base().eval_code.set(true);
     }
 
     /// Grava a origem do `eval` (ver `eval_origin`).
