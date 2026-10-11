@@ -24,6 +24,8 @@ net = ["dep:ul-net"]
 sqlite = ["dep:ul-sqlite"]
 git = ["dep:ul-git"]
 python = ["dep:ul-python"]
+# O `bun` não vem no Debian mínimo: fora do default, ligado só onde o agente o instala.
+bun = ["dep:ul-bun"]
 
 [dependencies]
 sysabi = { workspace = true }
@@ -42,6 +44,7 @@ ul-net = { path = "../ul-net", optional = true }
 ul-sqlite = { path = "../ul-sqlite", optional = true }
 ul-git = { path = "../ul-git", optional = true }
 ul-python = { path = "../ul-python", optional = true }
+ul-bun = { path = "../ul-bun", optional = true }
 
 [lints]
 workspace = true

@@ -38,6 +38,8 @@ pub fn all_programs() -> Vec<Program> {
     all.extend(ul_git::programs());
     #[cfg(feature = "python")]
     all.extend(ul_python::programs());
+    #[cfg(feature = "bun")]
+    all.extend(ul_bun::programs());
     dedup(all)
 }
 

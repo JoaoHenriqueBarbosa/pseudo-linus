@@ -1,0 +1,21 @@
+[package]
+name = "ul-bun"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "bun 1.4.2 (JavaScriptCore traduzido para Rust, fora do workspace) como programa do pseudo-linus"
+
+[dependencies]
+sysabi = { workspace = true }
+sysio = { path = "../sysio" }
+ul-common = { workspace = true }
+# O motor: JavaScriptCore do WebKit do Bun, traduzido sem unsafe (fora do workspace).
+zjsc = { path = "../../wip/zjsc" }
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+
+[lints]
+workspace = true
