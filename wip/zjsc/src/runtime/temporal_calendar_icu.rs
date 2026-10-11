@@ -68,7 +68,17 @@ fn calendar_kind(id: CalendarID) -> Option<AnyCalendarKind> {
 
 /// A data ISO `iso` no calendário `kind`; `None` para uma data que o icu4x não representa.
 fn iso_to_calendar_date(kind: AnyCalendarKind, iso: &PlainDate) -> Option<Date<AnyCalendar>> {
-    Some(Date::try_new_iso(iso.year(), iso.month(), iso.day()).ok()?.to_calendar(AnyCalendar::new(kind)))
+    Some(icu_iso_date(iso)?.to_calendar(AnyCalendar::new(kind)))
+}
+
+/// A data ISO no icu4x, por `Date::try_from_fields` (que vale em toda a faixa do icu4x, de -999999 a 999999) e não por
+/// `Date::try_new_iso`, que só aceita os anos de -9999 a 9999: os limites do Temporal (-271821 a 275760) ficam fora dele.
+fn icu_iso_date(iso: &PlainDate) -> Option<Date<Iso>> {
+    let mut fields = DateFields::default();
+    fields.extended_year = Some(iso.year());
+    fields.ordinal_month = Some(iso.month());
+    fields.day = Some(iso.day());
+    Date::try_from_fields(fields, DateFromFieldsOptions::default(), Iso).ok()
 }
 
 /// A data ISO equivalente a uma data de calendário.

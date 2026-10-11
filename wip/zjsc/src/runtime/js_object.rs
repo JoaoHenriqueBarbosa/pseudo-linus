@@ -1853,6 +1853,22 @@ impl JSObject {
             return target_object.put_inline_fast(vm, property_name, value, slot);
         }
 
+        // `receiver->methodTable()->defineOwnProperty != JSObject::defineOwnProperty` do C++: um receptor exótico (o namespace de
+        // módulo, que o `super[chave] = v` de um construtor que devolveu o namespace usa) tem o `[[DefineOwnProperty]]` próprio, então
+        // vale o caminho da especificação (`OrdinarySetWithOwnDescriptor`): o descritor próprio decide e só o valor é definido.
+        if js_module_namespace_object::exotic_of(&receiver).is_some() {
+            let mut existing = PropertyDescriptor::default();
+            if receiver.get_own_property_descriptor(vm, property_name, &mut existing) {
+                if existing.is_accessor_descriptor() || (existing.writable_present() && !existing.writable()) {
+                    return type_error(slot.is_strict_mode(), READONLY_PROPERTY_WRITE_ERROR);
+                }
+                let mut value_descriptor = PropertyDescriptor::default();
+                value_descriptor.set_value(value);
+                return receiver.define_own_property(vm, property_name, &value_descriptor, slot.is_strict_mode());
+            }
+            return receiver.define_own_property(vm, property_name, &PropertyDescriptor::new(value, 0), slot.is_strict_mode());
+        }
+
         debug_assert!(!slot.is_tainted_by_opaque_object());
         receiver.put_inline_fast(vm, property_name, value, slot)
     }

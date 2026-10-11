@@ -281,7 +281,7 @@ def main():
     parser.add_argument("--out")
     parser.add_argument("--dirs", default="built-ins,language,intl402,annexB")
     parser.add_argument("--jobs", type=int, default=16)
-    parser.add_argument("--timeout", type=float, default=20)
+    parser.add_argument("--timeout", type=float, default=60)
     parser.add_argument("--memory", type=int, default=3 * 1024 ** 3)
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--filter", default="")

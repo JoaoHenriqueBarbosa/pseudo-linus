@@ -151,3 +151,40 @@ fn dynamic_import_options_with_proxy_runs_own_keys() {
         )
     );
 }
+
+/// `super[chave] = v` num construtor que devolveu o namespace: o `[[Set]]` do protótipo cai no `[[DefineOwnProperty]]` do namespace
+/// (receptor exótico), que recusa a mudança do valor; o código de classe é estrito, então é `TypeError`. Antes disso o `put` ordinário
+/// do receptor tropeçava num `debug_assert` do atributo de valor customizado do export (pânico do test262
+/// `language/import/import-defer/evaluation-triggers/trigger-exported-string-super-property-set-exported.js`).
+#[test]
+fn super_property_set_on_namespace_receiver_is_rejected() {
+    let (log, error) = run(&[
+        (
+            "main.mjs",
+            "import * as ns from './dep.mjs'; var key = 'exported'; class A { constructor() { return ns; } } \
+             class B extends A { constructor() { super(); try { super[key] = 14; L('wrote'); } catch (e) { L(e.name); } } } \
+             new B(); L(ns.exported);",
+        ),
+        ("dep.mjs", "export var exported = 1;"),
+    ]);
+    assert_eq!(error, None);
+    assert_eq!(log, r#"["TypeError","1"]"#);
+}
+
+/// Com `import defer` o mesmo `super[chave] = v` avalia o módulo (o `GetOwnProperty` do namespace adiado dispara a avaliação).
+#[test]
+fn super_property_set_on_deferred_namespace_triggers_evaluation() {
+    let (log, error) = run(&[
+        (
+            "main.mjs",
+            "import './setup.mjs'; import defer * as ns from './dep.mjs'; L(globalThis.evaluations.length); \
+             class A { constructor() { return ns; } } \
+             class B extends A { constructor() { super(); super['exported'] = 14; } } \
+             try { new B(); } catch (_) {} L(globalThis.evaluations.length > 0);",
+        ),
+        ("setup.mjs", "globalThis.evaluations = [];"),
+        ("dep.mjs", "globalThis.evaluations.push('dep'); export var exported = 1;"),
+    ]);
+    assert_eq!(error, None);
+    assert_eq!(log, r#"["0","true"]"#);
+}
