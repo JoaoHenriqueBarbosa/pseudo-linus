@@ -156,9 +156,28 @@ fn finalize(global_object: &JSGlobalObject, pipe: &PipeRef, error: Option<JSValu
 }
 
 fn run_actions(global_object: &JSGlobalObject, pipe: &PipeRef, error: Option<JSValue>, actions: Vec<Action>) {
+    // Medido no bun (`startPipeAbortBothActions`): as duas ações do abort do sinal começam uma atrás da outra, mas o
+    // `cancel` da origem só chega ao `cancel` do usuário depois do `abort` do destino (abort primeiro, cancel no mesmo
+    // tempo): a segunda ação em diante parte numa reação, um tempo depois.
     let calls = actions
         .into_iter()
-        .map(|(object, name, arguments)| invoke(global_object, object, name, &arguments).unwrap_or_else(|thrown| rejected_with(global_object, thrown)))
+        .enumerate()
+        .map(|(index, (object, name, arguments))| {
+            if index == 0 {
+                return invoke(global_object, object, name, &arguments).unwrap_or_else(|thrown| rejected_with(global_object, thrown));
+            }
+            let deferred = new_promise(global_object);
+            let held = hold(Actions(vec![(object, name, arguments.clone())]));
+            let start = reaction_holding(global_object, vec![held], move |global_object, _| {
+                match invoke(global_object, object, name, &arguments) {
+                    Ok(result) => resolve(global_object, deferred, result),
+                    Err(thrown) => reject(global_object, deferred, thrown),
+                }
+                Ok(())
+            });
+            then(global_object, resolved_with(global_object, JSValue::undefined()), start, ignore(global_object), JSValue::undefined());
+            deferred
+        })
         .collect();
     let held = vec![hold(pipe.clone()), hold(error)];
     let pipe = pipe.clone();
