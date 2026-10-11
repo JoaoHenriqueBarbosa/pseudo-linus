@@ -1437,6 +1437,11 @@ pub fn object_set(
     // `JSObject::put` com `thisValue` alterado (`Reflect.set(target, key, value, receiver)`, ou o alvo de um
     // `Proxy` sem trap `set` com o próprio `Proxy` de receptor): `ordinarySetSlow`, que define no receptor.
     if js_global_proxy::is_this_value_altered(receiver, object) {
+        // `[[Set]]` do objeto exótico de índice inteiro com receptor diferente (o alvo de um `Proxy` de typed array): o
+        // índice fora do alcance devolve `true` sem definir nada no receptor (`Reflect.set(proxy, 8, 1)` do bun).
+        if let Some(result) = crate::runtime::typed_array_dispatch::put(object, property_name, value, receiver, is_strict) {
+            return result.map_err(Thrown::from);
+        }
         return ordinary_set_slow(global_object, object, property_name, value, receiver, is_strict);
     }
     let mut slot = PutPropertySlot::new(receiver, is_strict, PutContext::UnknownContext, false);
@@ -1573,6 +1578,11 @@ pub fn object_delete_property(global_object: &JSGlobalObject, object: &JSObject,
     let vm = global_object.vm();
     if JSArray::from_value_by_class(&object.as_value()).is_some() && *property_name == vm.property_names.length {
         return Ok(false);
+    }
+    // `JSFunction::deleteProperty` materializa `length`/`name`/`prototype` antes de apagar: sem isso o `delete` pelo
+    // `Proxy` de uma função deixaria a propriedade preguiçosa viva.
+    if let Some(ObjectRef::Function(function)) = ObjectRef::from_value(&object.as_value()) {
+        return Ok(function.delete_property(global_object, property_name, &mut DeletePropertySlot::default())?);
     }
     Ok(object.delete_property(vm, property_name, &mut DeletePropertySlot::default())?)
 }

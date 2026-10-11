@@ -1388,7 +1388,13 @@ impl JSObject {
                 }
                 match typed_array_dispatch::get_own_property_slot(object, vm, property_name, slot) {
                     Some(true) => return true,
-                    Some(false) => {}
+                    // `[[HasProperty]]`/`[[Get]]` do objeto exótico de índice inteiro: o nome numérico canônico fora do alcance
+                    // (`"1.5"`, `"-0"`, `"NaN"`) responde `false` sem seguir para o protótipo (medido no bun 1.4.2).
+                    Some(false) => {
+                        if crate::runtime::js_generic_typed_array_view::is_canonical_numeric_index_string(vm, property_name).is_some() {
+                            return false;
+                        }
+                    }
                     None => {
                         if object.get_own_non_index_property_slot(vm, &structure, property_name, slot) {
                             return true;
@@ -1453,6 +1459,11 @@ impl JSObject {
                 return true;
             }
             if slot.is_vm_inquiry() && slot.is_tainted_by_opaque_object() {
+                return false;
+            }
+            // Visão tipada: o índice fora do alcance não segue para o protótipo (`4 in typedArray`, o `for-in` e o
+            // `[[Get]]` com um `4` no protótipo; medido no bun 1.4.2).
+            if is_typed_view(object.type_()) {
                 return false;
             }
             let structure = object.structure();
