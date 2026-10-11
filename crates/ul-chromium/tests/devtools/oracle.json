@@ -10368,5 +10368,1612 @@
     "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
    }
   }
+ ],
+ "playwright_network": [
+  {
+   "out": {
+    "id": 1,
+    "method": "Target.getTargets"
+   }
+  },
+  {
+   "in": {
+    "id": 1,
+    "result": {
+     "targetInfos": [
+      {
+       "targetId": "63265E6D7D7A8C95A96E422EAE452AA3",
+       "type": "browser_ui",
+       "title": "",
+       "url": "chrome://omnibox-popup.top-chrome/",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "3C12BEE71EE3BA840C9F71C7F3A9516D"
+      },
+      {
+       "targetId": "3541C0565BC6D7D648DC1C8E41B59B1A",
+       "type": "browser_ui",
+       "title": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+       "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "3C12BEE71EE3BA840C9F71C7F3A9516D"
+      },
+      {
+       "targetId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+       "type": "page",
+       "title": "about:blank",
+       "url": "about:blank",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "3C12BEE71EE3BA840C9F71C7F3A9516D"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 2,
+    "method": "Target.attachToTarget",
+    "params": {
+     "targetId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+     "flatten": true
+    }
+   }
+  },
+  {
+   "in": {
+    "method": "Target.attachedToTarget",
+    "params": {
+     "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638",
+     "targetInfo": {
+      "targetId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+      "type": "page",
+      "title": "about:blank",
+      "url": "about:blank",
+      "attached": true,
+      "canAccessOpener": false,
+      "browserContextId": "3C12BEE71EE3BA840C9F71C7F3A9516D"
+     },
+     "waitingForDebugger": false
+    }
+   }
+  },
+  {
+   "in": {
+    "id": 2,
+    "result": {
+     "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 3,
+    "method": "Page.enable",
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "id": 3,
+    "result": {},
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "out": {
+    "id": 4,
+    "method": "Network.enable",
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "id": 4,
+    "result": {},
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "out": {
+    "id": 5,
+    "method": "Runtime.enable",
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 1,
+      "origin": "://",
+      "name": "",
+      "uniqueId": "-9107563495163835007.-4344971599818113476",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4"
+      }
+     }
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "id": 5,
+    "result": {},
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "out": {
+    "id": 6,
+    "method": "Page.navigate",
+    "params": {
+     "url": "http://127.0.0.1:8765/sub"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+     "url": "http://127.0.0.1:8765/sub",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "navigationType": "differentDocument"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "F4F8B05E90183753C2B4502623379244",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "documentURL": "http://127.0.0.1:8765/sub",
+     "request": {
+      "url": "http://127.0.0.1:8765/sub",
+      "method": "GET",
+      "headers": {
+       "Upgrade-Insecure-Requests": "1",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0",
+       "sec-ch-ua-platform": "\"Linux\""
+      },
+      "mixedContentType": "none",
+      "initialPriority": "VeryHigh",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 166829.850243,
+     "wallTime": 1791726101.754628,
+     "initiator": {
+      "type": "other"
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Document",
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+     "hasUserGesture": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "F4F8B05E90183753C2B4502623379244",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "timestamp": 166829.852931,
+     "type": "Document",
+     "response": {
+      "url": "http://127.0.0.1:8765/sub",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Length": "85",
+       "Content-Type": "text/html"
+      },
+      "mimeType": "text/html",
+      "charset": "",
+      "connectionReused": true,
+      "connectionId": 180,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 64,
+      "timing": {
+       "requestTime": 166829.851066,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": -1,
+       "dnsEnd": -1,
+       "connectStart": -1,
+       "connectEnd": -1,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.32,
+       "sendEnd": 0.401,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.503,
+       "receiveHeadersEnd": 0.577
+      },
+      "responseTime": 1791726101755.923,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "id": 6,
+    "result": {
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "isDownload": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "F4F8B05E90183753C2B4502623379244",
+     "associatedCookies": [],
+     "headers": {
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Connection": "keep-alive",
+      "Host": "127.0.0.1:8765",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "connectTiming": {
+      "requestTime": 166829.851066
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "F4F8B05E90183753C2B4502623379244",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "85",
+      "Content-Type": "text/html"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 200,
+     "headersText": "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 85\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "D63CA0C5B6DC52D75198DC9D954C19F4",
+      "loaderId": "F4F8B05E90183753C2B4502623379244",
+      "url": "http://127.0.0.1:8765/sub",
+      "domainAndRegistry": "",
+      "securityOrigin": "http://127.0.0.1:8765",
+      "securityOriginDetails": {
+       "isLocalhost": true
+      },
+      "mimeType": "text/html",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "SecureLocalhost",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.policyUpdated",
+    "params": {},
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "F4F8B05E90183753C2B4502623379244",
+     "timestamp": 166829.855932,
+     "dataLength": 85,
+     "encodedDataLength": 0
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "116.2",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "documentURL": "http://127.0.0.1:8765/sub",
+     "request": {
+      "url": "http://127.0.0.1:8765/s.css",
+      "method": "GET",
+      "headers": {
+       "sec-ch-ua-platform": "\"Linux\"",
+       "Referer": "http://127.0.0.1:8765/sub",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0"
+      },
+      "mixedContentType": "none",
+      "initialPriority": "VeryHigh",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 166829.856437,
+     "wallTime": 1791726101.760812,
+     "initiator": {
+      "type": "parser",
+      "url": "http://127.0.0.1:8765/sub",
+      "lineNumber": 0,
+      "columnNumber": 33
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Stylesheet",
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+     "hasUserGesture": false,
+     "renderBlockingBehavior": "Blocking"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "116.3",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "documentURL": "http://127.0.0.1:8765/sub",
+     "request": {
+      "url": "http://127.0.0.1:8765/a.js",
+      "method": "GET",
+      "headers": {
+       "sec-ch-ua-platform": "\"Linux\"",
+       "Referer": "http://127.0.0.1:8765/sub",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0"
+      },
+      "mixedContentType": "none",
+      "initialPriority": "High",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 166829.856656,
+     "wallTime": 1791726101.761022,
+     "initiator": {
+      "type": "parser",
+      "url": "http://127.0.0.1:8765/sub",
+      "lineNumber": 0,
+      "columnNumber": 51
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Script",
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+     "hasUserGesture": false,
+     "renderBlockingBehavior": "Blocking"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "116.4",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "documentURL": "http://127.0.0.1:8765/sub",
+     "request": {
+      "url": "http://127.0.0.1:8765/i.gif",
+      "method": "GET",
+      "headers": {
+       "sec-ch-ua-platform": "\"Linux\"",
+       "Referer": "http://127.0.0.1:8765/sub",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0"
+      },
+      "mixedContentType": "none",
+      "initialPriority": "Medium",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 166829.856736,
+     "wallTime": 1791726101.76111,
+     "initiator": {
+      "type": "parser",
+      "url": "http://127.0.0.1:8765/sub",
+      "lineNumber": 0,
+      "columnNumber": 76
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Image",
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+     "hasUserGesture": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 2,
+      "origin": "http://127.0.0.1:8765",
+      "name": "",
+      "uniqueId": "6329906055516648932.6691897675024129046",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4"
+      }
+     }
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "F4F8B05E90183753C2B4502623379244",
+     "timestamp": 166829.852019,
+     "encodedDataLength": 149
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "116.2",
+     "associatedCookies": [],
+     "headers": {
+      "Accept": "text/css,*/*;q=0.1",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Connection": "keep-alive",
+      "Host": "127.0.0.1:8765",
+      "Referer": "http://127.0.0.1:8765/sub",
+      "Sec-Fetch-Dest": "style",
+      "Sec-Fetch-Mode": "no-cors",
+      "Sec-Fetch-Site": "same-origin",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "connectTiming": {
+      "requestTime": 166829.862862
+     },
+     "clientSecurityState": {
+      "initiatorIsSecureContext": true,
+      "initiatorIPAddressSpace": "Loopback",
+      "localNetworkAccessRequestPolicy": "PermissionBlock"
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "116.3",
+     "associatedCookies": [],
+     "headers": {
+      "Accept": "*/*",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Connection": "keep-alive",
+      "Host": "127.0.0.1:8765",
+      "Referer": "http://127.0.0.1:8765/sub",
+      "Sec-Fetch-Dest": "script",
+      "Sec-Fetch-Mode": "no-cors",
+      "Sec-Fetch-Site": "same-origin",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "connectTiming": {
+      "requestTime": 166829.863303
+     },
+     "clientSecurityState": {
+      "initiatorIsSecureContext": true,
+      "initiatorIPAddressSpace": "Loopback",
+      "localNetworkAccessRequestPolicy": "PermissionBlock"
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "116.3",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "12",
+      "Content-Type": "application/javascript"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 200,
+     "headersText": "HTTP/1.0 200 OK\r\nContent-Type: application/javascript\r\nContent-Length: 12\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "116.2",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "13",
+      "Content-Type": "text/css"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 200,
+     "headersText": "HTTP/1.0 200 OK\r\nContent-Type: text/css\r\nContent-Length: 13\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "116.4",
+     "associatedCookies": [],
+     "headers": {
+      "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Connection": "keep-alive",
+      "Host": "127.0.0.1:8765",
+      "Referer": "http://127.0.0.1:8765/sub",
+      "Sec-Fetch-Dest": "image",
+      "Sec-Fetch-Mode": "no-cors",
+      "Sec-Fetch-Site": "same-origin",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "connectTiming": {
+      "requestTime": 166829.863479
+     },
+     "clientSecurityState": {
+      "initiatorIsSecureContext": true,
+      "initiatorIPAddressSpace": "Loopback",
+      "localNetworkAccessRequestPolicy": "PermissionBlock"
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "116.4",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "43",
+      "Content-Type": "image/gif"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 200,
+     "headersText": "HTTP/1.0 200 OK\r\nContent-Type: image/gif\r\nContent-Length: 43\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "116.2",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "timestamp": 166829.864821,
+     "type": "Stylesheet",
+     "response": {
+      "url": "http://127.0.0.1:8765/s.css",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Type": "text/css",
+       "Content-Length": "13"
+      },
+      "mimeType": "text/css",
+      "charset": "",
+      "connectionReused": true,
+      "connectionId": 189,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 63,
+      "timing": {
+       "requestTime": 166829.862862,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": -1,
+       "dnsEnd": -1,
+       "connectStart": -1,
+       "connectEnd": -1,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.243,
+       "sendEnd": 0.301,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.872,
+       "receiveHeadersEnd": 1.448
+      },
+      "responseTime": 1791726101768.088,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "116.2",
+     "timestamp": 166829.864865,
+     "dataLength": 13,
+     "encodedDataLength": 0
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "116.2",
+     "timestamp": 166829.865148,
+     "dataLength": 0,
+     "encodedDataLength": 13
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "116.2",
+     "timestamp": 166829.864474,
+     "encodedDataLength": 76
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "116.4",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "timestamp": 166829.86526,
+     "type": "Image",
+     "response": {
+      "url": "http://127.0.0.1:8765/i.gif",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Type": "image/gif",
+       "Content-Length": "43"
+      },
+      "mimeType": "image/gif",
+      "charset": "",
+      "connectionReused": false,
+      "connectionId": 205,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 64,
+      "timing": {
+       "requestTime": 166829.863479,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": 0.062,
+       "dnsEnd": 0.08,
+       "connectStart": 0.08,
+       "connectEnd": 0.296,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 1.224,
+       "sendEnd": 1.258,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 1.434,
+       "receiveHeadersEnd": 1.453
+      },
+      "responseTime": 1791726101769.267,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "116.4",
+     "timestamp": 166829.865274,
+     "dataLength": 43,
+     "encodedDataLength": 0
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "116.4",
+     "timestamp": 166829.865751,
+     "dataLength": 0,
+     "encodedDataLength": 43
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "116.4",
+     "timestamp": 166829.865154,
+     "encodedDataLength": 107
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "116.3",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "timestamp": 166829.86593,
+     "type": "Script",
+     "response": {
+      "url": "http://127.0.0.1:8765/a.js",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Type": "application/javascript",
+       "Content-Length": "12"
+      },
+      "mimeType": "application/javascript",
+      "charset": "",
+      "connectionReused": true,
+      "connectionId": 191,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 77,
+      "timing": {
+       "requestTime": 166829.863303,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": -1,
+       "dnsEnd": -1,
+       "connectStart": -1,
+       "connectEnd": -1,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.515,
+       "sendEnd": 0.556,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.574,
+       "receiveHeadersEnd": 0.589
+      },
+      "responseTime": 1791726101768.231,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "116.3",
+     "timestamp": 166829.865949,
+     "dataLength": 12,
+     "encodedDataLength": 0
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "116.3",
+     "timestamp": 166829.866007,
+     "dataLength": 0,
+     "encodedDataLength": 12
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "116.3",
+     "timestamp": 166829.864801,
+     "encodedDataLength": 89
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 166829.868973
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 166829.869186
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "116.8",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "documentURL": "http://127.0.0.1:8765/sub",
+     "request": {
+      "url": "http://127.0.0.1:8765/favicon.ico",
+      "method": "GET",
+      "headers": {
+       "sec-ch-ua-platform": "\"Linux\"",
+       "Referer": "http://127.0.0.1:8765/sub",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0"
+      },
+      "mixedContentType": "none",
+      "initialPriority": "High",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 166829.870517,
+     "wallTime": 1791726101.774885,
+     "initiator": {
+      "type": "other"
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Other",
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+     "hasUserGesture": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "116.8",
+     "associatedCookies": [],
+     "headers": {
+      "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Connection": "keep-alive",
+      "Host": "127.0.0.1:8765",
+      "Referer": "http://127.0.0.1:8765/sub",
+      "Sec-Fetch-Dest": "image",
+      "Sec-Fetch-Mode": "no-cors",
+      "Sec-Fetch-Site": "same-origin",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "connectTiming": {
+      "requestTime": 166829.870902
+     },
+     "clientSecurityState": {
+      "initiatorIsSecureContext": true,
+      "initiatorIPAddressSpace": "Loopback",
+      "localNetworkAccessRequestPolicy": "PermissionBlock"
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "116.8",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "0"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 404,
+     "headersText": "HTTP/1.0 404 Not Found\r\nContent-Length: 0\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "116.8",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "timestamp": 166829.871764,
+     "type": "Other",
+     "response": {
+      "url": "http://127.0.0.1:8765/favicon.ico",
+      "status": 404,
+      "statusText": "Not Found",
+      "headers": {
+       "Content-Length": "0"
+      },
+      "mimeType": "text/plain",
+      "charset": "",
+      "connectionReused": false,
+      "connectionId": 223,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 45,
+      "timing": {
+       "requestTime": 166829.870902,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": 0.149,
+       "dnsEnd": 0.16,
+       "connectStart": 0.16,
+       "connectEnd": 0.296,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.364,
+       "sendEnd": 0.411,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.454,
+       "receiveHeadersEnd": 0.493
+      },
+      "responseTime": 1791726101775.71,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "116.8",
+     "timestamp": 166829.8716,
+     "encodedDataLength": 45
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "out": {
+    "id": 7,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "fetch('/page?fetch').then((r) => r.status)",
+     "awaitPromise": true,
+     "returnByValue": true
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "116.9",
+     "associatedCookies": [],
+     "headers": {
+      "Accept": "*/*",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Connection": "keep-alive",
+      "Host": "127.0.0.1:8765",
+      "Referer": "http://127.0.0.1:8765/sub",
+      "Sec-Fetch-Dest": "empty",
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Site": "same-origin",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "connectTiming": {
+      "requestTime": 166831.85523
+     },
+     "clientSecurityState": {
+      "initiatorIsSecureContext": true,
+      "initiatorIPAddressSpace": "Loopback",
+      "localNetworkAccessRequestPolicy": "PermissionBlock"
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "116.9",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "29",
+      "Content-Type": "text/html"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 200,
+     "headersText": "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 29\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "116.9",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "documentURL": "http://127.0.0.1:8765/sub",
+     "request": {
+      "url": "http://127.0.0.1:8765/page?fetch",
+      "method": "GET",
+      "headers": {
+       "sec-ch-ua-platform": "\"Linux\"",
+       "Referer": "http://127.0.0.1:8765/sub",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0"
+      },
+      "mixedContentType": "none",
+      "initialPriority": "High",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 166831.854721,
+     "wallTime": 1791726103.759123,
+     "initiator": {
+      "type": "script",
+      "stack": {
+       "callFrames": [
+        {
+         "functionName": "",
+         "scriptId": "4",
+         "url": "",
+         "lineNumber": 0,
+         "columnNumber": 0
+        }
+       ]
+      }
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Fetch",
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+     "hasUserGesture": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "116.9",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "timestamp": 166831.858329,
+     "type": "Fetch",
+     "response": {
+      "url": "http://127.0.0.1:8765/page?fetch",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Type": "text/html",
+       "Content-Length": "29"
+      },
+      "mimeType": "text/html",
+      "charset": "",
+      "connectionReused": false,
+      "connectionId": 243,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 64,
+      "timing": {
+       "requestTime": 166831.85523,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": 0.164,
+       "dnsEnd": 0.18,
+       "connectStart": 0.18,
+       "connectEnd": 0.35,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.415,
+       "sendEnd": 0.46,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.878,
+       "receiveHeadersEnd": 0.938
+      },
+      "responseTime": 1791726103760.462,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "id": 7,
+    "result": {
+     "result": {
+      "type": "number",
+      "value": 200,
+      "description": "200"
+     }
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "116.9",
+     "timestamp": 166831.859447,
+     "dataLength": 29,
+     "encodedDataLength": 29
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "116.9",
+     "timestamp": 166831.856525,
+     "encodedDataLength": 93
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "out": {
+    "id": 8,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "new Promise((ok) => { const x = new XMLHttpRequest(); x.open('GET', '/page?xhr'); x.onload = () => ok(x.status); x.send(); })",
+     "awaitPromise": true,
+     "returnByValue": true
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "116.10",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "documentURL": "http://127.0.0.1:8765/sub",
+     "request": {
+      "url": "http://127.0.0.1:8765/page?xhr",
+      "method": "GET",
+      "headers": {
+       "sec-ch-ua-platform": "\"Linux\"",
+       "Referer": "http://127.0.0.1:8765/sub",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0"
+      },
+      "mixedContentType": "none",
+      "initialPriority": "High",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 166832.368035,
+     "wallTime": 1791726104.272526,
+     "initiator": {
+      "type": "script",
+      "stack": {
+       "callFrames": [
+        {
+         "functionName": "",
+         "scriptId": "5",
+         "url": "",
+         "lineNumber": 0,
+         "columnNumber": 115
+        },
+        {
+         "functionName": "",
+         "scriptId": "5",
+         "url": "",
+         "lineNumber": 0,
+         "columnNumber": 0
+        }
+       ]
+      }
+     },
+     "redirectHasExtraInfo": false,
+     "type": "XHR",
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4",
+     "hasUserGesture": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "116.10",
+     "associatedCookies": [],
+     "headers": {
+      "Accept": "*/*",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Connection": "keep-alive",
+      "Host": "127.0.0.1:8765",
+      "Referer": "http://127.0.0.1:8765/sub",
+      "Sec-Fetch-Dest": "empty",
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Site": "same-origin",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "connectTiming": {
+      "requestTime": 166832.368872
+     },
+     "clientSecurityState": {
+      "initiatorIsSecureContext": true,
+      "initiatorIPAddressSpace": "Loopback",
+      "localNetworkAccessRequestPolicy": "PermissionBlock"
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "116.10",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "29",
+      "Content-Type": "text/html"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 200,
+     "headersText": "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 29\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "116.10",
+     "loaderId": "F4F8B05E90183753C2B4502623379244",
+     "timestamp": 166832.370217,
+     "type": "XHR",
+     "response": {
+      "url": "http://127.0.0.1:8765/page?xhr",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Type": "text/html",
+       "Content-Length": "29"
+      },
+      "mimeType": "text/html",
+      "charset": "",
+      "connectionReused": false,
+      "connectionId": 277,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 64,
+      "timing": {
+       "requestTime": 166832.368872,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": 0.194,
+       "dnsEnd": 0.212,
+       "connectStart": 0.212,
+       "connectEnd": 0.418,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.497,
+       "sendEnd": 0.55,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.856,
+       "receiveHeadersEnd": 0.909
+      },
+      "responseTime": 1791726104274.082,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "D63CA0C5B6DC52D75198DC9D954C19F4"
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "116.10",
+     "timestamp": 166832.370775,
+     "dataLength": 29,
+     "encodedDataLength": 0
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "id": 8,
+    "result": {
+     "result": {
+      "type": "number",
+      "value": 200,
+      "description": "200"
+     }
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "116.10",
+     "timestamp": 166832.371603,
+     "dataLength": 0,
+     "encodedDataLength": 29
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "116.10",
+     "timestamp": 166832.370537,
+     "encodedDataLength": 93
+    },
+    "sessionId": "EB89F41E3E9E2EFCCB5B216D873B5638"
+   }
+  }
  ]
 }

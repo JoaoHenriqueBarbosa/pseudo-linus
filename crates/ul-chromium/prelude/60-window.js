@@ -531,7 +531,7 @@ class PerformanceObserver { constructor(cb) { hidden(this, '__cb', cb); } observ
 tag(PerformanceObserver, 'PerformanceObserver');
 
 // ---- Rede: fetch e XMLHttpRequest sobre a operação síncrona `fetch` do hospedeiro, executada num timer.
-const netFetch = (method, url, headers, body) => op('fetch', method, url, headers, body);
+const netFetch = (method, url, headers, body, kind = 'fetch') => op('fetch', method, url, headers, body, kind);
 // O corpo chega da ponte um byte por unidade de código.
 const rawBytes = (latin1) => { const out = new Uint8Array(latin1.length); for (let i = 0; i < latin1.length; i++) out[i] = latin1.charCodeAt(i); return out; };
 const decodeBody = (bytes, label) => { try { return new TextDecoder(label || 'utf-8').decode(bytes); } catch { return new TextDecoder('utf-8').decode(bytes); } };
@@ -586,7 +586,7 @@ class XMLHttpRequest extends EventTarget {
     s.sent = true;
     const run = () => {
       if (s.aborted) return;
-      const result = netFetch(s.method, s.url, this[P.__headers].flat(), body === undefined || body === null ? null : String(body));
+      const result = netFetch(s.method, s.url, this[P.__headers].flat(), body === undefined || body === null ? null : String(body), 'xhr');
       if (s.aborted) return;
       if (result === null) {
         this[P.__setState](4);
@@ -689,7 +689,7 @@ function runDynamicScript(el) {
   if (src !== null && src !== '') {
     const url = resolveUrl(src);
     afterNetwork(() => {
-      const result = netFetch('GET', url, [], null);
+      const result = netFetch('GET', url, [], null, 'script');
       if (result === null || result[0] >= 400) { el.dispatchEvent(new Event('error')); return; }
       execScript(el, decodeBody(rawBytes(result[4]), result[5]), result[2]);
       el.dispatchEvent(new Event('load'));
@@ -736,7 +736,7 @@ const hook = (name, a, b) => {
       if (icon) {
         const iconUrl = resolveUrl(icon.getAttribute('href'));
         networkInFlight++;
-        setTimeout(() => { networkInFlight--; afterNetwork(() => { netFetch('GET', iconUrl, [], null); }); }, FAVICON_ROUND_TRIP_MS);
+        setTimeout(() => { networkInFlight--; afterNetwork(() => { netFetch('GET', iconUrl, [], null, 'image'); }); }, FAVICON_ROUND_TRIP_MS);
       }
       // O quadro que segue o `load` acontece mesmo sem pedido, e é o último.
       requestRender();

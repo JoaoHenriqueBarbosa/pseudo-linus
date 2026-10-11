@@ -9,7 +9,7 @@ use zjsc::api::embed::{HostArg, HostHandle, PageRunner};
 
 use super::json::{self, Json};
 use super::{monotonic_seconds, random_i64, token};
-use super::overrides::{self, NetOverrides};
+use super::overrides::{self, NetOverrides, Observation, Observed};
 use crate::fetch;
 use crate::page::Page;
 
@@ -108,8 +108,14 @@ struct Tab {
     restoring: bool,
     /// Os ids de contexto dos mundos isolados do documento corrente.
     world_ids: Vec<i64>,
-    /// Quantos `favicon.ico` esta aba já pediu (o contador do `requestId` `pid.n`).
-    favicon_requests: u32,
+    /// Quantos subrecursos (favicon incluído) esta aba já relatou: o contador do `requestId` `pid.n`.
+    resource_requests: u32,
+    /// Os subrecursos que o fetcher da aba viu e ainda faltam relatar.
+    observed: Observed,
+    /// O HTML do documento corrente, para o `initiator` de parser.
+    source: String,
+    /// Os subrecursos de parser que o documento corrente já pediu (o Chromium pede cada um uma vez).
+    requested: Vec<(crate::fetch::Kind, String)>,
     security_enabled: Vec<String>,
     /// Os marcos do carregador corrente com o seu `timestamp`, repetidos a quem liga os eventos de ciclo de vida depois.
     lifecycle: Vec<(String, f64)>,
@@ -233,7 +239,10 @@ impl Tab {
             history_busy: false,
             restoring: false,
             world_ids: Vec::new(),
-            favicon_requests: 0,
+            resource_requests: 0,
+            observed: Default::default(),
+            source: String::new(),
+            requested: Vec::new(),
             security_enabled: Vec::new(),
             lifecycle: Vec::new(),
             context: None,
@@ -248,7 +257,7 @@ impl Tab {
 
     /// O fetcher da aba: a rede com as substituições do DevTools e o pote de cookies do perfil.
     fn fetcher(&self) -> fetch::Fetcher {
-        overrides::fetcher(self.net.clone(), self.session.profile.clone())
+        overrides::fetcher(self.net.clone(), self.session.profile.clone(), self.observed.clone())
     }
 
     /// Os cookies que o pedido a `url` levou, como o `associatedCookies` do `requestWillBeSentExtraInfo`.
@@ -434,6 +443,8 @@ impl Tab {
             }
         };
         self.record_entry(kind, &url, error.is_some());
+        self.source = page.source().to_owned();
+        self.requested.clear();
         self.restoring = matches!(kind, NavKind::History(_));
         page.enter_tab(self.session.clone());
         let next_url = if error.is_some() { "chrome-error://chromewebdata/".to_owned() } else { page.bridge.url.borrow().clone() };
@@ -611,7 +622,7 @@ impl Tab {
         let headers = headers.as_slice();
         let wall = || ul_common::time::realtime_nanos() as f64 / 1e9;
         let sent = |this: &Self, document: &str, request: &str, redirect: Option<Json>| {
-            let params = network::request_will_be_sent(&id, &id, &frame, document, request, headers, "Document", "VeryHigh", true, Json::object([("type", Json::str("other"))]), redirect, monotonic_seconds(), wall());
+            let params = network::request_will_be_sent(&id, &id, &frame, document, request, headers, "Document", "VeryHigh", true, Json::object([("type", Json::str("other"))]), redirect, false, monotonic_seconds(), wall());
             this.emit(&sessions, "Network.requestWillBeSent", &params);
         };
         if let Some(error) = error {
@@ -662,40 +673,92 @@ impl Tab {
             }
             seen.push(origin);
         }
-        let started = monotonic_seconds();
-        let wall = ul_common::time::realtime_nanos() as f64 / 1e9;
+        let started = (monotonic_seconds(), ul_common::time::realtime_nanos() as f64 / 1e9);
         let Some(response) = fetch::favicon_response(&self.fetcher(), &self.url) else { return };
-        let meta = crate::netmeta::NetMeta::from_response(&response);
-        self.favicon_requests += 1;
-        let id = format!("{}.{}", sysabi::sys::current().getpid(), self.favicon_requests + 1);
+        let observation = Observation { kind: fetch::Kind::Other, address: String::new(), started: started.0, wall: started.1, result: Ok(crate::netmeta::NetMeta::from_response(&response)) };
+        self.emit_resource(&observation, Json::object([("type", Json::str("other"))]), "High", false);
+    }
+
+    /// Os eventos de `Network` de um subrecurso: `requestWillBeSent`, os `ExtraInfo` do fio, `responseReceived`,
+    /// `dataReceived` e `loadingFinished`, ou `loadingFailed`. O pedido sai sempre, os eventos só vão a quem ligou `Network`.
+    fn emit_resource(&mut self, observation: &Observation, initiator: Json, priority: &str, blocking: bool) {
+        use super::network;
+        self.resource_requests += 1;
+        let id = format!("{}.{}", sysabi::sys::current().getpid(), self.resource_requests + 1);
         let sessions = self.network_enabled.clone();
+        let (started, wall) = (observation.started, observation.wall);
         let mut renderer_headers: Vec<(String, String)> = [("sec-ch-ua-platform", "\"Linux\""), ("Referer", self.url.as_str()), ("User-Agent", super::http::USER_AGENT), ("sec-ch-ua", "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\""), ("sec-ch-ua-mobile", "?0")]
             .into_iter()
             .map(|(k, v)| (k.to_owned(), v.to_owned()))
             .collect();
         self.net.borrow().apply(&mut renderer_headers);
         let headers: Vec<(&str, &str)> = renderer_headers.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
-        let initiator = Json::object([("type", Json::str("other"))]);
-        let sent = network::request_will_be_sent(&id, &self.loader_id, &self.target_id, &self.url, &meta.last.url, &headers, "Other", "High", true, initiator, None, started, wall);
+        let kind = observation.kind;
+        let address = observation.result.as_ref().map_or(observation.address.as_str(), |meta| meta.last.url.as_str());
+        let host = |u: &str| url::Url::parse(u).ok().and_then(|u| u.host_str().map(str::to_owned));
+        let same_site = host(&self.url) == host(address);
+        let sent = network::request_will_be_sent(&id, &self.loader_id, &self.target_id, &self.url, address, &headers, kind.cdp_type(), priority, same_site, initiator, None, blocking, started, wall);
         self.emit(&sessions, "Network.requestWillBeSent", &sent);
+        let meta = match &observation.result {
+            Ok(meta) => meta,
+            Err(error) => {
+                let failed = Json::object([("requestId", Json::str(&id)), ("timestamp", Json::Number(monotonic_seconds())), ("type", Json::str(kind.cdp_type())), ("errorText", Json::str(error)), ("canceled", Json::Bool(false))]);
+                self.emit(&sessions, "Network.loadingFailed", &failed);
+                return;
+            }
+        };
         self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, &meta.last, started, true, self.associated_cookies(&meta.last.url)));
         self.emit(&sessions, "Network.responseReceivedExtraInfo", &network::response_extra_info(&id, &meta.last));
         let received = Json::object([
             ("requestId", Json::str(&id)),
             ("loaderId", Json::str(&self.loader_id)),
             ("timestamp", Json::Number(monotonic_seconds())),
-            ("type", Json::str("Other")),
+            ("type", Json::str(kind.cdp_type())),
             ("response", network::response(&meta.last, true, started, wall * 1000.0)),
             ("hasExtraInfo", Json::Bool(true)),
             ("frameId", Json::str(&self.target_id)),
         ]);
         self.emit(&sessions, "Network.responseReceived", &received);
+        let data = |length: usize, encoded: usize| Json::object([("requestId", Json::str(&id)), ("timestamp", Json::Number(monotonic_seconds())), ("dataLength", Json::Number(length as f64)), ("encodedDataLength", Json::Number(encoded as f64))]);
         if meta.data_length > 0 {
-            let params = Json::object([("requestId", Json::str(&id)), ("timestamp", Json::Number(monotonic_seconds())), ("dataLength", Json::Number(meta.data_length as f64)), ("encodedDataLength", Json::Number(0.0))]);
-            self.emit(&sessions, "Network.dataReceived", &params);
+            // `fetch` entrega o corpo de uma vez; o resto chega em duas partes: o conteúdo e depois os bytes do fio.
+            if kind == fetch::Kind::Fetch {
+                self.emit(&sessions, "Network.dataReceived", &data(meta.data_length, meta.body_encoded));
+            } else {
+                self.emit(&sessions, "Network.dataReceived", &data(meta.data_length, 0));
+                if kind != fetch::Kind::Other {
+                    self.emit(&sessions, "Network.dataReceived", &data(0, meta.body_encoded));
+                }
+            }
         }
         let finished = Json::object([("requestId", Json::str(&id)), ("timestamp", Json::Number(monotonic_seconds())), ("encodedDataLength", Json::Number((meta.last.head.len() + meta.body_encoded) as f64))]);
         self.emit(&sessions, "Network.loadingFinished", &finished);
+    }
+
+    /// Relata os subrecursos que o fetcher viu: o `initiator` é o parser (linha e coluna da tag no HTML) quando o
+    /// documento tem a tag, e o script no resto (`fetch`, XHR, elemento inserido pela página).
+    fn report_resources(&mut self) {
+        let observed = std::mem::take(&mut *self.observed.borrow_mut());
+        for observation in observed {
+            use fetch::Kind;
+            let parsed = matches!(observation.kind, Kind::Stylesheet | Kind::Script | Kind::Image | Kind::Font);
+            if parsed {
+                let key = (observation.kind, observation.address.clone());
+                if self.requested.contains(&key) {
+                    continue;
+                }
+                self.requested.push(key);
+            }
+            let position = parsed.then(|| super::network::parser_position(&self.source, &self.url, &observation.address)).flatten();
+            let (initiator, blocking) = match position {
+                Some((line, column)) => (
+                    Json::object([("type", Json::str("parser")), ("url", Json::str(&self.url)), ("lineNumber", Json::Number(line as f64)), ("columnNumber", Json::Number(column as f64))]),
+                    matches!(observation.kind, Kind::Stylesheet | Kind::Script),
+                ),
+                None => (Json::object([("type", Json::str("script")), ("stack", Json::object([("callFrames", Json::Array(Vec::new()))]))]), false),
+            };
+            self.emit_resource(&observation, initiator, observation.kind.priority(), blocking);
+        }
     }
 
     /// Título e URL para o `TargetInfo`. Sem `<title>`, o título é a URL; a aba que ainda vai navegar mostra o destino.
@@ -724,6 +787,7 @@ impl Tab {
 
     /// Recolhe a caixa de saída do agente: respostas e eventos seguem; os marcos do carregamento viram eventos de `Page`.
     fn drain(&mut self, runner: &PageRunner, hook: &HostHandle) {
+        self.report_resources();
         let Some(text) = runner.call_hidden(hook, &[HostArg::Str("cdpDrain")]).ok().and_then(|h| h.as_text()) else { return };
         for line in text.split('\n').filter(|l| !l.is_empty()) {
             let Ok(item) = json::parse(line) else { continue };

@@ -51,6 +51,10 @@ pub fn serve_routes(listener: Fd) -> i32 {
         let response: &[u8] = match path.as_str() {
             "/page" => b"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 29\r\n\r\n<title>H</title><p>hello</p>\n",
             "/redirect" => b"HTTP/1.0 302 Found\r\nLocation: /page\r\nContent-Length: 0\r\n\r\n",
+            "/sub" => b"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 85\r\n\r\n<link rel=stylesheet href=/s.css><script src=/a.js></script><img src=/i.gif><p>x</p>\x0a",
+            "/s.css" => b"HTTP/1.0 200 OK\r\nContent-Type: text/css\r\nContent-Length: 13\r\n\r\np{color:red}\x0a",
+            "/a.js" => b"HTTP/1.0 200 OK\r\nContent-Type: application/javascript\r\nContent-Length: 12\r\n\r\nwindow.a=1;\x0a",
+            "/i.gif" => b"HTTP/1.0 200 OK\r\nContent-Type: image/gif\r\nContent-Length: 43\r\n\r\nGIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;",
             _ => b"HTTP/1.0 404 Not Found\r\nContent-Length: 0\r\n\r\n",
         };
         let _ = sys::write_all(fd, response);

@@ -137,9 +137,8 @@ impl Bridge {
 
     /// Serve os subrecursos pendentes do Blitz: a folha de estilo e a imagem chegadas valem para o layout.
     pub fn serve_resources(&self) {
-        let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "*/*".to_owned())];
-        let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };
-        let fetch = |address: &str| (self.fetcher)(address, &spec).ok().filter(|r| r.status < 400).map(|r| r.body);
+        let document_url = self.url.borrow().clone();
+        let fetch = |address: &str| crate::fetch::subresource(&self.fetcher, crate::fetch::Kind::infer(address), &document_url, address).ok().filter(|r| r.status < 400).map(|r| r.body);
         self.net.serve(&mut self.doc.borrow_mut(), &fetch);
     }
 
@@ -258,16 +257,21 @@ impl Bridge {
         let target_origin = origin_of(target);
         let Some(target_origin) = target_origin else { return Ok(DomArg::Null) };
         let same_origin = page_origin.as_deref() == Some(target_origin.as_str());
-        for (name, value) in [("User-Agent", USER_AGENT), ("Accept", "*/*"), ("Accept-Language", "en-US,en;q=0.9")] {
-            if !headers.iter().any(|(existing, _)| existing.eq_ignore_ascii_case(name)) {
-                headers.push((name.to_owned(), value.to_owned()));
+        let kind = crate::fetch::Kind::from_name(args.get(4).and_then(|a| if let DomArg::Str(k) = a { Some(k.as_str()) } else { None }).unwrap_or("fetch"));
+        let mut defaults = crate::fetch::subresource_headers(kind, &page_url, target);
+        if defaults.is_empty() {
+            defaults = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "*/*".to_owned()), ("Accept-Language".to_owned(), "en-US,en;q=0.9".to_owned())];
+        }
+        for (name, value) in defaults {
+            if !headers.iter().any(|(existing, _)| existing.eq_ignore_ascii_case(&name)) {
+                headers.push((name, value));
             }
         }
         if !same_origin || !matches!(method, "GET" | "HEAD") {
             headers.push(("Origin".to_owned(), page_origin.clone().unwrap_or_else(|| "null".to_owned())));
         }
         let spec = RequestSpec { method, headers: &headers, body: &body, ..RequestSpec::default() };
-        let Ok(response) = (self.fetcher)(target, &spec) else { return Ok(DomArg::Null) };
+        let Ok(response) = crate::fetch::tagged(kind, || (self.fetcher)(target, &spec)) else { return Ok(DomArg::Null) };
         let final_url = response.url.to_string_with(false);
         if origin_of(&final_url).as_deref() != page_origin.as_deref() {
             let allowed = response.header("Access-Control-Allow-Origin");

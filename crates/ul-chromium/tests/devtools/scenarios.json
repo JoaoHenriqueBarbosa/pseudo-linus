@@ -217,5 +217,14 @@
   {"method": "Page.navigateToHistoryEntry", "params": {"entryId": 99999}, "session": "s"},
   {"method": "Page.getNavigationHistory", "session": "s", "save": "h2", "save_field": "/entries/1/id"},
   {"method": "Page.navigateToHistoryEntry", "params": {"entryId": "$h2"}, "session": "s", "after": 1.5},
-  {"method": "Page.getNavigationHistory", "session": "s"}]}
+  {"method": "Page.getNavigationHistory", "session": "s"}]},
+ {"name": "playwright_network", "server": true, "steps": [
+  {"method": "Target.getTargets"},
+  {"method": "Target.attachToTarget", "params": {"targetId": "$TARGET", "flatten": true}, "save": "s", "save_field": "sessionId", "after": 0.3},
+  {"method": "Page.enable", "session": "s", "after": 0.2},
+  {"method": "Network.enable", "session": "s", "after": 0.2},
+  {"method": "Runtime.enable", "session": "s", "after": 0.2},
+  {"method": "Page.navigate", "params": {"url": "http://127.0.0.1:8765/sub"}, "session": "s", "after": 2.0},
+  {"method": "Runtime.evaluate", "params": {"expression": "fetch('/page?fetch').then((r) => r.status)", "awaitPromise": true, "returnByValue": true}, "session": "s", "after": 0.5},
+  {"method": "Runtime.evaluate", "params": {"expression": "new Promise((ok) => { const x = new XMLHttpRequest(); x.open('GET', '/page?xhr'); x.onload = () => ok(x.status); x.send(); })", "awaitPromise": true, "returnByValue": true}, "session": "s", "after": 0.5}]}
 ]

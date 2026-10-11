@@ -9,6 +9,7 @@ use ul_net::net::client::{FetchError, RequestSpec};
 
 use crate::cookies;
 use crate::fetch::{self, Fetcher};
+use crate::netmeta::NetMeta;
 use crate::session::Profile;
 
 /// As substituições de cabeçalho e a rede desligada. Campo vazio não substitui nada.
@@ -48,12 +49,35 @@ impl NetOverrides {
     }
 }
 
+/// Um subrecurso que a página pediu (folha, script, imagem, `fetch`, XHR): o que o DevTools mostra dele.
+pub struct Observation {
+    pub kind: fetch::Kind,
+    pub address: String,
+    /// O relógio monotônico e o de parede (segundos) quando o pedido saiu.
+    pub started: f64,
+    pub wall: f64,
+    /// A troca, ou o erro de rede (`net::ERR_...`).
+    pub result: Result<NetMeta, String>,
+}
+
+/// Os subrecursos que o fetcher da aba viu e o laço da aba ainda não relatou.
+pub type Observed = Rc<RefCell<Vec<Observation>>>;
+
 /// O fetcher da aba: a rede do sandbox com as substituições vigentes, o `Cookie:` do pote e o `Set-Cookie` da resposta.
-pub fn fetcher(net: Rc<RefCell<NetOverrides>>, profile: Arc<Profile>) -> Fetcher {
+/// Os pedidos marcados com um destino ([`fetch::tagged`]) entram em `observed`.
+pub fn fetcher(net: Rc<RefCell<NetOverrides>>, profile: Arc<Profile>, observed: Observed) -> Fetcher {
     let base = fetch::network();
     Rc::new(move |url: &str, spec: &RequestSpec<'_>| {
+        let kind = fetch::take_tag();
+        let started = (super::monotonic_seconds(), ul_common::time::realtime_nanos() as f64 / 1e9);
+        let observe = |result: Result<NetMeta, String>| {
+            if let Some(kind) = kind {
+                observed.borrow_mut().push(Observation { kind, address: url.to_owned(), started: started.0, wall: started.1, result });
+            }
+        };
         let overrides = net.borrow().clone();
         if overrides.offline {
+            observe(Err(FetchError::Offline.net_error().to_owned()));
             return Err(FetchError::Offline);
         }
         let mut headers = spec.headers.to_vec();
@@ -65,7 +89,14 @@ pub fn fetcher(net: Rc<RefCell<NetOverrides>>, profile: Arc<Profile>) -> Fetcher
                 headers.push(("Cookie".to_owned(), cookie));
             }
         }
-        let response = base(url, &RequestSpec { method: spec.method, headers: &headers, body: spec.body, max_redirects: spec.max_redirects, timeout: spec.timeout })?;
+        let response = match base(url, &RequestSpec { method: spec.method, headers: &headers, body: spec.body, max_redirects: spec.max_redirects, timeout: spec.timeout }) {
+            Ok(response) => response,
+            Err(error) => {
+                observe(Err(error.net_error().to_owned()));
+                return Err(error);
+            }
+        };
+        observe(Ok(NetMeta::from_response(&response)));
         if scope.is_some() {
             cookies::store_response(&mut profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner), &response);
         }

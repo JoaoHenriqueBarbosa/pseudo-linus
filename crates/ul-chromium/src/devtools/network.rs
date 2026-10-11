@@ -74,7 +74,7 @@ pub fn response(e: &NetExchange, secure: bool, request_time: f64, response_time_
 
 /// O corpo do `requestWillBeSent`: o pedido, quem o iniciou e, num redirecionamento, a resposta que o causou.
 #[allow(clippy::too_many_arguments)]
-pub fn request_will_be_sent(request_id: &str, loader_id: &str, frame_id: &str, document_url: &str, url: &str, headers: &[(&str, &str)], resource_type: &str, priority: &str, same_site: bool, initiator: Json, redirect: Option<Json>, timestamp: f64, wall_time: f64) -> Json {
+pub fn request_will_be_sent(request_id: &str, loader_id: &str, frame_id: &str, document_url: &str, url: &str, headers: &[(&str, &str)], resource_type: &str, priority: &str, same_site: bool, initiator: Json, redirect: Option<Json>, blocking: bool, timestamp: f64, wall_time: f64) -> Json {
     let headers: Vec<(String, String)> = headers.iter().map(|(k, v)| ((*k).to_owned(), (*v).to_owned())).collect();
     let mut fields = vec![
         ("requestId", Json::str(request_id)),
@@ -101,6 +101,9 @@ pub fn request_will_be_sent(request_id: &str, loader_id: &str, frame_id: &str, d
         fields.push(("redirectResponse", redirect));
     }
     fields.extend([("type", Json::str(resource_type)), ("frameId", Json::str(frame_id)), ("hasUserGesture", Json::Bool(false))]);
+    if blocking {
+        fields.push(("renderBlockingBehavior", Json::str("Blocking")));
+    }
     Json::Object(fields.into_iter().map(|(k, v)| (k.to_owned(), v)).collect())
 }
 
@@ -140,4 +143,67 @@ pub fn response_extra_info(request_id: &str, e: &NetExchange) -> Json {
         ("cookiePartitionKeyOpaque", Json::Bool(false)),
         ("exemptedCookies", Json::Array(Vec::new())),
     ])
+}
+
+/// A posição, no HTML do documento, da tag que pediu `address`: `(linha, coluna)` logo depois do `>` da tag de abertura,
+/// onde o parser estava ao pedir o recurso (medido no oráculo: a coluna 33 de `<link rel=stylesheet href=/s.css>`).
+/// `None` quando nenhuma tag `link`, `script` ou `img` do texto aponta para o endereço.
+pub fn parser_position(source: &str, document_url: &str, address: &str) -> Option<(usize, usize)> {
+    let base = url::Url::parse(document_url).ok()?;
+    let bytes = source.as_bytes();
+    let mut at = 0;
+    while let Some(found) = source[at..].find('<') {
+        let start = at + found;
+        at = start + 1;
+        let rest = &source[start + 1..];
+        let name_len = rest.find(|c: char| !c.is_ascii_alphanumeric()).unwrap_or(rest.len());
+        let attribute = match rest[..name_len].to_ascii_lowercase().as_str() {
+            "link" => "href",
+            "script" | "img" => "src",
+            _ => continue,
+        };
+        // O fim da tag: o primeiro `>` fora de aspas.
+        let mut quote = 0u8;
+        let mut end = None;
+        for (i, &b) in bytes.iter().enumerate().skip(start) {
+            match (quote, b) {
+                (0, b'"' | b'\'') => quote = b,
+                (q, b) if q != 0 && q == b => quote = 0,
+                (0, b'>') => {
+                    end = Some(i);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        let end = end?;
+        let tag = &source[start..end];
+        if attribute_value(tag, attribute).and_then(|v| base.join(&v).ok()).is_some_and(|u| u.as_str() == address) {
+            let line = source[..=end].matches('\n').count();
+            let line_start = source[..=end].rfind('\n').map_or(0, |i| i + 1);
+            return Some((line, end + 1 - line_start));
+        }
+    }
+    None
+}
+
+/// O valor do atributo `name` de uma tag de abertura (sem o `>`), com ou sem aspas.
+fn attribute_value(tag: &str, name: &str) -> Option<String> {
+    let lower = tag.to_ascii_lowercase();
+    let mut from = 0;
+    while let Some(found) = lower[from..].find(name) {
+        let at = from + found;
+        from = at + name.len();
+        let before_ok = at > 0 && lower.as_bytes()[at - 1].is_ascii_whitespace();
+        let after = tag[at + name.len()..].trim_start();
+        if !before_ok || !after.starts_with('=') {
+            continue;
+        }
+        let value = after[1..].trim_start();
+        return Some(match value.chars().next()? {
+            q @ ('"' | '\'') => value[1..].split(q).next()?.to_owned(),
+            _ => value.split(|c: char| c.is_ascii_whitespace() || c == '>').next()?.to_owned(),
+        });
+    }
+    None
 }

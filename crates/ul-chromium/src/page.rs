@@ -13,7 +13,7 @@ use zjsc::api::embed::{run_page, HostArg, HostHandle, PageRunner};
 use zjsc::runtime::console_host::ConsoleHost;
 
 use crate::bridge::{Bridge, USER_AGENT};
-use crate::fetch::Fetcher;
+use crate::fetch::{self, Fetcher};
 use crate::http_cache::Captured;
 use ul_common::time::webkit_now_micros;
 use crate::{document, encoding};
@@ -115,6 +115,8 @@ pub struct Page {
     pub console: Rc<dyn ConsoleHost>,
     /// O tamanho do documento, cobrado como trabalho de parse.
     document_bytes: usize,
+    /// O HTML do documento como chegou, para o `initiator` de parser que o DevTools mostra (linha e coluna da tag).
+    source: String,
     /// As políticas CSP dos cabeçalhos, em JSON (`[[texto, soRelatorio], ...]`), para o prelúdio.
     csp_json: String,
     /// A troca de rede do documento, em JSON, para a entrada `navigation` do prelúdio.
@@ -177,7 +179,12 @@ impl Page {
         };
         use crate::devtools::json::Json;
         let csp_json = Json::Array(response.csp.iter().map(|(text, report_only)| Json::Array(vec![Json::str(text), Json::Bool(*report_only)])).collect()).to_compact();
-        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), csp_json, transfer_json, navigation_start, captured: response.captured, net: response.net }
+        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), source, csp_json, transfer_json, navigation_start, captured: response.captured, net: response.net }
+    }
+
+    /// O HTML do documento.
+    pub fn source(&self) -> &str {
+        &self.source
     }
 
     /// O endereço do documento (o final, depois dos redirecionamentos).
@@ -248,7 +255,7 @@ impl Page {
         let document_url = self.bridge.url.borrow().clone();
         let module_bridge = self.bridge.clone();
         let module_fetch: zjsc::api::browser_modules::ModuleFetch = Rc::new(move |address: &str| {
-            let text = fetch_text(&module_bridge.fetcher, address, "*/*");
+            let text = fetch_text(&module_bridge.fetcher, &module_bridge.url.borrow(), address);
             if let Some(text) = &text {
                 zjsc::runtime::cpu_clock::charge_source_bytes(text.len());
             }
@@ -394,9 +401,8 @@ impl Page {
                 })
                 .collect()
         };
-        let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "text/css,*/*;q=0.1".to_owned())];
-        let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };
-        links.into_iter().map(|(id, address)| (id, (self.bridge.fetcher)(&address, &spec).is_ok_and(|r| r.status < 400))).collect()
+        let document_url = self.bridge.url.borrow().clone();
+        links.into_iter().map(|(id, address)| (id, fetch::subresource(&self.bridge.fetcher, fetch::Kind::Stylesheet, &document_url, &address).is_ok_and(|r| r.status < 400))).collect()
     }
 
     /// Os `<script>` do documento, em ordem de árvore, com o jeito de executar cada um.
@@ -416,16 +422,14 @@ impl Page {
                 let text = doc.get_node(info.node)?.text_content();
                 Some((text, self.bridge.url.borrow().clone()))
             }
-            Some(address) => Some((fetch_text(&self.bridge.fetcher, address, "*/*")?, address.clone())),
+            Some(address) => Some((fetch_text(&self.bridge.fetcher, &self.bridge.url.borrow(), address)?, address.clone())),
         }
     }
 }
 
 /// O texto decodificado de um subrecurso (script clássico ou módulo); `None` para falha de rede ou status de erro.
-fn fetch_text(fetcher: &Fetcher, address: &str, accept: &str) -> Option<String> {
-    let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), accept.to_owned())];
-    let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };
-    let response = fetcher(address, &spec).ok()?;
+fn fetch_text(fetcher: &Fetcher, document_url: &str, address: &str) -> Option<String> {
+    let response = fetch::subresource(fetcher, fetch::Kind::Script, document_url, address).ok()?;
     if response.status >= 400 {
         return None;
     }

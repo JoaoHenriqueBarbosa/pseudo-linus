@@ -598,7 +598,7 @@ function loadLink(link) {
   hidden(link, '__linkStarted', true);
   const url = resolveUrl(href);
   afterNetwork(() => {
-    const result = netFetch('GET', url, [], null);
+    const result = netFetch('GET', url, [], null, rel.includes('stylesheet') ? 'stylesheet' : 'other');
     const ok = result !== null && result[0] >= 200 && result[0] < 300;
     link.dispatchEvent(new Event(ok ? 'load' : 'error'));
   }, rel.includes('stylesheet'));
@@ -639,7 +639,7 @@ function loadImage(img, src) {
   }
   afterNetwork(() => {
     if (img[P.__imageUrl] !== url) return;
-    const result = url === '' ? null : netFetch('GET', url, [], null);
+    const result = url === '' ? null : netFetch('GET', url, [], null, 'image');
     finish(result !== null && result[0] >= 200 && result[0] < 300 ? result[4] : null);
   }, img.isConnected);
 }
