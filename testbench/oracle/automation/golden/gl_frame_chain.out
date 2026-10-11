@@ -1,0 +1,4 @@
+thread [['th', 'run', '_bootstrap_inner', '_bootstrap']]
+greenlet ['body']
+nested ['inner', 'outer'] ['inner', 'outer']
+main ['<module>']

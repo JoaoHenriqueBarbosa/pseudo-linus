@@ -372,3 +372,13 @@ fn attrs_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_attrs.out"),
     );
 }
+
+/// A cadeia de `f_back` numa thread e num greenlet acaba na função dela (sem `<module>` embaixo), como no oráculo.
+#[test]
+fn frame_chain_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_frame_chain",
+        include_str!("../../../testbench/oracle/automation/cases/gl_frame_chain.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_frame_chain.out"),
+    );
+}
