@@ -1,0 +1,3 @@
+SyntaxError: import.meta is only valid inside modules.
+
+Bun v1.4.2 (Linux x64)

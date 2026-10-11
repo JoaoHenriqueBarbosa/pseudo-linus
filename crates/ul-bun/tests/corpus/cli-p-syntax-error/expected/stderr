@@ -1,0 +1,6 @@
+1 | 1 +
+      ^
+error: Unexpected end of file
+    at /app/[eval]:1:3
+
+Bun v1.4.2 (Linux x64)

@@ -1,0 +1,6 @@
+1 | arguments.length
+    ^
+ReferenceError: arguments is not defined
+      at /app/[eval]:1:1
+
+Bun v1.4.2 (Linux x64)

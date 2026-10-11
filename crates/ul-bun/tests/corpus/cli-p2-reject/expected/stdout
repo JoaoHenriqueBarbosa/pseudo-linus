@@ -1,0 +1,5 @@
+1 | Promise.reject(new Error("r"))
+                       ^
+error: r
+      at /app/[eval]:1:20
+

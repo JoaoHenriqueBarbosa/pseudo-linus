@@ -1,0 +1,8 @@
+process.stdout WriteStream undefined 1 WriteStream ReadStream undefined
+getColorDepth undefined undefined undefined
+process.stdout chain [ "WriteStream", "Writable", "Stream", "EventEmitter", "Object" ] true
+process.stdout props [
+  "_construct", "_destroy", "_events", "_final", "_isStdio", "_maxListeners", "_type", "_writableState",
+  "_write", "_writev", "bytesWritten", "destroySoon", "fd", "flush", "pos", "readable", "start", "write"
+]
+process.stdin chain [ "ReadStream", "Readable", "Stream", "EventEmitter", "Object" ]

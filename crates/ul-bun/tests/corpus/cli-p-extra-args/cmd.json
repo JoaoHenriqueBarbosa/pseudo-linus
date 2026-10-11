@@ -1,0 +1,1 @@
+["-p", "process.argv.slice(1)", "a", "b"]

@@ -24,6 +24,7 @@ pub const ESRCH: Errno = 3;
 pub const EACCES: Errno = 13;
 pub const ENOSYS: Errno = 38;
 pub const EAGAIN: Errno = 11;
+pub const ENOTTY: Errno = 25;
 
 /// O `struct stat` inteiro, com os tempos em (segundos, nanossegundos).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -161,6 +162,18 @@ pub trait Host {
     /// `open(2)`: `flags` e `mode` como no Linux x86_64. Devolve o descritor.
     fn fs_open(&self, _path: &str, _flags: u32, _mode: u32) -> Result<i32, Errno> {
         Err(ENOSYS)
+    }
+    /// `isatty(3)`: o descritor é um terminal.
+    fn tty_isatty(&self, _fd: i32) -> bool {
+        false
+    }
+    /// `TIOCGWINSZ`: `(colunas, linhas)` do terminal em `fd`.
+    fn tty_window_size(&self, _fd: i32) -> Result<(u16, u16), Errno> {
+        Err(ENOTTY)
+    }
+    /// Liga ou desliga o modo cru do terminal em `fd` (o `uv_tty_set_mode` do libuv).
+    fn tty_set_raw_mode(&self, _fd: i32, _raw: bool) -> Result<(), Errno> {
+        Err(ENOTTY)
     }
     fn fs_close(&self, _fd: i32) -> Result<(), Errno> {
         Err(ENOSYS)

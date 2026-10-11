@@ -1,0 +1,1 @@
+["-p", "typeof exports + typeof require.resolve + typeof module.id"]

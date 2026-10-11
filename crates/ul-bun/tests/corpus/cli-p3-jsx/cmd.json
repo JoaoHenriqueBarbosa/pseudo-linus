@@ -1,0 +1,1 @@
+["-p", "const j = <div/>; typeof j"]

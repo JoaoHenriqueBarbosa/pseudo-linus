@@ -18,6 +18,37 @@ impl HostFile for SysioFile {
     }
 }
 
+thread_local! {
+    /// Os atributos de cada terminal antes de ligar o modo cru, para desligá-lo devolvendo o que havia.
+    static SAVED_TERMIOS: std::cell::RefCell<std::collections::HashMap<i32, sysabi::Termios>> = std::cell::RefCell::new(std::collections::HashMap::new());
+}
+
+/// O modo cru do libuv (`uv_tty_set_mode(UV_TTY_MODE_RAW)`): sem eco, sem modo canônico, sem sinais de teclado.
+fn set_raw_mode(fd: Fd, raw: bool) -> Result<(), Errno> {
+    use sysabi::termios::{BRKINT, CS8, ECHO, ICANON, ICRNL, IEXTEN, INPCK, ISIG, ISTRIP, IXON, ONLCR, VMIN, VTIME};
+    let current = sys::current();
+    if raw {
+        let original = current.tcgetattr(fd)?;
+        let mut cooked = original;
+        cooked.c_iflag &= !(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+        cooked.c_oflag |= ONLCR;
+        cooked.c_cflag |= CS8;
+        cooked.c_lflag &= !(ECHO | ICANON | IEXTEN | ISIG);
+        cooked.c_cc[VMIN] = 1;
+        cooked.c_cc[VTIME] = 0;
+        current.tcsetattr(fd, sysabi::SetAttrWhen::Flush, &cooked)?;
+        SAVED_TERMIOS.with(|saved| {
+            saved.borrow_mut().entry(fd.0).or_insert(original);
+        });
+    } else if let Some(original) = SAVED_TERMIOS.with(|saved| saved.borrow_mut().remove(&fd.0)) {
+        current.tcsetattr(fd, sysabi::SetAttrWhen::Flush, &original)?;
+    } else {
+        // Sem modo cru anterior: só confere que é um terminal.
+        current.tcgetattr(fd)?;
+    }
+    Ok(())
+}
+
 fn fs_stat(stat: Stat) -> FsStat {
     let time = |t: TimeSpec| (t.sec, i64::from(t.nsec));
     FsStat {
@@ -123,6 +154,13 @@ impl Host for SysabiHost {
     syscall_method!(fs_open(path: &str, flags: u32, mode: u32) -> i32, |s| {
         s.openat(Fd::CWD, path.as_bytes(), OFlags::from_bits_retain(flags | OFlags::CLOEXEC.bits()), mode as Mode).map(|fd| fd.0)
     });
+    fn tty_isatty(&self, fd: i32) -> bool {
+        sys::current().isatty(Fd(fd))
+    }
+    syscall_method!(tty_window_size(fd: i32) -> (u16, u16), |s| s.tcgetwinsize(Fd(fd)).map(|size| (size.cols, size.rows)));
+    fn tty_set_raw_mode(&self, fd: i32, raw: bool) -> Result<(), i32> {
+        set_raw_mode(Fd(fd), raw).map_err(|e| e.0)
+    }
     syscall_method!(fs_close(fd: i32) -> (), |s| s.close(Fd(fd)));
     syscall_method!(fs_read(fd: i32, len: usize, offset: Option<u64>) -> Vec<u8>, |s| {
         let mut buffer = vec![0u8; len];

@@ -1,0 +1,1 @@
+["-p", "[module.id, module.filename, module.loaded, module.paths.length > 0, module.children.length]"]

@@ -1,0 +1,1 @@
+["-p", "Promise.reject(new Error(\"r\"))"]

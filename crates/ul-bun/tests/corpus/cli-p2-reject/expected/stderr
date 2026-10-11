@@ -1,0 +1,6 @@
+1 | Promise.reject(new Error("r"))
+                       ^
+error: r
+      at /app/[eval]:1:20
+
+Bun v1.4.2 (Linux x64)

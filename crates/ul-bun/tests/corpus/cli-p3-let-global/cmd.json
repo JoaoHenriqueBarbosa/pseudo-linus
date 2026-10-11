@@ -1,0 +1,1 @@
+["-p", "let la = 1; typeof globalThis.la"]

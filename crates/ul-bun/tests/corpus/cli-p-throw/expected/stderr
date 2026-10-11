@@ -1,0 +1,6 @@
+1 | throw new Error("x")
+              ^
+error: x
+      at /app/[eval]:1:11
+
+Bun v1.4.2 (Linux x64)

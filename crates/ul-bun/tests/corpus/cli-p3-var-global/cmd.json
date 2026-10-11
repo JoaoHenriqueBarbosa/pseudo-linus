@@ -1,0 +1,1 @@
+["-p", "var gx = 1; [typeof globalThis.gx, Object.hasOwn(globalThis, \"gx\")]"]

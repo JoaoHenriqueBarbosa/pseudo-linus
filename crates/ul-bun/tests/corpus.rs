@@ -2,29 +2,31 @@
 //! `bun`), `files/` (o que o oráculo viu em `/app`, também o diretório de trabalho do kernel de teste) e `expected/`
 //! (`stdout`, `stderr` e `code` que `scripts/gen-corpus.py` mede no oráculo). O stdout, o stderr (BuildMessage com
 //! posição, trecho do fonte e pilha incluídos) e o código de saída têm de bater byte a byte. Uma entrada em `KNOWN`
-//! continua rodando e, se passar a bater, o teste pede a remoção da linha.
+//! continua rodando e, se passar a bater, o teste pede a remoção da linha (um nome com `*` no fim vale para o grupo com esse
+//! prefixo e só sai inteiro).
+
+mod common;
 
 use std::path::{Path, PathBuf};
 
 use kernel::{Kernel, KernelConfig, RunRequest, SandboxConfig};
 use sysabi::WaitStatus;
 
-/// `(caso, causa medida no oráculo)`.
+/// A causa dos casos de `-p`: o valor de conclusão do programa e o escopo CommonJS (ver o PLAN, seção do `-p`).
+const CAUSE_PRINT: &str = "-p precisa do valor de conclusão do ECMAScript no motor (programa com escopo de função CommonJS, impresso depois do laço de eventos), ainda não portado";
+
+/// `(caso, causa medida no oráculo)`; o nome que termina em `*` vale para todo caso com esse prefixo.
 const KNOWN: &[(&str, &str)] = &[
+    ("cli-p-*", CAUSE_PRINT),
+    ("cli-p2-*", CAUSE_PRINT),
+    ("cli-p3-*", CAUSE_PRINT),
+    ("cli-pe", CAUSE_PRINT),
+    ("cli-print-long", CAUSE_PRINT),
+    ("cli-print-eq", CAUSE_PRINT),
+    ("cli-e-and-p", CAUSE_PRINT),
+    ("process-stdout-shape", "o process.stdout do porte (process_stdio.rs) não é um fs.WriteStream/tty.WriteStream real: não é instanceof stream.Writable e não tem os métodos de tty.WriteStream (getColorDepth, hasColors, columns)"),
     ("fs-utf8-buffer", "o bun 1.4.2 lança TypeError em mergeBuf (Utf8Stream síncrono com contentMode buffer) com stack de fonte interno; o zjsc roda o mesmo código gerado e não reproduz o fonte interno do bun"),
 ];
-
-fn collect(dir: &Path, base: &Path, out: &mut Vec<(String, Vec<u8>)>) {
-    for entry in std::fs::read_dir(dir).expect("diretório do caso") {
-        let path: PathBuf = entry.expect("entrada").path();
-        if path.is_dir() {
-            collect(&path, base, out);
-        } else {
-            let rel = path.strip_prefix(base).expect("relativo").to_string_lossy().into_owned();
-            out.push((rel, std::fs::read(&path).expect("arquivo")));
-        }
-    }
-}
 
 /// A ajuda de nível superior sorteia a cada execução o argumento de exemplo de sete comandos: o caso com o arquivo
 /// `random-help` compara sem essa coluna (a coluna do exemplo, da 12 à 32, de cada uma das sete linhas).
@@ -38,29 +40,13 @@ fn without_examples(text: &str) -> String {
         .collect()
 }
 
-/// O `bun` e o userland que os scripts de `bun run` chamam, como numa sessão do pseudo-linus com o `bun` instalado.
-fn programs() -> Vec<sysabi::Program> {
-    let mut programs = userland::all_programs();
-    programs.extend(ul_bun::programs());
-    programs
-}
-
 fn run_case(case: &Path) -> Result<(), String> {
     let argv: Vec<String> = serde_json::from_str(&std::fs::read_to_string(case.join("cmd.json")).expect("cmd.json")).expect("cmd.json é um array de strings");
     let kernel = Kernel::new(KernelConfig::default());
     let sandbox = kernel
-        .create_sandbox(SandboxConfig { programs: programs(), cwd: b"/app".to_vec(), ..SandboxConfig::default() })
+        .create_sandbox(SandboxConfig { programs: common::programs(), cwd: b"/app".to_vec(), ..SandboxConfig::default() })
         .expect("sandbox");
-    let fs = sandbox.fs();
-    fs.mkdir_all(b"/app", 0o755).expect("/app");
-    let mut files = Vec::new();
-    collect(&case.join("files"), &case.join("files"), &mut files);
-    for (rel, data) in &files {
-        if let Some((parent, _)) = rel.rsplit_once('/') {
-            fs.mkdir_all(format!("/app/{parent}").as_bytes(), 0o755).expect("diretório");
-        }
-        fs.write_file(format!("/app/{rel}").as_bytes(), data, 0o644).expect("arquivo");
-    }
+    common::install(&sandbox.fs(), "/app", &common::read_tree(&case.join("files")));
     let mut full = vec!["bun"];
     full.extend(argv.iter().map(String::as_str));
     let request = RunRequest {
@@ -107,9 +93,11 @@ fn corpus_matches_bun() {
     let mut failures = Vec::new();
     for case in &cases {
         let name = case.file_name().expect("nome").to_string_lossy().into_owned();
-        let known = KNOWN.iter().find(|(n, _)| *n == name);
+        let known = KNOWN.iter().find(|(pattern, _)| pattern.strip_suffix('*').map_or(*pattern == name, |prefix| name.starts_with(prefix)));
         match (run_case(case), known) {
             (Ok(()), None) | (Err(_), Some(_)) => {}
+            // Um grupo (`prefixo*`) sai de `KNOWN` inteiro, no commit que porta o que falta; um caso dele que já bate não é erro.
+            (Ok(()), Some((pattern, _))) if pattern.ends_with('*') => {}
             (Ok(()), Some((_, cause))) => failures.push(format!("{name}: passou a bater, tire de KNOWN ({cause})")),
             (Err(diff), None) => failures.push(format!("=== {name}\n{diff}")),
         }

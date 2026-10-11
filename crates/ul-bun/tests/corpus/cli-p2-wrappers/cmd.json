@@ -1,0 +1,1 @@
+["-p", "[typeof require, typeof module, typeof exports, typeof __filename, typeof __dirname, typeof import.meta, typeof arguments]"]

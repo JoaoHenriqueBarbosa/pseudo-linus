@@ -1,0 +1,1 @@
+["-p", "export const q = 1; this === undefined"]

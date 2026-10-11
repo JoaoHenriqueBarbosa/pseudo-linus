@@ -1,0 +1,1 @@
+["-p", "typeof (await import(\"node:os\")).platform"]

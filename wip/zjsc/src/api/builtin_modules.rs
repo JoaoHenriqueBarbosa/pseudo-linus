@@ -70,6 +70,7 @@ pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "string_decoder", scheme: Scheme::Both, install: crate::api::node_stream::install_string_decoder_module },
     BuiltinEntry { name: "timers", scheme: Scheme::Both, install: crate::api::node_stream::install_timers_module },
     BuiltinEntry { name: "timers/promises", scheme: Scheme::Both, install: crate::api::node_stream::install_timers_promises_module },
+    BuiltinEntry { name: "tty", scheme: Scheme::Both, install: crate::runtime::node_tty::install_tty_module },
     BuiltinEntry { name: "url", scheme: Scheme::Both, install: crate::api::node_url::install_url_module },
     BuiltinEntry { name: "util", scheme: Scheme::Both, install: crate::api::node_util::install_util_module },
     BuiltinEntry { name: "util/types", scheme: Scheme::Both, install: crate::api::node_util_types::install_util_types_module },

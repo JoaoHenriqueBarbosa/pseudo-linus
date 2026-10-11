@@ -1,0 +1,34 @@
+keys [ "ReadStream", "WriteStream", "isatty" ]
+same module true true
+isatty [
+  false, false, false, false, false, false, false, false, false, false, false
+]
+types function function ReadStream WriteStream 1 1 0 isatty
+chain RS true true
+chain WS false false
+proto WS [
+  "constructor", "open", "_construct", "_write", "_writev", "_destroy", "close", "destroySoon", "autoClose",
+  "pending", "_refreshSize", "clearLine", "clearScreenDown", "cursorTo", "getColorDepth", "getWindowSize",
+  "hasColors", "moveCursor"
+]
+proto RS [ "ref", "unref", "setRawMode" ]
+tostring [object Object]
+RS 0 created false ReadStream 0 false true true
+WS 0 created false WriteStream 0 undefined true true
+RS 1 created false ReadStream 1 false true true
+WS 1 created false WriteStream 1 undefined true true
+RS 2 created false ReadStream 2 false true true
+WS 2 created false WriteStream 2 undefined true true
+RS -1 throws RangeError ERR_OUT_OF_RANGE The value of "fd" is out of range. It must be >= 0 && <= 2147483647. Received -1
+WS -1 throws RangeError ERR_OUT_OF_RANGE The value of "fd" is out of range. It must be >= 0 && <= 2147483647. Received -1
+RS 1.5 throws RangeError ERR_OUT_OF_RANGE The value of "fd" is out of range. It must be an integer. Received 1.5
+WS 1.5 throws RangeError ERR_OUT_OF_RANGE The value of "fd" is out of range. It must be an integer. Received 1.5
+RS 1 throws TypeError ERR_INVALID_ARG_TYPE The "options.fd" property must be of type number or FileHandle. Received type string ('1')
+WS 1 throws TypeError ERR_INVALID_ARG_TYPE The "options.fd" property must be of type number or FileHandle. Received type string ('1')
+RS null created
+WS null created
+RS undefined created
+WS undefined created
+RS 2147483648 throws RangeError ERR_OUT_OF_RANGE The value of "fd" is out of range. It must be >= 0 && <= 2147483647. Received 2147483648
+WS 2147483648 throws RangeError ERR_OUT_OF_RANGE The value of "fd" is out of range. It must be >= 0 && <= 2147483647. Received 2147483648
+call without new [ true, false ]

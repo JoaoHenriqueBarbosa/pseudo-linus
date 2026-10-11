@@ -1,0 +1,5 @@
+1 | new Error("boom")
+        ^
+error: boom
+      at /app/[eval]:1:5
+

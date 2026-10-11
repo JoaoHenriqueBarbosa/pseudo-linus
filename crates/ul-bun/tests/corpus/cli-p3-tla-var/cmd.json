@@ -1,0 +1,1 @@
+["-p", "var tv = await 1; typeof globalThis.tv"]

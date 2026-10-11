@@ -1,0 +1,1 @@
+["-p", "function ff() {}; typeof globalThis.ff"]

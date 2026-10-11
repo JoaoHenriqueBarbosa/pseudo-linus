@@ -1,0 +1,25 @@
+WS proto chain [ "WriteStream", "Writable", "Stream", "EventEmitter", "Object" ]
+RS proto chain [ "ReadStream", "ReadStream", "Readable", "Stream", "EventEmitter", "Object" ]
+fs.WS proto chain [ "WriteStream", "Writable", "Stream", "EventEmitter", "Object" ]
+WS ctor chain [ "fn:WriteStream", "fn:", "Object" ]
+fs.WS own [
+  "constructor", "open", "_construct", "_write", "_writev", "_destroy", "close", "destroySoon", "autoClose",
+  "pending", "_refreshSize", "clearLine", "clearScreenDown", "cursorTo", "getColorDepth", "getWindowSize",
+  "hasColors", "moveCursor"
+]
+same as fs open true true
+same as fs _construct true true
+same as fs _write true true
+same as fs _writev true true
+same as fs _destroy true true
+same as fs close true true
+same as fs destroySoon true true
+instance true true false true undefined false
+instance props [
+  "_construct", "_events", "_maxListeners", "_writableState", "_write", "_writev", "bytesWritten",
+  "columns", "fd", "flush", "isTTY", "pos", "rows", "start", "write"
+]
+rs instance true true true [
+  "_events", "_eventsCount", "_maxListeners", "_readableState", "bytesRead", "end", "fd", "isRaw",
+  "isTTY", "pos", "start"
+]
