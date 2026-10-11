@@ -836,6 +836,10 @@ impl Browser {
             if matches!(sys.poll(&mut fds, wait), Err(e) if e != sysabi::Errno::EINTR) {
                 return;
             }
+            // SIGTERM, SIGINT e SIGHUP encerram como o `Browser.close`: o laço termina e a saída limpa grava o perfil.
+            if !sys.take_caught_signals().is_empty() {
+                self.quit = true;
+            }
             if let Some(store) = &self.local_storage {
                 let _ = store.flush_due();
             }
@@ -870,6 +874,13 @@ impl Browser {
 /// `Browser.close`. Com `local_storage` (o banco do `--user-data-dir`), o `localStorage` do contexto padrão persiste nele.
 pub fn run(ctx: &mut Ctx, options: &Options, url: &str, local_storage: Option<std::sync::Arc<crate::local_storage::LocalStorageStore>>, indexed_db: Option<std::sync::Arc<crate::idb::disk::IndexedDbStore>>) -> i32 {
     let mut browser = Browser::new(options, local_storage, indexed_db);
+    // Os sinais do encerramento do Chromium (medidos no oráculo: saída 0 e perfil gravado; o SIGPIPE é ignorado, o
+    // SIGQUIT e o SIGUSR1 seguem a ação padrão).
+    let sys = sysabi::sys::current();
+    for signal in [sysabi::Signal::SIGTERM, sysabi::Signal::SIGINT, sysabi::Signal::SIGHUP] {
+        let _ = sys.sigaction(signal, sysabi::SigDisposition::Catch);
+    }
+    let _ = sys.sigaction(sysabi::Signal::SIGPIPE, sysabi::SigDisposition::Ignore);
     let listener = match options.port {
         Some(port) if !options.pipe => sysabi::sys::tcp_listen_at(std::net::IpAddr::from([127, 0, 0, 1]), port, 128, true, true).ok().map(|(fd, bound)| {
             let _ = ctx.stderr().write_all(format!("\nDevTools listening on ws://127.0.0.1:{bound}/devtools/browser/{}\n", browser.browser_id).as_bytes());
