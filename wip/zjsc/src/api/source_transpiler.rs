@@ -22,8 +22,6 @@ pub struct TranspiledSource {
     pub segments: Vec<MapSegment>,
     /// O transpilador classificou o arquivo como CommonJS: `text` é a função de wrapper, não um módulo ES.
     pub is_commonjs: bool,
-    /// Os exports nomeados que o parser achou no CommonJS (`exports.nome = ...`), sem `default`.
-    pub commonjs_export_names: Vec<String>,
 }
 
 /// O transpilador que o hospedeiro instala.
@@ -50,7 +48,6 @@ pub struct Transpiled {
     pub text: String,
     pub map: Rc<PositionMap>,
     pub is_commonjs: bool,
-    pub commonjs_export_names: Vec<String>,
 }
 
 /// Passa `source` do arquivo `path` pelo transpilador instalado. `None` sem transpilador, para o que ele não trata e
@@ -70,7 +67,6 @@ pub(crate) fn attempt_transpile(path: &str, source: &str, compile_body: bool) ->
         text: done.text,
         map: Rc::new(PositionMap::from_segments(done.segments)),
         is_commonjs: done.is_commonjs,
-        commonjs_export_names: done.commonjs_export_names,
     }))
 }
 

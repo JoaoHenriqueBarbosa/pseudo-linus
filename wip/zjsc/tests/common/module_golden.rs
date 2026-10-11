@@ -40,7 +40,7 @@ fn read_json_string(chars: &mut std::iter::Peekable<std::str::Chars>) -> String 
 }
 
 /// Lê o mapa `{"nome":"fonte",...}` (só strings) na ordem em que aparece.
-fn parse_files(json: &str) -> Vec<(String, String)> {
+pub fn parse_files(json: &str) -> Vec<(String, String)> {
     let mut chars = json.chars().peekable();
     assert_eq!(chars.next(), Some('{'));
     let mut files = Vec::new();

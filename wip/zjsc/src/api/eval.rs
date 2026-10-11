@@ -637,15 +637,9 @@ fn evaluate_cjs_program_inner(
 /// `SyntaxError` do corpo ou a exceção que ele lançou.
 /// Com `prebuilt` (o arquivo que o transpilador de fonte reimprimiu) o texto já é a função de wrapper inteira, com o
 /// cabeçalho do impressor na linha 1, e o mapa é o do impressor: nada é embrulhado nem deslocado aqui.
-fn run_commonjs_wrapper(
-    global_object: &JSGlobalObjectRef,
-    body: &[u16],
-    url: &str,
-    strict: bool,
-    position_runs: &[i64],
-    dirname: &str,
-    prebuilt: Option<&crate::api::source_transpiler::Transpiled>,
-) -> Result<(), JSValue> {
+/// Monta o estado do carregador de CJS do bun no global (`CJS_STATE`: `exports`, `require` e `module` do arquivo `url`,
+/// que vira o módulo 0) e devolve `(exports, require, module)`.
+fn boot_cjs_state(global_object: &JSGlobalObjectRef, url: &str) -> (JSValue, JSValue, JSValue) {
     let vm = global_object.vm();
     let global_object = global_object.clone();
     CJS_FILENAME.with(|name| *name.borrow_mut() = url.to_owned());
@@ -728,6 +722,21 @@ fn run_commonjs_wrapper(
             wrapper: JSValue::undefined(),
         })
     });
+    (exports, require, module)
+}
+
+fn run_commonjs_wrapper(
+    global_object: &JSGlobalObjectRef,
+    body: &[u16],
+    url: &str,
+    strict: bool,
+    position_runs: &[i64],
+    dirname: &str,
+    prebuilt: Option<&crate::api::source_transpiler::Transpiled>,
+) -> Result<(), JSValue> {
+    let (exports, require, module) = boot_cjs_state(global_object, url);
+    let vm = global_object.vm();
+    let global_object = global_object.clone();
     let text = match prebuilt {
         Some(done) => utf16_units(&done.text),
         None => {
@@ -774,18 +783,38 @@ fn run_commonjs_wrapper(
     }
 }
 
-/// Executa o CommonJS `key`, que um `import` puxou (texto e mapa do transpilador, a função de wrapper inteira), e devolve o
-/// `module.exports` que ele deixou. `Err` é o valor que o arquivo lançou.
-pub(crate) fn run_commonjs_import(key: &str, done: &crate::api::source_transpiler::Transpiled) -> Result<JSValue, JSValue> {
+/// O `import` do arquivo CommonJS `path` (texto e mapa do transpilador: a função de wrapper inteira): como no bun o
+/// arquivo roda na carga e divide com o `require` o cache de módulos (`require.cache[path]`), de modo que um módulo
+/// carregado pelos dois roda uma vez. O primeiro CommonJS do programa monta o estado do carregador (o ponto de entrada
+/// é um módulo ES, então ele ocupa o lugar do módulo principal). Devolve o `module.exports` que o arquivo deixou.
+pub(crate) fn import_commonjs(path: &str, done: &crate::api::source_transpiler::Transpiled) -> HostResult {
     let global_object = crate::runtime::js_module_record::realm();
-    CJS_FS.with(|slot| *slot.borrow_mut() = global_object.module_fs());
-    let dirname = key.rsplit_once('/').map_or(".", |(directory, _)| if directory.is_empty() { "/" } else { directory });
-    run_commonjs_wrapper(&global_object, &[], key, false, &[], dirname, Some(done))?;
-    let module = CJS_STATE.with(|cell| cell.borrow().as_ref().map(|state| state.modules[0].module.clone())).expect("estado do CJS");
     let vm = global_object.vm();
-    let exports = Identifier::from_span(&vm, b"exports");
-    let exports = JSObject::from_value(&module).expect("module do CJS não é objeto").get(&vm, &PropertyName::from_identifier(&exports));
-    completion(&vm, exports)
+    CJS_FS.with(|slot| {
+        if slot.borrow().is_none() {
+            *slot.borrow_mut() = global_object.module_fs();
+        }
+    });
+    let exports_name = Identifier::from_span(vm, b"exports");
+    if CJS_STATE.with(|state| state.borrow().is_none()) {
+        let (_, _, module) = boot_cjs_state(&global_object, path);
+        let cache = JSObject::from_value(&cjs_slot(0)).expect("require.cache não é objeto");
+        cache.define_own_property(vm, &key_of(vm, path), &PropertyDescriptor::new(module.clone(), 0), false)?;
+        run_prebuilt_wrapper(&global_object, module.clone(), done, path)?;
+        return get_object_property(&global_object, module, &exports_name);
+    }
+    let cache = cjs_slot(0);
+    let cached = get_object_property(&global_object, cache, &Identifier::from_span(vm, path.as_bytes()))?;
+    if !cached.is_undefined() {
+        return get_object_property(&global_object, cached, &exports_name);
+    }
+    let parent = CJS_STATE.with(|state| state.borrow().as_ref().map(|state| state.modules[0].module.clone())).expect("estado do CJS");
+    let (module, cache_object, key) = new_cjs_module(&global_object, path, parent)?;
+    if let Err(thrown) = run_prebuilt_wrapper(&global_object, module.clone(), done, path) {
+        let _ = cache_object.delete_property(vm, &key, &mut crate::runtime::delete_property_slot::DeletePropertySlot::default());
+        return Err(thrown);
+    }
+    get_object_property(&global_object, module, &exports_name)
 }
 
 /// A diretiva que `canonicalSource` preserva no começo do programa CJS estrito.
@@ -1132,6 +1161,20 @@ fn compile_module(global_object: &JSGlobalObject, module: JSValue, text: &WtfStr
     let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{file_text}").as_bytes())));
     let source = transpiled_source(&wtf_from_units(&units), &origin, file.clone());
 
+    run_module_source(global_object, module, source, &file_text, &file_units, false)
+}
+
+/// Roda no wrapper o `source` do arquivo `file` (a função de wrapper já montada), com o `require` do módulo. `this` é o
+/// `exports` quando `exports_this`, senão o módulo (o `_compile` do bun).
+fn run_module_source(
+    global_object: &JSGlobalObject,
+    module: JSValue,
+    source: crate::parser::source_code::SourceCode,
+    file_text: &str,
+    file_units: &[u16],
+    exports_this: bool,
+) -> HostResult {
+    let vm = global_object.vm();
     let Some((global, require)) = module_index(&module).and_then(|index| {
         CJS_STATE.with(|state| state.borrow().as_ref().map(|state| (state.global_object.clone(), state.modules[index].require.clone())))
     }) else {
@@ -1143,20 +1186,29 @@ fn compile_module(global_object: &JSGlobalObject, module: JSValue, text: &WtfStr
         // O bun nomeia o frame de parse com o nome dado e a linha do erro no fonte embrulhado: `<parse> (y.js:2)`.
         if let JSValue::Cell(cell_id) = exception.value() {
             if let Some(error) = ErrorInstance::from_cell_id(cell_id).filter(|error| error.is_parse_error()) {
-                error.set_parse_frame(&file_text, error.line());
+                error.set_parse_frame(file_text, error.line());
             }
         }
         return Err(Thrown::Pending);
     }
     let exports = get_object_property(global_object, module.clone(), &Identifier::from_span(vm, b"exports"))?;
     let call_data = get_call_data(wrapper.clone());
-    let dirname = JSValue::from_js_string(js_string(vm, &wtf_from_units(&dirname_of(&file_units))));
-    let args = [exports, require, module.clone(), JSValue::from_js_string(js_string(vm, file)), dirname];
-    match call_function(global_object, wrapper, &call_data, module, &args) {
+    let dirname = JSValue::from_js_string(js_string(vm, &wtf_from_units(&dirname_of(file_units))));
+    let args = [exports, require, module.clone(), JSValue::from_js_string(js_string(vm, &WtfString::from_utf8(file_text.as_bytes()))), dirname];
+    match call_function(global_object, wrapper, &call_data, if exports_this { args[0].clone() } else { module }, &args) {
         Ok(_) => Ok(JSValue::undefined()),
         Err(LLIntFailure::Thrown) => Err(Thrown::Pending),
         Err(_) => Err(Thrown::Unported("wrapper de module._compile")),
     }
+}
+
+/// O wrapper que o transpilador de fonte reimprimiu para `file` (o texto é a função inteira, com o mapa do impressor),
+/// rodado com `this` igual a `exports`, como o bun faz com o CommonJS que um `import` puxa.
+fn run_prebuilt_wrapper(global_object: &JSGlobalObject, module: JSValue, done: &crate::api::source_transpiler::Transpiled, file: &str) -> Result<(), Thrown> {
+    let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{file}").as_bytes())));
+    let source = transpiled_source(&WtfString::from_utf8(done.text.as_bytes()), &origin, WtfString::from_utf8(file.as_bytes()));
+    source.provider().expect("SourceCode sem provedor").set_position_map(done.map.clone());
+    run_module_source(global_object, module, source, file, &utf16_units(file), true).map(|_| ())
 }
 host_function!(cjs_compile, cjs_compile_body);
 
@@ -1371,43 +1423,7 @@ fn require_module(global_object: &JSGlobalObject, specifier: JSValue, resolve: b
     let Some(text) = fs.read_file(&path) else {
         return Err(throw_build_message(global_object, format!("ENOENT reading \"{path}\"")));
     };
-    let made = call_helper(global_object, "make", &[js_text(vm, &path)])?;
-    let made = JSObject::from_value(&made).expect("o ajudante do require devolve um array");
-    let module = made.get_by_index(vm, 0);
-    let module_require = made.get_by_index(vm, 1);
-    let children = call_helper(global_object, "array", &[])?;
-    let dir = dirname_str(&path).to_owned();
-    let paths = call_helper(global_object, "array", &[])?;
-    for entry in node_modules_paths(&dir) {
-        call_helper(global_object, "push", &[paths.clone(), js_text(vm, &entry)])?;
-    }
-    let compile = cjs_slot(3);
-    // Ordem de `CJS_ACCESSORS` a partir do slot 3: _compile, children, filename, id, loaded, parent, path, paths.
-    let slots = vec![
-        cjs_slot(0),
-        cjs_slot(1),
-        cjs_slot(2),
-        compile,
-        children,
-        js_text(vm, &path),
-        js_text(vm, &path),
-        js_boolean(true),
-        parent.clone(),
-        js_text(vm, &dir),
-        paths,
-    ];
-    CJS_STATE.with(|state| {
-        if let Some(state) = state.borrow_mut().as_mut() {
-            state.modules.push(ModuleState { module: module.clone(), require: module_require, slots, parent_unset: false });
-        }
-    });
-    if let Some(index) = module_index(&parent) {
-        let siblings = module_slot(index, 4);
-        call_helper(global_object, "push", &[siblings, module.clone()])?;
-    }
-    let cache_object = JSObject::from_value(&cache).expect("require.cache não é objeto");
-    let key = key_of(vm, &path);
-    cache_object.define_own_property(vm, &key, &PropertyDescriptor::new(module.clone(), 0), false)?;
+    let (module, cache_object, key) = new_cjs_module(global_object, &path, parent)?;
     let outcome = if path.ends_with(".json") {
         call_helper(global_object, "json", &[js_text(vm, &text)]).and_then(|parsed| {
             let module_object = JSObject::from_value(&module).expect("módulo sem objeto");
@@ -1424,6 +1440,52 @@ fn require_module(global_object: &JSGlobalObject, specifier: JSValue, resolve: b
     get_object_property(global_object, module, &Identifier::from_span(vm, b"exports"))
 }
 
+
+/// O módulo CommonJS novo de `path` (`id`, `filename`, `path`, `paths`, `loaded`, `children` e `parent`): entra na lista
+/// `children` do `parent` e em `require.cache` antes de rodar (ciclos veem o `exports` parcial). Devolve o módulo, o
+/// objeto do cache e a chave, para quem precisar tirá-lo do cache se o código lançar.
+fn new_cjs_module(global_object: &JSGlobalObject, path: &str, parent: JSValue) -> Result<(JSValue, crate::runtime::js_object::JSObjectHandle, PropertyName), Thrown> {
+    let vm = global_object.vm();
+    let cache = cjs_slot(0);
+    let made = call_helper(global_object, "make", &[js_text(vm, path)])?;
+    let made = JSObject::from_value(&made).expect("o ajudante do require devolve um array");
+    let module = made.get_by_index(vm, 0);
+    let module_require = made.get_by_index(vm, 1);
+    let children = call_helper(global_object, "array", &[])?;
+    let dir = dirname_str(path).to_owned();
+    let paths = call_helper(global_object, "array", &[])?;
+    for entry in node_modules_paths(&dir) {
+        call_helper(global_object, "push", &[paths.clone(), js_text(vm, &entry)])?;
+    }
+    let compile = cjs_slot(3);
+    // Ordem de `CJS_ACCESSORS` a partir do slot 3: _compile, children, filename, id, loaded, parent, path, paths.
+    let slots = vec![
+        cjs_slot(0),
+        cjs_slot(1),
+        cjs_slot(2),
+        compile,
+        children,
+        js_text(vm, path),
+        js_text(vm, path),
+        js_boolean(true),
+        parent.clone(),
+        js_text(vm, &dir),
+        paths,
+    ];
+    CJS_STATE.with(|state| {
+        if let Some(state) = state.borrow_mut().as_mut() {
+            state.modules.push(ModuleState { module: module.clone(), require: module_require, slots, parent_unset: false });
+        }
+    });
+    if let Some(index) = module_index(&parent) {
+        let siblings = module_slot(index, 4);
+        call_helper(global_object, "push", &[siblings, module.clone()])?;
+    }
+    let cache_object = JSObject::from_value(&cache).expect("require.cache não é objeto");
+    let key = key_of(vm, path);
+    cache_object.define_own_property(vm, &key, &PropertyDescriptor::new(module.clone(), 0), false)?;
+    Ok((module, cache_object, key))
+}
 
 /// Literal de string JSON de `text` (só `\`, `"` e quebras de linha precisam de escape nos nomes de arquivo dos goldens).
 fn json_quote(text: &str) -> String {

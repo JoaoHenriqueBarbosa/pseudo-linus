@@ -1192,16 +1192,22 @@ declaradas e não se perseguem até o printer do zbun alimentar o zjsc (as de re
   `module_bun` 72 para 1 de 445, `module_more_bun` 273 para 0 de 1699, `module_edge_bun` 39 para 0 de 1100, `esm_module_load` 1 para 0
   de 44. `MemoryModuleHost` e `FsModuleHost` passam o módulo pelo `ReprintedModules`, que guarda mapa, erros e CommonJS por chave. O
   arquivo que o transpilador recusa sai como o bun o relata (`BuildMessage`, ou `AggregateError` `N errors building "arquivo"`).
-  O arquivo que o bun roda como CommonJS (sem sintaxe ESM, ou com `exports`/`module`) virou módulo sintético: `default` é
-  `module.exports` e os nomeados são os que o parser achou (`commonjs_named_exports`), com o wrapper rodando na avaliação do grafo
-  (`ModuleRecordExt::lazy_evaluation`), então a ordem é a do grafo. Consertos de motor que a medição apontou: `own_descriptor`
-  engolia o `ReferenceError` de TDZ do namespace (`getOwnPropertyDescriptors` lançava pela chave errada), a asserção de status
+  O arquivo que o bun roda como CommonJS (sem sintaxe ESM, ou com `exports`/`module`) vira módulo sintético, montado na carga
+  como no bun (o CommonJS roda antes dos corpos ES do grafo; a ordem entre CommonJS irmãos não é fixa no bun, a leitura corre
+  num pool de threads) e pelo mesmo cache do `require` (`require.cache`), então um módulo carregado pelos dois roda uma vez
+  e vários CommonJS convivem no mesmo estado do carregador (`import_commonjs`, `new_cjs_module`). Interop medido no 1.4.2: com
+  `__esModule` verdadeiro e uma propriedade `default`, o `default` do namespace é `module.exports.default`; sem `default`, é
+  o objeto inteiro; `__esModule` nunca é export; os nomeados são as chaves próprias de string, dinâmicas, de `module.exports`
+  (função inclusive: `length`, `name`, `prototype`). Golden: `cjs_import_bun_golden` (13 casos). Consertos de motor que a
+  medição apontou: `own_descriptor` engolia o `ReferenceError` de TDZ do namespace
+  (`getOwnPropertyDescriptors` lançava pela chave errada), a asserção de status
   em `get_module_namespace` recusava o ciclo legítimo com `export * as n`, o JSON com BOM, e o identificador com escape
   (`export { x as aw\u0061it }`) no parser do zbun. Declarada em `module_bun`, uma: o frame `at a.mjs` sem o caminho absoluto
-  (artefato do harness, chaves relativas). Limites do import de CommonJS, não medidos pelos goldens: `__esModule` não muda o
-  `default` e um segundo CommonJS importado no mesmo programa reinicia o estado do carregador CJS (`CJS_STATE`).
-- `node_modules_resolve_bun_golden` (2 de 59) e `package_exports_bun_golden` (2 de 115): resolução de `exports` de pacote, fora do
-  escopo do transpilador (já divergiam).
+  (artefato do harness, chaves relativas).
+- `node_modules_resolve_bun_golden` 2 para 0 de 59 e `package_exports_bun_golden` 2 para 0 de 115: o `exports` do pacote passou a valer na
+  resolução de especificador nu (`resolve_node_modules` e `resolve_require` ganham `esm`, a condição `import` ou `require`) e o
+  subcaminho que não leva a arquivo perde um `.js` final e repete a busca, uma vez (medido: `./x.js` com `"./*": "./src/*.mjs"` acha
+  `src/x.mjs`; o `./x.js.js` que existe vence; nenhum outro sufixo; arquivo fora do `exports` não resolve).
 - `cjs_require`, 2 de 65, declaradas em `REPRINTED` no teste (medido no oráculo): `stack_compiled` dá `x.js:1:119` onde o
   porte dá `1:115` e `stack_sites` dá a coluna 55 onde o porte dá 64. Causa: o `module._compile` do bun reimprime o corpo
   (`remove_cjs_module_wrapper`, sem mapa, cabeçalho do wrapper na mesma linha, `function f(){}()` vira `(function f() {})()`); ligar

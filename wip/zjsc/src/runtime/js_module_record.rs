@@ -128,13 +128,7 @@ pub struct ModuleRecordExt {
     deferred_namespace: RefCell<Option<JSModuleNamespaceObjectRef>>,
     /// O id do registro central de células (0 antes do registro).
     cell_id: Cell<usize>,
-    /// A avaliação de um módulo sintético que só roda na fase de avaliação (o CommonJS que um `import` puxa: o bun o
-    /// executa na ordem do grafo e só então preenche os exports). `None` nos demais.
-    lazy_evaluation: RefCell<Option<LazyEvaluation>>,
 }
-
-/// O que um módulo sintético roda quando o grafo o avalia.
-pub type LazyEvaluation = Box<dyn FnOnce(&JSGlobalObject) -> ModuleResult<()>>;
 
 /// `JSModuleRecord::create(globalObject, vm, structure, moduleKey, sourceCode, features)`.
 pub fn create_js_module_record(module_key: Identifier, source_code: SourceCode, features: CodeFeatures) -> AbstractModuleRecordRef {
@@ -253,11 +247,6 @@ impl AbstractModuleRecord {
     /// `setStatus(newStatus)`.
     pub fn set_status(&self, status: Status) {
         self.ext.status.set(status);
-    }
-
-    /// Registra o que a avaliação do módulo sintético roda (ver `ModuleRecordExt::lazy_evaluation`).
-    pub fn set_lazy_evaluation(&self, evaluation: LazyEvaluation) {
-        *self.ext.lazy_evaluation.borrow_mut() = Some(evaluation);
     }
 
     /// `evaluationError()`.
@@ -1003,7 +992,7 @@ impl AbstractModuleRecord {
         // 1. If module is not a Cyclic Module Record, then
         if !self.is_cyclic() {
             // 1.a. Perform ? EvaluateModuleSync(module).
-            self.evaluate_module_sync(global_object)?;
+            self.evaluate_module_sync();
             // 1.b. Return index.
             return Ok(index);
         }
@@ -1161,13 +1150,10 @@ impl AbstractModuleRecord {
     /// `AbstractModuleRecord::evaluateModuleSync()` de um módulo que não é cíclico: a avaliação do
     /// `SyntheticModuleRecord` é síncrona e devolve `undefined` (nunca uma promessa), então não há o que
     /// materializar nem lançar.
-    fn evaluate_module_sync(&self, global_object: &JSGlobalObject) -> ModuleResult<()> {
+    fn evaluate_module_sync(&self) {
         // EvaluateModuleSync(module)
         // https://tc39.es/ecma262/#sec-EvaluateModuleSync
         debug_assert!(!self.is_cyclic());
-        // Extensão do bun: o módulo sintético do CommonJS preenche os exports quando o grafo o avalia.
-        let evaluation = self.ext.lazy_evaluation.borrow_mut().take();
-        evaluation.map_or(Ok(()), |evaluation| evaluation(global_object))
     }
 
     /// `AbstractModuleRecord::gatherAsynchronousTransitiveDependencies(result, seen)`.
@@ -1297,11 +1283,7 @@ impl AbstractModuleRecord {
         }
         // `wrap(syntheticRecord->evaluate(globalObject))`: o `undefined` virou uma promessa resolvida.
         let promise = JSPromise::create(global_object.vm(), &global_object.promise_structure());
-        match self.evaluate_module_sync(global_object) {
-            Ok(()) => promise.resolve(global_object, JSValue::undefined()),
-            Err(Thrown::Pending) => promise.reject(global_object, take_pending_exception(global_object)),
-            Err(other) => return Err(other),
-        }
+        promise.resolve(global_object, JSValue::undefined());
         Ok(promise)
     }
 

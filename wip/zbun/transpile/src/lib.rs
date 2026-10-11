@@ -40,9 +40,6 @@ pub struct Transpiled {
     pub segments: Vec<Segment>,
     /// O parser classificou o arquivo como CommonJS: o texto impresso é o corpo que o wrapper do runtime envolve.
     pub is_commonjs: bool,
-    /// Os nomes que o parser achou em `exports.nome = ...` e `module.exports.nome = ...` (sem `default`): os exports
-    /// nomeados que o `import` de um arquivo CommonJS enxerga, como no bun.
-    pub commonjs_export_names: Vec<String>,
 }
 
 /// O que impediu a transpilação: o texto das mensagens do parser, na ordem em que ele as registrou.
@@ -171,7 +168,6 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
         return Err(Error { messages: messages(&log) });
     }
     let is_commonjs = ast.exports_kind == bun_ast::ExportsKind::Cjs;
-    let commonjs_export_names = ast.commonjs_named_exports.keys().iter().map(|key| String::from_utf8_lossy(key).into_owned()).collect();
     let symbols = bun_ast::symbol::Map::init_with_one_list(core::mem::take(&mut ast.symbols));
     let mut mappings: Option<Vec<u8>> = None;
     let print_opts = Options {
@@ -195,7 +191,7 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
     bun_js_printer::print_ast::<_, true, true>(&mut printer, &arena, &ast, symbols, &source, print_opts)
         .map_err(|e| fail(format!("print_ast: {e:?}")))?;
     let text = printer.ctx.written().to_vec();
-    Ok(Transpiled { text, segments: decode_mappings(mappings.as_deref().unwrap_or(b"")), is_commonjs, commonjs_export_names })
+    Ok(Transpiled { text, segments: decode_mappings(mappings.as_deref().unwrap_or(b"")), is_commonjs })
 }
 
 /// Decodifica o campo `mappings` (segmentos de 4 ou 5 VLQ, linhas separadas por `;`) em segmentos absolutos.

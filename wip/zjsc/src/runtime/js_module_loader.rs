@@ -51,7 +51,6 @@ use crate::runtime::abstract_module_record::AbstractModuleRecordRef;
 use crate::runtime::constructor_kind::ConstructorKind;
 use crate::runtime::enumeration_mode::{DontEnumPropertiesMode, PrivateSymbolMode, PropertyNameMode};
 use crate::runtime::error::{create_error, create_syntax_error, create_type_error};
-use crate::runtime::abstract_module_record::AbstractModuleRecord;
 use crate::runtime::aggregate_error::create_aggregate_error;
 use crate::runtime::error_instance::ErrorInstance;
 use crate::runtime::js_array::construct_array;
@@ -84,7 +83,8 @@ use crate::runtime::js_string::js_string;
 use crate::runtime::js_value::{js_null, EncodedJSValue, JSValue};
 use crate::runtime::microtask::InternalMicrotask;
 use crate::runtime::module_analyzer::ModuleAnalyzer;
-use crate::runtime::proxy_object::object_get_own_property_names;
+use crate::runtime::object_constructor::own_names;
+use crate::runtime::proxy_object::{object_get_own_property_names, object_has_property};
 use crate::runtime::property_attribute::{CUSTOM_ACCESSOR, DONT_ENUM};
 use crate::runtime::property_name::PropertyName;
 use crate::runtime::property_name_array::PropertyNameArrayBuilder;
@@ -759,42 +759,37 @@ fn build_message_state(message: String) -> MessageState {
     }
 }
 
-/// O módulo sintético do CommonJS `key` que um `import` puxa: os exports (`default` e os nomes que o parser achou) nascem
-/// `undefined` e a avaliação do grafo roda o wrapper do arquivo, depois guarda `module.exports` em `default` e cada
-/// propriedade de mesmo nome nos nomeados.
+/// O módulo sintético do CommonJS `key` que um `import` puxa. O bun roda o arquivo na carga (antes de qualquer corpo ES
+/// do grafo) e monta os exports do `module.exports` que ele deixou, medido no 1.4.2: se `__esModule` é verdadeiro e há
+/// `default`, o `default` do namespace é o `default` do objeto, senão é o objeto inteiro; os nomeados são as chaves
+/// próprias de string do objeto (função inclusive), menos `default` e `__esModule`.
 fn create_commonjs_record(
     global_object: &JSGlobalObject,
     key: &str,
-    commonjs: Rc<crate::api::source_transpiler::Transpiled>,
+    commonjs: &crate::api::source_transpiler::Transpiled,
 ) -> ModuleResult<AbstractModuleRecordRef> {
     let vm = global_object.vm();
+    let exports = crate::api::eval::import_commonjs(key, commonjs)?;
     let default_name = vm.property_names.default_keyword.clone();
-    let mut names = vec![default_name];
-    for name in &commonjs.commonjs_export_names {
-        let identifier = Identifier::from_string(vm, &WtfString::from_utf8(name.as_bytes()));
-        if !names.contains(&identifier) {
-            names.push(identifier);
+    let es_module = Identifier::from_span(vm, b"__esModule");
+    let mut names = vec![default_name.clone()];
+    let mut values = vec![exports];
+    if exports.is_object() {
+        let object = exports.as_object();
+        let flagged = get_value_property(global_object, exports, &PropertyName::from_identifier(&es_module))?.to_boolean();
+        if flagged && object_has_property(global_object, &object, &PropertyName::from_identifier(&default_name))? {
+            values[0] = get_value_property(global_object, exports, &PropertyName::from_identifier(&default_name))?;
+        }
+        for name in own_names(global_object, &object, PropertyNameMode::Strings, DontEnumPropertiesMode::Include)? {
+            if name == default_name || name == es_module {
+                continue;
+            }
+            values.push(get_value_property(global_object, exports, &PropertyName::from_identifier(&name))?);
+            names.push(name);
         }
     }
     let module_key = Identifier::from_string(vm, &WtfString::from_utf8(key.as_bytes()));
-    let record = try_create_with_export_names_and_values(global_object, &module_key, &names, &vec![JSValue::undefined(); names.len()], SourceProviderSourceType::Module)?;
-    let environment = record.module_environment();
-    let key = key.to_owned();
-    record.set_lazy_evaluation(Box::new(move |global_object| {
-        let exports = match crate::api::eval::run_commonjs_import(&key, &commonjs) {
-            Ok(exports) => exports,
-            Err(error) => return Err(throw_value(global_object, error)),
-        };
-        AbstractModuleRecord::put_binding(&environment, &names[0], exports);
-        if exports.is_object() {
-            for name in &names[1..] {
-                let value = get_value_property(global_object, exports, &PropertyName::from_identifier(name))?;
-                AbstractModuleRecord::put_binding(&environment, name, value);
-            }
-        }
-        Ok(())
-    }));
-    Ok(record)
+    try_create_with_export_names_and_values(global_object, &module_key, &names, &values, SourceProviderSourceType::Module)
 }
 
 /// O arquivo `key` que o transpilador do bun recusa: um erro vira `BuildMessage`; vários, um `AggregateError`
@@ -913,7 +908,7 @@ impl ModuleLoader {
             return Err(throw_value(global_object, build_failure_value(global_object, key, &messages)));
         }
         if let Some(commonjs) = self.host.commonjs_module(key) {
-            let record = create_commonjs_record(global_object, key, commonjs)?;
+            let record = create_commonjs_record(global_object, key, &commonjs)?;
             self.registry.borrow_mut().insert(registry_key, Rc::clone(&record));
             return Ok(record);
         }

@@ -28,7 +28,7 @@ impl SourceTranspiler for ZbunTranspiler {
                 original_column: s.original_column,
             })
             .collect();
-        Some(Ok(TranspiledSource { text, segments, is_commonjs: done.is_commonjs, commonjs_export_names: done.commonjs_export_names }))
+        Some(Ok(TranspiledSource { text, segments, is_commonjs: done.is_commonjs }))
     }
 }
 
