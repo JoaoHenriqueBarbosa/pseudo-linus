@@ -6627,7 +6627,7 @@ pub(crate) fn raise_value(v: Value) -> PyResult<PyException> {
 }
 
 fn list_of(items: Vec<Value>) -> Value {
-    Value::List(Rc::new(RefCell::new(items)))
+    Value::list(items)
 }
 
 /// Ordena com `<`, estável, propagando o `TypeError` de tipos incomparáveis.

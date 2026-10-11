@@ -231,6 +231,62 @@ fn referents(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::list(crate::referents::referents(vm, &obj)))
 }
 
+/// `_gc_objects(generation)`: os objetos registrados vivos da geração (`None`: todos), em ordem de criação.
+fn gc_objects(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let generation = match args.first() {
+        None | Some(Value::None) => None,
+        Some(Value::Int(g)) if (0..=2).contains(g) => Some(*g as usize),
+        Some(Value::Int(_)) => return Err(exc("ValueError", "generation parameter must be less than the number of available generations (3)")),
+        Some(other) => return Err(crate::vm::type_error(format!("'{}' object cannot be interpreted as an integer", other.type_name()))),
+    };
+    let objects = crate::gcreg::live(generation).into_iter().filter_map(|l| match l {
+        crate::gcreg::Live::Value(v) if crate::gcreg::is_tracked(&v) => Some(v),
+        _ => None,
+    });
+    Ok(Value::list(objects.collect()))
+}
+
+/// `_gc_referrers(objs)`: os objetos registrados que seguram algum dos `objs` (o `gc.get_referrers`).
+fn gc_referrers(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let targets = match args.first() {
+        Some(Value::Tuple(t)) => t.to_vec(),
+        Some(Value::List(l)) => l.borrow().clone(),
+        _ => Vec::new(),
+    };
+    let mut found = Vec::new();
+    for object in crate::gcreg::live(None) {
+        let crate::gcreg::Live::Value(object) = object else { continue };
+        if crate::referents::referents(vm, &object).iter().any(|r| targets.iter().any(|t| crate::gcreg::same_object(r, t))) {
+            found.push(object);
+        }
+    }
+    Ok(Value::list(found))
+}
+
+/// `_gc_is_tracked(obj)`: o `gc.is_tracked`.
+fn gc_is_tracked(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(Value::Bool(args.first().is_some_and(crate::gcreg::is_tracked)))
+}
+
+/// `_gc_count(generation)`: quantos objetos vivos a geração tem (o primeiro número do `gc.get_count()`).
+fn gc_count(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let generation = match args.first() {
+        Some(Value::Int(g)) if *g >= 0 => *g as usize,
+        _ => 0,
+    };
+    Ok(Value::Int(crate::gcreg::count(generation) as i64))
+}
+
+/// `_gc_freeze(on)`: `gc.freeze()` (verdadeiro) e `gc.unfreeze()` (falso); devolve o `gc.get_freeze_count()` de depois.
+fn gc_freeze(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.first() {
+        Some(Value::Bool(true)) => crate::gcreg::freeze(),
+        Some(Value::Bool(false)) => crate::gcreg::unfreeze(),
+        _ => {}
+    }
+    Ok(Value::Int(crate::gcreg::frozen_count() as i64))
+}
+
 /// `_task_reserve()`: a vaga de tarefa de uma thread nova de `_thread`, que conta no `RLIMIT_NPROC` do usuário como a
 /// thread de `clone` do CPython. Com o limite atingido: `RuntimeError("can't start new thread")`.
 fn task_reserve(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -381,6 +437,11 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_exc_hint", exc_hint)
         .func("_builtin", mark_builtin)
         .func("_referents", referents)
+        .func("_gc_objects", gc_objects)
+        .func("_gc_referrers", gc_referrers)
+        .func("_gc_count", gc_count)
+        .func("_gc_is_tracked", gc_is_tracked)
+        .func("_gc_freeze", gc_freeze)
         .func("_task_reserve", task_reserve)
         .func("_dict_get_known", dict_get_known)
         .func("_dict_set_known", dict_set_known)

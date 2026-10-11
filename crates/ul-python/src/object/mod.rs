@@ -467,7 +467,7 @@ impl fmt::Debug for Env {
 
 impl Env {
     pub fn new(parent: Option<Rc<Env>>, is_class: bool, is_module: bool) -> Rc<Env> {
-        Rc::new(Env {
+        let env = Rc::new(Env {
             vars: RefCell::new(LocalMap::default()),
             order: RefCell::new(Vec::new()),
             parent,
@@ -475,7 +475,9 @@ impl Env {
             is_module,
             finished: std::cell::Cell::new(false),
             holds: std::cell::Cell::new(0),
-        })
+        });
+        crate::gcreg::track_env(&env);
+        env
     }
 
     /// Grava uma variável local; nos corpos de classe lembra a ordem em que os nomes nasceram.
@@ -1033,6 +1035,7 @@ impl InstanceObj {
         if class.finalizer().is_some() {
             crate::finalize::register(&inst);
         }
+        crate::gcreg::track_instance(&inst);
         inst
     }
 
@@ -1470,7 +1473,9 @@ impl Value {
     }
 
     pub fn list(items: Vec<Value>) -> Value {
-        Value::List(Rc::new(RefCell::new(items)))
+        let l = Rc::new(RefCell::new(items));
+        crate::gcreg::track_list(&l);
+        Value::List(l)
     }
 
     pub fn tuple(items: Vec<Value>) -> Value {
@@ -1478,11 +1483,15 @@ impl Value {
     }
 
     pub fn dict(d: Dict) -> Value {
-        Value::Dict(Rc::new(RefCell::new(d)))
+        let d = Rc::new(RefCell::new(d));
+        crate::gcreg::track_dict(&d);
+        Value::Dict(d)
     }
 
     pub fn set(s: Set) -> Value {
-        Value::Set(Rc::new(RefCell::new(s)))
+        let s = Rc::new(RefCell::new(s));
+        crate::gcreg::track_set(&s);
+        Value::Set(s)
     }
 
     pub fn frozenset(s: Set) -> Value {

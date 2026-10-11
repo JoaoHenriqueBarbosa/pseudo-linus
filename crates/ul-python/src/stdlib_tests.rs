@@ -7281,3 +7281,18 @@ fn frame_objects_survive_thread_teardown() {
     let r = in_process("import traceback\ndef f():\n    print(len(traceback.format_stack()))\nf()\nprint('ok')\n");
     assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("2\nok\n", ""));
 }
+
+/// O registro do coletor só guarda `Weak`: um loop que cria e solta milhões de contêineres não o faz crescer (a poda dos
+/// mortos roda quando a geração passa do limite), e o que continua vivo continua visível em `gc.get_objects()`.
+#[test]
+fn gc_registry_does_not_grow_with_short_lived_containers() {
+    let src = "import gc\n\
+class N:\n    pass\n\
+keep = [[] for _ in range(50)]\n\
+before = len(gc.get_objects())\n\
+for i in range(300000):\n    x = [i]\n    d = {'k': x}\n    n = N()\n    n.x = d\n    s = {i}\n\
+after = len(gc.get_objects())\n\
+print(after - before < 2000, sum(any(o is k for o in gc.get_objects()) for k in keep))\n";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("True 50\n", ""));
+}
