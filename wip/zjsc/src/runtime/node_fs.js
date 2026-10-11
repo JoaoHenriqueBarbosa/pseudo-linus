@@ -641,7 +641,126 @@
     COPYFILE_FICLONE_FORCE: 4, EXTENSIONLESS_FORMAT_JAVASCRIPT: 0, EXTENSIONLESS_FORMAT_WASM: 1,
   };
 
+  // `[callback, promise]` de cada operação assíncrona.
+  const ASYNC_LENGTHS = {
+    access: [3, 3], appendFile: [4, 1], chmod: [3, 3], close: [2, 1], copyFile: [4, 4], exists: [2, 0], fchmod: [3, 3], fdatasync: [2, 2],
+    fstat: [3, 1], fsync: [2, 2], ftruncate: [1, 1], futimes: [4, 4], link: [3, 3], lstat: [3, 1], lutimes: [4, 4], mkdir: [3, 3],
+    mkdtemp: [3, 3], open: [4, 1], read: [6, 6], readFile: [3, 1], readdir: [3, 3], readlink: [3, 3], realpath: [3, 3], rename: [3, 3],
+    rm: [3, 2], rmdir: [3, 2], stat: [3, 1], symlink: [4, 4], truncate: [3, 3], unlink: [2, 2], utimes: [4, 4], write: [6, 6], writeFile: [4, 1],
+  };
+  // ---- callbacks e promises ----
+  // A operação roda na hora da chamada (a ordem dos efeitos é a das chamadas) e o resultado é entregue num
+  // `setImmediate`, depois dos `nextTick` e das microtasks, como o bun entrega o de uma operação que acabou.
+  const isFsFailure = (error) => error !== null && typeof error === "object" && (error.syscall !== undefined || error.name === "SystemError");
+
+  // `arity` é o `length` do callback do bun: o argumento `arity - 1` (ou o anterior, se as opções foram omitidas) é o `cb`.
+  function callbackFor(sync, adapt, arity) {
+    return function (...args) {
+      const callback = args.length ? args[args.length - 1] : undefined;
+      if (typeof callback !== "function") {
+        const given = args[arity - 1] !== undefined ? args[arity - 1] : args[arity - 2];
+        throw typeError('The "cb" argument must be of type function. Received ' + describe(given));
+      }
+      args.pop();
+      let result;
+      let failure = null;
+      try {
+        result = sync(...args);
+      } catch (error) {
+        if (!isFsFailure(error)) throw error;
+        failure = error;
+      }
+      setImmediate(() => {
+        if (adapt) adapt(callback, failure, result, args);
+        else if (failure) callback(failure);
+        else callback(null, result);
+      });
+    };
+  }
+
+  function promiseFor(sync, adapt) {
+    return function (...args) {
+      let result;
+      let failure;
+      let failed = false;
+      try {
+        result = sync(...args.map((argument, index) => (index === 0 && argument instanceof FileHandle ? argument.fd : argument)));
+        if (adapt) result = adapt(result, args);
+      } catch (error) {
+        failed = true;
+        failure = error;
+        if (isFsFailure(error)) delete error.stack;
+      }
+      return new Promise((resolve, reject) => setImmediate(() => (failed ? reject(failure) : resolve(result))));
+    };
+  }
+
+  function readArguments(args) {
+    // `read(fd, [options], cb)` e `read(fd, cb)`: o buffer sai das opções.
+    const [fd, second] = args;
+    if (ArrayBuffer.isView(second)) return args;
+    const options = second !== null && typeof second === "object" ? second : {};
+    const buffer = options.buffer || Buffer.alloc(16384);
+    return [fd, buffer, options.offset || 0, options.length === undefined ? buffer.byteLength - (options.offset || 0) : options.length, options.position === undefined ? null : options.position];
+  }
+  const readSyncLoose = (...args) => readSync(...readArguments(args));
+  const withBuffer = (callback, failure, result, args) => (failure ? callback(failure) : callback(null, result, readArguments(args)[1]));
+  const withWrittenBuffer = (callback, failure, result, args) => (failure ? callback(failure) : callback(null, result, args[1]));
+  const existsCallback = (callback, failure, result) => callback(result);
+
+  class FileHandle {
+    #fd;
+    constructor(fd) {
+      this.#fd = fd;
+    }
+    get fd() {
+      return this.#fd;
+    }
+  }
+  const handleMethods = {
+    close() { const fd = this.fd; return promiseFor(() => { closeSync(fd); })(); },
+    readFile(options) { return promiseFor(readFileSync)(this.fd, options); },
+    writeFile(data, options) { return promiseFor(writeFileSync)(this.fd, data, options); },
+    appendFile(data, options) { return promiseFor(appendFileSync)(this.fd, data, options); },
+    stat(options) { return promiseFor(fstatSync)(this.fd, options); },
+    truncate(length) { return promiseFor(ftruncateSync)(this.fd, length); },
+    sync() { return promiseFor(fsyncSync)(this.fd); },
+    datasync() { return promiseFor(fsyncSync)(this.fd); },
+    chmod(mode) { return promiseFor(fchmodSync)(this.fd, mode); },
+    utimes(atime, mtime) { return promiseFor(futimesSync)(this.fd, atime, mtime); },
+    read(...args) { return promiseFor(readSyncLoose, (bytesRead, given) => ({ bytesRead, buffer: readArguments(given)[1] }))(this.fd, ...args); },
+    write(data, ...args) { return promiseFor(writeSync, (bytesWritten) => ({ bytesWritten, buffer: data }))(this.fd, data, ...args); },
+  };
+  for (const name of Object.keys(handleMethods)) {
+    Object.defineProperty(FileHandle.prototype, name, { value: handleMethods[name], writable: true, enumerable: false, configurable: true });
+  }
+  Object.defineProperty(FileHandle.prototype, Symbol.asyncDispose, { value: function () { return this.close(); }, writable: true, configurable: true });
+
+  // Os pares (callback, promise) de cada operação do bun, pela versão síncrona.
+  const operations = {
+    access: accessSync, appendFile: appendFileSync, chmod: chmodSync, close: closeSync, copyFile: copyFileSync, fchmod: fchmodSync,
+    fdatasync: fsyncSync, fstat: fstatSync, fsync: fsyncSync, ftruncate: ftruncateSync, futimes: futimesSync, link: linkSync, lstat: lstatSync,
+    lutimes: lutimesSync, mkdir: mkdirSync, mkdtemp: mkdtempSync, open: openSync, readFile: readFileSync, readdir: readdirSync,
+    readlink: readlinkSync, realpath: realpathSync, rename: renameSync, rm: rmSync, rmdir: rmdirSync, stat: statSync, symlink: symlinkSync,
+    truncate: truncateSync, unlink: unlinkSync, utimes: utimesSync, writeFile: writeFileSync,
+  };
+  const callbacks = {};
+  const promises = {};
+  for (const name of Object.keys(operations)) {
+    callbacks[name] = callbackFor(operations[name], undefined, ASYNC_LENGTHS[name][0]);
+    promises[name] = promiseFor(operations[name]);
+  }
+  callbacks.exists = callbackFor(existsSync, existsCallback, 2);
+  callbacks.close = callbackFor(closeSync, (callback, failure) => (failure ? callback(failure) : callback(null)), 2);
+  callbacks.read = callbackFor(readSyncLoose, withBuffer, 6);
+  callbacks.write = callbackFor(writeSync, withWrittenBuffer, 6);
+  promises.exists = promiseFor(existsSync);
+  promises.read = promiseFor(readSyncLoose, (bytesRead, args) => ({ bytesRead, buffer: readArguments(args)[1] }));
+  promises.write = promiseFor(writeSync, (bytesWritten, args) => ({ bytesWritten, buffer: args[1] }));
+  promises.open = promiseFor(openSync, (fd) => new FileHandle(fd));
+
   const implemented = {
+    ...callbacks,
     appendFileSync, accessSync, chmodSync, closeSync, copyFileSync, existsSync, fchmodSync, fstatSync, fsyncSync, ftruncateSync, futimesSync,
     linkSync, lstatSync, lutimesSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync,
     renameSync, rmSync, rmdirSync, statSync, symlinkSync, truncateSync, unlinkSync, utimesSync, writeFileSync, writeSync,
@@ -654,7 +773,12 @@
     readSync: 5, readdirSync: 2, readlinkSync: 2, realpathSync: 2, renameSync: 2, rmSync: 2, rmdirSync: 2, statSync: 1, symlinkSync: 3,
     truncateSync: 2, unlinkSync: 1, utimesSync: 3, writeFileSync: 3, writeSync: 5, fdatasyncSync: 1, _toUnixTimestamp: 1,
   };
-  for (const name of Object.keys(LENGTHS)) Object.defineProperty(implemented[name], "length", { value: LENGTHS[name], configurable: true });
+  const setLength = (fn, value) => Object.defineProperty(fn, "length", { value, configurable: true });
+  for (const name of Object.keys(LENGTHS)) setLength(implemented[name], LENGTHS[name]);
+  for (const name of Object.keys(ASYNC_LENGTHS)) {
+    setLength(callbacks[name], ASYNC_LENGTHS[name][0]);
+    setLength(promises[name], ASYNC_LENGTHS[name][1]);
+  }
   const data = { Dirent, F_OK: 0, R_OK: 4, W_OK: 2, X_OK: 1, constants, Stats };
 
   // A ordem das chaves de `Object.keys(require("fs"))` do bun 1.4.2.
@@ -671,10 +795,27 @@
     "constants", "Dir", "Stats", "ReadStream", "WriteStream", "FileReadStream", "Utf8Stream", "FileWriteStream", "promises",
   ];
 
+  const PROMISES_ORDER = [
+    "access", "appendFile", "close", "copyFile", "cp", "exists", "chown", "chmod", "fchmod", "fchown", "fstat", "fsync", "fdatasync", "ftruncate",
+    "futimes", "glob", "lchmod", "lchown", "link", "lstat", "mkdir", "mkdtemp", "mkdtempDisposable", "statfs", "open", "read", "write", "readdir",
+    "readFile", "writeFile", "readlink", "realpath", "rename", "stat", "symlink", "truncate", "unlink", "utimes", "lutimes", "rm", "rmdir",
+    "writev", "readv", "constants", "watch", "opendir",
+  ];
+
+  // Os exports na ordem do bun; `promises.X` são os do objeto `fs.promises` (o Rust os monta e põe em `fs.promises`).
   const table = {};
   for (const name of ORDER) {
-    if (name in implemented) table[name] = implemented[name];
-    else if (name in data) table[name] = { v: data[name] };
+    if (name === "promises") {
+      table.promises = { v: undefined };
+      for (const key of PROMISES_ORDER) {
+        if (key === "constants") table["promises.constants"] = { v: constants };
+        else if (key in promises) table["promises." + key] = promises[key];
+      }
+    } else if (name in implemented) {
+      table[name] = implemented[name];
+    } else if (name in data) {
+      table[name] = { v: data[name] };
+    }
   }
   return table;
 })

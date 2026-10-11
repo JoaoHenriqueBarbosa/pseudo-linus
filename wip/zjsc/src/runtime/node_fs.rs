@@ -26,6 +26,7 @@ use crate::runtime::js_function::put_direct_native_function_with_display_name;
 use crate::runtime::js_generic_typed_array_view::JSGenericTypedArrayView;
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_module_loader::rust_string;
+use crate::runtime::js_object::JSObject;
 use crate::runtime::js_value::{js_number, JSValue};
 use crate::runtime::native_function::NativeFunction;
 use crate::runtime::property_name::PropertyName;
@@ -316,35 +317,60 @@ fn implementation(global_object: &JSGlobalObject) -> Result<JSValue, Thrown> {
     Ok(table)
 }
 
-/// Instalador do registro: o objeto do módulo, com as funções como nativas e o resto como dado.
+/// Põe `value` (uma função do programa escondido, ou um dado embrulhado em `{ v }`) em `target` sob `identifier`; a
+/// função vira uma nativa que repassa a chamada à entrada `table_name` da tabela.
+fn install_entry(global_object: &JSGlobalObject, target: &JSObject, identifier: &Identifier, table_name: &str, value: JSValue) -> Result<(), Thrown> {
+    let vm = global_object.vm();
+    if matches!(get_call_data(value), CallData::None) {
+        // Um dado do módulo (`constants`, `Stats`, `F_OK`...) vem embrulhado em `{ v }`.
+        let wrapped = get_object_property(global_object, value, &Identifier::from_span(vm, b"v"))?;
+        target.put_direct(vm, &PropertyName::from_identifier(identifier), wrapped, 0);
+        return Ok(());
+    }
+    let length = pending_or(global_object, get_object_property(global_object, value, &Identifier::from_span(vm, b"length"))?.to_number())? as u32;
+    let native = put_direct_native_function_with_display_name(
+        vm,
+        global_object,
+        target,
+        identifier,
+        &WtfString::from_utf8(identifier.utf8().as_slice()),
+        length,
+        forward_function,
+        ImplementationVisibility::Public,
+        Intrinsic::NoIntrinsic,
+        0,
+    );
+    if let JSValue::Cell(cell_id) = native.as_value() {
+        SHIMS.with(|shims| shims.borrow_mut().insert(cell_id, table_name.to_owned()));
+    }
+    Ok(())
+}
+
+/// Instalador do registro: o objeto do módulo, com as funções como nativas e o resto como dado. As entradas
+/// `promises.X` da tabela formam o `fs.promises`, que ocupa o lugar de `promises` na ordem das chaves.
 pub(crate) fn install_fs_module(global_object: &JSGlobalObject) -> HostResult {
     let vm = global_object.vm();
     let table = implementation(global_object)?;
     let module = construct_empty_object(global_object);
+    let promises = construct_empty_object(global_object);
     for (identifier, value) in enumerable_own_entries(global_object, table)? {
         let name = String::from_utf8_lossy(&identifier.utf8()).into_owned();
-        if matches!(get_call_data(value), CallData::None) {
-            // Um dado do módulo (`constants`, `Stats`, `F_OK`...) vem embrulhado em `{ v }`.
-            let wrapped = get_object_property(global_object, value, &Identifier::from_span(vm, b"v"))?;
-            module.put_direct(vm, &PropertyName::from_identifier(&identifier), wrapped, 0);
-            continue;
-        }
-        let length = pending_or(global_object, get_object_property(global_object, value, &Identifier::from_span(vm, b"length"))?.to_number())? as u32;
-        let native = put_direct_native_function_with_display_name(
-            vm,
-            global_object,
-            &module,
-            &identifier,
-            &WtfString::from_utf8(name.as_bytes()),
-            length,
-            forward_function,
-            ImplementationVisibility::Public,
-            Intrinsic::NoIntrinsic,
-            0,
-        );
-        if let JSValue::Cell(cell_id) = native.as_value() {
-            SHIMS.with(|shims| shims.borrow_mut().insert(cell_id, name));
+        if name == "promises" {
+            module.put_direct(vm, &PropertyName::from_identifier(&identifier), promises.as_value(), 0);
+        } else if let Some(member) = name.strip_prefix("promises.") {
+            install_entry(global_object, &promises, &Identifier::from_span(vm, member.as_bytes()), &name, value)?;
+        } else {
+            install_entry(global_object, &module, &identifier, &name, value)?;
         }
     }
     Ok(module.as_value())
+}
+
+/// Instalador de `fs/promises`: o mesmo objeto de `require("fs").promises`.
+pub(crate) fn install_fs_promises_module(global_object: &JSGlobalObject) -> HostResult {
+    let crate::api::builtin_modules::Resolved::Builtin(entry) = crate::api::builtin_modules::resolve("fs") else {
+        return Ok(JSValue::undefined());
+    };
+    let module = crate::api::builtin_modules::load(global_object, entry)?;
+    get_object_property(global_object, module, &Identifier::from_span(global_object.vm(), b"promises"))
 }

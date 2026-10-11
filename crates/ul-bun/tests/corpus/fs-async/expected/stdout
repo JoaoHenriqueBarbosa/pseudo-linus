@@ -1,0 +1,44 @@
+same true function
+nocb The "cb" argument must be of type function. Received undefined ERR_INVALID_ARG_TYPE TypeError
+badcb The "cb" argument must be of type function. Received type number (5) ERR_INVALID_ARG_TYPE TypeError
+stat noargs The "cb" argument must be of type function. Received undefined ERR_INVALID_ARG_TYPE TypeError
+lengths [ 3, 1, "readFile", 2, 0, 6 ]
+cb err ENOENT: no such file or directory, open '/nope' [ "code", "path", "syscall", "errno" ] 1 undefined
+cb ok null string 2
+cb stat null Stats true
+cb writeFile [ null, undefined ]
+cb appendFile [ null, undefined ] abcdef
+cb mkdir [ null, "/tmp/a/x" ]
+cb readdir null [ "w", "x" ]
+cb exists [ true ]
+cb access ENOENT
+cb rename [ null, undefined ] true
+cb realpath [ null, "/app" ]
+cb open null number
+cb read null 4 true abcd
+cb close [ null ]
+cb unlink [ null, undefined ]
+cb rm [ null, undefined ]
+p readFile string
+p err ENOENT: no such file or directory, open '/nope' [ "code", "path", "syscall", "errno" ] Error ENOENT
+p stat true
+p writeFile undefined
+p appendFile undefined hi!
+p mkdir /tmp/a/m1
+p readdir [
+  [ "m1", true ], [ "p", false ]
+]
+p access ENOENT
+p rm force undefined
+p copyFile undefined hi!
+p rename undefined [ "m1", "p", "r" ]
+p exists true
+promisify hi!
+handle FileHandle number
+h readFile hi!
+h stat 3
+h read 3 hi!
+h write 1 Z
+closed read Zi!
+h after close EBADF
+done
