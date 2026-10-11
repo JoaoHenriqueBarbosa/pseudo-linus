@@ -1,0 +1,36 @@
+chown ok undefined
+chown missing err ENOENT: no such file or directory, chown '/tmp/x/zz' ["code","path","syscall","errno"] ENOENT chown -2 Error
+lchown ok undefined
+fchown ok undefined
+chown unchanged ok undefined
+chown args err uid is required [] ERR_INVALID_ARG_TYPE undefined undefined TypeError
+lchmod ok [ "undefined", "undefined", true ]
+statfs ok [ "Object", "type,bsize,frsize,blocks,bfree,bavail,files,ffree", "number", "number",
+  true
+]
+statfs big ok [ "Object", "bigint" ]
+statfs missing err ENOENT: no such file or directory, statfs '/tmp/x/zz' ["code","path","syscall","errno"] ENOENT statfs -2 Error
+writev ok [ 5, "abcde" ]
+readv ok [ 5, <Buffer 61 62>, <Buffer 63 64 65 00 00> ]
+writev bad err Expected ArrayBufferView[] [] ERR_INVALID_ARG_TYPE undefined undefined TypeError
+mkdtempDisposable ok [
+  [ "path", "remove" ], true, false, "function", 15
+]
+opendir ok [ "Dir", "/tmp/x", [ "a", "w" ], [] ]
+opendir missing err ENOENT: no such file or directory, opendir '/tmp/x/zz' ["code","path","syscall","errno"] ENOENT opendir -2 Error
+opendir file err ENOTDIR: not a directory, opendir '/tmp/x/a' ["code","errno","syscall","path"] ENOTDIR opendir -20 Error
+Dir ok [ "function", "Dir", [ "constructor", "readSync", "read", "close", "closeSync", "path" ] ]
+openAsBlob ok [ true ]
+lengths ok [ 4, 3, 3, 4, 3, 2, 2, 3, 2, 2 ]
+p chown undefined
+p statfs type,bsize,frsize,blocks,bfree,bavail,files,ffree
+h chown undefined
+h readv {
+  bytesRead: 2,
+  buffers: [
+    <Buffer 68 65>
+  ],
+}
+p opendir [ "a", "w" ]
+p mkdtempDisposable [ "path", "remove" ] true undefined false
+blob Blob 5 hello

@@ -3,8 +3,8 @@
 
 use std::io::Write;
 
-use sysabi::{sys, AccessMode, AtFlags, Errno, Fd, KillTarget, Mode, OFlags, RenameFlags, SetTime, Signal, Stat, TimeSpec};
-use zjsc::runtime::host::{FsDirEntry, FsStat, FsTime, Host, HostFile, HostStat};
+use sysabi::{sys, AccessMode, AtFlags, Errno, Fd, ID_UNCHANGED, KillTarget, Mode, OFlags, RenameFlags, SetTime, Signal, Stat, TimeSpec};
+use zjsc::runtime::host::{FsDirEntry, FsStat, FsStatFs, FsTime, Host, HostFile, HostStat};
 
 fn errno(error: std::io::Error) -> i32 {
     error.raw_os_error().unwrap_or(Errno::EIO.0)
@@ -181,6 +181,26 @@ impl Host for SysabiHost {
     syscall_method!(fs_fsync(fd: i32) -> (), |s| s.fsync(Fd(fd)));
     syscall_method!(fs_access(path: &str, mode: u32) -> (), |s| {
         s.faccessat(Fd::CWD, path.as_bytes(), AccessMode::from_bits_truncate(mode), AtFlags::empty())
+    });
+
+    syscall_method!(fs_chown(path: &str, uid: u32, gid: u32, follow: bool) -> (), |s| {
+        let flags = if follow { AtFlags::empty() } else { AtFlags::SYMLINK_NOFOLLOW };
+        s.fchownat(Fd::CWD, path.as_bytes(), (uid != ID_UNCHANGED).then_some(uid), (gid != ID_UNCHANGED).then_some(gid), flags)
+    });
+    syscall_method!(fs_fchown(fd: i32, uid: u32, gid: u32) -> (), |s| {
+        s.fchownat(Fd(fd), b"", (uid != ID_UNCHANGED).then_some(uid), (gid != ID_UNCHANGED).then_some(gid), AtFlags::EMPTY_PATH)
+    });
+    syscall_method!(fs_statfs(path: &str) -> FsStatFs, |s| {
+        s.statfs(path.as_bytes()).map(|stat| FsStatFs {
+            fs_type: stat.fs_type,
+            bsize: stat.bsize,
+            frsize: stat.frsize,
+            blocks: stat.blocks,
+            bfree: stat.bfree,
+            bavail: stat.bavail,
+            files: stat.files,
+            ffree: stat.ffree,
+        })
     });
 
     fn fs_realpath(&self, path: &str) -> Result<String, i32> {

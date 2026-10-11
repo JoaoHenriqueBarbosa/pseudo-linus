@@ -1418,8 +1418,14 @@ impl Syscalls for ProcHandle {
     }
 
     fn fchownat(&self, dirfd: Fd, path: &[u8], uid: Option<Uid>, gid: Option<Gid>, flags: AtFlags) -> SysResult<()> {
-        let r = self.resolve_at(dirfd, path, !flags.contains(AtFlags::SYMLINK_NOFOLLOW))?;
-        let ino = r.ino.ok_or(Errno::ENOENT)?;
+        let ino = if path.is_empty() && flags.contains(AtFlags::EMPTY_PATH) {
+            match &lock(&self.fd_entry(dirfd)?.file).kind {
+                OpenKind::Inode(ino) | OpenKind::Dir { ino, .. } => *ino,
+                _ => return Ok(()),
+            }
+        } else {
+            self.resolve_at(dirfd, path, !flags.contains(AtFlags::SYMLINK_NOFOLLOW))?.ino.ok_or(Errno::ENOENT)?
+        };
         let mut w = self.w();
         let n = w.node_mut(ino);
         if let Some(u) = uid {
@@ -1578,7 +1584,8 @@ impl Syscalls for ProcHandle {
         Ok(out)
     }
 
-    fn statfs(&self, _path: &[u8]) -> SysResult<StatFs> {
+    fn statfs(&self, path: &[u8]) -> SysResult<StatFs> {
+        self.fstatat(Fd::CWD, path, AtFlags::empty())?;
         Ok(StatFs { fs_type: 0x0102_1994, bsize: 4096, blocks: 262_144, bfree: 262_000, bavail: 262_000, files: 65_536, ffree: 65_000, namelen: 255, frsize: 4096, flags: 0 })
     }
 

@@ -17,7 +17,7 @@ use crate::api::eval::{evaluate_hidden_program, js_text};
 use crate::host_function;
 use crate::llint::LLIntFailure;
 use crate::runtime::call_data::{call as call_function, get_call_data, CallData};
-use crate::runtime::host::{host, FsDirEntry, FsStat, FsTime};
+use crate::runtime::host::{host, FsDirEntry, FsStat, FsStatFs, FsTime};
 use crate::runtime::host_call::{pending_or, HostCall, HostResult, Thrown};
 use crate::runtime::identifier::Identifier;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
@@ -208,6 +208,15 @@ fn count(_global_object: &JSGlobalObject, value: usize) -> JSValue {
     js_number(value as f64)
 }
 
+/// O `statfs` como `[type, bsize, frsize, blocks, bfree, bavail, files, ffree]`.
+fn statfs_array(global_object: &JSGlobalObject, stat: FsStatFs) -> JSValue {
+    let values = [stat.fs_type, stat.bsize, stat.frsize, stat.blocks, stat.bfree, stat.bavail, stat.files, stat.ffree].map(|value| js_number(value as f64));
+    construct_array_of(global_object, &values).as_value()
+}
+
+host_binding!(chown_function, chown_body, fs_chown(0 text, 1 unsigned, 2 unsigned, 3 flag) => unit);
+host_binding!(fchown_function, fchown_body, fs_fchown(0 int, 1 unsigned, 2 unsigned) => unit);
+host_binding!(statfs_function, statfs_body, fs_statfs(0 text) => statfs_array);
 host_binding!(open_function, open_body, fs_open(0 text, 1 unsigned, 2 unsigned) => descriptor);
 host_binding!(close_function, close_body, fs_close(0 int) => unit);
 host_binding!(fstat_function, fstat_body, fs_fstat(0 int) => stat_array);
@@ -294,7 +303,7 @@ host_function!(fs_exports_function, fs_exports_body);
 fn binding(global_object: &JSGlobalObject) -> JSValue {
     let vm = global_object.vm();
     let object = construct_empty_object(global_object);
-    let functions: [(&str, u32, NativeFunction); 26] = [
+    let functions: [(&str, u32, NativeFunction); 29] = [
         ("open", 3, open_function),
         ("close", 1, close_function),
         ("read", 5, read_function),
@@ -318,6 +327,9 @@ fn binding(global_object: &JSGlobalObject) -> JSValue {
         ("utimes", 4, utimes_function),
         ("futimes", 3, futimes_function),
         ("random", 1, random_function),
+        ("chown", 4, chown_function),
+        ("fchown", 3, fchown_function),
+        ("statfs", 1, statfs_function),
         ("builtin", 1, builtin_function),
         ("streams", 0, streams_function),
         ("fsExports", 0, fs_exports_function),

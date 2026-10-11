@@ -13,6 +13,8 @@ sem alteração. O upstream não traz linha de copyright própria; o crédito é
 | `src/api/node_timers_promises.js` | `src/js/node/timers.promises.ts`, portado para JavaScript comum |
 | `src/api/node_querystring.js` | `src/js/node/querystring.ts`, portado para JavaScript comum |
 | `src/api/node_stream_modules.js` | gerado por `scripts/gen-node-stream.js` a partir dos fontes do `stream` do upstream |
+| `src/api/node_fs_streams.js` | gerado por `scripts/gen-node-fs-streams.js` a partir de `src/js/internal/fs/streams.ts` |
+| `src/runtime/node_fs.js` | escrito para o porte sobre o comportamento medido do `node:fs` do bun; o `FileHandle` segue `src/js/node/fs.promises.ts` e o `cp` e o `glob` (quando entrarem) vêm de `src/js/internal/fs/` |
 | `src/api/node_url.js` | gerado por `scripts/gen-node-url.js` a partir de `src/js/node/url.ts` e `src/js/internal/url.ts` |
 | `src/api/node_util.js` | gerado por `scripts/gen-node-util.js` a partir de `src/js/node/util.ts` e dos internos que ele usa |
 | `src/api/node_assert.js` | gerado por `scripts/gen-node-assert.js` a partir de `src/js/node/assert.ts` e dos internos que ele usa |

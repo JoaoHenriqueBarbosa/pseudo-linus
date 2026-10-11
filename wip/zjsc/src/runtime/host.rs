@@ -43,6 +43,19 @@ pub struct FsStat {
     pub birthtime: (i64, i64),
 }
 
+/// O `struct statfs` (os campos que o `fs.statfs` do Node mostra).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct FsStatFs {
+    pub fs_type: u64,
+    pub bsize: u64,
+    pub frsize: u64,
+    pub blocks: u64,
+    pub bfree: u64,
+    pub bavail: u64,
+    pub files: u64,
+    pub ffree: u64,
+}
+
 /// Uma entrada de diretório (sem `.` e `..`); `mode_type` são os bits `S_IFMT` do tipo.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FsDirEntry {
@@ -184,6 +197,16 @@ pub trait Host {
     }
     /// `access(2)` com `mode` (`F_OK` 0, `R_OK` 4, `W_OK` 2, `X_OK` 1).
     fn fs_access(&self, _path: &str, _mode: u32) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    /// `chown(2)` (`follow`) ou `lchown(2)`; `u32::MAX` deixa o dono (ou o grupo) como está.
+    fn fs_chown(&self, _path: &str, _uid: u32, _gid: u32, _follow: bool) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_fchown(&self, _fd: i32, _uid: u32, _gid: u32) -> Result<(), Errno> {
+        Err(ENOSYS)
+    }
+    fn fs_statfs(&self, _path: &str) -> Result<FsStatFs, Errno> {
         Err(ENOSYS)
     }
     /// `realpath(3)`.

@@ -647,7 +647,146 @@
     fstat: [3, 1], fsync: [2, 2], ftruncate: [1, 1], futimes: [4, 4], link: [3, 3], lstat: [3, 1], lutimes: [4, 4], mkdir: [3, 3],
     mkdtemp: [3, 3], open: [4, 1], read: [6, 6], readFile: [3, 1], readdir: [3, 3], readlink: [3, 3], realpath: [3, 3], rename: [3, 3],
     rm: [3, 2], rmdir: [3, 2], stat: [3, 1], symlink: [4, 4], truncate: [3, 3], unlink: [2, 2], utimes: [4, 4], write: [6, 6], writeFile: [4, 1],
+    chown: [4, 4], fchown: [4, 4], lchown: [4, 4], statfs: [3, 2], opendir: [3, 2], writev: [4, 3], readv: [4, 3], mkdtempDisposable: [0, 2],
   };
+  // ---- chown, statfs, writev, readv, mkdtempDisposable, Dir, openAsBlob ----
+  const id32 = (value) => (value === -1 ? 4294967295 : value);
+  function chownArguments(uid, gid) {
+    if (uid === undefined) throw typeError("uid is required");
+    if (gid === undefined) throw typeError("gid is required");
+    if (typeof uid !== "number") throw typeError('The "uid" argument must be of type number. Received ' + describe(uid));
+    if (typeof gid !== "number") throw typeError('The "gid" argument must be of type number. Received ' + describe(gid));
+    return [id32(uid), id32(gid)];
+  }
+  function chownSync(path, uid, gid) {
+    const text = toPath(path);
+    sys("chown", text, undefined, b.chown, text, ...chownArguments(uid, gid), true);
+  }
+  function lchownSync(path, uid, gid) {
+    const text = toPath(path);
+    sys("lchown", text, undefined, b.chown, text, ...chownArguments(uid, gid), false);
+  }
+  function fchownSync(fd, uid, gid) {
+    checkFd(fd);
+    sysFd("fchown", fd, b.fchown, fd, ...chownArguments(uid, gid));
+  }
+
+  function statfsSync(path, options) {
+    const text = toPath(path);
+    const stat = sys("statfs", text, undefined, b.statfs, text);
+    const names = ["type", "bsize", "frsize", "blocks", "bfree", "bavail", "files", "ffree"];
+    const bigint = options !== null && typeof options === "object" && options.bigint === true;
+    const result = {};
+    names.forEach((name, index) => { result[name] = bigint ? BigInt(stat[index]) : stat[index]; });
+    return result;
+  }
+
+  function buffersOf(buffers) {
+    if (!Array.isArray(buffers) || !buffers.every((buffer) => ArrayBuffer.isView(buffer))) throw typeError("Expected ArrayBufferView[]");
+    return buffers;
+  }
+  function writevSync(fd, buffers, position) {
+    checkFd(fd);
+    let total = 0;
+    for (const buffer of buffersOf(buffers)) {
+      const view = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      const at = typeof position === "number" ? position + total : null;
+      total += sysFd("write", fd, b.write, fd, view, at);
+    }
+    return total;
+  }
+  function readvSync(fd, buffers, position) {
+    checkFd(fd);
+    let total = 0;
+    for (const buffer of buffersOf(buffers)) {
+      const view = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      const at = typeof position === "number" ? position + total : null;
+      const read = sysFd("read", fd, b.read, fd, view, 0, view.length, at);
+      total += read;
+      if (read < view.length) break;
+    }
+    return total;
+  }
+
+  function mkdtempDisposableSync(prefix, options) {
+    const path = mkdtempSync(prefix, options);
+    const disposable = {
+      path,
+      remove() { rmSync(path, { recursive: true, force: true }); },
+    };
+    Object.defineProperty(disposable, Symbol.dispose, { value: function () { this.remove(); }, writable: true, configurable: true });
+    return disposable;
+  }
+
+  // `Dir`: lê as entradas de uma vez (como o bun) e as entrega uma a uma.
+  const dirState = new WeakMap();
+  function Dir(path) {
+    dirState.set(this, { path, entries: null, closed: false });
+  }
+  function dirEntries(dir) {
+    const state = dirState.get(dir);
+    if (state.closed) throw codedError(Error, "Directory handle was closed", "ERR_DIR_CLOSED");
+    if (state.entries === null) state.entries = readdirSync(state.path, { withFileTypes: true });
+    return state;
+  }
+  Object.defineProperty(Dir.prototype, "readSync", { value: function readSync() { const state = dirEntries(this); return state.entries.shift() ?? null; }, writable: true, configurable: true });
+  Object.defineProperty(Dir.prototype, "read", {
+    value: function read(callback) {
+      if (typeof callback === "function") {
+        let entry = null;
+        let failure = null;
+        try { entry = this.readSync(); } catch (error) { failure = error; }
+        setImmediate(() => (failure ? callback(failure) : callback(null, entry)));
+        return undefined;
+      }
+      return promiseFor(() => this.readSync())();
+    },
+    writable: true, configurable: true,
+  });
+  Object.defineProperty(Dir.prototype, "close", {
+    value: function close(callback) {
+      if (typeof callback === "function") {
+        let failure = null;
+        try { this.closeSync(); } catch (error) { failure = error; }
+        setImmediate(() => callback(failure));
+        return undefined;
+      }
+      return promiseFor(() => this.closeSync())();
+    },
+    writable: true, configurable: true,
+  });
+  Object.defineProperty(Dir.prototype, "closeSync", { value: function closeSync() { const state = dirState.get(this); if (state.closed) throw codedError(Error, "Directory handle was closed", "ERR_DIR_CLOSED"); state.closed = true; }, writable: true, configurable: true });
+  Object.defineProperty(Dir.prototype, "path", { get: function () { return dirState.get(this).path; }, enumerable: false, configurable: true });
+  Object.defineProperty(Dir.prototype, Symbol.asyncIterator, {
+    value: async function* () {
+      try {
+        for (let entry = this.readSync(); entry; entry = this.readSync()) yield entry;
+      } finally {
+        if (!dirState.get(this).closed) this.closeSync();
+      }
+    },
+    writable: true, configurable: true,
+  });
+  function opendirSync(path) {
+    const text = toPath(path);
+    const stat = sys("opendir", text, undefined, b.stat, text, true);
+    if ((stat[2] & S_IFMT) !== S_IFDIR) {
+      // Medido no bun: o erro de `opendir` num arquivo traz as chaves em outra ordem (code, errno, syscall, path).
+      const error = new Error("ENOTDIR: not a directory, opendir '" + text + "'");
+      error.code = "ENOTDIR";
+      error.errno = -20;
+      error.syscall = "opendir";
+      error.path = text;
+      throw error;
+    }
+    return new Dir(text);
+  }
+
+  function openAsBlob(path, options) {
+    const text = toPath(path);
+    return promiseFor(() => new Blob([readFileSync(text)], { type: options && options.type ? String(options.type) : "" }))();
+  }
+
   // ---- callbacks e promises ----
   // A operação roda na hora da chamada (a ordem dos efeitos é a das chamadas) e o resultado é entregue num
   // `setImmediate`, depois dos `nextTick` e das microtasks, como o bun entrega o de uma operação que acabou.
@@ -769,6 +908,18 @@
 
     async chmod(mode) {
       return withHandle(this, "fchmod", (fd) => promises.fchmod(fd, mode));
+    }
+
+    async chown(uid, gid) {
+      return withHandle(this, "fchown", (fd) => promises.fchown(fd, uid, gid));
+    }
+
+    async readv(buffers, position) {
+      return withHandle(this, "readv", (fd) => promises.readv(fd, buffers, position));
+    }
+
+    async writev(buffers, position) {
+      return withHandle(this, "writev", (fd) => promises.writev(fd, buffers, position));
     }
 
     async datasync() {
@@ -898,7 +1049,8 @@
     fdatasync: fsyncSync, fstat: fstatSync, fsync: fsyncSync, ftruncate: ftruncateSync, futimes: futimesSync, link: linkSync, lstat: lstatSync,
     lutimes: lutimesSync, mkdir: mkdirSync, mkdtemp: mkdtempSync, open: openSync, readFile: readFileSync, readdir: readdirSync,
     readlink: readlinkSync, realpath: realpathSync, rename: renameSync, rm: rmSync, rmdir: rmdirSync, stat: statSync, symlink: symlinkSync,
-    truncate: truncateSync, unlink: unlinkSync, utimes: utimesSync, writeFile: writeFileSync,
+    truncate: truncateSync, unlink: unlinkSync, utimes: utimesSync, writeFile: writeFileSync, chown: chownSync, fchown: fchownSync, lchown: lchownSync,
+    statfs: statfsSync, opendir: opendirSync,
   };
   const callbacks = {};
   const promises = {};
@@ -906,6 +1058,16 @@
     callbacks[name] = callbackFor(operations[name], undefined, ASYNC_LENGTHS[name][0]);
     promises[name] = promiseFor(operations[name]);
   }
+  callbacks.writev = callbackFor(writevSync, (callback, failure, result, args) => (failure ? callback(failure) : callback(null, result, args[1])), 4);
+  callbacks.readv = callbackFor(readvSync, (callback, failure, result, args) => (failure ? callback(failure) : callback(null, result, args[1])), 4);
+  promises.mkdtempDisposable = promiseFor(mkdtempDisposableSync, (disposable) => {
+    const remove = disposable.remove;
+    disposable.remove = () => promiseFor(remove)();
+    Object.defineProperty(disposable, Symbol.asyncDispose, { value: function () { return this.remove(); }, writable: true, configurable: true });
+    return disposable;
+  });
+  promises.writev = promiseFor(writevSync, (bytesWritten, args) => ({ bytesWritten, buffers: args[1] }));
+  promises.readv = promiseFor(readvSync, (bytesRead, args) => ({ bytesRead, buffers: args[1] }));
   callbacks.exists = callbackFor(existsSync, existsCallback, 2);
   callbacks.close = callbackFor(closeSync, (callback, failure) => (failure ? callback(failure) : callback(null)), 2);
   callbacks.read = callbackFor(readSyncLoose, withBuffer, 6);
@@ -927,23 +1089,25 @@
     appendFileSync, accessSync, chmodSync, closeSync, copyFileSync, existsSync, fchmodSync, fstatSync, fsyncSync, ftruncateSync, futimesSync,
     linkSync, lstatSync, lutimesSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync,
     renameSync, rmSync, rmdirSync, statSync, symlinkSync, truncateSync, unlinkSync, utimesSync, writeFileSync, writeSync,
-    fdatasyncSync: fsyncSync, _toUnixTimestamp: toUnixTimestamp,
+    fdatasyncSync: fsyncSync, _toUnixTimestamp: toUnixTimestamp, mkdtempDisposableSync, openAsBlob, opendirSync, statfsSync, writevSync, readvSync,
+    chownSync, fchownSync, lchownSync,
   };
   // O `length` de cada função do bun (medido).
   const LENGTHS = {
     appendFileSync: 3, accessSync: 2, chmodSync: 2, closeSync: 1, copyFileSync: 3, existsSync: 1, fchmodSync: 2, fstatSync: 1, fsyncSync: 1,
     ftruncateSync: 1, futimesSync: 3, linkSync: 2, lstatSync: 1, lutimesSync: 3, mkdirSync: 2, mkdtempSync: 2, openSync: 3, readFileSync: 2,
     readSync: 5, readdirSync: 2, readlinkSync: 2, realpathSync: 2, renameSync: 2, rmSync: 2, rmdirSync: 2, statSync: 1, symlinkSync: 3,
-    truncateSync: 2, unlinkSync: 1, utimesSync: 3, writeFileSync: 3, writeSync: 5, fdatasyncSync: 1, _toUnixTimestamp: 1, createReadStream: 2, createWriteStream: 2,
+    truncateSync: 2, unlinkSync: 1, utimesSync: 3, writeFileSync: 3, writeSync: 5, fdatasyncSync: 1, _toUnixTimestamp: 1, createReadStream: 2, createWriteStream: 2, chownSync: 3, fchownSync: 3, lchownSync: 3, statfsSync: 2, opendirSync: 2, writevSync: 3, readvSync: 3,
+    mkdtempDisposableSync: 2, openAsBlob: 2,
   };
   const setLength = (fn, value) => Object.defineProperty(fn, "length", { value, configurable: true });
   for (const name of Object.keys(LENGTHS)) setLength(implemented[name], LENGTHS[name]);
   for (const name of Object.keys(ASYNC_LENGTHS)) {
-    setLength(callbacks[name], ASYNC_LENGTHS[name][0]);
+    if (callbacks[name]) setLength(callbacks[name], ASYNC_LENGTHS[name][0]);
     setLength(promises[name], ASYNC_LENGTHS[name][1]);
   }
   const streamData = { FileHandle, kRef, kUnref, kFd };
-  const data = { Dirent, F_OK: 0, R_OK: 4, W_OK: 2, X_OK: 1, constants, Stats, ReadStream: undefined, WriteStream: undefined, FileReadStream: undefined, FileWriteStream: undefined };
+  const data = { Dir, lchmod: undefined, lchmodSync: undefined, Dirent, F_OK: 0, R_OK: 4, W_OK: 2, X_OK: 1, constants, Stats, ReadStream: undefined, WriteStream: undefined, FileReadStream: undefined, FileWriteStream: undefined };
 
   // A ordem das chaves de `Object.keys(require("fs"))` do bun 1.4.2.
   const ORDER = [
@@ -952,7 +1116,7 @@
     "fchmodSync", "fdatasync", "fdatasyncSync", "fstat", "fstatSync", "fsync", "fsyncSync", "ftruncate", "ftruncateSync", "futimes",
     "futimesSync", "glob", "globSync", "lchown", "lchownSync", "lchmod", "lchmodSync", "link", "linkSync", "lstat", "lstatSync", "lutimes",
     "lutimesSync", "mkdir", "mkdirSync", "mkdtemp", "mkdtempSync", "mkdtempDisposableSync", "open", "openSync", "read", "readFile",
-    "readFileSync", "readSync", "readdir", "readdirSync", "readlink", "readlinkSync", "realpath", "realpathSync", "rename", "renameSync",
+    "readFileSync", "readSync", "readdir", "readdirSync", "readlink", "readlinkSync", "readv", "readvSync", "realpath", "realpathSync", "rename", "renameSync",
     "rm", "rmSync", "rmdir", "rmdirSync", "stat", "statfs", "statSync", "statfsSync", "symlink", "symlinkSync", "truncate", "truncateSync",
     "unlink", "unlinkSync", "unwatchFile", "utimes", "utimesSync", "watch", "watchFile", "write", "writeFile", "writeFileSync", "writeSync",
     "writev", "writevSync", "_toUnixTimestamp", "openAsBlob", "Dirent", "opendir", "opendirSync", "F_OK", "R_OK", "W_OK", "X_OK",
