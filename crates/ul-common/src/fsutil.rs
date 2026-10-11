@@ -2,9 +2,9 @@
 //!
 //! O `basename` que tira as barras finais (o do GNU) mora em `sysabi::util::basename`; aqui ficam as
 //! variantes que não são essa: o último componente cru, o diretório pai sem a normalização do
-//! `dirname(3)`, o `mkdir -p`, a string de modo do `ls -l` e os formatos de tamanho.
+//! `dirname(3)`, o `mkdir -p`, o `rm -rf`, a string de modo do `ls -l` e os formatos de tamanho.
 
-use sysabi::{Errno, Fd, FileType, Mode, sys};
+use sysabi::{AtFlags, Errno, Fd, FileType, Mode, sys};
 
 /// O que vem depois da última `/`, sem tratar barras finais: `a/b/` dá vazio, `a` dá `a`.
 pub fn after_last_slash(p: &[u8]) -> &[u8] {
@@ -46,6 +46,24 @@ pub fn mkdir_p(path: &[u8], mode: Mode) -> Result<(), Errno> {
         Ok(()) | Err(Errno::EEXIST) => Ok(()),
         Err(e) => Err(e),
     }
+}
+
+/// `rm -rf`: remove o caminho e, sendo diretório (sem seguir link), tudo o que ele tem. Caminho que não existe não é
+/// erro.
+pub fn remove_tree(path: &[u8]) -> Result<(), Errno> {
+    let s = sys::current();
+    let kind = match sys::lstat(path) {
+        Ok(stat) => stat.file_type(),
+        Err(Errno::ENOENT) => return Ok(()),
+        Err(e) => return Err(e),
+    };
+    if kind != FileType::Directory {
+        return s.unlinkat(Fd::CWD, path, AtFlags::empty());
+    }
+    for entry in sys::read_dir(path)? {
+        remove_tree(&[path, b"/", &entry.name].concat())?;
+    }
+    s.unlinkat(Fd::CWD, path, AtFlags::REMOVEDIR)
 }
 
 /// As nove letras de permissão (`rw-r--r--`), sem tipo e sem setuid/setgid/sticky.

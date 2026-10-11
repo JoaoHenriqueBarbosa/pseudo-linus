@@ -23,8 +23,11 @@ use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
 use crate::sys_env::SysEnv;
 
-/// O molde, gerado no oráculo (ver o cabeçalho de `testbench/oracle/profile-pack.py` para o formato).
+/// O molde, gerado no oráculo (ver o cabeçalho de `testbench/oracle/profile-pack.py` para o formato): o começo e a
+/// saída do navegador com DevTools remoto.
 static PACK: &[u8] = include_bytes!("../profile/template.pack");
+/// A saída do `--dump-dom` (o começo é o mesmo do DevTools): a árvore inteira da saída e o que ela apaga.
+static PACK_DUMP: &[u8] = include_bytes!("../profile/template-dump.pack");
 /// O diretório do banco do Local Storage no perfil: o molde o traz (de uma execução do oráculo), mas quem o grava é o
 /// leveldb próprio, com o log, o MANIFEST e o `LOG` de verdade.
 const LOCAL_STORAGE_DB: &[u8] = b"Default/Local Storage/leveldb";
@@ -38,6 +41,7 @@ const WEBKIT_EPOCH_US: i64 = 11_644_473_600_000_000;
 
 const KIND_DIR: u8 = 0;
 const KIND_FILE: u8 = 1;
+const KIND_REMOVE: u8 = 3;
 const ROOT_USER_DATA: u8 = 0;
 const ROOT_CONFIG: u8 = 1;
 const LAYER_START: u8 = 0;
@@ -54,9 +58,25 @@ struct Entry {
     patches: Vec<(usize, usize)>,
 }
 
+/// Como o navegador roda, o que decide o que a saída deixa no perfil (medido no oráculo).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Run {
+    /// `--remote-debugging-port` ou `--remote-debugging-pipe`: a saída (o `Browser.close` ou o SIGTERM) mantém os
+    /// `Singleton*`.
+    DevTools,
+    /// `--dump-dom` e o carregamento sem DevTools: a saída apaga os bancos que não chegaram a ser usados, os
+    /// `Singleton*` e o diretório do soquete.
+    DumpDom,
+}
+
 fn template() -> &'static [Entry] {
     static TEMPLATE: OnceLock<Vec<Entry>> = OnceLock::new();
     TEMPLATE.get_or_init(|| parse_pack(PACK).expect("o molde do perfil embutido é válido"))
+}
+
+fn template_dump() -> &'static [Entry] {
+    static TEMPLATE: OnceLock<Vec<Entry>> = OnceLock::new();
+    TEMPLATE.get_or_init(|| parse_pack(PACK_DUMP).expect("o molde do --dump-dom embutido é válido"))
 }
 
 fn parse_pack(pack: &[u8]) -> Option<Vec<Entry>> {
@@ -242,6 +262,9 @@ pub struct DiskProfile {
     /// `$XDG_CONFIG_HOME` ou `$HOME/.config`: o molde traz o `chromium/Crash Reports` do crashpad a partir daqui.
     config_base: Vec<u8>,
     start_us: i64,
+    run: Run,
+    /// O diretório do soquete em `/tmp` (`org.chromium.Chromium.<6 letras>`).
+    socket_dir: Option<Vec<u8>>,
     /// O banco do Local Storage (`Default/Local Storage/leveldb`), que o molde não traz: o banco próprio o cria.
     local_storage: Option<Arc<LocalStorageStore>>,
 }
@@ -250,21 +273,21 @@ impl DiskProfile {
     /// O primeiro uso: cria a árvore do perfil (com `--user-data-dir`, a do perfil e a do crashpad; sem ele, só a do
     /// crashpad), os `Singleton*` e o diretório de soquete em `/tmp`. Os erros de gravação não impedem o navegador de
     /// subir: o Chromium também segue sem o perfil quando o disco recusa.
-    pub fn start(user_data_dir: Option<&[u8]>) -> DiskProfile {
-        let mut profile = DiskProfile::new(user_data_dir);
-        let _ = profile.write_layer(LAYER_START);
-        let _ = profile.write_singletons();
+    pub fn start(user_data_dir: Option<&[u8]>, run: Run) -> DiskProfile {
+        let mut profile = DiskProfile::new(user_data_dir, run);
+        let _ = profile.write_layer(template(), LAYER_START);
+        profile.socket_dir = profile.write_singletons().ok();
         profile.local_storage = profile.open_local_storage();
         profile
     }
 
-    fn new(user_data_dir: Option<&[u8]>) -> DiskProfile {
+    fn new(user_data_dir: Option<&[u8]>, run: Run) -> DiskProfile {
         let home = sys::getenv("HOME").filter(|h| !h.is_empty()).unwrap_or_else(|| b"/root".to_vec());
         let config_base = match sys::getenv("XDG_CONFIG_HOME") {
             Some(path) if !path.is_empty() => path,
             _ => [home.as_slice(), b"/.config"].concat(),
         };
-        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, local_storage: None }
+        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None }
     }
 
     /// O IndexedDB do perfil (`Default/IndexedDB`): cada origem ganha o leveldb dela no primeiro uso.
@@ -291,13 +314,49 @@ impl DiskProfile {
         if let Some(store) = &self.local_storage {
             let _ = store.flush();
         }
-        let _ = self.write_layer(LAYER_EXIT);
+        match self.run {
+            Run::DevTools => {
+                let _ = self.write_layer(template(), LAYER_EXIT);
+            }
+            Run::DumpDom => {
+                let _ = self.write_layer(template_dump(), LAYER_EXIT);
+                self.remove_singletons();
+            }
+        }
     }
 
-    fn write_layer(&self, layer: u8) -> Result<(), Errno> {
+    /// O `--dump-dom` apaga ao sair os `Singleton*` do perfil e o diretório do soquete.
+    fn remove_singletons(&self) {
+        if let Some(dir) = &self.user_data_dir {
+            for name in [&b"SingletonCookie"[..], b"SingletonLock", b"SingletonSocket"] {
+                let _ = sys::current().unlinkat(Fd::CWD, &[dir.as_slice(), b"/", name].concat(), AtFlags::empty());
+            }
+        }
+        if let Some(socket_dir) = &self.socket_dir {
+            let _ = ul_common::fsutil::remove_tree(socket_dir);
+        }
+    }
+
+    /// As entradas de `layer`: primeiro as remoções, depois diretórios e arquivos na ordem do molde.
+    fn write_layer(&self, entries: &[Entry], layer: u8) -> Result<(), Errno> {
         let user_dir = self.user_data_dir.as_deref().unwrap_or(b"");
         let expander = Expander { start_us: self.start_us, user_dir };
-        for entry in template().iter().filter(|e| e.layer == layer && !(e.root == ROOT_USER_DATA && e.path.starts_with(LOCAL_STORAGE_DB))) {
+        let selected = || entries.iter().filter(|e| e.layer == layer && !(e.root == ROOT_USER_DATA && e.path.starts_with(LOCAL_STORAGE_DB)));
+        for entry in selected().filter(|e| e.kind == KIND_REMOVE) {
+            let (Some(dir), ROOT_USER_DATA) = (&self.user_data_dir, entry.root) else { continue };
+            let path = [dir.as_slice(), b"/", &expander.expand(&entry.path)].concat();
+            match path.strip_suffix(b"*") {
+                Some(prefix) => {
+                    let parent = ul_common::fsutil::dirname(prefix);
+                    let start = ul_common::fsutil::after_last_slash(prefix);
+                    for found in sys::read_dir(parent).unwrap_or_default().iter().filter(|e| e.name.starts_with(start)) {
+                        ul_common::fsutil::remove_tree(&[parent, b"/", &found.name].concat())?;
+                    }
+                }
+                None => ul_common::fsutil::remove_tree(&path)?,
+            }
+        }
+        for entry in selected().filter(|e| e.kind != KIND_REMOVE) {
             let base = match entry.root {
                 ROOT_USER_DATA => match &self.user_data_dir {
                     Some(dir) => dir.as_slice(),
@@ -331,7 +390,7 @@ impl DiskProfile {
 
     /// Os `Singleton*` do perfil e o diretório de soquete em `/tmp`, como o Chromium os cria: o cookie é um número
     /// aleatório de 64 bits, o lock é `<hostname>-<pid>`, e o soquete mora em `/tmp/org.chromium.Chromium.<6 letras>`.
-    fn write_singletons(&self) -> Result<(), Errno> {
+    fn write_singletons(&self) -> Result<Vec<u8>, Errno> {
         let sys = sys::current();
         let name: String = (0..6).map(|_| NAME_ALPHABET[random_below(62) as usize] as char).collect();
         let socket_dir = format!("/tmp/org.chromium.Chromium.{name}");
@@ -352,7 +411,7 @@ impl DiskProfile {
             sys.symlinkat(lock.as_bytes(), Fd::CWD, &[dir.as_slice(), b"/SingletonLock"].concat())?;
             sys.symlinkat(socket.as_bytes(), Fd::CWD, &[dir.as_slice(), b"/SingletonSocket"].concat())?;
         }
-        Ok(())
+        Ok(socket_dir.into_bytes())
     }
 }
 

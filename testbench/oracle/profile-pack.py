@@ -2,13 +2,17 @@
 """Gera o molde do perfil do Chromium (crates/ul-chromium/profile/template.pack) a partir de execuções do oráculo.
 
 Uso: profile-pack.py <saída.pack> <cópiaA> <cópiaB> <cópiaC> [...]
+     profile-pack.py --exit-against <árvore viva.jsonl> <saída.pack> <cópiaA> <cópiaB> <cópiaC> [...]
 Cada <cópia> é uma saída do `measure-profile.sh copy` (live/, profile/, config/ e os *-tree.jsonl). Com três ou mais
 execuções, o que é igual em todas vira byte fixo; o que varia vira marcador, que o hospedeiro preenche no primeiro
 uso (relógio, aleatório). A primeira cópia dá os bytes fixos.
+Com --exit-against, as cópias só têm a saída (`measure-profile.sh dump-copy`): o molde leva só a camada 1, com a árvore
+inteira da saída e a remoção do que a árvore viva dada (a do molde principal) tem e a saída não.
 
 Formato (depois de zlib): "ULPP1\\n", u32 quantidade, e por entrada:
   u8 camada (0 = ao iniciar, 1 = ao sair), u8 raiz (0 = --user-data-dir, 1 = ~/.config/chromium),
-  u8 tipo (0 dir, 1 arquivo, 2 symlink), u16 modo, u16 tamanho do caminho, caminho, u32 tamanho do conteúdo,
+  u8 tipo (0 dir, 1 arquivo, 2 symlink, 3 remoção: o que existe vivo e a saída apaga, com a subárvore; o caminho que
+  termina em "*" remove todo nome do diretório com aquele prefixo), u16 modo, u16 tamanho do caminho, caminho, u32 tamanho do conteúdo,
   conteúdo, u8 quantidade de retalhos binários, e por retalho: u32 deslocamento, u32 tamanho, u8 tipo (0 aleatório).
 Caminho e conteúdo de texto podem ter marcadores: U+E000 + "tipo:argumento" + U+E000 (UTF-8: EE 80 80).
 Tipos de marcador: wk:<delta µs> (tempo WebKit = início + delta), wkf:<delta> (o mesmo, como double),
@@ -27,7 +31,16 @@ import zlib
 MARK = ""
 WEBKIT_EPOCH_US = 11644473600 * 1_000_000  # microssegundos de 1601 a 1970
 
-SKIP = [re.compile(p) for p in (r"^Singleton(Cookie|Lock|Socket)$", r"(^|/)\.org\.chromium\.Chromium\.", r"^Default/Network Persistent State$")]
+SKIP = [
+    re.compile(p)
+    for p in (
+        r"^Singleton(Cookie|Lock|Socket)$",
+        r"(^|/)\.org\.chromium\.Chromium\.",
+        r"^Default/Network Persistent State$",
+        # As entradas do cache de disco são da página carregada, não do molde.
+        r"^Default/Cache/Cache_Data/[0-9a-f]{16}_[0-9]$",
+    )
+]
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 LOG_TS = re.compile(rb"^(\d{4})/(\d\d)/(\d\d)-(\d\d):(\d\d):(\d\d)\.(\d{3}) ", re.M)
 B64_CHARS = re.compile(r"^[A-Za-z0-9+/]+={0,2}$")
@@ -44,7 +57,8 @@ def load_tree(path):
 class Copy:
     def __init__(self, root):
         self.root = root
-        self.live = load_tree(os.path.join(root, "live-tree.jsonl"))
+        live = os.path.join(root, "live-tree.jsonl")
+        self.live = load_tree(live) if os.path.exists(live) else {}
         self.exit = load_tree(os.path.join(root, "profile-tree.jsonl"))
         self.config = {k: v for k, v in load_tree(os.path.join(root, "config-tree.jsonl")).items()}
         self.anchor = None
@@ -184,7 +198,11 @@ def tokenize_log(data, anchor_epoch_us):
 # --- montagem -------------------------------------------------------------------------------------------------------
 
 def main():
-    out_path, roots = sys.argv[1], sys.argv[2:]
+    exit_against = None
+    args = sys.argv[1:]
+    if args[0] == "--exit-against":
+        exit_against, args = load_tree(args[1]), args[2:]
+    out_path, roots = args[0], args[1:]
     copies = [Copy(r) for r in roots]
     if len(copies) < 3:
         raise SystemExit("precisa de pelo menos três cópias para separar o fixo do variável")
@@ -205,7 +223,8 @@ def main():
 
     a = copies[0]
     # camada 0: a árvore viva; camada 1: o que sai diferente ou novo ao fim
-    for layer, tree_name, layer_dir in ((0, "live", "live"), (1, "exit", "profile")):
+    layers = ((0, "live", "live"), (1, "exit", "profile")) if exit_against is None else ((1, "exit", "profile"),)
+    for layer, tree_name, layer_dir in layers:
         tree = getattr(a, tree_name)
         for rel in sorted(tree):
             entry = tree[rel]
@@ -218,7 +237,7 @@ def main():
                     continue
             mode = parse_mode(entry["mode"])
             if entry["type"] == "d":
-                if layer == 0:
+                if layer == 0 or (exit_against is not None and rel not in exit_against):
                     add(layer, 0, 0, mode, rel)
                 continue
             if entry["type"] == "l":
@@ -229,9 +248,10 @@ def main():
             data = blobs[0]
             patches = []
             final_path = rel
-            if rel.startswith("Default/Sessions/Session_"):
-                delta = int(rel.rsplit("_", 1)[1]) - a.anchor
-                final_path = "Default/Sessions/Session_" + MARK + f"wk:{delta}" + MARK
+            for prefix in ("Default/Sessions/Session_", "Default/Sessions/Tabs_"):
+                if rel.startswith(prefix):
+                    delta = int(rel.rsplit("_", 1)[1]) - a.anchor
+                    final_path = prefix + MARK + f"wk:{delta}" + MARK
             if len(blobs) == len(copies) and any(b != blobs[0] for b in blobs[1:]):
                 if rel in ("Local State", "Default/Preferences"):
                     these = anchors
@@ -265,13 +285,22 @@ def main():
                         patches = [(s, e - s, 0) for s, e in runs]
                         report.append(f"bin   {rel}: {len(runs)} retalhos aleatórios ({sum(e - s for s, e in runs)} bytes; checksum não refeito)")
             add(layer, 0, 1, mode, final_path, data, patches)
+    # O que existe com o navegador vivo e a saída apaga (o -wal dos SQLite no --dump-dom).
+    removed = set()
+    for rel in sorted(set(exit_against if exit_against is not None else a.live) - set(a.exit)):
+        if skipped(rel) or any(rel.startswith(parent + "/") for parent in removed):
+            continue
+        # O nome do Session_ do começo vem do relógio: a saída apaga todos os do começo.
+        name = "Default/Sessions/Session_*" if re.fullmatch(r"Default/Sessions/Session_\d+", rel) else rel
+        removed.add(rel)
+        add(1, 0, 3, 0, name)
     # blob_storage/<uuid>: o nome é aleatório por execução
     for index, (layer, root, kind, mode, path, data, patches) in enumerate(entries):
         match = re.fullmatch(r"Default/blob_storage/([0-9a-f-]{36})", path)
         if match:
             entries[index] = (layer, root, kind, mode, "Default/blob_storage/" + MARK + "uuid" + MARK, data, patches)
-    # ~/.config/chromium: a base do crashpad
-    for rel in sorted(a.config):
+    # ~/.config/chromium: a base do crashpad (no molde principal)
+    for rel in sorted(a.config if exit_against is None else ()):
         entry = a.config[rel]
         mode = parse_mode(entry["mode"])
         if entry["type"] == "d":
