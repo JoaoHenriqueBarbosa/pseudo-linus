@@ -282,6 +282,12 @@ impl<'a> Lexer<'a> {
         js_ast::StoreStr::from_range(self.source_base + loc_u32(self.source_offset(text)), loc_u32(text.len()))
     }
 
+    /// A fatia é do código-fonte (o identificador com escape `\u0061` é decodificado numa cópia fora dele).
+    pub(crate) fn is_source_slice(&self, text: &[u8]) -> bool {
+        let offset = (text.as_ptr() as usize).wrapping_sub(self.contents.as_ptr() as usize);
+        text.is_empty() || offset.checked_add(text.len()).is_some_and(|end| end <= self.contents.len())
+    }
+
     /// O deslocamento de uma fatia do código-fonte dentro dele.
     fn source_offset(&self, text: &[u8]) -> usize {
         // O literal que ainda não foi lido deixa o conteúdo vazio e estático (o `parse_path` do upstream o lê assim).

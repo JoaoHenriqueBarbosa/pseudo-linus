@@ -781,7 +781,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let alias = p.lexer.identifier;
         p.check_for_non_bmp_code_point(loc, alias);
-        Ok(p.lexer.source_str(alias))
+        Ok(if p.lexer.is_source_slice(alias) { p.lexer.source_str(alias) } else { p.store.alloc_str(alias) })
     }
 
     pub(crate) fn parse_expr_or_let_stmt(
