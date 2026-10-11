@@ -266,7 +266,19 @@ impl Interpreter {
             let tables = block.unlinked_code_block().borrow().number_of_unlinked_switch_jump_tables();
             let state = generator.state();
             let offset = if state > 0 && tables > 0 {
-                block.unlinked_code_block().borrow().unlinked_switch_jump_table(tables - 1).offset_for_value(state)
+                let table_index = tables - 1;
+                let relative = block.unlinked_code_block().borrow().unlinked_switch_jump_table(table_index).offset_for_value(state);
+                // O valor da tabela é um salto relativo ao começo do `op_switch_imm` do gerador (o despachante soma o pc), não
+                // um índice absoluto: usado cru, cai no meio de uma instrução e o opcode lido é lixo.
+                let switch_at = block
+                    .instructions()
+                    .iter()
+                    .find(|instruction| {
+                        instruction.opcode_id_enum() == crate::bytecode::opcode::OpcodeID::op_switch_imm
+                            && instruction.as_op::<crate::bytecode::bytecode_ops::OpSwitchImm>().table_index as usize == table_index
+                    })
+                    .map(|instruction| instruction.offset());
+                switch_at.map_or(0, |at| i64::from(at) + i64::from(relative))
             } else {
                 0
             };
