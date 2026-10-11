@@ -288,7 +288,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let ref_ = locref.ref_;
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
                         let fn_name: &[u8] =
-                            p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
+                            p.arena_str(p.symbols[ref_.inner_index() as usize].original_name);
                         p.store[exported_members].put(
                             fn_name,
                             TSNamespaceMember {
@@ -306,7 +306,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let ref_ = locref.ref_;
                         // SAFETY: original_name is an arena-owned slice valid for 'a.
                         let class_name: &[u8] =
-                            p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
+                            p.arena_str(p.symbols[ref_.inner_index() as usize].original_name);
                         p.store[exported_members].put(
                             class_name,
                             TSNamespaceMember {
@@ -325,7 +325,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             let member_data = clone_ts_member_data(member_data);
                             // SAFETY: original_name is arena-owned, valid for 'a.
                             let ns_name: &[u8] =
-                                p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
+                                p.arena_str(p.symbols[ref_.inner_index() as usize].original_name);
                             p.store[exported_members].put(
                                 ns_name,
                                 TSNamespaceMember {
@@ -344,7 +344,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             let member_data = clone_ts_member_data(member_data);
                             // SAFETY: original_name is arena-owned, valid for 'a.
                             let enum_name: &[u8] =
-                                p.store.str(p.symbols[ref_.inner_index() as usize].original_name);
+                                p.arena_str(p.symbols[ref_.inner_index() as usize].original_name);
                             p.store[exported_members].put(
                                 enum_name,
                                 TSNamespaceMember {
@@ -465,15 +465,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         // S::Namespace.stmts é `StoreSlice<Stmt>`: a lista de trabalho vai para o Store aqui.
-        Ok(p.s(
-            S::Namespace {
+        Ok({ let arg_a = S::Namespace {
                 name,
                 arg: arg_ref,
                 stmts: p.store.alloc_slice(stmts.into_vec()),
                 is_export: opts.is_export,
-            },
+            }; p.s( arg_a,
             loc,
-        ))
+        ) })
     }
 
     pub(crate) fn parse_type_script_import_equals_stmt(
@@ -647,7 +646,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Identifiers can be referenced by other values
             if !opts.is_typescript_declare && needs_symbol {
-                value.ref_ = p.declare_symbol(SymbolKind::Other, value.loc, p.store.str(value.name))?;
+                let value_name = p.arena_str(value.name);
+                value.ref_ = p.declare_symbol(SymbolKind::Other, value.loc, value_name)?;
             }
 
             // Parse the initializer
@@ -661,7 +661,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             values.push(value);
 
             p.store[exported_members].put(
-                p.store.str(value_name),
+                p.arena_str(value_name),
                 TSNamespaceMember {
                     loc: value_loc,
                     data: TSNamespaceMemberData::EnumProperty,
@@ -764,14 +764,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let prev = p.scopes_in_order_for_enum.insert(&loc, scope_order_clone);
         debug_assert!(prev.is_none());
 
-        Ok(p.s(
-            S::Enum {
+        Ok({ let arg_a = S::Enum {
                 name,
                 arg: arg_ref,
                 values: p.store.alloc_slice(values),
                 is_export: opts.is_export,
-            },
+            }; p.s( arg_a,
             loc,
-        ))
+        ) })
     }
 }

@@ -52,523 +52,528 @@ impl<'a> ImportScanner<'a> {
             let mut stmt = stmts[i]; // copy
             match stmt.data {
                 js_ast::StmtData::SImport(mut import_ptr) => {
-                    let st: &mut S::Import = &mut p.store[import_ptr];
+                    // A cópia do `Import` evita o empréstimo longo de `p.store`: grava de volta ao fim, e o `continue` do laço
+                    // externo vira `break 'body` para a gravação não ser pulada.
+                    let mut st: S::Import = p.store[import_ptr].clone();
+                    'body: {
 
-                    let import_record_index = st.import_record_index;
-                    // O registro é relido pelo índice a cada uso: um `&mut ImportRecord` não convive com os outros
-                    // empréstimos de `p` no braço.
-                    macro_rules! record {
-                        () => {
-                            p.import_records.items_mut()[import_record_index as usize]
-                        };
-                    }
-
-                    if record!().path.namespace == crate::Macro::NAMESPACE {
-                        // `Path::isMacro()` inlined (no Rust method yet).
-                        record!().flags.insert(import_record::Flags::IS_UNUSED);
-                        record!().path.is_disabled = true;
-                        continue;
-                    }
-
-                    // The official TypeScript compiler always removes unused imported
-                    // symbols. However, we deliberately deviate from the official
-                    // TypeScript compiler's behavior doing this in a specific scenario:
-                    // we are not bundling, symbol renaming is off, and the tsconfig.json
-                    // "importsNotUsedAsValues" setting is present and is not set to
-                    // "remove".
-                    //
-                    // This exists to support the use case of compiling partial modules for
-                    // compile-to-JavaScript languages such as Svelte. These languages try
-                    // to reference imports in ways that are impossible for esbuild to know
-                    // about when esbuild is only given a partial module to compile. Here
-                    // is an example of some Svelte code that might use esbuild to convert
-                    // TypeScript to JavaScript:
-                    //
-                    //   <script lang="ts">
-                    //     import Counter from './Counter.svelte';
-                    //     export let name: string = 'world';
-                    //   </script>
-                    //   <main>
-                    //     <h1>Hello {name}!</h1>
-                    //     <Counter />
-                    //   </main>
-                    //
-                    // Tools that use esbuild to compile TypeScript code inside a Svelte
-                    // file like this only give esbuild the contents of the <script> tag.
-                    // These tools work around this missing import problem when using the
-                    // official TypeScript compiler by hacking the TypeScript AST to
-                    // remove the "unused import" flags. This isn't possible in esbuild
-                    // because esbuild deliberately does not expose an AST manipulation
-                    // API for performance reasons.
-                    //
-                    // We deviate from the TypeScript compiler's behavior in this specific
-                    // case because doing so is useful for these compile-to-JavaScript
-                    // languages and is benign in other cases. The rationale is as follows:
-                    //
-                    //   * If "importsNotUsedAsValues" is absent or set to "remove", then
-                    //     we don't know if these imports are values or types. It's not
-                    //     safe to keep them because if they are types, the missing imports
-                    //     will cause run-time failures because there will be no matching
-                    //     exports. It's only safe keep imports if "importsNotUsedAsValues"
-                    //     is set to "preserve" or "error" because then we can assume that
-                    //     none of the imports are types (since the TypeScript compiler
-                    //     would generate an error in that case).
-                    //
-                    //   * If we're bundling, then we know we aren't being used to compile
-                    //     a partial module. The parser is seeing the entire code for the
-                    //     module so it's safe to remove unused imports. And also we don't
-                    //     want the linker to generate errors about missing imports if the
-                    //     imported file is also in the bundle.
-                    //
-                    //   * If identifier minification is enabled, then using esbuild as a
-                    //     partial-module transform library wouldn't work anyway because
-                    //     the names wouldn't match. And that means we're minifying so the
-                    //     user is expecting the output to be as small as possible. So we
-                    //     should omit unused imports.
-                    //
-                    let mut did_remove_star_loc = false;
-                    let keep_unused_imports = !p.options.features.trim_unused_imports;
-                    // TypeScript always trims unused imports. This is important for
-                    // correctness since some imports might be fake (only in the type
-                    // system and used for type-only imports).
-                    if !keep_unused_imports {
-                        let mut found_imports = false;
-                        let mut is_unused_in_typescript = true;
-
-                        if let Some(default_name) = st.default_name {
-                            found_imports = true;
-                            let symbol = &p.symbols[default_name.ref_.inner_index() as usize];
-
-                            // TypeScript has a separate definition of unused
-                            if is_typescript_enabled
-                                && p.ts_use_counts[default_name.ref_.inner_index() as usize] != 0
-                            {
-                                is_unused_in_typescript = false;
-                            }
-
-                            // Remove the symbol if it's never used outside a dead code region
-                            if symbol.use_count_estimate == 0 {
-                                st.default_name = None;
-                            }
+                        let import_record_index = st.import_record_index;
+                        // O registro é relido pelo índice a cada uso: um `&mut ImportRecord` não convive com os outros
+                        // empréstimos de `p` no braço.
+                        macro_rules! record {
+                            () => {
+                                p.import_records.items_mut()[import_record_index as usize]
+                            };
                         }
 
-                        // Remove the star import if it's unused
-                        if !st.star_name_loc.is_empty() {
-                            found_imports = true;
-                            let symbol = &p.symbols[st.namespace_ref.inner_index() as usize];
-
-                            // TypeScript has a separate definition of unused
-                            if is_typescript_enabled
-                                && p.ts_use_counts[st.namespace_ref.inner_index() as usize] != 0
-                            {
-                                is_unused_in_typescript = false;
-                            }
-
-                            // Remove the symbol if it's never used outside a dead code region.
-                            //
-                            // Never strip the namespace binding from an `import defer`
-                            // statement: the grammar requires `* as ns`, so dropping
-                            // it would force the printer to emit a bare side-effect
-                            // import: eagerly evaluating a module the user asked to
-                            // defer. Keeping the binding preserves the intended
-                            // semantics (the module is linked but never evaluated,
-                            // since nothing touches `ns` at runtime).
-                            if symbol.use_count_estimate == 0 && !st.phase_defer {
-                                // Make sure we don't remove this if it was used for a property
-                                // access while bundling
-                                let mut has_any = false;
-
-                                if let Some(entry) =
-                                    p.import_items_for_namespace.get(&st.namespace_ref)
-                                {
-                                    if entry.count() > 0 {
-                                        has_any = true;
-                                    }
-                                }
-
-                                if !has_any {
-                                    st.star_name_loc = bun_ast::Loc::EMPTY;
-                                    did_remove_star_loc = true;
-                                }
-                            }
+                        if record!().path.namespace == crate::Macro::NAMESPACE {
+                            // `Path::isMacro()` inlined (no Rust method yet).
+                            record!().flags.insert(import_record::Flags::IS_UNUSED);
+                            record!().path.is_disabled = true;
+                            break 'body;
                         }
 
-                        // Remove items if they are unused
-                        let items: &mut [js_ast::ClauseItem] = (&mut p.store[st.items]);
-                        if !items.is_empty() {
-                            found_imports = true;
-                            let mut items_end: usize = 0;
-                            let len = items.len();
-                            for idx in 0..len {
-                                let ref_ = items[idx].name.ref_;
-                                let symbol = &p.symbols[ref_.inner_index() as usize];
+                        // The official TypeScript compiler always removes unused imported
+                        // symbols. However, we deliberately deviate from the official
+                        // TypeScript compiler's behavior doing this in a specific scenario:
+                        // we are not bundling, symbol renaming is off, and the tsconfig.json
+                        // "importsNotUsedAsValues" setting is present and is not set to
+                        // "remove".
+                        //
+                        // This exists to support the use case of compiling partial modules for
+                        // compile-to-JavaScript languages such as Svelte. These languages try
+                        // to reference imports in ways that are impossible for esbuild to know
+                        // about when esbuild is only given a partial module to compile. Here
+                        // is an example of some Svelte code that might use esbuild to convert
+                        // TypeScript to JavaScript:
+                        //
+                        //   <script lang="ts">
+                        //     import Counter from './Counter.svelte';
+                        //     export let name: string = 'world';
+                        //   </script>
+                        //   <main>
+                        //     <h1>Hello {name}!</h1>
+                        //     <Counter />
+                        //   </main>
+                        //
+                        // Tools that use esbuild to compile TypeScript code inside a Svelte
+                        // file like this only give esbuild the contents of the <script> tag.
+                        // These tools work around this missing import problem when using the
+                        // official TypeScript compiler by hacking the TypeScript AST to
+                        // remove the "unused import" flags. This isn't possible in esbuild
+                        // because esbuild deliberately does not expose an AST manipulation
+                        // API for performance reasons.
+                        //
+                        // We deviate from the TypeScript compiler's behavior in this specific
+                        // case because doing so is useful for these compile-to-JavaScript
+                        // languages and is benign in other cases. The rationale is as follows:
+                        //
+                        //   * If "importsNotUsedAsValues" is absent or set to "remove", then
+                        //     we don't know if these imports are values or types. It's not
+                        //     safe to keep them because if they are types, the missing imports
+                        //     will cause run-time failures because there will be no matching
+                        //     exports. It's only safe keep imports if "importsNotUsedAsValues"
+                        //     is set to "preserve" or "error" because then we can assume that
+                        //     none of the imports are types (since the TypeScript compiler
+                        //     would generate an error in that case).
+                        //
+                        //   * If we're bundling, then we know we aren't being used to compile
+                        //     a partial module. The parser is seeing the entire code for the
+                        //     module so it's safe to remove unused imports. And also we don't
+                        //     want the linker to generate errors about missing imports if the
+                        //     imported file is also in the bundle.
+                        //
+                        //   * If identifier minification is enabled, then using esbuild as a
+                        //     partial-module transform library wouldn't work anyway because
+                        //     the names wouldn't match. And that means we're minifying so the
+                        //     user is expecting the output to be as small as possible. So we
+                        //     should omit unused imports.
+                        //
+                        let mut did_remove_star_loc = false;
+                        let keep_unused_imports = !p.options.features.trim_unused_imports;
+                        // TypeScript always trims unused imports. This is important for
+                        // correctness since some imports might be fake (only in the type
+                        // system and used for type-only imports).
+                        if !keep_unused_imports {
+                            let mut found_imports = false;
+                            let mut is_unused_in_typescript = true;
+
+                            if let Some(default_name) = st.default_name {
+                                found_imports = true;
+                                let symbol = &p.symbols[default_name.ref_.inner_index() as usize];
 
                                 // TypeScript has a separate definition of unused
                                 if is_typescript_enabled
-                                    && p.ts_use_counts[ref_.inner_index() as usize] != 0
+                                    && p.ts_use_counts[default_name.ref_.inner_index() as usize] != 0
                                 {
                                     is_unused_in_typescript = false;
                                 }
 
                                 // Remove the symbol if it's never used outside a dead code region
-                                if symbol.use_count_estimate != 0 {
-                                    // `ClauseItem` é Copy: o item que fica desce para `items_end`.
-                                    items[items_end] = items[idx];
-                                    items_end += 1;
+                                if symbol.use_count_estimate == 0 {
+                                    st.default_name = None;
                                 }
                             }
 
-                            st.items.truncate(items_end);
-                        }
+                            // Remove the star import if it's unused
+                            if !st.star_name_loc.is_empty() {
+                                found_imports = true;
+                                let symbol = &p.symbols[st.namespace_ref.inner_index() as usize];
 
-                        // -- Original Comment --
-                        // Omit this statement if we're parsing TypeScript and all imports are
-                        // unused. Note that this is distinct from the case where there were
-                        // no imports at all (e.g. "import 'foo'"). In that case we want to keep
-                        // the statement because the user is clearly trying to import the module
-                        // for side effects.
-                        //
-                        // This culling is important for correctness when parsing TypeScript
-                        // because a) the TypeScript compiler does this and we want to match it
-                        // and b) this may be a fake module that only exists in the type system
-                        // and doesn't actually exist in reality.
-                        //
-                        // We do not want to do this culling in JavaScript though because the
-                        // module may have side effects even if all imports are unused.
-                        // -- Original Comment --
-
-                        // jarred: I think, in this project, we want this behavior, even in JavaScript.
-                        // I think this would be a big performance improvement.
-                        // The less you import, the less code you transpile.
-                        // Side-effect imports are nearly always done through identifier-less imports
-                        // e.g. `import 'fancy-stylesheet-thing/style.css';`
-                        // This is a breaking change though. We can make it an option with some guardrail
-                        // so maybe if it errors, it shows a suggestion "retry without trimming unused imports"
-                        if (is_typescript_enabled
-                            && found_imports
-                            && is_unused_in_typescript
-                            && !p.options.preserve_unused_imports_ts)
-                            || (!is_typescript_enabled
-                                && p.options.features.trim_unused_imports
-                                && found_imports
-                                && st.star_name_loc.is_empty()
-                                // SAFETY: arena-owned slice; see above.
-                                && (&p.store[st.items]).is_empty()
-                                && st.default_name.is_none())
-                        {
-                            // internal imports are presumed to be always used
-                            // require statements cannot be stripped
-                            if !record!().flags.contains(import_record::Flags::IS_INTERNAL)
-                                && !record!()
-                                    .flags
-                                    .contains(import_record::Flags::WAS_ORIGINALLY_REQUIRE)
-                            {
-                                record!().flags.insert(import_record::Flags::IS_UNUSED);
-                                continue;
-                            }
-                        }
-                    }
-
-                    let _ = did_remove_star_loc;
-
-                    let namespace_ref = st.namespace_ref;
-                    // `import defer * as ns` must keep its namespace binding
-                    // (see the matching guard above): converting it to a
-                    // clause import would lose the defer phase entirely.
-                    let convert_star_to_clause = !p.options.bundle
-                        && !st.phase_defer
-                        && (p.symbols[namespace_ref.inner_index() as usize].use_count_estimate
-                            == 0);
-
-                    if convert_star_to_clause && !keep_unused_imports {
-                        st.star_name_loc = bun_ast::Loc::EMPTY;
-                    }
-
-                    if is_typescript_enabled {
-                        let default_binding = st.default_name.map(|name| (name.ref_, name.loc));
-                        let star_binding = st
-                            .star_name_loc
-                            .to_nullable()
-                            .map(|loc| (st.namespace_ref, loc));
-                        let item_bindings = (&p.store[st
-                            .items])
-                            .iter()
-                            .map(|item| (item.name.ref_, item.name.loc));
-
-                        for (name_ref, import_loc) in default_binding
-                            .into_iter()
-                            .chain(star_binding)
-                            .chain(item_bindings)
-                        {
-                            // Only report source-level re-declarations: `ReplaceWithNew`
-                            // links the import to the symbol that took over the scope
-                            // member, while generated symbols (e.g. JSX runtime imports)
-                            // link the other way.
-                            let symbol = &p.symbols[name_ref.inner_index() as usize];
-                            let mut link = symbol.link.get();
-                            if !link.is_valid() {
-                                continue;
-                            }
-                            // Follow the chain of replacements to the live symbol.
-                            loop {
-                                let next = p.symbols[link.inner_index() as usize].link.get();
-                                if !next.is_valid() {
-                                    break;
+                                // TypeScript has a separate definition of unused
+                                if is_typescript_enabled
+                                    && p.ts_use_counts[st.namespace_ref.inner_index() as usize] != 0
+                                {
+                                    is_unused_in_typescript = false;
                                 }
-                                link = next;
-                            }
-                            // SAFETY: arena-owned slice valid for 'p.
-                            let name = p.store.str(symbol.original_name);
-                            let member = p
-                                .module_scope()
-                                .get_member_with_hash(&p.store, name, js_ast::scope::Members::hash(name));
-                            if let Some(member) = member {
-                                if member.ref_.eql(link) {
-                                    p.lexer.log.add_symbol_already_declared_error(
-                                        p.source, name, member.loc, import_loc,
-                                    );
+
+                                // Remove the symbol if it's never used outside a dead code region.
+                                //
+                                // Never strip the namespace binding from an `import defer`
+                                // statement: the grammar requires `* as ns`, so dropping
+                                // it would force the printer to emit a bare side-effect
+                                // import: eagerly evaluating a module the user asked to
+                                // defer. Keeping the binding preserves the intended
+                                // semantics (the module is linked but never evaluated,
+                                // since nothing touches `ns` at runtime).
+                                if symbol.use_count_estimate == 0 && !st.phase_defer {
+                                    // Make sure we don't remove this if it was used for a property
+                                    // access while bundling
+                                    let mut has_any = false;
+
+                                    if let Some(entry) =
+                                        p.import_items_for_namespace.get(&st.namespace_ref)
+                                    {
+                                        if entry.count() > 0 {
+                                            has_any = true;
+                                        }
+                                    }
+
+                                    if !has_any {
+                                        st.star_name_loc = bun_ast::Loc::EMPTY;
+                                        did_remove_star_loc = true;
+                                    }
                                 }
                             }
-                        }
-                    }
 
-                    if st.default_name.is_some() {
-                        record!()
-                            .flags
-                            .insert(import_record::Flags::CONTAINS_DEFAULT_ALIAS);
-                    }
+                            // Remove items if they are unused
+                            let items: &mut [js_ast::ClauseItem] = (&mut p.store[st.items]);
+                            if !items.is_empty() {
+                                found_imports = true;
+                                let mut items_end: usize = 0;
+                                let len = items.len();
+                                for idx in 0..len {
+                                    let ref_ = items[idx].name.ref_;
+                                    let symbol = &p.symbols[ref_.inner_index() as usize];
 
-                    // borrow (not clone): disjoint-field borrow vs. the
-                    // `p.symbols` / `p.named_imports` / `p.declared_symbols` writes
-                    // below. `None` stands in for `ImportItemForNamespaceMap.init()`.
-                    let existing_items: Option<&ImportItemForNamespaceMap> =
-                        p.import_items_for_namespace.get(&namespace_ref);
-                    let existing_count = existing_items.map(|m| m.count()).unwrap_or(0);
+                                    // TypeScript has a separate definition of unused
+                                    if is_typescript_enabled
+                                        && p.ts_use_counts[ref_.inner_index() as usize] != 0
+                                    {
+                                        is_unused_in_typescript = false;
+                                    }
 
-                    // SAFETY: arena-owned slice; valid for AST arena lifetime.
-                    let st_items: &[js_ast::ClauseItem] = (&p.store[st.items]);
+                                    // Remove the symbol if it's never used outside a dead code region
+                                    if symbol.use_count_estimate != 0 {
+                                        // `ClauseItem` é Copy: o item que fica desce para `items_end`.
+                                        items[items_end] = items[idx];
+                                        items_end += 1;
+                                    }
+                                }
 
-                    if p.options.bundle {
-                        if !st.star_name_loc.is_empty() && existing_count > 0 {
-                            let existing = existing_items.unwrap();
-                            // Map keys are Box<[u8]> that drop with the parser; copy into the
-                            // AST arena so the `StoreStr` stored on NamedImport / NamespaceAlias
-                            // stays valid through linking and printing.
-                            let arena = p.arena;
-                            let mut sorted: Vec<&[u8]> = Vec::with_capacity(existing_count);
-                            for alias in existing.keys() {
-                                sorted.push(arena.alloc_slice_copy(alias));
+                                st.items.truncate(items_end);
                             }
-                            strings::sort_desc(&mut sorted);
-                            handle_oom(p.named_imports.ensure_unused_capacity(sorted.len()));
 
-                            // Create named imports for these property accesses. This will
-                            // cause missing imports to generate useful warnings.
+                            // -- Original Comment --
+                            // Omit this statement if we're parsing TypeScript and all imports are
+                            // unused. Note that this is distinct from the case where there were
+                            // no imports at all (e.g. "import 'foo'"). In that case we want to keep
+                            // the statement because the user is clearly trying to import the module
+                            // for side effects.
                             //
-                            // It will also improve bundling efficiency for internal imports
-                            // by still converting property accesses off the namespace into
-                            // bare identifiers even if the namespace is still needed.
-                            for alias in &sorted {
-                                let item: LocRef = *existing.get(*alias).unwrap();
-                                handle_oom(p.named_imports.put(
-                                    &item.ref_,
+                            // This culling is important for correctness when parsing TypeScript
+                            // because a) the TypeScript compiler does this and we want to match it
+                            // and b) this may be a fake module that only exists in the type system
+                            // and doesn't actually exist in reality.
+                            //
+                            // We do not want to do this culling in JavaScript though because the
+                            // module may have side effects even if all imports are unused.
+                            // -- Original Comment --
+
+                            // jarred: I think, in this project, we want this behavior, even in JavaScript.
+                            // I think this would be a big performance improvement.
+                            // The less you import, the less code you transpile.
+                            // Side-effect imports are nearly always done through identifier-less imports
+                            // e.g. `import 'fancy-stylesheet-thing/style.css';`
+                            // This is a breaking change though. We can make it an option with some guardrail
+                            // so maybe if it errors, it shows a suggestion "retry without trimming unused imports"
+                            if (is_typescript_enabled
+                                && found_imports
+                                && is_unused_in_typescript
+                                && !p.options.preserve_unused_imports_ts)
+                                || (!is_typescript_enabled
+                                    && p.options.features.trim_unused_imports
+                                    && found_imports
+                                    && st.star_name_loc.is_empty()
+                                    // SAFETY: arena-owned slice; see above.
+                                    && (&p.store[st.items]).is_empty()
+                                    && st.default_name.is_none())
+                            {
+                                // internal imports are presumed to be always used
+                                // require statements cannot be stripped
+                                if !record!().flags.contains(import_record::Flags::IS_INTERNAL)
+                                    && !record!()
+                                        .flags
+                                        .contains(import_record::Flags::WAS_ORIGINALLY_REQUIRE)
+                                {
+                                    record!().flags.insert(import_record::Flags::IS_UNUSED);
+                                    break 'body;
+                                }
+                            }
+                        }
+
+                        let _ = did_remove_star_loc;
+
+                        let namespace_ref = st.namespace_ref;
+                        // `import defer * as ns` must keep its namespace binding
+                        // (see the matching guard above): converting it to a
+                        // clause import would lose the defer phase entirely.
+                        let convert_star_to_clause = !p.options.bundle
+                            && !st.phase_defer
+                            && (p.symbols[namespace_ref.inner_index() as usize].use_count_estimate
+                                == 0);
+
+                        if convert_star_to_clause && !keep_unused_imports {
+                            st.star_name_loc = bun_ast::Loc::EMPTY;
+                        }
+
+                        if is_typescript_enabled {
+                            let default_binding = st.default_name.map(|name| (name.ref_, name.loc));
+                            let star_binding = st
+                                .star_name_loc
+                                .to_nullable()
+                                .map(|loc| (st.namespace_ref, loc));
+                            let item_bindings = (&p.store[st
+                                .items])
+                                .iter()
+                                .map(|item| (item.name.ref_, item.name.loc));
+
+                            for (name_ref, import_loc) in default_binding
+                                .into_iter()
+                                .chain(star_binding)
+                                .chain(item_bindings)
+                            {
+                                // Only report source-level re-declarations: `ReplaceWithNew`
+                                // links the import to the symbol that took over the scope
+                                // member, while generated symbols (e.g. JSX runtime imports)
+                                // link the other way.
+                                let symbol = &p.symbols[name_ref.inner_index() as usize];
+                                let mut link = symbol.link.get();
+                                if !link.is_valid() {
+                                    continue;
+                                }
+                                // Follow the chain of replacements to the live symbol.
+                                loop {
+                                    let next = p.symbols[link.inner_index() as usize].link.get();
+                                    if !next.is_valid() {
+                                        break;
+                                    }
+                                    link = next;
+                                }
+                                // SAFETY: arena-owned slice valid for 'p.
+                                let name = p.store.str(symbol.original_name);
+                                let member = p
+                                    .module_scope()
+                                    .get_member_with_hash(&p.store, name, js_ast::scope::Members::hash(name));
+                                if let Some(member) = member {
+                                    if member.ref_.eql(link) {
+                                        p.lexer.log.add_symbol_already_declared_error(
+                                            p.source, name, member.loc, import_loc,
+                                        );
+                                    }
+                                }
+                            }
+                        }
+
+                        if st.default_name.is_some() {
+                            record!()
+                                .flags
+                                .insert(import_record::Flags::CONTAINS_DEFAULT_ALIAS);
+                        }
+
+                        // borrow (not clone): disjoint-field borrow vs. the
+                        // `p.symbols` / `p.named_imports` / `p.declared_symbols` writes
+                        // below. `None` stands in for `ImportItemForNamespaceMap.init()`.
+                        let existing_items: Option<&ImportItemForNamespaceMap> =
+                            p.import_items_for_namespace.get(&namespace_ref);
+                        let existing_count = existing_items.map(|m| m.count()).unwrap_or(0);
+
+                        // Cópia: os laços abaixo gravam no Store (`alloc_str`).
+                        let st_items: Vec<js_ast::ClauseItem> = p.store[st.items].to_vec();
+
+                        if p.options.bundle {
+                            if !st.star_name_loc.is_empty() && existing_count > 0 {
+                                let existing = existing_items.unwrap();
+                                // Map keys are Box<[u8]> that drop with the parser; copy into the
+                                // AST arena so the `StoreStr` stored on NamedImport / NamespaceAlias
+                                // stays valid through linking and printing.
+                                let arena = p.arena;
+                                let mut sorted: Vec<&[u8]> = Vec::with_capacity(existing_count);
+                                for alias in existing.keys() {
+                                    sorted.push(arena.alloc_slice_copy(alias));
+                                }
+                                strings::sort_desc(&mut sorted);
+                                handle_oom(p.named_imports.ensure_unused_capacity(sorted.len()));
+
+                                // Create named imports for these property accesses. This will
+                                // cause missing imports to generate useful warnings.
+                                //
+                                // It will also improve bundling efficiency for internal imports
+                                // by still converting property accesses off the namespace into
+                                // bare identifiers even if the namespace is still needed.
+                                for alias in &sorted {
+                                    let item: LocRef = *existing.get(*alias).unwrap();
+                                    handle_oom(p.named_imports.put(
+                                        &item.ref_,
+                                        js_ast::NamedImport {
+                                            alias: Some(p.store.alloc_str(*alias)),
+                                            alias_loc: item.loc,
+                                            namespace_ref,
+                                            import_record_index: st.import_record_index,
+                                            local_parts_with_uses: Vec::new(),
+                                            alias_is_star: false,
+                                            is_exported: false,
+                                        },
+                                    ));
+
+                                    let name: LocRef = item;
+                                    let name_ref = name.ref_;
+
+                                    // Make sure the printer prints this as a property access
+                                    let symbol: &mut Symbol =
+                                        &mut p.symbols[name_ref.inner_index() as usize];
+                                    // SAFETY: `original_name` is an arena-owned slice valid for 'p.
+                                    let original_name = p.store.str(symbol.original_name);
+
+                                    symbol.namespace_alias =
+                                        Some(Box::new(G::NamespaceAlias {
+                                            namespace_ref,
+                                            alias: p.store.alloc_str(*alias),
+                                            import_record_index: st.import_record_index,
+                                            was_originally_property_access: !st
+                                                .star_name_loc
+                                                .is_empty()
+                                                && existing.contains(original_name),
+                                        }));
+
+                                    // Also record these automatically-generated top-level namespace alias symbols
+                                    p.declared_symbols
+                                        .append(js_ast::DeclaredSymbol {
+                                            ref_: name_ref,
+                                            is_top_level: true,
+                                        });
+                                }
+                            }
+
+                            handle_oom(p.named_imports.ensure_unused_capacity(
+                                st_items.len()
+                                    + usize::from(st.default_name.is_some())
+                                    + usize::from(!st.star_name_loc.is_empty()),
+                            ));
+
+                            if let Some(loc) = st.star_name_loc.to_nullable() {
+                                record!()
+                                    .flags
+                                    .insert(import_record::Flags::CONTAINS_IMPORT_STAR);
+                                p.named_imports.put(
+                                    &namespace_ref,
                                     js_ast::NamedImport {
-                                        alias: Some(p.store.alloc_str(*alias)),
-                                        alias_loc: item.loc,
+                                        alias_is_star: true,
+                                        alias: Some(p.store.alloc_str(b"")),
+                                        alias_loc: loc,
+                                        namespace_ref: Ref::NONE,
+                                        import_record_index: st.import_record_index,
+                                        local_parts_with_uses: Vec::new(),
+                                        is_exported: false,
+                                    },
+                                );
+                            }
+
+                            if let Some(default) = st.default_name {
+                                record!()
+                                    .flags
+                                    .insert(import_record::Flags::CONTAINS_DEFAULT_ALIAS);
+                                p.named_imports.put(
+                                    &default.ref_,
+                                    js_ast::NamedImport {
+                                        alias: Some(p.store.alloc_str(b"default")),
+                                        alias_loc: default.loc,
                                         namespace_ref,
                                         import_record_index: st.import_record_index,
                                         local_parts_with_uses: Vec::new(),
                                         alias_is_star: false,
                                         is_exported: false,
                                     },
-                                ));
+                                );
+                            }
 
-                                let name: LocRef = item;
+                            for item in st_items.iter() {
+                                let name: LocRef = item.name;
                                 let name_ref = name.ref_;
+
+                                p.named_imports.put(
+                                    &name_ref,
+                                    js_ast::NamedImport {
+                                        alias: Some(item.alias),
+                                        alias_loc: name.loc,
+                                        namespace_ref,
+                                        import_record_index: st.import_record_index,
+                                        local_parts_with_uses: Vec::new(),
+                                        alias_is_star: false,
+                                        is_exported: false,
+                                    },
+                                );
+                            }
+                        } else {
+                            // ESM requires live bindings
+                            // CommonJS does not require live bindings
+                            // We load ESM in browsers & in Bun.js
+                            // We have to simulate live bindings for cases where the code is bundled
+                            // We do not know at this stage whether or not the import statement is bundled
+                            // This keeps track of the `namespace_alias` incase, at printing time, we determine that we should print it with the namespace
+                            for item in st_items.iter() {
+                                // SAFETY: `item.alias` is an arena-owned slice valid for 'p.
+                                if strings::eql_comptime(p.store.str(item.alias), b"default") {
+                                    record!()
+                                        .flags
+                                        .insert(import_record::Flags::CONTAINS_DEFAULT_ALIAS);
+                                }
+
+                                let name: LocRef = item.name;
+                                let name_ref = name.ref_;
+
+                                p.named_imports.put(
+                                    &name_ref,
+                                    js_ast::NamedImport {
+                                        alias: Some(item.alias),
+                                        alias_loc: name.loc,
+                                        namespace_ref,
+                                        import_record_index: st.import_record_index,
+                                        local_parts_with_uses: Vec::new(),
+                                        alias_is_star: false,
+                                        is_exported: false,
+                                    },
+                                )?;
 
                                 // Make sure the printer prints this as a property access
                                 let symbol: &mut Symbol =
                                     &mut p.symbols[name_ref.inner_index() as usize];
-                                // SAFETY: `original_name` is an arena-owned slice valid for 'p.
-                                let original_name = p.store.str(symbol.original_name);
+                                if record!()
+                                    .flags
+                                    .contains(import_record::Flags::CONTAINS_IMPORT_STAR)
+                                    || !st.star_name_loc.is_empty()
+                                {
+                                    // SAFETY: arena-owned slice valid for 'p.
+                                    let original_name = p.store.str(symbol.original_name);
+                                    symbol.namespace_alias =
+                                        Some(Box::new(G::NamespaceAlias {
+                                            namespace_ref,
+                                            alias: item.alias,
+                                            import_record_index: st.import_record_index,
+                                            was_originally_property_access: !st
+                                                .star_name_loc
+                                                .is_empty()
+                                                && existing_items
+                                                    .map(|m| m.contains(original_name))
+                                                    .unwrap_or(false),
+                                        }));
+                                }
+                            }
 
-                                symbol.namespace_alias =
-                                    Some(Box::new(G::NamespaceAlias {
-                                        namespace_ref,
-                                        alias: p.store.alloc_str(*alias),
-                                        import_record_index: st.import_record_index,
-                                        was_originally_property_access: !st
-                                            .star_name_loc
-                                            .is_empty()
-                                            && existing.contains(original_name),
-                                    }));
-
-                                // Also record these automatically-generated top-level namespace alias symbols
-                                p.declared_symbols
-                                    .append(js_ast::DeclaredSymbol {
-                                        ref_: name_ref,
-                                        is_top_level: true,
-                                    });
+                            if record!()
+                                .flags
+                                .contains(import_record::Flags::WAS_ORIGINALLY_REQUIRE)
+                            {
+                                let symbol = &mut p.symbols[namespace_ref.inner_index() as usize];
+                                symbol.namespace_alias = Some(Box::new(G::NamespaceAlias {
+                                    namespace_ref,
+                                    alias: js_ast::StoreStr::EMPTY,
+                                    import_record_index: st.import_record_index,
+                                    was_originally_property_access: false,
+                                }));
                             }
                         }
 
-                        handle_oom(p.named_imports.ensure_unused_capacity(
-                            st_items.len()
-                                + usize::from(st.default_name.is_some())
-                                + usize::from(!st.star_name_loc.is_empty()),
-                        ));
+                        p.import_records_for_current_part
+                            .push(st.import_record_index);
 
-                        if let Some(loc) = st.star_name_loc.to_nullable() {
+                        if !st.star_name_loc.is_empty() {
                             record!()
                                 .flags
                                 .insert(import_record::Flags::CONTAINS_IMPORT_STAR);
-                            p.named_imports.put(
-                                &namespace_ref,
-                                js_ast::NamedImport {
-                                    alias_is_star: true,
-                                    alias: Some(p.store.alloc_str(b"")),
-                                    alias_loc: loc,
-                                    namespace_ref: Ref::NONE,
-                                    import_record_index: st.import_record_index,
-                                    local_parts_with_uses: Vec::new(),
-                                    is_exported: false,
-                                },
-                            );
                         }
-
-                        if let Some(default) = st.default_name {
+                        if st.default_name.is_some() {
                             record!()
                                 .flags
                                 .insert(import_record::Flags::CONTAINS_DEFAULT_ALIAS);
-                            p.named_imports.put(
-                                &default.ref_,
-                                js_ast::NamedImport {
-                                    alias: Some(p.store.alloc_str(b"default")),
-                                    alias_loc: default.loc,
-                                    namespace_ref,
-                                    import_record_index: st.import_record_index,
-                                    local_parts_with_uses: Vec::new(),
-                                    alias_is_star: false,
-                                    is_exported: false,
-                                },
-                            );
                         }
 
                         for item in st_items.iter() {
-                            let name: LocRef = item.name;
-                            let name_ref = name.ref_;
-
-                            p.named_imports.put(
-                                &name_ref,
-                                js_ast::NamedImport {
-                                    alias: Some(item.alias),
-                                    alias_loc: name.loc,
-                                    namespace_ref,
-                                    import_record_index: st.import_record_index,
-                                    local_parts_with_uses: Vec::new(),
-                                    alias_is_star: false,
-                                    is_exported: false,
-                                },
-                            );
-                        }
-                    } else {
-                        // ESM requires live bindings
-                        // CommonJS does not require live bindings
-                        // We load ESM in browsers & in Bun.js
-                        // We have to simulate live bindings for cases where the code is bundled
-                        // We do not know at this stage whether or not the import statement is bundled
-                        // This keeps track of the `namespace_alias` incase, at printing time, we determine that we should print it with the namespace
-                        for item in st_items.iter() {
-                            // SAFETY: `item.alias` is an arena-owned slice valid for 'p.
-                            if strings::eql_comptime(p.store.str(item.alias), b"default") {
+                            // SAFETY: arena-owned slice valid for 'p.
+                            let alias = p.store.str(item.alias);
+                            if strings::eql_comptime(alias, b"default") {
                                 record!()
                                     .flags
                                     .insert(import_record::Flags::CONTAINS_DEFAULT_ALIAS);
                             }
-
-                            let name: LocRef = item.name;
-                            let name_ref = name.ref_;
-
-                            p.named_imports.put(
-                                &name_ref,
-                                js_ast::NamedImport {
-                                    alias: Some(item.alias),
-                                    alias_loc: name.loc,
-                                    namespace_ref,
-                                    import_record_index: st.import_record_index,
-                                    local_parts_with_uses: Vec::new(),
-                                    alias_is_star: false,
-                                    is_exported: false,
-                                },
-                            )?;
-
-                            // Make sure the printer prints this as a property access
-                            let symbol: &mut Symbol =
-                                &mut p.symbols[name_ref.inner_index() as usize];
-                            if record!()
-                                .flags
-                                .contains(import_record::Flags::CONTAINS_IMPORT_STAR)
-                                || !st.star_name_loc.is_empty()
-                            {
-                                // SAFETY: arena-owned slice valid for 'p.
-                                let original_name = p.store.str(symbol.original_name);
-                                symbol.namespace_alias =
-                                    Some(Box::new(G::NamespaceAlias {
-                                        namespace_ref,
-                                        alias: item.alias,
-                                        import_record_index: st.import_record_index,
-                                        was_originally_property_access: !st
-                                            .star_name_loc
-                                            .is_empty()
-                                            && existing_items
-                                                .map(|m| m.contains(original_name))
-                                                .unwrap_or(false),
-                                    }));
+                            if strings::eql_comptime(alias, b"__esModule") {
+                                record!()
+                                    .flags
+                                    .insert(import_record::Flags::CONTAINS_ES_MODULE_ALIAS);
                             }
                         }
-
-                        if record!()
-                            .flags
-                            .contains(import_record::Flags::WAS_ORIGINALLY_REQUIRE)
-                        {
-                            let symbol = &mut p.symbols[namespace_ref.inner_index() as usize];
-                            symbol.namespace_alias = Some(Box::new(G::NamespaceAlias {
-                                namespace_ref,
-                                alias: js_ast::StoreStr::EMPTY,
-                                import_record_index: st.import_record_index,
-                                was_originally_property_access: false,
-                            }));
-                        }
                     }
-
-                    p.import_records_for_current_part
-                        .push(st.import_record_index);
-
-                    if !st.star_name_loc.is_empty() {
-                        record!()
-                            .flags
-                            .insert(import_record::Flags::CONTAINS_IMPORT_STAR);
-                    }
-                    if st.default_name.is_some() {
-                        record!()
-                            .flags
-                            .insert(import_record::Flags::CONTAINS_DEFAULT_ALIAS);
-                    }
-
-                    for item in st_items.iter() {
-                        // SAFETY: arena-owned slice valid for 'p.
-                        let alias = p.store.str(item.alias);
-                        if strings::eql_comptime(alias, b"default") {
-                            record!()
-                                .flags
-                                .insert(import_record::Flags::CONTAINS_DEFAULT_ALIAS);
-                        }
-                        if strings::eql_comptime(alias, b"__esModule") {
-                            record!()
-                                .flags
-                                .insert(import_record::Flags::CONTAINS_ES_MODULE_ALIAS);
-                        }
-                    }
+                    p.store[import_ptr] = st;
                 }
 
                 js_ast::StmtData::SFunction(st) => {
@@ -705,8 +710,8 @@ impl<'a> ImportScanner<'a> {
                     // SAFETY: arena-owned slice valid for 'p.
                     for item in (&p.store[p.store[st].items]).iter() {
                         // SAFETY: arena-owned alias slice valid for 'p.
-                        let alias: &'p [u8] = p.store.str(item.alias);
-                        p.record_export(item.alias_loc, alias, item.name.ref_)?;
+                        let alias: &'p [u8] = p.arena_str(item.alias);
+                        p.record_export(item.alias_loc, &alias, item.name.ref_)?;
                     }
                 }
                 js_ast::StmtData::SExportStar(st) => {
@@ -727,8 +732,8 @@ impl<'a> ImportScanner<'a> {
                                 local_parts_with_uses: Vec::new(),
                             },
                         )?;
-                        let original: &'p [u8] = p.store.str(alias.original_name);
-                        p.record_export(alias.loc, original, p.store[st].namespace_ref)?;
+                        let original: &'p [u8] = p.arena_str(alias.original_name);
+                        p.record_export(alias.loc, &original, p.store[st].namespace_ref)?;
                         p.import_records.items_mut()[p.store[st].import_record_index as usize]
                             .flags
                             .insert(import_record::Flags::CONTAINS_IMPORT_STAR);
@@ -763,8 +768,8 @@ impl<'a> ImportScanner<'a> {
                             },
                         )?;
                         // SAFETY: arena-owned alias slice valid for 'p.
-                        let alias: &'p [u8] = p.store.str(item.alias);
-                        p.record_export(item.name.loc, alias, ref_)?;
+                        let alias: &'p [u8] = p.arena_str(item.alias);
+                        p.record_export(item.name.loc, &alias, ref_)?;
 
                         let record =
                             &mut p.import_records.items_mut()[p.store[st].import_record_index as usize];

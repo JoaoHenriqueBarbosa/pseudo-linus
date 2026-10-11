@@ -55,12 +55,10 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         // Collect all statements into a single array
         let mut all_stmts = BumpVec::with_capacity_in(total_stmts_count, bump);
         if reinject_strict {
-            all_stmts.push(self.s(
-                S::Directive {
+            all_stmts.push({ let arg_a = S::Directive {
                     value: self.store.alloc_str(b"use strict"),
-                },
-                self.module_scope_directive_loc,
-            ));
+                }; let arg_b = self.module_scope_directive_loc; self.s( arg_a, arg_b,
+            ) });
         }
         for part in parts.iter() {
             for stmt in self.store[part.stmts].iter() {
@@ -112,7 +110,9 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
 
                     // Extract individual identifiers from binding patterns for hoisting
                     let mut hoisted_decl_list = BumpVec::<G::Decl>::new_in(bump);
-                    for decl in (&self.store[self.store[local].decls]) {
+                    let local_decls = self.store[local].decls;
+                    for index in 0..local_decls.len() {
+                        let decl = self.store[local_decls][index].clone();
                         self.repl_extract_identifiers_from_binding(
                             decl.binding,
                             &mut hoisted_decl_list,
@@ -132,7 +132,8 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     }
 
                     // Create assignment expressions for the inner statements
-                    for decl in (&self.store[self.store[local].decls]) {
+                    for index in 0..local_decls.len() {
+                        let decl = self.store[local_decls][index].clone();
                         if let Some(value) = decl.value {
                             // Create assignment expression: binding = value
                             let assign_expr =
@@ -153,31 +154,27 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     // Inner: this.funcName = funcName; function funcName() {}
                     if let Some(name_loc) = self.store[func].func.name {
                         let name_ref = name_loc.ref_;
-                        hoisted_stmts.push(self.s(
-                            S::Local {
+                        hoisted_stmts.push({ let arg_a = S::Local {
                                 kind: S::Kind::KVar,
                                 decls: { let decl_binding = self.b(B::Identifier { r#ref: name_ref }, name_loc.loc); repl_one_decl(&mut self.store, decl_binding) },
                                 ..Default::default()
-                            },
+                            }; self.s( arg_a,
                             stmt.loc,
-                        ));
+                        ) });
 
                         // Add this.funcName = funcName assignment
                         let this_expr = self.new_expr(E::This {}, stmt.loc);
-                        // `original_name` is an arena-owned `StoreStr` valid for 'a; `.slice()`
-                        // detaches the borrow from `self.symbols` so the &mut self calls below
-                        // don't conflict.
-                        let name_str: &[u8] = self.store.str(self.symbols[name_ref.inner_index() as usize]
-                            .original_name);
-                        let this_dot = self.new_expr(
-                            E::Dot {
+                        // `original_name` é uma `StoreStr`; `dup_str` copia a faixa no Store sem
+                        // emprestar o Store durante a escrita.
+                        let name_text = self.symbols[name_ref.inner_index() as usize].original_name;
+                        let this_dot = { let arg_a = E::Dot {
                                 target: this_expr,
-                                name: self.store.alloc_str(name_str),
+                                name: self.store.dup_str(name_text),
                                 name_loc: name_loc.loc,
                                 ..Default::default()
-                            },
+                            }; self.new_expr( arg_a,
                             stmt.loc,
-                        );
+                        ) };
                         let func_id = self.new_expr(
                             E::Identifier {
                                 ref_: name_ref,
@@ -210,14 +207,13 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     // Inner: ClassName = class ClassName {}
                     if let Some(name_loc) = self.store[class].class.class_name {
                         let name_ref = name_loc.ref_;
-                        hoisted_stmts.push(self.s(
-                            S::Local {
+                        hoisted_stmts.push({ let arg_a = S::Local {
                                 kind: S::Kind::KVar,
                                 decls: { let decl_binding = self.b(B::Identifier { r#ref: name_ref }, name_loc.loc); repl_one_decl(&mut self.store, decl_binding) },
                                 ..Default::default()
-                            },
+                            }; self.s( arg_a,
                             stmt.loc,
-                        ));
+                        ) });
 
                         // Convert class declaration to assignment: ClassName = class ClassName {}
                         // G::Class is non-Copy (owns a Vec); the original
@@ -256,17 +252,16 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     //   import { a, b } from 'mod' -> var {a, b} = await import('mod')
                     //   import * as X from 'mod'   -> var X = await import('mod')
                     //   import 'mod'              -> await import('mod')
-                    let path_str: &'static [u8] = self.store.str(self.import_records.items()
+                    let path_str: Vec<u8> = self.store.str(self.import_records.items()
                         [self.store[import_data].import_record_index as usize]
                         .path
-                        .text);
-                    let str_expr = self.new_expr(
-                        E::String {
-                            data: self.store.alloc_str(path_str),
+                        .text).to_vec();
+                    let str_expr = { let arg_a = E::String {
+                            data: self.store.alloc_str(&path_str),
                             ..Default::default()
-                        },
+                        }; self.new_expr( arg_a,
                         stmt.loc,
-                    );
+                    ) };
                     let import_expr = self.new_expr(
                         E::Import {
                             expr: str_expr,
@@ -283,14 +278,13 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
 
                     if !self.store[import_data].star_name_loc.is_empty() {
                         // import * as X from 'mod' -> var X = await import('mod')
-                        hoisted_stmts.push(self.s(
-                            S::Local {
+                        hoisted_stmts.push({ let arg_a = S::Local {
                                 kind: S::Kind::KVar,
                                 decls: { let decl_binding = self.b(B::Identifier { r#ref: self.store[import_data].namespace_ref, }, stmt.loc); repl_one_decl(&mut self.store, decl_binding) },
                                 ..Default::default()
-                            },
+                            }; self.s( arg_a,
                             stmt.loc,
-                        ));
+                        ) });
                         let left = self.new_expr(
                             E::Identifier {
                                 ref_: self.store[import_data].namespace_ref,
@@ -317,14 +311,13 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                         // import X from 'mod' -> var X = (await import('mod')).default
                         // import X, { a } from 'mod' -> var __ns = await import('mod'); var X = __ns.default; var a = __ns.a;
                         let default_ref = default_name.ref_;
-                        hoisted_stmts.push(self.s(
-                            S::Local {
+                        hoisted_stmts.push({ let arg_a = S::Local {
                                 kind: S::Kind::KVar,
                                 decls: { let decl_binding = self.b(B::Identifier { r#ref: default_ref }, default_name.loc); repl_one_decl(&mut self.store, decl_binding) },
                                 ..Default::default()
-                            },
+                            }; self.s( arg_a,
                             stmt.loc,
-                        ));
+                        ) });
 
                         if !import_items.is_empty() {
                             // Share a single await import() between default and named imports.
@@ -345,15 +338,14 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                                 },
                                 stmt.loc,
                             );
-                            let dot_default = self.new_expr(
-                                E::Dot {
+                            let dot_default = { let arg_a = E::Dot {
                                     target: ns_ref_expr,
                                     name: self.store.alloc_str(b"default"),
                                     name_loc: stmt.loc,
                                     ..Default::default()
-                                },
+                                }; self.new_expr( arg_a,
                                 stmt.loc,
-                            );
+                            ) };
                             let left = self.new_expr(
                                 E::Identifier {
                                     ref_: default_ref,
@@ -377,15 +369,14 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                                 stmt.loc,
                             ));
                         } else {
-                            let dot_default = self.new_expr(
-                                E::Dot {
+                            let dot_default = { let arg_a = E::Dot {
                                     target: await_expr,
                                     name: self.store.alloc_str(b"default"),
                                     name_loc: stmt.loc,
                                     ..Default::default()
-                                },
+                                }; self.new_expr( arg_a,
                                 stmt.loc,
-                            );
+                            ) };
                             let left = self.new_expr(
                                 E::Identifier {
                                     ref_: default_ref,
@@ -433,14 +424,13 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                 }
                 StmtData::SDirective(directive) => {
                     // In REPL mode, treat directives (string literals) as expressions.
-                    let value_str: &'static [u8] = self.store.str(self.store[directive].value);
-                    let str_expr = self.new_expr(
-                        E::String {
-                            data: self.store.alloc_str(value_str),
+                    let value_str: Vec<u8> = self.store.str(self.store[directive].value).to_vec();
+                    let str_expr = { let arg_a = E::String {
+                            data: self.store.alloc_str(&value_str),
                             ..Default::default()
-                        },
+                        }; self.new_expr( arg_a,
                         stmt.loc,
-                    );
+                    ) };
                     inner_stmts.push(self.s(
                         S::SExpr {
                             value: str_expr,
@@ -459,26 +449,24 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         self.repl_wrap_last_expression_with_return(&mut inner_stmts, bump);
 
         // Create the IIFE: (() => { ...inner_stmts... })() or (async () => { ... })()
-        let arrow = self.new_expr(
-            E::Arrow {
+        let arrow = { let arg_a = E::Arrow {
                 body: G::FnBody {
                     loc: bun_ast::Loc::EMPTY,
                     stmts: self.store.alloc_slice(inner_stmts.into_vec()),
                 },
                 is_async,
                 ..Default::default()
-            },
+            }; self.new_expr( arg_a,
             bun_ast::Loc::EMPTY,
-        );
+        ) };
 
-        let iife = self.new_expr(
-            E::Call {
+        let iife = { let arg_a = E::Call {
                 target: arrow,
                 args: self.store.alloc_slice(Vec::new()),
                 ..Default::default()
-            },
+            }; self.new_expr( arg_a,
             bun_ast::Loc::EMPTY,
-        );
+        ) };
 
         // Final output: hoisted declarations + IIFE call
         let final_stmts_count = hoisted_stmts.len() + 1;

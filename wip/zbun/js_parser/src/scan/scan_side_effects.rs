@@ -35,7 +35,7 @@ impl SideEffects {
     }
 
     pub(crate) fn simplify_boolean<'a, const TS: bool, const SCAN: bool>(
-        p: &P<'a, TS, SCAN>,
+        p: &mut P<'a, TS, SCAN>,
         expr: Expr,
     ) -> Expr {
         if !p.options.features.dead_code_elimination {
@@ -47,7 +47,7 @@ impl SideEffects {
     }
 
     fn _simplify_boolean<'a, const TS: bool, const SCAN: bool>(
-        p: &P<'a, TS, SCAN>,
+        p: &mut P<'a, TS, SCAN>,
         expr: &mut Expr,
     ) {
         loop {
@@ -61,12 +61,12 @@ impl SideEffects {
                                 continue;
                             }
                         }
-                        Self::_simplify_boolean(p, &mut p.store[*e].value);
+                        { let arg_b = &mut p.store[*e].value; Self::_simplify_boolean(p, arg_b) };
                     }
                 }
                 ExprData::EBinary(e) => match p.store[*e].op {
                     Op::Code::BinLogicalAnd => {
-                        if let Some(effects) = SideEffects::to_boolean(p, &p.store[*e].right.data) {
+                        if let Some(effects) = { let arg_b = &p.store[*e].right.data; SideEffects::to_boolean(p, arg_b) } {
                             if effects.value && effects.side_effects == SideEffects::NoSideEffects {
                                 // "if (anything && truthyNoSideEffects)" => "if (anything)"
                                 *expr = p.store[*e].left;
@@ -75,7 +75,7 @@ impl SideEffects {
                         }
                     }
                     Op::Code::BinLogicalOr => {
-                        if let Some(effects) = SideEffects::to_boolean(p, &p.store[*e].right.data) {
+                        if let Some(effects) = { let arg_b = &p.store[*e].right.data; SideEffects::to_boolean(p, arg_b) } {
                             if !effects.value && effects.side_effects == SideEffects::NoSideEffects
                             {
                                 // "if (anything || falsyNoSideEffects)" => "if (anything)"
@@ -272,12 +272,10 @@ impl SideEffects {
                     | Op::Code::BinGt
                     | Op::Code::BinLe
                     | Op::Code::BinGe => {
-                        if Self::is_primitive_with_side_effects(p, p.store[bin].left.loc, &p.store[bin].left.data)
-                            && Self::is_primitive_with_side_effects(
-                                p,
-                                p.store[bin].right.loc,
-                                &p.store[bin].right.data,
-                            )
+                        if { let arg_b = p.store[bin].left.loc; let arg_c = &p.store[bin].left.data; Self::is_primitive_with_side_effects(p, arg_b, arg_c) }
+                            && { let arg_b = p.store[bin].right.loc; let arg_c = &p.store[bin].right.data; Self::is_primitive_with_side_effects(
+                                p, arg_b, arg_c,
+                            ) }
                         {
                             let left = p.store[bin].left;
                             let right = p.store[bin].right;
@@ -711,7 +709,7 @@ impl SideEffects {
     }
 
     pub(crate) fn is_primitive_with_side_effects<'a, const TS: bool, const SCAN: bool>(
-        p: &P<'a, TS, SCAN>,
+        p: &mut P<'a, TS, SCAN>,
         loc: bun_ast::Loc,
         data: &ExprData,
     ) -> bool {
@@ -763,24 +761,24 @@ impl SideEffects {
                 Op::Code::BinLogicalAnd | Op::Code::BinLogicalOr | Op::Code::BinNullishCoalescing
                 | Op::Code::BinLogicalAndAssign | Op::Code::BinLogicalOrAssign
                 | Op::Code::BinNullishCoalescingAssign => {
-                    Self::is_primitive_with_side_effects(p, p.store[*e].left.loc, &p.store[*e].left.data)
-                        && Self::is_primitive_with_side_effects(p, p.store[*e].right.loc, &p.store[*e].right.data)
+                    ({ let arg_b = p.store[*e].left.loc; let arg_c = p.store[*e].left.data; Self::is_primitive_with_side_effects(p, arg_b, &arg_c) })
+                        && { let arg_b = p.store[*e].right.loc; let arg_c = p.store[*e].right.data; Self::is_primitive_with_side_effects(p, arg_b, &arg_c) }
                 }
                 Op::Code::BinComma => {
-                    Self::is_primitive_with_side_effects(p, p.store[*e].right.loc, &p.store[*e].right.data)
+                    { let arg_b = p.store[*e].right.loc; let arg_c = p.store[*e].right.data; Self::is_primitive_with_side_effects(p, arg_b, &arg_c) }
                 }
                 _ => false,
             },
             ExprData::EIf(e) => {
-                Self::is_primitive_with_side_effects(p, p.store[*e].yes.loc, &p.store[*e].yes.data)
-                    && Self::is_primitive_with_side_effects(p, p.store[*e].no.loc, &p.store[*e].no.data)
+                ({ let arg_b = p.store[*e].yes.loc; let arg_c = p.store[*e].yes.data; Self::is_primitive_with_side_effects(p, arg_b, &arg_c) })
+                    && { let arg_b = p.store[*e].no.loc; let arg_c = p.store[*e].no.data; Self::is_primitive_with_side_effects(p, arg_b, &arg_c) }
             }
             _ => false,
         }
     }
 
     pub(crate) fn to_null_or_undefined<'a, const TS: bool, const SCAN: bool>(
-        p: &P<'a, TS, SCAN>,
+        p: &mut P<'a, TS, SCAN>,
         exp: &ExprData,
     ) -> Option<Known> {
         if !p.options.features.dead_code_elimination {
@@ -844,20 +842,20 @@ impl SideEffects {
                     Some(Known { value: false, side_effects: SideEffects::CouldHaveSideEffects })
                 }
                 Op::Code::BinComma => {
-                    Self::to_null_or_undefined(p, &p.store[*e].right.data).map(|res| Known {
+                    { let arg_b = &p.store[*e].right.data; Self::to_null_or_undefined(p, arg_b) }.map(|res| Known {
                         value: res.value,
                         side_effects: SideEffects::CouldHaveSideEffects,
                     })
                 }
                 _ => None,
             },
-            ExprData::EInlinedEnum(e) => Self::to_null_or_undefined(p, &p.store[*e].value.data),
+            ExprData::EInlinedEnum(e) => { let arg_b = &p.store[*e].value.data; Self::to_null_or_undefined(p, arg_b) },
             _ => None,
         }
     }
 
     pub(crate) fn to_boolean<'a, const TS: bool, const SCAN: bool>(
-        p: &P<'a, TS, SCAN>,
+        p: &mut P<'a, TS, SCAN>,
         exp: &ExprData,
     ) -> Option<Known> {
         if !p.options.features.dead_code_elimination {
@@ -910,28 +908,28 @@ impl SideEffects {
                         side_effects: SideEffects::CouldHaveSideEffects,
                     })
                 }
-                Op::Code::UnNot => Self::to_boolean(p, &p.store[*e].value.data).map(|res| Known {
+                Op::Code::UnNot => { let arg_b = &p.store[*e].value.data; Self::to_boolean(p, arg_b) }.map(|res| Known {
                     value: !res.value,
                     side_effects: res.side_effects,
                 }),
                 _ => None,
             },
             ExprData::EBinary(e) => match p.store[*e].op {
-                Op::Code::BinLogicalOr => match Self::to_boolean(p, &p.store[*e].right.data) {
+                Op::Code::BinLogicalOr => match { let arg_b = &p.store[*e].right.data; Self::to_boolean(p, arg_b) } {
                     Some(res) if res.value => Some(Known {
                         value: true,
                         side_effects: SideEffects::CouldHaveSideEffects,
                     }),
                     _ => None,
                 },
-                Op::Code::BinLogicalAnd => match Self::to_boolean(p, &p.store[*e].right.data) {
+                Op::Code::BinLogicalAnd => match { let arg_b = &p.store[*e].right.data; Self::to_boolean(p, arg_b) } {
                     Some(res) if !res.value => Some(Known {
                         value: false,
                         side_effects: SideEffects::CouldHaveSideEffects,
                     }),
                     _ => None,
                 },
-                Op::Code::BinComma => Self::to_boolean(p, &p.store[*e].right.data).map(|res| Known {
+                Op::Code::BinComma => { let arg_b = &p.store[*e].right.data; Self::to_boolean(p, arg_b) }.map(|res| Known {
                     value: res.value,
                     side_effects: SideEffects::CouldHaveSideEffects,
                 }),
@@ -981,7 +979,7 @@ impl SideEffects {
                 }
                 _ => None,
             },
-            ExprData::EInlinedEnum(e) => Self::to_boolean(p, &p.store[*e].value.data),
+            ExprData::EInlinedEnum(e) => { let arg_b = &p.store[*e].value.data; Self::to_boolean(p, arg_b) },
             ExprData::ESpecial(special) => match special {
                 E::Special::ModuleExports
                 | E::Special::ResolvedSpecifierString(_)

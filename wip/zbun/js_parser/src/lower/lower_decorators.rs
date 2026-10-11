@@ -424,50 +424,88 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
         match &mut expr.data {
             js_ast::ExprData::EBinary(e) => {
-                self.rewrite_expr(&mut self.store[*e].left, kind);
-                self.rewrite_expr(&mut self.store[*e].right, kind);
+                let mut slot = self.store[*e].left;
+                self.rewrite_expr(&mut slot, kind);
+                self.store[*e].left = slot;
+                let mut slot = self.store[*e].right;
+                self.rewrite_expr(&mut slot, kind);
+                self.store[*e].right = slot;
             }
             js_ast::ExprData::ECall(e) => {
                 let mut t = self.store[*e].target;
                 self.rewrite_expr(&mut t, kind);
                 self.store[*e].target = t;
-                for a in (&mut self.store[self.store[*e].args]) {
-                    self.rewrite_expr(a, kind);
+                let range = self.store[*e].args;
+                for i in 0..self.store[range].len() {
+                    let mut a = self.store[range][i];
+                    self.rewrite_expr(&mut a, kind);
+                    self.store[range][i] = a;
                 }
             }
             js_ast::ExprData::ENew(e) => {
                 let mut t = self.store[*e].target;
                 self.rewrite_expr(&mut t, kind);
                 self.store[*e].target = t;
-                for a in (&mut self.store[self.store[*e].args]) {
-                    self.rewrite_expr(a, kind);
+                let range = self.store[*e].args;
+                for i in 0..self.store[range].len() {
+                    let mut a = self.store[range][i];
+                    self.rewrite_expr(&mut a, kind);
+                    self.store[range][i] = a;
                 }
             }
             js_ast::ExprData::EIndex(e) => {
-                self.rewrite_expr(&mut self.store[*e].target, kind);
-                self.rewrite_expr(&mut self.store[*e].index, kind);
+                let mut slot = self.store[*e].target;
+                self.rewrite_expr(&mut slot, kind);
+                self.store[*e].target = slot;
+                let mut slot = self.store[*e].index;
+                self.rewrite_expr(&mut slot, kind);
+                self.store[*e].index = slot;
             }
-            js_ast::ExprData::EDot(e) => self.rewrite_expr(&mut self.store[*e].target, kind),
-            js_ast::ExprData::ESpread(e) => self.rewrite_expr(&mut self.store[*e].value, kind),
-            js_ast::ExprData::EUnary(e) => self.rewrite_expr(&mut self.store[*e].value, kind),
+            js_ast::ExprData::EDot(e) => {
+                let mut slot = self.store[*e].target;
+                self.rewrite_expr(&mut slot, kind);
+                self.store[*e].target = slot;
+            }
+            js_ast::ExprData::ESpread(e) => {
+                let mut slot = self.store[*e].value;
+                self.rewrite_expr(&mut slot, kind);
+                self.store[*e].value = slot;
+            }
+            js_ast::ExprData::EUnary(e) => {
+                let mut slot = self.store[*e].value;
+                self.rewrite_expr(&mut slot, kind);
+                self.store[*e].value = slot;
+            }
             js_ast::ExprData::EIf(e) => {
-                self.rewrite_expr(&mut self.store[*e].test, kind);
-                self.rewrite_expr(&mut self.store[*e].yes, kind);
-                self.rewrite_expr(&mut self.store[*e].no, kind);
+                let mut slot = self.store[*e].test;
+                self.rewrite_expr(&mut slot, kind);
+                self.store[*e].test = slot;
+                let mut slot = self.store[*e].yes;
+                self.rewrite_expr(&mut slot, kind);
+                self.store[*e].yes = slot;
+                let mut slot = self.store[*e].no;
+                self.rewrite_expr(&mut slot, kind);
+                self.store[*e].no = slot;
             }
             js_ast::ExprData::EArray(e) => {
-                for item in (&mut self.store[self.store[*e].items]) {
-                    self.rewrite_expr(item, kind);
+                let range = self.store[*e].items;
+                for i in 0..self.store[range].len() {
+                    let mut item = self.store[range][i];
+                    self.rewrite_expr(&mut item, kind);
+                    self.store[range][i] = item;
                 }
             }
             js_ast::ExprData::EObject(e) => {
-                for prop in (&mut self.store[self.store[*e].properties]) {
+                let range = self.store[*e].properties;
+                for i in 0..self.store[range].len() {
+                    let mut prop = self.store[range][i].clone();
                     if let Some(v) = &mut prop.value {
                         self.rewrite_expr(v, kind);
                     }
                     if let Some(ini) = &mut prop.initializer {
                         self.rewrite_expr(ini, kind);
                     }
+                    self.store[range][i] = prop;
                 }
             }
             js_ast::ExprData::ETemplate(e) => {
@@ -795,15 +833,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 }
                             };
                             let private_access = self.private_get_expr(get_obj, &info, expr_loc);
-                            let call_target = self.new_expr(
-                                E::Dot {
+                            let call_target = { let arg_a = E::Dot {
                                     target: private_access,
                                     name: self.store.alloc_str(b"call"),
                                     name_loc: expr_loc,
                                     ..Default::default()
-                                },
+                                }; self.new_expr( arg_a,
                                 expr_loc,
-                            );
+                            ) };
                             let bump = self.arena;
                             let orig_args = (&mut self.store[self.store[*e].args]);
                             let mut new_args = BumpVec::with_capacity_in(1 + orig_args.len(), bump);
@@ -821,14 +858,25 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut t = self.store[*e].target;
                 self.rewrite_private_accesses_in_expr(&mut t, map);
                 self.store[*e].target = t;
-                for arg in (&mut self.store[self.store[*e].args]) {
-                    self.rewrite_private_accesses_in_expr(arg, map);
+                let range = self.store[*e].args;
+                for i in 0..self.store[range].len() {
+                    let mut arg = self.store[range][i];
+                    self.rewrite_private_accesses_in_expr(&mut arg, map);
+                    self.store[range][i] = arg;
                 }
             }
-            js_ast::ExprData::EUnary(e) => self.rewrite_private_accesses_in_expr(&mut self.store[*e].value, map),
-            js_ast::ExprData::EDot(e) => self.rewrite_private_accesses_in_expr(&mut self.store[*e].target, map),
+            js_ast::ExprData::EUnary(e) => {
+                let mut slot = self.store[*e].value;
+                self.rewrite_private_accesses_in_expr(&mut slot, map);
+                self.store[*e].value = slot;
+            }
+            js_ast::ExprData::EDot(e) => {
+                let mut slot = self.store[*e].target;
+                self.rewrite_private_accesses_in_expr(&mut slot, map);
+                self.store[*e].target = slot;
+            }
             js_ast::ExprData::ESpread(e) => {
-                self.rewrite_private_accesses_in_expr(&mut self.store[*e].value, map)
+                { let mut arg_a = self.store[*e].value; let hoisted_result = self.rewrite_private_accesses_in_expr( &mut arg_a, map); self.store[*e].value = arg_a; hoisted_result }
             }
             js_ast::ExprData::EIf(e) => {
                 let mut t = self.store[*e].test;
@@ -841,7 +889,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 self.rewrite_private_accesses_in_expr(&mut n, map);
                 self.store[*e].no = n;
             }
-            js_ast::ExprData::EAwait(e) => self.rewrite_private_accesses_in_expr(&mut self.store[*e].value, map),
+            js_ast::ExprData::EAwait(e) => {
+                let mut slot = self.store[*e].value;
+                self.rewrite_private_accesses_in_expr(&mut slot, map);
+                self.store[*e].value = slot;
+            }
             js_ast::ExprData::EYield(e) => {
                 let mut slot = self.store[*e].value;
                 if let Some(v) = &mut slot {
@@ -853,23 +905,32 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut t = self.store[*e].target;
                 self.rewrite_private_accesses_in_expr(&mut t, map);
                 self.store[*e].target = t;
-                for arg in (&mut self.store[self.store[*e].args]) {
-                    self.rewrite_private_accesses_in_expr(arg, map);
+                let range = self.store[*e].args;
+                for i in 0..self.store[range].len() {
+                    let mut arg = self.store[range][i];
+                    self.rewrite_private_accesses_in_expr(&mut arg, map);
+                    self.store[range][i] = arg;
                 }
             }
             js_ast::ExprData::EArray(e) => {
-                for item in (&mut self.store[self.store[*e].items]) {
-                    self.rewrite_private_accesses_in_expr(item, map);
+                let range = self.store[*e].items;
+                for i in 0..self.store[range].len() {
+                    let mut item = self.store[range][i];
+                    self.rewrite_private_accesses_in_expr(&mut item, map);
+                    self.store[range][i] = item;
                 }
             }
             js_ast::ExprData::EObject(e) => {
-                for prop in (&mut self.store[self.store[*e].properties]) {
+                let range = self.store[*e].properties;
+                for i in 0..self.store[range].len() {
+                    let mut prop = self.store[range][i].clone();
                     if let Some(v) = &mut prop.value {
                         self.rewrite_private_accesses_in_expr(v, map);
                     }
                     if let Some(ini) = &mut prop.initializer {
                         self.rewrite_private_accesses_in_expr(ini, map);
                     }
+                    self.store[range][i] = prop;
                 }
             }
             js_ast::ExprData::ETemplate(e) => {
@@ -1204,9 +1265,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut inner_class_ref: Ref = class_name_ref;
         if !is_expr {
             // SAFETY: original_name is arena-owned for 'a.
-            let cns: &'a [u8] = p.store.str(p.symbols[class_name_ref.inner_index() as usize]
-                .original_name);
-            let name = p.bump_name2(b"_", cns);
+            let cns: Vec<u8> = p.store.str(p.symbols[class_name_ref.inner_index() as usize]
+                .original_name).to_vec();
+            let name = p.bump_name2(b"_", &cns);
             inner_class_ref = p.new_sym(js_ast::symbol::Kind::Other, name);
         }
 
@@ -1278,8 +1339,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut pre_eval_stmts = BumpVec::<Stmt>::new_in(bump);
         let mut computed_key_counter: usize = 0;
 
-        let props_slice: &mut [Property] = (&mut p.store[class.properties]);
-        for (prop_idx, prop) in props_slice.iter_mut().enumerate() {
+        let props_range = class.properties;
+        for prop_idx in 0..p.store[props_range].len() {
+            // A visita reentra em `p`: o laço anda por índice sobre uma cópia da propriedade.
+            let mut prop = p.store[props_range][prop_idx].clone();
             if prop.kind == PropertyKind::ClassStaticBlock {
                 continue;
             }
@@ -1331,6 +1394,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let key_loc = prop.key.expect("infallible: prop has key").loc;
                 pre_eval_stmts.push(p.var_decl(key_ref, prop.key, loc));
                 prop.key = Some(p.use_ref(key_ref, key_loc));
+                p.store[props_range][prop_idx].key = prop.key;
             }
         }
 
@@ -1348,10 +1412,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 };
                 for pre_stmt in pre_eval_stmts.iter_mut() {
                     if let js_ast::StmtData::SLocal(local) = &mut pre_stmt.data {
-                        for decl in (&mut p.store[p.store[*local].decls]) {
+                        let range = p.store[*local].decls;
+                        for i in 0..p.store[range].len() {
+                            let mut decl = p.store[range][i];
                             if let Some(v) = &mut decl.value {
                                 p.rewrite_expr(v, rk);
                             }
+                            p.store[range][i] = decl;
                         }
                     }
                 }
@@ -1359,7 +1426,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         // For named class expressions: swap to expr_class_ref for suffix ops
-        let mut original_class_name_for_decorator: Option<&'a [u8]> = None;
+        let mut original_class_name_for_decorator: Option<Vec<u8>> = None;
         if is_expr
             && !expr_class_is_anonymous
             && let Some(ecr) = expr_class_ref
@@ -1367,7 +1434,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // SAFETY: see above.
             original_class_name_for_decorator = Some(
                 p.store.str(p.symbols[class_name_ref.inner_index() as usize]
-                    .original_name),
+                    .original_name)
+                    .to_vec(),
             );
             class_name_ref = ecr;
             class_name_loc = loc;
@@ -1471,8 +1539,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
         }
 
-        let props_slice2: &mut [Property] = (&mut p.store[class.properties]);
-        for (prop_idx, prop) in props_slice2.iter_mut().enumerate() {
+        let props_range2 = class.properties;
+        for prop_idx in 0..p.store[props_range2].len() {
+            // A visita reentra em `p`: o laço anda por índice sobre uma cópia da propriedade.
+            let prop = p.store[props_range2][prop_idx].clone();
             if prop.ts_decorators.len_u32() == 0 {
                 // ── Non-decorated property ──
                 if lower_all_private
@@ -1487,12 +1557,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     };
                     let npriv_inner = npriv_ref.inner_index();
                     // SAFETY: arena-owned.
-                    let npriv_orig: &'a [u8] =
-                        p.store.str(p.symbols[npriv_inner as usize].original_name);
+                    let npriv_orig: Vec<u8> =
+                        p.store.str(p.symbols[npriv_inner as usize].original_name).to_vec();
 
                     if prop.flags.contains(Flags::Property::IsMethod) {
                         // Non-decorated private method/getter/setter → WeakSet + fn extraction
-                        let nk = Self::method_kind(prop);
+                        let nk = Self::method_kind(&prop);
                         let existing = private_lowered_map.get(&npriv_inner).copied();
                         let ws_ref = if let Some(ex) = existing {
                             ex.storage_ref
@@ -1583,20 +1653,24 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 // Undecorated auto-accessor → WeakMap + getter/setter
                 if prop.kind == PropertyKind::AutoAccessor {
-                    let accessor_name: &'a [u8] = 'brk: {
+                    let accessor_name: Vec<u8> = 'brk: {
                         if let Some(k) = prop.key {
                             if let js_ast::ExprData::EString(s) = &k.data
                                 && p.store[*s].is_utf8()
                             {
-                                break 'brk p.bump_name2(b"_", p.store.str(p.store[*s].data));
+                                {
+                            let key_text = p.store.str(p.store[*s].data).to_vec();
+                            break 'brk p.bump_name2(b"_", &key_text).to_vec();
+                        }
                             }
                         }
                         let name =
                             p.bump_name(b"_accessor_storage", Some(accessor_storage_counter));
                         accessor_storage_counter += 1;
-                        name
+                        name.to_vec()
                     };
-                    let wm_ref = p.new_sym(js_ast::symbol::Kind::Other, accessor_name);
+                    let accessor_name = p.arena.alloc_slice_copy(&accessor_name);
+                let wm_ref = p.new_sym(js_ast::symbol::Kind::Other, accessor_name);
                     let wme = p.new_weak_map_expr(loc);
                     prefix_stmts.push(p.var_decl(wm_ref, Some(wme), loc));
 
@@ -1704,7 +1778,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                     continue;
                 }
-                new_properties.push(prop_full_copy(prop));
+                new_properties.push(prop_full_copy(&prop));
                 continue;
             }
 
@@ -1758,7 +1832,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 };
                 let priv_inner = priv_ref.inner_index();
                 // SAFETY: arena-owned.
-                let private_orig: &'a [u8] = p.store.str(p.symbols[priv_inner as usize].original_name);
+                let private_orig: Vec<u8> = p.store.str(p.symbols[priv_inner as usize].original_name).to_vec();
 
                 if (1..=3).contains(&k) {
                     let existing = private_lowered_map.get(&priv_inner).copied();
@@ -1833,16 +1907,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             } else if k == 4 {
                 // Decorated public auto-accessor → WeakMap
-                let accessor_name: &'a [u8] = 'brk: {
+                let accessor_name: Vec<u8> = 'brk: {
                     if let js_ast::ExprData::EString(s) = &key_expr.data
                         && p.store[*s].is_utf8()
                     {
-                        break 'brk p.bump_name2(b"_", p.store.str(p.store[*s].data));
+                        {
+                            let key_text = p.store.str(p.store[*s].data).to_vec();
+                            break 'brk p.bump_name2(b"_", &key_text).to_vec();
+                        }
                     }
                     let name = p.bump_name(b"_accessor_storage", Some(accessor_storage_counter));
                     accessor_storage_counter += 1;
-                    name
+                    name.to_vec()
                 };
+                let accessor_name = p.arena.alloc_slice_copy(&accessor_name);
                 let wm_ref = p.new_sym(js_ast::symbol::Kind::Other, accessor_name);
                 private_extra_ref = Some(wm_ref);
                 let wme = p.new_weak_map_expr(loc);
@@ -1929,7 +2007,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             // Categorize the element
             if k >= 4 {
-                let mut prop_shallow = prop_copy(prop);
+                let mut prop_shallow = prop_copy(&prop);
                 if is_private {
                     if let Some(ps_ref) = private_storage_ref {
                         prop_shallow.key = Some(p.new_expr(
@@ -2003,7 +2081,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     has_instance_private_methods = true;
                 }
             } else {
-                let new_prop = prop_copy(prop);
+                let new_prop = prop_copy(&prop);
                 new_properties.push(new_prop);
                 if prop.flags.contains(Flags::Property::IsStatic) {
                     static_non_field_elements.push(element);
@@ -2070,15 +2148,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if class_decorators_len > 0 {
             p.record_usage(class_name_ref);
             let class_name_str: E::Str = if let Some(name) = original_class_name_for_decorator {
-                p.store.alloc_str(name)
+                p.store.alloc_str(&name)
             } else if is_expr && expr_class_is_anonymous {
                 p.store.alloc_str(name_from_context.unwrap_or(b""))
             } else {
                 // `original_name` is an arena-owned `StoreStr`.
-                p.store.alloc_str(
-                    p.store.str(p.symbols[class_name_ref.inner_index() as usize]
-                        .original_name),
-                )
+                { let arg_a = p.store.str(p.symbols[class_name_ref.inner_index() as usize]
+                        .original_name); p.store.alloc_str( arg_a,
+                ) }
             };
 
             let mut cls_dec_args = BumpVec::with_capacity_in(5, bump);
@@ -2180,14 +2257,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 },
                                 loc,
                             );
-                            suffix_exprs.push(p.new_expr(
-                                E::Call {
+                            suffix_exprs.push({ let arg_a = E::Call {
                                     target: iife_body,
                                     args: p.store.alloc_slice(Vec::new()),
                                     ..Default::default()
-                                },
+                                }; p.new_expr( arg_a,
                                 loc,
-                            ));
+                            ) });
                         }
                     }
                     StaticElementKind::FieldOrAccessor => {
@@ -2505,16 +2581,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 });
                                 if let Some(val) = decl_item.value {
                                     p.record_usage(ref_);
-                                    comma_parts.push(Expr::assign(&mut p.store, 
-                                        p.new_expr(
+                                    comma_parts.push({ let arg_b = p.new_expr(
                                             E::Identifier {
                                                 ref_,
                                                 ..Default::default()
                                             },
                                             loc,
-                                        ),
+                                        ); Expr::assign(&mut p.store, arg_b,
                                         val,
-                                    ));
+                                    ) });
                                 }
                             }
                         }

@@ -46,7 +46,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let wrapper = p.to_expr_wrapper_hoisted;
             let binding = Binding::to_expr(&decl.binding, p, wrapper);
             if let Some(decl_value) = decl.value {
-                value = Expr::join_with_comma(&mut p.store, value, Expr::assign(&mut p.store, binding, decl_value));
+                value = { let arg_c = Expr::assign(&mut p.store, binding, decl_value); Expr::join_with_comma(&mut p.store, value, arg_c) };
             } else if mode == RelocateVarsMode::ForInOrForOf {
                 value = Expr::join_with_comma(&mut p.store, value, binding);
             }

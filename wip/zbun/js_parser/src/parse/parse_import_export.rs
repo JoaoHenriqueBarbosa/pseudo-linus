@@ -130,9 +130,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let is_identifier = p.lexer.token == T::TIdentifier;
             let alias_loc = p.lexer.loc();
             let alias = p.parse_clause_alias(b"import")?;
+            let alias_text = p.arena_str(alias);
             let mut name = LocRef {
                 loc: alias_loc,
-                ref_: p.store_name_in_ref(p.store.str(alias)),
+                ref_: p.store_name_in_ref(alias_text),
             };
             let mut original_name = alias;
             p.lexer.next()?;
@@ -156,7 +157,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         original_name = p.store.alloc_str(p.lexer.identifier);
                         name = LocRef {
                             loc: p.lexer.loc(),
-                            ref_: p.store_name_in_ref(p.store.str(original_name)),
+                            ref_: { let arg_a = p.arena_str(original_name); p.store_name_in_ref(arg_a) },
                         };
                         p.lexer.next()?;
 
@@ -182,7 +183,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         original_name = p.store.alloc_str(p.lexer.identifier);
                         name = LocRef {
                             loc: p.lexer.loc(),
-                            ref_: p.store_name_in_ref(p.store.str(original_name)),
+                            ref_: { let arg_a = p.arena_str(original_name); p.store_name_in_ref(arg_a) },
                         };
                         p.lexer.expect(T::TIdentifier)?;
 
@@ -231,7 +232,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     original_name = p.store.alloc_str(p.lexer.identifier);
                     name = LocRef {
                         loc: alias_loc,
-                        ref_: p.store_name_in_ref(p.store.str(original_name)),
+                        ref_: { let arg_a = p.arena_str(original_name); p.store_name_in_ref(arg_a) },
                     };
                     p.lexer.expect(T::TIdentifier)?;
                 } else if !is_identifier {
@@ -303,9 +304,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let mut alias = p.parse_clause_alias(b"export")?;
             let mut alias_loc = p.lexer.loc();
 
+            let alias_text = p.arena_str(alias);
             let name = LocRef {
                 loc: alias_loc,
-                ref_: p.store_name_in_ref(p.store.str(alias)),
+                ref_: p.store_name_in_ref(alias_text),
             };
             let original_name = alias;
 

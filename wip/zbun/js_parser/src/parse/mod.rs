@@ -617,14 +617,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 },
                 loc,
             );
-            return Ok(p.new_expr(
-                E::Call {
+            return Ok({ let arg_a = E::Call {
                     target: async_expr,
                     args: p.store.alloc_slice(items),
                     ..Default::default()
-                },
+                }; p.new_expr( arg_a,
                 loc,
-            ));
+            ) });
         }
 
         // Is this a chain of expressions and comma operators?

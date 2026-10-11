@@ -79,6 +79,15 @@ pub trait NodeStore: Sized {
         StoreStr::from_range(to_u32(start), to_u32(text.len()))
     }
 
+    /// Copia uma string que já está no Store para uma faixa nova (o `alloc_str(str(x))` sem a fatia emprestada, que
+    /// prenderia o Store enquanto ele cresce).
+    fn dup_str(&mut self, text: StoreStr) -> StoreStr {
+        let bytes = self.bytes_mut();
+        let start = bytes.len();
+        bytes.extend_from_within(text.range());
+        StoreStr::from_range(to_u32(start), to_u32(text.range().len()))
+    }
+
     /// Os bytes de uma `StoreStr`.
     fn str(&self, text: StoreStr) -> &[u8] {
         &self.bytes()[text.range()]

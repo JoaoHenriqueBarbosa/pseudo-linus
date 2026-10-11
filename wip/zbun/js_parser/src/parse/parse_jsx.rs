@@ -76,7 +76,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
 
                         let prop_name =
-                            p.new_expr(E::EString::init(p.store.alloc_str(prop_name_literal)), key_range.loc);
+                            { let arg_a = E::EString::init(p.store.alloc_str(prop_name_literal)); p.new_expr( arg_a, key_range.loc) };
 
                         // Parse the value
                         let value: Expr = if p.lexer.token != T::TEquals {
@@ -137,22 +137,19 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 let key = 'brk: {
                                     match &expr.data {
                                         ExprData::EImportIdentifier(ident) => {
-                                            break 'brk p.new_expr(
-                                                E::EString::init(p.store.alloc_str(p.load_name_from_ref(ident.ref_))),
+                                            break 'brk { let arg_a = E::EString::init(p.store.alloc_str(p.load_name_from_ref(ident.ref_))); p.new_expr( arg_a,
                                                 expr.loc,
-                                            );
+                                            ) };
                                         }
                                         ExprData::ECommonjsExportIdentifier(ident) => {
-                                            break 'brk p.new_expr(
-                                                E::EString::init(p.store.alloc_str(p.load_name_from_ref(ident.ref_))),
+                                            break 'brk { let arg_a = E::EString::init(p.store.alloc_str(p.load_name_from_ref(ident.ref_))); p.new_expr( arg_a,
                                                 expr.loc,
-                                            );
+                                            ) };
                                         }
                                         ExprData::EIdentifier(ident) => {
-                                            break 'brk p.new_expr(
-                                                E::EString::init(p.store.alloc_str(p.load_name_from_ref(ident.ref_))),
+                                            break 'brk { let arg_a = E::EString::init(p.store.alloc_str(p.load_name_from_ref(ident.ref_))); p.new_expr( arg_a,
                                                 expr.loc,
-                                            );
+                                            ) };
                                         }
                                         ExprData::EDot(dot) => {
                                             break 'brk p.new_expr(
@@ -272,17 +269,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 p.lexer.expected(T::TGreaterThan)?;
             }
 
-            return Ok(p.new_expr(
-                E::JSXElement {
+            return Ok({ let arg_a = E::JSXElement {
                     tag: start_tag,
                     properties: p.store.alloc_slice(properties),
                     key_prop_index: key_prop_i,
                     flags,
                     close_tag_loc,
                     ..Default::default()
-                },
+                }; p.new_expr( arg_a,
                 loc,
-            ));
+            ) });
         }
 
         // Use ExpectJSXElementChild() so we parse child strings
@@ -362,8 +358,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         p.lexer.expected(T::TGreaterThan)?;
                     }
 
-                    return Ok(p.new_expr(
-                        E::JSXElement {
+                    return Ok({ let arg_a = E::JSXElement {
                             tag: end_tag.data.as_expr(),
                             children: p.store.alloc_slice(children),
                             properties: p.store.alloc_slice(properties),
@@ -371,9 +366,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             flags,
                             close_tag_loc: end_tag.range.loc,
                             ..Default::default()
-                        },
+                        }; p.new_expr( arg_a,
                         loc,
-                    ));
+                    ) });
                 }
                 _ => {
                     p.lexer.unexpected()?;

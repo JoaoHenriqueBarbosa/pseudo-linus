@@ -387,7 +387,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     break 'tagger p.jsx_import(JSXImport::Fragment, expr.loc);
                 };
 
-                for property in (&mut p.store[p.store[e_].properties]) {
+                let range = p.store[e_].properties;
+                for i in 0..p.store[range].len() {
+                    let mut property = p.store[range][i];
                     if property.kind != G::PropertyKind::Spread {
                         p.visit_expr(property.key.as_mut().expect("infallible: prop has key"));
                     }
@@ -399,6 +401,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if let Some(v) = property.initializer.as_mut() {
                         p.visit_expr(v);
                     }
+                    p.store[range][i] = property;
                 }
 
                 let runtime = if p.options.jsx.runtime == options::JSX::Runtime::Automatic {
@@ -420,13 +423,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let num_props = p.store[e_].properties.len_u32();
                     if num_props > 0 {
                         // The JSX node is consumed; reuse the property list in place.
-                        let object = p.new_expr(
-                            E::Object {
+                        let object = { let arg_a = E::Object {
                                 properties: core::mem::take(&mut p.store[e_].properties),
                                 ..Default::default()
-                            },
+                            }; p.new_expr( arg_a,
                             expr.loc,
-                        );
+                        ) };
                         args.push(object);
                     } else {
                         args.push(p.new_expr(E::Null {}, expr.loc));
@@ -915,7 +917,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
         }
 
-        p.visit_expr_in_out(&mut p.store[e_].target, ExprIn::default());
+        { let mut arg_a = p.store[e_].target; let hoisted_result = p.visit_expr_in_out( &mut arg_a, ExprIn::default()); p.store[e_].target = arg_a; hoisted_result };
 
         match p.store[e_].index.data {
             Data::EPrivateIdentifier(mut private) => {
@@ -997,7 +999,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 };
             }
             _ => {
-                p.visit_expr(&mut p.store[e_].index);
+                let mut slot = p.store[e_].index;
+                p.visit_expr(&mut slot);
+                p.store[e_].index = slot;
 
                 let unwrapped = p.store[e_].index.unwrap_inlined(&p.store);
                 if let Some(s) = unwrapped.data.e_string() {
@@ -1044,12 +1048,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .with_is_template_tag(is_template_tag)
                                 .with_is_delete_target(is_delete_target)
                                 .with_assign_target(in_.assign_target);
-                            let key_bytes = p.store.str(p.store[s].data).to_vec();
+                            let key_bytes = p.arena.alloc_slice_copy(p.store.str(p.store[s].data));
                             let target = p.store[e_].target;
                             if let Some(rewrite) = p.maybe_rewrite_property_access(
                                 expr.loc,
                                 target,
-                                &key_bytes,
+                                key_bytes,
                                 unwrapped.loc,
                                 opts,
                             ) {
@@ -1087,13 +1091,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             debug_assert!(strings::is_all_ascii(p.store.str(literal)));
                             if num < literal.len() {
                                 let character = p.store.str(literal)[num..num + 1].to_vec();
-                                *e = p.new_expr(
-                                    E::String {
+                                *e = { let arg_a = E::String {
                                         data: p.store.alloc_str(&character),
                                         ..Default::default()
-                                    },
+                                    }; p.new_expr( arg_a,
                                     expr.loc,
-                                );
+                                ) };
                                 return;
                             }
                         }
@@ -1177,15 +1180,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             Op::UnTypeof => {
                 let id_before = matches!(p.store[e_].value.data, Data::EIdentifier(..));
                 let assign_target = Op::unary_assign_target(p.store[e_].op);
-                p.visit_expr_in_out(
-                    &mut p.store[e_].value,
+                { let mut arg_a = p.store[e_].value; let hoisted_result = p.visit_expr_in_out( &mut arg_a,
                     ExprIn {
                         assign_target,
                         ..Default::default()
                     },
-                );
+                ); p.store[e_].value = arg_a; hoisted_result };
                 let id_after = matches!(p.store[e_].value.data, Data::EIdentifier(..));
-                p.ignore_namespace_local_test_use(&p.store[e_].value);
+                { let arg_a = p.store[e_].value; p.ignore_namespace_local_test_use( &arg_a) };
 
                 // The expression "typeof (0, x)" must not become "typeof x" if "x"
                 // is unbound because that could suppress a ReferenceError from "x"
@@ -1211,52 +1213,49 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 if matches!(p.store[e_].value.data, Data::ERequireCallTarget) {
                     p.ignore_usage_of_runtime_require();
-                    *e = p.new_expr(
-                        E::String {
+                    *e = { let arg_a = E::String {
                             data: p.store.alloc_str(b"function"),
                             ..Default::default()
-                        },
+                        }; p.new_expr( arg_a,
                         expr.loc,
-                    );
+                    ) };
                     return;
                 }
 
                 if let Some(typeof_) = p.store[e_].value.data.to_typeof() {
-                    *e = p.new_expr(
-                        E::String {
+                    *e = { let arg_a = E::String {
                             data: p.store.alloc_str(typeof_),
                             ..Default::default()
-                        },
+                        }; p.new_expr( arg_a,
                         expr.loc,
-                    );
+                    ) };
                     return;
                 }
             }
             Op::UnDelete => {
                 p.delete_target = p.store[e_].value.data;
-                p.visit_expr_in_out(&mut p.store[e_].value, ExprIn::default());
+                { let mut arg_a = p.store[e_].value; let hoisted_result = p.visit_expr_in_out( &mut arg_a, ExprIn::default()); p.store[e_].value = arg_a; hoisted_result };
             }
             _ => {
                 let assign_target = Op::unary_assign_target(p.store[e_].op);
-                p.visit_expr_in_out(
-                    &mut p.store[e_].value,
+                { let mut arg_a = p.store[e_].value; let hoisted_result = p.visit_expr_in_out( &mut arg_a,
                     ExprIn {
                         assign_target,
                         ..Default::default()
                     },
-                );
+                ); p.store[e_].value = arg_a; hoisted_result };
 
                 // Post-process the unary expression
                 match p.store[e_].op {
                     Op::UnNot => {
-                        p.ignore_namespace_local_test_use(&p.store[e_].value);
+                        { let arg_a = p.store[e_].value; p.ignore_namespace_local_test_use( &arg_a) };
                         if p.options.features.minify_syntax {
                             p.store[e_].value = SideEffects::simplify_boolean(p, p.store[e_].value);
                         }
 
-                        if let Some(side_effects) = SideEffects::to_boolean(p, &p.store[e_].value.data) {
+                        if let Some(side_effects) = { let arg_b = &p.store[e_].value.data; SideEffects::to_boolean(p, arg_b) } {
                             if side_effects.side_effects == SideEffects::NoSideEffects
-                                || p.expr_can_be_removed_if_unused(&p.store[e_].value)
+                                || { let arg_a = p.store[e_].value; p.expr_can_be_removed_if_unused( &arg_a) }
                             {
                                 *e = p.new_expr(
                                     E::Boolean {
@@ -1293,7 +1292,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
                     }
                     Op::UnVoid => {
-                        if p.expr_can_be_removed_if_unused(&p.store[e_].value) {
+                        if { let arg_a = p.store[e_].value; p.expr_can_be_removed_if_unused( &arg_a) } {
                             *e = p.new_expr(E::Undefined {}, p.store[e_].value.loc);
                             return;
                         }
@@ -1420,14 +1419,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
         }
 
-        p.visit_expr_in_out(
-            &mut p.store[e_].target,
+        { let mut arg_a = p.store[e_].target; let hoisted_result = p.visit_expr_in_out( &mut arg_a,
             ExprIn {
                 property_access_for_method_call_maybe_should_replace_with_undefined: in_
                     .property_access_for_method_call_maybe_should_replace_with_undefined,
                 ..Default::default()
             },
-        );
+        ); p.store[e_].target = arg_a; hoisted_result };
 
         // 'require.resolve' -> .e_require_resolve_call_target
         if matches!(p.store[e_].target.data, Data::ERequireCallTarget) && p.store.str(p.store[e_].name) == b"resolve" {
@@ -1477,7 +1475,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 return;
             }
             p.store[e_].is_import_property_use =
-                p.record_import_property_use(&p.store[e_].target, p.store.str(p.store[e_].name), opts);
+                { let arg_a = p.store[e_].target; let arg_b = p.store.str(p.store[e_].name); p.record_import_property_use( &arg_a, arg_b, opts) };
 
             if Self::ALLOW_MACROS {
                 if !p.options.features.is_macro_runtime {
@@ -1515,7 +1513,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         p.store[e_].test = SideEffects::simplify_boolean(p, p.store[e_].test);
 
-        let Some(side_effects) = SideEffects::to_boolean(p, &p.store[e_].test.data) else {
+        let Some(side_effects) = { let arg_b = &p.store[e_].test.data; SideEffects::to_boolean(p, arg_b) } else {
             { let mut arg_a = p.store[e_].yes; p.visit_expr( &mut arg_a); p.store[e_].yes = arg_a; }
             { let mut arg_a = p.store[e_].no; p.visit_expr( &mut arg_a); p.store[e_].no = arg_a; }
             return;
@@ -1587,19 +1585,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if in_.assign_target != js_ast::AssignTarget::None {
             p.maybe_comma_spread_error(p.store[e_].comma_after_spread);
         }
-        let items = (&mut p.store[p.store[e_].items]);
+        let items_range = p.store[e_].items;
         let mut spread_item_count: usize = 0;
-        for item in items {
+        for item_idx in 0..p.store[items_range].len() {
+            // A visita reentra em `p`: o laço anda por índice sobre uma cópia do item e grava de volta no fim.
+            let mut item = p.store[items_range][item_idx];
             match &mut item.data {
                 Data::EMissing(..) => {}
                 Data::ESpread(spread) => {
-                    p.visit_expr_in_out(
-                        &mut p.store[*spread].value,
+                    { let arg_a = &mut p.store[*spread].value; p.visit_expr_in_out( arg_a,
                         ExprIn {
                             assign_target: in_.assign_target,
                             ..Default::default()
                         },
-                    );
+                    ) };
 
                     spread_item_count += if let Data::EArray(arr) = &p.store[*spread].value.data {
                         p.store[*arr].items.len_u32() as usize
@@ -1631,14 +1630,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 ),
                             );
                         }
-                        p.visit_expr_in_out(
-                            &mut p.store[*e2].left,
+                        { let arg_a = &mut p.store[*e2].left; p.visit_expr_in_out( arg_a,
                             ExprIn {
                                 assign_target: js_ast::AssignTarget::Replace,
                                 ..Default::default()
                             },
-                        );
-                        p.visit_expr(&mut p.store[*e2].right);
+                        ) };
+                        let mut slot = p.store[*e2].right;
+                        p.visit_expr(&mut slot);
+                        p.store[*e2].right = slot;
                         p.decorator_class_name = None;
 
                         if matches!(p.store[*e2].left.data.tag(), Tag::EIdentifier) {
@@ -1659,7 +1659,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
                     } else {
                         p.visit_expr_in_out(
-                            item,
+                            &mut item,
                             ExprIn {
                                 assign_target: in_.assign_target,
                                 ..Default::default()
@@ -1669,7 +1669,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 _ => {
                     p.visit_expr_in_out(
-                        item,
+                        &mut item,
                         ExprIn {
                             assign_target: in_.assign_target,
                             ..Default::default()
@@ -1677,6 +1677,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     );
                 }
             }
+            p.store[items_range][item_idx] = item;
         }
 
         // "[1, ...[2, 3], 4]" => "[1, 2, 3, 4]"
@@ -1698,7 +1699,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let mut has_spread = false;
         let mut has_proto = false;
-        for property in (&mut p.store[p.store[e_].properties]) {
+        let range = p.store[e_].properties;
+        for i in 0..p.store[range].len() {
+            let mut property = p.store[range][i];
             if property.kind != G::PropertyKind::Spread {
                 p.visit_expr(
                     property
@@ -1831,6 +1834,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
             }
+            p.store[range][i] = property;
         }
         let _ = has_spread;
     }
@@ -1850,8 +1854,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let prev_should_fold_typescript_constant_expressions = true;
         p.should_fold_typescript_constant_expressions = true;
 
-        p.visit_expr(&mut p.store[e_].expr);
-        p.visit_expr(&mut p.store[e_].options);
+        let mut slot = p.store[e_].expr;
+        p.visit_expr(&mut slot);
+        p.store[e_].expr = slot;
+        let mut slot = p.store[e_].options;
+        p.visit_expr(&mut slot);
+        p.store[e_].options = slot;
 
         // Already transposed (this is a re-visit, e.g. after the minifier
         // substituted the expression into a later use): the import record and
@@ -1868,7 +1876,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         //
         // TODO: make this more like esbuild by emitting warnings that explain
         // why this import was not analyzed. (see esbuild 'unsupported-dynamic-import')
-        if p.expr_can_be_removed_if_unused(&p.store[e_].options) {
+        if { let arg_a = p.store[e_].options; p.expr_can_be_removed_if_unused( &arg_a) } {
             let state = TransposeState {
                 is_await_target: matches!(
                     p.await_target,
@@ -1908,13 +1916,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         };
 
         let target_was_identifier_before_visit = matches!(p.store[e_].target.data, Data::EIdentifier(..));
-        p.visit_expr_in_out(
-            &mut p.store[e_].target,
+        { let mut arg_a = p.store[e_].target; let hoisted_result = p.visit_expr_in_out( &mut arg_a,
             ExprIn {
                 property_access_for_method_call_maybe_should_replace_with_undefined: true,
                 ..Default::default()
             },
-        );
+        ); p.store[e_].target = arg_a; hoisted_result };
 
         // Copy the call side effect flag over if this is a known target
         // copy the small inline payloads out first so the `match &e_.target.data`
@@ -2154,8 +2161,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
 
-            for arg in (&mut p.store[p.store[e_].args]) {
-                p.visit_expr(arg);
+            let range = p.store[e_].args;
+            for i in 0..p.store[range].len() {
+                let mut arg = p.store[range][i];
+                p.visit_expr(&mut arg);
+                p.store[range][i] = arg;
             }
 
             // Restore saved state.
@@ -2279,7 +2289,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         } else if let Some(special) = p.store[e_].target.data.e_special() {
             match special {
                 E::Special::HotAccept => {
-                    p.handle_import_meta_hot_accept_call(&mut p.store[e_]);
+                    { let arg_a = &mut p.store[e_]; p.handle_import_meta_hot_accept_call( arg_a) };
                     // After validating that the import.meta.hot
                     // code is correct, discard the entire
                     // expression in production.
@@ -2413,7 +2423,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     break 'try_record_hook;
                 }
                 if p.options.features.react_fast_refresh {
-                    p.handle_react_refresh_hook_call(&mut p.store[e_], original_name);
+                    { let arg_a = &mut p.store[e_]; p.handle_react_refresh_hook_call( arg_a, original_name) };
                 } else if
                 // If we're here it means we're in server component.
                 // Error if the user is using the `useState` hook as it
@@ -2481,10 +2491,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     fn e_new(p: &mut Self, e: &mut Expr, _: ExprIn) {
         let expr = *e;
         let mut e_ = expr.data.e_new().expect("infallible: variant checked");
-        p.visit_expr(&mut p.store[e_].target);
+        let mut slot = p.store[e_].target;
+        p.visit_expr(&mut slot);
+        p.store[e_].target = slot;
 
-        for arg in (&mut p.store[p.store[e_].args]) {
-            p.visit_expr(arg);
+        let range = p.store[e_].args;
+        for i in 0..p.store[range].len() {
+            let mut arg = p.store[range][i];
+            p.visit_expr(&mut arg);
+            p.store[range][i] = arg;
         }
 
         if p.options.features.minify_syntax {

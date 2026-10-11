@@ -484,20 +484,19 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     p.cur_scope().generated.push(temp_id);
 
                     let value_expr = *expr;
-                    stmts.push(Stmt::alloc(&mut p.store, 
-                        S::Local {
+                    stmts.push({ let arg_b = S::Local {
                             kind: S::Kind::KConst,
-                            decls: p.store.alloc_slice((&[G::Decl {
+                            decls: { let arg_a = (&[G::Decl {
                                 binding: Binding::alloc(&mut p.store,
                                     B::Identifier { r#ref: temp_id },
                                     stmt.loc,
                                 ),
                                 value: Some(value_expr),
-                            }]).to_vec()),
+                            }]).to_vec(); p.store.alloc_slice( arg_a) },
                             ..Default::default()
-                        },
+                        }; Stmt::alloc(&mut p.store, arg_b,
                         stmt.loc,
-                    ));
+                    ) });
 
                     *expr = Expr::init_identifier(temp_id, stmt.loc);
 
@@ -540,13 +539,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         name: data.default_name,
                         ..Default::default()
                     };
-                    stmts.push(p.s(
-                        S::ExportClause {
+                    stmts.push({ let arg_a = S::ExportClause {
                             items: p.store.alloc_slice([item]),
                             is_single_line: false,
-                        },
+                        }; p.s( arg_a,
                         stmt.loc,
-                    ));
+                    ) });
                 }
 
                 if mark_for_replace {
@@ -582,7 +580,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let s2_copy = *s2;
                 match s2_data {
                     StmtData::SFunction(mut func_ref) => {
-                        let func: &mut S::Function = &mut p.store[func_ref];
+                        // `func` é cópia do nó: a visita reentra em `p`, e o `Store` recebe a cópia de volta logo depois da
+                        // última mutação (antes de qualquer saída antecipada abaixo).
+                        let mut func_node: S::Function = p.store[func_ref].clone();
+                        let func = &mut func_node;
                         let name: &'a [u8] = if let Some(func_loc) = func.func.name {
                             p.load_name_from_ref(func_loc.ref_)
                         } else {
@@ -608,6 +609,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         p.react_compiler_candidate_name = None;
 
                         if p.is_control_flow_dead {
+                            p.store[func_ref] = func_node;
                             p.react_refresh.hook_ctx_stack.pop();
                             restore_dead!();
                             record_on_exit!();
@@ -641,6 +643,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if let Some(top) = p.react_refresh.hook_ctx_stack.last_mut() {
                             *top = react_hook_data;
                         }
+                        p.store[func_ref] = func_node;
 
                         if mark_for_replace {
                             let entry = p
@@ -704,20 +707,19 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                         break 'brk temp_id;
                                     };
 
-                                    stmts.push(Stmt::alloc(&mut p.store, 
-                                        S::Local {
+                                    stmts.push({ let arg_b = S::Local {
                                             kind: S::Kind::KConst,
-                                            decls: p.store.alloc_slice((&[G::Decl {
+                                            decls: { let arg_a = (&[G::Decl {
                                                 binding: Binding::alloc(&mut p.store,
                                                     B::Identifier { r#ref: ref_to_use },
                                                     stmt.loc,
                                                 ),
                                                 value: Some(e),
-                                            }]).to_vec()),
+                                            }]).to_vec(); p.store.alloc_slice( arg_a) },
                                             ..Default::default()
-                                        },
+                                        }; Stmt::alloc(&mut p.store, arg_b,
                                         stmt.loc,
-                                    ));
+                                    ) });
 
                                     data.value = js_ast::StmtOrExpr::Expr(Expr::init_identifier(
                                         ref_to_use, stmt.loc,
@@ -1198,7 +1200,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let kind = p.select_local_kind(data.kind);
         if kind == S::Kind::KVar && !data.is_export {
             let relocated =
-                p.maybe_relocate_vars_to_top_level((&p.store[data.decls]), RelocateVarsMode::Normal);
+                { let arg_a = (&p.store[data.decls]); p.maybe_relocate_vars_to_top_level( arg_a, RelocateVarsMode::Normal) };
             if relocated.ok {
                 if let Some(new_stmt) = relocated.stmt {
                     stmts.push(new_stmt);
@@ -1249,7 +1251,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         if data.is_export && p.options.features.server_components.wraps_exports() {
-            for decl in (&mut p.store[data.decls]) {
+            let range = data.decls;
+            for i in 0..p.store[range].len() {
+                let mut decl = p.store[range][i];
                 'try_annotate: {
                     let Some(val) = decl.value else {
                         break 'try_annotate;
@@ -1262,6 +1266,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     decl.value =
                         Some(p.wrap_value_for_server_component_reference(val, original_name));
                 }
+                p.store[range][i] = decl;
             }
         }
 
@@ -1455,9 +1460,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 // last entry's value: `keys()` borrows the map; wrap as
                                 // `StoreStr` so the borrow is detached before re-borrowing
                                 // `commonjs_named_exports` mutably below.
-                                let key: &'a [u8] = p.store.str(p.store.alloc_str(
+                                let key: Vec<u8> = p.store.str(p.store.alloc_str(
                                     &p.commonjs_named_exports.keys()[to_convert as usize][..],
-                                ));
+                                )).to_vec();
                                 let decl_value = match bin.right.data {
                                     js_ast::ExprData::EArrow(_)
                                     | js_ast::ExprData::EFunction(_)
@@ -1500,7 +1505,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 let clause_items =
                                     [js_ast::ClauseItem {
                                         // We want the generated name to not conflict
-                                        alias: p.store.alloc_str(key),
+                                        alias: p.store.alloc_str(&key),
                                         alias_loc: bin.left.loc,
                                         name: js_ast::LocRef {
                                             ref_,
@@ -1517,13 +1522,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     },
                                     stmt.loc,
                                 );
-                                let export = p.s(
-                                    S::ExportClause {
+                                let export = { let arg_a = S::ExportClause {
                                         items: p.store.alloc_slice(clause_items),
                                         is_single_line: true,
-                                    },
+                                    }; p.s( arg_a,
                                     stmt.loc,
-                                );
+                                ) };
                                 stmts.extend_from_slice(&[local, export]);
 
                                 restore_stmt_expr!();
@@ -2133,31 +2137,40 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .expect("unreachable");
             let old_is_inside_switch = p.fn_or_arrow_data_visit.is_inside_switch;
             p.fn_or_arrow_data_visit.is_inside_switch = true;
-            let cases = (&mut p.store[data.cases]);
-            for i in 0..cases.len() {
-                if let Some(val) = cases[i].value.as_mut() {
+            let cases_range = data.cases;
+            for i in 0..p.store[cases_range].len() {
+                // A visita reentra em `p`: cada acesso ao caso passa pelo `Store`, sem referência segurada.
+                let mut case_value = p.store[cases_range][i].value;
+                if let Some(val) = case_value.as_mut() {
                     p.visit_expr(val);
+                    p.store[cases_range][i].value = case_value;
                     // TODO: error messages
                     // Check("case", *c.Value, c.Value.Loc)
                     //                 p.warnAboutTypeofAndString(s.Test, *c.Value)
                 }
-                let mut _stmts = stmts_to_list(&p.store, p.arena, cases[i].body);
+                let case_body = p.store[cases_range][i].body;
+                let mut _stmts = stmts_to_list(&p.store, p.arena, case_body);
                 p.visit_stmts(&mut _stmts, StmtsKind::SwitchStmt)
                     .expect("unreachable");
-                cases[i].body = list_to_stmts(&mut p.store, _stmts);
+                let new_body = list_to_stmts(&mut p.store, _stmts);
+                p.store[cases_range][i].body = new_body;
             }
             p.fn_or_arrow_data_visit.is_inside_switch = old_is_inside_switch;
 
-            for i in 0..cases.len() {
-                if p.should_lower_using_declarations((&p.store[cases[i].body])) {
+            for i in 0..p.store[cases_range].len() {
+                let body = p.store[cases_range][i].body;
+                if p.should_lower_using_declarations(&p.store[body]) {
                     lowered_using = true;
                     break;
                 }
             }
             if lowered_using {
                 let mut ctx = crate::p::LowerUsingDeclarationsContext::init(p)?;
-                for i in 0..cases.len() {
-                    ctx.scan_stmts(p, (&mut p.store[cases[i].body]));
+                for i in 0..p.store[cases_range].len() {
+                    let body = p.store[cases_range][i].body;
+                    let mut body_stmts = p.store[body].to_vec();
+                    ctx.scan_stmts(p, &mut body_stmts);
+                    p.store[body].copy_from_slice(&body_stmts);
                 }
                 let switch_stmt = vec![*stmt];
                 stmts.extend_from_slice(&ctx.finalize(p, &switch_stmt, false));
@@ -2203,8 +2216,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // ahead of time before visiting any statements inside the namespace
         // because we may end up visiting the uses before the declarations.
         // We need to convert the uses into property accesses on the namespace.
-        let values = (&mut p.store[data.values]);
-        for value in values.iter() {
+        let values_range = data.values;
+        for value in p.store[values_range].to_vec().iter() {
             if value.ref_.is_valid() {
                 p.is_exported_inside_namespace.insert(value.ref_, data.arg);
             }
@@ -2215,7 +2228,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // without initializers are initialized to undefined.
         let mut next_numeric_value: Option<f64> = Some(0.0);
 
-        let mut value_exprs: BumpVec<'a, Expr> = BumpVec::with_capacity_in(values.len(), p.arena);
+        let mut value_exprs: BumpVec<'a, Expr> = BumpVec::with_capacity_in(p.store[values_range].len(), p.arena);
 
         let mut all_values_are_pure = true;
 
@@ -2232,7 +2245,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.should_fold_typescript_constant_expressions = true;
 
         // Create an assignment for each enum value
-        for value in values.iter_mut() {
+        for value_idx in 0..p.store[values_range].len() {
+            // A visita reentra em `p`: o laço anda por índice sobre uma cópia do valor e grava de volta no fim.
+            let mut value = p.store[values_range][value_idx];
             let name: &'a [u8] = p.arena_str(value.name);
 
             let mut has_string_value = false;
@@ -2305,22 +2320,19 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             let assign_target = if is_assign_target {
                 // "Enum.Name = value"
-                Expr::assign(&mut p.store, 
-                    p.new_expr(
-                        E::Dot {
+                { let arg_b = { let arg_a = E::Dot {
                             target: Expr::init_identifier(data.arg, value.loc),
                             name: p.store.alloc_str(name),
                             name_loc: value.loc,
                             ..Default::default()
-                        },
+                        }; p.new_expr( arg_a,
                         value.loc,
-                    ),
+                    ) }; Expr::assign(&mut p.store, arg_b,
                     value.value.unwrap(),
-                )
+                ) }
             } else {
                 // "Enum['Name'] = value"
-                Expr::assign(&mut p.store, 
-                    p.new_expr(
+                { let arg_b = p.new_expr(
                         E::Index {
                             target: Expr::init_identifier(data.arg, value.loc),
                             index: name_as_e_string.unwrap(),
@@ -2328,9 +2340,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             is_import_property_use: false,
                         },
                         value.loc,
-                    ),
+                    ); Expr::assign(&mut p.store, arg_b,
                     value.value.unwrap(),
-                )
+                ) }
             };
 
             p.record_usage(data.arg);
@@ -2340,8 +2352,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 value_exprs.push(assign_target);
             } else {
                 // "Enum[assignTarget] = 'Name'"
-                value_exprs.push(Expr::assign(&mut p.store, 
-                    p.new_expr(
+                value_exprs.push({ let arg_b = p.new_expr(
                         E::Index {
                             target: Expr::init_identifier(data.arg, value.loc),
                             index: assign_target,
@@ -2349,11 +2360,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             is_import_property_use: false,
                         },
                         value.loc,
-                    ),
+                    ); Expr::assign(&mut p.store, arg_b,
                     name_as_e_string.unwrap(),
-                ));
+                ) });
                 p.record_usage(data.arg);
             }
+            p.store[values_range][value_idx] = value;
         }
 
         p.pop_scope();

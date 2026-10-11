@@ -1604,14 +1604,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     pub(crate) fn transpose_require(&mut self, arg: Expr, state: &TransposeState) -> Expr {
         if !self.options.features.allow_runtime {
-            return self.new_expr(
-                E::Call {
+            return { let arg_a = E::Call {
                     target: self.value_for_require(arg.loc),
                     args: self.store.alloc_slice([arg]),
                     ..Default::default()
-                },
+                }; self.new_expr( arg_a,
                 arg.loc,
-            );
+            ) };
         }
 
         match arg.data {
@@ -1730,14 +1729,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             _ => {
                 let _ = self.check_dynamic_specifier(arg, arg.loc, "require()");
                 self.record_usage_of_runtime_require();
-                self.new_expr(
-                    E::Call {
+                { let arg_a = E::Call {
                         target: self.value_for_require(arg.loc),
                         args: self.store.alloc_slice([arg]),
                         ..Default::default()
-                    },
+                    }; self.new_expr( arg_a,
                     arg.loc,
-                )
+                ) }
             }
         }
     }
@@ -2613,7 +2611,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         for entry in clauses {
             if entry.enabled {
                 if HOT_MODULE_RELOADING {
-                    let key = self.new_expr(E::String::init(self.store.alloc_str(entry.name)), bun_ast::Loc::EMPTY);
+                    let key = { let arg_a = E::String::init(self.store.alloc_str(entry.name)); self.new_expr( arg_a, bun_ast::Loc::EMPTY) };
                     let value = self.b(B::Identifier { r#ref: entry.r#ref }, bun_ast::Loc::EMPTY);
                     items_hmr.push(B::Property {
                         flags: Default::default(),
@@ -2653,13 +2651,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         let stmt = if HOT_MODULE_RELOADING {
-            let binding = self.b(
-                B::Object {
+            let binding = { let arg_a = B::Object {
                     properties: self.store.alloc_slice(items_hmr),
                     is_single_line: false,
-                },
+                }; self.b( arg_a,
                 bun_ast::Loc::EMPTY,
-            );
+            ) };
             let value = self.new_expr(
                 E::RequireString {
                     import_record_index,
@@ -2667,20 +2664,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 },
                 bun_ast::Loc::EMPTY,
             );
-            self.s(
-                S::Local {
+            { let arg_a = S::Local {
                     kind: js_ast::s::Kind::KConst,
                     decls: self.store.alloc_slice((&[Decl {
                         binding,
                         value: Some(value),
                     }]).to_vec()),
                     ..Default::default()
-                },
+                }; self.s( arg_a,
                 bun_ast::Loc::EMPTY,
-            )
+            ) }
         } else {
-            self.s(
-                S::Import {
+            { let arg_a = S::Import {
                     namespace_ref,
                     items: self.store.alloc_slice(items_import),
                     import_record_index,
@@ -2688,9 +2683,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     default_name: None,
                     star_name_loc: bun_ast::Loc::EMPTY,
                     phase_defer: false,
-                },
+                }; self.s( arg_a,
                 bun_ast::Loc::EMPTY,
-            )
+            ) }
         };
         let stmts = self.store.alloc_slice([stmt]);
 
@@ -2908,7 +2903,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // past the "import()" expression assuming everything else checks out.
 
                     if replacement_can_be_removed
-                        && self.expr_can_be_removed_if_unused(&self.store[import].expr)
+                        && { let arg_a = self.store[import].expr; self.expr_can_be_removed_if_unused( &arg_a) }
                     {
                         return Substitution::Continue;
                     }
@@ -2964,7 +2959,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             self.store[e].left = child;
                             return done;
                         }
-                    } else if !self.expr_can_be_removed_if_unused(&self.store[e].left) {
+                    } else if !{ let arg_a = self.store[e].left; self.expr_can_be_removed_if_unused( &arg_a) } {
                         // Do not reorder past a side effect in an assignment target, as that may
                         // change the replacement value. For example, "fn()" may change "a" here:
                         //
@@ -3943,14 +3938,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     });
                 }
 
-                return Some(self.b(
-                    B::Array {
+                return Some({ let arg_a = B::Array {
                         items: self.store.alloc_slice(items),
                         has_spread: is_spread,
                         is_single_line: self.store[ex].is_single_line,
-                    },
+                    }; self.b( arg_a,
                     expr.loc,
-                ));
+                ) });
             }
             js_ast::ExprData::EObject(mut ex) => {
                 if let Some(sp) = self.store[ex].comma_after_spread.to_nullable() {
@@ -3970,7 +3964,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 let mut properties =
                     BumpVec::with_capacity_in(self.store[ex].properties.len_u32() as usize, self.arena);
-                for item in (&mut self.store[self.store[ex].properties]) {
+                let range = self.store[ex].properties;
+                for i in 0..self.store[range].len() {
+                    let mut item = self.store[range][i];
                     if item.flags.contains(Flags::Property::IsMethod)
                         || item.kind == js_ast::g::PropertyKind::Get
                         || item.kind == js_ast::g::PropertyKind::Set
@@ -4010,15 +4006,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .unwrap_or_else(|| self.b(B::Missing {}, expr.loc)),
                         default_value: initializer,
                     });
+                    self.store[range][i] = item;
                 }
 
-                return Some(self.b(
-                    B::Object {
+                return Some({ let arg_a = B::Object {
                         properties: self.store.alloc_slice(properties),
                         is_single_line: self.store[ex].is_single_line,
-                    },
+                    }; self.b( arg_a,
                     expr.loc,
-                ));
+                ) });
             }
             _ => {
                 invalid_loc.push(InvalidLoc {
@@ -4141,7 +4137,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             Self::ALLOW_MACROS && (path.is_macro || crate::Macro::is_macro_path(self.store.str(path.text)));
         let mut stmt = stmt_;
         if is_macro {
-            let id = self.add_import_record(ImportKind::Stmt, path.loc, self.store.str(path.text));
+            let id = { let arg_c = self.store.str(path.text); self.add_import_record(ImportKind::Stmt, path.loc, arg_c) };
             self.import_records.items_mut()[id as usize].path.namespace = crate::Macro::NAMESPACE;
             self.import_records.items_mut()[id as usize]
                 .flags
@@ -4255,7 +4251,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     && stmt.items.is_empty())
         );
 
-        stmt.import_record_index = self.add_import_record(ImportKind::Stmt, path.loc, self.store.str(path.text));
+        stmt.import_record_index = { let arg_c = self.store.str(path.text); self.add_import_record(ImportKind::Stmt, path.loc, arg_c) };
         self.import_records.items_mut()[stmt.import_record_index as usize]
             .flags
             .set(
@@ -5521,7 +5517,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if !part_stmts.is_empty() {
             // `part_stmts` vai para o Store; `can_be_removed_if_unused` é calculado sobre a faixa já gravada.
             let final_stmts = self.store.alloc_slice(part_stmts);
-            let can_be_removed_if_unused = self.stmts_can_be_removed_if_unused((&self.store[final_stmts]));
+            let can_be_removed_if_unused = { let arg_a = (&self.store[final_stmts]); self.stmts_can_be_removed_if_unused( arg_a) };
 
             let symbol_uses = self.take_symbol_uses()?;
             parts.push(js_ast::Part {
@@ -6150,11 +6146,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             | js_ast::ExprData::EImportMeta(_) => return true,
 
             js_ast::ExprData::EInlinedEnum(e) => {
-                return self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*e].value);
+                return { let arg_a = self.store[*e].value; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) };
             }
 
             js_ast::ExprData::EDot(ex) => return self.store[*ex].can_be_removed_if_unused,
-            js_ast::ExprData::EClass(ex) => return self.class_can_be_removed_if_unused(&self.store[*ex]),
+            js_ast::ExprData::EClass(ex) => return { let arg_a = &self.store[*ex]; self.class_can_be_removed_if_unused( arg_a) },
             js_ast::ExprData::EIdentifier(ex) => {
                 debug_assert!(!ex.ref_.is_source_contents_slice()); // was not visited
 
@@ -6209,11 +6205,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 return true;
             }
             js_ast::ExprData::EIf(ex) => {
-                return self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].test)
+                return { let arg_a = self.store[*ex].test; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) }
                     && (self.is_side_effect_free_unbound_identifier_ref(self.store[*ex].yes, self.store[*ex].test, true)
-                        || self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].yes))
+                        || { let arg_a = self.store[*ex].yes; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) })
                     && (self.is_side_effect_free_unbound_identifier_ref(self.store[*ex].no, self.store[*ex].test, false)
-                        || self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].no));
+                        || { let arg_a = self.store[*ex].no; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) });
             }
             js_ast::ExprData::EArray(ex) => {
                 for item in (&self.store[self.store[*ex].items]) {
@@ -6283,7 +6279,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // These operators must not have any type conversions that can execute code
                 // such as "toString" or "valueOf". They must also never throw any exceptions.
                 js_ast::op::Code::UnVoid | js_ast::op::Code::UnNot => {
-                    return self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].value);
+                    return { let arg_a = self.store[*ex].value; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) };
                 }
 
                 // The "typeof" operator doesn't do any type conversions so it can be removed
@@ -6304,7 +6300,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     {
                         return true;
                     }
-                    return self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].value);
+                    return { let arg_a = self.store[*ex].value; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) };
                 }
                 _ => {}
             },
@@ -6315,22 +6311,22 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 | js_ast::op::Code::BinStrictNe
                 | js_ast::op::Code::BinComma
                 | js_ast::op::Code::BinNullishCoalescing => {
-                    return self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].left)
-                        && self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].right);
+                    return { let arg_a = self.store[*ex].left; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) }
+                        && { let arg_a = self.store[*ex].right; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) };
                 }
                 // Special-case "||" to make sure "typeof x === 'undefined' || x" can be removed
                 js_ast::op::Code::BinLogicalOr => {
-                    return self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].left)
+                    return { let arg_a = self.store[*ex].left; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) }
                         && (self
                             .is_side_effect_free_unbound_identifier_ref(self.store[*ex].right, self.store[*ex].left, false)
-                            || self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].right));
+                            || { let arg_a = self.store[*ex].right; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) });
                 }
                 // Special-case "&&" to make sure "typeof x !== 'undefined' && x" can be removed
                 js_ast::op::Code::BinLogicalAnd => {
-                    return self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].left)
+                    return { let arg_a = self.store[*ex].left; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) }
                         && (self
                             .is_side_effect_free_unbound_identifier_ref(self.store[*ex].right, self.store[*ex].left, true)
-                            || self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].right));
+                            || { let arg_a = self.store[*ex].right; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) });
                 }
                 // For "==" and "!=", pretend the operator was actually "===" or "!==". If
                 // we know that we can convert it to "==" or "!=", then we can consider the
@@ -6343,8 +6339,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         &self.store,
                         &self.store[*ex].left.data,
                         &self.store[*ex].right.data,
-                    ) && self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].left)
-                        && self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].right);
+                    ) && { let arg_a = self.store[*ex].left; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) }
+                        && { let arg_a = self.store[*ex].right; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) };
                 }
                 // Special-case "<" and ">" with string, number, or bigint arguments
                 js_ast::op::Code::BinLt
@@ -6358,8 +6354,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         | js_ast::KnownPrimitive::Number
                         | js_ast::KnownPrimitive::Bigint => {
                             return right == left
-                                && self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].left)
-                                && self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].right);
+                                && { let arg_a = self.store[*ex].left; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) }
+                                && { let arg_a = self.store[*ex].right; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) };
                         }
                         _ => {}
                     }
@@ -6773,13 +6769,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if statement_cares_about_scope(&self.store, &body) {
             let block_stmts = vec![body];
-            stmts.push(self.s(
-                S::Block {
+            stmts.push({ let arg_a = S::Block {
                     stmts: self.store.alloc_slice(block_stmts),
                     close_brace_loc: bun_ast::Loc::EMPTY,
-                },
+                }; self.s( arg_a,
                 body.loc,
-            ));
+            ) });
             return Ok(());
         }
 
@@ -6850,10 +6845,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .put_no_clobber(name_ref, ())
                 .expect("oom");
 
-            let decls = self.store.alloc_slice((&[G::Decl {
+            let decls = { let arg_a = (&[G::Decl {
                 binding: self.b(B::Identifier { r#ref: name_ref }, name_loc),
                 value: None,
-            }]).to_vec());
+            }]).to_vec(); self.store.alloc_slice( arg_a) };
             let _ = arena;
 
             if self.current_scope == self.module_scope {
@@ -6901,17 +6896,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         name_loc,
                     );
                     let right = self.new_expr(E::Object::default(), name_loc);
-                    break 'arg_expr Expr::assign(&mut self.store, 
-                        Expr::init_identifier(name_ref, name_loc),
-                        self.new_expr(
+                    break 'arg_expr { let arg_c = self.new_expr(
                             E::Binary {
                                 op: js_ast::op::Code::BinLogicalOrAssign,
                                 left,
                                 right,
                             },
                             name_loc,
-                        ),
-                    );
+                        ); Expr::assign(&mut self.store, 
+                        Expr::init_identifier(name_ref, name_loc), arg_c,
+                    ) };
                 }
             }
 
@@ -6946,8 +6940,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
 
-            break 'target self.new_expr(
-                E::Arrow {
+            break 'target { let arg_a = E::Arrow {
                     args: func_args,
                     body: G::FnBody {
                         loc: stmt_loc,
@@ -6955,9 +6948,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     },
                     prefer_expr: true,
                     ..Default::default()
-                },
+                }; self.new_expr( arg_a,
                 stmt_loc,
-            );
+            ) };
         };
 
         // Call the closure with the name object
@@ -7294,15 +7287,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         } else {
                             let inner =
                                 self.new_expr(E::Identifier::init(class_ref), class_name.loc);
-                            self.new_expr(
-                                E::Dot {
+                            { let arg_a = E::Dot {
                                     target: inner,
                                     name: self.store.alloc_str(b"prototype"),
                                     name_loc: loc,
                                     ..Default::default()
-                                },
+                                }; self.new_expr( arg_a,
                                 loc,
-                            )
+                            ) }
                         };
 
                         let mut array = BumpVec::<Expr>::new_in(self.arena);
@@ -7489,8 +7481,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         let constructor_text = E::EString::from_static(&mut self.store, b"constructor");
                         let key_expr = self.new_expr(constructor_text, stmt.loc);
-                        let value_expr = self.new_expr(
-                            E::Function {
+                        let value_expr = { let arg_a = E::Function {
                                 func: G::Fn {
                                     name: None,
                                     open_parens_loc: bun_ast::Loc::EMPTY,
@@ -7502,9 +7493,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     flags: Flags::FUNCTION_NONE,
                                     ..Default::default()
                                 },
-                            },
+                            }; self.new_expr( arg_a,
                             stmt.loc,
-                        );
+                        ) };
                         properties.push(G::Property {
                             flags: Flags::Property::IsMethod.into(),
                             key: Some(key_expr),
@@ -7557,13 +7548,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     bun_ast::Loc::EMPTY,
                                 )
                             } else {
-                                self.new_expr(
-                                    E::Array {
+                                { let arg_a = E::Array {
                                         items: self.store.alloc_slice(Vec::new()),
                                         ..Default::default()
-                                    },
+                                    }; self.new_expr( arg_a,
                                     bun_ast::Loc::EMPTY,
-                                )
+                                ) }
                             };
                             let paramtypes_text = E::EString::from_static(&mut self.store, b"design:paramtypes");
                             let label = self.new_expr(paramtypes_text, bun_ast::Loc::EMPTY);
@@ -7690,13 +7680,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             push_metadata!(b"design:type", v);
                         }
                         {
-                            let arr = self.new_expr(
-                                E::Array {
+                            let arr = { let arg_a = E::Array {
                                     items: self.store.alloc_slice(Vec::new()),
                                     ..Default::default()
-                                },
+                                }; self.new_expr( arg_a,
                                 bun_ast::Loc::EMPTY,
-                            );
+                            ) };
                             push_metadata!(b"design:paramtypes", arr);
                         }
                     }
@@ -8667,36 +8656,33 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if have_custom_hooks {
             // () => [useCustom1, useCustom2]
-            let array = self.new_expr(
-                E::Array {
+            let array = { let arg_a = E::Array {
                     items: self.store.alloc_slice((ctx.user_hooks.values()).to_vec()),
                     ..Default::default()
-                },
+                }; self.new_expr( arg_a,
                 loc,
-            );
+            ) };
             let ret = self.s(S::Return { value: Some(array) }, loc);
-            args.push(self.new_expr(
-                E::Arrow {
+            args.push({ let arg_a = E::Arrow {
                     body: G::FnBody {
                         stmts: self.store.alloc_slice(vec![ret]),
                         loc,
                     },
                     prefer_expr: true,
                     ..Default::default()
-                },
+                }; self.new_expr( arg_a,
                 loc,
-            ));
+            ) });
         }
 
         // _s(func, "<hash>", force, () => [useCustom])
-        self.new_expr(
-            E::Call {
+        { let arg_a = E::Call {
                 target: Expr::init_identifier(ctx.signature_cb, loc),
                 args: self.store.alloc_slice((args.as_slice()).to_vec()),
                 ..Default::default()
-            },
+            }; self.new_expr( arg_a,
             loc,
-        )
+        ) }
     }
 }
 
@@ -8758,22 +8744,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             for part in head_parts.iter() {
                 // Bake does not care about 'import =', as it handles it on it's own
-                let _ = ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, true>(
-                    self,
-                    (&mut self.store[part.stmts]),
+                let _ = { let arg_b = (&mut self.store[part.stmts]); ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, true>(
+                    self, arg_b,
                     wrap_mode != WrapMode::None,
                     Some(&mut hmr_transform_ctx),
-                )?;
+                ) }?;
             }
             // Re-run for the last part.
             {
                 let last_stmts = hmr_transform_ctx.last_part.stmts;
-                let _ = ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, true>(
-                    self,
-                    (&mut self.store[last_stmts]),
+                let _ = { let arg_b = (&mut self.store[last_stmts]); ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, true>(
+                    self, arg_b,
                     wrap_mode != WrapMode::None,
                     Some(&mut hmr_transform_ctx),
-                )?;
+                ) }?;
             }
 
             hmr_transform_ctx.finalize(self, head_parts)?;
@@ -8796,12 +8780,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.import_records_for_current_part.clear();
                     self.declared_symbols.clear_retaining_capacity();
 
-                    let result = ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, false>(
-                        self,
-                        (&mut self.store[part.stmts]),
+                    let result = { let arg_b = (&mut self.store[part.stmts]); ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, false>(
+                        self, arg_b,
                         wrap_mode != WrapMode::None,
                         None,
-                    )?;
+                    ) }?;
                     kept_import_equals = kept_import_equals || result.kept_import_equals;
                     removed_import_equals = removed_import_equals || result.removed_import_equals;
 
@@ -8894,7 +8877,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             //   })
             //
             //  which is then called in `evaluateCommonJSModuleOnce`
-            let args = vec![Arg::default(); 5 + usize::from(self.has_import_meta)];
+            let mut args = vec![Arg::default(); 5 + usize::from(self.has_import_meta)];
             args[0] = Arg {
                 binding: self.b(
                     B::Identifier {
@@ -8978,8 +8961,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 stmts_to_copy.extend_from_slice(&self.store[part.stmts]);
             }
 
-            let wrapper = self.new_expr(
-                E::Function {
+            let wrapper = { let arg_a = E::Function {
                     func: G::Fn {
                         name: None,
                         open_parens_loc: bun_ast::Loc::EMPTY,
@@ -8991,9 +8973,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         flags: Flags::FUNCTION_NONE,
                         ..Default::default()
                     },
-                },
+                }; self.new_expr( arg_a,
                 bun_ast::Loc::EMPTY,
-            );
+            ) };
 
             let top_level_stmt = self.s(
                 S::SExpr {
@@ -9672,7 +9654,9 @@ impl LowerUsingDeclarationsContext {
                 self.has_await_using = true;
             }
             let local_kind = p.store[local].kind;
-            for decl in (&mut p.store[p.store[local].decls]) {
+            let range = p.store[local].decls;
+            for i in 0..p.store[range].len() {
+                let mut decl = p.store[range][i];
                 if let Some(decl_value) = &mut decl.value {
                     let value_loc = decl_value.loc;
                     p.record_usage(self.stack_ref);
@@ -9696,12 +9680,12 @@ impl LowerUsingDeclarationsContext {
                             stmt_loc,
                         ),
                     ];
-                    decl.value = Some(p.call_runtime(
+                    decl.value = Some({ let arg_c = p.store.alloc_slice(args); p.call_runtime(
                         value_loc,
-                        b"__using",
-                        p.store.alloc_slice(args),
-                    ));
+                        b"__using", arg_c,
+                    ) });
                 }
+                p.store[range][i] = decl;
             }
             // SAFETY: arena-owned Scope pointer valid for parser 'a lifetime; no aliasing &mut outstanding
             if p.will_wrap_module_in_try_catch_for_using
@@ -9863,7 +9847,7 @@ impl LowerUsingDeclarationsContext {
                     loc,
                 ),
             ];
-            p.call_runtime(loc, b"__callDispose", p.store.alloc_slice(args))
+            { let arg_c = p.store.alloc_slice(args); p.call_runtime(loc, b"__callDispose", arg_c) }
         };
 
         let finally_stmts: Vec<Stmt> = if self.has_await_using {
@@ -9892,16 +9876,15 @@ impl LowerUsingDeclarationsContext {
 
             // var promise = __callDispose(stack, error, hasError);
             let promise_binding = p.b(B::Identifier { r#ref: promise_ref }, loc);
-            let stmt0 = p.s(
-                S::Local {
+            let stmt0 = { let arg_a = S::Local {
                     decls: p.store.alloc_slice([Decl {
                         binding: promise_binding,
                         value: Some(call_dispose),
                     }]),
                     ..Default::default()
-                },
+                }; p.s( arg_a,
                 loc,
-            );
+            ) };
 
             // The "await" must not happen if an error was thrown before the
             // "await using", so we conditionally await here:
@@ -9947,17 +9930,16 @@ impl LowerUsingDeclarationsContext {
             loc,
         );
         let stack_init = p.new_expr(E::Array::default(), loc);
-        result.push(p.s(
-            S::Local {
+        result.push({ let arg_a = S::Local {
                 decls: p.store.alloc_slice([Decl {
                     binding: stack_binding,
                     value: Some(stack_init),
                 }]),
                 kind: js_ast::s::Kind::KLet,
                 ..Default::default()
-            },
+            }; p.s( arg_a,
             loc,
-        ));
+        ) });
         let catch_binding = p.b(B::Identifier { r#ref: caught_ref }, loc);
         let catch_body: js_ast::StmtNodeList = {
             let err_binding = p.b(B::Identifier { r#ref: err_ref }, loc);
@@ -9989,8 +9971,7 @@ impl LowerUsingDeclarationsContext {
             );
             p.store.alloc_slice(vec![stmt0])
         };
-        result.push(p.s(
-            S::Try {
+        result.push({ let arg_a = S::Try {
                 body: non_exported_statements,
                 body_loc: loc,
                 catch: Some(js_ast::Catch {
@@ -10003,18 +9984,17 @@ impl LowerUsingDeclarationsContext {
                     loc,
                     stmts: p.store.alloc_slice(finally_stmts),
                 }),
-            },
+            }; p.s( arg_a,
             loc,
-        ));
+        ) });
 
         if !exports.is_empty() {
-            result.push(p.s(
-                S::ExportClause {
+            result.push({ let arg_a = S::ExportClause {
                     items: p.store.alloc_slice(exports),
                     is_single_line: false,
-                },
+                }; p.s( arg_a,
                 loc,
-            ));
+            ) });
         }
 
         result

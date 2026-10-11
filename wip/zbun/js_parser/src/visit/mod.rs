@@ -723,11 +723,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.vis_scope().is_after_const_local_prefix = true;
                 }
                 // SAFETY: original_name is arena-owned, valid for 'a.
-                let original_name: &'a [u8] = self.store.str(self.symbols[id_ref.inner_index() as usize]
+                let original_name: &'a [u8] = self.arena_str(self.symbols[id_ref.inner_index() as usize]
                     .original_name);
                 decl.value = Some(self.maybe_keep_expr_symbol_name(
                     decl.value.unwrap(),
-                    original_name,
+                    &original_name,
                     was_anonymous_named_expr,
                 ));
             }
@@ -806,24 +806,24 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.record_scope_use(bind.r#ref);
                 }
                 // SAFETY: original_name is arena-owned, valid for 'a.
-                let name: &'a [u8] = self.store.str(self.symbols[bind.r#ref.inner_index() as usize]
+                let name: &'a [u8] = self.arena_str(self.symbols[bind.r#ref.inner_index() as usize]
                     .original_name);
-                if is_eval_or_arguments(name) {
+                if is_eval_or_arguments(&name) {
                     self.mark_strict_mode_feature(
                         StrictModeFeature::EvalOrArguments,
                         js_lexer::range_of_identifier(self.source, binding.loc),
-                        name,
+                        &name,
                     )
                     .expect("unreachable");
                 }
                 if let Some(dup) = duplicate_arg_check {
-                    if dup.get_or_put_contains(name) {
+                    if dup.get_or_put_contains(&name) {
                         self.lexer.log.add_range_error_fmt(
                             Some(self.source),
                             js_lexer::range_of_identifier(self.source, binding.loc),
                             format_args!(
                                 "\"{}\" cannot be bound multiple times in the same parameter list",
-                                bstr::BStr::new(name)
+                                bstr::BStr::new(&name)
                             ),
                         );
                     }
@@ -854,11 +854,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         if let BData::BIdentifier(bind_) = item.binding.data {
                             let bind_ = (&self.store[bind_]);
-                            let name: &'a [u8] = self.store.str(self.symbols[bind_.r#ref.inner_index() as usize]
+                            let name: &'a [u8] = self.arena_str(self.symbols[bind_.r#ref.inner_index() as usize]
                                 .original_name);
                             item.default_value = Some(self.maybe_keep_expr_symbol_name(
                                 item.default_value.expect("unreachable"),
-                                name,
+                                &name,
                                 was_anonymous_named_expr,
                             ));
                         }
@@ -895,11 +895,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         if let BData::BIdentifier(bind_) = property.value.data {
                             let bind_ = (&self.store[bind_]);
-                            let name: &'a [u8] = self.store.str(self.symbols[bind_.r#ref.inner_index() as usize]
+                            let name: &'a [u8] = self.arena_str(self.symbols[bind_.r#ref.inner_index() as usize]
                                 .original_name);
                             property.default_value = Some(self.maybe_keep_expr_symbol_name(
                                 property.default_value.expect("unreachable"),
-                                name,
+                                &name,
                                 was_anonymous_named_expr,
                             ));
                         }
@@ -1049,173 +1049,179 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 .expect("unreachable");
 
             let mut constructor_function: Option<bun_ast::StoreRef<E::Function>> = None;
-            let properties: &mut [G::Property] = (&mut self.store[class.properties]);
-            for property in properties.iter_mut() {
-                if property.kind == PropertyKind::ClassStaticBlock {
-                    let old_fn_or_arrow_data = self.fn_or_arrow_data_visit;
-                    let old_fn_only_data = core::mem::take(&mut self.fn_only_data_visit);
-                    self.fn_or_arrow_data_visit = FnOrArrowDataVisit::default();
-                    self.fn_only_data_visit = FnOnlyDataVisit {
-                        is_this_nested: true,
-                        ..Default::default()
-                    };
-                    // PropertyKind::ClassStaticBlock guarantees `Some`; arena-owned for 'a.
-                    let csb_ref = property.class_static_block.unwrap();
-                    let csb = self.store[csb_ref];
-                    self.push_scope_for_visit_pass(ScopeKind::ClassStaticInit, csb.loc)
-                        .expect("unreachable");
+            let properties_range = class.properties;
+            for property_idx in 0..self.store[properties_range].len() {
+                // A visita reentra em `self`: o laço anda por índice sobre uma cópia da propriedade e grava no fim; o
+                // `continue` do corpo vira `break 'body` para a gravação não ser pulada.
+                let mut property = self.store[properties_range][property_idx].clone();
+                'body: {
+                    if property.kind == PropertyKind::ClassStaticBlock {
+                        let old_fn_or_arrow_data = self.fn_or_arrow_data_visit;
+                        let old_fn_only_data = core::mem::take(&mut self.fn_only_data_visit);
+                        self.fn_or_arrow_data_visit = FnOrArrowDataVisit::default();
+                        self.fn_only_data_visit = FnOnlyDataVisit {
+                            is_this_nested: true,
+                            ..Default::default()
+                        };
+                        // PropertyKind::ClassStaticBlock guarantees `Some`; arena-owned for 'a.
+                        let csb_ref = property.class_static_block.unwrap();
+                        let csb = self.store[csb_ref];
+                        self.push_scope_for_visit_pass(ScopeKind::ClassStaticInit, csb.loc)
+                            .expect("unreachable");
 
-                    // Make it an error to use "arguments" in a static class block
+                        // Make it an error to use "arguments" in a static class block
+                        self.vis_scope().forbid_arguments = true;
+
+                        // Stmt é Copy: a faixa do bloco é copiada para uma lista de trabalho e volta ao `Store`.
+                        let csb_stmts = self.store[csb.stmts].to_vec();
+                        let mut list = BumpVec::with_capacity_in(csb_stmts.len(), self.arena);
+                        list.extend_from_slice(&csb_stmts);
+                        self.visit_stmts(&mut list, StmtsKind::FnBody)
+                            .expect("unreachable");
+                        let visited_stmts = self.store.alloc_slice(list);
+                        self.store[csb_ref].stmts = visited_stmts;
+                        self.pop_scope();
+
+                        self.fn_or_arrow_data_visit = old_fn_or_arrow_data;
+                        self.fn_only_data_visit = old_fn_only_data;
+
+                        break 'body;
+                    }
+                    self.visit_ts_decorators(&mut property.ts_decorators);
+                    let is_private = if let Some(key) = property.key {
+                        matches!(key.data, ExprData::EPrivateIdentifier(_))
+                    } else {
+                        false
+                    };
+
+                    // Special-case EPrivateIdentifier to allow it here
+
+                    if is_private {
+                        let priv_ref = match property.key.expect("infallible: prop has key").data {
+                            ExprData::EPrivateIdentifier(pi) => pi.ref_,
+                            _ => unreachable!(),
+                        };
+                        self.record_declared_symbol(priv_ref);
+                    } else if let Some(key) = property.key.as_mut() {
+                        // Lowering may move a field's computed key into the
+                        // constructor along with its initializer.
+                        let is_field = !property.flags.contains(flags::Property::IsMethod);
+                        if is_field {
+                            let class_body = self.current_scope;
+                            self.field_init_class_bodies.push(class_body);
+                        }
+                        self.visit_expr(key);
+                        if is_field {
+                            self.field_init_class_bodies.pop();
+                        }
+                    }
+
+                    // Make it an error to use "arguments" in a class body
                     self.vis_scope().forbid_arguments = true;
 
-                    // Stmt é Copy: a faixa do bloco é copiada para uma lista de trabalho e volta ao `Store`.
-                    let csb_stmts = self.store[csb.stmts].to_vec();
-                    let mut list = BumpVec::with_capacity_in(csb_stmts.len(), self.arena);
-                    list.extend_from_slice(&csb_stmts);
-                    self.visit_stmts(&mut list, StmtsKind::FnBody)
-                        .expect("unreachable");
-                    let visited_stmts = self.store.alloc_slice(list);
-                    self.store[csb_ref].stmts = visited_stmts;
-                    self.pop_scope();
+                    // The value of "this" is shadowed inside property values
+                    let old_is_this_captured = self.fn_only_data_visit.is_this_nested;
+                    self.fn_only_data_visit.is_this_nested = true;
 
-                    self.fn_or_arrow_data_visit = old_fn_or_arrow_data;
-                    self.fn_only_data_visit = old_fn_only_data;
+                    // We need to explicitly assign the name to the property initializer if it
+                    // will be transformed such that it is no longer an inline initializer.
 
-                    continue;
-                }
-                self.visit_ts_decorators(&mut property.ts_decorators);
-                let is_private = if let Some(key) = property.key {
-                    matches!(key.data, ExprData::EPrivateIdentifier(_))
-                } else {
-                    false
-                };
+                    let mut constructor_function_: Option<bun_ast::StoreRef<E::Function>> = None;
 
-                // Special-case EPrivateIdentifier to allow it here
-
-                if is_private {
-                    let priv_ref = match property.key.expect("infallible: prop has key").data {
-                        ExprData::EPrivateIdentifier(pi) => pi.ref_,
-                        _ => unreachable!(),
-                    };
-                    self.record_declared_symbol(priv_ref);
-                } else if let Some(key) = property.key.as_mut() {
-                    // Lowering may move a field's computed key into the
-                    // constructor along with its initializer.
-                    let is_field = !property.flags.contains(flags::Property::IsMethod);
-                    if is_field {
-                        let class_body = self.current_scope;
-                        self.field_init_class_bodies.push(class_body);
-                    }
-                    self.visit_expr(key);
-                    if is_field {
-                        self.field_init_class_bodies.pop();
-                    }
-                }
-
-                // Make it an error to use "arguments" in a class body
-                self.vis_scope().forbid_arguments = true;
-
-                // The value of "this" is shadowed inside property values
-                let old_is_this_captured = self.fn_only_data_visit.is_this_nested;
-                self.fn_only_data_visit.is_this_nested = true;
-
-                // We need to explicitly assign the name to the property initializer if it
-                // will be transformed such that it is no longer an inline initializer.
-
-                let mut constructor_function_: Option<bun_ast::StoreRef<E::Function>> = None;
-
-                let mut name_to_keep: Option<&'a [u8]> = None;
-                if is_private {
-                    // (no-op)
-                } else if !property.flags.contains(flags::Property::IsMethod)
-                    && !property.flags.contains(flags::Property::IsComputed)
-                {
-                    if let Some(key) = property.key {
-                        if let ExprData::EString(e_str) = key.data {
-                            let string = self.store[e_str];
-                            let name = string.string(&mut self.store);
-                            name_to_keep = Some(self.arena_str(name));
-                        }
-                    }
-                } else if property.flags.contains(flags::Property::IsMethod) {
-                    if Self::IS_TYPESCRIPT_ENABLED
-                        && !property.flags.contains(flags::Property::IsStatic)
+                    let mut name_to_keep: Option<&'a [u8]> = None;
+                    if is_private {
+                        // (no-op)
+                    } else if !property.flags.contains(flags::Property::IsMethod)
                         && !property.flags.contains(flags::Property::IsComputed)
                     {
-                        if let (Some(value), Some(key)) = (property.value, property.key) {
-                            if let (ExprData::EFunction(e_func), ExprData::EString(e_str)) =
-                                (value.data, key.data)
-                            {
-                                if self.store[e_str].eql_comptime(&self.store, b"constructor") {
-                                    // `StoreRef` points into property.value's arena slot,
-                                    // so it can be re-read after visit_expr overwrites the
-                                    // value below.
-                                    constructor_function_ = Some(e_func);
-                                    constructor_function = constructor_function_;
+                        if let Some(key) = property.key {
+                            if let ExprData::EString(e_str) = key.data {
+                                let string = self.store[e_str];
+                                let name = string.string(&mut self.store);
+                                name_to_keep = Some(self.arena_str(name));
+                            }
+                        }
+                    } else if property.flags.contains(flags::Property::IsMethod) {
+                        if Self::IS_TYPESCRIPT_ENABLED
+                            && !property.flags.contains(flags::Property::IsStatic)
+                            && !property.flags.contains(flags::Property::IsComputed)
+                        {
+                            if let (Some(value), Some(key)) = (property.value, property.key) {
+                                if let (ExprData::EFunction(e_func), ExprData::EString(e_str)) =
+                                    (value.data, key.data)
+                                {
+                                    if self.store[e_str].eql_comptime(&self.store, b"constructor") {
+                                        // `StoreRef` points into property.value's arena slot,
+                                        // so it can be re-read after visit_expr overwrites the
+                                        // value below.
+                                        constructor_function_ = Some(e_func);
+                                        constructor_function = constructor_function_;
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                if let Some(val) = property.value {
-                    if let Some(name) = name_to_keep {
-                        let was_anon = val.is_anonymous_named(&self.store);
-                        let prev_dcn = self.decorator_class_name;
-                        if let ExprData::EClass(e_class) = &val.data {
-                            if self.store[*e_class].class_name.is_none()
-                                && self.store[*e_class].should_lower_standard_decorators
-                            {
-                                self.decorator_class_name = Some(name);
+                    if let Some(val) = property.value {
+                        if let Some(name) = name_to_keep {
+                            let was_anon = val.is_anonymous_named(&self.store);
+                            let prev_dcn = self.decorator_class_name;
+                            if let ExprData::EClass(e_class) = &val.data {
+                                if self.store[*e_class].class_name.is_none()
+                                    && self.store[*e_class].should_lower_standard_decorators
+                                {
+                                    self.decorator_class_name = Some(name);
+                                }
                             }
+                            let mut visited = val;
+                            self.visit_expr(&mut visited);
+                            property.value =
+                                Some(self.maybe_keep_expr_symbol_name(visited, name, was_anon));
+                            self.decorator_class_name = prev_dcn;
+                        } else {
+                            self.visit_expr(property.value.as_mut().unwrap());
                         }
-                        let mut visited = val;
-                        self.visit_expr(&mut visited);
-                        property.value =
-                            Some(self.maybe_keep_expr_symbol_name(visited, name, was_anon));
-                        self.decorator_class_name = prev_dcn;
-                    } else {
-                        self.visit_expr(property.value.as_mut().unwrap());
-                    }
 
-                    if Self::IS_TYPESCRIPT_ENABLED {
-                        if constructor_function_.is_some() {
-                            if let Some(value) = property.value {
-                                if let ExprData::EFunction(e_func) = value.data {
-                                    constructor_function = Some(e_func);
+                        if Self::IS_TYPESCRIPT_ENABLED {
+                            if constructor_function_.is_some() {
+                                if let Some(value) = property.value {
+                                    if let ExprData::EFunction(e_func) = value.data {
+                                        constructor_function = Some(e_func);
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                if let Some(val) = property.initializer {
-                    let class_body = self.current_scope;
-                    self.field_init_class_bodies.push(class_body);
-                    if let Some(name) = name_to_keep {
-                        let was_anon = val.is_anonymous_named(&self.store);
-                        let prev_dcn2 = self.decorator_class_name;
-                        if let ExprData::EClass(e_class) = &val.data {
-                            if self.store[*e_class].class_name.is_none()
-                                && self.store[*e_class].should_lower_standard_decorators
-                            {
-                                self.decorator_class_name = Some(name);
+                    if let Some(val) = property.initializer {
+                        let class_body = self.current_scope;
+                        self.field_init_class_bodies.push(class_body);
+                        if let Some(name) = name_to_keep {
+                            let was_anon = val.is_anonymous_named(&self.store);
+                            let prev_dcn2 = self.decorator_class_name;
+                            if let ExprData::EClass(e_class) = &val.data {
+                                if self.store[*e_class].class_name.is_none()
+                                    && self.store[*e_class].should_lower_standard_decorators
+                                {
+                                    self.decorator_class_name = Some(name);
+                                }
                             }
+                            let mut visited = val;
+                            self.visit_expr(&mut visited);
+                            property.initializer =
+                                Some(self.maybe_keep_expr_symbol_name(visited, name, was_anon));
+                            self.decorator_class_name = prev_dcn2;
+                        } else {
+                            self.visit_expr(property.initializer.as_mut().unwrap());
                         }
-                        let mut visited = val;
-                        self.visit_expr(&mut visited);
-                        property.initializer =
-                            Some(self.maybe_keep_expr_symbol_name(visited, name, was_anon));
-                        self.decorator_class_name = prev_dcn2;
-                    } else {
-                        self.visit_expr(property.initializer.as_mut().unwrap());
+                        self.field_init_class_bodies.pop();
                     }
-                    self.field_init_class_bodies.pop();
-                }
 
-                // manual restore for the two `defer`s above
-                self.vis_scope().forbid_arguments = false;
-                self.fn_only_data_visit.is_this_nested = old_is_this_captured;
+                    // manual restore for the two `defer`s above
+                    self.vis_scope().forbid_arguments = false;
+                    self.fn_only_data_visit.is_this_nested = old_is_this_captured;
+                }
+                self.store[properties_range][property_idx] = property;
             }
 
             if Self::IS_TYPESCRIPT_ENABLED {
@@ -1285,25 +1291,24 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             continue;
                         }
                         let (id_ref, bind_loc) = (self.store[id].r#ref, arg.binding.loc);
-                        let name: &'a [u8] = self.store.str(self.symbols[id_ref.inner_index() as usize]
+                        let name: &'a [u8] = self.arena_str(self.symbols[id_ref.inner_index() as usize]
                             .original_name);
                         let arg_ident = self.new_expr(E::Identifier::init(id_ref), bind_loc);
                         let this_target = self.new_expr(E::This {}, bind_loc);
-                        let dot = self.new_expr(
-                            E::Dot {
+                        let dot = { let arg_a = E::Dot {
                                 target: this_target,
-                                name: self.store.alloc_str(name),
+                                name: self.store.alloc_str(&name),
                                 name_loc: bind_loc,
                                 ..Default::default()
-                            },
+                            }; self.new_expr( arg_a,
                             bind_loc,
-                        );
+                        ) };
                         injected.push(Stmt::assign(&mut self.store, dot, arg_ident));
 
                         if use_define {
                             // New symbol so renaming can't desync the field from the arg.
                             let field_symbol_ref = self
-                                .declare_symbol(SymbolKind::Other, bind_loc, name)
+                                .declare_symbol(SymbolKind::Other, bind_loc, &name)
                                 .unwrap_or(id_ref);
                             self.symbols[field_symbol_ref.inner_index() as usize]
                                 .set_must_not_be_renamed(true);
@@ -1423,8 +1428,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         ctor_stmts.extend_from_slice(&injected);
                         let constructor_text = E::EString::from_static(&mut self.store, b"constructor");
                         let key_expr = self.new_expr(constructor_text, loc);
-                        let value_expr = self.new_expr(
-                            E::Function {
+                        let value_expr = { let arg_a = E::Function {
                                 func: G::Fn {
                                     name: None,
                                     open_parens_loc: bun_ast::Loc::EMPTY,
@@ -1436,9 +1440,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     flags: flags::FUNCTION_NONE,
                                     ..Default::default()
                                 },
-                            },
+                            }; self.new_expr( arg_a,
                             loc,
-                        );
+                        ) };
                         class_body.insert(
                             0,
                             G::Property {
@@ -1522,7 +1526,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             //
             // The TypeScript compiler itself contains code with this pattern, so
             // it's important to implement this optimization.
-            let mut preprocessed_enums: ListManaged<'a, &'a [Stmt]> = ListManaged::new_in(p.arena);
+            let mut preprocessed_enums: Vec<Vec<Stmt>> = Vec::new();
             if p.scopes_in_order_for_enum.count() > 0 {
                 for stmt in stmts.iter_mut() {
                     if matches!(stmt.data, StmtData::SEnum(_)) {
@@ -1536,7 +1540,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let res = p.visit_and_append_stmt(&mut temp, stmt);
                         p.scope_order_to_visit = old_scopes_in_order;
                         res?;
-                        preprocessed_enums.push(temp.into_bump_slice());
+                        preprocessed_enums.push(temp.as_slice().to_vec());
                     }
                 }
             }
@@ -1579,7 +1583,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             }
                         }
                         StmtData::SEnum(_) => {
-                            let enum_stmts = preprocessed_enums[preprocessed_enum_i];
+                            let enum_stmts = &preprocessed_enums[preprocessed_enum_i];
                             preprocessed_enum_i += 1;
                             visited.extend_from_slice(enum_stmts);
 
@@ -1995,7 +1999,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_idx = output.len() - 1;
                         let prev_stmt = &mut output[prev_idx];
                         if let StmtData::SLocal(mut prev_local) = prev_stmt.data {
-                            if p.store[local].can_merge_with(&prev_local) {
+                            if p.store[local].can_merge_with(&p.store[prev_local]) {
                                 // `G::Decl` é `Copy`: as declarações do statement atual entram no fim da lista do
                                 // anterior (`append` do `Store`, que cresce no lugar ou copia para o fim).
                                 let merging: Vec<G::Decl> = p.store[p.store[local].decls].to_vec();
@@ -2133,15 +2137,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
                             if !prev_stmt.is_super_call(&p.store) {
-                                output[prev_idx] = p.s(
-                                    S::Throw {
+                                output[prev_idx] = { let arg_a = S::Throw {
                                         value: Expr::join_with_comma(&mut p.store, 
                                             p.store[prev_expr].value,
                                             p.store[s_throw].value,
                                         ),
-                                    },
+                                    }; p.s( arg_a,
                                     stmt.loc,
-                                );
+                                ) };
                                 continue;
                             }
                         }

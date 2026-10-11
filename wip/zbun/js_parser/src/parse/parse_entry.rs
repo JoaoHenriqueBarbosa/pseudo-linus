@@ -1099,13 +1099,12 @@ impl<'a> Parser<'a> {
                             },
                             bun_ast::Loc::EMPTY,
                         ),
-                        value: Some(p.new_expr(
-                            E::String {
+                        value: Some({ let arg_a = E::String {
                                 data: p.store.alloc_str(p.source.path.name().dir),
                                 ..Default::default()
-                            },
+                            }; p.new_expr( arg_a,
                             bun_ast::Loc::EMPTY,
-                        )),
+                        ) }),
                     };
                     declared_symbols.append_assume_capacity(DeclaredSymbol {
                         ref_: p.dirname_ref,
@@ -1120,13 +1119,12 @@ impl<'a> Parser<'a> {
                             },
                             bun_ast::Loc::EMPTY,
                         ),
-                        value: Some(p.new_expr(
-                            E::String {
+                        value: Some({ let arg_a = E::String {
                                 data: p.store.alloc_str(p.source.path.text),
                                 ..Default::default()
-                            },
+                            }; p.new_expr( arg_a,
                             bun_ast::Loc::EMPTY,
-                        )),
+                        ) }),
                     };
                     declared_symbols.append_assume_capacity(DeclaredSymbol {
                         ref_: p.filename_ref,
@@ -1805,15 +1803,14 @@ impl<'a> Parser<'a> {
                         },
                         bun_ast::Loc::EMPTY,
                     ),
-                    value: Some(p.new_expr(
-                        E::Dot {
+                    value: Some({ let arg_a = E::Dot {
                             name: p.store.alloc_str(b"dir"),
                             name_loc: bun_ast::Loc::EMPTY,
                             target: import_meta,
                             ..Default::default()
-                        },
+                        }; p.new_expr( arg_a,
                         bun_ast::Loc::EMPTY,
-                    )),
+                    ) }),
                 };
                 declared_symbols.append_assume_capacity(DeclaredSymbol {
                     ref_: p.dirname_ref,
@@ -1830,15 +1827,14 @@ impl<'a> Parser<'a> {
                         },
                         bun_ast::Loc::EMPTY,
                     ),
-                    value: Some(p.new_expr(
-                        E::Dot {
+                    value: Some({ let arg_a = E::Dot {
                             name: p.store.alloc_str(b"path"),
                             name_loc: bun_ast::Loc::EMPTY,
                             target: import_meta,
                             ..Default::default()
-                        },
+                        }; p.new_expr( arg_a,
                         bun_ast::Loc::EMPTY,
-                    )),
+                    ) }),
                 };
                 declared_symbols.append_assume_capacity(DeclaredSymbol {
                     ref_: p.filename_ref,
@@ -1929,13 +1925,12 @@ impl<'a> Parser<'a> {
                 for (symbol_name, get_ref) in Jest::FIELDS {
                     let r = get_ref(&p.jest);
                     if p.symbols.as_slice()[r.inner_index() as usize].use_count_estimate > 0 {
-                        let key = p.new_expr(
-                            E::String {
+                        let key = { let arg_a = E::String {
                                 data: p.store.alloc_str(symbol_name.as_bytes()),
                                 ..Default::default()
-                            },
+                            }; p.new_expr( arg_a,
                             bun_ast::Loc::EMPTY,
-                        );
+                        ) };
                         let value = p.b(B::Identifier { r#ref: r }, bun_ast::Loc::EMPTY);
                         properties.push(B::Property {
                             flags: bun_ast::flags::PROPERTY_NONE,

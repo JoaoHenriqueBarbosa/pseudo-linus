@@ -269,12 +269,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     key = p.parse_string_literal()?;
                 }
                 T::TBigIntegerLiteral => {
-                    key = p.new_expr(
-                        E::BigInt {
+                    key = { let arg_a = E::BigInt {
                             value: p.store.alloc_str(p.lexer.identifier),
-                        },
-                        p.lexer.loc(),
-                    );
+                        }; let arg_b = p.lexer.loc(); p.new_expr( arg_a, arg_b,
+                    ) };
                     // markSyntaxFeature
                     p.lexer.next()?;
                 }
@@ -544,7 +542,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         return Err(crate::Error::SyntaxError);
                     }
 
-                    key = p.new_expr(E::EString::init(p.store.alloc_str(name)), name_range.loc);
+                    key = { let arg_a = E::EString::init(p.store.alloc_str(name)); p.new_expr( arg_a, name_range.loc) };
 
                     // Parse a shorthand property
                     let is_shorthand_property = !opts.is_class
