@@ -1402,6 +1402,70 @@ pub(crate) struct CallLink {
     pub(crate) resuming: Option<crate::generator::Resuming>,
 }
 
+impl CallLink {
+    /// O nome do caminho de C que o CPython empilha para chegar a este quadro (`gthread::c_frames`), ou `None` para a
+    /// chamada Python comum, que no 3.13 não usa pilha de máquina.
+    pub(crate) fn c_entry(&self) -> Option<String> {
+        if self.instance.is_some() {
+            return Some("init".into());
+        }
+        if self.on_stop.is_some() {
+            return Some("for_next".into());
+        }
+        if let Some(r) = &self.resuming {
+            return Some(format!("resume_{}", r.use_.consumer()));
+        }
+        let then = self.then.as_ref()?;
+        Some(match then {
+            Dunder::Chain(c) => match (c.kind, c.scan.is_some()) {
+                (_, true) => "scan".into(),
+                (ChainKind::Binary { inplace: true, .. }, _) => "binary_inplace".into(),
+                (ChainKind::Binary { .. }, _) => "binary".into(),
+                (ChainKind::Order(_), _) => "order".into(),
+                (ChainKind::Equal(_), _) => "equal".into(),
+            },
+            Dunder::Push => "getitem".into(),
+            Dunder::Discard => "setitem".into(),
+            Dunder::Boolean { .. } => "boolean".into(),
+            Dunder::Truth { .. } => "truth".into(),
+            Dunder::Iter => "iter".into(),
+            Dunder::Builtin(u) => format!(
+                "builtin_{}",
+                match u {
+                    BuiltinUse::Len => "len",
+                    BuiltinUse::Bool { .. } => "bool",
+                    BuiltinUse::Plain => "plain",
+                    BuiltinUse::Int => "int",
+                    BuiltinUse::Float => "float",
+                    BuiltinUse::Bytes => "bytes",
+                }
+            ),
+            Dunder::Text(name) => format!("text{name}"),
+            Dunder::Callback(cb) => format!(
+                "callback_{}",
+                match cb.what {
+                    crate::generator::CallbackKind::Mapped => "mapped",
+                    crate::generator::CallbackKind::Kept { .. } => "kept",
+                    crate::generator::CallbackKind::Keyed { .. } => return Some(format!("callback_keyed_{}", cb.pull.then.consumer())),
+                    crate::generator::CallbackKind::Advance { .. } => "advance",
+                    crate::generator::CallbackKind::Start => "start",
+                }
+            ),
+            Dunder::Signal => "signal".into(),
+            Dunder::Import(_) => "import".into(),
+            Dunder::Exec(_) => "exec".into(),
+            // A nativa repetida e o método de usuário que ela pediu (`format` com `__format__` ou com `__str__`).
+            Dunder::Replay(run) => {
+                let method = self.func.as_ref().map_or("", |f| f.code.name.as_str());
+                match &run.op {
+                    ReplayOp::Call { func, .. } => format!("replay_call_{}:{method}", crate::replay::callee_name(func)),
+                    ReplayOp::Step { instr, .. } => format!("replay_step_{}:{method}", crate::replay::op_name(instr)),
+                }
+            }
+        })
+    }
+}
+
 /// Uma tentativa de uma cadeia de operador: o método mágico `name` de `recv`, com `other` de argumento.
 pub(crate) struct Attempt {
     pub(crate) recv: Value,

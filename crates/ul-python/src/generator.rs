@@ -401,6 +401,22 @@ pub(crate) enum CallbackKind {
 }
 
 impl ResumeUse {
+    /// O consumidor da retomada, pelo nome (`gthread::c_frames`): o C que o CPython empilha para puxar o gerador
+    /// depende de quem puxa (`next`, o `for`, o `list()`, o `sum()`...).
+    pub(crate) fn consumer(&self) -> String {
+        match self {
+            ResumeUse::ForIter { .. } => "for".into(),
+            ResumeUse::Next { .. } => "next".into(),
+            ResumeUse::Delegate { .. } | ResumeUse::DelegateThrow { .. } => "delegate".into(),
+            ResumeUse::Collect(c) => match &c.fold {
+                Some(f) => format!("fold_{}", f.name()),
+                None => format!("collect_{}", crate::replay::callee_name(&c.call)),
+            },
+            ResumeUse::Pull(p) => p.then.consumer(),
+            _ => "other".into(),
+        }
+    }
+
     /// O desfecho é o de um `close()`: passa por `GenCore::settle_close`.
     pub(crate) fn closes(&self) -> bool {
         matches!(self, ResumeUse::Close | ResumeUse::DelegateExit(_))
