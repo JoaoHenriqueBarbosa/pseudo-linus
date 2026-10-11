@@ -13,6 +13,21 @@ em três caixas: pânico/regressão (corrige), golden desatualizado por gerador 
 se for rápido, senão deixa IN_SCOPE como está e anota), divergência de conformidade (anota);
 (4) commit sem assinatura; (5) PLAN.md com o estado medido.
 
+### Texto reimpresso pelo transpilador do bun (medido em 2026-10-11)
+
+O bun reimprime o arquivo principal (e o código do `_compile`) pelo transpilador antes de entregar ao JSC, e o JSC
+recorta trechos desse texto reimpresso. Isso explica duas famílias de divergência que não se corrigem no motor:
+
+- o texto da expressão no erro de não-construtor: `new a.b()` vira `'new a.b'`, `new a.b(1,2)` vira `'new a.b(1, 2)'`,
+  `new (a.b)()` vira `'new a.b'`, `new a["class"]()` vira `'new a.class'`, e há propagação de constante
+  (`const k="b"; new a[k]()` vira `'new a.b'`; `const g=1; new g()` vira `'new 1'`). No `eval` o JSC mantém os
+  parênteses, então `engine_error_text_escape` com `new 日()` está certo;
+- `String(fn)` do arquivo principal sai reimpresso (sem comentário, sem const morta);
+- as colunas de pilha de `cjs_require` (`stack_compiled`, `stack_sites`, 2 de 65), contadas no texto reimpresso.
+
+Fecha quando o printer do zbun alimentar o provider de fonte do zjsc com o texto reimpresso e o mapa de posições. Remendo
+por token daria fidelidade parcial e fica proibido.
+
 ### Segunda passada de correções (2026-10-09, depois do commit 9c21851a)
 
 Medição parcial da suíte completa (137 de ~403 binários, 43 falhas distintas). Os goldens de `error*`, `eval*`,
