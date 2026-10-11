@@ -12,5 +12,8 @@ const PRELUDES: &str = include_str!("golden/generator_state.preludes.json");
 
 #[test]
 fn generator_state_matches_bun() {
-    common::run_factored(GOLDEN, PRELUDES, 3000, |source| common::EvalMode::IndirectEval.evaluate(source, "generator_state_case.js", "R"));
+    // O caso do `yield*` recursivo de 1000 níveis aninha o laço nativo a cada nível: numa thread de teste comum (2 MiB)
+    // estoura a pilha nativa, que no bun (8 MiB abaixo da pilha de 5 MiB do JS) não é o limite. Os goldens de profundidade
+    // rodam na thread de pilha grande.
+    common::run_factored_big_stack(GOLDEN, PRELUDES, 3000, |source| common::EvalMode::IndirectEval.evaluate(source, "generator_state_case.js", "R"));
 }
