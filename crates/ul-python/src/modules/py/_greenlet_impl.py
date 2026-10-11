@@ -627,6 +627,9 @@ from ``g_raiser`` to ``g``.
         if _main_gone(state):
             # O principal de uma thread que acabou: o C já zerou o `thread_state` dele (o `%p` do NULL).
             return '<%s object at 0x%x (otid=0x(nil)) (thread exited) dead>' % (name, id(self) & 0xffffffffffff)
+        if not state.started and not state.main:
+            # Sem ter começado o greenlet ainda não tem `thread_state` no C: o `%p` do NULL, mesmo com a thread viva.
+            return '<%s object at 0x%x (otid=0x(nil)) pending>' % (name, id(self) & 0xffffffffffff)
         if state.dead and not state.main:
             return '<%s object at 0x%x (otid=0x%x) %sdead>' % (
                 name, id(self) & 0xffffffffffff, otid, '(thread exited) ' if _exited(state.owner) else '')

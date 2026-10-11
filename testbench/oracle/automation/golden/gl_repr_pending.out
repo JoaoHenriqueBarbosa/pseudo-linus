@@ -1,0 +1,8 @@
+<greenlet.greenlet object at X (otid=0x(nil)) pending> | otid_nil=True
+<Sub object at X (otid=0x(nil)) pending> | otid_nil=True
+<greenlet.greenlet object at X (otid=0x(nil)) pending> | otid_nil=True
+<greenlet.greenlet object at X (otid=X) suspended active started> | otid_nil=False
+<greenlet.greenlet object at X (otid=X) dead> | otid_nil=False
+<greenlet.greenlet object at X (otid=X) current active started main> | otid_nil=False
+<greenlet.greenlet object at X (otid=0x(nil)) pending> | otid_nil=True
+False False
