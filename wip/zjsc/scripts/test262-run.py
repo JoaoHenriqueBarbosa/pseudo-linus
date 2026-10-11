@@ -85,7 +85,19 @@ def build(harness, meta, test_text, mode):
     if mode == "strict":
         pieces.append('"use strict";')
     if mode == "module":
-        pieces.append("globalThis.print = L;")
+        # O harness roda como script global antes do grafo (os módulos importados também o enxergam); o marcador abre o módulo.
+        pieces.append("var print = function (text) { L(text); };")
+        harness_pieces = []
+        if not raw:
+            names = ["assert.js", "sta.js"]
+            if "async" in flags:
+                names.append("doneprintHandle.js")
+            for include in meta["includes"]:
+                if include not in names:
+                    names.append(include)
+            harness_pieces = [harness.get(name) for name in names]
+        marker = "" if raw else "print('%s');" % MARKER
+        return "\n".join(pieces + harness_pieces + ["//--MODULE--", marker, test_text])
     if not raw:
         pieces.append("print('%s');" % MARKER)
         names = ["assert.js", "sta.js"]
@@ -111,7 +123,34 @@ def modes_for(meta):
     return ["sloppy", "strict"]
 
 
-def run_worker(worker, mode, source, fixtures, timeout, memory):
+SPECIFIER = re.compile(r"""(?:from|import|import\s*\(|export\s*\*\s*from)\s*\(?\s*['"](\.{1,2}/[^'"]+)['"]""")
+
+
+# O especificador também aparece em constantes e comentários (`const a = './x_FIXTURE.js'; import([a])`).
+FIXTURE_STRING = re.compile(r"""['"](\.{1,2}/[^'"\s]*_FIXTURE[^'"\s]*)['"]""")
+
+
+def fixtures_for(test_root, relative, text, cache):
+    """Os módulos que o teste importa (transitivamente), como {chave relativa a test/: caminho}."""
+    found = {}
+    pending = [(relative, text)]
+    while pending:
+        owner, body = pending.pop()
+        for specifier in SPECIFIER.findall(body) + FIXTURE_STRING.findall(body):
+            key = os.path.normpath(os.path.join(os.path.dirname(owner), specifier))
+            if key in found or key.startswith(".."):
+                continue
+            path = os.path.join(test_root, key)
+            if not os.path.isfile(path):
+                continue
+            found[key] = path
+            if key not in cache:
+                cache[key] = open(path, encoding="utf-8", errors="replace").read()
+            pending.append((key, cache[key]))
+    return found
+
+
+def run_worker(worker, mode, source, key, fixtures, timeout, memory):
     with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8", errors="surrogatepass") as handle:
         handle.write(source)
         path = handle.name
@@ -122,7 +161,7 @@ def run_worker(worker, mode, source, fixtures, timeout, memory):
     try:
         kind = "module" if mode == "module" else "script"
         result = subprocess.run(
-            [worker, kind, path] + (fixtures if mode == "module" else []),
+            [worker, kind, path, key] + ["%s=%s" % pair for pair in fixtures.items()],
             capture_output=True,
             timeout=timeout,
             preexec_fn=limits,
@@ -177,15 +216,12 @@ def verdict(meta, ran):
 def run_test(args, harness, path, relative):
     text = read(path)
     meta = parse_meta(text)
-    fixtures = []
-    directory = os.path.dirname(path)
-    if "module" in meta["flags"]:
-        fixtures = [os.path.join(directory, name) for name in os.listdir(directory) if name.endswith("_FIXTURE.js")]
+    fixtures = fixtures_for(os.path.join(args.test262, "test"), relative, text, args.fixture_cache)
     causes = []
     for mode in modes_for(meta):
         source = build(harness, meta, text, mode)
         try:
-            ran = run_worker(args.worker, mode, source, fixtures, args.timeout, args.memory)
+            ran = run_worker(args.worker, mode, source, relative, fixtures, args.timeout, args.memory)
         except OSError as error:
             ran = {"status": "crash", "code": -1, "detail": str(error)}
         ok, cause = verdict(meta, ran)
@@ -285,15 +321,20 @@ def main():
     parser.add_argument("--memory", type=int, default=3 * 1024 ** 3)
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--filter", default="")
+    parser.add_argument("--paths", help="arquivo com um caminho (relativo a test/) por linha: roda só esses testes")
     parser.add_argument("--summary")
     parser.add_argument("--report")
     parser.add_argument("--commit", default="")
     args = parser.parse_args()
+    args.fixture_cache = {}
     if args.summary:
         summarize(args.summary, args.report, args.commit)
         return
     harness = Harness(args.test262)
     tests = collect(args.test262, args.dirs.split(","), args.filter)
+    if args.paths:
+        wanted = set(line.strip() for line in open(args.paths, encoding="utf-8") if line.strip())
+        tests = [item for item in tests if item[1] in wanted]
     if args.limit:
         tests = tests[: args.limit]
     done = 0

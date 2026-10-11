@@ -209,7 +209,8 @@ impl ModuleHost for MemoryModuleHost {
         let is_path = specifier.starts_with("./") || specifier.starts_with("../") || specifier.starts_with('/') || specifier.starts_with('\\');
         if is_path {
             // `//x` é caminho absoluto do disco no bun (nunca uma chave do mapa) e `\x` nunca existe.
-            let key = join_relative(from, path_part, false);
+            // O referrer de um script é a URL `file:///caminho`; a chave do mapa é o caminho.
+            let key = join_relative(from.strip_prefix("file://").unwrap_or(from), path_part, false);
             if !specifier.starts_with("//") && !specifier.starts_with('\\') {
                 if let Some(found) = self.find_file(&key) {
                     return Ok(format!("{found}{suffix}"));
@@ -394,6 +395,12 @@ impl ModuleHost for FileUrlHost {
     }
 }
 
+/// Instala em `global_object` o carregador de módulos sobre os arquivos em memória `files` (chave, fonte): o `import()` de um script
+/// e o `import` de um módulo resolvem contra eles, como em [`evaluate_module_map`].
+pub(crate) fn install_memory_modules(global_object: &crate::runtime::js_global_object::JSGlobalObjectRef, files: &[(String, String)]) {
+    install_module_loader(global_object, Rc::new(FileUrlHost { inner: MemoryModuleHost::new(files.iter().cloned()) }));
+}
+
 /// Quando o `log` é lido, como em cada gerador de golden: na continuação do `await import(main)`
 /// (`gen-module-more-golden.js`, `gen-module-edge-golden.js`) ou depois de um `setTimeout(0)` a mais
 /// (`gen-module-golden.js`). O que o laço de eventos rodar depois disso não entra no `log`.
@@ -409,7 +416,13 @@ pub enum LogPoint {
 /// rejeitou a avaliação, se houve. Um módulo que nunca termina (top-level await pendente) devolve o erro `pending`.
 pub fn evaluate_module_map_until(files: &[(String, String)], entry: &str, log_point: LogPoint) -> ModuleMapOutcome {
     let host = FileUrlHost { inner: MemoryModuleHost::new(files.iter().cloned()) };
-    evaluate_logged_module(Rc::new(host), &format!("./{entry}"), log_point, None)
+    evaluate_logged_module(Rc::new(host), &format!("./{entry}"), log_point, None, "")
+}
+
+/// [`evaluate_module_map`] com um script global que roda antes do grafo, no mesmo realm (`global_script` vê `log` e `L`).
+pub fn evaluate_module_map_after_script(files: &[(String, String)], entry: &str, global_script: &str) -> ModuleMapOutcome {
+    let host = FileUrlHost { inner: MemoryModuleHost::new(files.iter().cloned()) };
+    evaluate_logged_module(Rc::new(host), &format!("./{entry}"), LogPoint::EntrySettled, None, global_script)
 }
 
 /// [`evaluate_module_map_until`] com o `log` lido quando a entrada assenta.
@@ -422,7 +435,7 @@ pub fn evaluate_module_map(files: &[(String, String)], entry: &str) -> ModuleMap
 /// de chave `entry_key` (caminho absoluto, ex. `/app/main.mjs`).
 pub fn evaluate_module_with_fs(fs: Rc<dyn ModuleFs>, source: &str, entry_key: &str) -> ModuleMapOutcome {
     let host = EntryHost { specifier: entry_key.to_owned(), source: source.to_owned(), position_map: None, inner: Rc::new(FsModuleHost::new(fs.clone())) };
-    evaluate_logged_module(Rc::new(host), entry_key, LogPoint::EntrySettled, Some(fs))
+    evaluate_logged_module(Rc::new(host), entry_key, LogPoint::EntrySettled, Some(fs), "")
 }
 
 /// O erro como os geradores dos goldens de módulo o escrevem: `Nome: mensagem` para um `Error` (inclusive o
@@ -484,7 +497,7 @@ fn entry_settled_reaction_body(global_object: &crate::runtime::js_global_object:
 }
 crate::host_function!(entry_settled_reaction, entry_settled_reaction_body);
 
-fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str, log_point: LogPoint, fs: Option<Rc<dyn ModuleFs>>) -> ModuleMapOutcome {
+fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str, log_point: LogPoint, fs: Option<Rc<dyn ModuleFs>>, global_script: &str) -> ModuleMapOutcome {
     crate::runtime::cell_registry::run_program(|| {
         let (vm, global_object) = new_global_object();
         // O `require` de um CommonJS que o grafo importa lê por este sistema de arquivos.
@@ -494,6 +507,10 @@ fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str, log_p
         // `evaluate` devolve `Err` se o prelúdio falhar, o que seria bug do porte, não do caso.
         let prelude = "globalThis.log = []; globalThis.L = (x) => { log.push(String(x)); };";
         let _ = evaluate(&global_object, &program_source(prelude));
+        // O script global que roda antes do grafo (o harness do test262, que os módulos importados também enxergam).
+        if !global_script.is_empty() {
+            let _ = evaluate(&global_object, &program_source(global_script));
+        }
         // Como no bun, o `import()` de um módulo novo é uma leitura entregue pelo laço de eventos (uma macrotask):
         // o laço roda até o ponto de leitura do `log`.
         crate::runtime::timers::enable_event_loop();

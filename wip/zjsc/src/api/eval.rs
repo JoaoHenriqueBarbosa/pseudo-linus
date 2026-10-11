@@ -974,7 +974,7 @@ pub(crate) fn reset_for_program() {
 /// `module` e `require` não têm frame no bun; `_compile` e as extensões têm). Os donos são objetos comuns
 /// (`constructEmptyObject`), com a estrutura compartilhada do global: a gravação vai com transição (`putDirect`), como o
 /// C++ faz nesses objetos; `putDirectWithoutTransition` só vale em estrutura própria e aqui poria a função em todo `{}`.
-fn define_native(
+pub(crate) fn define_native(
     vm: &VM,
     global_object: &JSGlobalObject,
     holder: &JSObject,
