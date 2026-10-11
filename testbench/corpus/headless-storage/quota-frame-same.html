@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>quota-frame-same</title>
+<script>
+// Mantém o orçamento de tempo virtual ocupado com E/S real até o iframe terminar.
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 200 && !done; i++) await fetch('/quota-frame-same.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+setTimeout(() => { done = true; }, 1500);
+
+</script>
+<body>quota-frame-same<iframe src="/quota-inner.html"></iframe></body>

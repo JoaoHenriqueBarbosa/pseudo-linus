@@ -12,7 +12,7 @@
 //! dos metadados (bloqueios no primeiro, vazia no commit) e por fim as tarefas de desfazer; o *dos apagamentos de
 //! esquema* (apagar índice, repositório, `clear`) intercala, para cada chave, a tarefa de desfazer e a remoção.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use ul_leveldb::batch::WriteBatch;
@@ -921,6 +921,17 @@ pub struct IndexedDbStore {
     root: String,
     thread_id: u64,
     origins: std::sync::Mutex<HashMap<String, OriginDisk>>,
+    /// O uso de cada origem nesta execução: o QuotaManager o soma ao bucket dela.
+    uses: std::sync::Mutex<BTreeMap<String, BucketUse>>,
+}
+
+/// O que uma origem fez com o IndexedDB nesta execução (instantes em microssegundos WebKit).
+#[derive(Debug, Clone, Copy)]
+pub struct BucketUse {
+    /// Dois por `indexedDB.open` (o Chromium abre o bucket duas vezes a cada abertura).
+    pub use_count: i64,
+    pub accessed: i64,
+    pub modified: i64,
 }
 
 impl std::fmt::Debug for IndexedDbStore {
@@ -949,7 +960,7 @@ pub fn origin_identifier(origin: &str) -> Option<String> {
 
 impl IndexedDbStore {
     pub fn new(env: Arc<dyn Env>, root: &str, thread_id: u64) -> IndexedDbStore {
-        IndexedDbStore { env, root: root.to_owned(), thread_id, origins: std::sync::Mutex::default() }
+        IndexedDbStore { env, root: root.to_owned(), thread_id, origins: std::sync::Mutex::default(), uses: std::sync::Mutex::default() }
     }
 
     fn with_origin<T>(&self, origin: &str, work: impl FnOnce(&mut OriginDisk) -> Result<T>) -> Result<T> {
@@ -963,8 +974,34 @@ impl IndexedDbStore {
         work(origins.get_mut(&identifier).expect("aberto acima"))
     }
 
+    /// Anota o uso da origem: qualquer chamada do IndexedDB cria o bucket; `opens` soma as aberturas e `wrote` o instante
+    /// da última gravação.
+    fn note(&self, origin: &str, opens: i64, wrote: bool) {
+        let now = ul_common::time::webkit_now_micros();
+        let mut uses = self.uses.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let entry = uses.entry(origin.to_owned()).or_insert(BucketUse { use_count: 0, accessed: now, modified: now });
+        entry.use_count += 2 * opens;
+        if opens > 0 {
+            entry.accessed = now;
+        }
+        if wrote {
+            entry.modified = now;
+        }
+    }
+
+    /// Uma chamada de `indexedDB.open`.
+    pub fn opened(&self, origin: &str) {
+        self.note(origin, 1, false);
+    }
+
+    /// Os buckets que as origens usaram nesta execução, em ordem de origem.
+    pub fn bucket_uses(&self) -> Vec<(String, BucketUse)> {
+        self.uses.lock().unwrap_or_else(std::sync::PoisonError::into_inner).iter().map(|(origin, usage)| (origin.clone(), *usage)).collect()
+    }
+
     /// Os bancos da origem, no texto que o prelúdio lê. Um disco ilegível vale como nenhum banco.
     pub fn load(&self, origin: &str) -> Vec<(String, String)> {
+        self.note(origin, 0, false);
         self.with_origin(origin, |disk| disk.load()).unwrap_or_default()
     }
 
@@ -972,6 +1009,7 @@ impl IndexedDbStore {
     pub fn commit(&self, origin: &str, name: &str, text: &str) -> Result<()> {
         let mut commit = Commit::parse(text).ok_or_else(|| io("diário ilegível"))?;
         commit.name = units(name);
+        self.note(origin, 0, true);
         self.with_origin(origin, |disk| disk.commit(&commit))
     }
 
