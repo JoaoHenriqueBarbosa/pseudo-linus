@@ -275,7 +275,7 @@ fn assemble_shared_day_period(head: &[Part], start: &[Part], separator: &str, en
 /// literais que fecham os dois lados (` г.`, `分`) saem do início, que o separador já traz, e do fim
 /// viram a cauda `shared`. `None` quando a língua não tem tabela ou o caso não foi medido.
 fn data_range(state: &DateTimeFormatState, level: Level, first: &Moment, second: &Moment) -> Option<Vec<RangePart>> {
-    let skeleton = short_time_skeleton_state(state);
+    let skeleton = short_time_skeleton_state(state, Digits2::Numeric);
     let state = skeleton.as_ref().unwrap_or(state);
     let data = intl_date_time_data::locale_data_for(&state.locale)?;
     let time_level = level >= Level::DayPeriod;
@@ -361,6 +361,13 @@ fn data_range(state: &DateTimeFormatState, level: Level, first: &Moment, second:
         let (_, end_core) = end.split_at(time_start(&end)?);
         let (start_core, _) = split_trailing_literals(start_core);
         let (end_core, tail) = split_trailing_literals(end_core);
+        // O literal entre a hora e o minuto do padrão de intervalo (`時` em ja) não é o do `format` (`:`): vem medido.
+        let cycle_label = if matches!(state.cycle, HourCycle::H11 | HourCycle::H12) { "12" } else { "24" };
+        let (start_core, end_core) = match range_value(state, data, scenario, &format!("hmlit|{cycle_label}")) {
+            Some(text) => (with_hour_minute_literal(start_core, text), with_hour_minute_literal(end_core, text)),
+            None => (start_core.to_vec(), end_core.to_vec()),
+        };
+        let (start_core, end_core) = (&start_core[..], &end_core[..]);
         // O padrão de intervalo pode fechar com um literal que o `format` do extremo não tem (` Uhr` em de): vem medido.
         let measured_tail = [literal(range_value(state, data, scenario, if matches!(state.cycle, HourCycle::H11 | HourCycle::H12) { "tailtext|12" } else { "tailtext|24" }).unwrap_or(""))];
         let tail = if tail.is_empty() && !measured_tail[0].1.is_empty() { &measured_tail[..] } else { tail };
@@ -397,6 +404,17 @@ fn data_range(state: &DateTimeFormatState, level: Level, first: &Moment, second:
     Some(assemble(&[], start_core, separator, end_core, tail))
 }
 
+/// `parts` com o literal entre a hora e o minuto trocado por `text`.
+fn with_hour_minute_literal(parts: &[Part], text: &str) -> Vec<Part> {
+    let mut out = parts.to_vec();
+    if let Some(hour) = out.iter().position(|(kind, _)| kind == "hour") {
+        if out.get(hour + 1).is_some_and(|part| part.0 == "literal") && out.get(hour + 2).is_some_and(|part| part.0 == "minute") {
+            out[hour + 1].1 = text.to_string();
+        }
+    }
+    out
+}
+
 /// `dateStyle` com `timeStyle: "short"` no mesmo dia: a data (com a cola do dia, `same_day_joiner`) sai uma vez e o resto
 /// é o intervalo da hora sozinha, o mesmo de `{ hour: "numeric", minute: "numeric" }` (`04:08–16:08 Uhr` em de,
 /// `4時08分～16時08分` em ja), e não o `format` do estilo. Medido no bun em 65 locales, quatro `dateStyle`, três
@@ -422,8 +440,10 @@ fn styled_short_time_range(state: &DateTimeFormatState, level: Level, first: &Mo
     if endpoint_parts(state, first)?.first().is_some_and(|(kind, _)| kind == "hour" || kind == "dayPeriod") {
         return None;
     }
-    let time_state = short_time_skeleton_state(&time_only)?;
+    // Com `dateStyle` o intervalo é o de `yMd` com `Hm`, e o `mm` de dois dígitos escolhe em ja o padrão `7時08分` (com o minuto `numeric` sairia `7:08`).
+    let time_state = short_time_skeleton_state(&time_only, Digits2::TwoDigit)?;
     let time = data_range(&time_state, level, first, second)?;
+    with_interval_date_fields(&mut date_only);
     let head = with_same_day_joiner(state, &endpoint_parts(&date_only, first)?);
     Some(join_shared(tag(head, RangeSource::Shared), time))
 }
@@ -573,27 +593,53 @@ fn apply_hour_width(state: &DateTimeFormatState, data: &intl_date_time_data::Loc
 /// diz `22:13`. Medido no bun contra `{ hour: "numeric", minute: "numeric" }`: o resultado é idêntico em ja, de,
 /// en, ar, zh e ko. Com segundos (`medium` em diante) não há padrão de intervalo e o fallback usa o estilo.
 /// `None` fora desse caso.
-fn short_time_skeleton_state(state: &DateTimeFormatState) -> Option<DateTimeFormatState> {
+fn short_time_skeleton_state(state: &DateTimeFormatState, minute: Digits2) -> Option<DateTimeFormatState> {
     if state.date_style.is_some() || state.time_style != Some(StyleWidth::Short) {
         return None;
     }
     let mut skeleton = state.clone();
     skeleton.time_style = None;
     skeleton.user_fields.hour = Some(Digits2::Numeric);
-    skeleton.user_fields.minute = Some(Digits2::Numeric);
+    skeleton.user_fields.minute = Some(minute);
     Some(skeleton)
 }
 
 /// A cola do intervalo do mesmo dia para o `dateStyle` do estado: a tabela da `língua-REGIÃO`, depois da língua
 /// (`en-GB` e as variantes de `en` têm a mesma cola). `None` sem `dateStyle` ou sem a língua na tabela.
 fn same_day_joiner(state: &DateTimeFormatState) -> Option<&'static str> {
-    let index = match state.date_style? {
+    same_day_joiner_at(state, date_style_index(state)?)
+}
+
+/// 0 a 3 para `full`, `long`, `medium` e `short`: o índice do `sdj` e do `sdd` nos `extras` do locale.
+fn date_style_index(state: &DateTimeFormatState) -> Option<usize> {
+    Some(match state.date_style? {
         StyleWidth::Full => 0,
         StyleWidth::Long => 1,
         StyleWidth::Medium => 2,
         StyleWidth::Short => 3,
+    })
+}
+
+/// Troca o `dateStyle` de `state` pelos campos do skeleton que o `DateIntervalFormat` usa para a data do mesmo dia (`sdd`), quando
+/// não é o do próprio estilo (ja e zh: `2024/3/5` para `long`, `2024/3/5火曜日` para `full`).
+fn with_interval_date_fields(state: &mut DateTimeFormatState) {
+    let Some(spec) = date_style_index(state).and_then(|index| intl_date_time_data::locale_data_for(&state.locale)?.extra(&format!("sdd|{index}"))) else {
+        return;
     };
-    same_day_joiner_at(state, index)
+    state.date_style = None;
+    for fields in [&mut state.fields, &mut state.user_fields] {
+        (fields.weekday, fields.era, fields.year, fields.month, fields.day) = (None, None, None, None, None);
+        for pair in spec.split(';') {
+            let Some((field, value)) = pair.split_once('=') else { continue };
+            match field {
+                "weekday" => fields.weekday = TextWidth::parse(value),
+                "year" => fields.year = Digits2::parse(value),
+                "month" => fields.month = Month::parse(value),
+                "day" => fields.day = Digits2::parse(value),
+                _ => {}
+            }
+        }
+    }
 }
 
 /// A cola `standard` do intervalo do mesmo dia no calendário `iso8601`: com `dateStyle` a do estilo; sem ele, a que o

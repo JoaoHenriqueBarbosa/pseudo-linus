@@ -405,6 +405,24 @@ function extras(locale) {
     // O literal que fecha a data (`г.`, `일`, `.`) vem junto: o consumidor troca todo o literal final da data pela cola.
     const joiner = parts.slice(from, timeAt).map((part) => part.value).join("");
     if (timeAt >= 0) out.push([`sdj|${index}`, joiner]);
+    // A data do intervalo do mesmo dia nem sempre é o `format` do `dateStyle` (ja e zh: `2024/3/5` para long, `2024/3/5火曜日` para
+    // full, o ICU escolhe o padrão `yMd` do intervalo): `sdd|índice` é o skeleton cujo `format` dá o trecho de data do intervalo
+    // (`weekday=long;year=numeric;month=numeric;day=numeric`), ausente quando é o próprio `dateStyle`.
+    if (timeAt >= 0) {
+      const instant = Date.UTC(2023, 10, 14, 22, 13);
+      const head = parts.slice(0, from).map((part) => part.value).join("");
+      const asStyle = make(locale, { dateStyle }).format(instant);
+      if (head !== asStyle) {
+        const candidates = [];
+        for (const weekday of [undefined, "long", "short"]) {
+          for (const month of ["numeric", "2-digit", "short", "long"]) {
+            candidates.push({ ...(weekday ? { weekday } : {}), year: "numeric", month, day: month === "2-digit" ? "2-digit" : "numeric" });
+          }
+        }
+        const found = candidates.find((options) => make(locale, options).format(instant) === head);
+        if (found) out.push([`sdd|${index}`, FIELDS.filter((field) => found[field]).map((field) => `${field}=${found[field]}`).join(";")]);
+      }
+    }
   });
   for (const family of ZONE_DATE) out.push(...zoneDateRows(locale, family));
   for (const wrap of ZONE_WRAPS) out.push(...zoneWrapRows(locale, wrap));
@@ -450,6 +468,11 @@ function extras(locale) {
         // O texto do que fecha o intervalo depois do último extremo (só literais, o AM/PM comum tem caminho próprio): o padrão de intervalo tem literal que o `format` do extremo não tem
         // (` Uhr` em de, `22:13–23:13 Uhr`), e só no ciclo de 24 horas.
         const last = cycled.map((part) => part.source).lastIndexOf("endRange");
+        // O literal entre a hora e o minuto dentro do intervalo (`時` em ja: `7時08分～19時08分`, enquanto o `format` da hora com minuto dá `7:08`).
+        const hourAt = cycled.findIndex((part) => part.type === "hour" && part.source === "startRange");
+        if (hourAt >= 0 && cycled[hourAt + 1]?.type === "literal" && cycled[hourAt + 2]?.type === "minute") {
+          out.push([`range|${scenario.name}|hmlit|${label}`, cycled[hourAt + 1].value]);
+        }
         const trailing = cycled.slice(last + 1);
         out.push([`range|${scenario.name}|tailtext|${label}`, trailing.every((part) => part.type === "literal") ? trailing.map((part) => part.value).join("") : ""]);
       }
