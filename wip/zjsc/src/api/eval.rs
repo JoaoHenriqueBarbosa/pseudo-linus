@@ -454,7 +454,14 @@ pub fn evaluate_main_script_reporting_signal(
 fn run_main_program(global_object: &JSGlobalObjectRef, source: &str, url: &str) -> Result<(), JSValue> {
     // Com transpilador instalado o arquivo principal roda reimpresso, como no bun, e quem decide ESM ou CJS é o
     // parser dele (`exports_kind`); sem ele vale a medição de `main_module_kind` sobre o fonte cru.
-    let transpiled = crate::api::source_transpiler::transpile_source(url, source, false);
+    let attempt = crate::api::source_transpiler::attempt_transpile(url, source, false);
+    if let Some(Err(messages)) = &attempt {
+        // O transpilador recusa o arquivo (erro que o bun dá em tempo de parse, como atribuir a um `const`): o programa
+        // não roda, e o erro chega como o `BuildMessage` (ou `AggregateError`) do bun.
+        crate::api::module::install_main_module_loader(global_object, source, url, None);
+        return Err(crate::runtime::js_module_loader::build_failure_value(global_object, url, messages));
+    }
+    let transpiled = attempt.and_then(Result::ok);
     let kind = match &transpiled {
         Some(done) if done.is_commonjs => MainModuleKind::Cjs,
         Some(_) => MainModuleKind::Esm,
@@ -765,6 +772,20 @@ fn run_commonjs_wrapper(
         Ok(Err(thrown)) => Err(thrown.value()),
         Err(unported) => panic!("interpretador: {unported:?} ainda não portado"),
     }
+}
+
+/// Executa o CommonJS `key`, que um `import` puxou (texto e mapa do transpilador, a função de wrapper inteira), e devolve o
+/// `module.exports` que ele deixou. `Err` é o valor que o arquivo lançou.
+pub(crate) fn run_commonjs_import(key: &str, done: &crate::api::source_transpiler::Transpiled) -> Result<JSValue, JSValue> {
+    let global_object = crate::runtime::js_module_record::realm();
+    CJS_FS.with(|slot| *slot.borrow_mut() = global_object.module_fs());
+    let dirname = key.rsplit_once('/').map_or(".", |(directory, _)| if directory.is_empty() { "/" } else { directory });
+    run_commonjs_wrapper(&global_object, &[], key, false, &[], dirname, Some(done))?;
+    let module = CJS_STATE.with(|cell| cell.borrow().as_ref().map(|state| state.modules[0].module.clone())).expect("estado do CJS");
+    let vm = global_object.vm();
+    let exports = Identifier::from_span(&vm, b"exports");
+    let exports = JSObject::from_value(&module).expect("module do CJS não é objeto").get(&vm, &PropertyName::from_identifier(&exports));
+    completion(&vm, exports)
 }
 
 /// A diretiva que `canonicalSource` preserva no começo do programa CJS estrito.

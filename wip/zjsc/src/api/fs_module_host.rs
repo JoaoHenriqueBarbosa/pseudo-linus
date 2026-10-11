@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 use crate::api::builtin_modules;
 use crate::api::module_probe::{file_url_from_path, file_url_path, import_not_found_message, resolve_require, ModuleFs};
-use crate::api::source_transpiler::ReprintedModules;
+use crate::api::source_transpiler::{ReprintedModules, Transpiled};
 use crate::parser::position_map::PositionMap;
 use crate::runtime::host_call::Thrown;
 use crate::runtime::identifier::Identifier;
@@ -62,6 +62,10 @@ impl ModuleHost for FsModuleHost {
 
     fn position_map(&self, key: &str) -> Option<Rc<PositionMap>> {
         self.reprinted.position_map(key)
+    }
+
+    fn commonjs_module(&self, key: &str) -> Option<Rc<Transpiled>> {
+        self.reprinted.commonjs_module(key)
     }
 
     fn build_errors(&self, key: &str) -> Option<Vec<String>> {

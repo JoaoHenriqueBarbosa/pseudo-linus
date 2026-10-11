@@ -51,6 +51,7 @@ use crate::runtime::abstract_module_record::AbstractModuleRecordRef;
 use crate::runtime::constructor_kind::ConstructorKind;
 use crate::runtime::enumeration_mode::{DontEnumPropertiesMode, PrivateSymbolMode, PropertyNameMode};
 use crate::runtime::error::{create_error, create_syntax_error, create_type_error};
+use crate::runtime::abstract_module_record::AbstractModuleRecord;
 use crate::runtime::aggregate_error::create_aggregate_error;
 use crate::runtime::error_instance::ErrorInstance;
 use crate::runtime::js_array::construct_array;
@@ -130,6 +131,14 @@ pub trait ModuleHost {
     /// devolver (o bun relata o arquivo que não parseia como `BuildMessage`, ou `AggregateError` com vários erros,
     /// e não como o `SyntaxError` do motor).
     fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+        let _ = key;
+        None
+    }
+
+    /// O arquivo `key`, que `fetch` acabou de devolver, quando o transpilador o classificou como CommonJS: o `import` dele
+    /// é um módulo sintético (`default` é `module.exports`, mais os exports nomeados que o parser achou) cujo corpo roda
+    /// na avaliação do grafo.
+    fn commonjs_module(&self, key: &str) -> Option<Rc<crate::api::source_transpiler::Transpiled>> {
         let _ = key;
         None
     }
@@ -750,19 +759,58 @@ fn build_message_state(message: String) -> MessageState {
     }
 }
 
-/// O arquivo `key` que o transpilador do bun recusa: um erro vira `BuildMessage`; vários, um `AggregateError`
-/// `N errors building "key"` com os `BuildMessage` em `errors`.
-fn throw_build_failure(global_object: &JSGlobalObject, key: &str, messages: Vec<String>) -> Thrown {
-    if let [only] = messages.as_slice() {
-        return throw_build_message(global_object, only.clone());
-    }
+/// O módulo sintético do CommonJS `key` que um `import` puxa: os exports (`default` e os nomes que o parser achou) nascem
+/// `undefined` e a avaliação do grafo roda o wrapper do arquivo, depois guarda `module.exports` em `default` e cada
+/// propriedade de mesmo nome nos nomeados.
+fn create_commonjs_record(
+    global_object: &JSGlobalObject,
+    key: &str,
+    commonjs: Rc<crate::api::source_transpiler::Transpiled>,
+) -> ModuleResult<AbstractModuleRecordRef> {
     let vm = global_object.vm();
+    let default_name = vm.property_names.default_keyword.clone();
+    let mut names = vec![default_name];
+    for name in &commonjs.commonjs_export_names {
+        let identifier = Identifier::from_string(vm, &WtfString::from_utf8(name.as_bytes()));
+        if !names.contains(&identifier) {
+            names.push(identifier);
+        }
+    }
+    let module_key = Identifier::from_string(vm, &WtfString::from_utf8(key.as_bytes()));
+    let record = try_create_with_export_names_and_values(global_object, &module_key, &names, &vec![JSValue::undefined(); names.len()], SourceProviderSourceType::Module)?;
+    let environment = record.module_environment();
+    let key = key.to_owned();
+    record.set_lazy_evaluation(Box::new(move |global_object| {
+        let exports = match crate::api::eval::run_commonjs_import(&key, &commonjs) {
+            Ok(exports) => exports,
+            Err(error) => return Err(throw_value(global_object, error)),
+        };
+        AbstractModuleRecord::put_binding(&environment, &names[0], exports);
+        if exports.is_object() {
+            for name in &names[1..] {
+                let value = get_value_property(global_object, exports, &PropertyName::from_identifier(name))?;
+                AbstractModuleRecord::put_binding(&environment, name, value);
+            }
+        }
+        Ok(())
+    }));
+    Ok(record)
+}
+
+/// O arquivo `key` que o transpilador do bun recusa: um erro vira `BuildMessage`; vários, um `AggregateError`
+/// `N errors building "key"` com os `BuildMessage` em `errors`. Sem lançar: o arquivo principal recusado volta como `Err`.
+pub(crate) fn build_failure_value(global_object: &JSGlobalObject, key: &str, messages: &[String]) -> JSValue {
+    let vm = global_object.vm();
+    if let [only] = messages {
+        return message_instance(vm, build_message_state(only.clone()))
+            .unwrap_or_else(|| JSValue::from_js_string(js_string(vm, &WtfString::from_utf8(only.as_bytes()))));
+    }
     let items: Vec<JSValue> = messages.iter().filter_map(|text| message_instance(vm, build_message_state(text.clone()))).collect();
     let errors = construct_array(vm, &global_object.array_structure(), &items).as_value();
     let message = format!("{} errors building \"{key}\"", messages.len());
     let structure = global_object.error_structure_for(ErrorType::AggregateError);
     let error = create_aggregate_error(vm, structure, errors, Some(WtfString::from_utf8(message.as_bytes())), None);
-    throw_value(global_object, error.as_value())
+    error.as_value()
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o carregador pode guardar valores e globais do
@@ -856,8 +904,18 @@ impl ModuleLoader {
             Err(message) if self.host.failures_are_type_errors() => return Err(throw_type_error(global_object, &message)),
             Err(message) => return Err(throw_error(global_object, &message)),
         };
+        // O bun lê o arquivo sem a marca de ordem de bytes (`\u{feff}`), também o JSON.
+        let text = match text.strip_prefix('\u{feff}') {
+            Some(rest) => rest.to_owned(),
+            None => text,
+        };
         if let Some(messages) = self.host.build_errors(key) {
-            return Err(throw_build_failure(global_object, key, messages));
+            return Err(throw_value(global_object, build_failure_value(global_object, key, &messages)));
+        }
+        if let Some(commonjs) = self.host.commonjs_module(key) {
+            let record = create_commonjs_record(global_object, key, commonjs)?;
+            self.registry.borrow_mut().insert(registry_key, Rc::clone(&record));
+            return Ok(record);
         }
         let host_defined_type = parameters.map(|parameters| rust_string(parameters.host_defined_import_type())).unwrap_or_default();
         let source_type = self.host.source_type(key, request_type, &host_defined_type);

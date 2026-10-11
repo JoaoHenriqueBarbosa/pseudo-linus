@@ -22,6 +22,8 @@ pub struct TranspiledSource {
     pub segments: Vec<MapSegment>,
     /// O transpilador classificou o arquivo como CommonJS: `text` é a função de wrapper, não um módulo ES.
     pub is_commonjs: bool,
+    /// Os exports nomeados que o parser achou no CommonJS (`exports.nome = ...`), sem `default`.
+    pub commonjs_export_names: Vec<String>,
 }
 
 /// O transpilador que o hospedeiro instala.
@@ -48,6 +50,7 @@ pub struct Transpiled {
     pub text: String,
     pub map: Rc<PositionMap>,
     pub is_commonjs: bool,
+    pub commonjs_export_names: Vec<String>,
 }
 
 /// Passa `source` do arquivo `path` pelo transpilador instalado. `None` sem transpilador, para o que ele não trata e
@@ -57,13 +60,18 @@ pub fn transpile_source(path: &str, source: &str, compile_body: bool) -> Option<
 }
 
 /// Como [`transpile_source`], mas o fonte que não parseia devolve o texto de cada erro.
-fn attempt_transpile(path: &str, source: &str, compile_body: bool) -> Option<Result<Transpiled, Vec<String>>> {
+pub(crate) fn attempt_transpile(path: &str, source: &str, compile_body: bool) -> Option<Result<Transpiled, Vec<String>>> {
     let transpiler = TRANSPILER.with(|slot| slot.borrow().clone())?;
     let done = match transpiler.transpile(path, source, compile_body)? {
         Ok(done) => done,
         Err(messages) => return Some(Err(messages)),
     };
-    Some(Ok(Transpiled { text: done.text, map: Rc::new(PositionMap::from_segments(done.segments)), is_commonjs: done.is_commonjs }))
+    Some(Ok(Transpiled {
+        text: done.text,
+        map: Rc::new(PositionMap::from_segments(done.segments)),
+        is_commonjs: done.is_commonjs,
+        commonjs_export_names: done.commonjs_export_names,
+    }))
 }
 
 /// Há transpilador instalado nesta thread.
@@ -77,6 +85,8 @@ pub fn has_source_transpiler() -> bool {
 pub struct ReprintedModules {
     maps: RefCell<HashMap<String, Rc<PositionMap>>>,
     failures: RefCell<HashMap<String, Vec<String>>>,
+    /// Os arquivos que o transpilador classificou como CommonJS, por chave: o `import` deles roda o wrapper.
+    commonjs: RefCell<HashMap<String, Rc<Transpiled>>>,
 }
 
 impl ReprintedModules {
@@ -86,6 +96,10 @@ impl ReprintedModules {
             Some(Ok(done)) if !done.is_commonjs => {
                 self.maps.borrow_mut().insert(key.to_owned(), done.map);
                 done.text
+            }
+            Some(Ok(done)) => {
+                self.commonjs.borrow_mut().insert(key.to_owned(), Rc::new(done));
+                text
             }
             Some(Err(messages)) => {
                 self.failures.borrow_mut().insert(key.to_owned(), messages);
@@ -97,6 +111,11 @@ impl ReprintedModules {
 
     pub fn position_map(&self, key: &str) -> Option<Rc<PositionMap>> {
         self.maps.borrow().get(key).cloned()
+    }
+
+    /// O arquivo `key` quando o transpilador o classificou como CommonJS (o `import` o executa como o bun).
+    pub fn commonjs_module(&self, key: &str) -> Option<Rc<Transpiled>> {
+        self.commonjs.borrow().get(key).cloned()
     }
 
     /// Os erros do transpilador para o módulo `key`, quando ele o recusou.

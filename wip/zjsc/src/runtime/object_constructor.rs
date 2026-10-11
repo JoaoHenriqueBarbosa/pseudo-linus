@@ -160,7 +160,13 @@ pub(crate) fn own_descriptor(
     } else if let Some(string_object) = StringObject::from_cell_id(object.cell_id()) {
         string_object.get_own_property_slot(vm, property_name, &mut slot)
     } else {
-        return Ok(object.get_own_property_descriptor(vm, property_name, &mut descriptor).then_some(descriptor));
+        // O `getOwnPropertySlot` do namespace de módulo lança o `ReferenceError` do binding em TDZ e devolve falso: a
+        // exceção pendente aborta a busca em vez de virar "não existe".
+        let found = object.get_own_property_descriptor(vm, property_name, &mut descriptor);
+        if vm.exception().is_some() {
+            return Err(Thrown::Pending);
+        }
+        return Ok(found.then_some(descriptor));
     };
     if !found {
         return Ok(None);

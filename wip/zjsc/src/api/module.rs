@@ -57,6 +57,10 @@ impl ModuleHost for EntryHost {
         self.inner.build_errors(key)
     }
 
+    fn commonjs_module(&self, key: &str) -> Option<Rc<crate::api::source_transpiler::Transpiled>> {
+        self.inner.commonjs_module(key)
+    }
+
     fn import_meta_url(&self, key: &str) -> String {
         self.inner.import_meta_url(key)
     }
@@ -228,6 +232,10 @@ impl ModuleHost for MemoryModuleHost {
     fn build_errors(&self, key: &str) -> Option<Vec<String>> {
         self.reprinted.build_errors(key)
     }
+
+    fn commonjs_module(&self, key: &str) -> Option<Rc<crate::api::source_transpiler::Transpiled>> {
+        self.reprinted.commonjs_module(key)
+    }
 }
 
 /// Instala o carregador de módulos do arquivo principal `url` (fonte `source`) no global já montado, como o bun faz
@@ -327,6 +335,10 @@ impl ModuleHost for FileUrlHost {
         self.inner.build_errors(key)
     }
 
+    fn commonjs_module(&self, key: &str) -> Option<Rc<crate::api::source_transpiler::Transpiled>> {
+        self.inner.commonjs_module(key)
+    }
+
     fn import_meta_url(&self, key: &str) -> String {
         file_url_from_path(key)
     }
@@ -380,7 +392,7 @@ pub enum LogPoint {
 /// rejeitou a avaliação, se houve. Um módulo que nunca termina (top-level await pendente) devolve o erro `pending`.
 pub fn evaluate_module_map_until(files: &[(String, String)], entry: &str, log_point: LogPoint) -> ModuleMapOutcome {
     let host = FileUrlHost { inner: MemoryModuleHost::new(files.iter().cloned()) };
-    evaluate_logged_module(Rc::new(host), &format!("./{entry}"), log_point)
+    evaluate_logged_module(Rc::new(host), &format!("./{entry}"), log_point, None)
 }
 
 /// [`evaluate_module_map_until`] com o `log` lido quando a entrada assenta.
@@ -392,8 +404,8 @@ pub fn evaluate_module_map(files: &[(String, String)], entry: &str) -> ModuleMap
 /// resolvem como o Bun, com a sonda de arquivo e `node_modules`). `source` é o fonte do módulo de entrada,
 /// de chave `entry_key` (caminho absoluto, ex. `/app/main.mjs`).
 pub fn evaluate_module_with_fs(fs: Rc<dyn ModuleFs>, source: &str, entry_key: &str) -> ModuleMapOutcome {
-    let host = EntryHost { specifier: entry_key.to_owned(), source: source.to_owned(), position_map: None, inner: Rc::new(FsModuleHost::new(fs)) };
-    evaluate_logged_module(Rc::new(host), entry_key, LogPoint::EntrySettled)
+    let host = EntryHost { specifier: entry_key.to_owned(), source: source.to_owned(), position_map: None, inner: Rc::new(FsModuleHost::new(fs.clone())) };
+    evaluate_logged_module(Rc::new(host), entry_key, LogPoint::EntrySettled, Some(fs))
 }
 
 /// O erro como os geradores dos goldens de módulo o escrevem: `Nome: mensagem` para um `Error` (inclusive o
@@ -455,9 +467,11 @@ fn entry_settled_reaction_body(global_object: &crate::runtime::js_global_object:
 }
 crate::host_function!(entry_settled_reaction, entry_settled_reaction_body);
 
-fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str, log_point: LogPoint) -> ModuleMapOutcome {
+fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str, log_point: LogPoint, fs: Option<Rc<dyn ModuleFs>>) -> ModuleMapOutcome {
     crate::runtime::cell_registry::run_program(|| {
         let (vm, global_object) = new_global_object();
+        // O `require` de um CommonJS que o grafo importa lê por este sistema de arquivos.
+        global_object.set_module_fs(fs);
         let _finalizer = VmFinalizer::new(&vm);
         install_module_loader(&global_object, host);
         // `evaluate` devolve `Err` se o prelúdio falhar, o que seria bug do porte, não do caso.
