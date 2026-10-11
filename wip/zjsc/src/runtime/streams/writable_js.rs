@@ -156,6 +156,11 @@ fn lookup(value: JSValue) -> Option<Obj> {
     OBJECTS.with(|objects| objects.borrow().get(&value.encode()).cloned())
 }
 
+/// `value` é um `WritableStream`.
+pub(super) fn is_stream(value: JSValue) -> bool {
+    stream_of(value).is_some()
+}
+
 fn stream_of(value: JSValue) -> Option<StreamRef> {
     match lookup(value)? {
         Obj::Stream(stream) => Some(stream),

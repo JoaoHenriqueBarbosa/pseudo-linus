@@ -14,7 +14,7 @@ use std::rc::Rc;
 use super::readable::{call_js, mark_handled, new_promise, reaction_holding, reject, rejected_with, resolve, resolved_with, take_error, text_value, then, type_error_value};
 use super::trace::{hold, Traced};
 use crate::runtime::gc::RootScope;
-use super::{is_instance, reject_with_thrown, throw_invalid_this, Kind};
+use super::{readable, reject_with_thrown, throw_invalid_this, writable_js, Kind};
 use crate::runtime::abort_signal::is_signal;
 use crate::runtime::host_call::{HostCall, HostResult, Thrown};
 use crate::runtime::intl_support::get_property;
@@ -352,12 +352,12 @@ fn start_pipe(global_object: &JSGlobalObject, source: JSValue, dest: JSValue, op
 
 pub(super) fn rs_pipe_to(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let source = call.this_value();
-    if !is_instance(source, Kind::ReadableStream) {
+    if !readable::is_stream(source) {
         let thrown = throw_invalid_this(global_object, Kind::ReadableStream);
         return Ok(reject_with_thrown(global_object, thrown));
     }
     let dest = call.argument(0);
-    if !is_instance(dest, Kind::WritableStream) {
+    if !writable_js::is_stream(dest) {
         let error = type_error_value(global_object, "ReadableStream.prototype.pipeTo requires a WritableStream destination");
         return Ok(rejected_with(global_object, error));
     }
@@ -366,7 +366,7 @@ pub(super) fn rs_pipe_to(global_object: &JSGlobalObject, call: &HostCall) -> Hos
 
 pub(super) fn rs_pipe_through(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let source = call.this_value();
-    if !is_instance(source, Kind::ReadableStream) {
+    if !readable::is_stream(source) {
         return Err(throw_invalid_this(global_object, Kind::ReadableStream));
     }
     let transform = call.argument(0);
@@ -374,11 +374,11 @@ pub(super) fn rs_pipe_through(global_object: &JSGlobalObject, call: &HostCall) -
         return Err(throw_native_type_error(global_object, "pipeThrough() expects an object with 'readable' and 'writable' properties"));
     }
     let readable = get_property(global_object, transform, "readable")?;
-    if !is_instance(readable, Kind::ReadableStream) {
+    if !readable::is_stream(readable) {
         return Err(throw_native_type_error(global_object, "The transform's 'readable' property must be a ReadableStream"));
     }
     let writable = get_property(global_object, transform, "writable")?;
-    if !is_instance(writable, Kind::WritableStream) {
+    if !writable_js::is_stream(writable) {
         return Err(throw_native_type_error(global_object, "The transform's 'writable' property must be a WritableStream"));
     }
     if get_property(global_object, source, "locked")?.to_boolean() {
