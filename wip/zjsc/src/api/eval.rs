@@ -58,6 +58,12 @@ pub(crate) fn new_global_object() -> (Rc<VM>, JSGlobalObjectRef) {
     (vm, global_object)
 }
 
+/// Um `JSGlobalObject` a mais no `vm` já criado: o realm de um frame, que divide o `VM` (heap, microtarefas, relógio)
+/// com o da página.
+pub(crate) fn new_global_object_in(vm: &Rc<VM>) -> JSGlobalObjectRef {
+    JSGlobalObject::init(vm)
+}
+
 /// A leitura de `result_name` depois do script: `globalThis[result_name]` direto no `globalThis`, sem montar um
 /// segundo `Program`. O bun lê o resultado dentro do próprio script; um `Program` novo passaria pelo
 /// `ProgramExecutable::initializeGlobalProperties`, que lança `TypeError` (`Proxy is not allowed in the global
@@ -1782,5 +1788,50 @@ mod hidden_program_tests {
             [fromProxy.join(), fromFrozen.join(), afterDelete.join(), keys, Reflect.ownKeys(target).length, Object.isFrozen(frozen), \
              Reflect.ownKeys(frozen).length, trapped.join()].join('|')";
         assert_eq!(run(prelude, page), "1,true|2,true|,false|0|0|true|1|ownKeys");
+    }
+}
+
+#[cfg(test)]
+mod realm_tests {
+    use super::*;
+    use crate::wtf::text::conversion_mode::ConversionMode;
+
+    fn show(value: JSValue) -> String {
+        String::from_utf8_lossy(&value.to_wtf_string().utf8(ConversionMode::LenientConversion)).into_owned()
+    }
+
+    /// Dois globais no mesmo `VM`: cada um avalia o seu script, e o primeiro segue vivo depois do segundo.
+    #[test]
+    fn two_globals_share_a_vm() {
+        let shown = run_program(|| {
+            let (vm, first) = new_global_object();
+            let _finalizer = VmFinalizer::new(&vm);
+            let second = new_global_object_in(&vm);
+            let a = evaluate(&first, &named_program_source("globalThis.mark = [1]; typeof Array", "a.js"));
+            let b = evaluate(&second, &named_program_source("typeof Array", "b.js"));
+            let c = evaluate(&first, &named_program_source("1 + 1", "c.js"));
+            (a.map(show), b.map(show), c.map(show))
+        });
+        assert_eq!(shown.0.ok().as_deref(), Some("function"));
+        assert_eq!(shown.1.ok().as_deref(), Some("function"));
+        assert_eq!(shown.2.ok().as_deref(), Some("2"));
+    }
+
+    /// O frame enxerga o global da página por uma propriedade posta pelo hospedeiro (o `window.parent`), e os
+    /// construtores dos dois realms são distintos: `parent.Array !== Array`.
+    #[test]
+    fn a_second_global_reaches_the_first() {
+        let shown = run_program(|| {
+            let (vm, first) = new_global_object();
+            let _finalizer = VmFinalizer::new(&vm);
+            let second = new_global_object_in(&vm);
+            let outer = first.global_this().expect("globalThis").as_value();
+            let name = PropertyName::from_identifier(&Identifier::from_span(&vm, b"parent"));
+            second.put_direct(&vm, &name, outer, 0);
+            evaluate(&first, &named_program_source("globalThis.mark = 7", "a.js")).ok();
+            let a = evaluate(&second, &named_program_source("parent.mark + '|' + (parent.Array !== Array) + '|' + (parent.eval('[]') instanceof Array)", "b.js"));
+            a.map(show)
+        });
+        assert_eq!(shown.ok().as_deref(), Some("7|true|false"));
     }
 }
