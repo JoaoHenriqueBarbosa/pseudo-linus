@@ -215,11 +215,19 @@ de chegar aos tipos. O que falta, por grupo:
   do printer teria de aceitar nós novos (um `Store` de rascunho com índices separados) ou o fold virar uma função
   pura sobre valores. O `scripts/store_fix.py` rodou três rodadas sobre os diagnósticos (E0609, E0599, E0277, E0616:
   `r.campo` virou `self.store[r].campo`, `r.slice()` virou `self.store.str(r)`).
-  **O que falta, por grupo** (de `cargo check -p bun_js_printer --features printer`): (a) renamer, 36 erros: `NameStr`
-  é `StoreStr` e os nomes novos (minificados e numerados) vinham de um `bumpalo::Bump` que o porte não tem; o plano é
-  `NameStr = Rc<[u8]>` (dono, `Clone` barato, hash e igualdade pelos bytes) e os renamers receberem `&'a Store` para
-  ler `original_name`; `TinyString` vira `Inline` até 15 bytes ou `Rc<[u8]>`; `put_assume_capacity` de
-  `StringHashMap`, `MutableString::writer`, `Arena::reset_retain_with_limit` e os `?` sobre `Option` saem junto;
+  **Parte 3a, renamer (feita, 0 erros em `renamer.rs`):** `NameStr` é `Arc<[u8]>` (dono dos bytes, `Clone` barato, hash
+  e igualdade pelos bytes; `Arc` e não `Rc` porque o `NestedRenamer` do bundler lê o `NumberRenamer` de várias
+  threads). `NoOpRenamer`, `MinifyRenamer` e `NumberRenamer` carregam `&'a Store` para ler `original_name`;
+  `ScopeUses` também, e `sees` e `assign_names_recursive` recebem `StoreRef<Scope>` (o `*const Scope` do
+  `NestedRenamer` virou `Option<StoreRef<Scope>>`). Os mapas de símbolos deixam de ser `ManuallyDrop`: os renamers
+  são donos, sem `owns_symbols` nem `Drop`. `find_unused_name` devolve sempre o nome tomado (sem o `Option` que
+  distinguia "igual ao original"; custa uma alocação por nome distinto, que o interner já exigia). `TinyString` é
+  `Inline` até 15 bytes ou `Arc<[u8]>`; `NameMinifier::number_to_minified_name` é infalível, então
+  `assign_names_by_frequency`, `finish` e `ExportRenamer::next_minified_name` deixam de devolver `Result`;
+  `ExportRenamer` perde a arena e devolve `Vec<u8>`. `NestedRenamer::new` perde o parâmetro da arena. Em `lib.rs`,
+  `print_ast` deixa de reapontar o `parent` dos filhos do escopo do módulo (o índice do pai já vale) e passa
+  `&tree.store` aos renamers; `print_json`, `print` e `print_with_writer*` ganham `'a` no `Ast` e no `Store`.
+  **O que falta, por grupo** (de `cargo check -p bun_js_printer --features printer`, 71 erros depois da 3a):
   (b) 15 `unsafe` e 6 `unsafe impl` (o `write_wtf8_as_utf16le` já saiu): `Encoding` const genérico e `ConstParamTy`
   (feature `adt_const_params`) viram argumento de execução, os `unsafe impl Send/Sync` do `Writer` somem, e
   `reserve_spare_bytes`/`commit_spare` do `BufferWriter` viram `Vec::extend`; (c) `BackRef` (3 usos) vira cópia do

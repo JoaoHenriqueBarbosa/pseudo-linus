@@ -7558,27 +7558,23 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
     // hoisted out of the `minify_identifiers` arm so the
     // `&'r mut MinifyRenamer` borrow stored in `renamer` outlives the branch.
     let mut minify_renamer;
-    // `Scope` isn't `Copy` here and the only
-    // consumer (`compute_reserved_names_for_scope`) walks `members`/`generated`/
-    // `children`: never `parent`: so we re-point at the in-place
-    // `tree.module_scope` instead (lives for `'a`).
-    let module_scope = &tree.module_scope;
     let stable_source_indices = [source.index.0];
     let renamer: rename::Renamer<'_, '_> = if opts.minify_identifiers {
         let mut reserved_names = rename::compute_initial_reserved_names(opts.module_type)?;
-        for child in module_scope.children.slice() {
-            // `StoreRef<Scope>` has safe `DerefMut`; copy the handle to a mut
-            // local so the write goes through the encapsulated arena invariant
-            // rather than an open-coded `(*ptr).field = …`.
-            let mut child = *child;
-            child.parent = Some(NonNull::from(module_scope).into());
+        if let Some(module_scope) = tree.module_scope {
+            rename::compute_reserved_names_for_scope(
+                &tree.store[module_scope],
+                &tree.store,
+                &symbols,
+                &mut reserved_names,
+            );
         }
-
-        rename::compute_reserved_names_for_scope(module_scope, &symbols, &mut reserved_names);
-        minify_renamer =
-            rename::MinifyRenamer::init(symbols, &tree.nested_scope_slot_counts, reserved_names)?;
-        // `symbols` is owned here (transpiler path): let Drop free it.
-        minify_renamer.owns_symbols = true;
+        minify_renamer = rename::MinifyRenamer::init(
+            symbols,
+            &tree.store,
+            &tree.nested_scope_slot_counts,
+            reserved_names,
+        )?;
 
         let mut top_level_symbols = rename::StableSymbolCountArray::new();
 
@@ -7640,11 +7636,11 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
 
         minify_renamer.allocate_top_level_symbol_slots(&top_level_symbols)?;
         let minifier = tree.char_freq.as_ref().unwrap().compile();
-        minify_renamer.assign_names_by_frequency(&minifier)?;
+        minify_renamer.assign_names_by_frequency(&minifier);
 
         rename::Renamer::MinifyRenamer(&mut *minify_renamer)
     } else {
-        no_op_renamer = rename::NoOpRenamer::init(symbols, source);
+        no_op_renamer = rename::NoOpRenamer::init(symbols, source, &tree.store);
         no_op_renamer.to_renamer()
     };
 
@@ -7773,11 +7769,11 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
     Ok(usize::try_from(printer.writer.written().max(0)).expect("int cast"))
 }
 
-pub fn print_json<W: WriterTrait>(
+pub fn print_json<'a, W: WriterTrait>(
     _writer: W,
-    store: &bun_ast::Store,
+    store: &'a bun_ast::Store,
     expr: js_ast::Expr,
-    source: &bun_ast::Source,
+    source: &'a bun_ast::Source,
     opts: PrintJsonOptions<'_>,
 ) -> crate::Result<usize> {
     // NewPrinter(ascii_only=false, Writer, is_bun_platform=false, is_json=true, generate_source_map=false)
@@ -7787,7 +7783,7 @@ pub fn print_json<W: WriterTrait>(
     // the no-op renamer; construct them directly without an `Ast`.
     let bump = bun_alloc::Arena::new();
     let mut no_op =
-        rename::NoOpRenamer::init(js_ast::symbol::Map::init_list(vec![Vec::new()]), source);
+        rename::NoOpRenamer::init(js_ast::symbol::Map::init_list(vec![Vec::new()]), source, store);
 
     let full_opts = Options {
         indent: opts.indent,
@@ -7817,7 +7813,7 @@ pub fn print_json<W: WriterTrait>(
 pub fn print<'a, const GENERATE_SOURCE_MAPS: bool>(
     bump: &'a bun_alloc::Arena,
     target: bun_ast::Target,
-    ast: &Ast,
+    ast: &'a Ast,
     source: &'a bun_ast::Source,
     opts: Options<'a>,
     import_records: &'a [ImportRecord],
@@ -7848,7 +7844,7 @@ pub fn print_with_writer<'a, W: WriterTrait, const GENERATE_SOURCE_MAPS: bool>(
     writer: W,
     bump: &'a bun_alloc::Arena,
     target: bun_ast::Target,
-    ast: &Ast,
+    ast: &'a Ast,
     source: &'a bun_ast::Source,
     opts: Options<'a>,
     import_records: &'a [ImportRecord],
@@ -7889,7 +7885,7 @@ pub(crate) fn print_with_writer_and_platform<
 >(
     mut writer: W,
     bump: &'a bun_alloc::Arena,
-    ast: &Ast,
+    ast: &'a Ast,
     source: &'a bun_ast::Source,
     opts: Options<'a>,
     import_records: &'a [ImportRecord],
