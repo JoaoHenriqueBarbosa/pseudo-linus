@@ -389,7 +389,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 let range = p.store[e_].properties;
                 for i in 0..p.store[range].len() {
-                    let mut property = p.store[range][i];
+                    let mut property = p.store[range][i].clone();
                     if property.kind != G::PropertyKind::Spread {
                         p.visit_expr(property.key.as_mut().expect("infallible: prop has key"));
                     }
@@ -523,9 +523,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // Iterate by index to avoid a borrowck conflict on
                         // `e_.children` (writes alias the buffer being iterated).
                         for i in 0..children_count {
-                            let mut visited = (&p.store[p.store[e_].children])[i as usize];
+                            let children_range = p.store[e_].children;
+                            let mut visited = p.store[children_range][i as usize];
                             p.visit_expr(&mut visited);
-                            (&mut p.store[p.store[e_].children])[last_child as usize] = visited;
+                            p.store[children_range][last_child as usize] = visited;
                             // if tree-shaking removes the element, we must also remove it here.
                             last_child += u32::from(!matches!(
                                 (&p.store[p.store[e_].children])[last_child as usize].data,
@@ -687,9 +688,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let expr = *e;
         let _ = in_;
         let mut e_ = expr.data.e_template().expect("infallible: variant checked");
-        if let Some(tag) = p.store[e_].tag.as_mut() {
+        if let Some(mut tag) = p.store[e_].tag {
             p.template_tag = tag.data;
-            p.visit_expr(tag);
+            p.visit_expr(&mut tag);
+            p.store[e_].tag = Some(tag);
         }
 
         // Visit the interpolation values before the macro dispatch below: its
@@ -1467,7 +1469,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             if let Some(_expr) = p.maybe_rewrite_property_access(
                 expr.loc,
                 p.store[e_].target,
-                p.store.str(p.store[e_].name),
+                p.arena_str(p.store[e_].name),
                 p.store[e_].name_loc,
                 opts,
             ) {
@@ -1475,7 +1477,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 return;
             }
             p.store[e_].is_import_property_use =
-                { let arg_a = p.store[e_].target; let arg_b = p.store.str(p.store[e_].name); p.record_import_property_use( &arg_a, arg_b, opts) };
+                { let arg_a = p.store[e_].target; let arg_b = p.arena_str(p.store[e_].name); p.record_import_property_use( &arg_a, arg_b, opts) };
 
             if Self::ALLOW_MACROS {
                 if !p.options.features.is_macro_runtime {
@@ -1594,12 +1596,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             match &mut item.data {
                 Data::EMissing(..) => {}
                 Data::ESpread(spread) => {
-                    { let arg_a = &mut p.store[*spread].value; p.visit_expr_in_out( arg_a,
+                    { let mut arg_a = p.store[*spread].value; let result = p.visit_expr_in_out( &mut arg_a,
                         ExprIn {
                             assign_target: in_.assign_target,
                             ..Default::default()
                         },
-                    ) };
+                    ); p.store[*spread].value = arg_a; result };
 
                     spread_item_count += if let Data::EArray(arr) = &p.store[*spread].value.data {
                         p.store[*arr].items.len_u32() as usize
@@ -1631,12 +1633,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 ),
                             );
                         }
-                        { let arg_a = &mut p.store[*e2].left; p.visit_expr_in_out( arg_a,
+                        { let mut arg_a = p.store[*e2].left; let result = p.visit_expr_in_out( &mut arg_a,
                             ExprIn {
                                 assign_target: js_ast::AssignTarget::Replace,
                                 ..Default::default()
                             },
-                        ) };
+                        ); p.store[*e2].left = arg_a; result };
                         let mut slot = p.store[*e2].right;
                         p.visit_expr(&mut slot);
                         p.store[*e2].right = slot;
@@ -1654,7 +1656,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .original_name;
                             p.store[*e2].right = p.maybe_keep_expr_symbol_name(
                                 p.store[*e2].right,
-                                p.store.str(name),
+                                p.arena_str(name),
                                 was_anonymous_named_expr,
                             );
                         }
@@ -1702,7 +1704,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let mut has_proto = false;
         let range = p.store[e_].properties;
         for i in 0..p.store[range].len() {
-            let mut property = p.store[range][i];
+            let mut property = p.store[range][i].clone();
             if property.kind != G::PropertyKind::Spread {
                 p.visit_expr(
                     property
@@ -1775,7 +1777,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // While E.rs has duplicate impls (E0034), reach the bytes directly
                     //: class-name keys are parser-produced (UTF-8, no rope).
                     p.decorator_class_name = if !p.store[key_str].is_utf16 {
-                        Some(p.store.str(p.store[key_str].data))
+                        Some(p.arena_str(p.store[key_str].data))
                     } else {
                         None
                     };
@@ -1827,11 +1829,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .ref_
                             .inner_index() as usize]
                             .original_name;
-                        property.initializer = Some(p.maybe_keep_expr_symbol_name(
-                            property.initializer.expect("unreachable"),
-                            p.store.str(name),
+                        property.initializer = Some({ let arg_b = p.arena_str(name); p.maybe_keep_expr_symbol_name(
+                            property.initializer.expect("unreachable"), arg_b,
                             was_anonymous_named_expr,
-                        ));
+                        ) });
                     }
                 }
             }
@@ -2292,7 +2293,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         } else if let Some(special) = p.store[e_].target.data.e_special() {
             match special {
                 E::Special::HotAccept => {
-                    { let arg_a = &mut p.store[e_]; p.handle_import_meta_hot_accept_call( arg_a) };
+                    { let mut arg_a = p.store[e_].clone(); let result = p.handle_import_meta_hot_accept_call( &mut arg_a); p.store[e_] = arg_a; result };
                     // After validating that the import.meta.hot
                     // code is correct, discard the entire
                     // expression in production.
@@ -2413,20 +2414,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         {
             'try_record_hook: {
                 let original_name: &[u8] = match &p.store[e_].target.data {
-                    Data::EIdentifier(id) => p.store.str(p.symbols[id.ref_.inner_index() as usize]
+                    Data::EIdentifier(id) => p.arena_str(p.symbols[id.ref_.inner_index() as usize]
                         .original_name),
-                    Data::EImportIdentifier(id) => p.store.str(p.symbols[id.ref_.inner_index() as usize]
+                    Data::EImportIdentifier(id) => p.arena_str(p.symbols[id.ref_.inner_index() as usize]
                         .original_name),
-                    Data::ECommonjsExportIdentifier(id) => p.store.str(p.symbols[id.ref_.inner_index() as usize]
+                    Data::ECommonjsExportIdentifier(id) => p.arena_str(p.symbols[id.ref_.inner_index() as usize]
                         .original_name),
-                    Data::EDot(dot) => p.store.str(p.store[*dot].name),
+                    Data::EDot(dot) => p.arena_str(p.store[*dot].name),
                     _ => break 'try_record_hook,
                 };
                 if !ReactRefresh::is_hook_name(original_name) {
                     break 'try_record_hook;
                 }
                 if p.options.features.react_fast_refresh {
-                    { let arg_a = &mut p.store[e_]; p.handle_react_refresh_hook_call( arg_a, original_name) };
+                    { let mut arg_a = p.store[e_].clone(); let result = p.handle_react_refresh_hook_call( &mut arg_a, original_name); p.store[e_] = arg_a; result };
                 } else if
                 // If we're here it means we're in server component.
                 // Error if the user is using the `useState` hook as it

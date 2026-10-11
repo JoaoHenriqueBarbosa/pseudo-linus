@@ -105,6 +105,22 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
     `MultiArrayList`, e ganha `append_assume_capacity`;
   - `replace_exports.get_ptr(chave)` vira `replace_exports.get(chave)` do mapa (o `ReplaceableExportMap` tem `Deref`
     para ele), para não haver função de repasse.
+- Mudança sistemática no parser copiado, empréstimos de lista e de nó (a rodada que levou o parser de 677 erros de
+  empréstimo a zero com a feature `parser`), todos guiados pelo diagnóstico do `cargo check --message-format=json` e
+  conferidos pelo compilador a cada rodada:
+  - `scripts/loop_to_index.py`: o laço `for x in (&p.store[..])` (ou `.iter()`) que o rustc marca com "this for loop
+    borrows" vira laço por índice com `let x = &p.store[lista][index].clone();`, e o corpo não muda (`x` segue `&T`).
+    Os laços `&mut`/`iter_mut` e os que mexem na lista ficam à mão, com gravação de volta.
+  - `scripts/place_call.py`: `{ let arg_a = &mut p.store[X].F; p.f(arg_a, ..) }` vira copiar o campo (ou o nó, com
+    `clone`), chamar com `&mut` da cópia e gravar de volta, que é o "lugar" copia-e-grava de uma chamada que reentra.
+  - `scripts/copy_data_arg.py`: `{ let arg_b = &p.store[X].data; f(p, arg_b) }` copia o dado (`Copy`) e passa `&arg_b`.
+  - `scripts/dup_str_fix.py`: `alloc_str(str(x))` vira `NodeStore::dup_str(x)` (copia a faixa dentro do vetor de
+    bytes, sem emprestar a fatia), e `store_name_in_ref(str(x))` vira `arena_str(x)`.
+  - Regra de nomes: `p.arena_str(StoreStr) -> &'a [u8]` não prende o `p.store`; `p.store.str(..)` prende, e é a causa
+    mais comum de cascata (a anotação `&'a [u8]` sobre `p.store.str(..)` exige o `Store` emprestado por `'a`).
+  - Listas que a varredura compacta no lugar (`ImportScanner::scan`, `visit_decls`, `rewrite_stmts`) saem do `Store`
+    por cópia e voltam depois (`ImportScanner::scan_range`, `rewrite_stmt_range`); o upstream compacta a mesma lista,
+    então a gravação de volta preserva o que a passada seguinte relê.
 
 ## Próximos passos (parser e printer)
 
