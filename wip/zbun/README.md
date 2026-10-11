@@ -164,15 +164,22 @@ mil linhas, travessões trocados na cópia) entra em `js_printer/` atrás da fea
 "printer")]`, como o `parser`), e `cargo check -p bun_js_printer --features printer` mede 72 erros de resolução, antes
 de chegar aos tipos. O que falta, por grupo:
 
-- `bun_core`: `MutableString`, `env_var`, `FeatureFlags` e `vec` (parte 2). Entraram na parte 1: `printer` (constantes
-  e `bmp_escape`/`surrogate_pair_escape`), `fmt::{ItoaBuf, itoa, hex2_upper, hex4_upper, pow10_exp_1e4_to_1e9}` (o
-  `itoa` é escrito à mão, sem o crate) e `strings::{index_of_needs_escape_for_java_script_string,
-  contains_non_bmp_code_point_or_is_invalid_identifier, write_wtf8_as_utf16le}` (esta última sem `unsafe`: acrescenta
-  a um `Vec<u8>`; os escapes conferidos no bun 1.4.2 do oráculo);
-- `bun_collections`: `hashbrown` reexportado e `AutoBitSet`; `bun_alloc`: `AstAlloc` (sai, como no parser);
-- `bun_ast`: `Indentation` e `IndentationCharacter`, `E::{JsonValue, ObjectJSON, ArrayJSON}` e `symbol::Map`;
-- crates que o printer importa e o porte ainda não tem: `bun_io` (o `Write`), `bun_sourcemap` (o construtor de mapa de
-  posições, que o golden compara), `bun_ptr` e `bun_crash_handler` (este fora por decisão da coordenação);
+- `bun_core` (entraram nas partes 1 e 2): `printer` (constantes, `bmp_escape`, `surrogate_pair_escape`),
+  `fmt::{ItoaBuf, itoa, hex2_upper, hex4_upper, pow10_exp_1e4_to_1e9}` (o `itoa` é escrito à mão, sem o crate),
+  `strings::{index_of_needs_escape_for_java_script_string, contains_non_bmp_code_point_or_is_invalid_identifier,
+  write_wtf8_as_utf16le}` (a última sem `unsafe`, acrescenta a um `Vec<u8>`; os escapes foram conferidos no bun 1.4.2
+  do oráculo), `io::Write` (o `bun_io::Write` do upstream; no printer, `bun_io` virou `bun_core::io`),
+  `MutableString` (sem `writable_n_bytes`, `expand_to_capacity` e `owns`, que só o código `unsafe` usava) e
+  `FeatureFlags`. O `env_var::BUN_DUMP_SYMBOLS` e o `Map::dump` saem: era um despejo de depuração ativado por variável
+  de ambiente do host;
+- `bun_collections`: `hashbrown` reexportado e `AutoBitSet` (um `Vec<usize>`, sem os dois braços do upstream);
+- `bun_ast`: `Indentation`/`IndentationCharacter` e `symbol::Map` (índice verificado no lugar do `*mut Symbol`; `merge`
+  copia os dois campos do símbolo velho em vez de segurar dois empréstimos). `E::JsonValue`, `ObjectJSON` e
+  `ArrayJSON` não entram: a `Data` do porte não tem essas variantes (só o loader de JSON as cria), então os braços e
+  as três funções `print_*_json` do printer saíram, e voltam junto com o loader;
+- ainda faltam: `AstAlloc` (sai, como no parser), `hashbrown` com a feature `raw-entry`, `bun_core::vec`, `bun_ptr::BackRef`,
+  `bun_sourcemap` (o `Chunk::Builder`, os line offset tables e o VLQ, 4,8 mil linhas no upstream, 62 `unsafe`) e
+  `bun_crash_handler` (fora por decisão da coordenação: as quatro chamadas a `scoped_action` saem);
 - 14 usos de `unsafe` (e 6 `unsafe impl`) e o `#![feature(adt_const_params)]`, que pede trocar os parâmetros
   const de enum (`Encoding`) por `u8` ou por argumento de execução.
 

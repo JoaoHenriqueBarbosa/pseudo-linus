@@ -113,6 +113,27 @@ pub use nodes::{
 };
 pub use scope::Scope;
 
+/// Indentação detectada de um `Source` (tabulação ou N espaços): o `bun_js_printer::Options.indent` a consome.
+/// Padrão: dois espaços.
+#[derive(Clone, Copy)]
+pub struct Indentation {
+    pub scalar: usize,
+    pub count: usize,
+    pub character: IndentationCharacter,
+}
+
+impl Default for Indentation {
+    fn default() -> Self {
+        Self { scalar: 2, count: 0, character: IndentationCharacter::Space }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum IndentationCharacter {
+    Tab,
+    Space,
+}
+
 /// `Part.{SymbolUseMap, SymbolPropertyUseMap, List}`: módulo para `crate::part::{SymbolUseMap, List}` resolver.
 pub mod part {
     pub use crate::nodes::{

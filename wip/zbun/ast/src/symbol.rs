@@ -1,6 +1,6 @@
-//! `src/ast/symbol.rs` do upstream: `Symbol`, as flags, `SlotNamespace`, `Kind` e `Use`. O `Map` de duas camadas
-//! (tabela de símbolos do bundler, com os blocos `unsafe` de acesso por fonte) não entra: o transpilador de um
-//! arquivo usa a tabela plana (`Vec<Symbol>`, ver `SymbolTable` em `base.rs`).
+//! `src/ast/symbol.rs` do upstream: `Symbol`, as flags, `SlotNamespace`, `Kind`, `Use` e o `Map` de duas camadas que o
+//! printer lê (o parser de um arquivo usa a tabela plana, `Vec<Symbol>`, ver `SymbolTable` em `base.rs`). O `Map`
+//! daqui acessa por índice verificado, sem os blocos `unsafe` do upstream.
 //!
 //! Mudança do porte: `namespace_alias` é `Option<Box<G::NamespaceAlias>>` no lugar do `AstBox` da arena do
 //! mimalloc; o tamanho e o comportamento são os mesmos (`None` na quase totalidade dos símbolos).
@@ -391,14 +391,170 @@ impl Use {
 }
 
 impl Symbol {
-    #[allow(dead_code)]
-    pub(crate) fn merge_contents_with(&mut self, old: &mut Symbol) {
-        self.use_count_estimate += old.use_count_estimate;
-        if old.must_not_be_renamed() {
-            self.original_name = old.original_name;
+    /// Absorve no símbolo novo o que o velho deixa na fusão (`merge`): a contagem de usos e, se o velho não pode ser
+    /// renomeado, o nome dele e a marca. O `merge_contents_with` do upstream recebe o `&mut Symbol` velho; aqui o
+    /// chamador copia os dois campos antes, para não segurar dois empréstimos da mesma tabela.
+    pub(crate) fn merge_contents(&mut self, old_use_count: u32, protected_name: Option<crate::StoreStr>) {
+        self.use_count_estimate += old_use_count;
+        if let Some(name) = protected_name {
+            self.original_name = name;
             self.set_must_not_be_renamed(true);
         }
 
         // TODO: MustStartWithCapitalLetterForJSX
+    }
+}
+
+pub type NestedList = Vec<List>;
+
+/// A tabela de símbolos de duas camadas do upstream (`Vec` por arquivo-fonte, índice do arquivo no `Ref`). Os
+/// acessos são por índice com verificação, no lugar do `*mut Symbol` do upstream. Saem o `dump` de depuração e o
+/// `assign_chunk_index`, que são do bundler.
+#[derive(Default)]
+pub struct Map {
+    pub symbols_for_source: NestedList,
+}
+
+impl Map {
+    pub fn init_list(list: NestedList) -> Map {
+        Map { symbols_for_source: list }
+    }
+
+    /// Toma a lista e a põe numa lista de um elemento só.
+    pub fn init_with_one_list(list: List) -> Map {
+        Self::init_list(vec![list])
+    }
+
+    pub fn get_const(&self, ref_: Ref) -> Option<&Symbol> {
+        if Ref::is_source_index_null(ref_.source_index()) || ref_.is_source_contents_slice() {
+            return None;
+        }
+        self.symbols_for_source.get(ref_.source_index() as usize)?.get(ref_.inner_index() as usize)
+    }
+
+    pub fn get_mut(&mut self, ref_: Ref) -> Option<&mut Symbol> {
+        if Ref::is_source_index_null(ref_.source_index()) || ref_.is_source_contents_slice() {
+            return None;
+        }
+        self.symbols_for_source.get_mut(ref_.source_index() as usize)?.get_mut(ref_.inner_index() as usize)
+    }
+
+    pub fn merge(&mut self, old: Ref, new: Ref) -> Ref {
+        if old.eql(new) {
+            return new;
+        }
+
+        // União-busca com compressão de caminho; `link` é `Cell`, então ler e gravar passa por `&Symbol`.
+        let old_link = self.get_const(old).unwrap().link.get();
+        if old_link.is_valid() {
+            let merged = self.merge(old_link, new);
+            self.get_const(old).unwrap().link.set(merged);
+            return merged;
+        }
+
+        let new_link = self.get_const(new).unwrap().link.get();
+        if new_link.is_valid() {
+            let merged = self.merge(old, new_link);
+            self.get_const(new).unwrap().link.set(merged);
+            return merged;
+        }
+
+        self.get_const(old).unwrap().link.set(new);
+        let old_symbol = self.get_const(old).unwrap();
+        let old_use_count = old_symbol.use_count_estimate;
+        let protected_name = old_symbol.must_not_be_renamed().then_some(old_symbol.original_name);
+        self.get_mut(new).unwrap().merge_contents(old_use_count, protected_name);
+        new
+    }
+
+    pub fn follow_all(&mut self) {
+        for symbols in &self.symbols_for_source {
+            for symbol in symbols {
+                if !symbol.has_link() {
+                    continue;
+                }
+                let resolved = self.follow(symbol.link.get());
+                symbol.link.set(resolved);
+            }
+        }
+    }
+
+    /// O símbolo cujo nome o printer escreve para uma referência a `ref_`: `follow` e depois pelo `namespace_alias`
+    /// (um import que sai como propriedade do objeto de namespace imprime o símbolo desse objeto).
+    pub fn follow_printed(&self, ref_: Ref) -> Ref {
+        let mut ref_ = self.follow(ref_);
+        while let Some(alias) = &self.get_const(ref_).unwrap().namespace_alias {
+            let next = self.follow(alias.namespace_ref);
+            if next == ref_ {
+                break;
+            }
+            ref_ = next;
+        }
+        ref_
+    }
+
+    /// `followSymbols` do esbuild: acha a raiz da união-busca e reescreve o `link` de todo nó do caminho para ela.
+    pub fn follow(&self, ref_: Ref) -> Ref {
+        let Some(symbol) = self.get_const(ref_) else {
+            return ref_;
+        };
+        let mut link = symbol.link.get();
+        if !link.is_valid() {
+            return ref_;
+        }
+
+        let lookup = |r: Ref| -> &Symbol { &self.symbols_for_source[r.source_index() as usize][r.inner_index() as usize] };
+
+        let mut root = link;
+        loop {
+            let next = lookup(root).link.get();
+            if !next.is_valid() {
+                break;
+            }
+            root = next;
+        }
+
+        if !link.eql(root) {
+            symbol.link.set(root);
+            loop {
+                let p = lookup(link);
+                let next = p.link.get();
+                if next.eql(root) || !next.is_valid() {
+                    break;
+                }
+                p.link.set(root);
+                link = next;
+            }
+        }
+
+        root
+    }
+}
+
+impl crate::base::SymbolTable for Map {
+    #[inline]
+    fn get_symbol(&mut self, r: Ref) -> &mut Symbol {
+        &mut self.symbols_for_source[r.source_index() as usize][r.inner_index() as usize]
+    }
+}
+
+#[cfg(test)]
+mod map_tests {
+    use super::*;
+
+    fn symbol(name: &'static str) -> Symbol {
+        let _ = name;
+        Symbol::default()
+    }
+
+    #[test]
+    fn merge_links_and_follow_compresses() {
+        let mut map = Map::init_with_one_list(vec![symbol("a"), symbol("b"), symbol("c")]);
+        let r = |i: u32| Ref::new(i, 0, crate::RefTag::Symbol);
+        assert!(map.merge(r(0), r(1)).eql(r(1)));
+        assert!(map.merge(r(1), r(2)).eql(r(2)));
+        assert!(map.follow(r(0)).eql(r(2)));
+        assert!(map.get_const(r(0)).unwrap().link.get().eql(r(2)));
+        assert!(map.follow(r(2)).eql(r(2)));
     }
 }

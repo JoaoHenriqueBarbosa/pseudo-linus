@@ -16,7 +16,8 @@ pub use paste as __paste;
 pub use array_hash_map::{
     AllocError, ArrayHashMap, OwnKey, StringArrayHashMap, StringHashMap, StringHashMapGetOrPut, StringSet,
 };
-pub use bit_set::IntegerBitSet;
+pub use bit_set::{AutoBitSet, IntegerBitSet};
+pub use hashbrown;
 pub use identity_context::{IdentityContext, IdentityHash};
 pub use pool::{ObjectPool, ObjectPoolType, PoolGuard};
 pub use vec_ext::{VecExt, prepend_from};

@@ -843,12 +843,6 @@ impl NumberRenamer {
             };
         }
 
-        // Debug-only, presence-checked symbol dump.
-        #[cfg(debug_assertions)]
-        if bun_core::env_var::BUN_DUMP_SYMBOLS.get().is_some() {
-            r.symbols.dump();
-        }
-
         Ok(r)
     }
 

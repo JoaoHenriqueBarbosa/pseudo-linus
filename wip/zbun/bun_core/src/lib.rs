@@ -9,11 +9,16 @@ pub mod feature_flags;
 pub mod fmt;
 pub mod generic_index;
 pub mod identifier;
+pub mod io;
 pub mod lexer_tables;
+pub mod mutable_string;
 pub mod output;
 pub mod printer;
 pub mod stack_check;
 pub mod strings;
+
+pub use feature_flags as FeatureFlags;
+pub use mutable_string::MutableString;
 
 pub use output as Output;
 pub use stack_check::StackCheck;
