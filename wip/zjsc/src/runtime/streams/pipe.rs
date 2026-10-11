@@ -48,6 +48,9 @@ struct Pipe {
     shutting_down: bool,
     finished: bool,
     pending_writes: Vec<JSValue>,
+    /// A promessa do `read` em voo: a origem fecha (`closed` resolve) quando o último pedaço sai da fila, antes de a
+    /// leitura dele entregar o valor, e o fechamento do destino espera essa leitura para não perder o pedaço.
+    reading: Option<JSValue>,
 }
 
 type PipeRef = Rc<RefCell<Pipe>>;
@@ -58,6 +61,7 @@ impl Traced for Pipe {
         self.writer.trace(out);
         self.promise.trace(out);
         self.pending_writes.trace(out);
+        self.reading.trace(out);
     }
 }
 
@@ -198,8 +202,10 @@ fn read_step(global_object: &JSGlobalObject, pipe: &PipeRef) {
         Ok(read) => resolved_with(global_object, read),
         Err(_) => return,
     };
+    pipe.borrow_mut().reading = Some(read);
     let for_chunk = pipe.clone();
     let on_chunk = reaction_holding(global_object, vec![hold(pipe.clone())], move |global_object, result| {
+        for_chunk.borrow_mut().reading = None;
         if is_stopped(&for_chunk) {
             return Ok(());
         }
@@ -235,6 +241,16 @@ fn pump(global_object: &JSGlobalObject, pipe: &PipeRef) {
     then(global_object, ready, on_ready, ignore(global_object), JSValue::undefined());
 }
 
+/// A origem acabou: fecha o destino (salvo `preventClose`) depois das escritas em voo.
+fn close_destination(global_object: &JSGlobalObject, pipe: &PipeRef) {
+    let (writer, prevent_close) = {
+        let inner = pipe.borrow();
+        (inner.writer, inner.prevent_close)
+    };
+    let actions = if prevent_close { Vec::new() } else { vec![(writer, "close", Vec::new())] };
+    shutdown(global_object, pipe, None, actions);
+}
+
 /// Liga os monitores da origem e do destino.
 fn watch_closed(global_object: &JSGlobalObject, pipe: &PipeRef) {
     let (reader, writer) = {
@@ -245,12 +261,17 @@ fn watch_closed(global_object: &JSGlobalObject, pipe: &PipeRef) {
         let closed = resolved_with(global_object, closed);
         let for_closed = pipe.clone();
         let on_closed = reaction_holding(global_object, vec![hold(pipe.clone())], move |global_object, _| {
-            let (writer, prevent_close) = {
-                let inner = for_closed.borrow();
-                (inner.writer, inner.prevent_close)
+            let in_flight = for_closed.borrow().reading;
+            let Some(read) = in_flight else {
+                close_destination(global_object, &for_closed);
+                return Ok(());
             };
-            let actions = if prevent_close { Vec::new() } else { vec![(writer, "close", Vec::new())] };
-            shutdown(global_object, &for_closed, None, actions);
+            let after_read = for_closed.clone();
+            let on_read = reaction_holding(global_object, vec![hold(for_closed.clone())], move |global_object, _| {
+                close_destination(global_object, &after_read);
+                Ok(())
+            });
+            then(global_object, read, on_read, ignore(global_object), JSValue::undefined());
             Ok(())
         });
         let for_errored = pipe.clone();
@@ -269,7 +290,7 @@ fn watch_closed(global_object: &JSGlobalObject, pipe: &PipeRef) {
         let closed = resolved_with(global_object, closed);
         let for_closed = pipe.clone();
         let on_closed = reaction_holding(global_object, vec![hold(pipe.clone())], move |global_object, _| {
-            let error = type_error_value(global_object, "the destination writable stream closed before all data could be piped to it");
+            let error = type_error_value(global_object, "The destination WritableStream closed before all of the data could be piped to it");
             cancel_source(global_object, &for_closed, error);
             Ok(())
         });
@@ -332,7 +353,7 @@ fn start_pipe(global_object: &JSGlobalObject, source: JSValue, dest: JSValue, op
     let promise = new_promise(global_object);
     // O leitor, o escritor e a promessa só vivem nestes locais até as reações do `pipe` os segurarem.
     let _locals = RootScope::new(&[reader, writer, promise, signal]);
-    let pipe = Rc::new(RefCell::new(Pipe { reader, writer, promise, prevent_abort, prevent_cancel, prevent_close, shutting_down: false, finished: false, pending_writes: Vec::new() }));
+    let pipe = Rc::new(RefCell::new(Pipe { reader, writer, promise, prevent_abort, prevent_cancel, prevent_close, shutting_down: false, finished: false, pending_writes: Vec::new(), reading: None }));
     if !signal.is_undefined() {
         if property(global_object, signal, "aborted")?.to_boolean() {
             on_signal_abort(global_object, &pipe, signal);
