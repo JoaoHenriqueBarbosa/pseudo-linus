@@ -76,6 +76,20 @@ Primeira falha de cada um dos 1311 testes que não passam, por natureza:
 Os 353 e os 201 são limites do corredor (e do `$262`), não do motor: o número real do motor é maior que 97,5%. Fechá-los é trabalho de
 corredor (um `ModuleFs` em memória com os fixtures da pasta do teste, e um `createRealm` que crie outro global).
 
+## Depois do corredor (createRealm real, fixtures em memória, harness global nos módulos)
+
+Total: 51285 de 52017 (98,6%), contra 50706 (97,5%) na primeira medição. Dos 1311 falhos antes, 581 passam.
+
+| Topo | Passou | Total | % |
+|---|---|---|---|
+| built-ins | 23472 | 23823 | 98,5 |
+| language | 23511 | 23726 | 99,1 |
+| annexB | 1055 | 1086 | 97,1 |
+| intl402 | 3247 | 3382 | 96,0 |
+
+Restos mais frequentes (falta do motor, não do corredor): `$262.agent` (112), `import source/defer` (90),
+`Promise.allKeyed`/`allSettledKeyed` (39), ArrayBuffer imutável (`transferToImmutable`, ~50), async de módulo que não termina (30).
+
 ## Como reproduzir
 
 Compilar o worker (`cargo build --example test262_worker` em `wip/zjsc`) e, no container com o test262 em `/t262`, o worker em
