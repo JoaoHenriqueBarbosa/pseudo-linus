@@ -200,6 +200,33 @@ de chegar aos tipos. O que falta, por grupo:
 - ainda faltam: `bun_core::vec` e `bun_ptr::BackRef` (os dois somem na parte 3, ao tirar o `unsafe`). `AstAlloc` saiu
   (o printer usa `Default::default()`), `hashbrown` ganhou a feature `raw-entry` e as quatro chamadas a
   `bun_crash_handler::scoped_action` saíram (fora por decisão da coordenação);
+- **Parte 3 em andamento (medido em 2026-10-11): 113 erros, de 449 no começo da parte.** O `Printer` ganhou o campo
+  `store: &'a Store` (o `Store` do arquivo, só leitura) e `Printer::init` o recebe (`print_ast` passa `&tree.store`,
+  `print_with_writer_and_platform` passa `&ast.store`, `print_json` ganhou o parâmetro `store`). A escolha é de
+  propósito: um empréstimo que passa por um `&'a Store` não prende o `self`, então `self.print(self.store.str(x))` e
+  `let e = &self.store[r]; self.print_expr(..)` compilam; com o `Store` dentro do `Printer` (testado) o rustc já
+  acusava 55 conflitos E0502 só nos primeiros diagnósticos. O preço é que o printer não grava nós. O que gravava:
+  (1) a transformação `var a = o.x, b = o.y` para `var {x: a, y: b} = o`, que montava um `B::Object` e `E::String`
+  temporários, virou `print_destructuring_group`, que imprime direto de (nome no `Store`, posição, binding), com a
+  chave UTF-8 de `print_binding_utf8_key` (extraída do `print_binding`, que a usa também); (2) `import_member_binding`
+  monta o `Expr` por valor (`EImportIdentifier` é inline); (3) **lacuna registrada:** a dobra de template com
+  `mangled_props` (partes `ENameOfSymbol` viram strings e o template é dobrado por `Template::fold` numa cópia local)
+  saiu: grava nós no `Store`, e o `bun build` não liga `mangled_props` (a conferir no oráculo). Para voltar, o `Store`
+  do printer teria de aceitar nós novos (um `Store` de rascunho com índices separados) ou o fold virar uma função
+  pura sobre valores. O `scripts/store_fix.py` rodou três rodadas sobre os diagnósticos (E0609, E0599, E0277, E0616:
+  `r.campo` virou `self.store[r].campo`, `r.slice()` virou `self.store.str(r)`).
+  **O que falta, por grupo** (de `cargo check -p bun_js_printer --features printer`): (a) renamer, 36 erros: `NameStr`
+  é `StoreStr` e os nomes novos (minificados e numerados) vinham de um `bumpalo::Bump` que o porte não tem; o plano é
+  `NameStr = Rc<[u8]>` (dono, `Clone` barato, hash e igualdade pelos bytes) e os renamers receberem `&'a Store` para
+  ler `original_name`; `TinyString` vira `Inline` até 15 bytes ou `Rc<[u8]>`; `put_assume_capacity` de
+  `StringHashMap`, `MutableString::writer`, `Arena::reset_retain_with_limit` e os `?` sobre `Option` saem junto;
+  (b) 15 `unsafe` e 6 `unsafe impl` (o `write_wtf8_as_utf16le` já saiu): `Encoding` const genérico e `ConstParamTy`
+  (feature `adt_const_params`) viram argumento de execução, os `unsafe impl Send/Sync` do `Writer` somem, e
+  `reserve_spare_bytes`/`commit_spare` do `BufferWriter` viram `Vec::extend`; (c) `BackRef` (3 usos) vira cópia do
+  valor; (d) `EString` com `flattened`, `slice8`, `slice16` e `string` pedem o `Store` (`str.flattened(self.store)`,
+  `slice8(self.store)`), e o `flattened(self.bump)` que escrevia na arena vira um `Cow` sobre a cadeia de cordas;
+  (e) os 24 `E0308` são `StoreStr` no lugar de `&[u8]`, `Option<StoreRef<Scope>>` no lugar de `&Scope` e
+  `*mut Symbol`; (f) `If.no`, `For.body` e afins (`E0609` em `s::*`): o campo existe, falta o `self.store[..]`.
 - 14 usos de `unsafe` (e 6 `unsafe impl`) e o `#![feature(adt_const_params)]`, que pede trocar os parâmetros
   const de enum (`Encoding`) por `u8` ou por argumento de execução.
 

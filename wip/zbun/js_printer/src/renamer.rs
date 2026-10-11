@@ -48,7 +48,7 @@ pub struct NameKey(NameStr);
 impl NameKey {
     #[inline]
     fn as_bytes(&self) -> &[u8] {
-        self.0.slice()
+        self.store.str(self.0)
     }
 }
 
@@ -104,7 +104,7 @@ impl<'a> NoOpRenamer<'a> {
 
         if let Some(symbol) = self.symbols.get_const(resolved) {
             // SAFETY: `original_name` is an AST-arena slice that outlives the renamer.
-            symbol.original_name.slice()
+            self.store.str(symbol.original_name)
         } else {
             Output::panic(format_args!(
                 "Invalid symbol {} in {}",
@@ -228,7 +228,7 @@ impl TinyString {
             TinyString::InlineString(s) => s.slice(),
             // `StoreStr::slice` centralises the arena-backed deref; the payload
             // outlives `self` (the arena lives on the owning renamer).
-            TinyString::String(s) => s.slice(),
+            TinyString::String(s) => p.store.str(*s),
         }
     }
 }
@@ -293,7 +293,7 @@ impl MinifyRenamer {
         let ns = symbol.slot_namespace();
         if ns == SlotNamespace::MustNotBeRenamed {
             // SAFETY: `original_name` is an AST-arena slice that outlives the renamer.
-            return symbol.original_name.slice();
+            return p.store.str(symbol.original_name);
         }
 
         let i = match symbol
@@ -303,7 +303,7 @@ impl MinifyRenamer {
         {
             Some(i) => i,
             // SAFETY: as above.
-            None => return symbol.original_name.slice(),
+            None => return p.store.str(symbol.original_name),
         };
 
         // This has to be a pointer because the string might be stored inline
@@ -653,14 +653,14 @@ trait NameScopes {
     /// Takes `name` for `owner` in the current scope if free, else the first
     /// free `name2`, `name3`, …. `None`: `name` itself was free.
     fn find_unused_name(&mut self, input_name: NameStr, owner: Ref) -> Option<NameStr> {
-        let owned_name = valid_identifier_for(input_name.slice());
+        let owned_name = valid_identifier_for(p.store.str(input_name));
         let normalized = owned_name.is_some();
-        let name: &[u8] = owned_name.as_deref().unwrap_or_else(|| input_name.slice());
+        let name: &[u8] = owned_name.as_deref().unwrap_or_else(|| p.store.str(input_name));
 
         let id = self.id_of(name);
         let use_ = self.find(id);
         if let NameUse::Unused = use_ {
-            let unchanged = !normalized || strings::eql_long(name, input_name.slice(), true);
+            let unchanged = !normalized || strings::eql_long(name, p.store.str(input_name), true);
             let name = if unchanged {
                 input_name
             } else {
@@ -927,14 +927,13 @@ impl NumberRenamer {
                 // `StoreStr::slice` centralises the deref; allocated from
                 // `self.arena` (or a bundler worker arena) or borrows an AST-arena `original_name`, both
                 // of which outlive `self`.
-                return renamed.slice();
+                return self.store.str(renamed);
             }
         }
 
         // SAFETY: `original_name` is an AST-arena slice that outlives the renamer.
-        self.symbols.symbols_for_source[source_index as usize][inner_index as usize]
-            .original_name
-            .slice()
+        self.store.str(self.symbols.symbols_for_source[source_index as usize][inner_index as usize]
+            .original_name)
     }
 }
 
@@ -987,7 +986,7 @@ impl<'r> NameScopes for NestedRenamer<'r> {
             .copied()
     }
     fn intern(&mut self, name: NameStr) -> u32 {
-        debug_assert!(self.root.ids.get(name.slice()).is_none());
+        debug_assert!(self.root.ids.get(p.store.str(name)).is_none());
         let (id, new) = intern_into(&mut self.local_ids, self.next_local_id, name);
         if new {
             self.next_local_id += 1;
