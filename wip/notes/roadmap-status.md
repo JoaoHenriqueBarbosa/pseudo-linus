@@ -9,7 +9,7 @@ Convenção da coluna "Fonte": **eu** = medido pelo coordenador com comando pró
 por um fork na saída do container dele, não recompilado pelo coordenador; **vigente** = valor herdado de um arquivo
 versionado, com a data do arquivo.
 
-Última verificação: 2026-10-11 17:00 (CEST).
+Última verificação: 2026-10-11 17:30 (CEST).
 
 ## Ritmo medido
 
@@ -36,7 +36,7 @@ por dia no zjsc e 60 a 70 no zbun.
 | M5.3 | `--dump-dom` correto em páginas com scripts simples | Cumprido além do critério: 42 de 42 páginas da internet idênticas ao Chromium 154 (meta do goal era 95% por grupo) | fork |
 | M5.4 | Recorte do Web Platform Tests acima de 90% | **NÃO MEDIDO.** Não há recorte de WPT no repositório | eu |
 | M5.5 | `--screenshot` e `--print-to-pdf` com diferença perceptual baixa | **NÃO EXISTE.** O `cli.rs` do `ul-chromium` só trata `--dump-dom`; `Page.captureScreenshot` responde "wasn't found". Pintura de página não existe (o `vello_cpu` só serve ao canvas 2D). O alvo é diferença perceptual, não byte a byte | eu |
-| M5.6 | CDP completo para Puppeteer e Playwright; test262 acima de 95% | CDP: 290 de 326 no placar (89%) no último commit integrado (`acdd7bba`); o fork reporta 347 de 379 (91,6%) com o cenário novo `playwright_handshake` em 53 de 53 (setWindowBounds, setDownloadBehavior, scripts de documento novo, mundos isolados, emulação de mídia), ainda sem commit. pyppeteer: pip install, launch, goto (com `Response`), title, evaluate e close funcionam com saída igual ao oráculo. Playwright: handshake de CDP em 53 de 53 (fork, integrado em `a2ff72c6`); replay da sessão CDP real do driver do Playwright contra o `ul-chromium`: 402 de 664 mensagens (60,5%, fork; era 245 antes de o harness expandir os blobs do golden; harness integrado em `36b73524`; `DOM.*` e `Input.*` implementados, sem commit, replay rodando; metas são os `golden/pw_*.cdp.jsonl`, gravados com o driver real e o Chromium 154); driver Node: incógnita medida em `wip/notes/playwright-driver.md` (o bun real roda o driver; no nosso bun faltam `child_process`, `net`, `crypto`, `zlib`, `tls`, `http`, `https`, `readline`, `tty`, `inspector`, `dns`). test262 acima de 95%: cumprido no agregado (97,5%) e em todos os diretórios de topo (ver M5.1) | fork |
+| M5.6 | CDP completo para Puppeteer e Playwright; test262 acima de 95% | CDP: 290 de 326 no placar (89%) no último commit integrado (`acdd7bba`); o fork reporta 347 de 379 (91,6%) com o cenário novo `playwright_handshake` em 53 de 53 (setWindowBounds, setDownloadBehavior, scripts de documento novo, mundos isolados, emulação de mídia), ainda sem commit. pyppeteer: pip install, launch, goto (com `Response`), title, evaluate e close funcionam com saída igual ao oráculo. Playwright: handshake de CDP em 53 de 53 (fork, integrado em `a2ff72c6`); replay da sessão CDP real do driver do Playwright contra o `ul-chromium`: 725 de 1151 mensagens em cinco cenas do oráculo (63,0%, fork; o denominador cresceu de 664 para 1151 porque o replay passou de 2 para 5 cenas: `pw_evaluate`, `pw_locators`, `pw_actions`, `pw_context`, `pw_navigation`; harness integrado em `36b73524`; `DOM.*` e `Input.*` implementados, commit pendente de integração). `pw_evaluate`, `pw_locators` e `pw_actions` já sem método desconhecido; faltam, em `pw_context` e `pw_navigation`: `Browser.grantPermissions`, `Emulation.setGeolocationOverride`/`setLocaleOverride`/`setTimezoneOverride`/`setUserAgentOverride`, `Network.emulateNetworkConditions`/`setExtraHTTPHeaders`, `Runtime.addBinding`, `Storage.getCookies`/`setCookies`/`clearCookies`, `Page.getNavigationHistory`/`navigateToHistoryEntry`; metas são os `golden/pw_*.cdp.jsonl`, gravados com o driver real e o Chromium 154); driver Node: incógnita medida em `wip/notes/playwright-driver.md`. O bun real roda o driver; no nosso, `bun cli.js --version` já passa de `tty` (gerado do `tty.ts` do bun, `282eb505`) e para em `Cannot find module 'crypto'`. Faltam `crypto`, `child_process`, `net`, `zlib`, `tls`, `http`, `https`, `readline`, `inspector`, `dns`; o `.ts` de cada um do bun 1.4.2 está em `/home/john/cache/bun-src/tree/src/js/node`, então saem pelo gerador. test262 acima de 95%: cumprido no agregado (97,5%) e em todos os diretórios de topo (ver M5.1) | fork |
 
 ## Estado por frente
 
@@ -46,7 +46,7 @@ por dia no zjsc e 60 a 70 no zbun.
 - Declarados e abertos: coluna do frame de `new X()` (4 colunas), `call_edge` (JIT), `global_semantics`, `error_api`, `dom_exception`, recursão de apply de Proxy, ordem de `ownKeys`.
 
 ### bun (zbun e `ul-bun`)
-- Transpilador portado: golden do printer 360 de 360, `react_compiler` compila, 0 `unsafe`. Corpus do `ul-bun`: 53 casos medidos no bun 1.4.2, rodando no kernel real (fork).
+- Transpilador portado: golden do printer 360 de 360, `react_compiler` compila, 0 `unsafe`. Corpus do `ul-bun`: 216 casos (fork; eram 53 na primeira leitura), rodando no kernel real, com `bun run` com `package.json`, CLI base e `node:tty` integrados; as 101 sondas do `-p` estão em KNOWN até o `-p` ser portado (precisa do valor de conclusão no motor).
 - Falta: `bun run` com `package.json`, `-p`/`--print`, opções de execução (`--cwd`, `--preload`, `--env-file`, `--define`), subcomandos `test` e `x`, WebSocket, tls/https, inotify, `Bun.Glob`.
 
 ### chromium (Blitz, Stylo)
@@ -104,3 +104,4 @@ formais; este arquivo a substitui. Corrigido também: o PRD pede screenshot por 
 - 2026-10-11 16:00: replay do Playwright real em 245 de 664 (36,9%), primeira medida direta do M5.6 para o Playwright. Faltam `Target.createTarget` com contexto, `DOM.*`, `Input.*` e o que o log completo do replay listar.
 - 2026-10-11 16:25: replay do Playwright corrigido para 402 de 664 (60,5%): o harness enviava o script injetado como texto literal. `DOM.*` e `Input.*` implementados (fork), placar novo pendente. test262 em 29 500 de 52 017 testes rodados, sem baseline ainda.
 - 2026-10-11 17:00: test262 medido: 97,5% (M5.1 e a parte de test262 do M5.6 cumpridos). Corredor validado com 6 controles. Próxima lacuna de medição: WPT (M5.4).
+- 2026-10-11 17:30: replay do Playwright em 725 de 1151 (cinco cenas). `bun run` e `node:tty` integrados; driver do Playwright parado em `crypto`. Corpus do `ul-bun` em 216 casos.
