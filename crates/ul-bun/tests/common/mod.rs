@@ -15,7 +15,9 @@ pub fn programs() -> Vec<sysabi::Program> {
 /// Os arquivos de `dir` como `(caminho relativo, conteúdo)`.
 pub fn read_tree(dir: &Path) -> Vec<(String, Vec<u8>)> {
     fn walk(dir: &Path, base: &Path, out: &mut Vec<(String, Vec<u8>)>) {
-        for entry in std::fs::read_dir(dir).expect("diretório") {
+        // Diretório vazio não existe no git: um caso sem arquivos tem `files/` ausente no checkout.
+        let Ok(entries) = std::fs::read_dir(dir) else { return };
+        for entry in entries {
             let path: PathBuf = entry.expect("entrada").path();
             if path.is_dir() {
                 walk(&path, base, out);

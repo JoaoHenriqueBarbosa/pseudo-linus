@@ -30,6 +30,7 @@ target/
 target-*/
 target[0-9]*/
 node_modules/
+!crates/ul-bun/tests/corpus/*/files/node_modules/
 .venv/
 venv/
 __pycache__/
