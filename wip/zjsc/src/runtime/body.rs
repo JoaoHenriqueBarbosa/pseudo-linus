@@ -219,7 +219,10 @@ pub(crate) fn extract(global_object: &JSGlobalObject, value: JSValue) -> Result<
         }
         return Ok(Some(Extracted { stream: Some(value), ..Extracted::default() }));
     }
-    if let Some(state) = state_of(value) {
+    if let Some(mut state) = state_of(value) {
+        if let Some(backing) = crate::runtime::blob_file::backing_of(value) {
+            state.bytes = crate::runtime::blob_file::read(&backing).unwrap_or_default();
+        }
         let file = FileIdentity::of(&state);
         return Ok(Some(Extracted { bytes: state.bytes, header_type: state.content_type.clone(), blob_type: state.content_type, file, ..Extracted::default() }));
     }

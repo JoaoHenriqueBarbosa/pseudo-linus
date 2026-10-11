@@ -154,6 +154,48 @@ pub(crate) fn throw_network_error(global_object: &JSGlobalObject, message: &str,
     throw_coded_message(global_object, ErrorType::TypeError, WtfString::from_utf8(message.as_bytes()), None, properties)
 }
 
+/// `uv_err_name` e `uv_strerror` de um `errno` positivo (a tabela do `ERRORS` de `node_fs.js`).
+pub(crate) fn uv_error_info(errno: i32) -> (&'static str, &'static str) {
+    match errno {
+        1 => ("EPERM", "operation not permitted"),
+        2 => ("ENOENT", "no such file or directory"),
+        3 => ("ESRCH", "no such process"),
+        4 => ("EINTR", "interrupted system call"),
+        5 => ("EIO", "i/o error"),
+        6 => ("ENXIO", "no such device or address"),
+        7 => ("E2BIG", "argument list too long"),
+        9 => ("EBADF", "bad file descriptor"),
+        11 => ("EAGAIN", "resource temporarily unavailable"),
+        12 => ("ENOMEM", "not enough memory"),
+        13 => ("EACCES", "permission denied"),
+        14 => ("EFAULT", "bad address in system call argument"),
+        16 => ("EBUSY", "resource busy or locked"),
+        17 => ("EEXIST", "file already exists"),
+        18 => ("EXDEV", "cross-device link not permitted"),
+        19 => ("ENODEV", "no such device"),
+        20 => ("ENOTDIR", "not a directory"),
+        21 => ("EISDIR", "illegal operation on a directory"),
+        22 => ("EINVAL", "invalid argument"),
+        23 => ("ENFILE", "file table overflow"),
+        24 => ("EMFILE", "too many open files"),
+        25 => ("ENOTTY", "inappropriate ioctl for device"),
+        26 => ("ETXTBSY", "text file is busy"),
+        27 => ("EFBIG", "file too large"),
+        28 => ("ENOSPC", "no space left on device"),
+        29 => ("ESPIPE", "invalid seek"),
+        30 => ("EROFS", "read-only file system"),
+        31 => ("EMLINK", "too many links"),
+        32 => ("EPIPE", "broken pipe"),
+        34 => ("ERANGE", "result too large"),
+        36 => ("ENAMETOOLONG", "name too long"),
+        38 => ("ENOSYS", "function not implemented"),
+        39 => ("ENOTEMPTY", "directory not empty"),
+        40 => ("ELOOP", "too many symbolic links encountered"),
+        95 => ("ENOTSUP", "operation not supported on socket"),
+        _ => ("UNKNOWN", "unknown error"),
+    }
+}
+
 /// Lança um `Error` simples sem `code` próprio de estrutura, com as propriedades próprias de `properties` (erro de
 /// sistema: `errno`, `code`, `syscall`, `path`), e devolve `Thrown::Pending`.
 pub(crate) fn throw_error_with_properties(global_object: &JSGlobalObject, message: &str, properties: &[(&str, NetworkProperty)]) -> Thrown {

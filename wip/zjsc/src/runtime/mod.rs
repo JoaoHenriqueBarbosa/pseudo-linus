@@ -64,6 +64,7 @@ pub mod text_decoder_jis_data;
 pub mod text_decoder_single_byte_data;
 pub mod text_encoder;
 pub mod blob;
+pub mod blob_file;
 pub mod fetch;
 pub mod file;
 pub mod web_iterable;

@@ -1,0 +1,6 @@
+blob iter ok [ 3 ]
+blob reader ok [ 3, false, true ]
+response iter ok [ 3 ]
+stream iter ok [ 1 ]
+values ok [ "function", true, "ReadableStream" ]
+values call ok [ false, 3 ]

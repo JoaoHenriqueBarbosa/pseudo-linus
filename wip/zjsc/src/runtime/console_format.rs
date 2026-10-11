@@ -973,8 +973,9 @@ impl Formatter {
             }
         };
         if let Some(state) = crate::runtime::blob::state_of(value) {
+            let file_ref = crate::runtime::blob_file::display_path(value).map(|path| format!("FileRef (\"{path}\")"));
             let mut fields = Vec::new();
-            if let Some(name) = &state.name {
+            if let Some(name) = state.name.as_ref().filter(|_| file_ref.is_none()) {
                 fields.push(("name", WebField::Quoted(name.clone())));
             }
             if !state.content_type.is_empty() {
@@ -983,7 +984,7 @@ impl Formatter {
             if let Some(modified) = state.last_modified.filter(|_| state.is_file) {
                 fields.push(("lastModified", WebField::Raw(format!("{modified}"))));
             }
-            let label = if state.is_file { "File" } else { "Blob" };
+            let label = file_ref.as_deref().unwrap_or(if state.is_file { "File" } else { "Blob" });
             return Some(self.push_web_object(global_object, out, id, label, state.bytes.len(), fields, None, false));
         }
         if let Some(state) = crate::runtime::request::state_of(value) {
@@ -1025,8 +1026,11 @@ impl Formatter {
         comma_before_body: bool,
     ) -> bool {
         // `Blob` e `File` pintam o cabeçalho (`<r>Blob<r> (<yellow>3 bytes<r>)`); `Request` e `Response` o imprimem cru.
-        let blob_like = label == "Blob" || label == "File";
-        if self.colors && blob_like {
+        let blob_like = label == "Blob" || label == "File" || label.starts_with("FileRef");
+        if label.starts_with("FileRef") {
+            // Blob de arquivo: `FileRef ("<caminho>")`, sem o tamanho (medido no bun 1.4.2).
+            ascii(out, label);
+        } else if self.colors && blob_like {
             ascii(out, &format!("\x1b[0m{label}\x1b[0m (\x1b[33m{}\x1b[0m)", format_byte_size(size as u64)));
         } else {
             ascii(out, &format!("{label} ({})", format_byte_size(size as u64)));

@@ -383,12 +383,7 @@ fn forward_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     };
     let table = IMPLEMENTATION.with(|slot| slot.borrow().unwrap_or_else(JSValue::undefined));
     let function = get_object_property(global_object, table, &Identifier::from_span(global_object.vm(), name.as_bytes()))?;
-    let data = get_call_data(function);
-    match call_function(global_object, function, &data, call.this_value(), call.arguments()) {
-        Ok(value) => Ok(value),
-        Err(LLIntFailure::Thrown) => Err(Thrown::Pending),
-        Err(_) => Err(Thrown::Unported("node:fs")),
-    }
+    crate::api::node_js_host::call_value(global_object, function, call.this_value(), call.arguments(), "node:fs")
 }
 host_function!(forward_function, forward_body);
 

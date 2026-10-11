@@ -159,6 +159,17 @@ pub(crate) fn run_factory(global_object: &JSGlobalObject, source: &str, name: &s
     })
 }
 
+/// Chama a função JavaScript `function` com `this` e `arguments`; a exceção fica pendente (`Thrown::Pending`) e uma
+/// falha do próprio motor vira `Thrown::Unported(who)`.
+pub(crate) fn call_value(global_object: &JSGlobalObject, function: JSValue, this_value: JSValue, arguments: &[JSValue], who: &'static str) -> HostResult {
+    let data = crate::runtime::call_data::get_call_data(function);
+    match crate::runtime::call_data::call(global_object, function, &data, this_value, arguments) {
+        Ok(value) => Ok(value),
+        Err(crate::llint::LLIntFailure::Thrown) => Err(Thrown::Pending),
+        Err(_) => Err(Thrown::Unported(who)),
+    }
+}
+
 /// O `node_internal.js`: erros com código, validadores, `addAbortListener` e afins, uma vez por programa.
 pub(crate) fn internal(global_object: &JSGlobalObject) -> HostResult {
     cached("internal:node", || Ok(run_factory(global_object, INTERNAL_SOURCE, "internal", &base_host(global_object))))

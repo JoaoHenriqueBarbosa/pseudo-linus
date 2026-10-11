@@ -46,6 +46,13 @@ pub(crate) fn bytes_stream(global_object: &JSGlobalObject, bytes: &[u8]) -> JSVa
     value
 }
 
+/// Um `ReadableStream` novo que já nasce em erro com `error` (a leitura que o `Blob` de arquivo não pôde fazer).
+pub(crate) fn errored_stream(global_object: &JSGlobalObject, error: JSValue) -> JSValue {
+    let (value, handle) = create_native(global_object, Rc::new(Memory), 1.0, None, JSValue::undefined());
+    handle.error(global_object, error);
+    value
+}
+
 /// O stream está travado por um leitor ou já foi lido: o que `bodyUsed` e a segunda leitura do corpo olham.
 pub(crate) fn stream_used(value: JSValue) -> bool {
     is_locked_or_disturbed(value)

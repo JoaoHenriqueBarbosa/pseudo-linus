@@ -1,0 +1,79 @@
+file,fileURLToPath,write
+1 1 file write
+Blob [object Blob] true [] /tmp/bf/a.txt 11 text/plain;charset=utf-8 number
+lastModified ok [ true, 4503599627370495 ]
+text ok hello world
+json bad err SyntaxError undefined JSON Parse error: Unexpected identifier "hello" [] undefined undefined undefined
+bytes ok Uint8Array(11) [ 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100 ]
+arrayBuffer ok 11
+slice ok [ "Blob", 5, "text/plain;charset=utf-8", "world" ]
+slice tail ok world
+slice negative ok world
+slice type ok x/y
+exists ok [
+  Promise { <resolved> }, Promise { <resolved> }, Promise { <resolved> }
+]
+exists awaited ok [ true, false, false ]
+missing text err Error ENOENT ENOENT: no such file or directory, open '/tmp/bf/zz' ["code","path","syscall","errno"] open -2 /tmp/bf/zz
+missing size ok 0
+types ok [ "text/plain;charset=utf-8", "text/html;charset=utf-8", "application/json;charset=utf-8",
+  "application/octet-stream", "application/octet-stream", "text/x-y"
+]
+stream ok [ "Uint8Array", 11, false, true ]
+dir ok [ true, "application/octet-stream", "/tmp/bf" ]
+dir text err Error EISDIR Directories cannot be read like files ["code","path","syscall","errno"] read 0 /tmp/bf
+stat ok [ "Stats", 11, true ]
+stat missing err Error ENOENT ENOENT: no such file or directory, stat '/tmp/bf/zz' ["code","path","syscall","errno"] stat -2 /tmp/bf/zz
+url ok [ "/tmp/bf/a.txt", 11 ]
+fd ok [ undefined, 11, "application/octet-stream" ]
+bad fd err RangeError ERR_OUT_OF_RANGE The value of "fd" is out of range. It must be an integer. Received 5.5 [] undefined undefined undefined
+bad arg err TypeError ERR_INVALID_ARG_TYPE Expected file path string or file descriptor [] undefined undefined undefined
+no arg err TypeError ERR_INVALID_ARG_TYPE Expected file path string or file descriptor [] undefined undefined undefined
+empty path ok true
+relative ok [ "a.txt", 11, "hello world" ]
+size stays ok [ 0, 0, 3 ]
+response ok [ "hello world", "text/plain;charset=utf-8" ]
+blob of file ok !
+write string ok [ 6, "hÃ©llo" ]
+write bytes ok [ 4, <Buffer 01 02 03 04> ]
+write buffer ok [ 3, 2 ]
+write blob ok [ 3, "xyz" ]
+write file ok [ 11, "hello world" ]
+write BunFile dest ok [ 9, "dest file" ]
+write response ok [ 13, "from response" ]
+write stream ok [ 2, "s1" ]
+write number ok [ 1, "5" ]
+write array ok [ 2, "ab" ]
+write object ok [ 15, "[object Object]" ]
+write empty ok [ 0, 0 ]
+write null err TypeError ERR_INVALID_ARG_TYPE Bun.write(pathOrFdOrBlob, blob) expects a Blob-y thing to write [] undefined undefined undefined
+write undefined err TypeError ERR_INVALID_ARG_TYPE Bun.write(pathOrFdOrBlob, blob) expects a Blob-y thing to write [] undefined undefined undefined
+write missing dir ok [ 1, "x" ]
+write createPath false err Error ENOENT ENOENT: no such file or directory, open '/tmp/bf/nd/x' ["code","path","syscall","errno"] open -2 /tmp/bf/nd/x
+write dir err Error EISDIR EISDIR: illegal operation on a directory, open '/tmp/bf' ["code","path","syscall","errno"] open -21 /tmp/bf
+write no args err TypeError ERR_INVALID_ARG_TYPE The "destination" argument must be of type path, file descriptor, or Blob. Received undefined [] undefined undefined undefined
+write bad dest err TypeError ERR_INVALID_ARG_TYPE The "destination" argument must be of type path, file descriptor, or Blob. Received an instance of Object [] undefined undefined undefined
+write url ok [ 3, "url" ]
+write fd ok [ 5, "to fd" ]
+write overwrite shorter ok sh
+write mode ok 644
+file write method ok [ 10, "via method" ]
+memory blob write err TypeError ERR_INVALID_ARG_TYPE Cannot write to a Blob backed by bytes, which are always read-only [] undefined undefined undefined
+inspect ok FileRef ("/tmp/bf/a.txt") {
+  type: "text/plain;charset=utf-8"
+}
+json parse ok {
+  a: 1,
+}
+bytes empty ok 0
+formData err Error undefined Invalid encoding [] undefined undefined undefined
+arrayBuffer missing err Error ENOENT ENOENT: no such file or directory, open '/tmp/bf/zz' ["code","path","syscall","errno"] open -2 /tmp/bf/zz
+stream missing err Error ENOENT ENOENT: no such file or directory, open '/tmp/bf/zz' ["code","path","syscall","errno"] open -2 /tmp/bf/zz
+writer ok [ "FileSink", [], "close,flush,end,start,write,ref,unref,_getFd,sinkId,constructor",
+  2, 1, 3, "abc", 0
+]
+writer end only ok [ 4, "abcd" ]
+writer bad options err TypeError ERR_INVALID_ARG_TYPE options must be an object or undefined [] undefined undefined undefined
+delete ok false
+delete missing err Error ENOENT ENOENT: no such file or directory, unlink '/tmp/bf/zz' ["code","path","syscall","errno"] unlink -2 /tmp/bf/zz
+unlink ok [ undefined, false ]

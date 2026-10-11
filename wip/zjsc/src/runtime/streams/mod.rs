@@ -28,7 +28,7 @@
 
 mod compression_streams;
 mod body_stream;
-pub(crate) use body_stream::{bytes_stream, is_readable_stream, read_stream_bytes, stream_used, text_stream};
+pub(crate) use body_stream::{bytes_stream, errored_stream, is_readable_stream, read_stream_bytes, stream_used, text_stream};
 pub(crate) use readable::{lock_stream, tee_of};
 mod bytes;
 mod effects;

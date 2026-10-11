@@ -58,7 +58,7 @@ use crate::runtime::text_decoder::input_bytes;
 use crate::wtf::text::wtf_string::String as WtfString;
 
 /// `lastModified` de um Blob que não é arquivo: `2^52 - 1`.
-const MEMORY_LAST_MODIFIED: f64 = 4503599627370495.0;
+pub(crate) const MEMORY_LAST_MODIFIED: f64 = 4503599627370495.0;
 
 #[derive(Clone, Default)]
 pub(crate) struct BlobState {
@@ -97,6 +97,7 @@ pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
 
 pub(crate) fn reset_for_program() {
     let _ = INSTANCES.try_with(|instances| instances.borrow_mut().clear());
+    crate::runtime::blob_file::reset_for_program();
 }
 
 pub(crate) fn state_of(value: JSValue) -> Option<BlobState> {
@@ -236,7 +237,8 @@ pub(crate) fn make_blob(global_object: &JSGlobalObject, state: BlobState) -> JSV
 }
 
 fn size_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    Ok(js_number(accessor_state(call, "size")?.bytes.len() as f64))
+    let state = accessor_state(call, "size")?;
+    Ok(js_number(crate::runtime::blob_file::size(call.this_value()).unwrap_or(state.bytes.len() as f64)))
 }
 
 fn type_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
@@ -244,7 +246,8 @@ fn type_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 }
 
 fn last_modified_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    Ok(js_number(accessor_state(call, "lastModified")?.last_modified.unwrap_or(MEMORY_LAST_MODIFIED)))
+    let state = accessor_state(call, "lastModified")?;
+    Ok(js_number(crate::runtime::blob_file::last_modified(call.this_value()).unwrap_or_else(|| state.last_modified.unwrap_or(MEMORY_LAST_MODIFIED))))
 }
 
 /// Sem nome: `undefined` (também num `File` que o `FormData` devolveu de um Blob sem nome, medido).
@@ -284,10 +287,11 @@ fn slice_index(argument: JSValue, size: i64, default: i64) -> i64 {
 
 fn slice_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let state = method_state(global_object, call)?;
-    if state.bytes.is_empty() {
+    let file_size = crate::runtime::blob_file::size(call.this_value());
+    if state.bytes.is_empty() && file_size.is_none() {
         return Ok(make_blob(global_object, BlobState::default()));
     }
-    let size = state.bytes.len() as i64;
+    let size = file_size.map_or(state.bytes.len() as i64, |size| size as i64);
     let mut arguments = [call.argument(0), call.argument(1), call.argument(2)];
     if arguments[0].is_string() {
         arguments = [JSValue::undefined(), JSValue::undefined(), arguments[0]];
@@ -297,6 +301,9 @@ fn slice_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let start = slice_index(arguments[0], size, 0);
     let end = slice_index(arguments[1], size, size);
     let content_type = normalized_type(arguments[2]);
+    if let Some(sliced) = crate::runtime::blob_file::slice(global_object, call.this_value(), start, end, content_type.clone()) {
+        return Ok(sliced);
+    }
     let bytes = if start < end { state.bytes[start as usize..end as usize].to_vec() } else { Vec::new() };
     Ok(make_blob(global_object, BlobState { bytes, content_type, name: state.name, is_file: state.is_file, last_modified: state.last_modified }))
 }
@@ -307,28 +314,42 @@ pub(crate) fn resolved_promise(global_object: &JSGlobalObject, value: JSValue) -
     promise.as_value()
 }
 
-fn text_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let state = method_state(global_object, call)?;
-    // `Blob.text()` do bun decodifica como UTF-16LE quando o conteúdo começa com a BOM `FF FE` (medido no bun 1.4.2:
-    // `[ff fe 41]` dá `""`, o byte ímpar final cai). `Response.text()` não faz isso.
-    if let Some(rest) = state.bytes.strip_prefix(&[0xff, 0xfe]) {
-        let units: Vec<u16> = rest.chunks_exact(2).map(|pair| u16::from_le_bytes([pair[0], pair[1]])).collect();
-        let text = WtfString::from_utf8(String::from_utf16_lossy(&units).as_bytes());
-        return Ok(resolved_promise(global_object, JSValue::from_js_string(js_string(global_object.vm(), &text))));
+/// O estado de `this` com o conteúdo, passado a `read`; num Blob de arquivo o arquivo é lido na hora e uma falha de
+/// leitura rejeita a promessa.
+fn with_content(global_object: &JSGlobalObject, call: &HostCall, read: impl FnOnce(&BlobState) -> HostResult) -> HostResult {
+    let mut state = method_state(global_object, call)?;
+    if let Some(backing) = crate::runtime::blob_file::backing_of(call.this_value()) {
+        match crate::runtime::blob_file::read(&backing) {
+            Ok(bytes) => state.bytes = bytes,
+            Err(error) => return Ok(crate::runtime::blob_file::rejected(global_object, &error)),
+        }
     }
-    read_body(global_object, Read::Text, &state.bytes)
+    read(&state)
+}
+
+fn text_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    with_content(global_object, call, |state| {
+        // `Blob.text()` do bun decodifica como UTF-16LE quando o conteúdo começa com a BOM `FF FE` (medido no bun 1.4.2:
+        // `[ff fe 41]` dá `""`, o byte ímpar final cai). `Response.text()` não faz isso.
+        if let Some(rest) = state.bytes.strip_prefix(&[0xff, 0xfe]) {
+            let units: Vec<u16> = rest.chunks_exact(2).map(|pair| u16::from_le_bytes([pair[0], pair[1]])).collect();
+            let text = WtfString::from_utf8(String::from_utf16_lossy(&units).as_bytes());
+            return Ok(resolved_promise(global_object, JSValue::from_js_string(js_string(global_object.vm(), &text))));
+        }
+        read_body(global_object, Read::Text, &state.bytes)
+    })
 }
 
 fn array_buffer_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    read_body(global_object, Read::ArrayBuffer, &method_state(global_object, call)?.bytes)
+    with_content(global_object, call, |state| read_body(global_object, Read::ArrayBuffer, &state.bytes))
 }
 
 fn bytes_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    read_body(global_object, Read::Bytes, &method_state(global_object, call)?.bytes)
+    with_content(global_object, call, |state| read_body(global_object, Read::Bytes, &state.bytes))
 }
 
 fn json_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    read_body(global_object, Read::Json, &method_state(global_object, call)?.bytes)
+    with_content(global_object, call, |state| read_body(global_object, Read::Json, &state.bytes))
 }
 
 /// `delete`, `unlink`, `write` e `writer` num Blob em memória: o vazio não tem armazenamento ("detached"), o resto é
@@ -341,8 +362,19 @@ fn write_refused(global_object: &JSGlobalObject, state: &BlobState) -> Thrown {
     }
 }
 
-fn write_refused_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    Err(write_refused(global_object, &method_state(global_object, call)?))
+/// `delete` e `unlink`: num Blob de arquivo removem o arquivo.
+fn delete_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let state = method_state(global_object, call)?;
+    crate::runtime::blob_file::delete(global_object, call.this_value()).ok_or_else(|| write_refused(global_object, &state))
+}
+
+/// `write(dado, opções)`: num Blob de arquivo é o `Bun.write` com ele de destino.
+fn write_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let state = method_state(global_object, call)?;
+    if crate::runtime::blob_file::backing_of(call.this_value()).is_none() {
+        return Err(write_refused(global_object, &state));
+    }
+    crate::runtime::blob_file::call_module(global_object, "write", &[call.this_value(), call.argument(0), call.argument(1)])
 }
 
 fn writer_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
@@ -351,32 +383,34 @@ fn writer_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     if !options.is_undefined() && !options.is_object() {
         return Err(throw_coded_type_error(global_object, "options must be an object or undefined", "ERR_INVALID_ARG_TYPE"));
     }
+    if crate::runtime::blob_file::backing_of(call.this_value()).is_some() {
+        return crate::runtime::blob_file::call_module(global_object, "writer", &[call.this_value()]);
+    }
     Err(write_refused(global_object, &state))
 }
 
 /// Um Blob em memória sempre "existe".
 fn exists_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     method_state(global_object, call)?;
-    Ok(resolved_promise(global_object, JSValue::Bool(true)))
+    Ok(crate::runtime::blob_file::exists(global_object, call.this_value()).unwrap_or_else(|| resolved_promise(global_object, JSValue::Bool(true))))
 }
 
 /// `stat` de um Blob que não é arquivo devolve `undefined`, síncrono.
 fn stat_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     method_state(global_object, call)?;
-    Ok(JSValue::undefined())
+    crate::runtime::blob_file::stat(global_object, call.this_value()).unwrap_or_else(|| Ok(JSValue::undefined()))
 }
 
 /// `formData`: corpo vazio vira `FormData` vazio; o resto segue `form_data_parse::parse_body` (urlencoded e multipart),
 /// e o erro (`Invalid encoding`, `FormData encoding failed: ...`) rejeita a promessa.
 fn form_data_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let state = method_state(global_object, call)?;
-    match crate::runtime::form_data_parse::parse_body(&state.bytes, &state.content_type) {
+    with_content(global_object, call, |state| match crate::runtime::form_data_parse::parse_body(&state.bytes, &state.content_type) {
         Ok(entries) => Ok(resolved_promise(global_object, crate::runtime::form_data::make_form_data(global_object, entries))),
         Err(message) => {
             let error = crate::runtime::error::create_error(global_object, &WtfString::from_utf8(message.as_bytes())).as_value();
             Ok(JSPromise::rejected_promise(global_object, error).as_value())
         }
-    }
+    })
 }
 
 /// `image` de um Blob vazio lança; com conteúdo devolve um `Image` (ainda ausente).
@@ -395,6 +429,13 @@ fn image_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 /// `stream`: um `ReadableStream` novo a cada chamada, sobre uma cópia dos bytes (ver `streams/body_stream.rs`).
 fn stream_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let state = method_state(global_object, call)?;
+    if let Some(backing) = crate::runtime::blob_file::backing_of(call.this_value()) {
+        // Num arquivo a falha aparece na leitura do stream, não na chamada de `stream()` (medido no bun 1.4.2).
+        return Ok(match crate::runtime::blob_file::read(&backing) {
+            Ok(bytes) => crate::runtime::streams::bytes_stream(global_object, &bytes),
+            Err(error) => crate::runtime::streams::errored_stream(global_object, crate::runtime::blob_file::error_value(global_object, &error)),
+        });
+    }
     Ok(crate::runtime::streams::bytes_stream(global_object, &state.bytes))
 }
 
@@ -418,7 +459,8 @@ host_function!(bytes_fn, bytes_body);
 host_function!(json_fn, json_body);
 host_function!(unsupported_fn, unsupported_body);
 host_function!(stream_fn, stream_body);
-host_function!(write_refused_fn, write_refused_body);
+host_function!(delete_fn, delete_body);
+host_function!(write_fn, write_body);
 host_function!(writer_fn, writer_body);
 host_function!(exists_fn, exists_body);
 host_function!(stat_fn, stat_body);
@@ -444,7 +486,7 @@ pub fn install_blob(global_object: &JSGlobalObject) {
     };
     method("arrayBuffer", 0, array_buffer_fn);
     method("bytes", 0, bytes_fn);
-    method("delete", 0, write_refused_fn);
+    method("delete", 0, delete_fn);
     method("exists", 0, exists_fn);
     method("formData", 0, form_data_fn);
     method("image", 0, image_fn);
@@ -457,8 +499,8 @@ pub fn install_blob(global_object: &JSGlobalObject) {
     method("stream", 1, stream_fn);
     method("text", 0, text_fn);
     put_native_accessor(vm, global_object, &prototype, "type", type_fn, None, DONT_DELETE);
-    method("unlink", 0, write_refused_fn);
-    method("write", 2, write_refused_fn);
+    method("unlink", 0, delete_fn);
+    method("write", 2, write_fn);
     method("writer", 1, writer_fn);
     prototype.put_direct(vm, &PropertyName::from_identifier(&vm.property_names.constructor), constructor.as_value(), DONT_ENUM);
     put_to_string_tag(vm, &prototype, "Blob");

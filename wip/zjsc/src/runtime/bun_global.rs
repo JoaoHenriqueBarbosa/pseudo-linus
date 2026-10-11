@@ -379,11 +379,12 @@ fn string_width_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRes
 host_function!(pub bun_string_width, string_width_body);
 
 /// `bunObjectTable` de `BunObject.cpp`, na ordem do `@begin`, só com as entradas portadas.
-static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 17] = [
+static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 19] = [
     lazy_entry_with_attributes("argv", DONT_DELETE, create_argv),
     native_function_entry("deepEquals", DONT_DELETE, bun_deep_equals, 2, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("env", READ_ONLY | DONT_DELETE, create_env),
     native_function_entry("escapeHTML", DONT_DELETE, bun_escape_html, 2, Intrinsic::NoIntrinsic),
+    native_function_entry("file", DONT_DELETE, crate::runtime::blob_file::bun_file, 1, Intrinsic::NoIntrinsic),
     native_function_entry("fileURLToPath", DONT_DELETE, bun_file_url_to_path, 1, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("hash", DONT_DELETE, create_hash),
     lazy_entry_with_attributes("inspect", DONT_DELETE, create_inspect),
@@ -397,6 +398,7 @@ static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 17] = [
     native_function_entry("stringWidth", DONT_DELETE, bun_string_width, 2, Intrinsic::NoIntrinsic),
     native_function_entry("stripANSI", DONT_DELETE, bun_strip_ansi, 1, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("version", READ_ONLY | DONT_DELETE, create_version),
+    native_function_entry("write", DONT_DELETE, crate::runtime::blob_file::bun_write, 1, Intrinsic::NoIntrinsic),
 ];
 
 static BUN_OBJECT_TABLE: HashTable = HashTable { class_for_this: None, values: &BUN_OBJECT_TABLE_VALUES };

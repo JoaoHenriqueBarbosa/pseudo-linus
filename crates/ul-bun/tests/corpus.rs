@@ -11,6 +11,7 @@ use sysabi::WaitStatus;
 
 /// `(caso, causa medida no oráculo)`.
 const KNOWN: &[(&str, &str)] = &[
+    ("readable-stream-values", "ReadableStream.prototype.values (a iteração assíncrona, `for await` sobre um stream) ainda não está portada: é Mode::Throw em streams/mod.rs"),
     ("fs-utf8-buffer", "o bun 1.4.2 lança TypeError em mergeBuf (Utf8Stream síncrono com contentMode buffer) com stack de fonte interno; o zjsc roda o mesmo código gerado e não reproduz o fonte interno do bun"),
     ("http-server", "o zjsc ainda não tem Bun.serve nem a rede do fetch local"),
 ];
