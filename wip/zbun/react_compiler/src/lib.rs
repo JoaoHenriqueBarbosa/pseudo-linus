@@ -6,8 +6,6 @@
 //! depends on the vendored HIR-level crates unmodified.
 
 
-#![cfg(feature = "port")]
-
 pub mod collections;
 pub mod diagnostics;
 pub mod hir;

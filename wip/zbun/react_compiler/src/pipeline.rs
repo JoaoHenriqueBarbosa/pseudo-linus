@@ -27,9 +27,9 @@ use crate::hir::ReactFunctionType;
 use crate::hir::environment::{Environment, OutputMode};
 use crate::hir::environment_config::EnvironmentConfig;
 
-use crate::codegen::{self, Codegen, CodegenFunction, OutlinedFunction};
+use crate::codegen::{self, Codegen, CodegenFunction, Nodes, OutlinedFunction};
 use crate::collections::IndexMap;
-use crate::hir::{StoreStr, VariableBinding};
+use crate::hir::{HirStr, VariableBinding};
 use crate::imports::ProgramContext;
 use crate::lowering::{self, FunctionNode};
 use crate::program::Host;
@@ -61,7 +61,7 @@ mod timing {
     }
 
     #[allow(clippy::disallowed_macros)]
-    extern "C" fn dump() {
+    fn dump() {
         let m = PASS_TIMING.lock().unwrap();
         if m.is_empty() {
             return;
@@ -123,7 +123,6 @@ pub(crate) fn compile_fn(
     func: &FunctionNode<'_>,
     fn_name: Option<&str>,
     host: &mut dyn Host,
-    arena: &bun_alloc::Arena,
     fn_type: ReactFunctionType,
     env_config: &EnvironmentConfig,
     context: &mut ProgramContext,
@@ -132,18 +131,16 @@ pub(crate) fn compile_fn(
     let mut env = Environment::with_config(env_config.clone());
     env.fn_type = fn_type;
     env.output_mode = context.output_mode;
-    // ProgramContext owns these `String`s for the whole compile; `StoreStr`
-    // borrows their bytes under the same lifetime contract as arena slices.
-    let borrow = |s: &Option<String>| s.as_deref().map(|s| StoreStr::new(s.as_bytes()));
+    let borrow = |s: &Option<String>| s.as_deref().map(HirStr::from);
     env.code = borrow(&context.code);
     env.filename = borrow(&context.filename);
     env.instrument_fn_name = borrow(&context.instrument_fn_name);
     env.instrument_gating_name = borrow(&context.instrument_gating_name);
     env.hook_guard_name = borrow(&context.hook_guard_name);
-    let known: HashSet<StoreStr> = context
+    let known: HashSet<HirStr> = context
         .known_referenced_names()
         .iter()
-        .map(|s| StoreStr::new(s.as_bytes()))
+        .map(|s| HirStr::from(s.as_str()))
         .collect();
     env.seed_uid_known_names(&known);
 
@@ -171,7 +168,8 @@ pub(crate) fn compile_fn(
 
     let (reactive_fn, unique_identifiers) = run_hir_passes(&mut hir, &mut env, context)?;
 
-    let mut cg = Codegen::new(host, arena);
+    let nodes = Nodes::new(&mut *host);
+    let mut cg = Codegen::new(&nodes);
     let codegen_result = timed!(
         "Codegen",
         codegen::codegen_function(&reactive_fn, &mut env, &mut cg, context, unique_identifiers)
@@ -219,7 +217,6 @@ pub(crate) fn compile_fn(
                 o.func,
                 outlined_name.as_deref(),
                 host,
-                arena,
                 fn_type,
                 env_config,
                 context,
@@ -262,29 +259,20 @@ pub(crate) fn compile_outlined_fn(
     codegen_fn: CodegenFunction,
     fn_name: Option<&str>,
     host: &mut dyn Host,
-    arena: &bun_alloc::Arena,
     fn_type: ReactFunctionType,
     env_config: &EnvironmentConfig,
     context: &mut ProgramContext,
     import_bindings: &IndexMap<bun_ast::Ref, VariableBinding>,
 ) -> Result<CodegenFunction, CompilerError> {
-    use bun_ast::{G, Loc, StoreSlice, flags};
+    use bun_ast::{G, Loc, NodeStore, flags};
 
     let mut env = Environment::with_config(env_config.clone());
     env.fn_type = fn_type;
     env.output_mode = context.output_mode;
 
     // Build a FunctionDeclaration from the codegen output
-    let mut params: Vec<G::Arg> =
-        Vec::with_capacity(codegen_fn.params.len());
-    for p in codegen_fn.params {
-        params.push(p);
-    }
-    let mut body: Vec<bun_ast::Stmt> =
-        Vec::with_capacity(codegen_fn.body.len());
-    for s in codegen_fn.body {
-        body.push(s);
-    }
+    let args = host.store_mut().alloc_slice(codegen_fn.params);
+    let stmts = host.store_mut().alloc_slice(codegen_fn.body);
     let mut fn_flags = flags::FUNCTION_NONE;
     if codegen_fn.is_async {
         fn_flags |= flags::Function::IsAsync;
@@ -297,10 +285,10 @@ pub(crate) fn compile_outlined_fn(
     }
     let outlined_decl = G::Fn {
         name: codegen_fn.id,
-        args: StoreSlice::new_mut(params.leak()),
+        args,
         body: G::FnBody {
             loc: Loc::EMPTY,
-            stmts: StoreSlice::new_mut(body.leak()),
+            stmts,
         },
         flags: fn_flags,
         ..G::Fn::default()
@@ -315,7 +303,8 @@ pub(crate) fn compile_outlined_fn(
 
     let (reactive_fn, unique_identifiers) = run_hir_passes(&mut hir, &mut env, context)?;
 
-    let mut cg = Codegen::new(host, arena);
+    let nodes = Nodes::new(&mut *host);
+    let mut cg = Codegen::new(&nodes);
     let codegen_result =
         codegen::codegen_function(&reactive_fn, &mut env, &mut cg, context, unique_identifiers)?;
 

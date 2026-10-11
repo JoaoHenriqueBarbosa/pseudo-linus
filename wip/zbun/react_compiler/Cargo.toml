@@ -10,8 +10,6 @@ path = "src/lib.rs"
 [features]
 # Suporte do harness de fixtures: pragmas `// @pragma` de teste e as passadas atrás deles.
 fixtures = []
-# O código copiado do upstream, enquanto não compila (1444 erros na primeira medição).
-port = []
 
 [dependencies]
 bun_alloc = { path = "../bun_alloc" }

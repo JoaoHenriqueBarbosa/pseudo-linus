@@ -4,6 +4,8 @@
 
 pub mod comptime_string_map;
 pub mod error;
+pub mod exit;
+pub use exit::{add_exit_callback, run_exit_callbacks};
 pub use error::{Error, Error as CrateError, Result as CrateResult};
 pub mod feature_flags;
 pub mod fmt;

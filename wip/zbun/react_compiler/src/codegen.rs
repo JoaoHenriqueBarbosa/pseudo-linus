@@ -18,7 +18,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 use crate::collections::IdMap;
-use bun_alloc::{Arena, ArenaVec};
 use bun_ast::NodeStore;
 use bun_ast::{
     self as ast, ArrayBinding, Binding, Case, Catch, E, Expr, ExprData, ExprNodeList, Finally, G,
@@ -168,7 +167,6 @@ impl<'h> Nodes<'h> {
 /// component.
 pub(crate) struct Codegen<'h> {
     pub(crate) nodes: &'h Nodes<'h>,
-    pub(crate) arena: &'h Arena,
     id_to_ref: IdMap<IdentifierId, Ref>,
     well_known: [Option<Ref>; WellKnown::COUNT],
     name_to_ref: HashMap<HirStr, Ref>,
@@ -176,10 +174,9 @@ pub(crate) struct Codegen<'h> {
 }
 
 impl<'h> Codegen<'h> {
-    pub(crate) fn new(nodes: &'h Nodes<'h>, arena: &'h Arena) -> Self {
+    pub(crate) fn new(nodes: &'h Nodes<'h>) -> Self {
         Codegen {
             nodes,
-            arena,
             id_to_ref: IdMap::new(),
             well_known: [None; WellKnown::COUNT],
             name_to_ref: HashMap::new(),
@@ -2362,7 +2359,6 @@ fn codegen_function_expression(
     inner_cx.temp.clone_from(&cx.temp);
 
     let fn_result = codegen_reactive_function(&mut inner_cx, &reactive_fn_mut)?;
-    let arena = cx.cg.arena;
 
     let body = G::FnBody {
         loc,
@@ -2445,7 +2441,6 @@ fn codegen_function_expression(
         );
         return Ok(wrapped);
     }
-    let _ = arena;
 
     Ok(value)
 }
@@ -2893,8 +2888,7 @@ fn codegen_array_pattern(
 ) -> Result<Binding, CompilerError> {
     let loc = convert_loc(pattern.loc);
     let mut has_spread = false;
-    let mut items: ArenaVec<ArrayBinding> =
-        ArenaVec::with_capacity_in(pattern.items.len(), cx.cg.arena);
+    let mut items: Vec<ArrayBinding> = Vec::with_capacity(pattern.items.len());
     for item in &pattern.items {
         match item {
             crate::hir::ArrayPatternElement::Place(place) => {
@@ -2935,8 +2929,7 @@ fn codegen_object_pattern(
     pattern: &ObjectPattern,
 ) -> Result<Binding, CompilerError> {
     let loc = convert_loc(pattern.loc);
-    let mut properties: ArenaVec<b::Property> =
-        ArenaVec::with_capacity_in(pattern.properties.len(), cx.cg.arena);
+    let mut properties: Vec<b::Property> = Vec::with_capacity(pattern.properties.len());
     for prop in &pattern.properties {
         match prop {
             ObjectPropertyOrSpread::Property(obj_prop) => {

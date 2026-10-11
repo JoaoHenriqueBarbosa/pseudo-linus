@@ -10,7 +10,7 @@ use crate::collections::{IndexMap, IndexSet};
 
 use crate::diagnostics::{CompilerError, CompilerErrorDetail, ErrorCategory};
 use bun_ast::{
-    ClauseItem, ImportKind, ImportRecord, Loc, LocRef, S, Stmt, StoreSlice, StoreStr, Symbol,
+    ClauseItem, ImportKind, ImportRecord, Loc, LocRef, NodeStore, S, Stmt, StoreStr, Symbol,
 };
 
 use crate::hir::environment::OutputMode;
@@ -75,12 +75,12 @@ impl ProgramContext {
 
     /// Initialize known referenced names from scope bindings.
     /// Call this after construction to seed conflict detection with program scope bindings.
-    pub(crate) fn init_from_scope(&mut self, symbols: &[Symbol]) {
+    pub(crate) fn init_from_scope(&mut self, store: &bun_ast::Store, symbols: &[Symbol]) {
         // Register ALL bindings (not just program-scope) so that UID generation
         // avoids name conflicts with any binding in the file. This matches
         // Babel's generateUid() which checks all scopes.
         for binding in symbols {
-            if let Ok(name) = core::str::from_utf8(binding.original_name.slice()) {
+            if let Ok(name) = core::str::from_utf8(store.str(binding.original_name)) {
                 self.known_referenced_names.insert(name.to_string());
             }
         }
@@ -182,6 +182,7 @@ impl ProgramContext {
 /// Check for blocklisted import modules.
 /// Returns a CompilerError if any blocklisted imports are found.
 pub(crate) fn validate_restricted_imports(
+    store: &bun_ast::Store,
     import_records: &[ImportRecord],
     blocklisted: &Option<Vec<String>>,
 ) -> Option<CompilerError> {
@@ -198,14 +199,15 @@ pub(crate) fn validate_restricted_imports(
         if import.kind != ImportKind::Stmt {
             continue;
         }
-        if restricted.contains(&import.path.text) {
+        let path = store.str(import.path.text);
+        if restricted.contains(path) {
             let mut detail = CompilerErrorDetail::new(
                 ErrorCategory::Todo,
                 "Bailing out due to blocklisted import",
             )
             .with_description(format!(
                 "Import from module {}",
-                bstr::BStr::new(import.path.text)
+                bstr::BStr::new(path)
             ));
             detail.loc = crate::lowering::convert_loc(import.range.loc);
             error.push_error_detail(detail);
@@ -253,16 +255,19 @@ pub(crate) fn add_imports_to_program(
         let (import_record_index, namespace_ref) =
             host.add_import_record(module_name.as_bytes(), ImportKind::Stmt);
 
-        let mut items: Vec<ClauseItem> = Vec::with_capacity(sorted_imports.len());
-        for spec in &sorted_imports {
-            items.push(make_import_specifier(spec));
-        }
+        let store = host.store_mut();
+        let items: Vec<ClauseItem> = sorted_imports
+            .iter()
+            .map(|spec| make_import_specifier(store, spec))
+            .collect();
+        let items = store.alloc_slice(items);
 
         new_stmts.push(Stmt::alloc(
+            store,
             S::Import {
                 namespace_ref,
                 default_name: None,
-                items: StoreSlice::new_mut(items.leak()),
+                items,
                 star_name_loc: Loc::EMPTY,
                 import_record_index,
                 is_single_line: true,
@@ -280,9 +285,9 @@ pub(crate) fn add_imports_to_program(
 }
 
 /// Create a `ClauseItem` AST node from a NonLocalImportSpecifier.
-fn make_import_specifier(spec: &NonLocalImportSpecifier) -> ClauseItem {
+fn make_import_specifier(store: &mut bun_ast::Store, spec: &NonLocalImportSpecifier) -> ClauseItem {
     ClauseItem {
-        alias: arena_str(spec.imported.as_bytes()),
+        alias: store.alloc_str(spec.imported.as_bytes()),
         alias_loc: Loc::EMPTY,
         name: LocRef {
             loc: Loc::EMPTY,
@@ -290,12 +295,6 @@ fn make_import_specifier(spec: &NonLocalImportSpecifier) -> ClauseItem {
         },
         original_name: StoreStr::EMPTY,
     }
-}
-
-fn arena_str(bytes: &[u8]) -> StoreStr {
-    let mut v: Vec<u8> = Vec::with_capacity(bytes.len());
-    v.extend_from_slice(bytes);
-    StoreStr::new(v.leak())
 }
 
 /// Check if a name follows the React hook naming convention (use[A-Z0-9]...).

@@ -24,7 +24,8 @@ use crate::hir::environment_config::{
 use bun_ast::expr::Data as ExprData;
 use bun_ast::stmt::Data as StmtData;
 use bun_ast::{
-    self as ast, Expr, G, ImportKind, ImportRecord, Loc, Ref, S, Scope, Stmt, StoreSlice, Symbol,
+    self as ast, Expr, G, ImportKind, ImportRecord, Loc, NodeStore, Ref, S, Scope, Stmt, StoreSlice,
+    Symbol,
     b, flags,
 };
 
@@ -33,7 +34,7 @@ use crate::codegen::CodegenFunction;
 
 use crate::collections::IndexMap;
 use crate::compile_result::{CompileDiagnostic, CompileOutput};
-use crate::hir::VariableBinding;
+use crate::hir::{HirStr, VariableBinding};
 use crate::imports::{ProgramContext, add_imports_to_program, validate_restricted_imports};
 use crate::lowering::FunctionNode;
 use crate::pipeline;
@@ -60,7 +61,6 @@ pub trait Host {
     fn module_scope(&self) -> &Scope;
     fn import_records(&self) -> &[ImportRecord];
     fn source(&self) -> &[u8];
-    fn arena(&self) -> &bun_alloc::Arena;
 
     /// Os nós do arquivo em compilação: o lowering lê o AST por aqui e o codegen grava por `store_mut`.
     fn store(&self) -> &bun_ast::Store;
@@ -126,11 +126,11 @@ const DYNAMIC_GATING_DIRECTIVE_PREFIX: &[u8] = b"use memo if(";
 // Directive helpers
 // -----------------------------------------------------------------------
 
-fn collect_body_directives(stmts: &[Stmt]) -> Vec<&[u8]> {
+fn collect_body_directives<'s>(store: &'s ast::Store, stmts: &[Stmt]) -> Vec<&'s [u8]> {
     let mut out = Vec::new();
     for s in stmts {
         match &s.data {
-            StmtData::SDirective(d) => out.push(d.value.slice()),
+            StmtData::SDirective(d) => out.push(store.str(store[*d].value)),
             _ => break,
         }
     }
@@ -140,8 +140,8 @@ fn collect_body_directives(stmts: &[Stmt]) -> Vec<&[u8]> {
 /// True if the leading directives of a top-level statement list contain a
 /// `"use no memo"` / `"use no forget"`. Exposed so the parser can compute the
 /// module-scope opt-out before constructing [`ReactCompilerState`].
-pub fn has_module_scope_opt_out(stmts: &[Stmt]) -> bool {
-    find_directive_disabling_memoization(&collect_body_directives(stmts)).is_some()
+pub fn has_module_scope_opt_out(store: &ast::Store, stmts: &[Stmt]) -> bool {
+    find_directive_disabling_memoization(&collect_body_directives(store, stmts)).is_some()
 }
 
 /// Build the `Ref → ImportSpecifier/Default/Namespace` map from the module's
@@ -151,6 +151,7 @@ pub fn has_module_scope_opt_out(stmts: &[Stmt]) -> bool {
 /// imported bindings reach `Environment::resolve_module_type` instead of
 /// degrading to `Global`.
 pub fn collect_import_bindings(
+    store: &ast::Store,
     stmts: &[Stmt],
     records: &[ImportRecord],
     symbols: &[Symbol],
@@ -160,44 +161,56 @@ pub fn collect_import_bindings(
         let StmtData::SImport(import) = &stmt.data else {
             continue;
         };
-        let import = import.get();
+        let import = &store[*import];
         let Some(record) = records.get(import.import_record_index as usize) else {
             continue;
         };
-        let module = crate::hir::StoreStr::new(record.path.text);
-        let local_name = |ref_: Ref| -> Option<crate::hir::StoreStr> {
+        let module = HirStr::new(store.str(record.path.text));
+        let local_name = |ref_: Ref| -> Option<HirStr> {
             symbols
                 .get(ref_.inner_index() as usize)
-                .map(|sym| sym.original_name)
+                .map(|sym| HirStr::new(store.str(sym.original_name)))
         };
         if !import.star_name_loc.is_empty() {
             if let Some(name) = local_name(import.namespace_ref) {
                 out.insert(
                     import.namespace_ref,
-                    VariableBinding::ImportNamespace { name, module },
+                    VariableBinding::ImportNamespace {
+                        name,
+                        module: module.clone(),
+                    },
                 );
             }
         }
         if let Some(default) = import.default_name {
             let ref_ = default.ref_;
             if let Some(name) = local_name(ref_) {
-                out.insert(ref_, VariableBinding::ImportDefault { name, module });
+                out.insert(
+                    ref_,
+                    VariableBinding::ImportDefault {
+                        name,
+                        module: module.clone(),
+                    },
+                );
             }
         }
-        for item in import.items.slice() {
+        for item in &store[import.items] {
             let ref_ = item.name.ref_;
             let Some(name) = local_name(ref_) else {
                 continue;
             };
-            let imported = item.alias;
+            let imported = HirStr::new(store.str(item.alias));
             out.insert(
                 ref_,
-                if imported.slice() == b"default" {
-                    VariableBinding::ImportDefault { name, module }
+                if imported == b"default" {
+                    VariableBinding::ImportDefault {
+                        name,
+                        module: module.clone(),
+                    }
                 } else {
                     VariableBinding::ImportSpecifier {
                         name,
-                        module,
+                        module: module.clone(),
                         imported,
                     }
                 },
@@ -619,7 +632,7 @@ fn import_ref_name<'a>(host: &'a dyn Host, ref_: Ref) -> &'a [u8] {
     if ref_.is_symbol() {
         if let Some(sym) = host.symbols().get(ref_.inner_index() as usize) {
             if let Some(alias) = &sym.namespace_alias {
-                return alias.alias.slice();
+                return host.store().str(alias.alias);
             }
         }
     }
@@ -627,14 +640,15 @@ fn import_ref_name<'a>(host: &'a dyn Host, ref_: Ref) -> &'a [u8] {
 }
 
 fn expr_is_hook(host: &dyn Host, expr: &Expr) -> bool {
+    let store = host.store();
     match &expr.data {
         ExprData::EIdentifier(id) => is_hook_name(host.ref_name(id.ref_)),
         ExprData::EImportIdentifier(id) => is_hook_name(import_ref_name(host, id.ref_)),
         ExprData::EDot(member) => {
-            if !is_hook_name(member.name.slice()) {
+            if !is_hook_name(store.str(store[*member].name)) {
                 return false;
             }
-            match &member.target.data {
+            match &store[*member].target.data {
                 ExprData::EIdentifier(obj) => is_component_name(host.ref_name(obj.ref_)),
                 ExprData::EImportIdentifier(obj) => is_component_name(host.ref_name(obj.ref_)),
                 _ => false,
@@ -660,63 +674,63 @@ fn is_non_node(expr: &Expr) -> bool {
     )
 }
 
-fn returns_non_node_in_stmts(stmts: &[Stmt]) -> bool {
+fn returns_non_node_in_stmts(store: &ast::Store, stmts: &[Stmt]) -> bool {
     let mut result = false;
     for stmt in stmts {
-        returns_non_node_in_stmt(stmt, &mut result);
+        returns_non_node_in_stmt(store, stmt, &mut result);
     }
     result
 }
 
-fn returns_non_node_in_stmt(stmt: &Stmt, result: &mut bool) {
+fn returns_non_node_in_stmt(store: &ast::Store, stmt: &Stmt, result: &mut bool) {
     match &stmt.data {
         StmtData::SReturn(ret) => {
             // Visit folds `return undefined` → bare `return;`, so None ≡ undefined here.
-            *result = match &ret.value {
+            *result = match &store[*ret].value {
                 Some(arg) => is_non_node(arg),
                 None => false,
             };
         }
         StmtData::SBlock(block) => {
-            for s in block.stmts.slice() {
-                returns_non_node_in_stmt(s, result);
+            for s in &store[store[*block].stmts] {
+                returns_non_node_in_stmt(store, s, result);
             }
         }
         StmtData::SIf(if_stmt) => {
-            returns_non_node_in_stmt(&if_stmt.yes, result);
-            if let Some(no) = &if_stmt.no {
-                returns_non_node_in_stmt(no, result);
+            returns_non_node_in_stmt(store, &store[*if_stmt].yes, result);
+            if let Some(no) = &store[*if_stmt].no {
+                returns_non_node_in_stmt(store, no, result);
             }
         }
-        StmtData::SFor(f) => returns_non_node_in_stmt(&f.body, result),
-        StmtData::SWhile(w) => returns_non_node_in_stmt(&w.body, result),
-        StmtData::SDoWhile(d) => returns_non_node_in_stmt(&d.body, result),
-        StmtData::SForIn(f) => returns_non_node_in_stmt(&f.body, result),
-        StmtData::SForOf(f) => returns_non_node_in_stmt(&f.body, result),
+        StmtData::SFor(f) => returns_non_node_in_stmt(store, &store[*f].body, result),
+        StmtData::SWhile(w) => returns_non_node_in_stmt(store, &store[*w].body, result),
+        StmtData::SDoWhile(d) => returns_non_node_in_stmt(store, &store[*d].body, result),
+        StmtData::SForIn(f) => returns_non_node_in_stmt(store, &store[*f].body, result),
+        StmtData::SForOf(f) => returns_non_node_in_stmt(store, &store[*f].body, result),
         StmtData::SSwitch(switch) => {
-            for case in switch.cases.slice() {
-                for s in case.body.slice() {
-                    returns_non_node_in_stmt(s, result);
+            for case in &store[store[*switch].cases] {
+                for s in &store[case.body] {
+                    returns_non_node_in_stmt(store, s, result);
                 }
             }
         }
         StmtData::STry(try_stmt) => {
-            for s in try_stmt.body.slice() {
-                returns_non_node_in_stmt(s, result);
+            for s in &store[store[*try_stmt].body] {
+                returns_non_node_in_stmt(store, s, result);
             }
-            if let Some(handler) = &try_stmt.catch {
-                for s in handler.body.slice() {
-                    returns_non_node_in_stmt(s, result);
+            if let Some(handler) = &store[*try_stmt].catch {
+                for s in &store[handler.body] {
+                    returns_non_node_in_stmt(store, s, result);
                 }
             }
-            if let Some(finalizer) = &try_stmt.finally {
-                for s in finalizer.stmts.slice() {
-                    returns_non_node_in_stmt(s, result);
+            if let Some(finalizer) = &store[*try_stmt].finally {
+                for s in &store[finalizer.stmts] {
+                    returns_non_node_in_stmt(store, s, result);
                 }
             }
         }
-        StmtData::SLabel(l) => returns_non_node_in_stmt(&l.stmt, result),
-        StmtData::SWith(w) => returns_non_node_in_stmt(&w.body, result),
+        StmtData::SLabel(l) => returns_non_node_in_stmt(store, &store[*l].stmt, result),
+        StmtData::SWith(w) => returns_non_node_in_stmt(store, &store[*w].body, result),
         StmtData::SFunction(_) | StmtData::SClass(_) => {}
         _ => {}
     }
@@ -729,58 +743,59 @@ fn calls_hooks_or_creates_jsx_in_stmts(host: &dyn Host, stmts: &[Stmt]) -> bool 
 }
 
 fn calls_hooks_or_creates_jsx_in_stmt(host: &dyn Host, stmt: &Stmt) -> bool {
+    let store = host.store();
     match &stmt.data {
-        StmtData::SExpr(e) => calls_hooks_or_creates_jsx_in_expr(host, &e.value),
-        StmtData::SReturn(ret) => ret
+        StmtData::SExpr(e) => calls_hooks_or_creates_jsx_in_expr(host, &store[*e].value),
+        StmtData::SReturn(ret) => store[*ret]
             .value
             .as_ref()
             .is_some_and(|a| calls_hooks_or_creates_jsx_in_expr(host, a)),
-        StmtData::SLocal(l) => l.decls.iter().any(|d| {
+        StmtData::SLocal(l) => store[store[*l].decls].iter().any(|d| {
             d.value
                 .as_ref()
                 .is_some_and(|e| calls_hooks_or_creates_jsx_in_expr(host, e))
         }),
-        StmtData::SBlock(b) => calls_hooks_or_creates_jsx_in_stmts(host, b.stmts.slice()),
+        StmtData::SBlock(b) => calls_hooks_or_creates_jsx_in_stmts(host, &store[store[*b].stmts]),
         StmtData::SIf(i) => {
-            calls_hooks_or_creates_jsx_in_expr(host, &i.test)
-                || calls_hooks_or_creates_jsx_in_stmt(host, &i.yes)
-                || i.no
+            calls_hooks_or_creates_jsx_in_expr(host, &store[*i].test)
+                || calls_hooks_or_creates_jsx_in_stmt(host, &store[*i].yes)
+                || store[*i].no
                     .as_ref()
                     .is_some_and(|n| calls_hooks_or_creates_jsx_in_stmt(host, n))
         }
         StmtData::SFor(f) => {
-            f.init
+            store[*f].init
                 .as_ref()
                 .is_some_and(|s| calls_hooks_or_creates_jsx_in_stmt(host, s))
-                || f.test
+                || store[*f].test
                     .as_ref()
                     .is_some_and(|e| calls_hooks_or_creates_jsx_in_expr(host, e))
-                || f.update
+                || store[*f].update
                     .as_ref()
                     .is_some_and(|e| calls_hooks_or_creates_jsx_in_expr(host, e))
-                || calls_hooks_or_creates_jsx_in_stmt(host, &f.body)
+                || calls_hooks_or_creates_jsx_in_stmt(host, &store[*f].body)
         }
         StmtData::SWhile(w) => {
-            calls_hooks_or_creates_jsx_in_expr(host, &w.test)
-                || calls_hooks_or_creates_jsx_in_stmt(host, &w.body)
+            calls_hooks_or_creates_jsx_in_expr(host, &store[*w].test)
+                || calls_hooks_or_creates_jsx_in_stmt(host, &store[*w].body)
         }
         StmtData::SDoWhile(d) => {
-            calls_hooks_or_creates_jsx_in_stmt(host, &d.body)
-                || calls_hooks_or_creates_jsx_in_expr(host, &d.test)
+            calls_hooks_or_creates_jsx_in_stmt(host, &store[*d].body)
+                || calls_hooks_or_creates_jsx_in_expr(host, &store[*d].test)
         }
         StmtData::SForIn(f) => {
-            calls_hooks_or_creates_jsx_in_expr(host, &f.value)
-                || calls_hooks_or_creates_jsx_in_stmt(host, &f.body)
+            calls_hooks_or_creates_jsx_in_expr(host, &store[*f].value)
+                || calls_hooks_or_creates_jsx_in_stmt(host, &store[*f].body)
         }
         StmtData::SForOf(f) => {
-            calls_hooks_or_creates_jsx_in_expr(host, &f.value)
-                || calls_hooks_or_creates_jsx_in_stmt(host, &f.body)
+            calls_hooks_or_creates_jsx_in_expr(host, &store[*f].value)
+                || calls_hooks_or_creates_jsx_in_stmt(host, &store[*f].body)
         }
         StmtData::SSwitch(s) => {
-            if calls_hooks_or_creates_jsx_in_expr(host, &s.test) {
+            if calls_hooks_or_creates_jsx_in_expr(host, &store[*s].test) {
                 return true;
             }
-            for case in s.cases.slice() {
+            for case in &store[store[*s].cases] {
                 if case
                     .value
                     .as_ref()
@@ -788,26 +803,26 @@ fn calls_hooks_or_creates_jsx_in_stmt(host: &dyn Host, stmt: &Stmt) -> bool {
                 {
                     return true;
                 }
-                if calls_hooks_or_creates_jsx_in_stmts(host, case.body.slice()) {
+                if calls_hooks_or_creates_jsx_in_stmts(host, &store[case.body]) {
                     return true;
                 }
             }
             false
         }
-        StmtData::SThrow(t) => calls_hooks_or_creates_jsx_in_expr(host, &t.value),
+        StmtData::SThrow(t) => calls_hooks_or_creates_jsx_in_expr(host, &store[*t].value),
         StmtData::STry(t) => {
-            calls_hooks_or_creates_jsx_in_stmts(host, t.body.slice())
-                || t.catch
+            calls_hooks_or_creates_jsx_in_stmts(host, &store[store[*t].body])
+                || store[*t].catch
                     .as_ref()
-                    .is_some_and(|c| calls_hooks_or_creates_jsx_in_stmts(host, c.body.slice()))
-                || t.finally
+                    .is_some_and(|c| calls_hooks_or_creates_jsx_in_stmts(host, &store[c.body]))
+                || store[*t].finally
                     .as_ref()
-                    .is_some_and(|f| calls_hooks_or_creates_jsx_in_stmts(host, f.stmts.slice()))
+                    .is_some_and(|f| calls_hooks_or_creates_jsx_in_stmts(host, &store[f.stmts]))
         }
-        StmtData::SLabel(l) => calls_hooks_or_creates_jsx_in_stmt(host, &l.stmt),
+        StmtData::SLabel(l) => calls_hooks_or_creates_jsx_in_stmt(host, &store[*l].stmt),
         StmtData::SWith(w) => {
-            calls_hooks_or_creates_jsx_in_expr(host, &w.value)
-                || calls_hooks_or_creates_jsx_in_stmt(host, &w.body)
+            calls_hooks_or_creates_jsx_in_expr(host, &store[*w].value)
+                || calls_hooks_or_creates_jsx_in_stmt(host, &store[*w].body)
         }
         StmtData::SFunction(_) => false,
         StmtData::SClass(_) => false,
@@ -816,20 +831,21 @@ fn calls_hooks_or_creates_jsx_in_stmt(host: &dyn Host, stmt: &Stmt) -> bool {
 }
 
 fn calls_hooks_or_creates_jsx_in_expr(host: &dyn Host, expr: &Expr) -> bool {
+    let store = host.store();
     match &expr.data {
         ExprData::EJsxElement(_) => true,
         ExprData::ECall(call) => {
             // Post-visit, JSX has been lowered to `E::Call{was_jsx_element}`.
-            if call.was_jsx_element {
+            if store[*call].was_jsx_element {
                 return true;
             }
-            if call.optional_chain.is_none() && expr_is_hook(host, &call.target) {
+            if store[*call].optional_chain.is_none() && expr_is_hook(host, &store[*call].target) {
                 return true;
             }
-            if calls_hooks_or_creates_jsx_in_expr(host, &call.target) {
+            if calls_hooks_or_creates_jsx_in_expr(host, &store[*call].target) {
                 return true;
             }
-            call.args.iter().any(|a| {
+            store[store[*call].args].iter().any(|a| {
                 if matches!(&a.data, ExprData::EArrow(_) | ExprData::EFunction(_)) {
                     return false;
                 }
@@ -837,59 +853,60 @@ fn calls_hooks_or_creates_jsx_in_expr(host: &dyn Host, expr: &Expr) -> bool {
             })
         }
         ExprData::EBinary(b) => {
-            calls_hooks_or_creates_jsx_in_expr(host, &b.left)
-                || calls_hooks_or_creates_jsx_in_expr(host, &b.right)
+            calls_hooks_or_creates_jsx_in_expr(host, &store[*b].left)
+                || calls_hooks_or_creates_jsx_in_expr(host, &store[*b].right)
         }
         ExprData::EIf(c) => {
-            calls_hooks_or_creates_jsx_in_expr(host, &c.test)
-                || calls_hooks_or_creates_jsx_in_expr(host, &c.yes)
-                || calls_hooks_or_creates_jsx_in_expr(host, &c.no)
+            calls_hooks_or_creates_jsx_in_expr(host, &store[*c].test)
+                || calls_hooks_or_creates_jsx_in_expr(host, &store[*c].yes)
+                || calls_hooks_or_creates_jsx_in_expr(host, &store[*c].no)
         }
-        ExprData::EUnary(u) => calls_hooks_or_creates_jsx_in_expr(host, &u.value),
-        ExprData::EDot(m) => calls_hooks_or_creates_jsx_in_expr(host, &m.target),
+        ExprData::EUnary(u) => calls_hooks_or_creates_jsx_in_expr(host, &store[*u].value),
+        ExprData::EDot(m) => calls_hooks_or_creates_jsx_in_expr(host, &store[*m].target),
         ExprData::EIndex(m) => {
-            calls_hooks_or_creates_jsx_in_expr(host, &m.target)
-                || calls_hooks_or_creates_jsx_in_expr(host, &m.index)
+            calls_hooks_or_creates_jsx_in_expr(host, &store[*m].target)
+                || calls_hooks_or_creates_jsx_in_expr(host, &store[*m].index)
         }
-        ExprData::ESpread(s) => calls_hooks_or_creates_jsx_in_expr(host, &s.value),
-        ExprData::EAwait(a) => calls_hooks_or_creates_jsx_in_expr(host, &a.value),
-        ExprData::EYield(y) => y
+        ExprData::ESpread(s) => calls_hooks_or_creates_jsx_in_expr(host, &store[*s].value),
+        ExprData::EAwait(a) => calls_hooks_or_creates_jsx_in_expr(host, &store[*a].value),
+        ExprData::EYield(y) => store[*y]
             .value
             .as_ref()
             .is_some_and(|v| calls_hooks_or_creates_jsx_in_expr(host, v)),
         ExprData::ETemplate(t) => {
-            t.tag
+            store[*t].tag
                 .as_ref()
                 .is_some_and(|tag| calls_hooks_or_creates_jsx_in_expr(host, tag))
-                || t.parts()
+                || store[*t]
+                    .parts(store)
                     .iter()
                     .any(|p| calls_hooks_or_creates_jsx_in_expr(host, &p.value))
         }
-        ExprData::EArray(arr) => arr
-            .items
+        ExprData::EArray(arr) => store[store[*arr].items]
             .iter()
             .any(|e| calls_hooks_or_creates_jsx_in_expr(host, e)),
-        ExprData::EObject(obj) => obj.properties.iter().any(|p| {
+        ExprData::EObject(obj) => store[store[*obj].properties].iter().any(|p| {
             p.value
                 .as_ref()
                 .is_some_and(|v| calls_hooks_or_creates_jsx_in_expr(host, v))
         }),
         ExprData::ENew(n) => {
-            calls_hooks_or_creates_jsx_in_expr(host, &n.target)
-                || n.args.iter().any(|a| {
+            calls_hooks_or_creates_jsx_in_expr(host, &store[*n].target)
+                || store[store[*n].args].iter().any(|a| {
                     if matches!(&a.data, ExprData::EArrow(_) | ExprData::EFunction(_)) {
                         return false;
                     }
                     calls_hooks_or_creates_jsx_in_expr(host, a)
                 })
         }
-        ExprData::EInlinedEnum(e) => calls_hooks_or_creates_jsx_in_expr(host, &e.value),
+        ExprData::EInlinedEnum(e) => calls_hooks_or_creates_jsx_in_expr(host, &store[*e].value),
         ExprData::EArrow(_) | ExprData::EFunction(_) | ExprData::EClass(_) => false,
         _ => false,
     }
 }
 
 fn is_valid_component_params(host: &dyn Host, args: &[G::Arg], has_rest_arg: bool) -> bool {
+    let store = host.store();
     if args.is_empty() {
         return true;
     }
@@ -903,7 +920,7 @@ fn is_valid_component_params(host: &dyn Host, args: &[G::Arg], has_rest_arg: boo
         return true;
     }
     if let b::B::BIdentifier(id) = &args[1].binding.data {
-        let name = host.ref_name(id.r#ref);
+        let name = host.ref_name(store[*id].r#ref);
         bun_core::strings::contains(name, b"ref") || bun_core::strings::contains(name, b"Ref")
     } else {
         false
@@ -953,12 +970,13 @@ fn get_component_or_hook_like(
     func: &FunctionNode<'_>,
     in_react_hoc: bool,
 ) -> Option<ReactFunctionType> {
-    let body = func.body().stmts.slice();
+    let store = host.store();
+    let body = &store[func.body().stmts];
     if let Some(fn_name) = name {
         if is_component_name(fn_name) {
             let is_component = calls_hooks_or_creates_jsx_in_stmts(host, body)
-                && is_valid_component_params(host, func.args(), func.has_rest_arg())
-                && !returns_non_node_in_stmts(body);
+                && is_valid_component_params(host, func.args(store), func.has_rest_arg())
+                && !returns_non_node_in_stmts(store, body);
             return if is_component {
                 Some(ReactFunctionType::Component)
             } else {
@@ -1031,22 +1049,6 @@ fn handle_error(
 // AST application helpers
 // -----------------------------------------------------------------------
 
-fn leak_args(params: Vec<G::Arg>) -> StoreSlice<G::Arg> {
-    let mut v: Vec<G::Arg> = Vec::with_capacity(params.len());
-    for p in params {
-        v.push(p);
-    }
-    StoreSlice::new_mut(v.leak())
-}
-
-fn leak_stmts(body: Vec<Stmt>) -> StoreSlice<Stmt> {
-    let mut v: Vec<Stmt> = Vec::with_capacity(body.len());
-    for s in body {
-        v.push(s);
-    }
-    StoreSlice::new_mut(v.leak())
-}
-
 fn set_flag(flags: &mut flags::FunctionSet, flag: flags::Function, on: bool) {
     if on {
         flags.insert(flag);
@@ -1055,7 +1057,7 @@ fn set_flag(flags: &mut flags::FunctionSet, flag: flags::Function, on: bool) {
     }
 }
 
-fn build_outlined_decl(outlined: CodegenFunction) -> Stmt {
+fn build_outlined_decl(store: &mut ast::Store, outlined: CodegenFunction) -> Stmt {
     let mut fn_flags = flags::FUNCTION_NONE;
     if outlined.is_async {
         fn_flags |= flags::Function::IsAsync;
@@ -1066,14 +1068,17 @@ fn build_outlined_decl(outlined: CodegenFunction) -> Stmt {
     if outlined.has_rest_arg {
         fn_flags |= flags::Function::HasRestArg;
     }
+    let args = store.alloc_slice(outlined.params);
+    let stmts = store.alloc_slice(outlined.body);
     Stmt::alloc(
+        store,
         S::Function {
             func: G::Fn {
                 name: outlined.id,
-                args: leak_args(outlined.params),
+                args,
                 body: G::FnBody {
                     loc: Loc::EMPTY,
-                    stmts: leak_stmts(outlined.body),
+                    stmts,
                 },
                 flags: fn_flags,
                 ..G::Fn::default()
@@ -1151,14 +1156,14 @@ impl ReactCompilerState {
             _ => OutputMode::Client,
         };
 
-        self.context.init_from_scope(host.symbols());
+        self.context.init_from_scope(host.store(), host.symbols());
 
         let restricted = self
             .options
             .environment
             .validate_blocklisted_imports
             .clone();
-        if let Some(err) = validate_restricted_imports(host.import_records(), &restricted) {
+        if let Some(err) = validate_restricted_imports(host.store(), host.import_records(), &restricted) {
             if let Some(fatal) = handle_error(err, &mut self.diagnostics, &self.options) {
                 self.fatal = Some(fatal);
             }
@@ -1205,13 +1210,16 @@ pub fn maybe_compile_pending(
     body: &mut [Stmt],
     name: Option<&[u8]>,
 ) -> Option<(Vec<Stmt>, CompileResult)> {
+    // O corpo vivo do `visit_stmts` ainda não está no `Store`; o lowering lê o `G::Fn` pelo `Store`, então ele
+    // entra lá como cópia.
+    let stmts = host.store_mut().alloc_slice(body.iter().cloned());
     let tmp = G::Fn {
         name: None,
         open_parens_loc: pending.args_loc,
         args: pending.args,
         body: G::FnBody {
             loc: pending.body_loc,
-            stmts: StoreSlice::new_mut(body),
+            stmts,
         },
         flags: pending.flags,
         ..G::Fn::default()
@@ -1230,7 +1238,7 @@ pub fn maybe_compile_pending(
     Some((
         cf.body,
         CompileResult {
-            args: leak_args(cf.params),
+            args: host.store_mut().alloc_slice(cf.params),
             flags,
         },
     ))
@@ -1251,7 +1259,14 @@ fn maybe_compile_node(
         return None;
     }
 
-    let body_directives = collect_body_directives(node.body().stmts.slice());
+    let body_directives: Vec<Vec<u8>> = {
+        let store = host.store();
+        collect_body_directives(store, &store[node.body().stmts])
+            .into_iter()
+            .map(<[u8]>::to_vec)
+            .collect()
+    };
+    let body_directives: Vec<&[u8]> = body_directives.iter().map(Vec::as_slice).collect();
     let fn_type = get_react_function_type(
         &*host,
         name,
@@ -1297,16 +1312,10 @@ fn maybe_compile_node(
     // function-declaration path needs statement-level access; for now a valid
     // directive only opts the function in and registers no extra import.
 
-    // SAFETY: the arena is owned by the `Host` implementor (the parser's `P`)
-    // and outlives the `&mut dyn Host` borrow for the duration of this call.
-    let arena: &bun_alloc::Arena =
-        unsafe { &*std::ptr::from_ref::<bun_alloc::Arena>(host.arena()) };
-
     match pipeline::compile_fn(
         &node,
         fn_name.as_deref(),
         host,
-        arena,
         fn_type,
         &state.env_config,
         &mut state.context,
@@ -1329,7 +1338,7 @@ fn maybe_compile_node(
                 return None;
             }
             for o in core::mem::take(&mut codegen_fn.outlined) {
-                state.outlined_decls.push(build_outlined_decl(o.func));
+                state.outlined_decls.push(build_outlined_decl(host.store_mut(), o.func));
             }
             state.any_compiled = true;
             Some(codegen_fn)

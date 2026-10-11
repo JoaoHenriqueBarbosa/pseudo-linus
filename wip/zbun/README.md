@@ -466,10 +466,10 @@ Estado: 299 de 305 casos batem e os 12 mapas batem. As seis divergências estão
 (import-equals com namespace sob `--minify-identifiers`: o nome atribuído ao alias tem outro rank). `mangled_props`
 não é ligado pelo `bun build`, então o golden não o exercita; os nós JSON ficam para o loader json.
 
-## react_compiler (parte 5, em andamento)
+## react_compiler (parte 5)
 
-A crate vem do upstream atrás da feature `port` e vai compilando por fatias (`cargo check -p bun_react_compiler
---features port`). O desenho que o porte pede, e que difere do upstream:
+A crate compila inteira (`cargo check -p bun_react_compiler`), sem `unsafe` e sem gate de feature; a feature `fixtures`
+liga só os pragmas de teste. O desenho que o porte pede, e que difere do upstream:
 
 - **O HIR não toca o `Store`.** As strings dele são `HirStr` (bytes num `Arc`, igualdade e hash por conteúdo) e as
   de literal são `JsString` (ASCII ou UTF-16 canônico). O `StoreStr` do porte é um índice no `Store` e compara por
@@ -480,6 +480,11 @@ A crate vem do upstream atrás da feature `port` e vai compilando por fatias (`c
   filho que também grava não compila. O `Nodes` guarda o host num `RefCell` e empresta só durante cada gravação
   (`cx.nodes.expr(E::Binary { left: cx.nodes.expr(..), .. }, loc)`), e lê o que o próprio codegen gravou por cópia
   (`get`, `items`, `text`).
+- **Sem arena.** O `Host` não expõe mais `arena()` (era o que obrigava um `unsafe` para emprestar o host e a arena ao
+  mesmo tempo): listas e strings entram no `Store` por `alloc_slice` e `alloc_str`. O `program` e o `imports` recebem
+  o `&Store` onde liam `StoreStr`/`StoreSlice` por ponteiro.
+- **Saída do processo.** `bun_core::add_exit_callback` e `run_exit_callbacks` (sem o `Bun__atexit` do C++): o dump de
+  tempos do pipeline se registra ali e a CLI chama `run_exit_callbacks` ao sair.
 
 ### Lacunas conhecidas
 
