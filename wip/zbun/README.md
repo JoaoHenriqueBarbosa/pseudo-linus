@@ -465,3 +465,24 @@ arquivo só (`--no-bundle` ignora `--sourcemap`): `tests/golden/maps`, `scripts/
 Estado: 299 de 305 casos batem e os 12 mapas batem. As seis divergências estão em `KNOWN_DIVERGENCES`
 (import-equals com namespace sob `--minify-identifiers`: o nome atribuído ao alias tem outro rank). `mangled_props`
 não é ligado pelo `bun build`, então o golden não o exercita; os nós JSON ficam para o loader json.
+
+## react_compiler (parte 5, em andamento)
+
+A crate vem do upstream atrás da feature `port` e vai compilando por fatias (`cargo check -p bun_react_compiler
+--features port`). O desenho que o porte pede, e que difere do upstream:
+
+- **O HIR não toca o `Store`.** As strings dele são `HirStr` (bytes num `Arc`, igualdade e hash por conteúdo) e as
+  de literal são `JsString` (ASCII ou UTF-16 canônico). O `StoreStr` do porte é um índice no `Store` e compara por
+  posição, então dois nomes iguais gravados em lugares diferentes seriam chaves diferentes nos mapas do HIR. Só as
+  fronteiras (lowering, codegen, program, imports, pipeline) tocam o `Store`.
+- **Lowering lê o AST por `&Store`** (`builder.store()`, um `let x = &store[*x]` por braço de `match`).
+- **Codegen grava por `Nodes`.** `Expr::init(store, dado, loc)` pede `&mut Store` como primeiro argumento, então um
+  filho que também grava não compila. O `Nodes` guarda o host num `RefCell` e empresta só durante cada gravação
+  (`cx.nodes.expr(E::Binary { left: cx.nodes.expr(..), .. }, loc)`), e lê o que o próprio codegen gravou por cópia
+  (`get`, `items`, `text`).
+
+### Lacunas conhecidas
+
+- **Nós JSON.** O `ExprData` do porte não tem `EObjectJSON` nem `EArrayJSON` (são do loader json do bun). O lowering
+  e o `find_context_identifiers` deixaram de casar essas variantes; um programa com nó JSON não passa por esse
+  caminho. Entram junto com o loader json.

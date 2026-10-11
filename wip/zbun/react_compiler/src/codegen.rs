@@ -19,6 +19,7 @@ use std::collections::HashSet;
 
 use crate::collections::IdMap;
 use bun_alloc::{Arena, ArenaVec};
+use bun_ast::NodeStore;
 use bun_ast::{
     self as ast, ArrayBinding, Binding, Case, Catch, E, Expr, ExprData, ExprNodeList, Finally, G,
     Loc, LocRef, OpCode, OptionalChain, Ref, S, Stmt, StmtData, StmtNodeList, StoreSlice, StoreStr,
@@ -42,6 +43,7 @@ use crate::hir::{
     ObjectPropertyType, ParamPattern, Pattern, Place, PlaceOrSpread, PrimitiveValue,
     PropertyLiteral, ScopeId,
 };
+use crate::hir::HirStr;
 use crate::reactive_scopes::visitors::{ReactiveFunctionVisitor, visit_reactive_function};
 use crate::reactive_scopes::{
     build_reactive_function, prune_hoisted_contexts, prune_unused_labels, prune_unused_lvalues,
@@ -101,22 +103,82 @@ impl WellKnown {
     const COUNT: usize = 6;
 }
 
+/// O host por trás de um `RefCell`, para gravar nós aninhados. O AST do porte guarda os nós num `Store` que o host
+/// possui, e `Expr::init(store, dado, loc)` pede `&mut Store`; com o `Store` como primeiro argumento, um filho que
+/// também grava (`init(store, Binary { left: init(store, ..) })`) não compila. Aqui cada gravação empresta o host só
+/// durante a própria chamada, então `cx.nodes.expr(E::Binary { left: cx.nodes.expr(..), .. }, loc)` aninha à vontade,
+/// como o upstream com o store global.
+pub(crate) struct Nodes<'h> {
+    pub(crate) host: std::cell::RefCell<&'h mut dyn Host>,
+}
+
+impl<'h> Nodes<'h> {
+    pub(crate) fn new(host: &'h mut dyn Host) -> Self {
+        Nodes { host: std::cell::RefCell::new(host) }
+    }
+
+    fn expr<T: ast::expr::IntoExprData>(&self, data: T, loc: Loc) -> Expr {
+        Expr::init(self.host.borrow_mut().store_mut(), data, loc)
+    }
+
+    fn stmt<T: ast::stmt::StatementData>(&self, data: T, loc: Loc) -> Stmt {
+        Stmt::alloc(self.host.borrow_mut().store_mut(), data, loc)
+    }
+
+    fn list<T: ast::new_store::Stored<ast::Store>>(&self, items: impl IntoIterator<Item = T>) -> StoreSlice<T> {
+        self.host.borrow_mut().store_mut().alloc_slice(items)
+    }
+
+    /// Uma cópia do nó: ler um nó que o codegen mesmo gravou não pode segurar o host emprestado, porque o próximo
+    /// `expr` precisa dele.
+    fn get<T: ast::new_store::Stored<ast::Store> + Clone>(&self, node: ast::StoreRef<T>) -> T {
+        self.host.borrow().store()[node].clone()
+    }
+
+    /// Uma cópia dos elementos da lista, pelo mesmo motivo de `get`.
+    fn items<T: ast::new_store::Stored<ast::Store> + Clone>(&self, items: StoreSlice<T>) -> Vec<T> {
+        self.host.borrow().store()[items].to_vec()
+    }
+
+    /// Uma cópia dos bytes de uma `StoreStr`, pelo mesmo motivo de `get`.
+    fn text(&self, text: StoreStr) -> Vec<u8> {
+        self.host.borrow().store().str(text).to_vec()
+    }
+
+    fn binding(&self, data: impl ast::binding::BindingAlloc, loc: Loc) -> Binding {
+        Binding::alloc(self.host.borrow_mut().store_mut(), data, loc)
+    }
+
+    /// O `EString` do AST com o conteúdo de uma string do HIR.
+    fn js_string(&self, text: &crate::diagnostics::JsString) -> ast::StoreRef<E::EString> {
+        text.to_estring(self.host.borrow_mut().store_mut())
+    }
+
+    fn str16(&self, units: &[u16]) -> StoreStr {
+        self.host.borrow_mut().store_mut().alloc_str16(units)
+    }
+
+    fn str(&self, bytes: &[u8]) -> StoreStr {
+        self.host.borrow_mut().store_mut().alloc_str(bytes)
+    }
+}
+
 /// Host-side state shared across nested function-expression codegen so the
 /// same identifier name resolves to the same `Ref` everywhere in the compiled
 /// component.
 pub(crate) struct Codegen<'h> {
-    pub(crate) host: &'h mut dyn Host,
+    pub(crate) nodes: &'h Nodes<'h>,
     pub(crate) arena: &'h Arena,
     id_to_ref: IdMap<IdentifierId, Ref>,
     well_known: [Option<Ref>; WellKnown::COUNT],
-    name_to_ref: HashMap<StoreStr, Ref>,
+    name_to_ref: HashMap<HirStr, Ref>,
     label_to_ref: IdMap<BlockId, Ref>,
 }
 
 impl<'h> Codegen<'h> {
-    pub(crate) fn new(host: &'h mut dyn Host, arena: &'h Arena) -> Self {
+    pub(crate) fn new(nodes: &'h Nodes<'h>, arena: &'h Arena) -> Self {
         Codegen {
-            host,
+            nodes,
             arena,
             id_to_ref: IdMap::new(),
             well_known: [None; WellKnown::COUNT],
@@ -125,22 +187,22 @@ impl<'h> Codegen<'h> {
         }
     }
 
-    fn ref_for_name(&mut self, name: StoreStr) -> Ref {
-        if let Some(&r) = self.name_to_ref.get(&name) {
-            self.host.record_usage(r);
+    fn ref_for_name(&mut self, name: &HirStr) -> Ref {
+        if let Some(&r) = self.name_to_ref.get(name) {
+            self.nodes.host.borrow_mut().record_usage(r);
             return r;
         }
-        let r = self.host.new_generated(name.slice());
-        self.name_to_ref.insert(name, r);
+        let r = self.nodes.host.borrow_mut().new_generated(name.slice());
+        self.name_to_ref.insert(name.clone(), r);
         r
     }
 
     fn well_known(&mut self, w: WellKnown, name: &[u8]) -> Ref {
         if let Some(r) = self.well_known[w as usize] {
-            self.host.record_usage(r);
+            self.nodes.host.borrow_mut().record_usage(r);
             return r;
         }
-        let r = self.host.new_generated(name);
+        let r = self.nodes.host.borrow_mut().new_generated(name);
         self.well_known[w as usize] = Some(r);
         r
     }
@@ -149,29 +211,29 @@ impl<'h> Codegen<'h> {
         let r = if let Some(r) = self.well_known[w as usize] {
             r
         } else {
-            let r = self
-                .host
+            let r = self.nodes
+                .host.borrow_mut()
                 .runtime_sentinel(matches!(w, WellKnown::EarlyReturnSentinel));
             self.well_known[w as usize] = Some(r);
             r
         };
-        self.host.record_usage(r);
-        Expr::init(E::ImportIdentifier::new(r, false), loc)
+        self.nodes.host.borrow_mut().record_usage(r);
+        self.nodes.expr(E::ImportIdentifier::new(r, false), loc)
     }
 
     fn well_known_global(&mut self, w: WellKnown, name: &[u8]) -> Ref {
         if let Some(r) = self.well_known[w as usize] {
-            self.host.record_usage(r);
+            self.nodes.host.borrow_mut().record_usage(r);
             return r;
         }
-        let r = self.host.global_ref(name);
+        let r = self.nodes.host.borrow_mut().global_ref(name);
         self.well_known[w as usize] = Some(r);
         r
     }
 
-    fn ident_expr(&mut self, name: StoreStr, loc: Loc) -> Expr {
+    fn ident_expr(&mut self, name: &HirStr, loc: Loc) -> Expr {
         if name.slice() == b"undefined" {
-            return Expr::init(E::Undefined {}, loc);
+            return self.nodes.expr(E::Undefined {}, loc);
         }
         Expr::init_identifier(self.ref_for_name(name), loc)
     }
@@ -181,11 +243,11 @@ impl<'h> Codegen<'h> {
     /// and printer can rewrite it to a namespace property access when react is
     /// bundled; otherwise emit a plain `EIdentifier`.
     fn ident_expr_for_ref(&mut self, ref_: Ref, loc: Loc) -> Expr {
-        self.host.record_usage(ref_);
+        self.nodes.host.borrow_mut().record_usage(ref_);
         if ref_.is_symbol() {
-            if let Some(sym) = self.host.symbols().get(ref_.inner_index() as usize) {
+            if let Some(sym) = self.nodes.host.borrow_mut().symbols().get(ref_.inner_index() as usize) {
                 if sym.kind == bun_ast::symbol::Kind::Import {
-                    return Expr::init(E::ImportIdentifier::new(ref_, true), loc);
+                    return self.nodes.expr(E::ImportIdentifier::new(ref_, true), loc);
                 }
             }
         }
@@ -201,7 +263,7 @@ impl<'h> Codegen<'h> {
         let mut cursor = std::io::Cursor::new(&mut buf[..]);
         write!(cursor, "bb{}", id.0).unwrap();
         let len = cursor.position() as usize;
-        let r = self.host.new_generated(&buf[..len]);
+        let r = self.nodes.host.borrow_mut().new_generated(&buf[..len]);
         self.label_to_ref.insert(id, r);
         r
     }
@@ -226,11 +288,11 @@ pub(crate) fn codegen_function(
 
     // enableEmitHookGuards: wrap entire function body in try/finally with
     // $dispatcherGuard(PushHookGuard=0) / $dispatcherGuard(PopHookGuard=1).
-    if let Some(hook_guard_name) = cx.env.hook_guard_name {
+    if let Some(hook_guard_name) = cx.env.hook_guard_name.clone() {
         if cx.env.output_mode == crate::hir::environment::OutputMode::Client {
-            let guard_ref = cx.cg.ref_for_name(hook_guard_name);
+            let guard_ref = cx.cg.ref_for_name(&hook_guard_name);
             let body_stmts = std::mem::take(&mut compiled.body);
-            compiled.body = vec![create_function_body_hook_guard(guard_ref, body_stmts, 0, 1)];
+            compiled.body = vec![create_function_body_hook_guard(cx.nodes, guard_ref, body_stmts, 0, 1)];
         }
     }
 
@@ -243,18 +305,18 @@ pub(crate) fn codegen_function(
         // The import declaration for `useMemoCache` is emitted by
         // `add_imports_to_program`. Register it only here, so a function that
         // compiles to zero memo slots does not pull in `react/compiler-runtime`.
-        let use_memo_cache_ref = context.add_memo_cache_import(cx.cg.host).name_ref;
-        cx.cg.host.record_usage(use_memo_cache_ref);
+        let use_memo_cache_ref = context.add_memo_cache_import(&mut **cx.nodes.host.borrow_mut()).name_ref;
+        cx.nodes.host.borrow_mut().record_usage(use_memo_cache_ref);
         // Synthesized AST is never re-visited by the parser's `EIdentifier→EImportIdentifier`
         // promotion, so emit `EImportIdentifier` directly.
-        let use_memo_cache = Expr::init(E::ImportIdentifier::new(use_memo_cache_ref, true), loc);
-        let call = Expr::init(
+        let use_memo_cache = cx.nodes.expr(E::ImportIdentifier::new(use_memo_cache_ref, true), loc);
+        let call = cx.nodes.expr(
             E::Call {
                 target: use_memo_cache,
-                args: Vec::from_iter([Expr::init(
+                args: cx.nodes.list(Vec::from_iter([cx.nodes.expr(
                     E::Number::new(cache_count as f64),
                     loc,
-                )]),
+                )])),
                 ..Default::default()
             },
             loc,
@@ -262,11 +324,11 @@ pub(crate) fn codegen_function(
         let cache_ref = cx
             .cg
             .well_known(WellKnown::MemoCache, cache_name.as_bytes());
-        preface.push(Stmt::alloc(
+        preface.push(cx.nodes.stmt(
             S::Local {
                 kind: S::Kind::KLet,
-                decls: decl_list([G::Decl {
-                    binding: Binding::alloc(cx.cg.arena, b::Identifier { r#ref: cache_ref }, loc),
+                decls: cx.nodes.list([G::Decl {
+                    binding: cx.nodes.binding(b::Identifier { r#ref: cache_ref }, loc),
                     value: Some(call),
                 }]),
                 ..Default::default()
@@ -285,22 +347,23 @@ pub(crate) fn codegen_function(
     // Instrument forget: emit instrumentation call at the top of the function body
     if let Some(instrument_config) = cx.env.config.enable_emit_instrument_forget.as_ref() {
         if func.id.is_some() && cx.env.output_mode == crate::hir::environment::OutputMode::Client {
-            let instrument_fn_local = cx.env.instrument_fn_name.unwrap_or_else(|| {
-                store_str(instrument_config.fn_.import_specifier_name.as_bytes())
+            let instrument_fn_local = cx.env.instrument_fn_name.clone().unwrap_or_else(|| {
+                HirStr::new(instrument_config.fn_.import_specifier_name.as_bytes())
             });
-            let target = cx.cg.ident_expr(instrument_fn_local, Loc::EMPTY);
+            let target = cx.cg.ident_expr(&instrument_fn_local, Loc::EMPTY);
 
             let gating_expr: Option<Expr> = cx
                 .env
                 .instrument_gating_name
-                .map(|name| cx.cg.ident_expr(name, Loc::EMPTY));
+                .clone()
+                .map(|name| cx.cg.ident_expr(&name, Loc::EMPTY));
             let global_gating_expr: Option<Expr> = instrument_config
                 .global_gating
                 .as_deref()
-                .map(|g| cx.cg.ident_expr(store_str(g.as_bytes()), Loc::EMPTY));
+                .map(|g| cx.cg.ident_expr(&HirStr::new(&cx.nodes.text(cx.nodes.str(g.as_bytes()))), Loc::EMPTY));
 
             let if_test = match (gating_expr, global_gating_expr) {
-                (Some(gating), Some(global)) => Expr::init(
+                (Some(gating), Some(global)) => cx.nodes.expr(
                     E::Binary {
                         op: OpCode::BinLogicalAnd,
                         left: global,
@@ -317,24 +380,24 @@ pub(crate) fn codegen_function(
 
             let fn_name_str = func.id.as_deref().unwrap_or("");
             let filename_str = cx.env.filename.as_deref().unwrap_or(b"");
-            let call = Expr::init(
+            let call = cx.nodes.expr(
                 E::Call {
                     target,
-                    args: Vec::from_iter([
-                        string_expr(fn_name_str, Loc::EMPTY),
-                        Expr::init(
-                            E::EString::init(store_str(filename_str).slice()),
+                    args: cx.nodes.list(Vec::from_iter([
+                        string_expr(cx.nodes, fn_name_str, Loc::EMPTY),
+                        cx.nodes.expr(
+                            E::EString::init(cx.nodes.str(filename_str)),
                             Loc::EMPTY,
                         ),
-                    ]),
+                    ])),
                     ..Default::default()
                 },
                 Loc::EMPTY,
             );
-            let instrument_call = Stmt::alloc(
+            let instrument_call = cx.nodes.stmt(
                 S::If {
                     test: if_test,
-                    yes: expr_stmt(call, Loc::EMPTY),
+                    yes: expr_stmt(cx.nodes, call, Loc::EMPTY),
                     no: None,
                 },
                 Loc::EMPTY,
@@ -375,6 +438,7 @@ type Temporaries = IdMap<DeclarationId, Option<Expr>>;
 
 struct Context<'a, 'h> {
     env: &'a mut Environment,
+    nodes: &'h Nodes<'h>,
     cg: &'a mut Codegen<'h>,
     next_cache_index: u32,
     declarations: HashSet<DeclarationId>,
@@ -392,6 +456,7 @@ impl<'a, 'h> Context<'a, 'h> {
     ) -> Self {
         Context {
             env,
+            nodes: cg.nodes,
             cg,
             next_cache_index: 0,
             declarations: HashSet::new(),
@@ -441,14 +506,14 @@ impl<'a, 'h> Context<'a, 'h> {
 
     fn ref_for_id(&mut self, id: IdentifierId) -> Result<Ref, CompilerError> {
         if let Some(&r) = self.cg.id_to_ref.get(id) {
-            self.cg.host.record_usage(r);
+            self.nodes.host.borrow_mut().record_usage(r);
             return Ok(r);
         }
         let Some(name) = &self.env.identifiers[id.0 as usize].name else {
             return Err(unnamed_identifier_err(id.0));
         };
         let (IdentifierName::Named(s) | IdentifierName::Promoted(s)) = name;
-        let r = self.cg.ref_for_name(*s);
+        let r = self.cg.ref_for_name(s);
         self.cg.id_to_ref.insert(id, r);
         Ok(r)
     }
@@ -479,9 +544,9 @@ fn codegen_reactive_function(
 
     let mut directives: Vec<Stmt> = Vec::with_capacity(func.directives.len());
     for d in &func.directives {
-        directives.push(Stmt::alloc(
+        directives.push(cx.nodes.stmt(
             S::Directive {
-                value: store_str(d.as_bytes()),
+                value: cx.nodes.str(d.as_bytes()),
             },
             Loc::EMPTY,
         ));
@@ -493,7 +558,7 @@ fn codegen_reactive_function(
 
     if let Some(last) = body.last() {
         if let StmtData::SReturn(ret) = last.data {
-            if ret.value.is_none() {
+            if cx.nodes.get(ret).value.is_none() {
                 body.pop();
             }
         }
@@ -503,7 +568,7 @@ fn codegen_reactive_function(
         count_memo_blocks(func, cx.env);
 
     let id = func.id.as_ref().map(|name| {
-        let r = cx.cg.ref_for_name(store_str(name.as_bytes()));
+        let r = cx.cg.ref_for_name(&HirStr::new(&cx.nodes.text(cx.nodes.str(name.as_bytes()))));
         LocRef {
             loc: convert_loc(func.loc),
             ref_: r,
@@ -537,7 +602,7 @@ fn convert_parameter(
         ParamPattern::Place(place) => {
             let (r, loc) = convert_identifier(cx, place.identifier)?;
             Ok(G::Arg {
-                binding: Binding::alloc(cx.cg.arena, b::Identifier { r#ref: r }, loc),
+                binding: cx.nodes.binding(b::Identifier { r#ref: r }, loc),
                 default: None,
                 ..Default::default()
             })
@@ -546,7 +611,7 @@ fn convert_parameter(
             *has_rest = true;
             let (r, loc) = convert_identifier(cx, spread.place.identifier)?;
             Ok(G::Arg {
-                binding: Binding::alloc(cx.cg.arena, b::Identifier { r#ref: r }, loc),
+                binding: cx.nodes.binding(b::Identifier { r#ref: r }, loc),
                 default: None,
                 ..Default::default()
             })
@@ -597,13 +662,13 @@ fn codegen_block_no_reset(
                 if let Some(ref label) = term_stmt.label {
                     if !label.implicit {
                         let inner = if let StmtData::SBlock(bs) = stmt.data {
-                            let body = bs.stmts.slice();
+                            let body = cx.nodes.items(cx.nodes.get(bs).stmts);
                             if body.len() == 1 { body[0] } else { stmt }
                         } else {
                             stmt
                         };
                         let label_ref = cx.cg.ref_for_label(label.id);
-                        statements.push(Stmt::alloc(
+                        statements.push(cx.nodes.stmt(
                             S::Label {
                                 name: LocRef {
                                     loc: Loc::EMPTY,
@@ -614,12 +679,12 @@ fn codegen_block_no_reset(
                             Loc::EMPTY,
                         ));
                     } else if let StmtData::SBlock(bs) = stmt.data {
-                        statements.extend_from_slice(bs.stmts.slice());
+                        statements.extend_from_slice(&cx.nodes.items(cx.nodes.get(bs).stmts));
                     } else {
                         statements.push(stmt);
                     }
                 } else if let StmtData::SBlock(bs) = stmt.data {
-                    statements.extend_from_slice(bs.stmts.slice());
+                    statements.extend_from_slice(&cx.nodes.items(cx.nodes.get(bs).stmts));
                 } else {
                     statements.push(stmt);
                 }
@@ -658,10 +723,10 @@ fn codegen_reactive_scope(
         .well_known(WellKnown::MemoCache, cache_name.as_bytes());
     let cache_ident = || Expr::init_identifier(cache_ref, loc);
     let cache_slot = |index: u32| {
-        Expr::init(
+        cx.nodes.expr(
             E::Index {
                 target: cache_ident(),
-                index: Expr::init(E::Number::new(index as f64), loc),
+                index: cx.nodes.expr(E::Number::new(index as f64), loc),
                 optional_chain: None,
                 is_import_property_use: false,
             },
@@ -671,7 +736,7 @@ fn codegen_reactive_scope(
 
     for dep in &deps {
         let index = cx.alloc_cache_index();
-        let comparison = Expr::init(
+        let comparison = cx.nodes.expr(
             E::Binary {
                 op: OpCode::BinStrictNe,
                 left: cache_slot(index),
@@ -682,7 +747,7 @@ fn codegen_reactive_scope(
         change_exprs.push(comparison);
 
         let dep_value = codegen_dependency(cx, dep)?;
-        cache_store_exprs.push(Expr::init(
+        cache_store_exprs.push(cx.nodes.expr(
             E::Binary {
                 op: OpCode::BinAssign,
                 left: cache_slot(index),
@@ -718,7 +783,7 @@ fn codegen_reactive_scope(
         let (name_ref, name_loc) = convert_identifier(cx, decl.identifier)?;
         if !cx.has_declared(decl.identifier) {
             output_declarators.push(G::Decl {
-                binding: Binding::alloc(cx.cg.arena, b::Identifier { r#ref: name_ref }, name_loc),
+                binding: cx.nodes.binding(b::Identifier { r#ref: name_ref }, name_loc),
                 value: None,
             });
         }
@@ -727,10 +792,10 @@ fn codegen_reactive_scope(
     }
     if !output_declarators.is_empty() {
         // Synthesized body is spliced post-visitor; mangleStmts won't merge these.
-        statements.push(Stmt::alloc(
+        statements.push(cx.nodes.stmt(
             S::Local {
                 kind: S::Kind::KLet,
-                decls: decl_list(output_declarators),
+                decls: cx.nodes.list(output_declarators),
                 ..Default::default()
             },
             loc,
@@ -750,7 +815,7 @@ fn codegen_reactive_scope(
         let first_idx = first_output_index.ok_or_else(|| {
             invariant_err("Expected scope to have at least one declaration", None)
         })?;
-        Expr::init(
+        cx.nodes.expr(
             E::Binary {
                 op: OpCode::BinStrictEq,
                 left: cache_slot(first_idx),
@@ -762,7 +827,7 @@ fn codegen_reactive_scope(
         change_exprs
             .into_iter()
             .reduce(|acc, expr| {
-                Expr::init(
+                cx.nodes.expr(
                     E::Binary {
                         op: OpCode::BinLogicalOr,
                         left: acc,
@@ -777,7 +842,7 @@ fn codegen_reactive_scope(
     let mut computation_block = codegen_block(cx, block)?;
 
     for (name_ref, index, value) in &cache_loads {
-        cache_store_exprs.push(Expr::init(
+        cache_store_exprs.push(cx.nodes.expr(
             E::Binary {
                 op: OpCode::BinAssign,
                 left: cache_slot(*index),
@@ -785,7 +850,7 @@ fn codegen_reactive_scope(
             },
             loc,
         ));
-        cache_load_exprs.push(Expr::init(
+        cache_load_exprs.push(cx.nodes.expr(
             E::Binary {
                 op: OpCode::BinAssign,
                 left: Expr::init_identifier(*name_ref, loc),
@@ -796,7 +861,7 @@ fn codegen_reactive_scope(
     }
 
     if !cache_store_exprs.is_empty() {
-        computation_block.push(expr_stmt(comma_seq(cache_store_exprs, loc), loc));
+        computation_block.push(expr_stmt(cx.nodes, comma_seq(cx.nodes, cache_store_exprs, loc), loc));
     }
 
     let yes = if computation_block
@@ -806,26 +871,26 @@ fn codegen_reactive_scope(
         let exprs: Vec<Expr> = computation_block
             .into_iter()
             .map(|s| match s.data {
-                StmtData::SExpr(es) => es.value,
+                StmtData::SExpr(es) => cx.nodes.get(es).value,
                 _ => unreachable!(),
             })
             .collect();
         if exprs.is_empty() {
             empty_stmt()
         } else {
-            expr_stmt(comma_seq(exprs, loc), loc)
+            expr_stmt(cx.nodes, comma_seq(cx.nodes, exprs, loc), loc)
         }
     } else {
-        block_stmt(computation_block, loc)
+        block_stmt(cx.nodes, computation_block, loc)
     };
 
     let no = if cache_load_exprs.is_empty() {
         None
     } else {
-        Some(expr_stmt(comma_seq(cache_load_exprs, loc), loc))
+        Some(expr_stmt(cx.nodes, comma_seq(cx.nodes, cache_load_exprs, loc), loc))
     };
 
-    let memo_stmt = Stmt::alloc(
+    let memo_stmt = cx.nodes.stmt(
         S::If {
             test: test_condition,
             yes,
@@ -848,9 +913,9 @@ fn codegen_reactive_scope(
         };
         let _ = name;
         let name_expr = Expr::init_identifier(cx.ref_for_id(early_return.value)?, loc);
-        statements.push(Stmt::alloc(
+        statements.push(cx.nodes.stmt(
             S::If {
-                test: Expr::init(
+                test: cx.nodes.expr(
                     E::Binary {
                         op: OpCode::BinStrictNe,
                         left: name_expr,
@@ -858,7 +923,7 @@ fn codegen_reactive_scope(
                     },
                     loc,
                 ),
-                yes: Stmt::alloc(
+                yes: cx.nodes.stmt(
                     S::Return {
                         value: Some(name_expr),
                     },
@@ -900,7 +965,7 @@ fn codegen_terminal(
             } else {
                 None
             };
-            Ok(Some(Stmt::alloc(S::Break { label }, convert_loc(*loc))))
+            Ok(Some(cx.nodes.stmt(S::Break { label }, convert_loc(*loc))))
         }
         ReactiveTerminal::Continue {
             target,
@@ -920,19 +985,19 @@ fn codegen_terminal(
             } else {
                 None
             };
-            Ok(Some(Stmt::alloc(S::Continue { label }, convert_loc(*loc))))
+            Ok(Some(cx.nodes.stmt(S::Continue { label }, convert_loc(*loc))))
         }
         ReactiveTerminal::Return { value, loc, .. } => {
             let expr = codegen_place_to_expression(cx, value)?;
             let stmt_loc = convert_loc(*loc);
             if matches!(expr.data, ExprData::EUndefined(_)) {
-                return Ok(Some(Stmt::alloc(S::Return { value: None }, stmt_loc)));
+                return Ok(Some(cx.nodes.stmt(S::Return { value: None }, stmt_loc)));
             }
-            Ok(Some(Stmt::alloc(S::Return { value: Some(expr) }, stmt_loc)))
+            Ok(Some(cx.nodes.stmt(S::Return { value: Some(expr) }, stmt_loc)))
         }
         ReactiveTerminal::Throw { value, loc, .. } => {
             let expr = codegen_place_to_expression(cx, value)?;
-            Ok(Some(Stmt::alloc(
+            Ok(Some(cx.nodes.stmt(
                 S::Throw { value: expr },
                 convert_loc(*loc),
             )))
@@ -954,15 +1019,15 @@ fn codegen_terminal(
                 } else if block.len() == 1 && matches!(block[0].data, StmtData::SIf(_)) {
                     Some(block.pop().unwrap())
                 } else {
-                    Some(body_stmt(block, stmt_loc))
+                    Some(body_stmt(cx.nodes, block, stmt_loc))
                 }
             } else {
                 None
             };
-            Ok(Some(Stmt::alloc(
+            Ok(Some(cx.nodes.stmt(
                 S::If {
                     test: test_expr,
-                    yes: body_stmt(consequent_block, stmt_loc),
+                    yes: body_stmt(cx.nodes, consequent_block, stmt_loc),
                     no: alternate_stmt,
                 },
                 stmt_loc,
@@ -987,7 +1052,7 @@ fn codegen_terminal(
                     .transpose()?;
                 let consequent = match block {
                     Some(b) if b.is_empty() => StmtNodeList::EMPTY,
-                    Some(b) => leak_stmts(vec![block_stmt(b, stmt_loc)]),
+                    Some(b) => cx.nodes.list(vec![block_stmt(cx.nodes, b, stmt_loc)]),
                     None => StmtNodeList::EMPTY,
                 };
                 switch_cases.push(Case {
@@ -996,11 +1061,11 @@ fn codegen_terminal(
                     body: consequent,
                 });
             }
-            Ok(Some(Stmt::alloc(
+            Ok(Some(cx.nodes.stmt(
                 S::Switch {
                     test: test_expr,
                     body_loc: stmt_loc,
-                    cases: StoreSlice::new_mut(switch_cases.leak()),
+                    cases: cx.nodes.list(switch_cases),
                 },
                 stmt_loc,
             )))
@@ -1014,9 +1079,9 @@ fn codegen_terminal(
             let test_expr = codegen_instruction_value_to_expression(cx, test)?;
             let stmt_loc = convert_loc(*loc);
             let body = codegen_block(cx, loop_block)?;
-            Ok(Some(Stmt::alloc(
+            Ok(Some(cx.nodes.stmt(
                 S::DoWhile {
-                    body: body_stmt(body, stmt_loc),
+                    body: body_stmt(cx.nodes, body, stmt_loc),
                     test: test_expr,
                 },
                 stmt_loc,
@@ -1031,10 +1096,10 @@ fn codegen_terminal(
             let test_expr = codegen_instruction_value_to_expression(cx, test)?;
             let stmt_loc = convert_loc(*loc);
             let body = codegen_block(cx, loop_block)?;
-            Ok(Some(Stmt::alloc(
+            Ok(Some(cx.nodes.stmt(
                 S::While {
                     test: test_expr,
-                    body: body_stmt(body, stmt_loc),
+                    body: body_stmt(cx.nodes, body, stmt_loc),
                 },
                 stmt_loc,
             )))
@@ -1055,12 +1120,12 @@ fn codegen_terminal(
                 .transpose()?;
             let stmt_loc = convert_loc(*loc);
             let body = codegen_block(cx, loop_block)?;
-            Ok(Some(Stmt::alloc(
+            Ok(Some(cx.nodes.stmt(
                 S::For {
                     init: init_val,
                     test: Some(test_expr),
                     update: update_expr,
-                    body: body_stmt(body, stmt_loc),
+                    body: body_stmt(cx.nodes, body, stmt_loc),
                 },
                 stmt_loc,
             )))
@@ -1080,7 +1145,7 @@ fn codegen_terminal(
         } => codegen_for_of(cx, init, test, loop_block, *loc),
         ReactiveTerminal::Label { block, .. } => {
             let body = codegen_block(cx, block)?;
-            Ok(Some(block_stmt(body, Loc::EMPTY)))
+            Ok(Some(block_stmt(cx.nodes, body, Loc::EMPTY)))
         }
         ReactiveTerminal::Try {
             block,
@@ -1095,20 +1160,20 @@ fn codegen_terminal(
                     let ident = &cx.env.identifiers[binding.identifier.0 as usize];
                     cx.temp.insert(ident.declaration_id, None);
                     let (r, l) = convert_identifier(cx, binding.identifier)?;
-                    Some(Binding::alloc(cx.cg.arena, b::Identifier { r#ref: r }, l))
+                    Some(cx.nodes.binding(b::Identifier { r#ref: r }, l))
                 }
                 None => None,
             };
             let try_block = codegen_block(cx, block)?;
             let handler_block = codegen_block(cx, handler)?;
-            Ok(Some(Stmt::alloc(
+            Ok(Some(cx.nodes.stmt(
                 S::Try {
                     body_loc: stmt_loc,
-                    body: leak_stmts(try_block),
+                    body: cx.nodes.list(try_block),
                     catch: Some(Catch {
                         loc: stmt_loc,
                         binding: catch_param,
-                        body: leak_stmts(handler_block),
+                        body: cx.nodes.list(handler_block),
                         body_loc: stmt_loc,
                     }),
                     finally: None,
@@ -1148,12 +1213,12 @@ fn codegen_for_in(
     let right = codegen_instruction_value_to_expression(cx, &iterable_collection.value)?;
     let stmt_loc = convert_loc(loc);
     let body = codegen_block(cx, loop_block)?;
-    Ok(Some(Stmt::alloc(
+    Ok(Some(cx.nodes.stmt(
         S::ForIn {
-            init: Stmt::alloc(
+            init: cx.nodes.stmt(
                 S::Local {
                     kind: var_decl_kind,
-                    decls: decl_list([G::Decl {
+                    decls: cx.nodes.list([G::Decl {
                         binding: lval,
                         value: None,
                     }]),
@@ -1162,7 +1227,7 @@ fn codegen_for_in(
                 stmt_loc,
             ),
             value: right,
-            body: body_stmt(body, stmt_loc),
+            body: body_stmt(cx.nodes, body, stmt_loc),
         },
         stmt_loc,
     )))
@@ -1223,13 +1288,13 @@ fn codegen_for_of(
     let right = codegen_place_to_expression(cx, collection)?;
     let stmt_loc = convert_loc(loc);
     let body = codegen_block(cx, loop_block)?;
-    Ok(Some(Stmt::alloc(
+    Ok(Some(cx.nodes.stmt(
         S::ForOf {
             is_await: false,
-            init: Stmt::alloc(
+            init: cx.nodes.stmt(
                 S::Local {
                     kind: var_decl_kind,
-                    decls: decl_list([G::Decl {
+                    decls: cx.nodes.list([G::Decl {
                         binding: lval,
                         value: None,
                     }]),
@@ -1238,7 +1303,7 @@ fn codegen_for_of(
                 stmt_loc,
             ),
             value: right,
-            body: body_stmt(body, stmt_loc),
+            body: body_stmt(cx.nodes, body, stmt_loc),
         },
         stmt_loc,
     )))
@@ -1269,7 +1334,7 @@ fn extract_for_in_of_lval(
             })?;
             let r = cx.cg.well_known(WellKnown::Underscore, b"_");
             return Ok((
-                Binding::alloc(cx.cg.arena, b::Identifier { r#ref: r }, Loc::EMPTY),
+                cx.nodes.binding(b::Identifier { r#ref: r }, Loc::EMPTY),
                 S::Kind::KLet,
             ));
         }
@@ -1303,17 +1368,17 @@ fn codegen_for_init(cx: &mut Context, init: &ReactiveValue) -> Result<Option<Stm
             .map(|i| ReactiveStatement::Instruction(i.clone()))
             .collect();
         let body = codegen_block(cx, &block_items)?;
-        let mut declarators: G::DeclList = Vec::new();
+        let mut declarators: Vec<G::Decl> = Vec::new();
         let mut kind = S::Kind::KConst;
         for instr in body {
             if let StmtData::SExpr(expr_stmt) = instr.data {
-                if let ExprData::EBinary(assign) = expr_stmt.value.data {
-                    if assign.op == OpCode::BinAssign {
-                        if let ExprData::EIdentifier(left_ident) = assign.left.data {
+                if let ExprData::EBinary(assign) = cx.nodes.get(expr_stmt).value.data {
+                    if cx.nodes.get(assign).op == OpCode::BinAssign {
+                        if let ExprData::EIdentifier(left_ident) = cx.nodes.get(assign).left.data {
                             if let Some(top) = declarators.last_mut() {
                                 if let b::B::BIdentifier(top_ident) = top.binding.data {
-                                    if top_ident.r#ref == left_ident.ref_ && top.value.is_none() {
-                                        top.value = Some(assign.right);
+                                    if cx.nodes.get(top_ident).r#ref == left_ident.ref_ && top.value.is_none() {
+                                        top.value = Some(cx.nodes.get(assign).right);
                                         continue;
                                     }
                                 }
@@ -1324,7 +1389,7 @@ fn codegen_for_init(cx: &mut Context, init: &ReactiveValue) -> Result<Option<Stm
             }
 
             if let StmtData::SLocal(var_decl) = instr.data {
-                match var_decl.kind {
+                match cx.nodes.get(var_decl).kind {
                     S::Kind::KLet | S::Kind::KConst => {}
                     _ => {
                         return Err(invariant_err(
@@ -1333,10 +1398,10 @@ fn codegen_for_init(cx: &mut Context, init: &ReactiveValue) -> Result<Option<Stm
                         ));
                     }
                 }
-                if matches!(var_decl.kind, S::Kind::KLet) {
+                if matches!(cx.nodes.get(var_decl).kind, S::Kind::KLet) {
                     kind = S::Kind::KLet;
                 }
-                for d in var_decl.decls.iter() {
+                for d in cx.nodes.items(cx.nodes.get(var_decl).decls) {
                     declarators.push(G::Decl {
                         binding: d.binding,
                         value: d.value,
@@ -1352,17 +1417,17 @@ fn codegen_for_init(cx: &mut Context, init: &ReactiveValue) -> Result<Option<Stm
                 None,
             ));
         }
-        Ok(Some(Stmt::alloc(
+        Ok(Some(cx.nodes.stmt(
             S::Local {
                 kind,
-                decls: declarators,
+                decls: cx.nodes.list(declarators),
                 ..Default::default()
             },
             Loc::EMPTY,
         )))
     } else {
         let expr = codegen_instruction_value_to_expression(cx, init)?;
-        Ok(Some(expr_stmt(expr, expr.loc)))
+        Ok(Some(expr_stmt(cx.nodes, expr, expr.loc)))
     }
 }
 
@@ -1513,10 +1578,10 @@ fn emit_store(
                 ));
             }
             let lval = codegen_lvalue(cx, lvalue)?;
-            Ok(Some(Stmt::alloc(
+            Ok(Some(cx.nodes.stmt(
                 S::Local {
                     kind: S::Kind::KLet,
-                    decls: decl_list([G::Decl {
+                    decls: cx.nodes.list([G::Decl {
                         binding: lval,
                         value,
                     }]),
@@ -1544,19 +1609,19 @@ fn emit_store(
                     let mut func: G::Fn = G::Fn {
                         name: Some(LocRef {
                             loc: lval.loc,
-                            ref_: fn_id.r#ref,
+                            ref_: cx.nodes.get(fn_id).r#ref,
                         }),
                         open_parens_loc: stmt_loc,
-                        args: func_expr.func.args,
+                        args: cx.nodes.get(func_expr).func.args,
                         body: G::FnBody {
-                            loc: func_expr.func.body.loc,
-                            stmts: func_expr.func.body.stmts,
+                            loc: cx.nodes.get(func_expr).func.body.loc,
+                            stmts: cx.nodes.get(func_expr).func.body.stmts,
                         },
-                        flags: func_expr.func.flags,
+                        flags: cx.nodes.get(func_expr).func.flags,
                         ..Default::default()
                     };
                     func.flags &= !flags::FunctionSet::from(flags::Function::IsExport);
-                    Ok(Some(Stmt::alloc(S::Function { func }, stmt_loc)))
+                    Ok(Some(cx.nodes.stmt(S::Function { func }, stmt_loc)))
                 }
                 _ => Err(invariant_err(
                     "Expected a function expression for function declaration",
@@ -1573,10 +1638,10 @@ fn emit_store(
                 ));
             }
             let lval = codegen_lvalue(cx, lvalue)?;
-            Ok(Some(Stmt::alloc(
+            Ok(Some(cx.nodes.stmt(
                 S::Local {
                     kind: S::Kind::KLet,
-                    decls: decl_list([G::Decl {
+                    decls: cx.nodes.list([G::Decl {
                         binding: lval,
                         value,
                     }]),
@@ -1590,7 +1655,7 @@ fn emit_store(
                 return Err(invariant_err("Expected a value for reassignment", None));
             };
             let lval = codegen_assignment_target(cx, lvalue)?;
-            let expr = Expr::init(
+            let expr = cx.nodes.expr(
                 E::Binary {
                     op: OpCode::BinAssign,
                     left: lval,
@@ -1615,7 +1680,7 @@ fn emit_store(
                     return Ok(Some(stmt));
                 }
             }
-            Ok(Some(expr_stmt(expr, stmt_loc)))
+            Ok(Some(expr_stmt(cx.nodes, expr, stmt_loc)))
         }
         InstructionKind::Catch => Ok(Some(empty_stmt())),
         InstructionKind::HoistedLet
@@ -1634,7 +1699,7 @@ fn codegen_instruction(
 ) -> Result<Stmt, CompilerError> {
     let stmt_loc = convert_loc(instr.loc);
     let Some(ref lvalue) = instr.lvalue else {
-        return Ok(expr_stmt(value, stmt_loc));
+        return Ok(expr_stmt(cx.nodes, value, stmt_loc));
     };
     let ident = &cx.env.identifiers[lvalue.identifier.0 as usize];
     if ident.name.is_none() {
@@ -1643,8 +1708,8 @@ fn codegen_instruction(
     }
     let (r, l) = convert_identifier(cx, lvalue.identifier)?;
     if cx.has_declared(lvalue.identifier) {
-        Ok(expr_stmt(
-            Expr::init(
+        Ok(expr_stmt(cx.nodes, 
+            cx.nodes.expr(
                 E::Binary {
                     op: OpCode::BinAssign,
                     left: Expr::init_identifier(r, l),
@@ -1655,11 +1720,11 @@ fn codegen_instruction(
             stmt_loc,
         ))
     } else {
-        Ok(Stmt::alloc(
+        Ok(cx.nodes.stmt(
             S::Local {
                 kind: S::Kind::KConst,
-                decls: decl_list([G::Decl {
-                    binding: Binding::alloc(cx.cg.arena, b::Identifier { r#ref: r }, l),
+                decls: cx.nodes.list([G::Decl {
+                    binding: cx.nodes.binding(b::Identifier { r#ref: r }, l),
                     value: Some(value),
                 }]),
                 ..Default::default()
@@ -1700,7 +1765,7 @@ fn codegen_instruction_value(
         } => {
             let left_expr = codegen_instruction_value_to_expression(cx, left)?;
             let right_expr = codegen_instruction_value_to_expression(cx, right)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Binary {
                     op: convert_logical_operator(*operator),
                     left: left_expr,
@@ -1718,7 +1783,7 @@ fn codegen_instruction_value(
             let test_expr = codegen_instruction_value_to_expression(cx, test)?;
             let cons_expr = codegen_instruction_value_to_expression(cx, consequent)?;
             let alt_expr = codegen_instruction_value_to_expression(cx, alternate)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::If {
                     test: test_expr,
                     yes: cons_expr,
@@ -1741,7 +1806,7 @@ fn codegen_instruction_value(
             for stmt in body {
                 match stmt.data {
                     StmtData::SExpr(es) => {
-                        expressions.push(es.value);
+                        expressions.push(cx.nodes.get(es).value);
                     }
                     StmtData::SLocal(_) => {
                         cx.record_error(CompilerErrorDetail {
@@ -1751,7 +1816,7 @@ fn codegen_instruction_value(
                             loc: None,
                             suggestions: None,
                         })?;
-                        expressions.push(string_expr("TODO handle declaration", Loc::EMPTY));
+                        expressions.push(string_expr(cx.nodes, "TODO handle declaration", Loc::EMPTY));
                     }
                     _ => {
                         cx.record_error(CompilerErrorDetail {
@@ -1761,7 +1826,7 @@ fn codegen_instruction_value(
                             loc: None,
                             suggestions: None,
                         })?;
-                        expressions.push(string_expr("TODO handle statement", Loc::EMPTY));
+                        expressions.push(string_expr(cx.nodes, "TODO handle statement", Loc::EMPTY));
                     }
                 }
             }
@@ -1773,7 +1838,7 @@ fn codegen_instruction_value(
                 let mut it = expressions.into_iter();
                 let first = it.next().unwrap();
                 Ok(it.fold(first, |acc, next| {
-                    Expr::init(
+                    cx.nodes.expr(
                         E::Binary {
                             op: OpCode::BinComma,
                             left: acc,
@@ -1795,15 +1860,15 @@ fn codegen_instruction_value(
             });
             match opt_value.data {
                 ExprData::ECall(mut c) => {
-                    c.optional_chain = chain;
+                    cx.nodes.get(c).optional_chain = chain;
                     Ok(opt_value)
                 }
                 ExprData::EDot(mut d) => {
-                    d.optional_chain = chain;
+                    cx.nodes.get(d).optional_chain = chain;
                     Ok(opt_value)
                 }
                 ExprData::EIndex(mut i) => {
-                    i.optional_chain = chain;
+                    cx.nodes.get(i).optional_chain = chain;
                     Ok(opt_value)
                 }
                 other => Err(invariant_err(
@@ -1835,7 +1900,7 @@ fn codegen_base_instruction_value(
         } => {
             let left_expr = codegen_place_to_expression(cx, left)?;
             let right_expr = codegen_place_to_expression(cx, right)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Binary {
                     op: convert_binary_operator(*operator),
                     left: left_expr,
@@ -1851,7 +1916,7 @@ fn codegen_base_instruction_value(
             ..
         } => {
             let arg = codegen_place_to_expression(cx, value)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Unary {
                     op: convert_unary_operator(*operator),
                     value: arg,
@@ -1874,7 +1939,7 @@ fn codegen_base_instruction_value(
             }
             match binding.ref_() {
                 Some(r) => Ok(cx.cg.ident_expr_for_ref(r, loc)),
-                None => Ok(cx.cg.ident_expr(StoreStr::new(binding.name()), loc)),
+                None => Ok(cx.cg.ident_expr(&HirStr::new(&binding.name()), loc)),
             }
         }
         InstructionValue::CallExpression { callee, args, .. } => {
@@ -1882,20 +1947,20 @@ fn codegen_base_instruction_value(
             let arguments = codegen_arguments(cx, args)?;
             if let ExprData::EImport(orig) = callee_expr.data {
                 let mut it = arguments.into_iter();
-                return Ok(Expr::init(
+                return Ok(cx.nodes.expr(
                     E::Import {
-                        expr: it.next().unwrap_or(orig.expr),
+                        expr: it.next().unwrap_or(cx.nodes.get(orig).expr),
                         options: it.next().unwrap_or(Expr::EMPTY),
-                        import_record_index: orig.import_record_index,
-                        namespace_ref: orig.namespace_ref,
+                        import_record_index: cx.nodes.get(orig).import_record_index,
+                        namespace_ref: cx.nodes.get(orig).namespace_ref,
                     },
                     loc,
                 ));
             }
-            let call_expr = Expr::init(
+            let call_expr = cx.nodes.expr(
                 E::Call {
                     target: callee_expr,
-                    args: arguments,
+                    args: cx.nodes.list(arguments),
                     ..Default::default()
                 },
                 loc,
@@ -1913,10 +1978,10 @@ fn codegen_base_instruction_value(
                 return Err(method_call_property_err(property.loc, member_expr));
             }
             let arguments = codegen_arguments(cx, args)?;
-            let call_expr = Expr::init(
+            let call_expr = cx.nodes.expr(
                 E::Call {
                     target: member_expr,
-                    args: arguments,
+                    args: cx.nodes.list(arguments),
                     ..Default::default()
                 },
                 loc,
@@ -1926,17 +1991,17 @@ fn codegen_base_instruction_value(
         InstructionValue::NewExpression { callee, args, .. } => {
             let callee_expr = codegen_place_to_expression(cx, callee)?;
             let arguments = codegen_arguments(cx, args)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::New {
                     target: callee_expr,
-                    args: arguments,
+                    args: cx.nodes.list(arguments),
                     ..Default::default()
                 },
                 loc,
             ))
         }
         InstructionValue::ArrayExpression { elements, .. } => {
-            let mut elems: ExprNodeList = Vec::with_capacity(elements.len());
+            let mut elems: Vec<Expr> = Vec::with_capacity(elements.len());
             for el in elements {
                 match el {
                     ArrayElement::Place(place) => {
@@ -1944,14 +2009,14 @@ fn codegen_base_instruction_value(
                     }
                     ArrayElement::Spread(spread) => {
                         let arg = codegen_place_to_expression(cx, &spread.place)?;
-                        elems.push(Expr::init(E::Spread { value: arg }, loc));
+                        elems.push(cx.nodes.expr(E::Spread { value: arg }, loc));
                     }
-                    ArrayElement::Hole => elems.push(Expr::init(E::Missing {}, loc)),
+                    ArrayElement::Hole => elems.push(cx.nodes.expr(E::Missing {}, loc)),
                 }
             }
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Array {
-                    items: elems,
+                    items: cx.nodes.list(elems),
                     ..Default::default()
                 },
                 loc,
@@ -1964,7 +2029,7 @@ fn codegen_base_instruction_value(
             object, property, ..
         } => {
             let obj = codegen_place_to_expression(cx, object)?;
-            Ok(property_access_expr(obj, property, loc, None))
+            Ok(property_access_expr(cx.nodes, obj, property, loc, None))
         }
         InstructionValue::PropertyStore {
             object,
@@ -1974,10 +2039,10 @@ fn codegen_base_instruction_value(
         } => {
             let obj = codegen_place_to_expression(cx, object)?;
             let val = codegen_place_to_expression(cx, value)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Binary {
                     op: OpCode::BinAssign,
-                    left: property_access_expr(obj, property, loc, None),
+                    left: property_access_expr(cx.nodes, obj, property, loc, None),
                     right: val,
                 },
                 loc,
@@ -1987,10 +2052,10 @@ fn codegen_base_instruction_value(
             object, property, ..
         } => {
             let obj = codegen_place_to_expression(cx, object)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Unary {
                     op: OpCode::UnDelete,
-                    value: property_access_expr(obj, property, loc, None),
+                    value: property_access_expr(cx.nodes, obj, property, loc, None),
                     // `lower_unary` only creates PropertyDelete when this flag was set.
                     flags: E::UnaryFlags::WAS_ORIGINALLY_DELETE_OF_IDENTIFIER_OR_PROPERTY_ACCESS,
                 },
@@ -2002,7 +2067,7 @@ fn codegen_base_instruction_value(
         } => {
             let obj = codegen_place_to_expression(cx, object)?;
             let prop = codegen_place_to_expression(cx, property)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Index {
                     target: obj,
                     index: prop,
@@ -2021,10 +2086,10 @@ fn codegen_base_instruction_value(
             let obj = codegen_place_to_expression(cx, object)?;
             let prop = codegen_place_to_expression(cx, property)?;
             let val = codegen_place_to_expression(cx, value)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Binary {
                     op: OpCode::BinAssign,
-                    left: Expr::init(
+                    left: cx.nodes.expr(
                         E::Index {
                             target: obj,
                             index: prop,
@@ -2043,10 +2108,10 @@ fn codegen_base_instruction_value(
         } => {
             let obj = codegen_place_to_expression(cx, object)?;
             let prop = codegen_place_to_expression(cx, property)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Unary {
                     op: OpCode::UnDelete,
-                    value: Expr::init(
+                    value: cx.nodes.expr(
                         E::Index {
                             target: obj,
                             index: prop,
@@ -2074,17 +2139,17 @@ fn codegen_base_instruction_value(
                     })?)
                 };
             raw.extend_from_slice(flags.slice());
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::RegExp {
-                    value: store_str(&raw),
+                    value: cx.nodes.str(&raw),
                     flags_offset,
                 },
                 loc,
             ))
         }
         InstructionValue::MetaProperty { meta, property, .. } => match (*meta, *property) {
-            ("import", "meta") => Ok(Expr::init(E::ImportMeta {}, loc)),
-            ("new", "target") => Ok(Expr::init(
+            ("import", "meta") => Ok(cx.nodes.expr(E::ImportMeta {}, loc)),
+            ("new", "target") => Ok(cx.nodes.expr(
                 E::NewTarget {
                     range: ast::Range { loc, len: 0 },
                 },
@@ -2097,7 +2162,7 @@ fn codegen_base_instruction_value(
         },
         InstructionValue::Await { value, .. } => {
             let arg = codegen_place_to_expression(cx, value)?;
-            Ok(Expr::init(E::Await { value: arg }, loc))
+            Ok(cx.nodes.expr(E::Await { value: arg }, loc))
         }
         InstructionValue::GetIterator { collection, .. } => {
             codegen_place_to_expression(cx, collection)
@@ -2110,7 +2175,7 @@ fn codegen_base_instruction_value(
             operation, lvalue, ..
         } => {
             let arg = codegen_place_to_expression(cx, lvalue)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Unary {
                     op: convert_update_operator(*operation, false),
                     value: arg,
@@ -2123,7 +2188,7 @@ fn codegen_base_instruction_value(
             operation, lvalue, ..
         } => {
             let arg = codegen_place_to_expression(cx, lvalue)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Unary {
                     op: convert_update_operator(*operation, true),
                     value: arg,
@@ -2140,7 +2205,7 @@ fn codegen_base_instruction_value(
             )?;
             let lval = codegen_assignment_target(cx, &LvalueRef::Place(&lvalue.place))?;
             let rhs = codegen_place_to_expression(cx, value)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Binary {
                     op: OpCode::BinAssign,
                     left: lval,
@@ -2156,9 +2221,9 @@ fn codegen_base_instruction_value(
             let left = if ref_.is_valid() {
                 cx.cg.ident_expr_for_ref(*ref_, loc)
             } else {
-                cx.cg.ident_expr(*name, loc)
+                cx.cg.ident_expr(name, loc)
             };
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Binary {
                     op: OpCode::BinAssign,
                     left,
@@ -2176,10 +2241,10 @@ fn codegen_base_instruction_value(
         } => codegen_function_expression(cx, name, name_hint, lowered_func, *expr_type, loc),
         InstructionValue::TaggedTemplateExpression { tag, value, .. } => {
             let tag_expr = codegen_place_to_expression(cx, tag)?;
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Template {
                     tag: Some(tag_expr),
-                    head: E::TemplateContents::Raw(value.raw),
+                    head: E::TemplateContents::Raw(cx.nodes.str(&value.raw)),
                     parts: StoreSlice::EMPTY,
                 },
                 loc,
@@ -2192,20 +2257,20 @@ fn codegen_base_instruction_value(
             let head_q = quasis_it
                 .next()
                 .ok_or_else(|| invariant_err("TemplateLiteral with no quasis", None))?;
-            let head = template_contents(head_q);
+            let head = template_contents(cx.nodes, head_q);
             let mut parts: Vec<E::TemplatePart> = Vec::with_capacity(subexprs.len());
             for (value, tail) in subexprs.iter().zip(quasis_it) {
                 parts.push(E::TemplatePart {
                     value: codegen_place_to_expression(cx, value)?,
                     tail_loc: loc,
-                    tail: template_contents(tail),
+                    tail: template_contents(cx.nodes, tail),
                 });
             }
-            Ok(Expr::init(
+            Ok(cx.nodes.expr(
                 E::Template {
                     tag: None,
                     head,
-                    parts: StoreSlice::new_mut(parts.leak()),
+                    parts: cx.nodes.list(parts),
                 },
                 loc,
             ))
@@ -2214,8 +2279,8 @@ fn codegen_base_instruction_value(
             // Bun emits type-stripped output; the cast is a passthrough.
             codegen_place_to_expression(cx, value)
         }
-        InstructionValue::JSXText { value, loc } => Ok(Expr::init(
-            E::EString::init(value.slice()),
+        InstructionValue::JSXText { value, loc } => Ok(cx.nodes.expr(
+            E::EString::init(cx.nodes.str(value)),
             convert_loc(*loc),
         )),
         InstructionValue::JsxExpression {
@@ -2227,13 +2292,13 @@ fn codegen_base_instruction_value(
             closing_loc,
         } => codegen_jsx_expression(cx, tag, props, children, *loc, *closing_loc),
         InstructionValue::JsxFragment { children, .. } => {
-            let mut child_elems: ExprNodeList = Vec::with_capacity(children.len());
+            let mut child_elems: Vec<Expr> = Vec::with_capacity(children.len());
             for child in children {
                 child_elems.push(codegen_jsx_element(cx, child)?);
             }
-            let fragment_ref = cx.cg.host.jsx_import(JsxImportKind::Fragment);
-            cx.cg.host.record_usage(fragment_ref);
-            let tag_value = Expr::init(E::ImportIdentifier::new(fragment_ref, true), loc);
+            let fragment_ref = cx.nodes.host.borrow_mut().jsx_import(JsxImportKind::Fragment);
+            cx.nodes.host.borrow_mut().record_usage(fragment_ref);
+            let tag_value = cx.nodes.expr(E::ImportIdentifier::new(fragment_ref, true), loc);
             Ok(codegen_jsx_call(
                 cx,
                 tag_value,
@@ -2255,7 +2320,7 @@ fn codegen_base_instruction_value(
                 loc: iv.loc().copied(),
                 suggestions: None,
             })?;
-            Ok(Expr::init(E::Undefined {}, loc))
+            Ok(cx.nodes.expr(E::Undefined {}, loc))
         }
         InstructionValue::StartMemoize { .. }
         | InstructionValue::FinishMemoize { .. }
@@ -2280,8 +2345,8 @@ fn codegen_base_instruction_value(
 
 fn codegen_function_expression(
     cx: &mut Context,
-    name: &Option<StoreStr>,
-    name_hint: &Option<StoreStr>,
+    name: &Option<HirStr>,
+    name_hint: &Option<HirStr>,
     lowered_func: &crate::hir::LoweredFunction,
     expr_type: FunctionExpressionType,
     loc: Loc,
@@ -2301,16 +2366,16 @@ fn codegen_function_expression(
 
     let body = G::FnBody {
         loc,
-        stmts: leak_stmts(fn_result.body),
+        stmts: cx.nodes.list(fn_result.body),
     };
-    let args = leak_args(fn_result.params);
+    let args = cx.nodes.list(fn_result.params);
 
     let value = match expr_type {
         FunctionExpressionType::ArrowFunctionExpression => {
             let single_return = body.stmts.len() == 1
                 && reactive_fn_mut.directives.is_empty()
-                && matches!(body.stmts.slice()[0].data, StmtData::SReturn(ret) if ret.value.is_some());
-            Expr::init(
+                && matches!(cx.nodes.items(body.stmts)[0].data, StmtData::SReturn(ret) if cx.nodes.get(ret).value.is_some());
+            cx.nodes.expr(
                 E::Arrow {
                     args,
                     body,
@@ -2334,10 +2399,10 @@ fn codegen_function_expression(
                 fn_flags |= flags::Function::HasRestArg;
             }
             let fn_name = name.as_ref().map(|n| {
-                let r = cx.cg.ref_for_name(*n);
+                let r = cx.cg.ref_for_name(n);
                 LocRef { loc, ref_: r }
             });
-            Expr::init(
+            cx.nodes.expr(
                 E::Function {
                     func: G::Fn {
                         name: fn_name,
@@ -2354,25 +2419,25 @@ fn codegen_function_expression(
     };
 
     if cx.env.config.enable_name_anonymous_functions && name.is_none() && name_hint.is_some() {
-        let hint = name_hint.unwrap();
-        let key = Expr::init(E::EString::init(hint.slice()), loc);
-        let mut props: G::PropertyList = Vec::with_capacity(1);
+        let hint = name_hint.clone().unwrap();
+        let key = cx.nodes.expr(E::EString::init(cx.nodes.str(&hint)), loc);
+        let mut props: Vec<G::Property> = Vec::with_capacity(1);
         props.push(G::Property {
             kind: G::PropertyKind::Normal,
             key: Some(key),
             value: Some(value),
             ..Default::default()
         });
-        let wrapped = Expr::init(
+        let wrapped = cx.nodes.expr(
             E::Index {
-                target: Expr::init(
+                target: cx.nodes.expr(
                     E::Object {
-                        properties: props,
+                        properties: cx.nodes.list(props),
                         ..Default::default()
                     },
                     loc,
                 ),
-                index: Expr::init(E::EString::init(hint.slice()), loc),
+                index: cx.nodes.expr(E::EString::init(cx.nodes.str(&hint)), loc),
                 optional_chain: None,
                 is_import_property_use: false,
             },
@@ -2394,7 +2459,7 @@ fn codegen_object_expression(
     properties: &[ObjectPropertyOrSpread],
     loc: Loc,
 ) -> Result<Expr, CompilerError> {
-    let mut ast_properties: G::PropertyList = Vec::with_capacity(properties.len());
+    let mut ast_properties: Vec<G::Property> = Vec::with_capacity(properties.len());
     for prop in properties {
         match prop {
             ObjectPropertyOrSpread::Property(obj_prop) => {
@@ -2408,7 +2473,7 @@ fn codegen_object_expression(
                                 && matches!(
                                     (key.data, value.data),
                                     (ExprData::EString(k), ExprData::EIdentifier(_v))
-                                        if name_matches_ref(cx, k.get(), value)
+                                        if name_matches_ref(cx, &cx.nodes.get(k), value)
                                 );
                         let mut prop_flags = flags::PROPERTY_NONE;
                         if computed {
@@ -2455,15 +2520,15 @@ fn codegen_object_expression(
                         if fn_result.has_rest_arg {
                             fn_flags |= flags::Function::HasRestArg;
                         }
-                        let value = Expr::init(
+                        let value = cx.nodes.expr(
                             E::Function {
                                 func: G::Fn {
                                     name: None,
                                     open_parens_loc: loc,
-                                    args: leak_args(fn_result.params),
+                                    args: cx.nodes.list(fn_result.params),
                                     body: G::FnBody {
                                         loc,
-                                        stmts: leak_stmts(fn_result.body),
+                                        stmts: cx.nodes.list(fn_result.body),
                                     },
                                     flags: fn_flags,
                                     ..Default::default()
@@ -2496,9 +2561,9 @@ fn codegen_object_expression(
             }
         }
     }
-    Ok(Expr::init(
+    Ok(cx.nodes.expr(
         E::Object {
-            properties: ast_properties,
+            properties: cx.nodes.list(ast_properties),
             ..Default::default()
         },
         loc,
@@ -2512,11 +2577,12 @@ fn name_matches_ref(cx: &Context, key: &E::EString, value: Expr) -> bool {
     if !key.is_utf8() {
         return false;
     }
-    let symbols = cx.cg.host.symbols();
+    let host = cx.nodes.host.borrow();
+    let symbols = host.symbols();
     let idx = id.ref_.inner_index() as usize;
     symbols
         .get(idx)
-        .is_some_and(|s| s.original_name.slice() == key.data.slice())
+        .is_some_and(|s| cx.nodes.text(s.original_name).as_slice() == cx.nodes.text(key.data).as_slice())
 }
 
 fn codegen_object_property_key(
@@ -2525,14 +2591,14 @@ fn codegen_object_property_key(
 ) -> Result<Expr, CompilerError> {
     match key {
         ObjectPropertyKey::String { name } => {
-            Ok(Expr::init(E::EString::init(name.slice()), Loc::EMPTY))
+            Ok(cx.nodes.expr(E::EString::init(cx.nodes.str(name.slice())), Loc::EMPTY))
         }
         ObjectPropertyKey::Identifier { name } => {
-            Ok(Expr::init(E::EString::init(name.slice()), Loc::EMPTY))
+            Ok(cx.nodes.expr(E::EString::init(cx.nodes.str(name.slice())), Loc::EMPTY))
         }
         ObjectPropertyKey::Computed { name } => codegen_place_to_expression(cx, name),
         ObjectPropertyKey::Number { name } => {
-            Ok(Expr::init(E::Number::new(name.value()), Loc::EMPTY))
+            Ok(cx.nodes.expr(E::Number::new(name.value()), Loc::EMPTY))
         }
     }
 }
@@ -2554,13 +2620,13 @@ fn codegen_jsx_expression(
 
     let tag_value = match tag {
         JsxTag::Place(place) => codegen_place_to_expression(cx, place)?,
-        JsxTag::Builtin(builtin) => Expr::init(
-            E::EString::init(builtin.name.slice()),
+        JsxTag::Builtin(builtin) => cx.nodes.expr(
+            E::EString::init(cx.nodes.str(builtin.name.slice())),
             convert_loc(builtin.loc),
         ),
     };
 
-    let mut child_nodes: ExprNodeList = Vec::new();
+    let mut child_nodes: Vec<Expr> = Vec::new();
     if let Some(c) = children {
         child_nodes = Vec::with_capacity(c.len());
         for child in c {
@@ -2568,7 +2634,7 @@ fn codegen_jsx_expression(
         }
     }
 
-    let mut properties: G::PropertyList = Vec::with_capacity(props.len() + 1);
+    let mut properties: Vec<G::Property> = Vec::with_capacity(props.len() + 1);
     let mut key_value: Option<Expr> = None;
     for attr in props {
         if let JsxAttribute::Attribute { name, place } = attr
@@ -2597,26 +2663,26 @@ fn codegen_jsx_expression(
 fn codegen_jsx_call(
     cx: &mut Context,
     tag_value: Expr,
-    mut properties: G::PropertyList,
-    children: ExprNodeList,
+    mut properties: Vec<G::Property>,
+    children: Vec<Expr>,
     key_value: Option<Expr>,
     loc: Loc,
     close_loc: Loc,
 ) -> Expr {
-    let is_dev = cx.cg.host.is_jsx_dev();
+    let is_dev = cx.nodes.host.borrow_mut().is_jsx_dev();
 
     // TypeScript defines static jsx as children.len > 1 or a single spread.
     let is_static_jsx = children.len() > 1
         || (children.len() == 1 && matches!(children[0].data, ExprData::ESpread(..)));
 
-    let children_key = string_expr("children", close_loc);
+    let children_key = string_expr(cx.nodes, "children", close_loc);
     if is_static_jsx {
         let is_single_line = children.len() < 2;
         properties.push(G::Property {
             key: Some(children_key),
-            value: Some(Expr::init(
+            value: Some(cx.nodes.expr(
                 E::Array {
-                    items: children,
+                    items: cx.nodes.list(children),
                     is_single_line,
                     ..Default::default()
                 },
@@ -2637,11 +2703,11 @@ fn codegen_jsx_call(
     } else {
         2 + usize::from(key_value.is_some())
     };
-    let mut args: ExprNodeList = Vec::with_capacity(args_len);
+    let mut args: Vec<Expr> = Vec::with_capacity(args_len);
     args.push(tag_value);
-    args.push(Expr::init(
+    args.push(cx.nodes.expr(
         E::Object {
-            properties,
+            properties: cx.nodes.list(properties),
             ..Default::default()
         },
         loc,
@@ -2650,18 +2716,18 @@ fn codegen_jsx_call(
     if let Some(key) = key_value {
         args.push(key);
     } else if is_dev {
-        args.push(Expr::init(E::Undefined {}, loc));
+        args.push(cx.nodes.expr(E::Undefined {}, loc));
     }
 
     if is_dev {
-        args.push(Expr::init(
+        args.push(cx.nodes.expr(
             E::Boolean {
                 value: is_static_jsx,
             },
             loc,
         ));
-        args.push(Expr::init(E::Undefined {}, loc));
-        args.push(Expr::init(E::This {}, loc));
+        args.push(cx.nodes.expr(E::Undefined {}, loc));
+        args.push(cx.nodes.expr(E::This {}, loc));
     }
 
     let kind = if is_dev {
@@ -2671,13 +2737,13 @@ fn codegen_jsx_call(
     } else {
         JsxImportKind::Jsx
     };
-    let target_ref = cx.cg.host.jsx_import(kind);
-    cx.cg.host.record_usage(target_ref);
+    let target_ref = cx.nodes.host.borrow_mut().jsx_import(kind);
+    cx.nodes.host.borrow_mut().record_usage(target_ref);
 
-    Expr::init(
+    cx.nodes.expr(
         E::Call {
-            target: Expr::init(E::ImportIdentifier::new(target_ref, true), loc),
-            args,
+            target: cx.nodes.expr(E::ImportIdentifier::new(target_ref, true), loc),
+            args: cx.nodes.list(args),
             can_be_unwrapped_if_unused: E::CallUnwrap::IfUnused,
             was_jsx_element: true,
             close_paren_loc: close_loc,
@@ -2694,7 +2760,7 @@ fn codegen_jsx_attribute(
     match attr {
         JsxAttribute::Attribute { name, place } => {
             let loc = convert_loc(place.loc);
-            let key = Expr::init(E::EString::init(name.slice()), loc);
+            let key = cx.nodes.expr(E::EString::init(cx.nodes.str(name.slice())), loc);
             let inner_value = codegen_place_to_expression(cx, place)?;
             Ok(G::Property {
                 kind: G::PropertyKind::Normal,
@@ -2732,7 +2798,7 @@ fn codegen_lvalue(cx: &mut Context, pattern: &LvalueRef) -> Result<Binding, Comp
     match pattern {
         LvalueRef::Place(place) => {
             let (r, loc) = convert_identifier(cx, place.identifier)?;
-            Ok(Binding::alloc(cx.cg.arena, b::Identifier { r#ref: r }, loc))
+            Ok(cx.nodes.binding(b::Identifier { r#ref: r }, loc))
         }
         LvalueRef::Pattern(pat) => match pat {
             Pattern::Array(arr) => codegen_array_pattern(cx, arr),
@@ -2750,7 +2816,7 @@ fn codegen_assignment_target(cx: &mut Context, pattern: &LvalueRef) -> Result<Ex
         LvalueRef::Pattern(pat) => match pat {
             Pattern::Array(arr) => {
                 let loc = convert_loc(arr.loc);
-                let mut items: ExprNodeList = Vec::with_capacity(arr.items.len());
+                let mut items: Vec<Expr> = Vec::with_capacity(arr.items.len());
                 for item in &arr.items {
                     items.push(match item {
                         crate::hir::ArrayPatternElement::Place(place) => {
@@ -2759,14 +2825,14 @@ fn codegen_assignment_target(cx: &mut Context, pattern: &LvalueRef) -> Result<Ex
                         crate::hir::ArrayPatternElement::Spread(spread) => {
                             let inner =
                                 codegen_assignment_target(cx, &LvalueRef::Place(&spread.place))?;
-                            Expr::init(E::Spread { value: inner }, loc)
+                            cx.nodes.expr(E::Spread { value: inner }, loc)
                         }
-                        crate::hir::ArrayPatternElement::Hole => Expr::init(E::Missing {}, loc),
+                        crate::hir::ArrayPatternElement::Hole => cx.nodes.expr(E::Missing {}, loc),
                     });
                 }
-                Ok(Expr::init(
+                Ok(cx.nodes.expr(
                     E::Array {
-                        items,
+                        items: cx.nodes.list(items),
                         ..Default::default()
                     },
                     loc,
@@ -2774,7 +2840,7 @@ fn codegen_assignment_target(cx: &mut Context, pattern: &LvalueRef) -> Result<Ex
             }
             Pattern::Object(obj) => {
                 let loc = convert_loc(obj.loc);
-                let mut properties: G::PropertyList =
+                let mut properties: Vec<G::Property> =
                     Vec::with_capacity(obj.properties.len());
                 for prop in &obj.properties {
                     properties.push(match prop {
@@ -2809,9 +2875,9 @@ fn codegen_assignment_target(cx: &mut Context, pattern: &LvalueRef) -> Result<Ex
                         }
                     });
                 }
-                Ok(Expr::init(
+                Ok(cx.nodes.expr(
                     E::Object {
-                        properties,
+                        properties: cx.nodes.list(properties),
                         ..Default::default()
                     },
                     loc,
@@ -2855,10 +2921,8 @@ fn codegen_array_pattern(
             }
         }
     }
-    Ok(Binding::alloc(
-        cx.cg.arena,
-        b::Array {
-            items: StoreSlice::from_bump(items),
+    Ok(cx.nodes.binding(b::Array {
+            items: cx.nodes.list(items),
             has_spread,
             is_single_line: true,
         },
@@ -2893,17 +2957,15 @@ fn codegen_object_pattern(
                 let inner = codegen_lvalue(cx, &LvalueRef::Place(&spread.place))?;
                 properties.push(b::Property {
                     flags: flags::Property::IsSpread.into(),
-                    key: Expr::init(E::Missing {}, loc),
+                    key: cx.nodes.expr(E::Missing {}, loc),
                     value: inner,
                     default_value: None,
                 });
             }
         }
     }
-    Ok(Binding::alloc(
-        cx.cg.arena,
-        b::Object {
-            properties: StoreSlice::from_bump(properties),
+    Ok(cx.nodes.binding(b::Object {
+            properties: cx.nodes.list(properties),
             is_single_line: true,
         },
         loc,
@@ -2945,8 +3007,8 @@ fn convert_identifier(
 fn codegen_arguments(
     cx: &mut Context,
     args: &[PlaceOrSpread],
-) -> Result<ExprNodeList, CompilerError> {
-    let mut out: ExprNodeList = Vec::with_capacity(args.len());
+) -> Result<Vec<Expr>, CompilerError> {
+    let mut out: Vec<Expr> = Vec::with_capacity(args.len());
     for arg in args {
         out.push(codegen_argument(cx, arg)?);
     }
@@ -2958,7 +3020,7 @@ fn codegen_argument(cx: &mut Context, arg: &PlaceOrSpread) -> Result<Expr, Compi
         PlaceOrSpread::Place(place) => codegen_place_to_expression(cx, place),
         PlaceOrSpread::Spread(spread) => {
             let expr = codegen_place_to_expression(cx, &spread.place)?;
-            Ok(Expr::init(E::Spread { value: expr }, expr.loc))
+            Ok(cx.nodes.expr(E::Spread { value: expr }, expr.loc))
         }
     }
 }
@@ -2985,7 +3047,7 @@ fn codegen_dependency(
             } else {
                 None
             };
-            object = property_access_expr(object, &path_entry.property, loc, chain);
+            object = property_access_expr(cx.nodes, object, &path_entry.property, loc, chain);
         }
     }
     Ok(object)
@@ -3122,31 +3184,26 @@ fn convert_loc(loc: Option<DiagSourceLocation>) -> Loc {
     }
 }
 
-#[inline]
-fn store_str(bytes: &[u8]) -> StoreStr {
-    StoreStr::new(ast::data_store_dupe_str(bytes))
-}
-
-fn estring_utf8(s: &str) -> E::EString {
+fn estring_utf8(nodes: &Nodes<'_>, s: &str) -> E::EString {
     if s.is_ascii() {
-        E::EString::init(store_str(s.as_bytes()).slice())
+        E::EString::init(nodes.str(s.as_bytes()))
     } else {
         let units: Vec<u16> = Vec::from_iter(s.encode_utf16());
-        E::EString::init_utf16(units.leak())
+        E::EString::init_utf16(nodes.str16(&units))
     }
 }
 
 #[inline]
-fn string_expr(s: &str, loc: Loc) -> Expr {
-    Expr::init(estring_utf8(s), loc)
+fn string_expr(nodes: &Nodes<'_>, s: &str, loc: Loc) -> Expr {
+    nodes.expr(estring_utf8(nodes, s), loc)
 }
 
 #[inline]
-fn comma_seq(exprs: Vec<Expr>, loc: Loc) -> Expr {
+fn comma_seq(nodes: &Nodes<'_>, exprs: Vec<Expr>, loc: Loc) -> Expr {
     let mut it = exprs.into_iter();
     let first = it.next().expect("comma_seq: nonempty");
     it.fold(first, |acc, next| {
-        Expr::init(
+        nodes.expr(
             E::Binary {
                 op: OpCode::BinComma,
                 left: acc,
@@ -3158,8 +3215,8 @@ fn comma_seq(exprs: Vec<Expr>, loc: Loc) -> Expr {
 }
 
 #[inline]
-fn expr_stmt(value: Expr, loc: Loc) -> Stmt {
-    Stmt::alloc(
+fn expr_stmt(nodes: &Nodes<'_>, value: Expr, loc: Loc) -> Stmt {
+    nodes.stmt(
         S::SExpr {
             value,
             does_not_affect_tree_shaking: false,
@@ -3176,10 +3233,10 @@ fn empty_stmt() -> Stmt {
     }
 }
 
-fn block_stmt(body: Vec<Stmt>, loc: Loc) -> Stmt {
-    Stmt::alloc(
+fn block_stmt(nodes: &Nodes<'_>, body: Vec<Stmt>, loc: Loc) -> Stmt {
+    nodes.stmt(
         S::Block {
-            stmts: leak_stmts(body),
+            stmts: nodes.list(body),
             close_brace_loc: Loc::EMPTY,
         },
         loc,
@@ -3187,55 +3244,41 @@ fn block_stmt(body: Vec<Stmt>, loc: Loc) -> Stmt {
 }
 
 /// Unwrap only `SExpr` to avoid dangling-else and lexical-declaration-as-body.
-fn body_stmt(mut body: Vec<Stmt>, loc: Loc) -> Stmt {
+fn body_stmt(nodes: &Nodes<'_>, mut body: Vec<Stmt>, loc: Loc) -> Stmt {
     if body.len() == 1 && matches!(body[0].data, StmtData::SExpr(_)) {
         return body.pop().unwrap();
     }
-    block_stmt(body, loc)
+    block_stmt(nodes, body, loc)
 }
 
-fn leak_stmts(body: Vec<Stmt>) -> StmtNodeList {
-    let v: Vec<Stmt> = Vec::from_iter(body);
-    StoreSlice::new_mut(v.leak())
-}
-
-fn leak_args(args: Vec<G::Arg>) -> StoreSlice<G::Arg> {
-    let v: Vec<G::Arg> = Vec::from_iter(args);
-    StoreSlice::new_mut(v.leak())
-}
-
-fn decl_list(iter: impl IntoIterator<Item = G::Decl>) -> G::DeclList {
-    Vec::from_iter(iter)
-}
-
-fn template_contents(q: &crate::hir::TemplateQuasi) -> E::TemplateContents {
-    match q.cooked {
-        Some(cooked) => E::TemplateContents::Cooked(E::EString::init(cooked.slice())),
-        None => E::TemplateContents::Raw(q.raw),
+fn template_contents(nodes: &Nodes<'_>, q: &crate::hir::TemplateQuasi) -> E::TemplateContents {
+    match &q.cooked {
+        Some(cooked) => E::TemplateContents::Cooked(E::EString::init(nodes.str(cooked.slice()))),
+        None => E::TemplateContents::Raw(nodes.str(&q.raw)),
     }
 }
 
-fn property_access_expr(
+fn property_access_expr(nodes: &Nodes<'_>, 
     target: Expr,
     prop: &PropertyLiteral,
     loc: Loc,
     optional_chain: Option<OptionalChain>,
 ) -> Expr {
     match prop {
-        PropertyLiteral::String(s) => Expr::init(
+        PropertyLiteral::String(s) => nodes.expr(
             E::Dot {
                 target,
-                name: *s,
+                name: nodes.str(&*s),
                 name_loc: loc,
                 optional_chain,
                 ..Default::default()
             },
             loc,
         ),
-        PropertyLiteral::Number(n) => Expr::init(
+        PropertyLiteral::Number(n) => nodes.expr(
             E::Index {
                 target,
-                index: Expr::init(E::Number::new(n.value()), loc),
+                index: nodes.expr(E::Number::new(n.value()), loc),
                 optional_chain,
                 is_import_property_use: false,
             },
@@ -3258,7 +3301,7 @@ fn codegen_primitive_value(cx: &mut Context, value: &PrimitiveValue, loc: Loc) -
                 if f > 0.0 {
                     inf
                 } else {
-                    Expr::init(
+                    cx.nodes.expr(
                         E::Unary {
                             op: OpCode::UnNeg,
                             value: inf,
@@ -3268,16 +3311,16 @@ fn codegen_primitive_value(cx: &mut Context, value: &PrimitiveValue, loc: Loc) -
                     )
                 }
             } else {
-                Expr::init(E::Number::new(f), loc)
+                cx.nodes.expr(E::Number::new(f), loc)
             }
         }
-        PrimitiveValue::Boolean(b) => Expr::init(E::Boolean { value: *b }, loc),
+        PrimitiveValue::Boolean(b) => cx.nodes.expr(E::Boolean { value: *b }, loc),
         PrimitiveValue::String(s) => Expr {
-            data: ExprData::EString(s.as_estring()),
+            data: ExprData::EString(cx.nodes.js_string(s)),
             loc,
         },
-        PrimitiveValue::Null => Expr::init(E::Null {}, loc),
-        PrimitiveValue::Undefined => Expr::init(E::Undefined {}, loc),
+        PrimitiveValue::Null => cx.nodes.expr(E::Null {}, loc),
+        PrimitiveValue::Undefined => cx.nodes.expr(E::Undefined {}, loc),
     }
 }
 
@@ -3453,12 +3496,12 @@ fn ident_sort_key<'a>(id: IdentifierId, env: &'a Environment, buf: &'a mut [u8; 
 }
 
 fn maybe_wrap_hook_call(cx: &mut Context, call_expr: Expr, callee_id: IdentifierId) -> Expr {
-    if let Some(hook_guard_name) = cx.env.hook_guard_name {
+    if let Some(hook_guard_name) = &cx.env.hook_guard_name {
         if cx.env.output_mode == crate::hir::environment::OutputMode::Client
             && is_hook_identifier(cx, callee_id)
         {
-            let guard_ref = cx.cg.ref_for_name(hook_guard_name);
-            return wrap_hook_call_with_guard(guard_ref, call_expr, 2, 3);
+            let guard_ref = cx.cg.ref_for_name(&hook_guard_name);
+            return wrap_hook_call_with_guard(cx.nodes, guard_ref, call_expr, 2, 3);
         }
     }
     call_expr
@@ -3474,14 +3517,14 @@ fn is_hook_identifier(cx: &Context, identifier_id: IdentifierId) -> bool {
         .is_some()
 }
 
-fn wrap_hook_call_with_guard(guard_ref: Ref, call_expr: Expr, before: u32, after: u32) -> Expr {
+fn wrap_hook_call_with_guard(nodes: &Nodes<'_>, guard_ref: Ref, call_expr: Expr, before: u32, after: u32) -> Expr {
     let loc = Loc::EMPTY;
     let guard_call = |kind: u32| -> Stmt {
-        expr_stmt(
-            Expr::init(
+        expr_stmt(nodes, 
+            nodes.expr(
                 E::Call {
                     target: Expr::init_identifier(guard_ref, loc),
-                    args: Vec::from_iter([Expr::init(E::Number::new(kind as f64), loc)]),
+                    args: nodes.list(Vec::from_iter([nodes.expr(E::Number::new(kind as f64), loc)])),
                     ..Default::default()
                 },
                 loc,
@@ -3490,12 +3533,12 @@ fn wrap_hook_call_with_guard(guard_ref: Ref, call_expr: Expr, before: u32, after
         )
     };
 
-    let try_stmt = Stmt::alloc(
+    let try_stmt = nodes.stmt(
         S::Try {
             body_loc: loc,
-            body: leak_stmts(vec![
+            body: nodes.list(vec![
                 guard_call(before),
-                Stmt::alloc(
+                nodes.stmt(
                     S::Return {
                         value: Some(call_expr),
                     },
@@ -3505,18 +3548,18 @@ fn wrap_hook_call_with_guard(guard_ref: Ref, call_expr: Expr, before: u32, after
             catch: None,
             finally: Some(Finally {
                 loc,
-                stmts: leak_stmts(vec![guard_call(after)]),
+                stmts: nodes.list(vec![guard_call(after)]),
             }),
         },
         loc,
     );
 
-    let iife = Expr::init(
+    let iife = nodes.expr(
         E::Function {
             func: G::Fn {
                 body: G::FnBody {
                     loc,
-                    stmts: leak_stmts(vec![try_stmt]),
+                    stmts: nodes.list(vec![try_stmt]),
                 },
                 ..Default::default()
             },
@@ -3524,17 +3567,17 @@ fn wrap_hook_call_with_guard(guard_ref: Ref, call_expr: Expr, before: u32, after
         loc,
     );
 
-    Expr::init(
+    nodes.expr(
         E::Call {
             target: iife,
-            args: Vec::new(),
+            args: nodes.list(Vec::new()),
             ..Default::default()
         },
         loc,
     )
 }
 
-fn create_function_body_hook_guard(
+fn create_function_body_hook_guard(nodes: &Nodes<'_>, 
     guard_ref: Ref,
     body_stmts: Vec<Stmt>,
     before: u32,
@@ -3542,11 +3585,11 @@ fn create_function_body_hook_guard(
 ) -> Stmt {
     let loc = Loc::EMPTY;
     let guard_call = |kind: u32| -> Stmt {
-        expr_stmt(
-            Expr::init(
+        expr_stmt(nodes, 
+            nodes.expr(
                 E::Call {
                     target: Expr::init_identifier(guard_ref, loc),
-                    args: Vec::from_iter([Expr::init(E::Number::new(kind as f64), loc)]),
+                    args: nodes.list(Vec::from_iter([nodes.expr(E::Number::new(kind as f64), loc)])),
                     ..Default::default()
                 },
                 loc,
@@ -3558,14 +3601,14 @@ fn create_function_body_hook_guard(
     let mut try_body = vec![guard_call(before)];
     try_body.extend(body_stmts);
 
-    Stmt::alloc(
+    nodes.stmt(
         S::Try {
             body_loc: loc,
-            body: leak_stmts(try_body),
+            body: nodes.list(try_body),
             catch: None,
             finally: Some(Finally {
                 loc,
-                stmts: leak_stmts(vec![guard_call(after)]),
+                stmts: nodes.list(vec![guard_call(after)]),
             }),
         },
         loc,
