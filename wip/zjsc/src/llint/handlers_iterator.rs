@@ -43,7 +43,7 @@ use crate::bytecode::virtual_register::VirtualRegister;
 use crate::llint::dispatch::Step;
 use crate::llint::handlers_array::allocate_new_array_buffer;
 use crate::runtime::indexing_type::{is_copy_on_write, ARRAY_WITH_CONTIGUOUS, COPY_ON_WRITE_ARRAY_WITH_CONTIGUOUS};
-use crate::llint::slow_paths::{throw_error_object, throw_out_of_memory_error, throw_type_error, thrown_failure};
+use crate::llint::slow_paths::{throw_error_object, throw_out_of_memory_error, throw_stack_overflow_error, throw_type_error, thrown_failure};
 use crate::llint::slow_paths_arith::SlowPathFrame;
 use crate::llint::slow_paths_control::{
     get_js_function, slow_path_iterator_next_get_done, slow_path_iterator_next_get_value,
@@ -51,7 +51,7 @@ use crate::llint::slow_paths_control::{
 };
 use crate::llint::slow_paths_object::Ctx;
 use crate::llint::{LLIntFailure, LLIntResult};
-use crate::runtime::call_data::{call, get_call_data};
+use crate::runtime::call_data::{call, call_from_llint, get_call_data};
 use crate::runtime::collection_support::iterator_step_value;
 use crate::runtime::exception_helpers::create_not_a_function_error;
 use crate::runtime::host_call::Thrown;
@@ -113,6 +113,11 @@ fn validate_iterable(global_object: &JSGlobalObject, iterable: JSValue, symbol_i
     Ok(())
 }
 
+/// O `calleeFrame = cfr - m_stackOffset` do `prepareForRegularCall` no `callHelper`.
+pub(super) fn llint_call_frame_base(f: &SlowPathFrame, stack_offset: u32) -> LLIntResult<usize> {
+    f.call_frame.registers().checked_sub(stack_offset as usize).ok_or_else(|| throw_stack_overflow_error(&Ctx::new(f).global_object))
+}
+
 /// O `callHelper` de `iteratorOpenGenericImpl` (de `op_iterator_open` e de `op_async_iterator_open`, que só
 /// diferem no tipo do op): chama o `Symbol.iterator` com o iterável como `this` (não chamável é o
 /// `createNotAFunctionError` do `handleHostCall`) e lê `next` do iterador. Os registradores são `iterable`,
@@ -120,6 +125,7 @@ fn validate_iterable(global_object: &JSGlobalObject, iterable: JSValue, symbol_i
 pub(super) fn open_iterator_call(
     f: &mut SlowPathFrame,
     (iterable, symbol_iterator, iterator, next): (VirtualRegister, VirtualRegister, VirtualRegister, VirtualRegister),
+    stack_offset: u32,
 ) -> LLIntResult<()> {
     let ctx = Ctx::new(f);
     let iterable = f.get(iterable);
@@ -136,7 +142,8 @@ pub(super) fn open_iterator_call(
         ));
     }
 
-    let result = call(ctx.global_object, symbol_iterator, &call_data, iterable, &[])?;
+    let frame_base = llint_call_frame_base(f, stack_offset)?;
+    let result = call_from_llint(ctx.global_object, frame_base, symbol_iterator, &call_data, iterable, &[])?;
     f.set(iterator, result);
     slow_path_iterator_open_get_next(f, iterator, next).map_err(|_| LLIntFailure::Thrown)
 }
@@ -246,7 +253,7 @@ fn iterator_open(f: &mut SlowPathFrame, op: &OpIteratorOpen, metadata_id: u32) -
         IterationMode::Generic => {
             validate_iterable(global_object, iterable, symbol_iterator)?;
             record_seen_mode::<OpIteratorOpenMetadata>(f, metadata_id, IterationMode::Generic);
-            return open_iterator_call(f, (op.iterable, op.symbol_iterator, op.iterator, op.next));
+            return open_iterator_call(f, (op.iterable, op.symbol_iterator, op.iterator, op.next), op.stack_offset);
         }
     };
     record_seen_mode::<OpIteratorOpenMetadata>(f, metadata_id, iteration_mode);
@@ -347,7 +354,8 @@ fn iterator_next(f: &mut SlowPathFrame, op: &OpIteratorNext, metadata_id: u32) -
         return Err(throw_error_object(ctx.global_object, create_not_a_function_error(ctx.global_object, next, Some(&site))));
     }
 
-    let result = call(ctx.global_object, next, &call_data, f.get(op.iterator), &[])?;
+    let frame_base = llint_call_frame_base(f, op.stack_offset)?;
+    let result = call_from_llint(ctx.global_object, frame_base, next, &call_data, f.get(op.iterator), &[])?;
     f.set(op.value, result);
     slow_path_iterator_next_get_done(f, op).map_err(|_| LLIntFailure::Thrown)?;
     slow_path_iterator_next_get_value(f, op).map_err(|_| LLIntFailure::Thrown)

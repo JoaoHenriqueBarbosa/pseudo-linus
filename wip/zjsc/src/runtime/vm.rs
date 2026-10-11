@@ -298,17 +298,20 @@ pub mod stack_cost {
     pub const SORT_COMPARATOR: usize = 2512;
     /// `jsonParseSlow` e o `Walker` do reviver.
     pub const JSON_REVIVER: usize = 2880;
-    /// `globalFuncEval` -> `Interpreter::executeEval`.
-    pub const INDIRECT_EVAL: usize = 448;
+    /// `globalFuncEval` -> `Interpreter::executeEval`. Medido no bun sem JIT pela recursão plana com 0 a 30 locais
+    /// extras dentro de `(0,eval)(...)`: o orçamento que sobra fica entre 5106640 e 5106656 bytes, 48 a mais que com 448.
+    pub const INDIRECT_EVAL: usize = 400;
     /// `toPrimitive` -> `ordinaryToPrimitive` -> `callToPrimitiveFunction`.
     pub const TO_PRIMITIVE: usize = 192;
 }
 
-/// O trampolim de entrada no VM: `vmEntryToJavaScript` ou `vmEntryToNative`.
+/// O trampolim de entrada no VM: `vmEntryToJavaScript` ou `vmEntryToNative`, ou a chamada que no C++ nem entra no VM
+/// (`LLIntCall`, o `callHelper` de um handler do LLInt, ver `Interpreter::call_from_llint`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VMEntryKind {
     JavaScript,
     Native,
+    LLIntCall,
 }
 
 /// A marca de `VM::enter_vm`, restaurada ao sair do VM (RAII).
@@ -841,6 +844,7 @@ impl VM {
             (true, _) => stack_cost::PROGRAM_ENTRY,
             (false, VMEntryKind::JavaScript) => stack_cost::VM_REENTRY,
             (false, VMEntryKind::Native) => stack_cost::VM_NATIVE_REENTRY,
+            (false, VMEntryKind::LLIntCall) => 0,
         };
         let used = self.logical_stack_used.get();
         let previous = self.logical_entry_mark.replace(used);

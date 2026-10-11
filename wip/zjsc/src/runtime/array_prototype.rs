@@ -57,7 +57,7 @@ use crate::runtime::implementation_visibility::ImplementationVisibility;
 use crate::runtime::indexing_type::{has_indexed_properties, ARRAY_CLASS, CONTIGUOUS_SHAPE, DOUBLE_SHAPE, INDEXING_SHAPE_MASK, INT32_SHAPE};
 use crate::runtime::intrinsic::Intrinsic;
 use crate::runtime::js_array::{
-    construct_array, put_through_method_table, ArrayError, JSArray, INVALID_ARRAY_LENGTH_ERROR, JS_ARRAY_S_INFO,
+    construct_array, is_js_array, put_through_method_table, ArrayError, JSArray, INVALID_ARRAY_LENGTH_ERROR, JS_ARRAY_S_INFO,
     LENGTH_EXCEEDED_THE_MAXIMUM_ARRAY_LENGTH_ERROR,
 };
 use crate::runtime::js_function::{
@@ -442,16 +442,21 @@ pub(crate) fn array_error_from_llint(failure: LLIntFailure) -> ArrayError {
 /// `speciesConstructArray(globalObject, thisObject, length)` (ArrayPrototypeInlines.h), o
 /// ArraySpeciesCreate de https://tc39.github.io/ecma262/#sec-arrayspeciescreate.
 ///
-/// DIVERGÊNCIA: sem `arraySpeciesWatchpointIsValid` o atalho do C++ para o array original some e a
-/// consulta de `constructor` e de `@@species` sempre acontece (a mesma ordem observável da especificação).
-/// O que o atalho poupava volta como a saída `FastPath` quando a espécie é o próprio `Array` do realm
-/// corrente e o comprimento cabe em `uint32` (`new Array(length)` e `constructEmptyArray(length)` são o
-/// mesmo array; acima disso o `Array` lança o `RangeError` dele, então o construtor roda de verdade).
+/// Com o `arraySpeciesWatchpointIsValid` o array comum sai pelo atalho sem ler `constructor` nem `@@species`,
+/// como no C++: as leituras não teriam efeito, mas o getter nativo de `@@species` entra no VM e gasta pilha.
+/// Fora do atalho, a saída `FastPath` também vale quando a espécie é o próprio `Array` do realm corrente e o
+/// comprimento cabe em `uint32` (`new Array(length)` e `constructEmptyArray(length)` são o mesmo array; acima
+/// disso o `Array` lança o `RangeError` dele, então o construtor roda de verdade).
 pub fn species_construct_array(call: &ArrayCall, this_value: JSValue, length: u64) -> Result<SpeciesConstruct, ArrayError> {
     let global_object = call.global_object;
     let names = &call.vm.property_names;
     // If isArray is false, return ? ArrayCreate(length).
     if !is_array(&this_value, IsArrayCaller::ArrayIsArray)? {
+        return Ok(SpeciesConstruct::FastPath);
+    }
+    // Fast path in the normal case where the user has not set an own constructor and the Array.prototype.constructor is normal.
+    // We need prototype check for subclasses of Array, which are Array objects but have a different prototype by default.
+    if is_js_array(&this_value) && array_species_watchpoint_is_valid(call.vm, this_value) {
         return Ok(SpeciesConstruct::FastPath);
     }
     let mut constructor = get_value_property(call, this_value, &names.constructor)?;
@@ -483,6 +488,21 @@ pub fn species_construct_array(call: &ArrayCall, this_value: JSValue, length: u6
     )
     .map_err(array_error_from_llint)?;
     Ok(SpeciesConstruct::CreatedObject(created.as_object()))
+}
+
+/// `arraySpeciesWatchpointIsValid(vm, thisObject)` (ArrayPrototypeInlines.h). Sem o atalho de
+/// `hasCustomProperties`, que só evita a busca de `constructor` quando o objeto não tem propriedade própria.
+fn array_species_watchpoint_is_valid(vm: &VM, this_value: JSValue) -> bool {
+    let object = this_value.as_object();
+    let Some(global_object) = object.structure().realm() else { return false };
+    if global_object.array_structure().stored_prototype() != object.get_prototype_direct() {
+        return false;
+    }
+    if global_object.array_species_watchpoint_set.borrow().state() != crate::bytecode::watchpoint::WatchpointState::IsWatched {
+        return false;
+    }
+    object.get_direct_offset(vm, &PropertyName::from_identifier(&vm.property_names.constructor))
+        == crate::runtime::property_offset::INVALID_OFFSET
 }
 
 /// O alvo de `slow_path_new_array_with_species` (CommonSlowPaths.cpp, `op_new_array_with_species` de

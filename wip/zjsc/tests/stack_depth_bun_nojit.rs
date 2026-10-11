@@ -7,7 +7,7 @@ use zjsc::wtf::text::conversion_mode::ConversionMode;
 
 /// (forma, profundidade do bun sem JIT).
 const CASES: &[(&str, usize)] = &[
-    ("let d=0;function f(n){d=n;f(n+1)}", 45594),
+    ("let d=0;function f(n){d=n;f(n+1)}", 45595),
     ("let d=0;function f(n){let a=n,b=a+1,c=b*2,e=c-1;d=n;return f(n+1)+a+b+c+e}", 35462),
     ("let d=0;function f(n){d=n;'x'.replace('x',()=>f(n+1))}", 3470),
     ("let d=0;function f(n){d=n;[2,1].sort(()=>f(n+1))}", 1319),
@@ -73,4 +73,35 @@ const oneArg = n => { let f = function () { return arguments.length }; for (let 
 var R = [deepest(plain, 60000), deepest(native, 60000), deepest(oneArg, 3000)].join(" ");
 "#;
     assert_eq!(run(program.to_string()), "13880 13880 1506");
+}
+
+/// A recursão com `k` locais extras em `f` (o nível cresce 16 bytes a cada dois locais), dentro de `(0,eval)(...)`,
+/// sozinha e pelos builtins `map` e `Array.from`: cada profundidade do bun restringe o orçamento de pilha a uma
+/// faixa, e a varredura inteira fixa o custo da entrada, do getter de `@@species` (que o `arraySpeciesWatchpoint`
+/// evita) e das chamadas de `op_iterator_open`/`op_iterator_next` (o `callHelper` do LLInt, sem entrada no VM).
+#[test]
+fn local_sweeps_match_bun_without_jit() {
+    const PLAIN: [usize; 16] = [45595, 39895, 35462, 31916, 29015, 26597, 24551, 22797, 21277, 19947, 18774, 17731, 16798, 15958, 15198, 14507];
+    const MAP: [usize; 9] = [16798, 15958, 15198, 14508, 13877, 13299, 12767, 12276, 11821];
+    const FROM: [usize; 9] = [13877, 13299, 12767, 12276, 11821, 11399, 11006, 10639, 10296];
+    let mut failures = Vec::new();
+    let mut check = |call: &str, k: usize, expected: usize| {
+        let vars: String = (0..k).map(|i| format!("var a{i}=n;")).collect();
+        let shape = format!("let d=0;function f(n){{{vars}d=n;{call}}}");
+        let program = format!("var R = String((0,eval)(\"(function(){{{shape};try{{f(1)}}catch(e){{}};return d}})()\"));");
+        let depth = run(program);
+        if depth != expected.to_string() {
+            failures.push(format!("{call} k={k}: {depth} (bun {expected})"));
+        }
+    };
+    for (index, &expected) in PLAIN.iter().enumerate() {
+        check("f(n+1)", 2 * index, expected);
+    }
+    for (index, &expected) in MAP.iter().enumerate() {
+        check("[n+1].map(f)", 2 * index, expected);
+    }
+    for (index, &expected) in FROM.iter().enumerate() {
+        check("Array.from([n+1],f)", 2 * index, expected);
+    }
+    assert!(failures.is_empty(), "{failures:#?}");
 }

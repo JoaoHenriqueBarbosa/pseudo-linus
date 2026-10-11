@@ -67,6 +67,8 @@ use crate::runtime::property_name::PropertyName;
 use crate::runtime::put_property_slot::PutContext;
 use crate::llint::{LLIntFailure, LLIntResult};
 use crate::runtime::error::create_error;
+use crate::runtime::stack_alignment::stack_alignment_registers;
+use crate::wtf::math_extras::round_up_to_multiple_of;
 use crate::wtf::text::wtf_string::String as WtfString;
 use crate::runtime::arity_check_mode::ArityCheckMode;
 use crate::runtime::code_specialization_kind::CodeSpecializationKind;
@@ -95,6 +97,9 @@ pub struct Interpreter {
     sp: Rc<Cell<usize>>,
     /// Profundidade da recursão nativa de `llint_execute`.
     native_depth: Rc<Cell<usize>>,
+    /// A próxima entrada vem do `callHelper` de um handler `.asm` (`call_from_llint`): o frame do chamado vai na
+    /// base guardada aqui (`cfr - stackOffset` de quem chama), sem os frames nativos de `JSC::call` e do trampolim.
+    llint_call: Rc<Cell<Option<usize>>>,
 }
 
 impl Default for Interpreter {
@@ -119,7 +124,28 @@ impl Interpreter {
             code_blocks: Rc::new(RefCell::new(HashMap::new())),
             sp: Rc::new(Cell::new(sp)),
             native_depth: Rc::new(Cell::new(0)),
+            llint_call: Rc::new(Cell::new(None)),
         }
+    }
+
+    /// `callHelper` dos handlers `.asm` de `op_iterator_open`, `op_iterator_next` e `op_async_iterator_next`: a
+    /// chamada genérica sai do próprio laço do LLInt, como um `op_call`, com o frame do chamado em `frame_base`
+    /// (`cfr - m_stackOffset`, dentro dos temporários que o gerador reservou), sem passar por
+    /// `vmEntryToJavaScript` nem `vmEntryToNative`. O porte reentra pelo `execute_call`, mas a entrada não cobra os
+    /// frames nativos (`VMEntryKind::LLIntCall`) e usa essa base.
+    pub(crate) fn call_from_llint(
+        &mut self,
+        frame_base: usize,
+        function: JSValue,
+        call_data: &crate::runtime::call_data::CallData,
+        this_value: JSValue,
+        args: &[JSValue],
+    ) -> LLIntResult<JSValue> {
+        self.llint_call.set(Some(frame_base));
+        let result = self.execute_call(function, call_data, this_value, None, args);
+        // A chamada pode falhar antes de empilhar o frame (estouro de pilha, exceção ao compilar).
+        self.llint_call.set(None);
+        result
     }
 
     /// O `sp` do `.asm`.
@@ -328,14 +354,26 @@ impl Interpreter {
         proto_call_frame: &ProtoCallFrame,
         kind: crate::runtime::vm::VMEntryKind,
     ) -> LLIntResult<(CallFrame, crate::runtime::vm::VMEntryMark)> {
+        let llint_base = self.llint_call.take();
+        let kind = if llint_base.is_some() { crate::runtime::vm::VMEntryKind::LLIntCall } else { kind };
         let (native_bytes, entry_mark) = global_object.vm().enter_vm(kind);
         let padded_arg_count = proto_call_frame.padded_arg_count as usize;
         let argument_count_including_this = proto_call_frame.argument_count_including_this() as usize;
 
-        // loadi ProtoCallFrame::paddedArgCount; addp CallFrameHeaderSlots; subp sp
-        // Mais os frames nativos que o C++ empilha antes do frame de entrada (`VM::enter_vm`).
-        let size = padded_arg_count + CALL_FRAME_HEADER_SLOTS + native_bytes.div_ceil(size_of::<crate::runtime::js_value::EncodedJSValue>());
-        let frame_base = match self.sp().checked_sub(size) {
+        let frame_base = match llint_base {
+            // `prepareForRegularCall` em `cfr - m_stackOffset`; com menos argumentos que parâmetros, o
+            // `slow_path_arityCheck` do chamado desce o frame pelos slots que faltam, alinhados.
+            Some(base) => base.checked_sub(round_up_to_multiple_of(
+                stack_alignment_registers() as usize,
+                padded_arg_count.saturating_sub(argument_count_including_this),
+            )),
+            // loadi ProtoCallFrame::paddedArgCount; addp CallFrameHeaderSlots; subp sp
+            // Mais os frames nativos que o C++ empilha antes do frame de entrada (`VM::enter_vm`).
+            None => self.sp().checked_sub(
+                padded_arg_count + CALL_FRAME_HEADER_SLOTS + native_bytes.div_ceil(size_of::<crate::runtime::js_value::EncodedJSValue>()),
+            ),
+        };
+        let frame_base = match frame_base {
             Some(frame_base) if self.stack.ensure_capacity_for(frame_base as isize) => frame_base,
             // _llint_stack_check_at_vm_entry, depois _llint_throw_stack_overflow_error_from_vm_entry.
             _ => return Err(throw_stack_overflow_error(global_object)),

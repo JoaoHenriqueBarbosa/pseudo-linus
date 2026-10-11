@@ -103,7 +103,7 @@ fn async_iterator_open(f: &mut SlowPathFrame, op: &OpAsyncIteratorOpen, metadata
     }
 
     record_seen_mode::<OpAsyncIteratorOpenMetadata>(f, metadata_id, IterationMode::Generic);
-    open_iterator_call(f, (op.iterable, op.symbol_iterator, op.iterator, op.next))
+    open_iterator_call(f, (op.iterable, op.symbol_iterator, op.iterator, op.next), op.stack_offset)
 }
 
 /// `op_async_iterator_next`: com a sentinela em `next`, o `slow_path_async_iterator_next_with_driver`; sem ela,
@@ -127,7 +127,8 @@ fn async_iterator_next(f: &mut SlowPathFrame, op: &OpAsyncIteratorNext, metadata
     }
 
     let arguments: Vec<JSValue> = if op.has_value { vec![f.get(resume_value_operand_for(op))] } else { Vec::new() };
-    let result = call(ctx.global_object, next, &call_data, f.get(op.iterator), &arguments)?;
+    let frame_base = crate::llint::handlers_iterator::llint_call_frame_base(f, op.stack_offset)?;
+    let result = crate::runtime::call_data::call_from_llint(ctx.global_object, frame_base, next, &call_data, f.get(op.iterator), &arguments)?;
     f.set(op.dst, result);
     Ok(())
 }

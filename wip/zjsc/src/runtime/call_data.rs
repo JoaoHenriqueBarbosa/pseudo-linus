@@ -227,6 +227,20 @@ pub fn call(
     with_vm_interpreter!(global_object, |interpreter| interpreter.execute_call(function, call_data, this_value, None, args))
 }
 
+/// A chamada genérica de `op_iterator_open`, `op_iterator_next` e `op_async_iterator_next` (o `callHelper` do
+/// `.asm`) com o frame do chamado em `frame_base`, ver `Interpreter::call_from_llint`.
+pub fn call_from_llint(
+    global_object: &JSGlobalObject,
+    frame_base: usize,
+    function: JSValue,
+    call_data: &CallData,
+    this_value: JSValue,
+    args: &[JSValue],
+) -> LLIntResult<JSValue> {
+    debug_assert!(!call_data.is_none(), "Expected object to be callable but received CallData::Type::None");
+    with_vm_interpreter!(global_object, |interpreter| interpreter.call_from_llint(frame_base, function, call_data, this_value, args))
+}
+
 /// `call(globalObject, functionObject, callData, thisValue, args, returnedException)`: a exceção JS
 /// pendente é limpa e devolvida em `Ok(Err(..))`; o valor de sucesso é `Ok(Ok(..))`.
 pub fn call_returning_exception(
