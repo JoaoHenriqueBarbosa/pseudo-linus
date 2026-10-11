@@ -1,0 +1,10 @@
+const c = require("constants");
+const keys = Object.keys(c);
+console.log(keys.length, keys.slice(0, 8).join(","), keys.slice(-4).join(","));
+console.log(Object.getPrototypeOf(c) === Object.prototype, Object.isFrozen(c), require("node:constants") === c);
+console.log(c.E2BIG, c.SIGTERM, c.O_RDONLY, c.RTLD_LAZY, c.PRIORITY_LOW, c.SSL_OP_ALL, c.S_IFMT, c.UV_FS_COPYFILE_EXCL);
+console.log(JSON.stringify(keys).length, JSON.stringify(c).length);
+const os = require("os");
+const fs = require("fs");
+const crypto = require("crypto");
+console.log(keys.every(k => [os.constants.errno, os.constants.signals, os.constants.priority, os.constants.dlopen, fs.constants, crypto.constants].some(p => p[k] === c[k])));

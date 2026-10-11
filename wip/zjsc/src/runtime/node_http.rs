@@ -36,6 +36,7 @@ installers! {
     install_http_module => ("../api/node_http.js", "http"),
     install_https_module => ("../api/node_https.js", "https"),
     install_zlib_module => ("../api/node_zlib.js", "zlib"),
+    install_constants_module => ("../api/node_constants.js", "constants"),
     install_dns_module => ("../api/node_dns.js", "dns"),
     install_dns_promises_module => ("../api/node_dns_promises.js", "dns/promises"),
     install_http_agent_module => ("../api/node__http_agent.js", "_http_agent"),
