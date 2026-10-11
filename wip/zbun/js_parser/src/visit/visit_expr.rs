@@ -1513,7 +1513,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         p.store[e_].test = SideEffects::simplify_boolean(p, p.store[e_].test);
 
-        let Some(side_effects) = { let arg_b = p.store[e_].test.data; SideEffects::to_boolean(p, &arg_b) } else {
+        let test_data = p.store[e_].test.data;
+        let Some(side_effects) = SideEffects::to_boolean(p, &test_data) else {
             { let mut arg_a = p.store[e_].yes; p.visit_expr( &mut arg_a); p.store[e_].yes = arg_a; }
             { let mut arg_a = p.store[e_].no; p.visit_expr( &mut arg_a); p.store[e_].no = arg_a; }
             return;
@@ -2010,7 +2011,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let fn_args = (&p.store[p.store[arrow].args]);
             match fn_args.first() {
                 None => {
-                    for item in (&p.store[p.store[items].items]) {
+                    let items_range = p.store[items].items;
+                    for index in 0..items_range.len() {
+                        let item = &p.store[items_range][index].clone();
                         if let Data::EImport(im) = item.data {
                             if p.store[im].namespace_ref.is_valid() {
                                 p.note_tracked_namespace_use(p.store[im].namespace_ref);

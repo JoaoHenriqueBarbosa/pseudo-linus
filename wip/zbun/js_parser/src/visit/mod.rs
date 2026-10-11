@@ -1283,7 +1283,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         self.arena,
                     );
 
-                    for arg in self.store[func_args].iter() {
+                    for index in 0..func_args.len() {
+                        let arg = &self.store[func_args][index].clone();
                         let BData::BIdentifier(id) = arg.binding.data else {
                             continue;
                         };

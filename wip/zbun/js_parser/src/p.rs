@@ -3720,9 +3720,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         {
             // `StoreRef` Deref: arena-owned, valid for parser 'a lifetime; the
             // recursive calls only touch descendant scopes.
-            let children = self.store[scope].children.as_slice();
-            for child in children {
-                self.hoist_symbols(*child);
+            for index in 0..self.store[scope].children.len() {
+                let child = self.store[scope].children.as_slice()[index];
+                self.hoist_symbols(child);
             }
         }
     }
@@ -3966,7 +3966,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     BumpVec::with_capacity_in(self.store[ex].properties.len_u32() as usize, self.arena);
                 let range = self.store[ex].properties;
                 for i in 0..self.store[range].len() {
-                    let mut item = self.store[range][i];
+                    let mut item = self.store[range][i].clone();
                     if item.flags.contains(Flags::Property::IsMethod)
                         || item.kind == js_ast::g::PropertyKind::Get
                         || item.kind == js_ast::g::PropertyKind::Set
@@ -4137,7 +4137,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             Self::ALLOW_MACROS && (path.is_macro || crate::Macro::is_macro_path(self.store.str(path.text)));
         let mut stmt = stmt_;
         if is_macro {
-            let id = { let arg_c = self.store.str(path.text); self.add_import_record(ImportKind::Stmt, path.loc, arg_c) };
+            let id = { let arg_c = self.arena_str(path.text); self.add_import_record(ImportKind::Stmt, path.loc, arg_c) };
             self.import_records.items_mut()[id as usize].path.namespace = crate::Macro::NAMESPACE;
             self.import_records.items_mut()[id as usize]
                 .flags
@@ -4251,7 +4251,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     && stmt.items.is_empty())
         );
 
-        stmt.import_record_index = { let arg_c = self.store.str(path.text); self.add_import_record(ImportKind::Stmt, path.loc, arg_c) };
+        stmt.import_record_index = { let arg_c = self.arena_str(path.text); self.add_import_record(ImportKind::Stmt, path.loc, arg_c) };
         self.import_records.items_mut()[stmt.import_record_index as usize]
             .flags
             .set(
@@ -5515,9 +5515,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         if !part_stmts.is_empty() {
-            // `part_stmts` vai para o Store; `can_be_removed_if_unused` é calculado sobre a faixa já gravada.
+            // `can_be_removed_if_unused` é calculado antes de `part_stmts` ir para o Store: a faixa gravada
+            // emprestaria o Store enquanto `stmts_can_be_removed_if_unused` reentra em `self`.
+            let can_be_removed_if_unused = self.stmts_can_be_removed_if_unused(&part_stmts);
             let final_stmts = self.store.alloc_slice(part_stmts);
-            let can_be_removed_if_unused = { let arg_a = (&self.store[final_stmts]); self.stmts_can_be_removed_if_unused( arg_a) };
 
             let symbol_uses = self.take_symbol_uses()?;
             parts.push(js_ast::Part {
@@ -6150,7 +6151,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             js_ast::ExprData::EDot(ex) => return self.store[*ex].can_be_removed_if_unused,
-            js_ast::ExprData::EClass(ex) => return { let arg_a = &self.store[*ex]; self.class_can_be_removed_if_unused( arg_a) },
+            js_ast::ExprData::EClass(ex) => return { let arg_a = self.store[*ex].clone(); self.class_can_be_removed_if_unused(&arg_a) },
             js_ast::ExprData::EIdentifier(ex) => {
                 debug_assert!(!ex.ref_.is_source_contents_slice()); // was not visited
 
@@ -6212,7 +6213,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         || { let arg_a = self.store[*ex].no; self.expr_can_be_removed_if_unused_without_dce_check( &arg_a) });
             }
             js_ast::ExprData::EArray(ex) => {
-                for item in (&self.store[self.store[*ex].items]) {
+                let items_range = self.store[*ex].items;
+                for index in 0..items_range.len() {
+                    let item = &self.store[items_range][index].clone();
                     if !self.expr_can_be_removed_if_unused_without_dce_check(item) {
                         return false;
                     }
@@ -6220,7 +6223,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 return true;
             }
             js_ast::ExprData::EObject(ex) => {
-                for property in (&self.store[self.store[*ex].properties]) {
+                let properties_range = self.store[*ex].properties;
+                for index in 0..properties_range.len() {
+                    let property = &self.store[properties_range][index].clone();
                     // The key must still be evaluated if it's computed or a spread.
                     // A computed key is side-effect free only if it's a primitive
                     // literal; unwrap inlined enum members (e.g. `[A.FOO]`) first so
@@ -6247,7 +6252,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // A call that has been marked "__PURE__" can be removed if all arguments
                 // can be removed. The annotation causes us to ignore the target.
                 if self.store[*ex].can_be_unwrapped_if_unused != js_ast::CanBeUnwrapped::Never {
-                    for arg in (&self.store[self.store[*ex].args]) {
+                    let args_range = self.store[*ex].args;
+                    for index in 0..args_range.len() {
+                        let arg = &self.store[args_range][index].clone();
                         if !(self.expr_can_be_removed_if_unused_without_dce_check(arg)
                             || (self.store[*ex].can_be_unwrapped_if_unused
                                 == js_ast::CanBeUnwrapped::IfUnusedAndToStringSafe
@@ -6263,7 +6270,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // A call that has been marked "__PURE__" can be removed if all arguments
                 // can be removed. The annotation causes us to ignore the target.
                 if self.store[*ex].can_be_unwrapped_if_unused != js_ast::CanBeUnwrapped::Never {
-                    for arg in (&self.store[self.store[*ex].args]) {
+                    let args_range = self.store[*ex].args;
+                    for index in 0..args_range.len() {
+                        let arg = &self.store[args_range][index].clone();
                         if !(self.expr_can_be_removed_if_unused_without_dce_check(arg)
                             || (self.store[*ex].can_be_unwrapped_if_unused
                                 == js_ast::CanBeUnwrapped::IfUnusedAndToStringSafe
@@ -7531,7 +7540,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if self.options.features.emit_decorator_metadata {
                         if let Some(cf) = constructor_function {
                             // design:paramtypes
-                            let constructor_args: &[G::Arg] = (&self.store[self.store[cf].func.args]);
+                            let constructor_args: Vec<G::Arg> = self.store[self.store[cf].func.args].to_vec();
                             let args1 = if !constructor_args.is_empty() {
                                 let mut param_array = vec![Expr::default(); constructor_args.len()];
                                 for (i, ca) in constructor_args.iter().enumerate() {
@@ -7637,11 +7646,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .data
                             .e_function()
                             .expect("infallible: variant checked");
-                        // arena-owned `StoreSlice<Arg>` valid for parser 'a.
-                        let method_args: &[G::Arg] = (&self.store[self.store[func].func.args]);
+                        let method_args: Vec<G::Arg> = self.store[self.store[func].func.args].to_vec();
                         {
                             let mut args_array = vec![Expr::default(); method_args.len()];
-                            for (entry, method_arg) in args_array.iter_mut().zip(method_args) {
+                            for (entry, method_arg) in args_array.iter_mut().zip(&method_args) {
                                 *entry = self
                                     .serialize_metadata(method_arg.ts_metadata.clone())
                                     .expect("unreachable");
@@ -7701,11 +7709,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .data
                             .e_function()
                             .expect("infallible: variant checked");
-                        // arena-owned `StoreSlice<Arg>` valid for parser 'a.
-                        let method_args: &[G::Arg] = (&self.store[self.store[func].func.args]);
+                        let method_args: Vec<G::Arg> = self.store[self.store[func].func.args].to_vec();
                         {
                             let mut args_array = vec![Expr::default(); method_args.len()];
-                            for (entry, method_arg) in args_array.iter_mut().zip(method_args) {
+                            for (entry, method_arg) in args_array.iter_mut().zip(&method_args) {
                                 *entry = self
                                     .serialize_metadata(method_arg.ts_metadata.clone())
                                     .expect("unreachable");
@@ -8108,8 +8115,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         debug_assert!(self.store[parent].children.as_slice()[last as usize] == to_flatten);
         self.store[parent].children.truncate(last as usize);
 
-        for item in self.store[to_flatten].children.as_slice() {
-            let mut item = *item;
+        for index in 0..self.store[to_flatten].children.len() {
+            let item = self.store[to_flatten].children.as_slice()[index];
             self.store[item].parent = Some(parent);
             self.store[parent].children.push(item);
         }
@@ -8744,20 +8751,24 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             for part in head_parts.iter() {
                 // Bake does not care about 'import =', as it handles it on it's own
-                let _ = { let arg_b = (&mut self.store[part.stmts]); ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, true>(
-                    self, arg_b,
+                ImportScanner::scan_range::<TYPESCRIPT, SCAN_ONLY, true, _>(
+                    self,
+                    part.stmts,
                     wrap_mode != WrapMode::None,
                     Some(&mut hmr_transform_ctx),
-                ) }?;
+                    |_, _| (),
+                )?;
             }
             // Re-run for the last part.
             {
                 let last_stmts = hmr_transform_ctx.last_part.stmts;
-                let _ = { let arg_b = (&mut self.store[last_stmts]); ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, true>(
-                    self, arg_b,
+                ImportScanner::scan_range::<TYPESCRIPT, SCAN_ONLY, true, _>(
+                    self,
+                    last_stmts,
                     wrap_mode != WrapMode::None,
                     Some(&mut hmr_transform_ctx),
-                ) }?;
+                    |_, _| (),
+                )?;
             }
 
             hmr_transform_ctx.finalize(self, head_parts)?;
@@ -8780,15 +8791,23 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.import_records_for_current_part.clear();
                     self.declared_symbols.clear_retaining_capacity();
 
-                    let result = { let arg_b = (&mut self.store[part.stmts]); ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, false>(
-                        self, arg_b,
+                    let (kept, removed, kept_stmts) = ImportScanner::scan_range::<TYPESCRIPT, SCAN_ONLY, false, _>(
+                        self,
+                        part.stmts,
                         wrap_mode != WrapMode::None,
                         None,
-                    ) }?;
-                    kept_import_equals = kept_import_equals || result.kept_import_equals;
-                    removed_import_equals = removed_import_equals || result.removed_import_equals;
+                        |p, result| {
+                            (
+                                result.kept_import_equals,
+                                result.removed_import_equals,
+                                p.store.alloc_slice(result.stmts.iter().copied()),
+                            )
+                        },
+                    )?;
+                    kept_import_equals = kept_import_equals || kept;
+                    removed_import_equals = removed_import_equals || removed;
 
-                    part.stmts = self.store.alloc_slice(result.stmts.iter().copied());
+                    part.stmts = kept_stmts;
                     if !part.stmts.is_empty() {
                         if self.module_scope().contains_direct_eval
                             && part.declared_symbols.len() > 0
@@ -8855,16 +8874,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if self.module_scope().contains_direct_eval {
             let pin = bundling && exports_kind == js_ast::ExportsKind::Cjs;
             let module_scope = self.module_scope_ref();
-            for member in self.store[module_scope].members.values() {
-                let kind = self.symbols[member.ref_.inner_index() as usize].kind;
+            // Os `Ref`s saem do mapa antes do laço: `record_assignment` reentra em `self`.
+            let member_refs: Vec<Ref> = self.store[module_scope].members.values().map(|member| member.ref_).collect();
+            for member_ref in member_refs {
+                let kind = self.symbols[member_ref.inner_index() as usize].kind;
                 if kind == js_ast::symbol::Kind::Import {
                     continue;
                 }
                 if kind != js_ast::symbol::Kind::Unbound {
-                    self.record_assignment(member.ref_);
+                    self.record_assignment(member_ref);
                 }
                 if pin {
-                    self.symbols[member.ref_.inner_index() as usize].set_must_not_be_renamed(true);
+                    self.symbols[member_ref.inner_index() as usize].set_must_not_be_renamed(true);
                 }
             }
         }
@@ -9706,7 +9727,9 @@ impl LowerUsingDeclarationsContext {
     ) -> ListManaged<'a, Stmt> {
         let mut result = BumpVec::new_in(p.arena);
         let mut exports = BumpVec::<js_ast::ClauseItem>::new_in(p.arena);
-        let mut end: u32 = 0;
+        // O upstream compacta `stmts` no lugar; as leituras ficam sempre à frente da escrita, então a lista
+        // compactada pode ir para um vetor próprio.
+        let mut kept: Vec<Stmt> = Vec::with_capacity(stmts.len());
         for i in 0..stmts.len() {
             let stmt = stmts[i];
             match stmt.data {
@@ -9775,11 +9798,10 @@ impl LowerUsingDeclarationsContext {
                 _ => {}
             }
 
-            stmts[end as usize] = stmt;
-            end += 1;
+            kept.push(stmt);
         }
 
-        let non_exported_statements = p.store.alloc_slice(stmts[..end as usize].iter().copied());
+        let non_exported_statements = p.store.alloc_slice(kept);
 
         let caught_ref = p.generate_temp_ref(Some(b"_catch"));
         let err_ref = p.generate_temp_ref(Some(b"_err"));

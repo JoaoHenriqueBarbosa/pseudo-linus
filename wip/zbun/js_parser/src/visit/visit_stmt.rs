@@ -1153,7 +1153,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Handle being exported inside a namespace
         if data.is_export && p.enclosing_namespace_arg_ref.is_some() {
-            for d in (&p.store[data.decls]) {
+            for index in 0..data.decls.len() {
+                let d = &p.store[data.decls][index].clone();
                 if let Some(val) = d.value {
                     p.record_usage(
                         p.enclosing_namespace_arg_ref
@@ -1164,13 +1165,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // across `p.s(...)`.
                     let wrapper = p.to_expr_wrapper_namespace;
                     let lhs = Binding::to_expr(&d.binding, p, wrapper);
-                    stmts.push(p.s(
-                        S::SExpr {
+                    stmts.push({ let arg_a = S::SExpr {
                             value: Expr::assign(&mut p.store, lhs, val),
                             ..Default::default()
-                        },
+                        }; p.s( arg_a,
                         stmt.loc,
-                    ));
+                    ) });
                 }
             }
 
@@ -1215,7 +1215,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         stmts.push(*stmt);
 
         if p.options.features.react_fast_refresh && p.current_scope == p.module_scope {
-            for decl in (&p.store[data.decls]) {
+            for index in 0..data.decls.len() {
+                let decl = &p.store[data.decls][index].clone();
                 'try_register: {
                     let Some(val) = decl.value else {
                         break 'try_register;

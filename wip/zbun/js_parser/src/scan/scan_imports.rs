@@ -811,4 +811,32 @@ impl<'a> ImportScanner<'a> {
 
         Ok(scanner)
     }
+
+    /// `scan` sobre uma faixa do `Store`: a lista é copiada para fora (a varredura reentra em `p`, que não convive
+    /// com uma fatia emprestada do Store), o resultado vai para `use_result` e a lista, compactada no lugar como no
+    /// upstream, volta à faixa.
+    pub(crate) fn scan_range<
+        'p,
+        const TYPESCRIPT: bool,
+        const SCAN_ONLY: bool,
+        const HOT_MODULE_RELOADING_TRANSFORMATIONS: bool,
+        R,
+    >(
+        p: &mut P<'p, TYPESCRIPT, SCAN_ONLY>,
+        range: bun_ast::StoreSlice<Stmt>,
+        will_transform_to_common_js: bool,
+        hot_module_reloading_context: Option<&mut ConvertESMExportsForHmr>,
+        use_result: impl for<'x> FnOnce(&mut P<'p, TYPESCRIPT, SCAN_ONLY>, ImportScanner<'x>) -> R,
+    ) -> Result<R, crate::Error> {
+        let mut list = p.store[range].to_vec();
+        let scanned = ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, HOT_MODULE_RELOADING_TRANSFORMATIONS>(
+            p,
+            &mut list,
+            will_transform_to_common_js,
+            hot_module_reloading_context,
+        )?;
+        let out = use_result(p, scanned);
+        p.store[range].copy_from_slice(&list);
+        Ok(out)
+    }
 }
