@@ -58,3 +58,70 @@ fn a_longer_url_moves_the_array_and_the_pointers_that_cross_it() {
     assert_eq!(session_file(&long()), fixture("long-session"));
     assert_eq!(tabs_file(&long()), fixture("long-tabs"));
 }
+
+/// O navegador de pé com o DevTools (`measure-navigation.sh` com `MODO=close`, `ss-none.html` e `about:blank`): o
+/// `Session_` leva a entrada única da página e o `Browser.close` grava o `Tabs_` com o título.
+mod live {
+    use ul_chromium::sessions::{decode_entry, live_session, live_tabs};
+
+    use super::fixture;
+
+    /// Zera os dois instantes do fechamento no `Tabs_` (o comando 9 e o 4), que o oráculo sorteia entre 13 e 22 ms.
+    fn without_close_times(mut tabs: Vec<u8>) -> Vec<u8> {
+        tabs[27..35].fill(0);
+        tabs[74..82].fill(0);
+        tabs
+    }
+
+    fn utf16(units: &[u8]) -> String {
+        String::from_utf16(&units.chunks(2).map(|pair| u16::from_le_bytes([pair[0], pair[1]])).collect::<Vec<_>>()).unwrap()
+    }
+
+    /// O conteúdo do primeiro comando `id` de um arquivo SNSS.
+    fn command_of(file: &[u8], id: u8) -> Vec<u8> {
+        let mut at = 8;
+        while at + 3 <= file.len() {
+            let size = usize::from(u16::from_le_bytes([file[at], file[at + 1]]));
+            if file[at + 2] == id {
+                return file[at + 3..at + 2 + size].to_vec();
+            }
+            at += 2 + size;
+        }
+        panic!("sem comando {id}");
+    }
+
+    #[test]
+    fn the_page_entry_rebuilds_the_oracles_session_from_its_own_parameters() {
+        let oracle = fixture("live-page-session");
+        let parts = decode_entry(&command_of(&oracle, 6)).unwrap();
+        assert_eq!((parts.index, parts.transition, parts.status, parts.url.as_str()), (0, 6, 200, "http://127.0.0.1:8000/ss-none.html"));
+        // Os parâmetros sorteados saem do estado do oráculo: a sequência (dois i64 em 0x6C) e os dois GUIDs UTF-16.
+        let sequence = i64::from_le_bytes(parts.state[0x6C..0x74].try_into().unwrap());
+        let guids = [utf16(&parts.state[0x1D4..0x1D4 + 72]), utf16(&parts.state[0x234..0x234 + 72])];
+        assert_eq!(live_session(&oracle, &parts.url, &guids, sequence, parts.time).unwrap(), oracle);
+        // Sobre o molde `about:blank` o mesmo parâmetro troca só a entrada: o arquivo cresce 96 bytes (808 contra 712).
+        let blank = fixture("live-blank-session");
+        let rebuilt = live_session(&blank, &parts.url, &guids, sequence, parts.time).unwrap();
+        assert_eq!(rebuilt.len(), blank.len() + 96);
+        assert_eq!(rebuilt.len(), oracle.len());
+    }
+
+    #[test]
+    fn the_tabs_file_of_a_page_matches_the_oracle_but_for_the_close_times() {
+        let session = fixture("live-page-session");
+        let oracle = fixture("live-page-tabs");
+        // O comando 9 leva o instante do fechamento 17 ms antes dele.
+        let window_time = i64::from_le_bytes(oracle[27..35].try_into().unwrap());
+        let tabs = live_tabs(&session, "ss none", window_time + 17_000).unwrap();
+        assert_eq!(without_close_times(tabs), without_close_times(oracle));
+    }
+
+    #[test]
+    fn the_tabs_file_of_about_blank_matches_the_oracle_but_for_the_close_times() {
+        let session = fixture("live-blank-session");
+        let oracle = fixture("live-blank-tabs");
+        let window_time = i64::from_le_bytes(oracle[27..35].try_into().unwrap());
+        let tabs = live_tabs(&session, "", window_time + 17_000).unwrap();
+        assert_eq!(without_close_times(tabs), without_close_times(oracle));
+    }
+}

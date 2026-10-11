@@ -114,3 +114,27 @@ pub fn open_browser_socket(port: u16) -> Fd {
     }
     fd
 }
+
+/// Sobe o servidor da página em 127.0.0.1:8000 e o navegador com o DevTools (porta 9222), `--user-data-dir=/tmp/h` e a
+/// página como URL; espera `seconds` depois da porta abrir e o encerra por `term` (SIGTERM) ou `close` (`Browser.close`).
+/// Devolve o pid do servidor, que quem chama mata quando terminar de olhar o perfil.
+pub fn run_devtools(page: &'static str, name: &str, how: &str, seconds: f64) -> Pid {
+    let s = sys::current();
+    let (listener, _) = s.tcp_listen_at(std::net::Ipv4Addr::LOCALHOST.into(), 8000, 16, false, true).unwrap();
+    let server = s.spawn_fn(ProcAttrs::default(), b"server".to_vec(), Box::new(move || serve(listener, page))).unwrap();
+    let args: Vec<Vec<u8>> = ["chromium", "--headless", "--no-sandbox", "--disable-gpu", "--remote-debugging-port=9222", "--user-data-dir=/tmp/h", &format!("http://127.0.0.1:8000/{name}")]
+        .iter()
+        .map(|a| a.as_bytes().to_vec())
+        .collect();
+    let pid = s.spawn(SpawnSpec { path: b"/usr/bin/chromium".to_vec(), argv: args, attrs: ProcAttrs::default() }).unwrap();
+    let fd = open_browser_socket(9222);
+    let mut none: [PollFd; 0] = [];
+    let _ = s.poll(&mut none, Some(Duration::from_secs_f64(seconds)));
+    if how == "close" {
+        send_all(fd, &client_frame(r#"{"id":1,"method":"Browser.close"}"#));
+    } else {
+        s.kill(KillTarget::Pid(pid), Signal::SIGTERM).unwrap();
+    }
+    let _ = s.wait4(WaitTarget::Pid(pid), WaitOptions::empty());
+    server
+}

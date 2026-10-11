@@ -202,18 +202,20 @@ pub struct Profile {
     session_storage: Option<Arc<SessionStorageStore>>,
     /// O History do navegador de pé: a navegação da aba entra no banco 10 segundos depois ou no `Browser.close`.
     pub history: Option<Arc<crate::history::HistoryLog>>,
+    /// Os arquivos de sessão do navegador de pé: a página da linha de comando e o `Tabs_` do `Browser.close`.
+    pub sessions: Option<Arc<crate::sessions::SessionsLog>>,
 }
 
 impl Profile {
     /// O perfil do `--user-data-dir`: o `localStorage` e o IndexedDB persistem nos bancos dele.
     pub fn on_disk(local_storage: Option<Arc<LocalStorageStore>>, indexed_db: Option<Arc<IndexedDbStore>>) -> Profile {
         let store = local_storage.clone().map(|store| store as Arc<dyn AreaStore>);
-        Profile { local: Mutex::new(Areas { map: HashMap::new(), store }), indexed_db: indexed_db.unwrap_or_default(), local_storage, session_storage: None, history: None }
+        Profile { local: Mutex::new(Areas { map: HashMap::new(), store }), indexed_db: indexed_db.unwrap_or_default(), local_storage, session_storage: None, history: None, sessions: None }
     }
 
     /// O perfil com todos os bancos do `DiskProfile`, o `sessionStorage` incluído.
     pub fn from_disk(disk: &DiskProfile) -> Profile {
-        Profile { session_storage: disk.session_storage(), history: disk.history_log(), ..Profile::on_disk(disk.local_storage(), disk.indexed_db()) }
+        Profile { session_storage: disk.session_storage(), history: disk.history_log(), sessions: disk.sessions_log(), ..Profile::on_disk(disk.local_storage(), disk.indexed_db()) }
     }
 
     /// Algum banco do perfil grava o que as páginas guardam.

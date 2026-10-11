@@ -474,7 +474,7 @@ impl Browser {
             "Browser.close" => {
                 self.quit = Some(Exit::Close);
                 self.quit_at = Some(std::time::Instant::now());
-                self.close_visit();
+                self.close_logs();
                 Ok(Json::object([]))
             }
             "Browser.getWindowForTarget" => match target_id {
@@ -868,12 +868,18 @@ impl Browser {
         }
     }
 
-    /// O `Browser.close` fecha a visita na hora, antes do atraso da saída; o SIGTERM só vale o que o commit de 10
-    /// segundos já gravou.
-    fn close_visit(&self) {
+    /// O `Browser.close` fecha a visita do History e grava o `Tabs_` do Sessions na hora, antes do atraso da saída; o
+    /// SIGTERM só vale o que o commit de 10 segundos já gravou.
+    fn close_logs(&self) {
         if let Some(history) = &self.default_profile().history {
             self.sync_history_title(history);
             history.close((ul_common::time::realtime_nanos() / 1000) as i64);
+        }
+        if let Some(sessions) = &self.default_profile().sessions {
+            if let Some(page) = self.targets.iter().find(|target| target.kind == "page") {
+                sessions.set_title(&page.title);
+            }
+            sessions.close(ul_common::time::webkit_now_micros());
         }
     }
 
@@ -965,6 +971,9 @@ pub fn run(ctx: &mut Ctx, options: &Options, url: &str, default_profile: crate::
     browser.open_target(url, true, false, None);
     if let Some(history) = &browser.default_profile().history {
         history.record(crate::history::Navigation { url: url.to_owned(), title: String::new(), start_us: started_us });
+    }
+    if let Some(sessions) = &browser.default_profile().sessions {
+        sessions.start(url, started_us + ul_common::time::WEBKIT_EPOCH_US);
     }
     browser.serve(listener);
     let exit = browser.quit.unwrap_or(Exit::Signal);

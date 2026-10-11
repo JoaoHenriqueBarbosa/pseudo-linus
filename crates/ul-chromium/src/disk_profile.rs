@@ -289,6 +289,8 @@ pub struct DiskProfile {
     indexed_db: OnceLock<Arc<IndexedDbStore>>,
     /// O History do navegador de pé, criado na primeira vez que o DevTools o pede.
     history: OnceLock<Arc<history::HistoryLog>>,
+    /// Os arquivos de sessão do navegador de pé, criados na primeira vez que o DevTools os pede.
+    sessions_log: OnceLock<Arc<sessions::SessionsLog>>,
     /// As navegações da aba nesta execução, para o History.
     navigations: Mutex<Vec<Navigation>>,
     /// As respostas que o navegador buscou nesta execução, cada uma com a página de topo, para o cache de disco.
@@ -320,7 +322,7 @@ impl DiskProfile {
             Some(path) if !path.is_empty() => path,
             _ => [home.as_slice(), b"/.config"].concat(),
         };
-        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None, indexed_db: OnceLock::new(), history: OnceLock::new(), navigations: Mutex::new(Vec::new()), resources: Mutex::new(Vec::new()), window_id: random_below(1 << 31) as i64 }
+        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None, indexed_db: OnceLock::new(), history: OnceLock::new(), sessions_log: OnceLock::new(), navigations: Mutex::new(Vec::new()), resources: Mutex::new(Vec::new()), window_id: random_below(1 << 31) as i64 }
     }
 
     /// O IndexedDB do perfil (`Default/IndexedDB`): cada origem ganha o leveldb dela no primeiro uso.
@@ -414,6 +416,15 @@ impl DiskProfile {
         let dir = self.user_data_dir.as_deref()?;
         let path = String::from_utf8_lossy(&[dir, b"/Default/History"].concat()).into_owned();
         Some(self.history.get_or_init(|| Arc::new(history::HistoryLog::new(path, self.start_us, self.window_id))).clone())
+    }
+
+    /// Os arquivos de sessão do navegador de pé (DevTools). Sem `--user-data-dir` não há sessão em disco.
+    pub fn sessions_log(&self) -> Option<Arc<sessions::SessionsLog>> {
+        let dir = self.user_data_dir.as_deref()?;
+        let folder = String::from_utf8_lossy(&[dir, b"/Default/Sessions"].concat()).into_owned();
+        let guids = [crate::devtools::uuid(), crate::devtools::uuid()];
+        let sequence = (0x65d8 << 36) | random_below(1 << 36) as i64;
+        Some(self.sessions_log.get_or_init(|| Arc::new(sessions::SessionsLog::new(folder, guids, sequence))).clone())
     }
 
     /// O journal quente do History que o navegador de pé deixa se sai antes do commit de 10 segundos com uma navegação.

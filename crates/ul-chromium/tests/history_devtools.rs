@@ -18,35 +18,13 @@ use sysabi::*;
 mod support;
 
 const PAGE: &str = include_str!("../../../testbench/corpus/headless-storage/ss-none.html");
-const HTTP_PORT: u16 = 8000;
-const DEVTOOLS_PORT: u16 = 9222;
-
-fn pause(s: &dyn Syscalls, wait: Duration) {
-    let mut none: [PollFd; 0] = [];
-    let _ = s.poll(&mut none, Some(wait));
-}
-
-/// `history_client COMO SEGUNDOS`: sobe o servidor da página e o navegador, espera `SEGUNDOS` depois da porta abrir e
-/// encerra por `term` (SIGTERM) ou `close` (`Browser.close`); imprime o que o History e o journal têm.
+/// `history_client COMO SEGUNDOS`: sobe o navegador pela página, espera `SEGUNDOS` depois da porta abrir e o encerra por
+/// `term` (SIGTERM) ou `close` (`Browser.close`); imprime o que o History e o journal têm.
 fn history_client(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     let how = argv[1].to_string_lossy().into_owned();
     let seconds: f64 = argv[2].to_string_lossy().parse().unwrap();
     let s = sys::current();
-    let (listener, _) = s.tcp_listen_at(std::net::Ipv4Addr::LOCALHOST.into(), HTTP_PORT, 16, false, true).unwrap();
-    let server = s.spawn_fn(ProcAttrs::default(), b"server".to_vec(), Box::new(move || support::serve(listener, PAGE))).unwrap();
-    let args: Vec<Vec<u8>> = ["chromium", "--headless", "--no-sandbox", "--disable-gpu", &format!("--remote-debugging-port={DEVTOOLS_PORT}"), "--user-data-dir=/tmp/h", &format!("http://127.0.0.1:{HTTP_PORT}/ss-none.html")]
-        .iter()
-        .map(|a| a.as_bytes().to_vec())
-        .collect();
-    let pid = s.spawn(SpawnSpec { path: b"/usr/bin/chromium".to_vec(), argv: args, attrs: ProcAttrs::default() }).unwrap();
-    let fd = support::open_browser_socket(DEVTOOLS_PORT);
-    pause(&*s, Duration::from_secs_f64(seconds));
-    if how == "close" {
-        support::send_all(fd, &support::client_frame(r#"{"id":1,"method":"Browser.close"}"#));
-    } else {
-        s.kill(KillTarget::Pid(pid), Signal::SIGTERM).unwrap();
-    }
-    let _ = s.wait4(WaitTarget::Pid(pid), WaitOptions::empty());
+    let server = support::run_devtools(PAGE, "ss-none.html", &how, seconds);
     let size = |path: &[u8]| sys::read_file(path).map_or(-1, |bytes| bytes.len() as i64);
     let _ = ctx.stdout().write_all(format!("journal {}\n", size(b"/tmp/h/Default/History-journal")).as_bytes());
     let query = "select * from urls; select * from visits; select * from segments; select * from segment_usage; select * from content_annotations; select * from context_annotations; select count(*) from visited_links";

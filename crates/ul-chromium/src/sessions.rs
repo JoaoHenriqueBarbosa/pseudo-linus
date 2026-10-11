@@ -6,8 +6,9 @@
 //! sequência. Os moldes e a remontagem conferem byte a byte com dois arquivos do oráculo (endereços de 34 e de 66
 //! caracteres, `tests/sessions.rs`).
 //!
-//! Cobre a forma da execução com uma navegação para uma página (a entrada `about:blank` e a da página). O que mais o
-//! Chromium grava (redirecionamentos, POST, recarga, páginas de erro) ainda não foi medido.
+//! Cobre a forma da execução com uma navegação para uma página (a entrada `about:blank` e a da página) e a do navegador
+//! de pé com o DevTools (`SessionsLog`). O que mais o Chromium grava (redirecionamentos, POST, recarga, páginas de
+//! erro) ainda não foi medido.
 
 /// O estado de página da entrada `about:blank` que tem uma navegação depois dela.
 static BLANK_STATE: &[u8] = include_bytes!("../profile/session-state-blank.bin");
@@ -262,4 +263,188 @@ pub fn tabs_file(snapshot: &Snapshot) -> Vec<u8> {
     let mut marker = ints(&[tab, 1]);
     put_i64(&mut marker, snapshot.tabs_time);
     snss(vec![command(4, &marker), command(1, &blank), command(1, &page), command(255, &[])])
+}
+
+/// Os campos de uma entrada de navegação que o navegador de pé reescreve.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EntryParts {
+    pub tab: i32,
+    pub index: i32,
+    pub url: String,
+    pub state: Vec<u8>,
+    pub transition: i32,
+    pub status: i32,
+    pub time: i64,
+}
+
+/// Um cursor sobre o conteúdo de um comando (inteiros little endian e strings do pickle).
+struct Cursor<'a> {
+    bytes: &'a [u8],
+    at: usize,
+}
+
+impl<'a> Cursor<'a> {
+    fn take(&mut self, count: usize) -> Option<&'a [u8]> {
+        let slice = self.bytes.get(self.at..self.at.checked_add(count)?)?;
+        self.at += count;
+        Some(slice)
+    }
+
+    fn i32(&mut self) -> Option<i32> {
+        Some(i32::from_le_bytes(self.take(4)?.try_into().ok()?))
+    }
+
+    fn i64(&mut self) -> Option<i64> {
+        Some(i64::from_le_bytes(self.take(8)?.try_into().ok()?))
+    }
+
+    /// Uma string do pickle (o tamanho, os bytes e o enchimento até 4).
+    fn string(&mut self) -> Option<&'a [u8]> {
+        let length = self.i32()? as usize;
+        let bytes = self.take(length)?;
+        self.take(length.next_multiple_of(4) - length)?;
+        Some(bytes)
+    }
+
+    /// Uma string16 do pickle (o número de caracteres, os caracteres e o enchimento).
+    fn string16(&mut self) -> Option<()> {
+        let units = self.i32()? as usize;
+        self.take((units * 2).next_multiple_of(4))?;
+        Some(())
+    }
+}
+
+/// Lê o conteúdo de um comando de entrada de navegação (o que `Entry::encode` escreve).
+pub fn decode_entry(payload: &[u8]) -> Option<EntryParts> {
+    let mut cursor = Cursor { bytes: payload, at: 4 };
+    let tab = cursor.i32()?;
+    let index = cursor.i32()?;
+    let url = String::from_utf8(cursor.string()?.to_vec()).ok()?;
+    cursor.string16()?;
+    let state_length = cursor.i32()? as usize;
+    let state = cursor.take(state_length)?.to_vec();
+    cursor.take(state_length.next_multiple_of(4) - state_length)?;
+    let transition = cursor.i32()?;
+    cursor.i32()?;
+    cursor.string()?;
+    cursor.i32()?;
+    cursor.string()?;
+    cursor.i32()?;
+    let time = cursor.i64()?;
+    cursor.string16()?;
+    let status = cursor.i32()?;
+    Some(EntryParts { tab, index, url, state, transition, status, time })
+}
+
+/// Os comandos de um arquivo SNSS, na ordem, como (id, conteúdo).
+fn commands_of(file: &[u8]) -> Option<Vec<(u8, Vec<u8>)>> {
+    let mut at = 8;
+    let mut out = Vec::new();
+    while at + 2 <= file.len() {
+        let size = usize::from(u16::from_le_bytes([file[at], file[at + 1]]));
+        let body = file.get(at + 2..at + 2 + size)?;
+        out.push((*body.first()?, body[1..].to_vec()));
+        at += 2 + size;
+    }
+    Some(out)
+}
+
+fn rebuilt(commands: Vec<(u8, Vec<u8>)>) -> Vec<u8> {
+    snss(commands.into_iter().map(|(id, payload)| command(id, &payload)).collect())
+}
+
+/// A transição do `about:blank` e da página aberta pela linha de comando, e o estado da entrada: no navegador de pé a
+/// aba tem uma entrada só.
+const LIVE_TRANSITION: i32 = 6;
+
+/// O `Session_` do navegador de pé com a página da linha de comando: a entrada única do molde (`about:blank`) dá lugar à
+/// da página (índice 0, transição 6, status 200, sem título), na aba que o molde já tem.
+pub fn live_session(template: &[u8], url: &str, guids: &[String; 2], sequence: i64, time: i64) -> Option<Vec<u8>> {
+    let mut commands = commands_of(template)?;
+    let position = commands.iter().position(|(id, _)| *id == 6)?;
+    let blank = decode_entry(&commands[position].1)?;
+    let entry = Entry { tab: blank.tab, index: 0, url, title: "", state: page_state(PAGE_STATE, Some(url), guids, sequence), transition: LIVE_TRANSITION, status: 200, tasks: [-1; 3], time };
+    commands[position].1 = entry.encode();
+    Some(rebuilt(commands))
+}
+
+/// O `Tabs_` que o `Browser.close` grava: a aba (janela mais 2 no comando 9, mais 3 no resto) com a entrada do
+/// `Session_` (a mesma, com o título da página e os ids de tarefa) e os instantes do fechamento. `closed` é o instante
+/// do fechamento (relógio WebKit); o comando 9 leva 17 ms antes dele e o 4, 50 µs depois (medido em cinco execuções, de
+/// 13 a 22 ms).
+pub fn live_tabs(session: &[u8], title: &str, closed: i64) -> Option<Vec<u8>> {
+    let commands = commands_of(session)?;
+    let window = i32::from_le_bytes(commands.iter().find(|(id, _)| *id == 9)?.1.get(..4)?.try_into().ok()?);
+    let parts = decode_entry(&commands.iter().find(|(id, _)| *id == 6)?.1)?;
+    let tab = window + 3;
+    let entry = Entry {
+        tab,
+        index: 0,
+        url: &parts.url,
+        title,
+        state: parts.state,
+        transition: parts.transition,
+        status: parts.status,
+        tasks: [parts.time, -1, parts.time],
+        time: parts.time,
+    };
+    let window_time = closed - 17_000;
+    let mut size = vec![0x30, 0, 0, 0];
+    put_i32(&mut size, window + 2);
+    put_i32(&mut size, 0);
+    put_i32(&mut size, 1);
+    put_i64(&mut size, window_time);
+    size.extend(ints(&[10, 10, 0x30C, 0x244, 1, 0, 0]));
+    let mut marker = ints(&[tab, 0]);
+    put_i64(&mut marker, window_time + 50);
+    Some(snss(vec![command(9, &size), command(4, &marker), command(1, &entry.encode()), command(255, &[])]))
+}
+
+/// Os arquivos de sessão do navegador de pé (DevTools): o `Session_` ganha a página da linha de comando assim que o
+/// navegador a abre e o `Browser.close` grava o `Tabs_` (o SIGTERM só deixa o `Session_`, medido no oráculo aos 4, 8 e 12 s).
+#[derive(Debug)]
+pub struct SessionsLog {
+    folder: String,
+    guids: [String; 2],
+    sequence: i64,
+    title: std::sync::Mutex<String>,
+}
+
+impl SessionsLog {
+    pub fn new(folder: String, guids: [String; 2], sequence: i64) -> SessionsLog {
+        SessionsLog { folder, guids, sequence, title: std::sync::Mutex::default() }
+    }
+
+    fn find(&self, prefix: &str) -> Option<String> {
+        let found = sysabi::sys::read_dir(self.folder.as_bytes()).ok()?.into_iter().find(|entry| entry.name.starts_with(prefix.as_bytes()))?;
+        Some(format!("{}/{}", self.folder, String::from_utf8_lossy(&found.name)))
+    }
+
+    /// A página da linha de comando abriu: reescreve o `Session_` do molde (sem efeito para `about:blank`).
+    pub fn start(&self, url: &str, time: i64) {
+        if url == "about:blank" {
+            return;
+        }
+        let Some(path) = self.find("Session_") else { return };
+        let Ok(template) = sysabi::sys::read_file(path.as_bytes()) else { return };
+        if let Some(file) = live_session(&template, url, &self.guids, self.sequence, time) {
+            let _ = sysabi::util::write_file(path.as_bytes(), &file, 0o600);
+        }
+    }
+
+    pub fn set_title(&self, title: &str) {
+        *self.title.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = title.to_owned();
+    }
+
+    /// O `Browser.close`: grava o `Tabs_` com o título da página; o nome é o instante do fechamento.
+    pub fn close(&self, closed: i64) {
+        let Some(path) = self.find("Session_") else { return };
+        let Ok(session) = sysabi::sys::read_file(path.as_bytes()) else { return };
+        let title = self.title.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone();
+        // Só a página tem título no `Tabs_` (o `about:blank` fica sem).
+        let is_blank = commands_of(&session).and_then(|commands| decode_entry(&commands.iter().find(|(id, _)| *id == 6)?.1)).is_some_and(|parts| parts.url == "about:blank");
+        if let Some(file) = live_tabs(&session, if is_blank { "" } else { &title }, closed) {
+            let _ = sysabi::util::write_file(format!("{}/Tabs_{closed}", self.folder).as_bytes(), &file, 0o600);
+        }
+    }
 }
