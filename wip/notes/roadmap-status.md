@@ -9,7 +9,7 @@ Convenção da coluna "Fonte": **eu** = medido pelo coordenador com comando pró
 por um fork na saída do container dele, não recompilado pelo coordenador; **vigente** = valor herdado de um arquivo
 versionado, com a data do arquivo.
 
-Última verificação: 2026-10-11 17:30 (CEST).
+Última verificação: 2026-10-11 17:45 (CEST).
 
 ## Ritmo medido
 
@@ -31,7 +31,7 @@ por dia no zjsc e 60 a 70 no zbun.
 
 | Marco | Critério do PRD | Estado medido | Fonte |
 |---|---|---|---|
-| M5.1 | JavaScriptCore passando 80% do test262 | **CUMPRIDO: 50 706 de 52 017 (97,5%)**, test262 no commit `2e0a56762801e275a9fdf96dc49d90ba0cddcf63`. Por topo: built-ins 98,0%, language 97,3%, annexB 96,6%, intl402 95,8% (`test/staging` e `test/harness` fora). Corredor `wip/zjsc/scripts/test262-run.py` (sloppy e strict, `negative` com fase, `includes`, `async`, módulo). Corredor validado por mim com 6 testes de controle (2 passam, 4 falham pelo motivo certo). 553 das 1311 falhas são limite do corredor (fixtures de módulo e `$262.createRealm`), 104 são `import source/defer`, 8 crashes e 2 timeouts | fork, controle eu |
+| M5.1 | JavaScriptCore passando 80% do test262 | **CUMPRIDO: 50 706 de 52 017 (97,5%)**, test262 no commit `2e0a56762801e275a9fdf96dc49d90ba0cddcf63`. Por topo: built-ins 98,0%, language 97,3%, annexB 96,6%, intl402 95,8% (`test/staging` e `test/harness` fora). Corredor `wip/zjsc/scripts/test262-run.py` (sloppy e strict, `negative` com fase, `includes`, `async`, módulo). Corredor validado por mim com 6 testes de controle (2 passam, 4 falham pelo motivo certo). 553 das 1311 falhas são limite do corredor (fixtures de módulo e `$262.createRealm`), 104 são `import source/defer`, 8 crashes (fechados em `2653b961`: 7 de Temporal nos limites de data e 1 de `super[chave]` com namespace) e 2 timeouts (não eram bug: 1 milhão de iterações de `decodeURI` leva 19,9 s; limite do corredor passou para 60 s) | fork, controle eu |
 | M5.2 | `node` com CommonJS e ESM, `fs`, `path`, `http` e `npm install` | Direção trocada para o bun: `bun` é programa do userland, com CJS e ESM, `node:fs` completo, `Bun.serve` e `fetch` em loopback, `Bun.file`, streams, CLI parcial. Comando `node` e `npm install`: não existem (só `bun` está registrado) | eu |
 | M5.3 | `--dump-dom` correto em páginas com scripts simples | Cumprido além do critério: 42 de 42 páginas da internet idênticas ao Chromium 154 (meta do goal era 95% por grupo) | fork |
 | M5.4 | Recorte do Web Platform Tests acima de 90% | **NÃO MEDIDO.** Não há recorte de WPT no repositório | eu |
@@ -70,6 +70,10 @@ por dia no zjsc e 60 a 70 no zbun.
 4. bun/node (M5.2): `bun run`, `-p`, opções, `test`, `x`; decidir se o comando `node` e o `npm install` entram.
 5. Cauda de Intl nos locales de uso real, depois ja e zh; calendários nativos por último.
 
+## Riscos sem medição
+
+- **Desempenho do interpretador:** 1 milhão de iterações de `decodeURI` leva 19,9 s no zjsc (fork, test262). O PRD pede `import numpy` abaixo de 200 ms e não fixa meta de desempenho do motor JavaScript; ainda assim a velocidade não foi medida em benchmark. Sem estimativa.
+
 ## Estimativas otimistas
 
 Método: ritmo medido acima, aplicado a itens com escopo conhecido. Item sem baseline não recebe estimativa.
@@ -105,3 +109,4 @@ formais; este arquivo a substitui. Corrigido também: o PRD pede screenshot por 
 - 2026-10-11 16:25: replay do Playwright corrigido para 402 de 664 (60,5%): o harness enviava o script injetado como texto literal. `DOM.*` e `Input.*` implementados (fork), placar novo pendente. test262 em 29 500 de 52 017 testes rodados, sem baseline ainda.
 - 2026-10-11 17:00: test262 medido: 97,5% (M5.1 e a parte de test262 do M5.6 cumpridos). Corredor validado com 6 controles. Próxima lacuna de medição: WPT (M5.4).
 - 2026-10-11 17:30: replay do Playwright em 725 de 1151 (cinco cenas). `bun run` e `node:tty` integrados; driver do Playwright parado em `crypto`. Corpus do `ul-bun` em 216 casos.
+- 2026-10-11 17:45: 8 crashes do test262 fechados (`2653b961`); desempenho do interpretador registrado como risco sem medição.
