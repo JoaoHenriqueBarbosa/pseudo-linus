@@ -1,0 +1,26 @@
+[package]
+name = "bun_react_compiler"
+version = "1.4.2"
+edition.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+# Suporte do harness de fixtures: pragmas `// @pragma` de teste e as passadas atrás deles.
+fixtures = []
+# O código copiado do upstream, enquanto não compila (1444 erros na primeira medição).
+port = []
+
+[dependencies]
+bun_alloc = { path = "../bun_alloc" }
+bun_ast = { path = "../ast" }
+bun_collections = { path = "../bun_collections" }
+bun_core = { path = "../bun_core" }
+enumset.workspace = true
+rustc-hash = "2"
+smallvec.workspace = true
+
+[lints]
+workspace = true
