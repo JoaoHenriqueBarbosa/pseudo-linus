@@ -20,7 +20,7 @@ fn d(bits: u64) -> f64 {
     f64::from_bits(bits)
 }
 
-use super::words::fma;
+use super::words::{fma, math_invalid};
 
 #[inline]
 fn top12(x: f64) -> u32 {
@@ -451,7 +451,7 @@ pub fn pow(x: f64, y: f64) -> f64 {
         if ix >> 63 != 0 {
             let yint = check_int(iy);
             if yint == 0 {
-                return f64::NAN;
+                return math_invalid(x);
             }
             if yint == 1 {
                 sign_bias = 0x800 << 7;

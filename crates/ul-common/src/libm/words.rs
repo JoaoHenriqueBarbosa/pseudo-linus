@@ -25,3 +25,11 @@ pub fn set_high_word(x: f64, high: u32) -> f64 {
 pub fn fma(a: f64, b: f64, c: f64) -> f64 {
     a.mul_add(b, c)
 }
+
+/// `__math_invalid` (`math_err.c`): o resultado de domínio inválido. A conta `(x - x) / (x - x)` no lugar de uma
+/// constante é o que dá o NaN com sinal do x86 (`0xfff8000000000000`) quando `x` é finito, e preserva o NaN de
+/// entrada quando `x` já é NaN. O JavaScript vê a diferença pelos bits num `Float64Array`.
+#[inline]
+pub fn math_invalid(x: f64) -> f64 {
+    (x - x) / (x - x)
+}

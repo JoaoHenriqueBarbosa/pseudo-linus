@@ -16,7 +16,7 @@ use ul_common::libm::{exp, log};
 const ONE: f64 = 1.0;
 const LN2: f64 = 6.931_471_805_599_453_094_17e-1; // 0x3fe62e42fefa39ef
 
-use ul_common::libm::words::{fma, high_word, low_word, set_high_word};
+use ul_common::libm::words::{fma, high_word, low_word, math_invalid, set_high_word};
 
 /// Soma `k` ao expoente pelo high word (`SET_HIGH_WORD (y, high + (k << 20))`).
 #[inline]
@@ -159,7 +159,7 @@ pub fn log1p(x: f64) -> f64 {
             if x == -1.0 {
                 return -TWO54 / 0.0;
             }
-            return f64::NAN;
+            return math_invalid(x);
         }
         if ax < 0x3e20_0000 {
             if ax < 0x3c90_0000 {
@@ -481,7 +481,7 @@ pub fn log10(x: f64) -> f64 {
             return -TWO54 / x.abs();
         }
         if hx < 0 {
-            return f64::NAN;
+            return math_invalid(x);
         }
         k -= 54;
         x *= TWO54;
@@ -545,7 +545,7 @@ pub fn acosh(x: f64) -> f64 {
     if hx == 0x3ff0_0000_0000_0000 {
         return 0.0;
     }
-    f64::NAN
+    math_invalid(x)
 }
 
 /// `__ieee754_atanh` (`e_atanh.c`).
@@ -564,7 +564,7 @@ pub fn atanh(x: f64) -> f64 {
         t = 0.5 * log1p((xa + xa) / (1.0 - xa));
     } else {
         if xa > 1.0 {
-            return f64::NAN;
+            return math_invalid(x);
         }
         return x / 0.0;
     }

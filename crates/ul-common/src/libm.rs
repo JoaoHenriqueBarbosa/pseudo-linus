@@ -82,6 +82,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn domain_errors_have_the_nan_bits_of_the_bun() {
+        // Medido no bun 1.4.2 com valores de tempo de execução: o `pow` de base negativa com expoente não inteiro dá o
+        // NaN com sinal do x86 (`__math_invalid`), e `Math.log` e `Math.log2` de negativo dão o NaN positivo.
+        assert_eq!(pow(-8.0, 1.5).to_bits(), 0xfff8_0000_0000_0000);
+        assert_eq!(log(-1.0).to_bits(), 0x7ff8_0000_0000_0000);
+        assert_eq!(log2(-8.0).to_bits(), 0x7ff8_0000_0000_0000);
+    }
+
+    #[test]
     fn operation_math_pow_follows_javascriptcore() {
         assert_eq!(operation_math_pow(2.0, 10.0), 1024.0);
         assert!(operation_math_pow(1.0, f64::INFINITY).is_nan());
