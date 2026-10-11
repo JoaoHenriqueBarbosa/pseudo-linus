@@ -7,6 +7,8 @@
 //! O zjsc tem de devolver exatamente a mesma string. Cada programa roda num `evaluate_script` próprio
 //! (realm novo), porque vários declaram globais e alteram protótipos. Quando o harness em si falha
 //! (exceção que escapa), a mensagem sai por `describe_exception`.
+mod common;
+
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use zjsc::api::eval::{describe_exception, evaluate_script};
@@ -63,18 +65,25 @@ fn run(source: &str) -> Result<String, String> {
     }
 }
 
+/// Pilha da thread do teste: a recursão de 1000 e de 2000 níveis dos casos do golden não cabe nos 2 MiB de uma thread comum
+/// (o limite do bun é bem acima disso).
+const STACK_BYTES: usize = 256 * 1024 * 1024;
+
 #[test]
 fn language_semantics_match_bun() {
-    let mut failures = Vec::new();
-    let mut total = 0;
-    for line in GOLDEN.lines().filter(|line| !line.is_empty()) {
-        let (source, expected) = line.split_once('\t').expect("linha com fonte e resultado");
-        total += 1;
-        match run(source) {
-            Ok(actual) if actual == expected => {}
-            Ok(actual) => failures.push(format!("{source}\n    esperado {expected}\n    veio     {actual}")),
-            Err(reason) => failures.push(format!("{source}\n    esperado {expected}\n    {reason}")),
+    common::run_with_stack(STACK_BYTES, || {
+        zjsc::runtime::vm::VM::set_thread_stack_budget(STACK_BYTES - 16 * 1024 * 1024);
+        let mut failures = Vec::new();
+        let mut total = 0;
+        for line in GOLDEN.lines().filter(|line| !line.is_empty()) {
+            let (source, expected) = line.split_once('\t').expect("linha com fonte e resultado");
+            total += 1;
+            match run(source) {
+                Ok(actual) if actual == expected => {}
+                Ok(actual) => failures.push(format!("{source}\n    esperado {expected}\n    veio     {actual}")),
+                Err(reason) => failures.push(format!("{source}\n    esperado {expected}\n    {reason}")),
+            }
         }
-    }
-    assert!(failures.is_empty(), "{} de {} divergem do bun:\n{}", failures.len(), total, failures.join("\n"));
+        assert!(failures.is_empty(), "{} de {} divergem do bun:\n{}", failures.len(), total, failures.join("\n"));
+    });
 }
