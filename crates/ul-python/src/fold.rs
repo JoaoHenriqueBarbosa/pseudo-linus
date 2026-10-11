@@ -66,6 +66,7 @@ impl Fold {
             Fold::Any => "any",
             Fold::All => "all",
             Fold::Extend { .. } => "extend",
+            Fold::Sorted { restore: Some(_), .. } => "list_sort",
             Fold::Sorted { .. } => "sorted",
         }
     }

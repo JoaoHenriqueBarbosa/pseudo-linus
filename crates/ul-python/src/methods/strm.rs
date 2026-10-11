@@ -726,18 +726,7 @@ fn format_map(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("format_map", &kw)?;
     exactly("format_map", &args[1..], 1)?;
     let t = me(&args)?.as_str();
-    let mut mapping: Kw = Vec::new();
-    match &args[1] {
-        Value::Dict(d) => {
-            for (k, v) in d.borrow().iter() {
-                if let Value::Str(name) = k {
-                    mapping.push((name.as_str().to_string(), v.clone()));
-                }
-            }
-        }
-        other => return Err(type_error(format!("'{}' object is not a mapping", other.type_name()))),
-    }
-    Ok(Value::str(str_format(vm, t, &[], &mapping)?))
+    Ok(Value::str(crate::format::str_format_map(vm, t, &args[1])?))
 }
 
 pub const TABLE: &[(&str, NativeFnPtr)] = &[

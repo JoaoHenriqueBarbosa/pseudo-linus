@@ -364,6 +364,24 @@ pub(crate) struct Pull {
     pub(crate) then: ResumeUse,
 }
 
+impl Pull {
+    /// O consumidor com as camadas preguiçosas do meio (`gthread::c_frames`): `list(map(f, g))` puxa por outro C que
+    /// `list(g)`.
+    pub(crate) fn consumer(&self) -> String {
+        let mut out = self.then.consumer();
+        for layer in &self.layers {
+            let name = match layer {
+                Layer::Enumerate(_) => "enumerate",
+                Layer::Filter(_) => "filter",
+                Layer::Many { it, .. } | Layer::Check { it, .. } => it.type_name(),
+            };
+            out.push('_');
+            out.push_str(name);
+        }
+        out
+    }
+}
+
 /// Uma camada preguiçosa a meio caminho: o iterador (`enumerate`, `filter`, `map` ou `zip`) e o que ela já
 /// juntou das fontes antes da que está sendo puxada.
 pub(crate) enum Layer {
@@ -412,7 +430,7 @@ impl ResumeUse {
                 Some(f) => format!("fold_{}", f.name()),
                 None => format!("collect_{}", crate::replay::callee_name(&c.call)),
             },
-            ResumeUse::Pull(p) => p.then.consumer(),
+            ResumeUse::Pull(p) => p.consumer(),
             _ => "other".into(),
         }
     }

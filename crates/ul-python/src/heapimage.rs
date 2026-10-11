@@ -276,6 +276,7 @@ struct LinkNode {
     caller_globals: Option<u32>,
     instance: Option<Item>,
     on_stop: Option<usize>,
+    native: Option<&'static str>,
     then: Option<DunderNode>,
     resuming: Option<ResumingNode>,
 }
@@ -1111,6 +1112,7 @@ impl Encoder {
                 caller_globals,
                 instance,
                 on_stop: link.on_stop,
+                native: link.native,
                 then,
                 resuming,
             },
@@ -1533,6 +1535,7 @@ impl Rebuilt {
                 caller_globals,
                 instance: self.opt(&link.instance)?,
                 on_stop: link.on_stop,
+                native: link.native,
                 then,
                 resuming,
             },

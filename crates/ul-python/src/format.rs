@@ -897,6 +897,9 @@ pub fn percent_format_with(
 struct Ctx<'a> {
     args: &'a [Value],
     kw: &'a Kw,
+    /// O mapeamento do `format_map`: cada nome é lido com `mapping[nome]` na hora (o `__getitem__` e o `__missing__`
+    /// valem), no lugar dos nomeados.
+    mapping: Option<&'a Value>,
     /// `None` = ainda indefinido, `Some(true)` = numeração automática, `Some(false)` = manual.
     auto: Option<bool>,
     next: usize,
@@ -904,8 +907,15 @@ struct Ctx<'a> {
 
 /// `template.format(*args, **kw)`.
 pub fn str_format(vm: &mut Vm, template: &str, args: &[Value], kw: &Kw) -> PyResult<String> {
-    let mut ctx = Ctx { args, kw, auto: None, next: 0 };
+    let mut ctx = Ctx { args, kw, mapping: None, auto: None, next: 0 };
     render(vm, &mut ctx, template, 2)
+}
+
+/// `template.format_map(mapping)`: os nomes saem de `mapping[nome]`, sem copiar o mapeamento.
+pub fn str_format_map(vm: &mut Vm, template: &str, mapping: &Value) -> PyResult<String> {
+    let kw = Vec::new();
+    let mut ctx = Ctx { args: &[], kw: &kw, mapping: Some(mapping), auto: None, next: 0 };
+    render(vm, &mut ctx, template, 0)
 }
 
 fn render(vm: &mut Vm, ctx: &mut Ctx, tpl: &str, depth: u32) -> PyResult<String> {
@@ -1026,9 +1036,12 @@ fn render_field(vm: &mut Vm, ctx: &mut Ctx, field: &str, depth: u32) -> PyResult
         let idx = parse_index(&first)?;
         positional(ctx, idx)?
     } else {
-        match ctx.kw.iter().find(|(kname, _)| kname.as_str() == first) {
-            Some((_, v)) => v.clone(),
-            None => return Err(key_error(&Value::str(first.clone()))),
+        match ctx.mapping {
+            Some(m) => crate::vm::subscript(m, &Value::str(first.clone()))?,
+            None => match ctx.kw.iter().find(|(kname, _)| kname.as_str() == first) {
+                Some((_, v)) => v.clone(),
+                None => return Err(key_error(&Value::str(first.clone()))),
+            },
         }
     };
 
@@ -1085,6 +1098,10 @@ fn render_field(vm: &mut Vm, ctx: &mut Ctx, field: &str, depth: u32) -> PyResult
 }
 
 fn positional(ctx: &Ctx, idx: usize) -> PyResult<Value> {
+    // O `format_map` não tem posicionais (`args` é `NULL` no `get_field_object` do C).
+    if ctx.mapping.is_some() {
+        return Err(value_error("Format string contains positional fields"));
+    }
     ctx.args.get(idx).cloned().ok_or_else(|| {
         exc("IndexError", format!("Replacement index {idx} out of range for positional args tuple"))
     })

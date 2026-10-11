@@ -76,6 +76,7 @@ impl Vm {
             caller_globals,
             instance: None,
             on_stop: None,
+            native: None,
             then: Some(then),
             resuming: None,
         }
