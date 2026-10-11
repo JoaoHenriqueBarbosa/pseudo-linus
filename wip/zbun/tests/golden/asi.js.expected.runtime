@@ -1,0 +1,12 @@
+let a = 1;
+let b = 2;
+++b;
+const c = a + b;
+const d = [1, 2];
+[1, 2].forEach((x) => x);
+(function() {})();
+const e = "a";
+return_label:
+  while (!1)
+    break return_label;
+var f = function() {};

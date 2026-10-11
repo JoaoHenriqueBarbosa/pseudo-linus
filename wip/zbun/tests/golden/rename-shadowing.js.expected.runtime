@@ -1,0 +1,18 @@
+class C {
+  m(a) {
+    return () => a;
+  }
+}
+const a = 1;
+function f(a) {
+  {
+    let a = 2;
+    return 3;
+  }
+  return a;
+}
+const g = (a, b) => {
+  const c = a + b;
+  return (a) => a + c;
+};
+console.log(1, f, g, C);

@@ -1,0 +1,61 @@
+class A {
+  a;
+  b;
+  c;
+  p = 1;
+  q = 2;
+  static s;
+  constructor(a, b = 2, c) {
+    this.a = a;
+    this.b = b;
+    this.c = c;
+  }
+  abstract_;
+  m(x) {}
+  get g() {
+    return 1;
+  }
+}
+
+class AB {
+}
+const x = 1;
+const y = 1;
+const z = 1;
+const nn = 1;
+const sat = { a: 1 };
+function f(a, b, ...rest) {
+  return a;
+}
+var Color;
+((Color) => {
+  Color[Color.Red = 0] = "Red";
+  Color[Color.Green = 4] = "Green";
+  Color[Color.Blue = 5] = "Blue";
+})(Color ||= {});
+var CE;
+((CE) => {
+  CE[CE.A = 1] = "A";
+  CE[CE.B = 2] = "B";
+})(CE ||= {});
+var Str;
+((Str) => {
+  Str.A = "a";
+  Str.B = "b";
+})(Str ||= {});
+var NS;
+((NS) => {
+  NS.a = 1;
+  function f() {}
+  NS.f = f;
+  let Inner;
+  ((Inner) => Inner.b = 2)(Inner = NS.Inner ||= {});
+})(NS ||= {});
+var M2;
+((M2) => M2.c = 3)(M2 ||= {});
+import { baz } from "./bar";
+export const arrow = (a) => a;
+let v = 1;
+for (const k of [1])
+  ;
+console.log(1, 1, 1, 1, sat, f, A, AB, Color, CE, Str, NS, M2, v, baz, 0 /* Red */, 2 /* B */, "a" /* A */);

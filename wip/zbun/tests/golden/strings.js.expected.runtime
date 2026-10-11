@@ -1,0 +1,25 @@
+const a = 'a"b';
+const b = "a'b";
+const c = `a"b'c`;
+const d = `a"b'c`;
+const e = `a"b'c`;
+const f = "\\";
+const g = `
+\r	\b\f\v\x00`;
+const h = "\x00\x1F\x7F\x80\xFF";
+const i = "\u0100\uFFFF";
+const j = "\uD800\uDC00";
+const k = "\uD83D\uDE00";
+const l = "\uD800x";
+const m = "x\uDC00";
+const n = "ab";
+const o = "line1\u2028line2";
+const p = "\u2029";
+const q = "\x00";
+const t = "\uD83D\uDE00";
+const u = "\uD83D\uDE00";
+const v = "\xE9";
+const w = "\xE9";
+const x = "\xE9";
+console.log('a"b', "a'b", `a"b'c`, `a"b'c`, `a"b'c`, "\\", `
+\r	\b\f\v\x00`, "\x00\x1F\x7F\x80\xFF", "\u0100\uFFFF", "\uD800\uDC00", "\uD83D\uDE00", "\uD800x", "x\uDC00", "ab", "line1\u2028line2", "\u2029", "\x00", "\uD83D\uDE00", "\uD83D\uDE00", "\xE9", "\xE9", "\xE9");

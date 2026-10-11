@@ -1,0 +1,32 @@
+const a = "`";
+const b = "${x}";
+const c = "$";
+const d = "$1";
+const e = "1$";
+const f = `a
+b`;
+const g = "A";
+const h = "A";
+const i = "1";
+const j = "`${x}$1A";
+const k = tag`\unicode and \u{55}`;
+const l = tag`${1}\n${2}`;
+const m = tag.a.b`x`;
+const n = tag`x`;
+const o = tag()`x`;
+const p = new tag`x`;
+const q = tag`x``y`;
+const r = "</script>";
+const s = "<!--";
+const t = "-->";
+const u = "</script>";
+const v = "<!-- -->";
+const w = `
+multi
+line
+`;
+console.log("`", "${x}", "$", "$1", "1$", `a
+b`, "A", "A", "1", "`${x}$1A", k, l, m, n, o, p, q, "</script>", "<!--", "-->", "</script>", "<!-- -->", `
+multi
+line
+`);

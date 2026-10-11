@@ -1,0 +1,51 @@
+const a = () => ({});
+const b = () => ({ a: 1 });
+const c = () => [];
+const d = () => 2;
+const e = () => a ? b : c;
+const f = () => b;
+const g = async () => {};
+const h = async (x) => x;
+const i = async (x) => x;
+const j = (x) => (y) => (z) => x + y + z;
+const k = () => () => {};
+const l = () => function() {};
+const m = () => class {
+};
+const n = () => new Foo;
+const o = () => typeof x;
+const p = () => {
+  return;
+};
+const q = () => !x;
+const r = () => -x;
+const s = (a = 1, { b } = {}, [c] = [], ...d) => a;
+const t = (a) => (b) => {
+  return a;
+};
+const u = () => {
+  return;
+};
+const v = () => {
+  throw 1;
+};
+const w = () => {
+  if (a)
+    return 1;
+};
+const x = ((a) => a)(1);
+const y = (() => 1)();
+const z = (async () => 1)();
+foo(() => {}, () => 1, async () => {}, (a) => a);
+const aa = (a, b) => a + b;
+const ab = (a) => a;
+const ac = (a) => a;
+(() => {}).call();
+(async () => {})().then();
+((a) => a)`x`;
+const ad = () => {};
+const ae = a || (() => {});
+const af = 1;
+const ag = a ? () => 1 : () => 2;
+const ah = [() => 1, () => 2];
+const ai = { f: () => 1, g: async () => 2 };

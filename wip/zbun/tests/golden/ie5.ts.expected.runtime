@@ -1,0 +1,8 @@
+const A = B.C.D;
+export const E = B.C;
+var B;
+((B) => {
+  let C;
+  ((C) => C.D = 1)(C = B.C ||= {});
+})(B ||= {});
+console.log(A, E);

@@ -1,0 +1,5 @@
+const a = 1;
+let b = `x
+y`;
+b = 2;
+console.log(1, b);

@@ -1,0 +1,12 @@
+const a = "h\xE9llo";
+const b = "\u65E5\u672C\u8A9E";
+const c = "\u2028\u2029";
+const d = "\uD83D\uDE00";
+const e = "a\x00b";
+const f = "\x01\x7F";
+const g = "\uD800";
+const h = "\uDBFF\uDFFF";
+const t = `h\xE9llo ${"h\xE9llo"} \u65E5\u672C\u8A9E`;
+const r = /\u65E5\u672C\u8A9E/u;
+const o = { "\xE9": 1, \u{e9}2: 2, \u{65e5}\u{672c}: 3 };
+console.log("h\xE9llo", "\u65E5\u672C\u8A9E", "\u2028\u2029", "\uD83D\uDE00", "a\x00b", "\x01\x7F", "\uD800", "\uDBFF\uDFFF", t, r, o);

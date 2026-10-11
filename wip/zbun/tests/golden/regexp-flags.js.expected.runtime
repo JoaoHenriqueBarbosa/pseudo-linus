@@ -1,0 +1,10 @@
+const a = /a/dgimsuy;
+const b = /(?<year>\d{4})-(?<month>\d{2})/v;
+const c = /[\p{L}--[a-z]]/v;
+const d = /\u{1F600}/u;
+const e = /a|b|c/;
+const f = /(?:x)/;
+const g = /\//g;
+const h = /[\/]/;
+const i = /\d+(?=x)(?<!y)/;
+console.log(a, b, c, d, e, f, g, h, i, "x".replace(/x/g, "y"), /re/.test("re"), a / b / c);

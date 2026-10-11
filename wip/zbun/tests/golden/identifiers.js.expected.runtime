@@ -1,0 +1,25 @@
+var async = 1;
+var of = 2;
+var get = 3;
+var set = 4;
+var from = 5;
+var as = 6;
+var type = 7;
+var declare = 8;
+var namespace = 9;
+var abstract = 10;
+var module = 11;
+var global = 12;
+async = 5;
+const o = { async, of, get, set, from, as };
+for (async (of) => 1;!1; )
+  ;
+async function f() {}
+var let_ = 1;
+var yield_ = 2;
+var await_ = 3;
+function g() {
+  var arguments_ = arguments;
+  return arguments_;
+}
+console.log(async, of, get, set, from, as, type, declare, namespace, abstract, module, global, o, f, g);

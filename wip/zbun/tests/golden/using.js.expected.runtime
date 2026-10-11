@@ -1,0 +1,13 @@
+{
+  using a = getResource();
+  await using b = getAsyncResource();
+  console.log(a, b, null, void 0);
+}
+for (using x of y)
+  ;
+for (await using z of w)
+  ;
+function getResource() {}
+function getAsyncResource() {}
+var y;
+var w;

@@ -1,0 +1,14 @@
+const a = /\//;
+const b = /[\]/]/;
+const c = /a/g.test("a");
+const d = (x) => /re/.test(x);
+const t1 = tag`a${1}b${2}c`;
+const t2 = String.raw`\n${1}`;
+const t3 = a.b`x`;
+const t4 = b`x`;
+const t5 = `line1
+line2`;
+const t6 = "\xE9 ${not}";
+const t7 = "12";
+console.log(a, b, c, d, t1, t2, t3, t4, `line1
+line2`, "\xE9 ${not}", "12");

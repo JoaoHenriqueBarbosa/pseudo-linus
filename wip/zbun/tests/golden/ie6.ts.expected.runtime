@@ -1,0 +1,8 @@
+var {require}=import.meta;const fs = require("fs");
+export const E = B.C;
+var B;
+((B) => {
+  let C;
+  ((C) => C.D = 1)(C = B.C ||= {});
+})(B ||= {});
+console.log(fs, E);

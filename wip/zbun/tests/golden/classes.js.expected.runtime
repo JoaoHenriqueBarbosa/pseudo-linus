@@ -1,0 +1,74 @@
+class A {
+}
+
+class I {
+  x = this.#y;
+  #y = 1;
+  static has(o) {
+    return #y in o;
+  }
+}
+import { __decoratorMetadata as __decoratorMetadata_0rk0ydtx, __decoratorStart as __decoratorStart_x73frcn4, __privateAdd as __privateAdd_jy12bb7f, __privateGet as __privateGet_t4v9rzz2, __privateSet as __privateSet_3ajc9ey2 } from "bun:wrap";
+
+class B extends A {
+  constructor() {
+    super();
+    this.x = 1;
+  }
+}
+var _acc = new WeakMap, _init = __decoratorStart_x73frcn4(void 0);
+
+class C {
+  constructor() {
+    __privateAdd_jy12bb7f(this, _acc, 1);
+  }
+  static s = 1;
+  static #p = 2;
+  #priv = 3;
+  pub = 4;
+  get g() {
+    return this.#priv;
+  }
+  set g(v) {
+    this.#priv = v;
+  }
+  static m() {}
+  async am() {}
+  *gm() {}
+  async* agm() {}
+  #pm() {}
+  static #spm() {}
+  ["computed"]() {}
+  ["t"] = 1;
+  str = 2;
+  3 = 4;
+  get acc() {
+    return __privateGet_t4v9rzz2(this, _acc);
+  }
+  set acc(v) {
+    __privateSet_3ajc9ey2(this, _acc, v);
+  }
+}
+C.init = 1;
+__decoratorMetadata_0rk0ydtx(_init, C);
+let _C = C;
+const D = class {
+};
+const E = class Named extends A {
+};
+const F = class extends A.B {
+};
+
+class G extends class {
+} {
+}
+
+class H {
+  constructor(a, b) {
+    this.a = a;
+  }
+  static async* [Symbol.asyncIterator]() {}
+}
+new A, new B, new class {
+};
+console.log(A, B, C, D, E, F, G, H, I);

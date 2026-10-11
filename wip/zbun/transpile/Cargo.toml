@@ -1,0 +1,19 @@
+[package]
+name = "bun_transpile"
+version = "1.4.2"
+edition.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+bun_alloc = { path = "../bun_alloc" }
+bun_ast = { path = "../ast" }
+bun_js_parser = { path = "../js_parser", features = ["parser"] }
+bun_js_printer = { path = "../js_printer", features = ["printer"] }
+bun_options_types = { path = "../options_types" }
+bun_sourcemap = { path = "../sourcemap" }
+
+[lints]
+workspace = true
