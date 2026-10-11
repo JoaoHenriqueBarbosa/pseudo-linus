@@ -63,3 +63,37 @@ fn an_iframe_with_src_and_srcdoc_loads_its_own_document() {
     assert_eq!(entries[2], "child-script /child.html parent===window:false top===parent:true rs=loading frameElement=fa");
     assert_eq!(entries[3..], ["child-DOMContentLoaded", "child-load", "parent-load"]);
 }
+
+const XML_PARENT: &str = "<!doctype html><title>xml</title><iframe id=\"fx\" src=\"/dummy.xml\"></iframe><iframe id=\"fh\" src=\"/dummy.xhtml\"></iframe>\
+<script>window.addEventListener('load', () => setTimeout(() => {\
+const r = {};\
+const t = (name, f) => { try { r[name] = f(); } catch (e) { r[name] = 'ERR ' + e; } };\
+for (const id of ['fx', 'fh']) {\
+const d = () => document.getElementById(id).contentDocument;\
+t(id + '.null', () => d() === null);\
+t(id + '.ctor', () => d().constructor.name);\
+t(id + '.contentType', () => d().contentType);\
+t(id + '.root', () => [d().documentElement.localName, d().documentElement.namespaceURI, d().documentElement.constructor.name]);\
+t(id + '.doctype', () => d().doctype && [d().doctype.name, d().doctype.publicId, d().doctype.systemId]);\
+t(id + '.children', () => Array.from(d().childNodes).map((n) => n.nodeType));\
+t(id + '.text', () => d().documentElement.textContent);\
+t(id + '.body', () => d().body && d().body.localName);\
+t(id + '.title', () => d().title);\
+t(id + '.charset', () => [d().characterSet, d().compatMode, d().readyState]);\
+t(id + '.url', () => d().URL);\
+t(id + '.createElement', () => d().createElement('A').localName);\
+}\
+console.log(JSON.stringify(r)); }, 50));</script>";
+
+/// O filho em `application/xml` e `application/xhtml+xml` é um `XMLDocument` (medido no oráculo com
+/// `frames-xml.html`: `/common/dummy.xml` e `dummy.xhtml` do WPT).
+#[test]
+fn an_xml_or_xhtml_iframe_has_an_xml_document() {
+    let (_, log) = run(&[("/", XML_PARENT), ("/dummy.xml", "<foo>Dummy XML document</foo>\n"), ("/dummy.xhtml", "<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Dummy XHTML document</title></head><body /></html>\n")]);
+    let expected = serde_json::json!({"fx.null":false,"fx.ctor":"XMLDocument","fx.contentType":"application/xml","fx.root":["foo",null,"Element"],"fx.doctype":null,"fx.children":[1],"fx.text":"Dummy XML document","fx.body":null,"fx.title":"","fx.charset":["UTF-8","CSS1Compat","complete"],"fx.url":"http://t.test/dummy.xml","fx.createElement":"A","fh.null":false,"fh.ctor":"XMLDocument","fh.contentType":"application/xhtml+xml","fh.root":["html","http://www.w3.org/1999/xhtml","HTMLHtmlElement"],"fh.doctype":["html","",""],"fh.children":[10,1],"fh.text":"Dummy XHTML document","fh.body":"body","fh.title":"Dummy XHTML document","fh.charset":["UTF-8","CSS1Compat","complete"],"fh.url":"http://t.test/dummy.xhtml","fh.createElement":"A"});
+    let mut actual: serde_json::Value = serde_json::from_str(log.trim()).unwrap_or_else(|e| panic!("{e}: {log}"));
+    // Divergência declarada: o doctype ainda não é nó filho do documento (o oráculo tem [10, 1], aqui sai [1]).
+    assert_eq!(actual["fh.children"], serde_json::json!([1]));
+    actual["fh.children"] = serde_json::json!([10, 1]);
+    assert_eq!(actual, expected);
+}

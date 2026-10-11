@@ -127,6 +127,8 @@ pub struct Page {
     source: String,
     /// As políticas CSP dos cabeçalhos, em JSON (`[[texto, soRelatorio], ...]`), para o prelúdio.
     csp_json: String,
+    /// O tipo do documento (`text/html`, ou o tipo XML da resposta): o prelúdio o põe em `document.contentType`.
+    content_type: String,
     /// A troca de rede do documento, em JSON, para a entrada `navigation` do prelúdio.
     transfer_json: String,
     /// O início da navegação no relógio monotônico (`ul_common::time::monotonic_nanos`): a origem de tempo da página.
@@ -168,7 +170,8 @@ impl Page {
         let navigation_start = response.timing.navigation_start;
         let source = encoding::decode(&response.bytes, response.content_type.as_deref());
         let net = std::sync::Arc::new(document::QueuedNet::default());
-        let mut doc = document::parse_page(&source, &response.final_url, net.clone());
+        let content_type = response.content_type.as_deref().map(|t| t.split(';').next().unwrap_or("").trim().to_ascii_lowercase()).filter(|t| document::is_xml_type(t)).unwrap_or_else(|| "text/html".to_owned());
+        let mut doc = if content_type == "text/html" { document::parse_page(&source, &response.final_url, net.clone()) } else { document::parse_xml_page(&source, &response.final_url, net.clone()) };
         if response.header_csp {
             document::hide_nonces(&mut doc);
         }
@@ -187,7 +190,7 @@ impl Page {
         };
         use crate::devtools::json::Json;
         let csp_json = Json::Array(response.csp.iter().map(|(text, report_only)| Json::Array(vec![Json::str(text), Json::Bool(*report_only)])).collect()).to_compact();
-        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), source, csp_json, transfer_json, navigation_start, captured: response.captured, net: response.net }
+        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), source, content_type, csp_json, transfer_json, navigation_start, captured: response.captured, net: response.net }
     }
 
     /// O HTML do documento.
@@ -311,7 +314,7 @@ impl Page {
             zjsc::runtime::time_clamper::set_time_clamper(clock_secret(), resolution, origin_ticks_us, unix_at_zero_us);
         }
         // O valor do programa é a função gancho: o hospedeiro a guarda, sem binding global que a página veja.
-        let prelude = format!("(function () {{ 'use strict';\nconst DOCUMENT_CSP = {};\nconst DOCUMENT_TRANSFER = {};\n{}{}\nreturn hook;\n}})();", self.csp_json, self.transfer_json, PRELUDE_PARTS.concat(), PRELUDE_TAIL);
+        let prelude = format!("(function () {{ 'use strict';\nconst DOCUMENT_CSP = {};\nconst DOCUMENT_TRANSFER = {};\nconst DOCUMENT_CONTENT_TYPE = {};\n{}{}\nreturn hook;\n}})();", self.csp_json, self.transfer_json, crate::devtools::json::Json::str(&self.content_type).to_compact(), PRELUDE_PARTS.concat(), PRELUDE_TAIL);
         let hook = match runner.eval_hidden_value(&prelude) {
             Ok(hook) => hook,
             Err(error) => {

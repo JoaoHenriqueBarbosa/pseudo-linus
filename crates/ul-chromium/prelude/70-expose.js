@@ -9,6 +9,11 @@ for (const name of ['process', 'Bun', 'Buffer', 'global', 'BuildMessage', 'Resol
 }
 const document = wrap(op('root'));
 hidden(document, '__window', window);
+// Um documento de resposta XML é um `XMLDocument` com o tipo da resposta.
+if (DOCUMENT_CONTENT_TYPE !== 'text/html') {
+  Object.setPrototypeOf(document, XMLDocument.prototype);
+  hidden(document, '__contentType', DOCUMENT_CONTENT_TYPE);
+}
 hidden(document, '__readyState', 'loading');
 
 const NodeFilter = { FILTER_ACCEPT: 1, FILTER_REJECT: 2, FILTER_SKIP: 3, SHOW_ALL: 0xffffffff, SHOW_ELEMENT: 1, SHOW_ATTRIBUTE: 2, SHOW_TEXT: 4, SHOW_CDATA_SECTION: 8, SHOW_PROCESSING_INSTRUCTION: 64, SHOW_COMMENT: 128, SHOW_DOCUMENT: 256, SHOW_DOCUMENT_TYPE: 512, SHOW_DOCUMENT_FRAGMENT: 1024 };

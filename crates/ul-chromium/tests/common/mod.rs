@@ -41,7 +41,7 @@ pub fn serve(files: &[(&str, &str)], headers: &[(&str, &str)]) -> Fetcher {
             Some((p, b)) => (200, (p.clone(), b.clone())),
             None => (404, (String::new(), String::new())),
         };
-        let kind = if body.0.ends_with(".js") { "text/javascript" } else { "text/html; charset=utf-8" };
+        let kind = if body.0.ends_with(".js") { "text/javascript" } else if body.0.ends_with(".xml") { "application/xml" } else if body.0.ends_with(".xhtml") { "application/xhtml+xml" } else { "text/html; charset=utf-8" };
         let mut response_headers = vec![(b"content-type".to_vec(), kind.as_bytes().to_vec())];
         response_headers.extend(extra.iter().cloned());
         let body = body.1.into_bytes();

@@ -167,6 +167,23 @@ pub fn parse_xml(xml: &str, base_url: &str) -> BaseDocument {
     doc
 }
 
+/// O documento da página quando a resposta é XML (`application/xml`, `text/xml`, `application/xhtml+xml`,
+/// `image/svg+xml`, `+xml`): parseado como XML, com a fila de rede da página como em [`parse_page`].
+pub fn parse_xml_page(xml: &str, base_url: &str, net: Arc<QueuedNet>) -> BaseDocument {
+    let mut doc = BaseDocument::new(DocumentConfig { net_provider: Some(net), ..config(base_url) });
+    {
+        let mut mutr = doc.mutate();
+        DocumentHtmlParser::parse_xml_into_mutator(&mut mutr, xml);
+    }
+    doc
+}
+
+/// O tipo da resposta (sem parâmetros, em minúsculas) é de um documento XML.
+pub fn is_xml_type(content_type: &str) -> bool {
+    let essence = content_type.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
+    matches!(essence.as_str(), "application/xml" | "text/xml") || essence.ends_with("+xml")
+}
+
 /// Nonce hiding (HTML, "nonce attributes"): com CSP entregue por cabeçalho, o atributo `nonce` de cada elemento fica
 /// vazio depois da inserção (a propriedade `nonce` guardaria o valor; o DOM serializado mostra `nonce=""`).
 pub fn hide_nonces(doc: &mut BaseDocument) {

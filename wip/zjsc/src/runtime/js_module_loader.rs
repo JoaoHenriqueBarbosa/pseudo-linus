@@ -214,7 +214,8 @@ pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
 }
 
 thread_local! {
-    static LOADER: RefCell<Option<Rc<ModuleLoader>>> = const { RefCell::new(None) };
+    /// O carregador de cada global (a janela e os frames dela); o primeiro é o da janela, que vale para o realm sem um.
+    static LOADER: RefCell<Vec<(usize, Rc<ModuleLoader>)>> = const { RefCell::new(Vec::new()) };
     /// A `Structure` das instâncias de cada classe de mensagem do bun do realm em curso (`RESOLVE`, `BUILD`;
     /// o protótipo é o `.prototype` da classe).
     static MESSAGE_STRUCTURES: RefCell<[Option<StructureRef>; 2]> = const { RefCell::new([None, None]) };
@@ -709,7 +710,7 @@ pub(crate) fn throw_build_message(global_object: &JSGlobalObject, message: Strin
 /// Fim do programa (`cell_registry::reset_program_state`): o carregador pode guardar valores e globais do
 /// programa.
 pub(crate) fn reset_for_program() {
-    let taken = LOADER.try_with(|loader| loader.borrow_mut().take());
+    let taken = LOADER.try_with(|loader| std::mem::take(&mut *loader.borrow_mut()));
     drop(taken);
     let _ = MESSAGE_STRUCTURES.try_with(|slots| *slots.borrow_mut() = [None, None]);
     let _ = MESSAGE_STATES.try_with(|states| states.borrow_mut().clear());
@@ -720,7 +721,11 @@ pub(crate) fn reset_for_program() {
 }
 
 fn loader() -> Option<Rc<ModuleLoader>> {
-    LOADER.with(|loader| loader.borrow().clone())
+    let realm = crate::runtime::current_realm::try_current_global_object().map(|global_object| global_object.cell_id());
+    LOADER.with(|loader| {
+        let loaders = loader.borrow();
+        loaders.iter().find(|(id, _)| Some(*id) == realm).or_else(|| loaders.first()).map(|(_, loader)| loader.clone())
+    })
 }
 
 pub(crate) fn rust_string(string: &WtfString) -> String {
@@ -747,7 +752,12 @@ pub(crate) fn throw_error(global_object: &JSGlobalObject, message: &str) -> Thro
 /// `ImportNode`).
 pub fn install_module_loader(global_object: &JSGlobalObject, host: Rc<dyn ModuleHost>) {
     let new_loader = Rc::new(ModuleLoader { host, registry: RefCell::new(HashMap::new()) });
-    LOADER.with(|loader| *loader.borrow_mut() = Some(new_loader));
+    let cell_id = global_object.cell_id();
+    LOADER.with(|loader| {
+        let mut loaders = loader.borrow_mut();
+        loaders.retain(|(id, _)| *id != cell_id);
+        loaders.push((cell_id, new_loader));
+    });
     install_import_module_constant(global_object);
 }
 

@@ -76,7 +76,7 @@ const noteInserted = (node) => {
 const refreshPolicies = () => {
   const current = document[P.__currentScript];
   let changed = false;
-  for (const meta of document.head.querySelectorAll('meta[http-equiv]')) {
+  for (const meta of document.head ? document.head.querySelectorAll('meta[http-equiv]') : []) {
     const before = staticMetaComplete || !current || !!(meta.compareDocumentPosition(current) & Node.DOCUMENT_POSITION_FOLLOWING);
     if (before && registerMeta(meta)) changed = true;
   }

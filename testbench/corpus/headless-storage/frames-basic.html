@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>pai</title>
+<script>
+let done = false;
+const keepAlive = async () => { for (let i = 0; i < 400 && !done; i++) await fetch('/frames-basic.html', { cache: 'no-store' }).then((r) => r.text()); };
+keepAlive();
+window.log = (m) => (window.entries = window.entries || []).push(m);
+log('parent-script-1 frames=' + frames.length);
+</script>
+<iframe id="fa" name="na" src="/frames-child.html"></iframe>
+<iframe id="fb" srcdoc="<title>sd</title><p id=q>x</p><script>parent.log('srcdoc-script ' + location.href + ' ' + document.readyState + ' parent===window:' + (parent === window))</script>"></iframe>
+<script>
+log('parent-script-2 frames=' + frames.length + ' a.cw=' + (fa.contentWindow !== null) + ' a.cd=' + (fa.contentDocument !== null));
+window.addEventListener('load', () => {
+  log('parent-load');
+  setTimeout(() => {
+    const r = {};
+    const t = (name, f) => { try { r[name] = f(); } catch (e) { r[name] = 'ERR ' + e; } };
+    t('frames', () => frames.length);
+    t('w0', () => window[0] === fa.contentWindow);
+    t('w1', () => window[1] === fb.contentWindow);
+    t('byName', () => window.a === fa.contentWindow || window.a === a);
+    t('parentOfFrame', () => frames[0].parent === window);
+    t('topOfFrame', () => frames[0].top === window);
+    t('selfTop', () => [window.top === window, window.parent === window, window.self === window, window.frames === window]);
+    t('href', () => fa.contentWindow.location.href);
+    t('title', () => fa.contentDocument.title);
+    t('srcdoc', () => [fb.contentDocument.title, fb.contentWindow.location.href, fb.contentDocument.body.textContent]);
+    t('p', () => fa.contentDocument.getElementById('p').textContent);
+    t('frameElement', () => frames[0].frameElement === fa);
+    t('arrayRealms', () => frames[0].Array === Array);
+    t('crossInstance', () => frames[0].eval('[]') instanceof Array);
+    t('docOwner', () => fa.contentDocument.defaultView === fa.contentWindow);
+    t('rs', () => [fa.contentDocument.readyState, fb.contentDocument.readyState]);
+    t('childOrigin', () => fa.contentWindow.origin);
+    r.entries = window.entries;
+    const pre = document.createElement('pre');
+    pre.id = 'result';
+    pre.textContent = JSON.stringify(r);
+    document.body.append(pre);
+    done = true;
+  }, 50);
+});
+</script>

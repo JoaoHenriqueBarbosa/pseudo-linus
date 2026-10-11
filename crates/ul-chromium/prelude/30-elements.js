@@ -234,7 +234,7 @@ const replaceChildrenWithHtml = (element, html) => {
 
 class Element extends Node {
   constructor() { super(ILLEGAL); }
-  get namespaceURI() { return op('ns', idOf(this)); }
+  get namespaceURI() { const ns = op('ns', idOf(this)); return ns === '' ? null : ns; }
   get localName() { return op('name', idOf(this)); }
   get prefix() { return null; }
   get tagName() {

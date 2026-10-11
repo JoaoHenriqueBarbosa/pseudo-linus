@@ -76,6 +76,8 @@ class Document extends Node {
   createElement(name) {
     name = toStr(name);
     if (!/^[A-Za-z][^\s\/>]*$/.test(name) && !/^[A-Za-z_:][-A-Za-z0-9_:.]*$/.test(name)) throw domException(`Failed to execute 'createElement' on 'Document': The tag name provided ('${name}') is not a valid name.`, 'InvalidCharacterError');
+    // Num documento XML o nome mantém a caixa, e o elemento só é HTML no XHTML.
+    if (!this[P.__html]) return wrap(op('createElement', name, this.contentType === 'application/xhtml+xml' ? HTML_NS : ''));
     const local = name.toLowerCase();
     const def = customByName.get(local);
     if (def) { try { const el = new def.ctor(); hidden(el, '__upgraded', true); return el; } catch (error) { reportError(error); } }
@@ -87,7 +89,7 @@ class Document extends Node {
     const name = toStr(qualified);
     const local = name.includes(':') ? name.slice(name.indexOf(':') + 1) : name;
     const namespace = ns === null || ns === undefined ? '' : String(ns);
-    if (namespace === HTML_NS) return this.createElement(local);
+    if (namespace === HTML_NS && this[P.__html]) return this.createElement(local);
     return wrap(op('createElement', local, namespace));
   }
   createTextNode(data) { return new Text(toStr(data)); }
