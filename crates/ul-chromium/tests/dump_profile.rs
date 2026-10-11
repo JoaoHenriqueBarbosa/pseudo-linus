@@ -51,6 +51,12 @@ fn dump_client(ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
     let argv: Vec<Vec<u8>> = ["sqlite3", "/tmp/p/Default/History", query].iter().map(|a| a.as_bytes().to_vec()).collect();
     let pid = s.spawn(SpawnSpec { path: b"/usr/bin/sqlite3".to_vec(), argv, attrs: ProcAttrs::default() }).unwrap();
     let _ = s.wait4(WaitTarget::Pid(pid), WaitOptions::empty());
+    // Os arquivos de sessão da saída levam o endereço navegado (SNSS: o `Session_*` e o `Tabs_*`).
+    for prefix in ["Session_", "Tabs_"] {
+        let found = sys::read_dir(b"/tmp/p/Default/Sessions").unwrap_or_default().into_iter().find(|e| e.name.starts_with(prefix.as_bytes()));
+        let has_url = found.and_then(|e| sys::read_file(&[b"/tmp/p/Default/Sessions/".as_slice(), &e.name].concat()).ok()).is_some_and(|bytes| bytes.windows(33).any(|w| w == b"http://127.0.0.1:8000/persist.html"[..33].as_ref()));
+        let _ = ctx.stdout().write_all(format!("{prefix} has url {has_url}\n").as_bytes());
+    }
     let singletons = ["SingletonCookie", "SingletonLock", "SingletonSocket"].iter().filter(|n| sys::lstat(format!("/tmp/p/{n}").as_bytes()).is_ok()).count();
     let _ = ctx.stdout().write_all(format!("singletons {singletons}\n").as_bytes());
     let _ = s.kill(KillTarget::Pid(server), Signal::SIGKILL);
@@ -73,5 +79,6 @@ fn each_dump_reads_what_the_previous_one_wrote() {
     // O History: a mesma página digitada três vezes é um endereço com três visitas, de um segmento só, e a última
     // visita de cada execução termina com o fechamento do processo (motivo 6).
     assert!(stdout.contains("http://127.0.0.1:8000/persist.html|persist|3|3\n3|1|939524097|1\n1\n3|6\n"), "{stdout}");
+    assert!(stdout.contains("Session_ has url true\nTabs_ has url true\n"), "{stdout}");
     assert!(stdout.ends_with("singletons 0\n"), "{stdout}");
 }

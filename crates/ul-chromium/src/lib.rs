@@ -18,6 +18,7 @@ pub mod imaging;
 pub mod local_storage;
 pub mod page;
 pub mod session;
+pub mod sessions;
 pub mod session_storage;
 pub mod storage_state;
 pub mod sys_env;
