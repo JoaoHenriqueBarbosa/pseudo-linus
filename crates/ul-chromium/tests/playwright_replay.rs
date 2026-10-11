@@ -24,7 +24,7 @@ const PORT: u16 = 9222;
 const GOLDEN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../testbench/oracle/automation/golden/");
 
 /// As cenas com o Playwright, da mais simples à mais cheia.
-const SCENES: [&str; 5] = ["pw_evaluate", "pw_locators", "pw_actions", "pw_context", "pw_navigation"];
+const SCENES: [&str; 6] = ["pw_evaluate", "pw_locators", "pw_actions", "pw_context", "pw_navigation", "pw_frames"];
 
 /// Os textos grandes que a gravação guardou em `blobs/<sha256>.txt` (`<sha256:HEX len=N>`) voltam ao lugar, nas mensagens
 /// que o cliente mandou: o script injetado do Playwright é um deles.
@@ -103,6 +103,8 @@ fn translate(map: &HashMap<String, String>, windows: &HashMap<i64, i64>, value: 
 fn serve_fixture(listener: Fd) -> i32 {
     const INDEX: &str = include_str!("../../../testbench/oracle/automation/fixtures/index.html");
     const SECOND: &str = include_str!("../../../testbench/oracle/automation/fixtures/second.html");
+    const FRAMES: &str = include_str!("../../../testbench/oracle/automation/fixtures/frames.html");
+    const FRAME_CHILD: &str = include_str!("../../../testbench/oracle/automation/fixtures/frame-child.html");
     const API: &str = include_str!("../../../testbench/oracle/automation/fixtures/api.json");
     let s = sys::current();
     loop {
@@ -120,6 +122,8 @@ fn serve_fixture(listener: Fd) -> i32 {
         let (kind, body) = match path.as_str() {
             "/" | "/index.html" => ("text/html", INDEX),
             "/second.html" => ("text/html", SECOND),
+            "/frames.html" => ("text/html", FRAMES),
+            "/frame-child.html" => ("text/html", FRAME_CHILD),
             "/api.json" => ("application/json", API),
             _ => ("", ""),
         };
@@ -243,7 +247,9 @@ fn score(name: &str) -> (usize, usize, Vec<String>) {
 #[test]
 fn playwright_sessions_match_the_oracle() {
     let (mut same, mut total) = (0, 0);
-    for name in SCENES {
+    // `SCENE=pw_frames` roda só uma cena (diagnóstico).
+    let only = std::env::var("SCENE").ok();
+    for name in SCENES.into_iter().filter(|name| only.as_deref().is_none_or(|only| only == *name)) {
         let (s, t, _) = score(name);
         same += s;
         total += t;
