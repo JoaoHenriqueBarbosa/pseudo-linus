@@ -338,7 +338,11 @@ def _enter(target, payload, run, finishing):
         state.tid = _sys._gt_spawn(lambda state=state, run=run: _entry(state, run))
     del run
     if not finishing:
-        origin_state.frame = _sysmod._getframe(0)
+        try:
+            origin_state.frame = _sysmod._getframe(0)
+        except ValueError:
+            # Um greenlet cujo `run` é uma nativa (`getcurrent().switch`) só tem quadros do shim embaixo: sem quadro.
+            origin_state.frame = None
     _box[0] = payload
     # O `ts->context` da thread troca de dono: o de quem sai fica guardado no greenlet dele, e o de quem entra (vazio,
     # num greenlet que ainda não rodou) passa a ser o corrente.
