@@ -190,7 +190,9 @@ fn replay_client(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
         }
     }
     let methods: Vec<Value> = unknown.into_iter().map(Value::String).collect();
-    let out = serde_json::json!({ "log": client.log, "methods": methods });
+    // Só o que chegou vai à saída (o placar não usa o que o cliente mandou, e o texto do script injetado é grande).
+    let log: Vec<&Value> = client.log.iter().filter(|e| e.get("in").is_some()).collect();
+    let out = serde_json::json!({ "log": log, "methods": methods });
     write_all(Fd::STDOUT, out.to_string().as_bytes()).unwrap();
     send_all(fd, &client_frame(r#"{"id":99999,"method":"Browser.close"}"#));
     client.receive(Some(99999), Duration::from_secs(5));
