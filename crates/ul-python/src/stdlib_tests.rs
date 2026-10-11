@@ -7148,7 +7148,7 @@ print(re.sub("a", C(), "bab"), re.subn("<", E.entity, "<<"))
 "##;
     let o = crate::run_source(src);
     assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(String::from_utf8(o.stdout).unwrap(), "a&lt;b&gt;c\nXbX ('&lt;&lt;', 2)\n");
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "a&lt;b&gt;c\nbXb ('&lt;&lt;', 2)\n");
 }
 
 /// `eval` de um código compilado em modo `exec` roda o código e devolve `None` (o `attrs` gera o `__repr__` por
