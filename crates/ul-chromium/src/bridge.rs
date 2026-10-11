@@ -404,6 +404,16 @@ impl DomHost for Bridge {
                     }
                 }
             }
+            // `[tipo, mensagem, padrão]`: `alert`, `confirm` e `prompt` pedem ao DevTools da aba; `null` é o diálogo recusado.
+            "dialog" => {
+                let tab = self.tab.borrow().clone();
+                let hook = tab.dialogs.borrow().as_ref().map(|hook| hook.0.clone());
+                let answer = match hook {
+                    Some(hook) => hook(str_arg(args, 0)?, str_arg(args, 1)?, str_arg(args, 2)?),
+                    None => (str_arg(args, 0)? == "alert").then(String::new),
+                };
+                Ok(answer.map_or(DomArg::Null, DomArg::Str))
+            }
             // `[nome]`: o que o DevTools concedeu (`Browser.grantPermissions`) a esta origem.
             "permission" => {
                 let tab = self.tab.borrow().clone();

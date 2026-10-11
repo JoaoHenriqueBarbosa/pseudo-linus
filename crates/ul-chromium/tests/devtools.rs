@@ -162,7 +162,7 @@ fn score(name: &str) -> (usize, usize) {
 fn transcripts_match_the_oracle() {
     let mut same = 0;
     let mut total = 0;
-    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics", "network_http", "playwright_handshake", "playwright_state", "playwright_network", "playwright_cookies", "playwright_locale", "playwright_fetch"] {
+    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics", "network_http", "playwright_handshake", "playwright_state", "playwright_network", "playwright_cookies", "playwright_locale", "playwright_fetch", "playwright_dialog", "dialog_unattended"] {
         let (s, t) = score(name);
         same += s;
         total += t;

@@ -16825,5 +16825,1180 @@
     "sessionId": "F0EE693C6B206A51E3952DCA47448E20"
    }
   }
+ ],
+ "playwright_dialog": [
+  {
+   "out": {
+    "id": 1,
+    "method": "Target.getTargets"
+   }
+  },
+  {
+   "in": {
+    "id": 1,
+    "result": {
+     "targetInfos": [
+      {
+       "targetId": "BDCCC126266216CAC83D97C344BD102E",
+       "type": "browser_ui",
+       "title": "",
+       "url": "chrome://omnibox-popup.top-chrome/",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "BC5EC233DAB587AB7E3FD8FA43A1CBCF"
+      },
+      {
+       "targetId": "B96D30F7202F1181BED277BBD07F4D21",
+       "type": "browser_ui",
+       "title": "",
+       "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "BC5EC233DAB587AB7E3FD8FA43A1CBCF"
+      },
+      {
+       "targetId": "302E6EF2627E400741448AEB26BBE016",
+       "type": "page",
+       "title": "about:blank",
+       "url": "about:blank",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "BC5EC233DAB587AB7E3FD8FA43A1CBCF"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 2,
+    "method": "Target.attachToTarget",
+    "params": {
+     "targetId": "302E6EF2627E400741448AEB26BBE016",
+     "flatten": true
+    }
+   }
+  },
+  {
+   "in": {
+    "method": "Target.attachedToTarget",
+    "params": {
+     "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936",
+     "targetInfo": {
+      "targetId": "302E6EF2627E400741448AEB26BBE016",
+      "type": "page",
+      "title": "about:blank",
+      "url": "about:blank",
+      "attached": true,
+      "canAccessOpener": false,
+      "browserContextId": "BC5EC233DAB587AB7E3FD8FA43A1CBCF"
+     },
+     "waitingForDebugger": false
+    }
+   }
+  },
+  {
+   "in": {
+    "id": 2,
+    "result": {
+     "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 3,
+    "method": "Page.enable",
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 3,
+    "result": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 4,
+    "method": "Runtime.enable",
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 1,
+      "origin": "://",
+      "name": "",
+      "uniqueId": "674412077195847005.-3119541159613459137",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "302E6EF2627E400741448AEB26BBE016"
+      }
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 4,
+    "result": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 5,
+    "method": "Page.navigate",
+    "params": {
+     "url": "http://127.0.0.1:8765/page"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "url": "http://127.0.0.1:8765/page",
+     "loaderId": "1B6268339C03996C0C82D0DDA8CF4FAF",
+     "navigationType": "differentDocument"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 5,
+    "result": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "loaderId": "1B6268339C03996C0C82D0DDA8CF4FAF",
+     "isDownload": false
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "302E6EF2627E400741448AEB26BBE016",
+      "loaderId": "1B6268339C03996C0C82D0DDA8CF4FAF",
+      "url": "http://127.0.0.1:8765/page",
+      "domainAndRegistry": "",
+      "securityOrigin": "http://127.0.0.1:8765",
+      "securityOriginDetails": {
+       "isLocalhost": true
+      },
+      "mimeType": "text/html",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "SecureLocalhost",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 2,
+      "origin": "http://127.0.0.1:8765",
+      "name": "",
+      "uniqueId": "1136288487344263054.-6184881834657666805",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "302E6EF2627E400741448AEB26BBE016"
+      }
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 178483.611097
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 178483.611413
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 6,
+    "method": "Page.handleJavaScriptDialog",
+    "params": {
+     "accept": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 6,
+    "error": {
+     "code": -32602,
+     "message": "No dialog is showing"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 7,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "alert('hello')",
+     "returnByValue": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogOpening",
+    "params": {
+     "url": "http://127.0.0.1:8765/page",
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "message": "hello",
+     "type": "alert",
+     "hasBrowserHandler": true,
+     "defaultPrompt": ""
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 8,
+    "method": "Page.handleJavaScriptDialog",
+    "params": {
+     "accept": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogClosed",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "result": true,
+     "userInput": ""
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 8,
+    "result": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 7,
+    "result": {
+     "result": {
+      "type": "undefined"
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 9,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "confirm('sure?')",
+     "returnByValue": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogOpening",
+    "params": {
+     "url": "http://127.0.0.1:8765/page",
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "message": "sure?",
+     "type": "confirm",
+     "hasBrowserHandler": true,
+     "defaultPrompt": ""
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 10,
+    "method": "Page.handleJavaScriptDialog",
+    "params": {
+     "accept": false
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogClosed",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "result": false,
+     "userInput": ""
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 10,
+    "result": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 9,
+    "result": {
+     "result": {
+      "type": "boolean",
+      "value": false
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 11,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "confirm('again?')",
+     "returnByValue": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogOpening",
+    "params": {
+     "url": "http://127.0.0.1:8765/page",
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "message": "again?",
+     "type": "confirm",
+     "hasBrowserHandler": true,
+     "defaultPrompt": ""
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 12,
+    "method": "Page.handleJavaScriptDialog",
+    "params": {
+     "accept": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogClosed",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "result": true,
+     "userInput": ""
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 12,
+    "result": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 11,
+    "result": {
+     "result": {
+      "type": "boolean",
+      "value": true
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 13,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "prompt('name?', 'dflt')",
+     "returnByValue": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogOpening",
+    "params": {
+     "url": "http://127.0.0.1:8765/page",
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "message": "name?",
+     "type": "prompt",
+     "hasBrowserHandler": true,
+     "defaultPrompt": "dflt"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 14,
+    "method": "Page.handleJavaScriptDialog",
+    "params": {
+     "accept": true,
+     "promptText": "typed"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogClosed",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "result": true,
+     "userInput": "typed"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 14,
+    "result": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 13,
+    "result": {
+     "result": {
+      "type": "string",
+      "value": "typed"
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 15,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "prompt('name2?', 'dflt2')",
+     "returnByValue": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogOpening",
+    "params": {
+     "url": "http://127.0.0.1:8765/page",
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "message": "name2?",
+     "type": "prompt",
+     "hasBrowserHandler": true,
+     "defaultPrompt": "dflt2"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 16,
+    "method": "Page.handleJavaScriptDialog",
+    "params": {
+     "accept": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogClosed",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "result": true,
+     "userInput": ""
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 16,
+    "result": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 15,
+    "result": {
+     "result": {
+      "type": "string",
+      "value": ""
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 17,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "prompt('name3?')",
+     "returnByValue": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogOpening",
+    "params": {
+     "url": "http://127.0.0.1:8765/page",
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "message": "name3?",
+     "type": "prompt",
+     "hasBrowserHandler": true,
+     "defaultPrompt": ""
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 18,
+    "method": "Page.handleJavaScriptDialog",
+    "params": {
+     "accept": false
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogClosed",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "result": false,
+     "userInput": ""
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 18,
+    "result": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 17,
+    "result": {
+     "result": {
+      "type": "object",
+      "subtype": "null",
+      "value": null
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 19,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "alert('while disabled')",
+     "returnByValue": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogOpening",
+    "params": {
+     "url": "http://127.0.0.1:8765/page",
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "message": "while disabled",
+     "type": "alert",
+     "hasBrowserHandler": true,
+     "defaultPrompt": ""
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 20,
+    "method": "Page.disable",
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 21,
+    "method": "Page.handleJavaScriptDialog",
+    "params": {
+     "accept": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 21,
+    "error": {
+     "code": -32602,
+     "message": "No dialog is showing"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 22,
+    "method": "Page.enable",
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 23,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "window.onbeforeunload = () => 'leave?'; 1",
+     "returnByValue": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 24,
+    "method": "Page.navigate",
+    "params": {
+     "url": "http://127.0.0.1:8765/sub"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "url": "http://127.0.0.1:8765/sub",
+     "loaderId": "F44894619A56A0924CA2039375914DA1",
+     "navigationType": "differentDocument"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.javascriptDialogClosed",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "result": false,
+     "userInput": ""
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 19,
+    "result": {
+     "result": {
+      "type": "undefined"
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 20,
+    "result": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 22,
+    "result": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 23,
+    "result": {
+     "result": {
+      "type": "number",
+      "value": 1,
+      "description": "1"
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 24,
+    "result": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016",
+     "loaderId": "F44894619A56A0924CA2039375914DA1",
+     "isDownload": false
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "302E6EF2627E400741448AEB26BBE016",
+      "loaderId": "F44894619A56A0924CA2039375914DA1",
+      "url": "http://127.0.0.1:8765/sub",
+      "domainAndRegistry": "",
+      "securityOrigin": "http://127.0.0.1:8765",
+      "securityOriginDetails": {
+       "isLocalhost": true
+      },
+      "mimeType": "text/html",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "SecureLocalhost",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 3,
+      "origin": "http://127.0.0.1:8765",
+      "name": "",
+      "uniqueId": "867571610876092934.-6143472352778443813",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "302E6EF2627E400741448AEB26BBE016"
+      }
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 178510.234792
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 178510.23493
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "302E6EF2627E400741448AEB26BBE016"
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "out": {
+    "id": 25,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "location.href",
+     "returnByValue": true
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  },
+  {
+   "in": {
+    "id": 25,
+    "result": {
+     "result": {
+      "type": "string",
+      "value": "http://127.0.0.1:8765/sub"
+     }
+    },
+    "sessionId": "755F89D07D6EF093A3EE4F3C2F02E936"
+   }
+  }
+ ],
+ "dialog_unattended": [
+  {
+   "out": {
+    "id": 1,
+    "method": "Target.getTargets"
+   }
+  },
+  {
+   "in": {
+    "id": 1,
+    "result": {
+     "targetInfos": [
+      {
+       "targetId": "F29159331F22C1C96D593DBB502C1E99",
+       "type": "browser_ui",
+       "title": "",
+       "url": "chrome://omnibox-popup.top-chrome/",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "6F282E75D5EC3BFD2D13531B0730C327"
+      },
+      {
+       "targetId": "D7F86B654A8FA90F33E0F18F178513B7",
+       "type": "browser_ui",
+       "title": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+       "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "6F282E75D5EC3BFD2D13531B0730C327"
+      },
+      {
+       "targetId": "22CC37ABD91B9B84FF76AEF648CD968C",
+       "type": "page",
+       "title": "about:blank",
+       "url": "about:blank",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "6F282E75D5EC3BFD2D13531B0730C327"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 2,
+    "method": "Target.attachToTarget",
+    "params": {
+     "targetId": "22CC37ABD91B9B84FF76AEF648CD968C",
+     "flatten": true
+    }
+   }
+  },
+  {
+   "in": {
+    "method": "Target.attachedToTarget",
+    "params": {
+     "sessionId": "014F83BDF5094CC01B603271A75C7D27",
+     "targetInfo": {
+      "targetId": "22CC37ABD91B9B84FF76AEF648CD968C",
+      "type": "page",
+      "title": "about:blank",
+      "url": "about:blank",
+      "attached": true,
+      "canAccessOpener": false,
+      "browserContextId": "6F282E75D5EC3BFD2D13531B0730C327"
+     },
+     "waitingForDebugger": false
+    }
+   }
+  },
+  {
+   "in": {
+    "id": 2,
+    "result": {
+     "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 3,
+    "method": "Runtime.enable",
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 1,
+      "origin": "://",
+      "name": "",
+      "uniqueId": "-6761973661629947640.-7778252352930703813",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "22CC37ABD91B9B84FF76AEF648CD968C"
+      }
+     }
+    },
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "in": {
+    "id": 3,
+    "result": {},
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "out": {
+    "id": 4,
+    "method": "Page.navigate",
+    "params": {
+     "url": "http://127.0.0.1:8765/page"
+    },
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "in": {
+    "id": 4,
+    "result": {
+     "frameId": "22CC37ABD91B9B84FF76AEF648CD968C",
+     "loaderId": "466E06D2FB5FB0F9F9CDB20200E643F4",
+     "isDownload": false
+    },
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 2,
+      "origin": "http://127.0.0.1:8765",
+      "name": "",
+      "uniqueId": "1614431425625051479.-8766347734994954994",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "22CC37ABD91B9B84FF76AEF648CD968C"
+      }
+     }
+    },
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "out": {
+    "id": 5,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "confirm('unattended?')",
+     "returnByValue": true
+    },
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "out": {
+    "id": 6,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "1 + 1",
+     "returnByValue": true
+    },
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "out": {
+    "id": 7,
+    "method": "Page.enable",
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "out": {
+    "id": 8,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "prompt('late?', 'x')",
+     "returnByValue": true
+    },
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "out": {
+    "id": 9,
+    "method": "Page.handleJavaScriptDialog",
+    "params": {
+     "accept": true,
+     "promptText": "y"
+    },
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "in": {
+    "id": 9,
+    "error": {
+     "code": -32602,
+     "message": "No dialog is showing"
+    },
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  },
+  {
+   "out": {
+    "id": 10,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "2 + 2",
+     "returnByValue": true
+    },
+    "sessionId": "014F83BDF5094CC01B603271A75C7D27"
+   }
+  }
  ]
 }

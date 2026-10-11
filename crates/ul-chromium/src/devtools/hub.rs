@@ -106,6 +106,8 @@ pub struct Hub {
     held: RefCell<Vec<HeldRequest>>,
     released: RefCell<Vec<HeldRequest>>,
     pub unpaused: Cell<bool>,
+    /// As sessões com `Page` ligado (espelho da aba): só elas veem os diálogos.
+    pub pages: RefCell<Vec<String>>,
     /// O `requestId` e o que o `Network` já mostrou do pedido que o fetcher acabou de pausar.
     pub announced: RefCell<Option<(String, Announced)>>,
     /// Os subrecursos que o fetcher viu e ainda faltam relatar.
@@ -137,6 +139,7 @@ impl Hub {
             held: RefCell::new(Vec::new()),
             released: RefCell::new(Vec::new()),
             unpaused: Cell::new(false),
+            pages: RefCell::new(Vec::new()),
             announced: RefCell::new(None),
             observed: Default::default(),
             net: Default::default(),
@@ -504,6 +507,78 @@ impl Hub {
     /// Os pedidos do navegador que o cliente liberou desde a última chamada.
     pub fn take_released(&self) -> Vec<HeldRequest> {
         std::mem::take(&mut *self.released.borrow_mut())
+    }
+
+    /// Um diálogo do documento (`alert`, `confirm`, `prompt`): o renderer para até o cliente responder
+    /// (`Page.handleJavaScriptDialog`) ou uma navegação o dispensar; os outros comandos esperam na fila, como no Chromium.
+    /// Sem sessão com `Page` ligado o diálogo não aparece para ninguém e só uma navegação o encerra. `None` é o recusado.
+    pub fn dialog(&self, kind: &str, message: &str, default_prompt: &str) -> Option<String> {
+        let mut notified = self.pages.borrow().clone();
+        let mut showing = !notified.is_empty();
+        let url = self.url.borrow().clone();
+        let opening = Json::object([
+            ("url", Json::str(&url)),
+            ("frameId", Json::str(&self.target_id)),
+            ("message", Json::str(message)),
+            ("type", Json::str(kind)),
+            ("hasBrowserHandler", Json::Bool(true)),
+            ("defaultPrompt", Json::str(if kind == "prompt" { default_prompt } else { "" })),
+        ]);
+        self.emit(&notified, "Page.javascriptDialogOpening", &opening);
+        let closed = |this: &Self, sessions: &[String], accepted: bool, input: &str| {
+            let params = Json::object([("frameId", Json::str(&this.target_id)), ("result", Json::Bool(accepted)), ("userInput", Json::str(input))]);
+            this.emit(sessions, "Page.javascriptDialogClosed", &params);
+        };
+        loop {
+            let mut commands = Vec::new();
+            {
+                let mut queue = self.queue.borrow_mut();
+                if queue.iter().any(|l| l == "X") {
+                    self.closed.set(true);
+                    return None;
+                }
+                let mut kept = VecDeque::new();
+                for line in queue.drain(..) {
+                    match line.strip_prefix('M').and_then(|text| json::parse(text).ok()) {
+                        Some(message) if message.get("method").and_then(Json::as_str).is_some_and(|m| m == "Page.handleJavaScriptDialog") => commands.push(message),
+                        Some(message) => {
+                            let method = message.get("method").and_then(Json::as_str).unwrap_or_default();
+                            match method {
+                                // A aba desligou o `Page`: o diálogo continua aberto, mas já não aparece para a sessão.
+                                "Page.disable" => showing = false,
+                                "Page.navigate" | "Page.reload" | "Page.navigateToHistoryEntry" => commands.push(Json::str("dismiss")),
+                                _ => {}
+                            }
+                            kept.push_back(line);
+                        }
+                        None => kept.push_back(line),
+                    }
+                }
+                *queue = kept;
+            }
+            for command in commands {
+                if command.as_str() == Some("dismiss") {
+                    closed(self, &notified, false, "");
+                    return None;
+                }
+                if !showing {
+                    self.fail(&command, -32602, "No dialog is showing");
+                    continue;
+                }
+                let params = command.get("params").cloned().unwrap_or(Json::Object(Vec::new()));
+                let accepted = params.get("accept").and_then(Json::as_bool).unwrap_or(false);
+                let typed = params.get("promptText").and_then(Json::as_str).unwrap_or_default().to_owned();
+                let input = if kind == "prompt" && accepted { typed } else { String::new() };
+                notified = self.pages.borrow().iter().cloned().chain(notified).collect::<std::collections::BTreeSet<_>>().into_iter().collect();
+                closed(self, &notified, accepted, &input);
+                self.reply(&command, Json::object([]));
+                return accepted.then_some(input);
+            }
+            if !self.receive(50) {
+                self.closed.set(true);
+                return None;
+            }
+        }
     }
 
     /// Espera o cliente decidir o pedido pausado; os outros comandos ficam na fila para depois.

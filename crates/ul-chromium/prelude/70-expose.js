@@ -321,12 +321,14 @@ for (const name of ['setImmediate', 'clearImmediate']) delete globalThis[name];
   for (const key of ['PerformanceTiming', 'PerformanceNavigation']) Object.defineProperty(globalThis, key, { enumerable: false });
 }
 
+const dialogText = (value) => (value === undefined ? '' : String(value));
+
 Object.assign(globalThis, {
   requestAnimationFrame,
   cancelAnimationFrame,
   requestIdleCallback,
   cancelIdleCallback,
-  alert() {}, confirm() { return false; }, prompt() { return null; }, print() {}, open() { return null; }, close() {}, stop() {}, focus() {}, blur() {},
+  alert(message) { op('dialog', 'alert', dialogText(message), ''); }, confirm(message) { return op('dialog', 'confirm', dialogText(message), '') !== null; }, prompt(message, fallback) { return op('dialog', 'prompt', dialogText(message), dialogText(fallback)); }, print() {}, open() { return null; }, close() {}, stop() {}, focus() {}, blur() {},
   scrollTo() {}, scrollBy() {}, scroll() {}, moveTo() {}, moveBy() {}, resizeTo() {}, resizeBy() {},
   getSelection: () => selection,
   reportError,

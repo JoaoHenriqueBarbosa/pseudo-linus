@@ -201,8 +201,12 @@ fn message_session(message: &Json) -> String {
 
 impl Tab {
     fn new(target_id: String, input: Fd, output: Fd, profile: std::sync::Arc<crate::session::Profile>) -> Tab {
+        let hub = std::rc::Rc::new(Hub::new(target_id.clone(), input, output, profile.clone()));
+        let session = std::rc::Rc::new(crate::session::Tab::new(profile));
+        let answer = hub.clone();
+        *session.dialogs.borrow_mut() = Some(crate::session::DialogHook(std::rc::Rc::new(move |kind, message, default| answer.dialog(kind, message, default))));
         Tab {
-            hub: std::rc::Rc::new(Hub::new(target_id.clone(), input, output, profile.clone())),
+            hub,
             target_id,
             isolate_id: random_i64().unsigned_abs().to_string(),
             next_context: 1,
@@ -229,8 +233,13 @@ impl Tab {
             redirects: Vec::new(),
             waiting: false,
             idle: None,
-            session: std::rc::Rc::new(crate::session::Tab::new(profile)),
+            session,
         }
+    }
+
+    /// As sessões com `Page` ligado, para o hub saber a quem mostrar os diálogos.
+    fn sync_pages(&self) {
+        *self.hub.pages.borrow_mut() = self.page_enabled.clone();
     }
 
     /// O fuso e o locale padrão do motor (por thread, e esta é a do realm da página): o `Emulation` do DevTools vale já no
@@ -795,6 +804,7 @@ impl Tab {
                     list.retain(|s| s != rest);
                 }
                 self.hub.network.borrow_mut().retain(|s| s != rest);
+                self.sync_pages();
                 return None;
             }
             _ => {}
@@ -808,11 +818,14 @@ impl Tab {
                 if !self.page_enabled.contains(&session) {
                     self.page_enabled.push(session);
                 }
+                self.sync_pages();
                 self.hub.reply(&message, Json::object([]));
             }
+            "Page.handleJavaScriptDialog" => self.hub.fail(&message, -32602, "No dialog is showing"),
             "Page.disable" => {
                 self.page_enabled.retain(|s| *s != session);
                 self.lifecycle_enabled.retain(|s| *s != session);
+                self.sync_pages();
                 self.hub.reply(&message, Json::object([]));
             }
             "Log.enable" | "Log.disable" | "Performance.enable" | "Performance.disable" => self.hub.reply(&message, Json::object([])),

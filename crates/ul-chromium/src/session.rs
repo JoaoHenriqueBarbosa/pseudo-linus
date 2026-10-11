@@ -247,12 +247,23 @@ impl Profile {
 pub struct Tab {
     pub profile: Arc<Profile>,
     pub session: RefCell<Areas>,
+    /// Quem atende `alert`, `confirm` e `prompt` (o DevTools da aba); sem ele os diálogos não aparecem para ninguém.
+    pub dialogs: RefCell<Option<DialogHook>>,
+}
+
+/// O atendimento de um diálogo do documento: tipo, mensagem e texto padrão; `None` é o diálogo recusado.
+pub struct DialogHook(pub std::rc::Rc<dyn Fn(&str, &str, &str) -> Option<String>>);
+
+impl std::fmt::Debug for DialogHook {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("DialogHook")
+    }
 }
 
 impl Tab {
     pub fn new(profile: Arc<Profile>) -> Tab {
         let store = profile.session_storage.as_ref().map(|store| store.namespace() as Arc<dyn AreaStore>);
-        Tab { profile, session: RefCell::new(Areas { map: HashMap::new(), store }) }
+        Tab { profile, session: RefCell::new(Areas { map: HashMap::new(), store }), dialogs: RefCell::new(None) }
     }
 }
 
