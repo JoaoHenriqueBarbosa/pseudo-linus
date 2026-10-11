@@ -292,6 +292,12 @@ fn exc_hint(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::str(args.first().map_or_else(String::new, |v| vm.exc_hint(v))))
 }
 
+/// `sys.is_finalizing()`: o desligamento já começou (a finalização dos objetos vivos depois do `atexit`).
+fn is_finalizing(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_is_finalizing", &kw)?;
+    Ok(Value::Bool(crate::finalize::is_finalizing()))
+}
+
 /// Instantâneo dos módulos carregados (`sys.modules`), com `__main__` montado das globais do script.
 fn modules_snapshot(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     // O `__main__` vivo (globais do script), o mesmo que `import __main__` devolve.
@@ -359,6 +365,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .value("stdout", Value::Native(vm.std_files[1].clone()))
         .value("stderr", Value::Native(vm.std_files[2].clone()))
         .func("exit", exit)
+        .func("_is_finalizing", is_finalizing)
         .func("exc_info", exc_info)
         .func("_getframe", getframe)
         .func("settrace", settrace)

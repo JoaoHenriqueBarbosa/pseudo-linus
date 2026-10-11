@@ -316,3 +316,48 @@ fn c_paths_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_c_paths.out"),
     );
 }
+
+/// Escreve na sandbox, sob `dest`, cada arquivo de `dir` (relativo a `dir`), em profundidade.
+fn write_tree(c: &Client, sb: &str, dir: &std::path::Path, dest: &str) {
+    let r = exec(c, sb, &format!("mkdir -p {dest}"));
+    assert_eq!(r["exit_code"], 0, "{r}");
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        let name = path.file_name().unwrap().to_str().unwrap();
+        if path.is_dir() {
+            write_tree(c, sb, &path, &format!("{dest}/{name}"));
+        } else {
+            write(c, sb, &format!("{dest}/{name}"), &std::fs::read_to_string(&path).unwrap());
+        }
+    }
+}
+
+/// A suíte `greenlet/tests` do 3.5.6 (a da wheel, copiada do oráculo com o `psutil` mínimo que ela importa) roda
+/// no `python3` da imagem como no CPython: `unittest discover` do pacote, e o resumo é o que o oráculo deu.
+#[test]
+#[ignore = "em fechamento: ainda há divergências medidas contra o oráculo (172 testes, 6 pulados lá)"]
+fn greenlet_test_suite_runs_like_the_oracle() {
+    let d = Daemon::kernel("");
+    let t = d.user("ana", json!({}));
+    let c = d.client(&t);
+    let sb = sandbox(&c);
+    let suite = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../testbench/oracle/automation/fixtures/greenlet_suite");
+    write_tree(&c, &sb, &suite, "/tmp/gls");
+    let r = exec(&c, &sb, "touch /tmp/gls/greenlet/_greenlet.cpython-313-x86_64-linux-gnu.so");
+    assert_eq!(r["exit_code"], 0, "{r}");
+    write(&c, &sb, "/tmp/gls/greenlet/__init__.py", INIT);
+    let r = exec(&c, &sb, "cd /tmp/gls && PYTHONPATH=/tmp/gls python3 -m unittest discover -s greenlet/tests -t . > out.txt 2>&1; cat out.txt");
+    let out = r["stdout"].as_str().unwrap();
+    assert!(out.contains("Ran 172 tests") && out.contains("OK (skipped=6)"), "{out}");
+}
+
+/// `getcurrent()` no `__del__` de um ciclo que só a finalização do interpretador coleta: `RuntimeError` (o principal
+/// já foi embora), como no oráculo.
+#[test]
+fn finalizing_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_finalizing",
+        include_str!("../../../testbench/oracle/automation/cases/gl_finalizing.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_finalizing.out"),
+    );
+}
