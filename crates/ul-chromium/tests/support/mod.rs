@@ -41,7 +41,7 @@ pub fn serve_routes(listener: Fd) -> i32 {
                 Ok(n) => request.extend_from_slice(&buffer[..n]),
             }
         }
-        let path = String::from_utf8_lossy(&request).split(' ').nth(1).unwrap_or("/").to_owned();
+        let path = String::from_utf8_lossy(&request).split(' ').nth(1).unwrap_or("/").split('?').next().unwrap_or("/").to_owned();
         let response: &[u8] = match path.as_str() {
             "/page" => b"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 29\r\n\r\n<title>H</title><p>hello</p>\n",
             "/redirect" => b"HTTP/1.0 302 Found\r\nLocation: /page\r\nContent-Length: 0\r\n\r\n",
@@ -210,6 +210,10 @@ pub fn normalize(value: &Value, key: &str) -> Value {
         // Os instantes e as durações da troca de rede variam a cada execução; os campos que o Chromium deixa em -1 por
         // não ter feito DNS nem conexão (conexão reaproveitada) também variam com o estado do pool de sockets.
         Value::Object(map) if key == "timing" || key == "connectTiming" => Value::Object(map.keys().map(|k| (k.clone(), Value::String("<n>".into()))).collect()),
+        // O id da entrada do histórico de navegação é um contador do navegador inteiro.
+        Value::Object(map) if map.contains_key("transitionType") && map.contains_key("userTypedURL") => {
+            Value::Object(map.iter().map(|(k, v)| (k.clone(), if k == "id" { Value::String("<entryId>".into()) } else { normalize(v, k) })).collect())
+        }
         Value::Object(map) => Value::Object(map.iter().map(|(k, v)| (k.clone(), normalize(v, k))).collect()),
         // O `getTargets` do oráculo sai na ordem de um mapa de hash, que muda de uma execução para outra: qualquer
         // ordem vale, então a comparação é como conjunto.

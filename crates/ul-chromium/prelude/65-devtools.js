@@ -240,6 +240,18 @@ const devtoolsAgent = (() => {
     }
   };
 
+  // `Runtime.addBinding`: a função no objeto global que manda o texto ao cliente. O hospedeiro guarda os nomes e os manda
+  // de novo a cada documento; o `removeBinding` só vale para os documentos seguintes (medido no oráculo).
+  const bindings = new Set();
+  const installBinding = (name) => {
+    if (bindings.has(name)) return;
+    bindings.add(name);
+    Object.defineProperty(globalThis, name, {
+      value: function (payload) { emit('Runtime.bindingCalled', { name, payload: String(payload), executionContextId: state.contextId }); },
+      writable: true, configurable: true, enumerable: true,
+    });
+  };
+
   const contextDescription = () => ({
     id: state.contextId,
     origin: state.origin,
@@ -523,6 +535,12 @@ const devtoolsAgent = (() => {
       windowMetrics.devicePixelRatio = override ? override.scale : 1;
       for (const key of ['innerWidth', 'innerHeight', 'outerWidth', 'outerHeight', 'devicePixelRatio']) globalThis[key] = windowMetrics[key];
       emulation.touchPoints = params.touch;
+      emulation.userAgent = params.userAgent;
+      emulation.platform = params.platform;
+      emulation.languages = params.acceptLanguage ? params.acceptLanguage.split(',').map((l) => l.split(';')[0].trim()).filter(Boolean) : null;
+      emulation.geo = params.geo;
+      emulation.offline = params.offline;
+      for (const name of params.bindings) installBinding(name);
       emulation.media = params.media;
       emulation.features = params.features;
       state.worlds = new Set(params.worlds);

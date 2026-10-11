@@ -204,13 +204,17 @@ pub struct Profile {
     pub history: Option<Arc<crate::history::HistoryLog>>,
     /// Os arquivos de sessão do navegador de pé: a página da linha de comando e o `Tabs_` do `Browser.close`.
     pub sessions: Option<Arc<crate::sessions::SessionsLog>>,
+    /// O pote de cookies do contexto: as abas o leem e o escrevem (`document.cookie`, `Set-Cookie`, `Storage.*Cookies`).
+    pub cookies: Mutex<ul_net::net::cookies::Jar>,
+    /// O que o DevTools concedeu (`Browser.grantPermissions`): origem (vazia vale para todas) e nome da permissão.
+    pub permissions: Mutex<Vec<(String, String)>>,
 }
 
 impl Profile {
     /// O perfil do `--user-data-dir`: o `localStorage` e o IndexedDB persistem nos bancos dele.
     pub fn on_disk(local_storage: Option<Arc<LocalStorageStore>>, indexed_db: Option<Arc<IndexedDbStore>>) -> Profile {
         let store = local_storage.clone().map(|store| store as Arc<dyn AreaStore>);
-        Profile { local: Mutex::new(Areas { map: HashMap::new(), store }), indexed_db: indexed_db.unwrap_or_default(), local_storage, session_storage: None, history: None, sessions: None }
+        Profile { local: Mutex::new(Areas { map: HashMap::new(), store }), indexed_db: indexed_db.unwrap_or_default(), local_storage, session_storage: None, history: None, sessions: None, cookies: Mutex::default(), permissions: Mutex::default() }
     }
 
     /// O perfil com todos os bancos do `DiskProfile`, o `sessionStorage` incluído.

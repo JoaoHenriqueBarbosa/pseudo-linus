@@ -30,8 +30,9 @@ class Document extends Node {
   get baseURI() { return baseUrlOf(); }
   get domain() { try { return new URL(pageState.url).hostname; } catch { return ''; } }
   get referrer() { return ''; }
-  get cookie() { return Array.from(cookieJar, ([k, v]) => `${k}=${v}`).join('; '); }
+  get cookie() { return /^https?:/i.test(pageState.url) ? op('cookie', 'get', pageState.url) : Array.from(cookieJar, ([k, v]) => `${k}=${v}`).join('; '); }
   set cookie(value) {
+    if (/^https?:/i.test(pageState.url)) { op('cookie', 'set', pageState.url, String(value)); return; }
     const parts = String(value).split(';');
     const eq = parts[0].indexOf('=');
     const name = (eq < 0 ? '' : parts[0].slice(0, eq)).trim();

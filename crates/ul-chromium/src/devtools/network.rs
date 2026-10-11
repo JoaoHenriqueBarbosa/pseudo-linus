@@ -106,10 +106,10 @@ pub fn request_will_be_sent(request_id: &str, loader_id: &str, frame_id: &str, d
 
 /// `Network.requestWillBeSentExtraInfo`: os cabeçalhos que saíram no fio. O pedido de subrecurso leva o
 /// `clientSecurityState` do iniciador.
-pub fn request_extra_info(request_id: &str, e: &NetExchange, request_time: f64, subresource: bool) -> Json {
+pub fn request_extra_info(request_id: &str, e: &NetExchange, request_time: f64, subresource: bool, cookies: Json) -> Json {
     let mut fields = vec![
         ("requestId", Json::str(request_id)),
-        ("associatedCookies", Json::Array(Vec::new())),
+        ("associatedCookies", cookies),
         ("headers", pairs(&e.sent)),
         ("connectTiming", Json::object([("requestTime", number(request_time))])),
     ];

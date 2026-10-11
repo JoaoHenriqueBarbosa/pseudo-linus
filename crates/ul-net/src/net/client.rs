@@ -112,6 +112,8 @@ pub enum FetchError {
     Io(String),
     /// `net::ERR_UNKNOWN_URL_SCHEME`.
     UnknownScheme(String),
+    /// `net::ERR_INTERNET_DISCONNECTED`: o navegador está emulando a rede desligada.
+    Offline,
 }
 
 impl FetchError {
@@ -128,6 +130,7 @@ impl FetchError {
             FetchError::TooManyRedirects => "net::ERR_TOO_MANY_REDIRECTS",
             FetchError::Io(_) => "net::ERR_CONNECTION_RESET",
             FetchError::UnknownScheme(_) => "net::ERR_UNKNOWN_URL_SCHEME",
+            FetchError::Offline => "net::ERR_INTERNET_DISCONNECTED",
         }
     }
 }

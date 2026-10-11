@@ -39,6 +39,8 @@ struct Target {
     window_id: i64,
     /// A janela da aba: largura, altura e estado (`normal`, `minimized`...), como o `getWindowForTarget` os devolve.
     bounds: (i64, i64, String),
+    /// O perfil do contexto da aba (cookies, permissões, storage).
+    profile: std::sync::Arc<crate::session::Profile>,
     /// Comandos à espera de espaço no pipe da página (o laço do navegador nunca bloqueia escrevendo).
     pending: Vec<u8>,
     inbox: Vec<u8>,
@@ -257,9 +259,9 @@ impl Browser {
 
     fn spawn_target(&mut self, kind: &'static str, url: &str, title: &str, startup: bool, wait: bool, profile: std::sync::Arc<crate::session::Profile>) -> String {
         let id = token();
-        let Ok(link) = target::spawn(id.clone(), url.to_owned(), startup, wait, profile) else { return id };
+        let Ok(link) = target::spawn(id.clone(), url.to_owned(), startup, wait, profile.clone()) else { return id };
         let window_id = (super::random_i64() & 0x7FFF_FFFF).max(1);
-        let mut entry = Target { id: id.clone(), kind, title: title.to_owned(), url: url.to_owned(), link, window_id, bounds: (780, 580, "normal".to_owned()), pending: Vec::new(), inbox: Vec::new() };
+        let mut entry = Target { id: id.clone(), kind, title: title.to_owned(), url: url.to_owned(), link, window_id, bounds: (780, 580, "normal".to_owned()), profile, pending: Vec::new(), inbox: Vec::new() };
         if kind == "browser_ui" {
             Self::settle(&mut entry);
         }
@@ -479,6 +481,32 @@ impl Browser {
         Ok(())
     }
 
+    /// Os comandos que o perfil do contexto responde: os cookies (`Storage.*Cookies`) e as permissões concedidas.
+    fn profile_command(profile: &crate::session::Profile, method: &str, params: &Json) -> Result<Json, (i64, String)> {
+        match method {
+            "Storage.getCookies" => Ok(crate::cookies::get(&profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner))),
+            "Storage.setCookies" => crate::cookies::set(&mut profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner), params.get("cookies").unwrap_or(&Json::Null)).map(|()| Json::object([])),
+            "Storage.clearCookies" => {
+                profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner).cookies.clear();
+                Ok(Json::object([]))
+            }
+            "Browser.grantPermissions" => {
+                let origin = params.get("origin").and_then(Json::as_str).unwrap_or_default().to_owned();
+                if let Some(Json::Array(names)) = params.get("permissions") {
+                    let mut granted = profile.permissions.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                    for name in names.iter().filter_map(Json::as_str) {
+                        granted.push((origin.clone(), name.to_owned()));
+                    }
+                }
+                Ok(Json::object([]))
+            }
+            _ => {
+                profile.permissions.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clear();
+                Ok(Json::object([]))
+            }
+        }
+    }
+
     /// Os comandos de `Browser` que uma sessão de página responde no navegador (a janela é da aba, a sessão a nomeia).
     fn session_browser_command(&mut self, key: u64, session: &str, id: &Json, method: &str, message: &Json) -> bool {
         let params = message.get("params").cloned().unwrap_or(Json::Object(Vec::new()));
@@ -495,6 +523,13 @@ impl Browser {
                 Err(error) => Err(error),
             },
             "Browser.setDownloadBehavior" => Ok(Json::object([])),
+            "Browser.grantPermissions" | "Browser.resetPermissions" | "Storage.getCookies" | "Storage.setCookies" | "Storage.clearCookies" => {
+                let context = params.get("browserContextId").and_then(Json::as_str).and_then(|c| self.profiles.get(c).cloned());
+                match context.or_else(|| self.target(&target).map(|t| t.profile.clone())) {
+                    Some(profile) => Self::profile_command(&profile, method, params),
+                    None => Err((-32602, "Failed to find browser context for given id".to_owned())),
+                }
+            }
             _ => return false,
         };
         let implicit = self.sessions.iter().any(|s| s.id == session && s.implicit);
@@ -553,6 +588,13 @@ impl Browser {
             // no sandbox, o comando só vale a resposta.
             "Browser.setDownloadBehavior" => Ok(Json::object([])),
             "Browser.setWindowBounds" => self.set_window_bounds(params).map(|_| Json::object([])),
+            "Browser.grantPermissions" | "Browser.resetPermissions" | "Storage.getCookies" | "Storage.setCookies" | "Storage.clearCookies" => {
+                let context = params.get("browserContextId").and_then(Json::as_str).unwrap_or(&self.context_id);
+                match self.profiles.get(context) {
+                    Some(profile) => Self::profile_command(profile, method, params),
+                    None => Err((-32602, format!("Failed to find browser context with id {context}"))),
+                }
+            }
             "Target.getTargets" => {
                 let types: Option<Vec<(bool, String)>> = params.get("filter").and_then(|f| match f {
                     Json::Array(entries) => Some(

@@ -28,12 +28,18 @@ def serve(port=8765):
                 if not chunk:
                     break
                 request += chunk
-            path = request.split(b" ")[1].decode() if request.count(b" ") >= 2 else "/"
+            path = request.split(b" ")[1].decode().split("?")[0] if request.count(b" ") >= 2 else "/"
             conn.sendall(ROUTES.get(path, b"HTTP/1.0 404 Not Found\r\nContent-Length: 0\r\n\r\n"))
             conn.close()
 
     threading.Thread(target=loop, daemon=True).start()
     return listener
+
+
+def _pointer(value, path):
+    for part in path.strip("/").split("/"):
+        value = value[int(part)] if isinstance(value, list) else value[part]
+    return value
 
 
 def launch():
@@ -101,7 +107,8 @@ def run(scenario, ws):
             if step["method"] == "Target.getTargets" and "target" not in sessions:
                 sessions["target"] = next(t["targetId"] for t in reply["result"]["targetInfos"] if t["type"] == "page")
             if "save" in step:
-                sessions[step["save"]] = reply["result"][step["save_field"]]
+                field = step["save_field"]
+                sessions[step["save"]] = reply["result"][field] if not field.startswith("/") else _pointer(reply["result"], field)
         if "after" in step:
             drain(step["after"])
     return log

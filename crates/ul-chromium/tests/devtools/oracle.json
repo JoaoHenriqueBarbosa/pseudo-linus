@@ -6876,5 +6876,3497 @@
     "sessionId": "D86D8894B42F37AC21244AF67B6D0290"
    }
   }
+ ],
+ "playwright_state": [
+  {
+   "out": {
+    "id": 1,
+    "method": "Target.getTargets"
+   }
+  },
+  {
+   "in": {
+    "id": 1,
+    "result": {
+     "targetInfos": [
+      {
+       "targetId": "F7C66E82A5104B7C909933F942A1CD3D",
+       "type": "browser_ui",
+       "title": "",
+       "url": "chrome://omnibox-popup.top-chrome/",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "56CDF441F3CB05B7A30D4D06DDD23C41"
+      },
+      {
+       "targetId": "988CA10DCBAE9FB2F996004D88D77BE5",
+       "type": "browser_ui",
+       "title": "",
+       "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "56CDF441F3CB05B7A30D4D06DDD23C41"
+      },
+      {
+       "targetId": "A666FD1250224267F523EBEE9375CD1E",
+       "type": "page",
+       "title": "about:blank",
+       "url": "about:blank",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "56CDF441F3CB05B7A30D4D06DDD23C41"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 2,
+    "method": "Target.attachToTarget",
+    "params": {
+     "targetId": "A666FD1250224267F523EBEE9375CD1E",
+     "flatten": true
+    }
+   }
+  },
+  {
+   "in": {
+    "method": "Target.attachedToTarget",
+    "params": {
+     "sessionId": "C65BFD9B7A6F420BA16D491E18243F88",
+     "targetInfo": {
+      "targetId": "A666FD1250224267F523EBEE9375CD1E",
+      "type": "page",
+      "title": "about:blank",
+      "url": "about:blank",
+      "attached": true,
+      "canAccessOpener": false,
+      "browserContextId": "56CDF441F3CB05B7A30D4D06DDD23C41"
+     },
+     "waitingForDebugger": false
+    }
+   }
+  },
+  {
+   "in": {
+    "id": 2,
+    "result": {
+     "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 3,
+    "method": "Page.enable",
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 3,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 4,
+    "method": "Network.enable",
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 4,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 5,
+    "method": "Runtime.enable",
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 1,
+      "origin": "://",
+      "name": "",
+      "uniqueId": "-2428949998432869613.-7738412436771111888",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "A666FD1250224267F523EBEE9375CD1E"
+      }
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 5,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 6,
+    "method": "Network.setExtraHTTPHeaders",
+    "params": {
+     "headers": {
+      "x-a": "1"
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 6,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 7,
+    "method": "Emulation.setUserAgentOverride",
+    "params": {
+     "userAgent": "UA/1",
+     "acceptLanguage": "pt-BR",
+     "userAgentMetadata": {
+      "mobile": false,
+      "model": "",
+      "architecture": "x86",
+      "platform": "Windows",
+      "platformVersion": ""
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 7,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 8,
+    "method": "Emulation.setLocaleOverride",
+    "params": {
+     "locale": "pt-BR"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 8,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 9,
+    "method": "Emulation.setTimezoneOverride",
+    "params": {
+     "timezoneId": "America/Sao_Paulo"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 9,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 10,
+    "method": "Page.navigate",
+    "params": {
+     "url": "http://127.0.0.1:8765/page"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "url": "http://127.0.0.1:8765/page",
+     "loaderId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "navigationType": "differentDocument"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "loaderId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "documentURL": "http://127.0.0.1:8765/page",
+     "request": {
+      "url": "http://127.0.0.1:8765/page",
+      "method": "GET",
+      "headers": {
+       "Accept-Language": "pt-BR",
+       "Upgrade-Insecure-Requests": "1",
+       "User-Agent": "UA/1",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0",
+       "sec-ch-ua-platform": "\"Windows\"",
+       "x-a": "1"
+      },
+      "mixedContentType": "none",
+      "initialPriority": "VeryHigh",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 165979.803672,
+     "wallTime": 1791725251.708034,
+     "initiator": {
+      "type": "other"
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Document",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "hasUserGesture": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "loaderId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "timestamp": 165979.806959,
+     "type": "Document",
+     "response": {
+      "url": "http://127.0.0.1:8765/page",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Length": "29",
+       "Content-Type": "text/html"
+      },
+      "mimeType": "text/html",
+      "charset": "",
+      "connectionReused": true,
+      "connectionId": 180,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 64,
+      "timing": {
+       "requestTime": 165979.804669,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": -1,
+       "dnsEnd": -1,
+       "connectStart": -1,
+       "connectEnd": -1,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.34,
+       "sendEnd": 0.402,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.515,
+       "receiveHeadersEnd": 0.598
+      },
+      "responseTime": 1791725251709.538,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 10,
+    "result": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "loaderId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "isDownload": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "associatedCookies": [],
+     "headers": {
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "pt-BR",
+      "Connection": "keep-alive",
+      "Host": "127.0.0.1:8765",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent": "UA/1",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "x-a": "1"
+     },
+     "connectTiming": {
+      "requestTime": 165979.804669
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "29",
+      "Content-Type": "text/html"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 200,
+     "headersText": "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 29\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "A666FD1250224267F523EBEE9375CD1E",
+      "loaderId": "2840C17C5EED26CBAD2ADF9893892A62",
+      "url": "http://127.0.0.1:8765/page",
+      "domainAndRegistry": "",
+      "securityOrigin": "http://127.0.0.1:8765",
+      "securityOriginDetails": {
+       "isLocalhost": true
+      },
+      "mimeType": "text/html",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "SecureLocalhost",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.policyUpdated",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "timestamp": 165979.810665,
+     "dataLength": 29,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 2,
+      "origin": "http://127.0.0.1:8765",
+      "name": "",
+      "uniqueId": "-2160203012788023699.-4274594878697253856",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "A666FD1250224267F523EBEE9375CD1E"
+      }
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "timestamp": 165979.805639,
+     "encodedDataLength": 93
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 165979.814087
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 165979.814487
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "117.2",
+     "loaderId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "documentURL": "http://127.0.0.1:8765/page",
+     "request": {
+      "url": "http://127.0.0.1:8765/favicon.ico",
+      "method": "GET",
+      "headers": {
+       "sec-ch-ua-platform": "\"Windows\"",
+       "Referer": "http://127.0.0.1:8765/page",
+       "User-Agent": "UA/1",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "Accept-Language": "pt-BR",
+       "sec-ch-ua-mobile": "?0",
+       "x-a": "1"
+      },
+      "mixedContentType": "none",
+      "initialPriority": "High",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 165979.821835,
+     "wallTime": 1791725251.726236,
+     "initiator": {
+      "type": "other"
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Other",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "hasUserGesture": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "117.2",
+     "associatedCookies": [],
+     "headers": {
+      "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "pt-BR",
+      "Connection": "keep-alive",
+      "Host": "127.0.0.1:8765",
+      "Referer": "http://127.0.0.1:8765/page",
+      "Sec-Fetch-Dest": "image",
+      "Sec-Fetch-Mode": "no-cors",
+      "Sec-Fetch-Site": "same-origin",
+      "User-Agent": "UA/1",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "x-a": "1"
+     },
+     "connectTiming": {
+      "requestTime": 165979.822455
+     },
+     "clientSecurityState": {
+      "initiatorIsSecureContext": true,
+      "initiatorIPAddressSpace": "Loopback",
+      "localNetworkAccessRequestPolicy": "PermissionBlock"
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "117.2",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "0"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 404,
+     "headersText": "HTTP/1.0 404 Not Found\r\nContent-Length: 0\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "117.2",
+     "loaderId": "2840C17C5EED26CBAD2ADF9893892A62",
+     "timestamp": 165979.823257,
+     "type": "Other",
+     "response": {
+      "url": "http://127.0.0.1:8765/favicon.ico",
+      "status": 404,
+      "statusText": "Not Found",
+      "headers": {
+       "Content-Length": "0"
+      },
+      "mimeType": "text/plain",
+      "charset": "",
+      "connectionReused": true,
+      "connectionId": 189,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 45,
+      "timing": {
+       "requestTime": 165979.822455,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": -1,
+       "dnsEnd": -1,
+       "connectStart": -1,
+       "connectEnd": -1,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.262,
+       "sendEnd": 0.317,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.361,
+       "receiveHeadersEnd": 0.406
+      },
+      "responseTime": 1791725251727.17,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "117.2",
+     "timestamp": 165979.823101,
+     "encodedDataLength": 45
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 11,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "[navigator.userAgent, navigator.language, navigator.languages, Intl.DateTimeFormat().resolvedOptions().timeZone, new Date(0).getTimezoneOffset(), navigator.platform]",
+     "returnByValue": true
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 11,
+    "result": {
+     "result": {
+      "type": "object",
+      "value": [
+       "UA/1",
+       "pt-BR",
+       [
+        "pt-BR"
+       ],
+       "America/Sao_Paulo",
+       180,
+       "Linux x86_64"
+      ]
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 12,
+    "method": "Network.setExtraHTTPHeaders",
+    "params": {
+     "headers": {}
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 12,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 13,
+    "method": "Emulation.setUserAgentOverride",
+    "params": {
+     "userAgent": ""
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 13,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 14,
+    "method": "Emulation.setLocaleOverride",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 14,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 15,
+    "method": "Emulation.setTimezoneOverride",
+    "params": {
+     "timezoneId": ""
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 15,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 16,
+    "method": "Page.navigate",
+    "params": {
+     "url": "http://127.0.0.1:8765/page?again"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "url": "http://127.0.0.1:8765/page?again",
+     "loaderId": "A5DABA1D6684DB697EE090D185DD158F",
+     "navigationType": "differentDocument"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "A5DABA1D6684DB697EE090D185DD158F",
+     "loaderId": "A5DABA1D6684DB697EE090D185DD158F",
+     "documentURL": "http://127.0.0.1:8765/page?again",
+     "request": {
+      "url": "http://127.0.0.1:8765/page?again",
+      "method": "GET",
+      "headers": {
+       "Upgrade-Insecure-Requests": "1",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0",
+       "sec-ch-ua-platform": "\"Linux\""
+      },
+      "mixedContentType": "none",
+      "initialPriority": "VeryHigh",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 165981.329938,
+     "wallTime": 1791725253.234298,
+     "initiator": {
+      "type": "other"
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Document",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "hasUserGesture": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "A5DABA1D6684DB697EE090D185DD158F",
+     "loaderId": "A5DABA1D6684DB697EE090D185DD158F",
+     "timestamp": 165981.332446,
+     "type": "Document",
+     "response": {
+      "url": "http://127.0.0.1:8765/page?again",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Length": "29",
+       "Content-Type": "text/html"
+      },
+      "mimeType": "text/html",
+      "charset": "",
+      "connectionReused": true,
+      "connectionId": 191,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 64,
+      "timing": {
+       "requestTime": 165981.330539,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": -1,
+       "dnsEnd": -1,
+       "connectStart": -1,
+       "connectEnd": -1,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.235,
+       "sendEnd": 0.283,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.409,
+       "receiveHeadersEnd": 0.464
+      },
+      "responseTime": 1791725253235.302,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 16,
+    "result": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "loaderId": "A5DABA1D6684DB697EE090D185DD158F",
+     "isDownload": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "A5DABA1D6684DB697EE090D185DD158F",
+     "associatedCookies": [],
+     "headers": {
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Connection": "keep-alive",
+      "Host": "127.0.0.1:8765",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "connectTiming": {
+      "requestTime": 165981.330539
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "A5DABA1D6684DB697EE090D185DD158F",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "29",
+      "Content-Type": "text/html"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 200,
+     "headersText": "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 29\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "A666FD1250224267F523EBEE9375CD1E",
+      "loaderId": "A5DABA1D6684DB697EE090D185DD158F",
+      "url": "http://127.0.0.1:8765/page?again",
+      "domainAndRegistry": "",
+      "securityOrigin": "http://127.0.0.1:8765",
+      "securityOriginDetails": {
+       "isLocalhost": true
+      },
+      "mimeType": "text/html",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "SecureLocalhost",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.policyUpdated",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "A5DABA1D6684DB697EE090D185DD158F",
+     "timestamp": 165981.335528,
+     "dataLength": 29,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 3,
+      "origin": "http://127.0.0.1:8765",
+      "name": "",
+      "uniqueId": "-6151083619151483235.-2788929944768477569",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "A666FD1250224267F523EBEE9375CD1E"
+      }
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "A5DABA1D6684DB697EE090D185DD158F",
+     "timestamp": 165981.331269,
+     "encodedDataLength": 93
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 165981.337855
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 165981.338184
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 17,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "[navigator.userAgent, navigator.language, Intl.DateTimeFormat().resolvedOptions().timeZone]",
+     "returnByValue": true
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 17,
+    "result": {
+     "result": {
+      "type": "object",
+      "value": [
+       "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "en-US",
+       "UTC"
+      ]
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 18,
+    "method": "Browser.grantPermissions",
+    "params": {
+     "permissions": [
+      "geolocation"
+     ]
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 18,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 19,
+    "method": "Emulation.setGeolocationOverride",
+    "params": {
+     "latitude": -23.5,
+     "longitude": -46.6,
+     "accuracy": 10
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 19,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 20,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "new Promise((ok) => navigator.geolocation.getCurrentPosition((p) => ok([p.coords.latitude, p.coords.longitude, p.coords.accuracy]), (e) => ok(['err', e.code])))",
+     "awaitPromise": true,
+     "returnByValue": true
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 20,
+    "result": {
+     "result": {
+      "type": "object",
+      "value": [
+       -23.5,
+       -46.6,
+       10
+      ]
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 21,
+    "method": "Storage.setCookies",
+    "params": {
+     "cookies": [
+      {
+       "name": "k",
+       "value": "v",
+       "url": "http://127.0.0.1:8765",
+       "domain": "127.0.0.1",
+       "path": "/",
+       "secure": false
+      }
+     ]
+    }
+   }
+  },
+  {
+   "in": {
+    "id": 21,
+    "result": {}
+   }
+  },
+  {
+   "out": {
+    "id": 22,
+    "method": "Storage.getCookies"
+   }
+  },
+  {
+   "in": {
+    "id": 22,
+    "result": {
+     "cookies": [
+      {
+       "name": "k",
+       "value": "v",
+       "domain": "127.0.0.1",
+       "path": "/",
+       "expires": -1,
+       "size": 2,
+       "httpOnly": false,
+       "secure": false,
+       "session": true,
+       "priority": "Medium",
+       "sourceScheme": "NonSecure",
+       "sourcePort": 80
+      }
+     ]
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 23,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "document.cookie",
+     "returnByValue": true
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 23,
+    "result": {
+     "result": {
+      "type": "string",
+      "value": "k=v"
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 24,
+    "method": "Page.navigate",
+    "params": {
+     "url": "http://127.0.0.1:8765/page?cookie"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "url": "http://127.0.0.1:8765/page?cookie",
+     "loaderId": "61A8B278F5F3547900FEF45E6DC80BA6",
+     "navigationType": "differentDocument"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "61A8B278F5F3547900FEF45E6DC80BA6",
+     "loaderId": "61A8B278F5F3547900FEF45E6DC80BA6",
+     "documentURL": "http://127.0.0.1:8765/page?cookie",
+     "request": {
+      "url": "http://127.0.0.1:8765/page?cookie",
+      "method": "GET",
+      "headers": {
+       "Upgrade-Insecure-Requests": "1",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0",
+       "sec-ch-ua-platform": "\"Linux\""
+      },
+      "mixedContentType": "none",
+      "initialPriority": "VeryHigh",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 165982.841054,
+     "wallTime": 1791725254.745415,
+     "initiator": {
+      "type": "other"
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Document",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "hasUserGesture": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "61A8B278F5F3547900FEF45E6DC80BA6",
+     "loaderId": "61A8B278F5F3547900FEF45E6DC80BA6",
+     "timestamp": 165982.843469,
+     "type": "Document",
+     "response": {
+      "url": "http://127.0.0.1:8765/page?cookie",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Length": "29",
+       "Content-Type": "text/html"
+      },
+      "mimeType": "text/html",
+      "charset": "",
+      "connectionReused": true,
+      "connectionId": 220,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 64,
+      "timing": {
+       "requestTime": 165982.841783,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": -1,
+       "dnsEnd": -1,
+       "connectStart": -1,
+       "connectEnd": -1,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.253,
+       "sendEnd": 0.32,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.447,
+       "receiveHeadersEnd": 0.499
+      },
+      "responseTime": 1791725254746.584,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 24,
+    "result": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "loaderId": "61A8B278F5F3547900FEF45E6DC80BA6",
+     "isDownload": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "61A8B278F5F3547900FEF45E6DC80BA6",
+     "associatedCookies": [
+      {
+       "cookie": {
+        "name": "k",
+        "value": "v",
+        "domain": "127.0.0.1",
+        "path": "/",
+        "expires": -1,
+        "size": 2,
+        "httpOnly": false,
+        "secure": false,
+        "session": true,
+        "priority": "Medium",
+        "sourceScheme": "NonSecure",
+        "sourcePort": 80
+       },
+       "blockedReasons": [],
+       "exemptionReason": "None"
+      }
+     ],
+     "headers": {
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Connection": "keep-alive",
+      "Cookie": "k=v",
+      "Host": "127.0.0.1:8765",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "connectTiming": {
+      "requestTime": 165982.841783
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "61A8B278F5F3547900FEF45E6DC80BA6",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "29",
+      "Content-Type": "text/html"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 200,
+     "headersText": "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 29\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "A666FD1250224267F523EBEE9375CD1E",
+      "loaderId": "61A8B278F5F3547900FEF45E6DC80BA6",
+      "url": "http://127.0.0.1:8765/page?cookie",
+      "domainAndRegistry": "",
+      "securityOrigin": "http://127.0.0.1:8765",
+      "securityOriginDetails": {
+       "isLocalhost": true
+      },
+      "mimeType": "text/html",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "SecureLocalhost",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.policyUpdated",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "61A8B278F5F3547900FEF45E6DC80BA6",
+     "timestamp": 165982.846205,
+     "dataLength": 29,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 4,
+      "origin": "http://127.0.0.1:8765",
+      "name": "",
+      "uniqueId": "-3552764963150190438.-8655913293475999235",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "A666FD1250224267F523EBEE9375CD1E"
+      }
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "61A8B278F5F3547900FEF45E6DC80BA6",
+     "timestamp": 165982.842524,
+     "encodedDataLength": 93
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 165982.848818
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 165982.849202
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 25,
+    "method": "Storage.clearCookies"
+   }
+  },
+  {
+   "in": {
+    "id": 25,
+    "result": {}
+   }
+  },
+  {
+   "out": {
+    "id": 26,
+    "method": "Storage.getCookies"
+   }
+  },
+  {
+   "in": {
+    "id": 26,
+    "result": {
+     "cookies": []
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 27,
+    "method": "Runtime.addBinding",
+    "params": {
+     "name": "bind1"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 27,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 28,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "[typeof window.bind1, (window.bind1('x'), 1)]",
+     "returnByValue": true
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.bindingCalled",
+    "params": {
+     "name": "bind1",
+     "payload": "x",
+     "executionContextId": 4
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 28,
+    "result": {
+     "result": {
+      "type": "object",
+      "value": [
+       "function",
+       1
+      ]
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 29,
+    "method": "Runtime.removeBinding",
+    "params": {
+     "name": "bind1"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 29,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 30,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "typeof window.bind1",
+     "returnByValue": true
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 30,
+    "result": {
+     "result": {
+      "type": "string",
+      "value": "function"
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 31,
+    "method": "Network.setCacheDisabled",
+    "params": {
+     "cacheDisabled": true
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 31,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 32,
+    "method": "Network.setCacheDisabled",
+    "params": {
+     "cacheDisabled": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 32,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 33,
+    "method": "Network.emulateNetworkConditions",
+    "params": {
+     "offline": true,
+     "latency": 0,
+     "downloadThroughput": -1,
+     "uploadThroughput": -1
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 33,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 34,
+    "method": "Page.navigate",
+    "params": {
+     "url": "http://127.0.0.1:8765/page?offline"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "url": "http://127.0.0.1:8765/page?offline",
+     "loaderId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "navigationType": "differentDocument"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "loaderId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "documentURL": "http://127.0.0.1:8765/page?offline",
+     "request": {
+      "url": "http://127.0.0.1:8765/page?offline",
+      "method": "GET",
+      "headers": {
+       "Upgrade-Insecure-Requests": "1",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0",
+       "sec-ch-ua-platform": "\"Linux\""
+      },
+      "mixedContentType": "none",
+      "initialPriority": "VeryHigh",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 165984.151581,
+     "wallTime": 1791725256.055943,
+     "initiator": {
+      "type": "other"
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Document",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "hasUserGesture": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFailed",
+    "params": {
+     "requestId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "timestamp": 165984.152723,
+     "type": "Document",
+     "errorText": "net::ERR_INTERNET_DISCONNECTED",
+     "canceled": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 34,
+    "result": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "loaderId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "errorText": "net::ERR_INTERNET_DISCONNECTED",
+     "isDownload": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "A666FD1250224267F523EBEE9375CD1E",
+      "loaderId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+      "url": "chrome-error://chromewebdata/",
+      "domainAndRegistry": "",
+      "securityOrigin": "://",
+      "securityOriginDetails": {
+       "isLocalhost": false
+      },
+      "mimeType": "text/html",
+      "unreachableUrl": "http://127.0.0.1:8765/page?offline",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "InsecureScheme",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.policyUpdated",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 1,
+      "origin": "://",
+      "name": "",
+      "uniqueId": "5919991296009631394.3853190128600657835",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "A666FD1250224267F523EBEE9375CD1E"
+      }
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "timestamp": 165984.171365,
+     "dataLength": 251393,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "timestamp": 165984.173158,
+     "encodedDataLength": 251393
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "115.2",
+     "loaderId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "documentURL": "chrome-error://chromewebdata/",
+     "request": {
+      "url": "data:image/png;base64,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",
+      "method": "GET",
+      "headers": {
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "Referer": ""
+      },
+      "mixedContentType": "none",
+      "initialPriority": "Low",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": false
+     },
+     "timestamp": 165984.183221,
+     "wallTime": 1791725256.087599,
+     "initiator": {
+      "type": "parser",
+      "url": "chrome-error://chromewebdata/",
+      "lineNumber": 5551,
+      "columnNumber": 1526
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Image",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "hasUserGesture": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestServedFromCache",
+    "params": {
+     "requestId": "115.2"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "115.2",
+     "loaderId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "timestamp": 165984.183266,
+     "type": "Image",
+     "response": {
+      "url": "data:image/png;base64,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",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Type": "image/png"
+      },
+      "mimeType": "image/png",
+      "charset": "",
+      "connectionReused": false,
+      "connectionId": 0,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 0,
+      "protocol": "data",
+      "securityState": "unknown"
+     },
+     "hasExtraInfo": false,
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "115.2",
+     "timestamp": 165984.183273,
+     "dataLength": 3002,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "115.2",
+     "timestamp": 165984.183275,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "115.3",
+     "loaderId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "documentURL": "chrome-error://chromewebdata/",
+     "request": {
+      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAACY4AAADCCAMAAADT9DSoAAAANlBMVEUAAADa2tr/////9/e5ubn39/dTU1P29vbv7+/+/v74+Pjw8PD///9ZWVlfX1/z8/P5+fn///9RgilMAAAAEnRSTlMA///////////////2////9gn80juWAAAR/UlEQVR4AezdAW+jOBPG8QcgVPv9P+xqHQPvu9nrTWWd1enNuY7D/ydpS+gwdqRq44yN0WUBAAAAAAAA06u/sVPPbZZ0/Ie5LNvIEWbRu11msCsK7duYZM4OcaWzf1+rVk13fbTpj1SctXMWZJHluSLYTmxlUBlVxJlkZz/py2a/txeV/o1qls9B3q55/TALAAAAHa16KeU340nT4+gKZq36LesYPMIsWmR2mbGuqGvZxqkrOsct+wNgOAYA2Gy6bysmEo3N/71HKhWzg+W1haTCZqdr06Blu5tSvS/GpLIhAAzHmsxMWyWsqJA980zxKinb+4zWxh4Zs46RIyoVosWqRGNcYRGOrJE2zCTjjzsD+SwysJLTFXdaRCjf+DA7P74yeTvmrdtUKCTWjr2uaZIAoHR7k5a3H+oLANZX+W4zdf4WjFmHP+IyrM616/ucQ+S1nFO3FWTn/r6Gsbi50Sb+3l+aykxk5Q5Mu9xstTshK20UL5MAMBwbzsmyXgCF22yD5OVx/EthAMBw7NSobP1Yh2qV7X4WyjF/shLMIio5Xrw2tsTrY/3XjQXiLPYMxFktLZ7v3O04azRYA/+z9stL3s0Zk/ibHkqvqUwA2Opzl9ock5B2J2Qtn50t5ky38txW6R8AhmM9xt4w/mrVnyMpB3I8MjyOKyyimqO9+r2O16sRswdZtv+HNN01KGRJK/1tmfdhbZ4Xq67AtoS11wDwcLsLAK49HEvhqvrU9O7Po2HudpVAq0Udn0bocfQ4DuRo0NOB7nXsULPrsG7s9MUZ/zouTV3Wj0lZq6Z7juyclFQe1yYh7ZxxXJvKBJvsd+XvTbKTQHxtc+u8WPXyJp3Fh8kkAAAAhmMxzu/G/WHWccF7HesWazVYswOw0l/L++zAvmP1Oy0BoLr5a8WmIsC9lasdBVgeE8sMgOHYFl4nczZ7lqRsPVez3Nle2/qxXrvhN8hh903CqmB7uGYX3x/sDOdzaLj/2BTNB8Ahf1NerNz+DgAAwHCs/Vox9hdr2Yp/tzFqYw1XrZ1C9KmYSdrKab+tOh+42XXldqxJFf8Q95VrN5lUucuzov4+gP5r3TDrwqb/E4BLur39KI57AYCVfccra7v65Lb1Y4HqU7O9wQbdocvqUezcD3PuR3HcCwCsTGEAYDf+v4+TCkn1M/Wz9d8l/7X1vvj7l+wAAMMxoMeu+vErAhW45nVB92O/JpXOxndVtr+78tTkiiu/fFlctnqvHXcBAOtYS/incq/9oNPyALic27xrmeef6goAVqFc21Vfy9Uot+ptXozVf/y76nuvWKox8Tbsmn2op23i3MW+eAAYjn11YuOsTlUAgN9ttoHt8jj+JQBgOAb+GOKrvLr0yiIWixngaZvUxd5lgf3jyQuGYw5n5RwANH1wW3LHOyNT5WUtvpBav6n2/dwcwR0BDMfy06wb8++XewRzG9aPlfWfwBUXqEpNMqczTq3j2t9dGYg7Ncnisuw/wOkuAGBX/n4A4CYAoDrWFQ5lrboiIGvVdM/Vebq6Mn6TNt+F23u8U1JU8aasqzGBftb7M38y7zA7P86y5SBvPG+p2dxNojoGADyzEsD4qI41GtP3Xze2+r8jxHPHOXKuofqY5aAcG9+hHzyzEgBWCQB4ZmVgpvLr85VXAYDhGLIOzZ9G/HbYfWYNWrFVOtdQ26F/0TMBz6x81uei5Opv6x9buVNe8to3jOSIKSXnWqpDDURaZe0YAAAA1bEOY++ee56tzv3Bao5GuQ9X1coTYfnmSt9irVj+rPUCxVnboZ/a2MjKzV0796RDZ+wO0Jb93AQ8S93p6NVqJR4AAACsHUO80neEIoqVYYEcplihVrRyHfv7g6u1qwTAPbNScXTIS94WNVCbI5r/dSXpGKjVSwKA2zz/tJ8f+efp3GFFZn/+pJbqPazP2Mb7WSYHsI783cYh3F52rvEyJlv+JrmPatQh442o1caiOcor5korPSxda2O2O1m3XrHzmP18QQBm5+gjW2yHVg+75noAYHuTljfpJgBogclKnjdpEcH1Z/5W1kArr10bszrYx9rY0nV3MuS//p3u2b+Va8mCt6EfzFefq03tp0TTp/eUe+cRskrkbZ+3vvfY5pyyTs62Z2ef7QqvDq0yHAOA2ywbHD+OfwnAeKiOdRh793C41niZLHO0zN20PmYttG/le+0d60+7ngfO3Y6zXheA1RmTu7Vq8QAAm698IpvKHsbfVHJflVr2s5yvBBg0Yli2m5cjonUr6wB/XFYfu3Kf8PHvebqrK8SrBtnieuUlb7F+bHMuo9yaDVdW/7vo1SrPrASA25setrcf6gkA1qG+2wzA1sDF16a5cjt2LLGIAFcrSXN9z31qUdW9+JcufcK5T/f1URs7/LNs9cjUOD4itbwqBdImXRpAdQwAbvbzdQFg7RhgtTHqY7YXf3muR5+Qle0nhv94yn3ykjf+2LD4vFn8HXdvdVZHAAAAWIf5bjOALHPE9zYL5u4vh3q7fH4ucMVejVia18aWyrn9S704JU36Y9LpijPt4zzOb42bKnFdAQDVMQC46YUBoDoGHFKz2tiuXYvnCosvrrcIRxvOVmL2IqPvnfyPvXvRkRMHogAKYdT//70ImH3WitHGkTXuCpQ4Z59NsD2iETE3hWGEujHXG/2m9zvwNH9HJVfVUaVjAADSsYajaJ1YOEbfjdl9fNinPWf/Rpv+BG6ZxsnGAOqTjgEASMcgaTWwSIiiRXo2tvf/VL85FYynHP/5d//TlfEsZv7TlXlPS86eqqyv9Yx5hX7123j3pPox6RgAgHRsfO5dp27suKx2Tj62T3tfi9hvMBv7yzJeaZZSMQfEFVm/tfpdJ6RjAABqx9pzb+Rj/VlXTz7WNjBGo0Xs+159Kd+sMqqrygz1Y/pVP7ZdOKp0rD4AQDqmfkySl+1Xb27ce1sM2L+R2oX0fOyNT0PO0+d4f5e9q3J+c38AascAAKRjcL98bBlokZnaLZ0VcNlA/dim39x+k+rH1t9WP7Y1JjsfP9nnuHTUS9MxAAA+Kt3btHGcjuRRd48Cqd1ym7xutN4rnsQc70/dGIDaMQAA6RjXO4rv8YAV1GLbafvy5vX258QkaE5LmGYrjvVSP9ZR8aPf/H5H6sfWod/jfnyjkuvoXGfs2lEvTccAAPi4yb2NNcd4bGYW2VjV+rHoR90YcK3ty+RmKzCqdAwAQO0YyMf2+He4dQXZnNDrrGqshfgzlsbnGv3+4+O/7du/KcjxvX6jz5sfh6gfa30e89E4CltqzXLre/1VJnZIxwAApGO9c+8CDnVjpK1ftk/vE8nV3L9fO0vr769dQfbGGq9ZzRhYmatz/f5zivbP5yNv1NAY9XnpGACAdOz1zRX3X+Nvt4JC9sjGUkXqVZOqMSLnCNtPntk/7t9vvPXw5Bh6X2OkL9cfhz5rZv3YBSsfnEfarMoPACAd60yxeubea5H7NKjh86r9CvysQPm8tMN2bnfNqNIxAABPVgJAQr1OjX4/T/0eb8yFtvPnAsdhzVsF/7K6sZF3TkrHAACkY9mzVwCA4zajSscAAKRjr1MqBgDjq0wd7W236neOVdmz0pcCxyFmAmt72+BR+NH+SZPPw17SMQAA6dga8723zr1hmfb6LULiGPkAkI4BAEjH8r0e+75KCdjS+JW/tu+XtAjtFpliDHiarbGtQL95ChyHtXNblaO9SccAAKRjnV4x/33b3HudeJjIgRrJ1f7PP/kt+jO7aDFc4dU/BgBqxwAAeJt5gjK1Y/uFLZZGiz1anPbaT59O+8W48SuxtWsMAJ6SjgEA4MlKiDqp9pOF+S36K8rO2/f/fQr7lxH209beMQB4cjoGAACwLAVaJIwQbQB4djoGAAAAAAAAYN0xAF5eYEKVM9AZq3YMAEA6BkBCMrF+/XBPOAOdsdIxAADpGAAJNTtrM3qA689AZ6x0DABAOgZAfs1OO4CAa85AZ2zJdAwAgDmmqABU0C7R6WzabgwJZ+D62JNuvWM6BgCA2jEAz8M9sY4H1I4BACAdA+DVX+UCSMcAAKRj+dULNb0S7iQd1fzvBN+d65Wj6jsh/7uTjgEAlDRXmre/prVnteACqxknHIPe1mWOSv5Ryr9H7x+x8qhxtON7zP8ZXK9cr1yv8rleqR0DAFA7RlWvafVzXHt/XOn4q+bBdcL1yvXKk5UAAMzJM92EWXx+zUh+bUD+/D7vT9VlKfXvbOURrleuV2RwvZKOAQAUNZ/v3HJmuu3+3ZlTt0agfX6Pn2PuctvHz/WK+3K9cr2SjgEAAAAAAADFzN6R3vZHe3ew27YORGH4DDHLbu77P2Q3WQ40FygCI0xpj0xJjST8H9A2qugTZ3cwZqiFnDoHAACwdwwAAODKXLfW5JoXWoocci4NAACmYwAAALDVjW3RvD7n3LOxTmghp8jZBgAAeF2guotlvoi5FG/mNDaXAwCAu7OXXcjVianG0/rmF0Vz2q2ONbm2C4mcA+djAADA325CbZkpY95/x1iT80u2pjdm9/WHAAAArsTfH0s1LW+VMY/ht40ipypjD6b88vUvCtkNAABAHWvdrXKwVW8a2zhos+J26qIAAAC8no3ND8ia5FXO7GysY8przscAAAD87RLlkqIcbNWlztcO2kyd+w3IUiYAAMAxsA9t7oWH5dj5Hr6ZqdPKvPjPCAAAdaxNvnJ82zfnmFYyXVdSfgAAoI51166Ce9WjmtzrmDrHtJpduj9lMh8DAIA6doCIuthdj+3byEwAAIA6Nr4salSrY2vxcrHtVWvysz9lKk80I2M+BgAA2pEvdp/rdfuPmVKZn/0idaIOBQAA4IPTJ0r1Ute5WI5bW6pn6+N6OZWjHJ54kXM5gyQpD83ZDgAA+GjcFa512vJ6bBYbc2xw0qu96BCWawpUms4CAADA9c+EXCOuUMW0leV+J7IORm2zOT2bzxm98vic7QAAgI9OuQg9xMxYq41K2CPMV+dY96/likck5Yo+ZtqP6cQAAADTMX+0se8Nz3+w8aRtmo+lCrM5tuf7sR/LmQcAAHWsPa5C8r45DVtUjMdaTUNdMYuvWa4Y5di3NmB5umdXmgAAALbxw1MfTS4e3ev9KVnxO4wm5VSHsj56fi+aTedIUvYJNpUz/g1I2zXnwgAAYCu/y0cb+KN4DynZ3qOvNAEAAJy6jnkMplcuhULyvlK9Fl9iunj/8nFoEZKy2btjtttRZnbOTz3tTDkAAKDQdCh3H5Q+7xb4P+wHZ2tQAAAA7Vkzi/j7KUfuLwPGORqK+BbbqrqTuU9JMqVuzexUOQAAoOA/EuqhCXm/z/IYtAEAAK+fR7mNK/bpY3Qf9o0BAMDescO4CwAAgOnYYfzJ8ysBAADQDhhYub4JjQEAAKDpXwgVKGwAAIA6pkV/iXhy+epVS0TUc7Y6JzUjBQAAwHTM9U0MLwEAAOAvb8W65YWQFN5fO8dWAAAArOlX8VgSmtX1uvDYv3elAAAAOOjitZB3Ba8TAgAAoI5paeGDI/VDz4S0qDfOiaJzjXPS9LacX9Aj504AAGA65uM2BgAAAO/HWk/vx7i7LRpZWl3JipxuPJard46lnjOlaqYCOVcAAADTseiDn3Q6to4BAAD4eEhVKdYvbZ+ctPe2NOXW+Y+pRg4AANiTPzvXohQ80BIAAGA71wZL/XHlfM6EVMW0ATkAAOD4OrY0heT1nq8Ytagu57uYaWNpk20MAACAgy5CXnw3AAAA+MpN+F4OtYqcGGZElZPGcAwAANxaG5WsUCGiaFGj214sHEvaGAAAuLU2u69+WbEg9CkihqUuVuQkbQwAANyZj3pUi683Qp2o21iXUy0qpYw2BgAAbsunTnFdVOtzXPHWtrEP/ZKt3kCWekh9CAAA4Dr8WY8KSfJ+UbxsY0Wv876J+Ts5aYzGAADA7RT769suh7YuiienX0SV08/HZHUZYzZ2DwAAUMeKQrZoqMgJySVFP2KrC9modHnIpc+/eh8CAAC4Fi+24v8Rk2WsL3bR/+e8ePwBAAC4PFOpTRSoI3P+0x+/VWpybRNaTpfTpFO9HwAAsI2rtGjCgTm/BQAAcB+mW2vy7bOfk+U0STrZzwUAAOY1ATgnAADTMfrmcracLuEs7wcAADAdAwAAuLD/AQPLUxmjjeldAAAAAElFTkSuQmCC",
+      "method": "GET",
+      "headers": {
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "Referer": ""
+      },
+      "mixedContentType": "none",
+      "initialPriority": "Low",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": false
+     },
+     "timestamp": 165984.183446,
+     "wallTime": 1791725256.087807,
+     "initiator": {
+      "type": "parser",
+      "url": "chrome-error://chromewebdata/",
+      "lineNumber": 5551,
+      "columnNumber": 1526
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Image",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "hasUserGesture": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestServedFromCache",
+    "params": {
+     "requestId": "115.3"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "115.3",
+     "loaderId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "timestamp": 165984.183464,
+     "type": "Image",
+     "response": {
+      "url": "data:image/png;base64,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",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Type": "image/png"
+      },
+      "mimeType": "image/png",
+      "charset": "",
+      "connectionReused": false,
+      "connectionId": 0,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 0,
+      "protocol": "data",
+      "securityState": "unknown"
+     },
+     "hasExtraInfo": false,
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "115.3",
+     "timestamp": 165984.183471,
+     "dataLength": 4758,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "115.3",
+     "timestamp": 165984.183473,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "115.4",
+     "loaderId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "documentURL": "chrome-error://chromewebdata/",
+     "request": {
+      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABIAQMAAABvIyEEAAAABlBMVEUAAABTU1OoaSf/AAAAAXRSTlMAQObYZgAAAGxJREFUeF7tyMEJwkAQRuFf5ipMKxYQiJ3Z2nSwrWwBA0+DQZcdxEOueaePp9+dQZFB7GpUcURSVU66yVNFj6LFICatThZB6r/ko/pbRpUgilY0Cbw5sNmb9txGXUKyuH7eV25x39DtJXUNPQGJtWFV+BT/QAAAAABJRU5ErkJggg==",
+      "method": "GET",
+      "headers": {
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "Referer": ""
+      },
+      "mixedContentType": "none",
+      "initialPriority": "Low",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": false
+     },
+     "timestamp": 165984.187627,
+     "wallTime": 1791725256.092,
+     "initiator": {
+      "type": "parser",
+      "url": "chrome-error://chromewebdata/",
+      "lineNumber": 5551,
+      "columnNumber": 1527
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Image",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "hasUserGesture": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestServedFromCache",
+    "params": {
+     "requestId": "115.4"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "115.4",
+     "loaderId": "EEEEC8BFFF0E24C4D6C192F778603A11",
+     "timestamp": 165984.187667,
+     "type": "Image",
+     "response": {
+      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABIAQMAAABvIyEEAAAABlBMVEUAAABTU1OoaSf/AAAAAXRSTlMAQObYZgAAAGxJREFUeF7tyMEJwkAQRuFf5ipMKxYQiJ3Z2nSwrWwBA0+DQZcdxEOueaePp9+dQZFB7GpUcURSVU66yVNFj6LFICatThZB6r/ko/pbRpUgilY0Cbw5sNmb9txGXUKyuH7eV25x39DtJXUNPQGJtWFV+BT/QAAAAABJRU5ErkJggg==",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Type": "image/png"
+      },
+      "mimeType": "image/png",
+      "charset": "",
+      "connectionReused": false,
+      "connectionId": 0,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 0,
+      "protocol": "data",
+      "securityState": "unknown"
+     },
+     "hasExtraInfo": false,
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "115.4",
+     "timestamp": 165984.187674,
+     "dataLength": 196,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "115.4",
+     "timestamp": 165984.187677,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 165984.194279
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 165984.196488
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 35,
+    "method": "Network.emulateNetworkConditions",
+    "params": {
+     "offline": false,
+     "latency": 0,
+     "downloadThroughput": -1,
+     "uploadThroughput": -1
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 35,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 36,
+    "method": "Page.navigate",
+    "params": {
+     "url": "http://127.0.0.1:8765/page?online"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "url": "http://127.0.0.1:8765/page?online",
+     "loaderId": "08519E0AA5E54C4F272147E7172E901B",
+     "navigationType": "differentDocument"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "08519E0AA5E54C4F272147E7172E901B",
+     "loaderId": "08519E0AA5E54C4F272147E7172E901B",
+     "documentURL": "http://127.0.0.1:8765/page?online",
+     "request": {
+      "url": "http://127.0.0.1:8765/page?online",
+      "method": "GET",
+      "headers": {
+       "Upgrade-Insecure-Requests": "1",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0",
+       "sec-ch-ua-platform": "\"Linux\""
+      },
+      "mixedContentType": "none",
+      "initialPriority": "VeryHigh",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 165985.661486,
+     "wallTime": 1791725257.56585,
+     "initiator": {
+      "type": "other"
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Document",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "hasUserGesture": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "08519E0AA5E54C4F272147E7172E901B",
+     "loaderId": "08519E0AA5E54C4F272147E7172E901B",
+     "timestamp": 165985.663196,
+     "type": "Document",
+     "response": {
+      "url": "http://127.0.0.1:8765/page?online",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Length": "29",
+       "Content-Type": "text/html"
+      },
+      "mimeType": "text/html",
+      "charset": "",
+      "connectionReused": true,
+      "connectionId": 222,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 64,
+      "timing": {
+       "requestTime": 165985.662193,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": -1,
+       "dnsEnd": -1,
+       "connectStart": -1,
+       "connectEnd": -1,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.208,
+       "sendEnd": 0.253,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.383,
+       "receiveHeadersEnd": 0.429
+      },
+      "responseTime": 1791725257566.93,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": true,
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 36,
+    "result": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "loaderId": "08519E0AA5E54C4F272147E7172E901B",
+     "isDownload": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSentExtraInfo",
+    "params": {
+     "requestId": "08519E0AA5E54C4F272147E7172E901B",
+     "associatedCookies": [],
+     "headers": {
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Connection": "keep-alive",
+      "Host": "127.0.0.1:8765",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+     },
+     "connectTiming": {
+      "requestTime": 165985.662193
+     },
+     "siteHasCookieInOtherPartition": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceivedExtraInfo",
+    "params": {
+     "requestId": "08519E0AA5E54C4F272147E7172E901B",
+     "blockedCookies": [],
+     "headers": {
+      "Content-Length": "29",
+      "Content-Type": "text/html"
+     },
+     "resourceIPAddressSpace": "Loopback",
+     "statusCode": 200,
+     "headersText": "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: 29\r\n\r\n",
+     "cookiePartitionKey": {
+      "topLevelSite": "http://127.0.0.1",
+      "hasCrossSiteAncestor": false
+     },
+     "cookiePartitionKeyOpaque": false,
+     "exemptedCookies": []
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "A666FD1250224267F523EBEE9375CD1E",
+      "loaderId": "08519E0AA5E54C4F272147E7172E901B",
+      "url": "http://127.0.0.1:8765/page?online",
+      "domainAndRegistry": "",
+      "securityOrigin": "http://127.0.0.1:8765",
+      "securityOriginDetails": {
+       "isLocalhost": true
+      },
+      "mimeType": "text/html",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "SecureLocalhost",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.policyUpdated",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "08519E0AA5E54C4F272147E7172E901B",
+     "timestamp": 165985.666257,
+     "dataLength": 29,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 1,
+      "origin": "http://127.0.0.1:8765",
+      "name": "",
+      "uniqueId": "-2196738719193670786.7415521930122212972",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "A666FD1250224267F523EBEE9375CD1E"
+      }
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "08519E0AA5E54C4F272147E7172E901B",
+     "timestamp": 165985.662894,
+     "encodedDataLength": 93
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 165985.670208
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 165985.671134
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 37,
+    "method": "Page.navigate",
+    "params": {
+     "url": "data:text/html,<title>D</title>"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "url": "data:text/html,<title>D</title>",
+     "loaderId": "B889E1BBADF20784AAAF171B84BFD19D",
+     "navigationType": "differentDocument"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "B889E1BBADF20784AAAF171B84BFD19D",
+     "loaderId": "B889E1BBADF20784AAAF171B84BFD19D",
+     "documentURL": "data:text/html,<title>D</title>",
+     "request": {
+      "url": "data:text/html,<title>D</title>",
+      "method": "GET",
+      "headers": {},
+      "mixedContentType": "none",
+      "initialPriority": "VeryHigh",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 165987.167739,
+     "wallTime": 1791725259.072098,
+     "initiator": {
+      "type": "other"
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Document",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "hasUserGesture": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "B889E1BBADF20784AAAF171B84BFD19D",
+     "loaderId": "B889E1BBADF20784AAAF171B84BFD19D",
+     "timestamp": 165987.171065,
+     "type": "Document",
+     "response": {
+      "url": "data:text/html,<title>D</title>",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Type": "text/html"
+      },
+      "mimeType": "text/html",
+      "charset": "",
+      "connectionReused": false,
+      "connectionId": 0,
+      "remoteIPAddress": "",
+      "remotePort": 0,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": -1,
+      "protocol": "data",
+      "alternateProtocolUsage": "alternativeJobWonWithoutRace",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": false,
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 37,
+    "result": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "loaderId": "B889E1BBADF20784AAAF171B84BFD19D",
+     "isDownload": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "A666FD1250224267F523EBEE9375CD1E",
+      "loaderId": "B889E1BBADF20784AAAF171B84BFD19D",
+      "url": "data:text/html,<title>D</title>",
+      "domainAndRegistry": "",
+      "securityOrigin": "://",
+      "securityOriginDetails": {
+       "isLocalhost": false
+      },
+      "mimeType": "text/html",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "InsecureScheme",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.policyUpdated",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 1,
+      "origin": "://",
+      "name": "",
+      "uniqueId": "-7645905552025177631.3606588675383524169",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "A666FD1250224267F523EBEE9375CD1E"
+      }
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "B889E1BBADF20784AAAF171B84BFD19D",
+     "timestamp": 165987.175844,
+     "dataLength": 16,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "B889E1BBADF20784AAAF171B84BFD19D",
+     "timestamp": 165987.169227,
+     "encodedDataLength": 16
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 165987.176883
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 165987.17782
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 38,
+    "method": "Page.getNavigationHistory",
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 38,
+    "result": {
+     "currentIndex": 6,
+     "entries": [
+      {
+       "id": 6,
+       "url": "about:blank",
+       "userTypedURL": "about:blank",
+       "title": "",
+       "transitionType": "auto_toplevel"
+      },
+      {
+       "id": 10,
+       "url": "http://127.0.0.1:8765/page",
+       "userTypedURL": "http://127.0.0.1:8765/page",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 12,
+       "url": "http://127.0.0.1:8765/page?again",
+       "userTypedURL": "http://127.0.0.1:8765/page?again",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 14,
+       "url": "http://127.0.0.1:8765/page?cookie",
+       "userTypedURL": "http://127.0.0.1:8765/page?cookie",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 17,
+       "url": "http://127.0.0.1:8765/page?offline",
+       "userTypedURL": "",
+       "title": "127.0.0.1",
+       "transitionType": "typed"
+      },
+      {
+       "id": 18,
+       "url": "http://127.0.0.1:8765/page?online",
+       "userTypedURL": "http://127.0.0.1:8765/page?online",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 20,
+       "url": "data:text/html,<title>D</title>",
+       "userTypedURL": "data:text/html,<title>D</title>",
+       "title": "D",
+       "transitionType": "typed"
+      }
+     ]
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 39,
+    "method": "Page.navigateToHistoryEntry",
+    "params": {
+     "entryId": 6
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "url": "about:blank",
+     "loaderId": "65D307B7B1155CFDCB8FD0C218FA84AC",
+     "navigationType": "historyDifferentDocument"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 39,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 40,
+    "method": "Page.getNavigationHistory",
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 40,
+    "error": {
+     "code": -32000,
+     "message": "Not attached to an active page"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "A666FD1250224267F523EBEE9375CD1E",
+      "loaderId": "65D307B7B1155CFDCB8FD0C218FA84AC",
+      "url": "about:blank",
+      "domainAndRegistry": "",
+      "securityOrigin": "://",
+      "securityOriginDetails": {
+       "isLocalhost": false
+      },
+      "mimeType": "text/html",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "InsecureScheme",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.policyUpdated",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.backForwardCacheNotUsed",
+    "params": {
+     "loaderId": "65D307B7B1155CFDCB8FD0C218FA84AC",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "notRestoredExplanations": [
+      {
+       "type": "Circumstantial",
+       "reason": "HTTPStatusNotOK"
+      },
+      {
+       "type": "Circumstantial",
+       "reason": "SchemeNotHTTPOrHTTPS"
+      },
+      {
+       "type": "Circumstantial",
+       "reason": "BrowsingInstanceNotSwapped"
+      }
+     ],
+     "notRestoredExplanationsTree": {
+      "url": "about:blank",
+      "explanations": [
+       {
+        "type": "Circumstantial",
+        "reason": "HTTPStatusNotOK"
+       },
+       {
+        "type": "Circumstantial",
+        "reason": "SchemeNotHTTPOrHTTPS"
+       },
+       {
+        "type": "Circumstantial",
+        "reason": "BrowsingInstanceNotSwapped"
+       }
+      ],
+      "children": []
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 5,
+      "origin": "://",
+      "name": "",
+      "uniqueId": "-2069383685128062935.628868966274599335",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "A666FD1250224267F523EBEE9375CD1E"
+      }
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 165988.178655
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 165988.179017
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 41,
+    "method": "Page.navigateToHistoryEntry",
+    "params": {
+     "entryId": 99999
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 41,
+    "error": {
+     "code": -32602,
+     "message": "No entry with passed id"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 42,
+    "method": "Page.getNavigationHistory",
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 42,
+    "result": {
+     "currentIndex": 0,
+     "entries": [
+      {
+       "id": 6,
+       "url": "about:blank",
+       "userTypedURL": "about:blank",
+       "title": "",
+       "transitionType": "auto_toplevel"
+      },
+      {
+       "id": 10,
+       "url": "http://127.0.0.1:8765/page",
+       "userTypedURL": "http://127.0.0.1:8765/page",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 12,
+       "url": "http://127.0.0.1:8765/page?again",
+       "userTypedURL": "http://127.0.0.1:8765/page?again",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 14,
+       "url": "http://127.0.0.1:8765/page?cookie",
+       "userTypedURL": "http://127.0.0.1:8765/page?cookie",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 17,
+       "url": "http://127.0.0.1:8765/page?offline",
+       "userTypedURL": "",
+       "title": "127.0.0.1",
+       "transitionType": "typed"
+      },
+      {
+       "id": 18,
+       "url": "http://127.0.0.1:8765/page?online",
+       "userTypedURL": "http://127.0.0.1:8765/page?online",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 20,
+       "url": "data:text/html,<title>D</title>",
+       "userTypedURL": "data:text/html,<title>D</title>",
+       "title": "D",
+       "transitionType": "typed"
+      }
+     ]
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 43,
+    "method": "Page.navigateToHistoryEntry",
+    "params": {
+     "entryId": 10
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "url": "http://127.0.0.1:8765/page",
+     "loaderId": "8E344B123832B3EC56C93ACD44D18FF0",
+     "navigationType": "historyDifferentDocument"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.requestWillBeSent",
+    "params": {
+     "requestId": "8E344B123832B3EC56C93ACD44D18FF0",
+     "loaderId": "8E344B123832B3EC56C93ACD44D18FF0",
+     "documentURL": "http://127.0.0.1:8765/page",
+     "request": {
+      "url": "http://127.0.0.1:8765/page",
+      "method": "GET",
+      "headers": {
+       "Upgrade-Insecure-Requests": "1",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+       "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\"",
+       "sec-ch-ua-mobile": "?0",
+       "sec-ch-ua-platform": "\"Linux\""
+      },
+      "mixedContentType": "none",
+      "initialPriority": "VeryHigh",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "isSameSite": true
+     },
+     "timestamp": 165989.681758,
+     "wallTime": 1791725261.586122,
+     "initiator": {
+      "type": "other"
+     },
+     "redirectHasExtraInfo": false,
+     "type": "Document",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "hasUserGesture": false
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 43,
+    "result": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.responseReceived",
+    "params": {
+     "requestId": "8E344B123832B3EC56C93ACD44D18FF0",
+     "loaderId": "8E344B123832B3EC56C93ACD44D18FF0",
+     "timestamp": 165989.684793,
+     "type": "Document",
+     "response": {
+      "url": "http://127.0.0.1:8765/page",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+       "Content-Length": "29",
+       "Content-Type": "text/html"
+      },
+      "mimeType": "text/html",
+      "charset": "",
+      "connectionReused": false,
+      "connectionId": 0,
+      "remoteIPAddress": "127.0.0.1",
+      "remotePort": 8765,
+      "fromDiskCache": true,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "encodedDataLength": 0,
+      "timing": {
+       "requestTime": 165989.682495,
+       "proxyStart": -1,
+       "proxyEnd": -1,
+       "dnsStart": -1,
+       "dnsEnd": -1,
+       "connectStart": -1,
+       "connectEnd": -1,
+       "sslStart": -1,
+       "sslEnd": -1,
+       "workerStart": -1,
+       "workerReady": -1,
+       "workerFetchStart": -1,
+       "workerRespondWithSettled": -1,
+       "sendStart": 0.07,
+       "sendEnd": 0.07,
+       "pushStart": 0,
+       "pushEnd": 0,
+       "receiveHeadersStart": 0.482,
+       "receiveHeadersEnd": 0.514
+      },
+      "responseTime": 1791725251709.538,
+      "protocol": "http/1.0",
+      "alternateProtocolUsage": "unspecifiedReason",
+      "securityState": "secure"
+     },
+     "hasExtraInfo": false,
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextsCleared",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "A666FD1250224267F523EBEE9375CD1E",
+      "loaderId": "8E344B123832B3EC56C93ACD44D18FF0",
+      "url": "http://127.0.0.1:8765/page",
+      "domainAndRegistry": "",
+      "securityOrigin": "http://127.0.0.1:8765",
+      "securityOriginDetails": {
+       "isLocalhost": true
+      },
+      "mimeType": "text/html",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "SecureLocalhost",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.policyUpdated",
+    "params": {},
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.backForwardCacheNotUsed",
+    "params": {
+     "loaderId": "8E344B123832B3EC56C93ACD44D18FF0",
+     "frameId": "A666FD1250224267F523EBEE9375CD1E",
+     "notRestoredExplanations": [
+      {
+       "type": "Circumstantial",
+       "reason": "ConflictingBrowsingInstance"
+      }
+     ],
+     "notRestoredExplanationsTree": {
+      "url": "http://127.0.0.1:8765/page",
+      "explanations": [
+       {
+        "type": "Circumstantial",
+        "reason": "ConflictingBrowsingInstance"
+       }
+      ],
+      "children": []
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.dataReceived",
+    "params": {
+     "requestId": "8E344B123832B3EC56C93ACD44D18FF0",
+     "timestamp": 165989.689353,
+     "dataLength": 29,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Runtime.executionContextCreated",
+    "params": {
+     "context": {
+      "id": 6,
+      "origin": "http://127.0.0.1:8765",
+      "name": "",
+      "uniqueId": "-6853198101824909672.3043736002336568723",
+      "auxData": {
+       "isDefault": true,
+       "type": "default",
+       "frameId": "A666FD1250224267F523EBEE9375CD1E"
+      }
+     }
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Network.loadingFinished",
+    "params": {
+     "requestId": "8E344B123832B3EC56C93ACD44D18FF0",
+     "timestamp": 165989.68333,
+     "encodedDataLength": 0
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 165989.691276
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 165989.691646
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "A666FD1250224267F523EBEE9375CD1E"
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "out": {
+    "id": 44,
+    "method": "Page.getNavigationHistory",
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  },
+  {
+   "in": {
+    "id": 44,
+    "result": {
+     "currentIndex": 1,
+     "entries": [
+      {
+       "id": 6,
+       "url": "about:blank",
+       "userTypedURL": "about:blank",
+       "title": "",
+       "transitionType": "auto_toplevel"
+      },
+      {
+       "id": 10,
+       "url": "http://127.0.0.1:8765/page",
+       "userTypedURL": "http://127.0.0.1:8765/page",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 12,
+       "url": "http://127.0.0.1:8765/page?again",
+       "userTypedURL": "http://127.0.0.1:8765/page?again",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 14,
+       "url": "http://127.0.0.1:8765/page?cookie",
+       "userTypedURL": "http://127.0.0.1:8765/page?cookie",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 17,
+       "url": "http://127.0.0.1:8765/page?offline",
+       "userTypedURL": "",
+       "title": "127.0.0.1",
+       "transitionType": "typed"
+      },
+      {
+       "id": 18,
+       "url": "http://127.0.0.1:8765/page?online",
+       "userTypedURL": "http://127.0.0.1:8765/page?online",
+       "title": "H",
+       "transitionType": "typed"
+      },
+      {
+       "id": 20,
+       "url": "data:text/html,<title>D</title>",
+       "userTypedURL": "data:text/html,<title>D</title>",
+       "title": "D",
+       "transitionType": "typed"
+      }
+     ]
+    },
+    "sessionId": "C65BFD9B7A6F420BA16D491E18243F88"
+   }
+  }
  ]
 }

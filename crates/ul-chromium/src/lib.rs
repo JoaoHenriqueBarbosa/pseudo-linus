@@ -6,6 +6,7 @@ pub mod canvas;
 pub mod canvas_gradient;
 pub mod canvas_text;
 pub mod cli;
+pub mod cookies;
 pub mod devtools;
 pub mod disk_profile;
 pub mod document;

@@ -39,7 +39,7 @@ const afterNetwork = (fn, delaysLoad = false) => {
 const VIEWPORT = Object.freeze({ width: 780, height: 493, outerWidth: 0, outerHeight: 0 });
 const pageState = { url: op('pageUrl') };
 // O que o `Emulation` sobrepõe na janela: os pontos de toque do navegador.
-const emulation = { touchPoints: 0, media: '', features: {} };
+const emulation = { touchPoints: 0, media: '', features: {}, userAgent: '', languages: null, platform: '', geo: null, offline: false };
 
 class Location {
   constructor() { throw new TypeError('Illegal constructor'); }
@@ -128,18 +128,18 @@ hidden(history, '__index', 1);
 
 class Navigator {
   constructor() { throw new TypeError('Illegal constructor'); }
-  get userAgent() { return UA; }
-  get appVersion() { return UA.slice(8); }
+  get userAgent() { return emulation.userAgent || UA; }
+  get appVersion() { return (emulation.userAgent || UA).slice(8); }
   get appName() { return 'Netscape'; }
   get appCodeName() { return 'Mozilla'; }
   get product() { return 'Gecko'; }
   get productSub() { return '20030107'; }
   get vendor() { return 'Google Inc.'; }
   get vendorSub() { return ''; }
-  get platform() { return 'Linux x86_64'; }
-  get language() { return 'en-US'; }
-  get languages() { return Object.freeze(['en-US']); }
-  get onLine() { return true; }
+  get platform() { return emulation.platform || 'Linux x86_64'; }
+  get language() { return emulation.languages ? emulation.languages[0] : 'en-US'; }
+  get languages() { return Object.freeze(emulation.languages ? emulation.languages.slice() : ['en-US']); }
+  get onLine() { return !emulation.offline; }
   get cookieEnabled() { return true; }
   get webdriver() { return false; }
   get hardwareConcurrency() { return 8; }
@@ -153,9 +153,23 @@ class Navigator {
   get connection() { return { effectiveType: '4g', rtt: 50, downlink: 10, saveData: false, addEventListener() {}, removeEventListener() {} }; }
   get userAgentData() { return { brands: [{ brand: 'Chromium', version: '154' }], mobile: false, platform: 'Linux', getHighEntropyValues: () => Promise.resolve({}), toJSON() { return { brands: this.brands, mobile: false, platform: 'Linux' }; } }; }
   get clipboard() { return { writeText: () => Promise.reject(domException('Write permission denied.', 'NotAllowedError')), readText: () => Promise.reject(domException('Read permission denied.', 'NotAllowedError')) }; }
-  get permissions() { return { query: () => Promise.resolve({ state: 'prompt', onchange: null, addEventListener() {}, removeEventListener() {} }) }; }
+  get permissions() { return { query: (descriptor) => Promise.resolve({ state: op('permission', String(descriptor && descriptor.name)) ? 'granted' : 'prompt', onchange: null, addEventListener() {}, removeEventListener() {} }) }; }
   get serviceWorker() { return { register: () => Promise.reject(new TypeError('Failed to register a ServiceWorker: The document is in an invalid state.')), getRegistrations: () => Promise.resolve([]), ready: new Promise(() => {}), controller: null, addEventListener() {}, removeEventListener() {} }; }
-  get geolocation() { return { getCurrentPosition(_, error) { if (error) setTimeout(() => error({ code: 1, message: 'User denied Geolocation' }), 0); }, watchPosition() { return 0; }, clearWatch() {} }; }
+  get geolocation() {
+    // `Browser.grantPermissions` e `Emulation.setGeolocationOverride` decidem: sem permissão, o usuário "negou" (código 1);
+    // com permissão e sem posição emulada, não há posição (código 2).
+    const position = () => {
+      const g = emulation.geo;
+      return { coords: { latitude: g.latitude, longitude: g.longitude, accuracy: g.accuracy, altitude: null, altitudeAccuracy: null, heading: null, speed: null }, timestamp: Date.now() };
+    };
+    const answer = (success, error) => {
+      if (!op('permission', 'geolocation')) { if (error) error({ code: 1, message: 'User denied Geolocation' }); return; }
+      if (!emulation.geo) { if (error) error({ code: 2, message: 'Position unavailable' }); return; }
+      if (success) success(position());
+    };
+    let watches = 0;
+    return { getCurrentPosition(success, error) { setTimeout(() => answer(success, error), 0); }, watchPosition(success, error) { setTimeout(() => answer(success, error), 0); return ++watches; }, clearWatch() {} };
+  }
   sendBeacon() { return true; }
   javaEnabled() { return false; }
   vibrate() { return false; }

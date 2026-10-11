@@ -72,7 +72,8 @@ fn cdp_client(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
                 saved.insert("target".into(), page["targetId"].as_str().unwrap().to_owned());
             }
             if let (Some(key), Some(field)) = (step.get("save").and_then(Value::as_str), step.get("save_field").and_then(Value::as_str)) {
-                saved.insert(key.to_owned(), result[field].as_str().map_or_else(|| result[field].to_string(), str::to_owned));
+                let value = if field.starts_with('/') { result.pointer(field).cloned().unwrap_or(Value::Null) } else { result[field].clone() };
+                saved.insert(key.to_owned(), value.as_str().map_or_else(|| value.to_string(), str::to_owned));
             }
         }
         if let Some(seconds) = step.get("after").and_then(Value::as_f64) {
@@ -141,7 +142,7 @@ fn score(name: &str) -> (usize, usize) {
 fn transcripts_match_the_oracle() {
     let mut same = 0;
     let mut total = 0;
-    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics", "network_http", "playwright_handshake"] {
+    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics", "network_http", "playwright_handshake", "playwright_state"] {
         let (s, t) = score(name);
         same += s;
         total += t;

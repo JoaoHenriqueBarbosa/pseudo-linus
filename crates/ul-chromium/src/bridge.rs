@@ -387,6 +387,27 @@ impl DomHost for Bridge {
             // O texto do estilo em linha, sem sincronizar.
             "getStyle" => Ok(self.style_attribute(id_arg(args, 0)?).map_or(DomArg::Null, DomArg::Str)),
             "pageUrl" => Ok(DomArg::Str(self.url.borrow().clone())),
+            // `[ação, url, valor]`: o `document.cookie` sobre o pote do perfil (`get` lê, `set` aplica o `Set-Cookie`).
+            "cookie" => {
+                let tab = self.tab.borrow().clone();
+                let url = str_arg(args, 1)?;
+                let mut jar = tab.profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                match str_arg(args, 0)? {
+                    "get" => Ok(DomArg::Str(crate::cookies::document_cookie(&jar, url))),
+                    _ => {
+                        crate::cookies::set_document_cookie(&mut jar, str_arg(args, 2)?, url);
+                        Ok(DomArg::Undefined)
+                    }
+                }
+            }
+            // `[nome]`: o que o DevTools concedeu (`Browser.grantPermissions`) a esta origem.
+            "permission" => {
+                let tab = self.tab.borrow().clone();
+                let name = str_arg(args, 0)?;
+                let origin = origin_of(&self.url.borrow()).unwrap_or_default();
+                let granted = tab.profile.permissions.lock().unwrap_or_else(std::sync::PoisonError::into_inner).iter().any(|(o, p)| p == name && (o.is_empty() || *o == origin));
+                Ok(DomArg::Bool(granted))
+            }
             // `[área, ação, chave, valor]`: o `localStorage` (no perfil) e o `sessionStorage` (na aba) da origem do
             // documento; `file:` é uma origem só, como no Chromium.
             "storage" => {

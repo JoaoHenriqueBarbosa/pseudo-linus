@@ -6,6 +6,7 @@
 pub mod http;
 pub mod json;
 pub mod network;
+pub mod overrides;
 pub mod protocol;
 pub mod registry;
 pub mod server;

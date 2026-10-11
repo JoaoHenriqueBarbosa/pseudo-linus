@@ -9,6 +9,7 @@ use zjsc::api::embed::{HostArg, HostHandle, PageRunner};
 
 use super::json::{self, Json};
 use super::{monotonic_seconds, random_i64, token};
+use super::overrides::{self, NetOverrides};
 use crate::fetch;
 use crate::page::Page;
 
@@ -49,6 +50,29 @@ enum Next {
     Close,
 }
 
+/// Uma entrada do histórico de navegação.
+struct HistoryEntry {
+    id: i64,
+    url: String,
+    /// O que o usuário digitou: vazio na navegação que falhou.
+    typed: String,
+    title: String,
+    transition: &'static str,
+}
+
+/// Como uma carga entra no histórico.
+#[derive(Clone, Copy, PartialEq)]
+enum NavKind {
+    /// `Page.navigate` e a primeira carga: entrada nova, `typed`.
+    Typed,
+    /// Navegação da página (script, link): entrada nova, `link`.
+    Link,
+    /// `Page.reload`: a entrada corrente fica.
+    Reload,
+    /// `Page.navigateToHistoryEntry`: só a entrada corrente muda.
+    History(usize),
+}
+
 struct Tab {
     target_id: String,
     input: Fd,
@@ -70,6 +94,18 @@ struct Tab {
     finishing: Option<(usize, usize)>,
     /// O que o `Emulation`, a janela e os mundos da aba guardam entre os documentos.
     emu: Emulation,
+    /// As substituições de rede do DevTools, que o fetcher da aba lê a cada pedido.
+    net: std::rc::Rc<std::cell::RefCell<NetOverrides>>,
+    /// O histórico de navegação da aba (`Page.getNavigationHistory`) e a entrada corrente.
+    history: Vec<HistoryEntry>,
+    current: usize,
+    next_entry: i64,
+    /// Como a próxima carga entra no histórico.
+    nav: NavKind,
+    /// Uma navegação de histórico em curso: o `Page.getNavigationHistory` que chega antes dela comprometer falha.
+    history_busy: bool,
+    /// A carga corrente restaura uma entrada do histórico (o `Page.backForwardCacheNotUsed` sai no compromisso).
+    restoring: bool,
     /// Os ids de contexto dos mundos isolados do documento corrente.
     world_ids: Vec<i64>,
     /// Quantos `favicon.ico` esta aba já pediu (o contador do `requestId` `pid.n`).
@@ -115,11 +151,21 @@ struct Emulation {
     swap: bool,
     /// Quantos documentos a aba já carregou (o `about:blank` inicial conta).
     loads: u32,
+    /// `Emulation.setUserAgentOverride` com `platform`: o `navigator.platform`.
+    nav_platform: String,
+    /// `Emulation.setLocaleOverride`. Guardado e devolvido; o `Intl` do motor ainda não o lê.
+    locale: String,
+    /// `Emulation.setTimezoneOverride`: vale para o documento seguinte (o motor resolve o fuso ao criar a página).
+    timezone: String,
+    /// `Emulation.setGeolocationOverride`: latitude, longitude e precisão.
+    geo: Option<(f64, f64, f64)>,
+    /// `Runtime.addBinding`: os nomes que o agente instala em cada documento.
+    bindings: Vec<String>,
 }
 
 impl Default for Emulation {
     fn default() -> Self {
-        Emulation { window: (780, 580), metrics: None, touch: 0, media: String::new(), features: Vec::new(), scripts: Vec::new(), next_script: 1, created: Vec::new(), swap: false, loads: 0 }
+        Emulation { window: (780, 580), metrics: None, touch: 0, media: String::new(), features: Vec::new(), scripts: Vec::new(), next_script: 1, created: Vec::new(), swap: false, loads: 0, nav_platform: String::new(), locale: String::new(), timezone: String::new(), geo: None, bindings: Vec::new() }
     }
 }
 
@@ -135,7 +181,7 @@ impl Emulation {
         names
     }
 
-    fn json(&self, worlds: &[i64]) -> Json {
+    fn json(&self, worlds: &[i64], net: &NetOverrides) -> Json {
         let metrics = self.metrics.map_or(Json::Null, |(w, h, scale)| Json::object([("width", Json::Number(w as f64)), ("height", Json::Number(h as f64)), ("scale", Json::Number(scale))]));
         Json::object([
             ("window", Json::Array(vec![Json::Number(self.window.0 as f64), Json::Number(self.window.1 as f64)])),
@@ -144,6 +190,12 @@ impl Emulation {
             ("media", Json::str(&self.media)),
             ("features", Json::Object(self.features.iter().map(|(k, v)| (k.clone(), Json::str(v))).collect())),
             ("worlds", Json::Array(worlds.iter().map(|id| Json::Number(*id as f64)).collect())),
+            ("userAgent", Json::str(&net.user_agent)),
+            ("acceptLanguage", Json::str(&net.accept_language)),
+            ("platform", Json::str(&self.nav_platform)),
+            ("offline", Json::Bool(net.offline)),
+            ("geo", self.geo.map_or(Json::Null, |(latitude, longitude, accuracy)| Json::object([("latitude", Json::Number(latitude)), ("longitude", Json::Number(longitude)), ("accuracy", Json::Number(accuracy))]))),
+            ("bindings", Json::Array(self.bindings.iter().map(Json::str).collect())),
         ])
     }
 }
@@ -171,6 +223,13 @@ impl Tab {
             network_enabled: Vec::new(),
             finishing: None,
             emu: Emulation::default(),
+            net: Default::default(),
+            history: vec![HistoryEntry { id: 1, url: "about:blank".to_owned(), typed: "about:blank".to_owned(), title: String::new(), transition: "auto_toplevel" }],
+            current: 0,
+            next_entry: 2,
+            nav: NavKind::Typed,
+            history_busy: false,
+            restoring: false,
             world_ids: Vec::new(),
             favicon_requests: 0,
             security_enabled: Vec::new(),
@@ -182,6 +241,50 @@ impl Tab {
             idle: None,
             session: std::rc::Rc::new(crate::session::Tab::new(profile)),
         }
+    }
+
+    /// O fetcher da aba: a rede com as substituições do DevTools e o pote de cookies do perfil.
+    fn fetcher(&self) -> fetch::Fetcher {
+        overrides::fetcher(self.net.clone(), self.session.profile.clone())
+    }
+
+    /// Os cookies que o pedido a `url` levou, como o `associatedCookies` do `requestWillBeSentExtraInfo`.
+    fn associated_cookies(&self, url: &str) -> Json {
+        crate::cookies::associated(&self.session.profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner), url)
+    }
+
+    /// A carga que acaba de comprometer entra no histórico (ou só move a entrada corrente).
+    fn record_entry(&mut self, kind: NavKind, url: &str, failed: bool) {
+        match kind {
+            NavKind::Reload => {}
+            NavKind::History(index) => self.current = index,
+            NavKind::Typed | NavKind::Link => {
+                // A primeira carga de uma aba nova em `about:blank` é a entrada que ela já tem.
+                if kind == NavKind::Typed && url == "about:blank" && self.history.len() == 1 {
+                    return;
+                }
+                self.history.truncate(self.current + 1);
+                let id = self.next_entry;
+                self.next_entry += 1;
+                let typed = if failed { String::new() } else { url.to_owned() };
+                self.history.push(HistoryEntry { id, url: url.to_owned(), typed, title: String::new(), transition: if kind == NavKind::Typed { "typed" } else { "link" } });
+                self.current = self.history.len() - 1;
+            }
+        }
+    }
+
+    /// `Page.getNavigationHistory`.
+    fn history_json(&self) -> Json {
+        let entries = self.history.iter().map(|e| {
+            Json::object([
+                ("id", Json::Number(e.id as f64)),
+                ("url", Json::str(&e.url)),
+                ("userTypedURL", Json::str(&e.typed)),
+                ("title", Json::str(&e.title)),
+                ("transitionType", Json::str(e.transition)),
+            ])
+        });
+        Json::object([("currentIndex", Json::Number(self.current as f64)), ("entries", Json::Array(entries.collect()))])
     }
 
     fn write_line(&self, kind: char, text: &str) {
@@ -299,26 +402,36 @@ impl Tab {
     /// Carrega `url` e roda a página até a próxima navegação. `announce`: os eventos de início de navegação saem
     /// (toda navegação menos a primeira carga da aba).
     fn load(&mut self, url: String, request: Option<Json>, announce: bool) -> Next {
+        let kind = std::mem::replace(&mut self.nav, NavKind::Link);
         self.loader_id = token();
         let started = Json::object([
             ("frameId", Json::str(&self.target_id)),
             ("url", Json::str(&url)),
             ("loaderId", Json::str(&self.loader_id)),
-            ("navigationType", Json::str("differentDocument")),
+            ("navigationType", Json::str(match kind {
+                NavKind::Reload => "reload",
+                NavKind::History(_) => "historyDifferentDocument",
+                _ => "differentDocument",
+            })),
         ]);
         if announce {
             let sessions = self.page_enabled.clone();
             self.emit(&sessions, "Page.frameStartedNavigating", &started);
             self.emit(&sessions, "Page.frameStartedLoading", &Json::object([("frameId", Json::str(&self.target_id))]));
         }
-        let (page, error) = match Page::load(&url, fetch::network()) {
+        // O motor resolve o fuso ao criar a página: o override do DevTools vale daqui em diante.
+        zjsc::runtime::process_time_zone::set_time_zone_spec_override((!self.emu.timezone.is_empty()).then_some(self.emu.timezone.as_str()));
+        let fetcher = self.fetcher();
+        let (page, error) = match Page::load(&url, fetcher.clone()) {
             Ok(page) => (page, None),
             Err(error) => {
                 // A navegação que falha compromete a página de erro do Chromium no lugar do documento.
-                let page = Page::error_page(&url, &error, fetch::network()).unwrap_or_else(|| Page::load("about:blank", fetch::network()).expect("about:blank"));
+                let page = Page::error_page(&url, &error, fetcher.clone()).unwrap_or_else(|| Page::load("about:blank", fetcher.clone()).expect("about:blank"));
                 (page, Some(error))
             }
         };
+        self.record_entry(kind, &url, error.is_some());
+        self.restoring = matches!(kind, NavKind::History(_));
         page.enter_tab(self.session.clone());
         let next_url = if error.is_some() { "chrome-error://chromewebdata/".to_owned() } else { page.bridge.url.borrow().clone() };
         // Troca de processo (medido no oráculo): a primeira navegação da aba fica no processo do `about:blank` inicial, o
@@ -350,6 +463,18 @@ impl Tab {
     /// `executionContextsCleared` duas vezes (a do documento que sai e a do mundo isolado) e nenhum
     /// `executionContextDestroyed` (medido no oráculo).
     fn commit(&mut self, runner: &PageRunner, hook: &HostHandle, unreachable: Option<&str>) {
+        if std::mem::take(&mut self.history_busy) {
+            // O `Page.getNavigationHistory` que chegou com a navegação de histórico ainda em voo falha (medido no oráculo).
+            self.receive(30);
+            let mut kept = std::collections::VecDeque::new();
+            for line in std::mem::take(&mut self.queue) {
+                match json::parse(line.get(1..).unwrap_or_default()) {
+                    Ok(message) if message.get("method").and_then(Json::as_str) == Some("Page.getNavigationHistory") => self.fail(&message, -32000, "Not attached to an active page"),
+                    _ => kept.push_back(line),
+                }
+            }
+            self.queue = kept;
+        }
         self.lifecycle.clear();
         self.idle = None;
         self.lifecycle_event("init", monotonic_seconds());
@@ -362,6 +487,9 @@ impl Tab {
         let navigated = Json::object([("frame", self.frame(unreachable)), ("type", Json::str("Navigation"))]);
         self.emit(&self.page_enabled.clone(), "Page.frameNavigated", &navigated);
         self.emit(&self.network_enabled.clone(), "Network.policyUpdated", &Json::object([]));
+        if std::mem::take(&mut self.restoring) {
+            self.emit_back_forward_cache_not_used();
+        }
         self.emit_security_state(&self.security_enabled.clone());
         if std::mem::take(&mut self.emu.swap) {
             self.next_context = 1;
@@ -411,9 +539,26 @@ impl Tab {
         self.announce();
     }
 
+    /// `Page.backForwardCacheNotUsed`: a entrada restaurada do histórico não veio do cache de ida e volta. As razões
+    /// medidas no oráculo valem para `about:blank`; a página `http` perde por `ConflictingBrowsingInstance`.
+    fn emit_back_forward_cache_not_used(&self) {
+        let web = self.url.starts_with("http://") || self.url.starts_with("https://");
+        let reasons: Vec<Json> = if web { vec!["ConflictingBrowsingInstance"] } else { vec!["HTTPStatusNotOK", "SchemeNotHTTPOrHTTPS", "BrowsingInstanceNotSwapped"] }
+            .into_iter()
+            .map(|reason| Json::object([("type", Json::str("Circumstantial")), ("reason", Json::str(reason))]))
+            .collect();
+        let params = Json::object([
+            ("loaderId", Json::str(&self.loader_id)),
+            ("frameId", Json::str(&self.target_id)),
+            ("notRestoredExplanations", Json::Array(reasons.clone())),
+            ("notRestoredExplanationsTree", Json::object([("url", Json::str(&self.url)), ("explanations", Json::Array(reasons)), ("children", Json::Array(Vec::new()))])),
+        ]);
+        self.emit(&self.page_enabled, "Page.backForwardCacheNotUsed", &params);
+    }
+
     /// Manda ao agente o estado da aba (janela, `Emulation`, mundos).
     fn push_emulation(&self, runner: &PageRunner, hook: &HostHandle) {
-        let message = Json::object([("method", Json::str("__emulation")), ("params", self.emu.json(&self.world_ids))]);
+        let message = Json::object([("method", Json::str("__emulation")), ("params", self.emu.json(&self.world_ids, &self.net.borrow()))]);
         let _ = runner.call_hidden(hook, &[HostArg::Str("cdp"), HostArg::Str(&message.to_compact())]);
     }
 
@@ -429,11 +574,6 @@ impl Tab {
         self.emit(sessions, "Runtime.executionContextCreated", &Json::object([("context", context)]));
     }
 
-    /// Reenvia o estado ao agente depois de uma mudança; `request` é a mensagem sintética que não leva resposta.
-    fn apply_emulation(&self, runner: &PageRunner, hook: &HostHandle) {
-        self.push_emulation(runner, hook);
-    }
-
     /// Os eventos de `Network` do pedido do documento: `requestWillBeSent` (um por redirecionamento), os `ExtraInfo` do
     /// fio e a resposta (`responseReceived`) ou a falha (`loadingFailed`). O `dataReceived` e o `loadingFinished` saem no
     /// `commit`. `about:blank` e `file:` não têm (`meta` vazio e sem erro).
@@ -446,17 +586,25 @@ impl Tab {
         let id = self.loader_id.clone();
         let frame = self.target_id.clone();
         let wire = meta.is_some_and(|m| m.last.protocol != "data") || error.is_some();
-        let headers: &[(&str, &str)] = if wire {
-            &[
+        let mut renderer_headers: Vec<(String, String)> = if wire {
+            [
                 ("Upgrade-Insecure-Requests", "1"),
                 ("User-Agent", super::http::USER_AGENT),
                 ("sec-ch-ua", "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Linux\""),
             ]
+            .into_iter()
+            .map(|(k, v)| (k.to_owned(), v.to_owned()))
+            .collect()
         } else {
-            &[]
+            Vec::new()
         };
+        if wire {
+            self.net.borrow().apply(&mut renderer_headers);
+        }
+        let headers: Vec<(&str, &str)> = renderer_headers.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+        let headers = headers.as_slice();
         let wall = || ul_common::time::realtime_nanos() as f64 / 1e9;
         let sent = |this: &Self, document: &str, request: &str, redirect: Option<Json>| {
             let params = network::request_will_be_sent(&id, &id, &frame, document, request, headers, "Document", "VeryHigh", true, Json::object([("type", Json::str("other"))]), redirect, monotonic_seconds(), wall());
@@ -479,7 +627,7 @@ impl Tab {
         }
         if wire {
             for exchange in meta.redirects.iter().chain(std::iter::once(&meta.last)) {
-                self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, exchange, monotonic_seconds(), false));
+                self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, exchange, monotonic_seconds(), false, self.associated_cookies(&exchange.url)));
                 self.emit(&sessions, "Network.responseReceivedExtraInfo", &network::response_extra_info(&id, exchange));
             }
         }
@@ -512,16 +660,21 @@ impl Tab {
         }
         let started = monotonic_seconds();
         let wall = ul_common::time::realtime_nanos() as f64 / 1e9;
-        let Some(response) = fetch::favicon_response(&fetch::network(), &self.url) else { return };
+        let Some(response) = fetch::favicon_response(&self.fetcher(), &self.url) else { return };
         let meta = crate::netmeta::NetMeta::from_response(&response);
         self.favicon_requests += 1;
         let id = format!("{}.{}", sysabi::sys::current().getpid(), self.favicon_requests + 1);
         let sessions = self.network_enabled.clone();
-        let headers = [("sec-ch-ua-platform", "\"Linux\""), ("Referer", self.url.as_str()), ("User-Agent", super::http::USER_AGENT), ("sec-ch-ua", "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\""), ("sec-ch-ua-mobile", "?0")];
+        let mut renderer_headers: Vec<(String, String)> = [("sec-ch-ua-platform", "\"Linux\""), ("Referer", self.url.as_str()), ("User-Agent", super::http::USER_AGENT), ("sec-ch-ua", "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\""), ("sec-ch-ua-mobile", "?0")]
+            .into_iter()
+            .map(|(k, v)| (k.to_owned(), v.to_owned()))
+            .collect();
+        self.net.borrow().apply(&mut renderer_headers);
+        let headers: Vec<(&str, &str)> = renderer_headers.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
         let initiator = Json::object([("type", Json::str("other"))]);
         let sent = network::request_will_be_sent(&id, &self.loader_id, &self.target_id, &self.url, &meta.last.url, &headers, "Other", "High", true, initiator, None, started, wall);
         self.emit(&sessions, "Network.requestWillBeSent", &sent);
-        self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, &meta.last, started, true));
+        self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, &meta.last, started, true, self.associated_cookies(&meta.last.url)));
         self.emit(&sessions, "Network.responseReceivedExtraInfo", &network::response_extra_info(&id, &meta.last));
         let received = Json::object([
             ("requestId", Json::str(&id)),
@@ -582,6 +735,9 @@ impl Tab {
                 }
                 _ => {
                     self.title = item.get("title").and_then(Json::as_str).unwrap_or_default().to_owned();
+                    if let Some(entry) = self.history.get_mut(self.current) {
+                        entry.title = self.title.clone();
+                    }
                     self.announce();
                     self.emit(&sessions, "Page.loadEventFired", &Json::object([("timestamp", Json::Number(now))]));
                     self.lifecycle_event("load", now);
@@ -614,6 +770,7 @@ impl Tab {
             }
             if !self.waiting {
                 if let Some(url) = self.held.take() {
+                    self.nav = NavKind::Typed;
                     return Next::Navigate(url, None);
                 }
             }
@@ -707,7 +864,7 @@ impl Tab {
                 let before = self.emu.window;
                 let size = |key: &str, current: i64| bounds.get(key).and_then(Json::as_int).unwrap_or(current);
                 self.emu.window = (size("width", before.0), size("height", before.1));
-                self.apply_emulation(runner, hook);
+                self.push_emulation(runner, hook);
                 if self.emu.window != before {
                     self.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
                 }
@@ -716,13 +873,13 @@ impl Tab {
             "Emulation.setDeviceMetricsOverride" => {
                 let number = |key: &str| params.get(key).and_then(Json::as_f64).unwrap_or(0.0);
                 self.emu.metrics = Some((number("width") as i64, number("height") as i64, if number("deviceScaleFactor") > 0.0 { number("deviceScaleFactor") } else { 1.0 }));
-                self.apply_emulation(runner, hook);
+                self.push_emulation(runner, hook);
                 self.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
                 self.reply(&message, Json::object([]));
             }
             "Emulation.clearDeviceMetricsOverride" => {
                 self.emu.metrics = None;
-                self.apply_emulation(runner, hook);
+                self.push_emulation(runner, hook);
                 for _ in 0..3 {
                     self.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
                 }
@@ -730,7 +887,7 @@ impl Tab {
             }
             "Emulation.setTouchEmulationEnabled" => {
                 self.emu.touch = if params.get("enabled").and_then(Json::as_bool) == Some(true) { params.get("maxTouchPoints").and_then(Json::as_int).filter(|n| *n > 0).unwrap_or(1) } else { 0 };
-                self.apply_emulation(runner, hook);
+                self.push_emulation(runner, hook);
                 self.reply(&message, Json::object([]));
             }
             "Emulation.setEmulatedMedia" => {
@@ -739,7 +896,7 @@ impl Tab {
                     Some(Json::Array(features)) => features.iter().filter_map(|f| Some((f.get("name")?.as_str()?.to_owned(), f.get("value")?.as_str()?.to_owned()))).collect(),
                     _ => Vec::new(),
                 };
-                self.apply_emulation(runner, hook);
+                self.push_emulation(runner, hook);
                 self.reply(&message, Json::object([]));
             }
             "Emulation.setFocusEmulationEnabled" | "Page.setFontFamilies" => self.reply(&message, Json::object([])),
@@ -770,7 +927,7 @@ impl Tab {
                     self.emu.created.push(name.clone());
                     self.world_ids.push(id);
                     self.emit_world(&self.runtime_enabled.clone(), &name, id);
-                    self.apply_emulation(runner, hook);
+                    self.push_emulation(runner, hook);
                     self.reply(&message, Json::object([("executionContextId", Json::Number(id as f64))]));
                 }
             }
@@ -797,11 +954,79 @@ impl Tab {
             }
             "Page.navigate" => {
                 let url = params.get("url").and_then(Json::as_str).unwrap_or_default().to_owned();
+                self.nav = NavKind::Typed;
                 return Some(Next::Navigate(url, Some(message)));
             }
             "Page.reload" => {
                 self.reply(&message, Json::object([]));
+                self.nav = NavKind::Reload;
                 return Some(Next::Navigate(self.url.clone(), None));
+            }
+            "Page.getNavigationHistory" => self.reply(&message, self.history_json()),
+            "Page.navigateToHistoryEntry" => {
+                let id = params.get("entryId").and_then(Json::as_int).unwrap_or(-1);
+                match self.history.iter().position(|e| e.id == id) {
+                    Some(index) => {
+                        let url = self.history[index].url.clone();
+                        self.reply(&message, Json::object([]));
+                        self.nav = NavKind::History(index);
+                        self.history_busy = true;
+                        return Some(Next::Navigate(url, None));
+                    }
+                    None => self.fail(&message, -32602, "No entry with passed id"),
+                }
+            }
+            "Network.setExtraHTTPHeaders" => {
+                self.net.borrow_mut().extra = match params.get("headers") {
+                    Some(Json::Object(headers)) => headers.iter().map(|(k, v)| (k.clone(), v.as_str().unwrap_or_default().to_owned())).collect(),
+                    _ => Vec::new(),
+                };
+                self.reply(&message, Json::object([]));
+            }
+            "Network.setUserAgentOverride" | "Emulation.setUserAgentOverride" => {
+                let text = |key: &str| params.get(key).and_then(Json::as_str).unwrap_or_default().to_owned();
+                {
+                    let mut net = self.net.borrow_mut();
+                    net.user_agent = text("userAgent");
+                    net.accept_language = text("acceptLanguage");
+                    net.platform = params.get("userAgentMetadata").and_then(|m| m.get("platform")).and_then(Json::as_str).unwrap_or_default().to_owned();
+                }
+                self.emu.nav_platform = text("platform");
+                self.push_emulation(runner, hook);
+                self.reply(&message, Json::object([]));
+            }
+            "Network.emulateNetworkConditions" => {
+                self.net.borrow_mut().offline = params.get("offline").and_then(Json::as_bool) == Some(true);
+                self.push_emulation(runner, hook);
+                self.reply(&message, Json::object([]));
+            }
+            "Network.setCacheDisabled" => self.reply(&message, Json::object([])),
+            "Emulation.setLocaleOverride" => {
+                self.emu.locale = params.get("locale").and_then(Json::as_str).unwrap_or_default().to_owned();
+                self.reply(&message, Json::object([]));
+            }
+            "Emulation.setTimezoneOverride" => {
+                self.emu.timezone = params.get("timezoneId").and_then(Json::as_str).unwrap_or_default().to_owned();
+                self.reply(&message, Json::object([]));
+            }
+            "Emulation.setGeolocationOverride" => {
+                let number = |key: &str| params.get(key).and_then(Json::as_f64);
+                self.emu.geo = number("latitude").zip(number("longitude")).map(|(latitude, longitude)| (latitude, longitude, number("accuracy").unwrap_or(0.0)));
+                self.push_emulation(runner, hook);
+                self.reply(&message, Json::object([]));
+            }
+            "Runtime.addBinding" => {
+                let name = params.get("name").and_then(Json::as_str).unwrap_or_default().to_owned();
+                if !self.emu.bindings.contains(&name) {
+                    self.emu.bindings.push(name);
+                }
+                self.push_emulation(runner, hook);
+                self.reply(&message, Json::object([]));
+            }
+            "Runtime.removeBinding" => {
+                let name = params.get("name").and_then(Json::as_str).unwrap_or_default();
+                self.emu.bindings.retain(|b| b != name);
+                self.reply(&message, Json::object([]));
             }
             _ => {
                 // O `frameResized` sai antes do resultado: uma vez ao pôr as métricas, três ao limpar (medido no oráculo).
