@@ -2268,6 +2268,9 @@ impl Vm {
         }
         let (inst, obj) = match user_new {
             Some(f) => {
+                // O `__new__` de usuário faz o objeto: a instância vazia de cima nunca existiu para o programa e o
+                // `__del__` não roda nela.
+                fresh.finalized.set(true);
                 let mut full = Vec::with_capacity(args.len() + 1);
                 full.push(Value::Class(cls.clone()));
                 full.extend(args.iter().cloned());

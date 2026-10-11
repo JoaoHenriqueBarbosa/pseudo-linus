@@ -236,6 +236,10 @@ def _entry(green):
         green.thread._bootstrap()
     except BaseException:
         pass
+    # O que a thread soltou ao acabar (o greenlet suspenso do `thread_func` que retornou) morre nela, ainda, como o
+    # descarte do C: o `GreenletExit` entra no greenlet e o `finally` dele roda antes de a thread sumir.
+    while _safe and can_switch():
+        _safe.pop(0)()
     _finish(green)
 
 

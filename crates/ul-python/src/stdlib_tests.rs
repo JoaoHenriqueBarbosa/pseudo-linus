@@ -7247,3 +7247,11 @@ fn clear_frames_keeps_the_locals_of_an_executing_frame() {
     let r = in_process("import sys\ndef f():\n    x = 1\n    fr = sys._getframe()\n    try:\n        fr.clear()\n    except RuntimeError as e:\n        print('RT', e)\n    print(x)\nf()\nimport unittest\nclass T(unittest.TestCase):\n    def test(self):\n        with self.assertRaises(ValueError) as exc:\n            raise ValueError('a')\n        print(str(exc.exception))\nT('test').test()\n");
     assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("RT cannot clear an executing frame\n1\na\n", ""));
 }
+
+/// Classe com `__new__` e `__del__`: a instância vazia que o `type.__call__` prepara antes do `__new__` nunca existiu para
+/// o programa, então o `__del__` roda uma vez só, no objeto que o `__new__` devolveu.
+#[test]
+fn del_runs_once_when_the_class_has_its_own_new() {
+    let r = in_process("class A:\n    def __new__(cls):\n        return object.__new__(cls)\n    def __del__(self):\n        print('del')\na = A()\nprint('made')\ndel a\nprint('end')\n");
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("made\ndel\nend\n", ""));
+}
