@@ -7,7 +7,12 @@ license.workspace = true
 [lib]
 path = "src/lib.rs"
 
+[[bin]]
+name = "zbun"
+path = "src/bin/zbun.rs"
+
 [dependencies]
+bun_core = { path = "../bun_core" }
 bun_alloc = { path = "../bun_alloc" }
 bun_ast = { path = "../ast" }
 bun_js_parser = { path = "../js_parser", features = ["parser"] }

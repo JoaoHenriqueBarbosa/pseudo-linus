@@ -104,6 +104,8 @@ pub struct Config {
     /// O texto é o corpo de `module._compile`: o parser não o embrulha na função de wrapper (o runtime do bun liga
     /// `remove_cjs_module_wrapper`) e o impressor o imprime como programa comum; quem chama põe o cabeçalho.
     pub compile_body: bool,
+    /// O `bun build` sem `--minify-syntax`: sem inlining nem dobra de constante (o `if (false)` perde o corpo mesmo assim, medido).
+    pub no_minify_syntax: bool,
 }
 
 /// Transpila `source` (o arquivo `path`) como o runtime do bun faz antes de entregá-lo ao JSC.
@@ -133,8 +135,8 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
     // O JSC implementa `using` e `await using`: com o alvo `bun` nada se rebaixa.
     opts.features.lower_using = false;
     opts.features.trim_unused_imports = loader.is_typescript();
-    opts.features.inlining = true;
-    opts.features.minify_syntax = true;
+    opts.features.inlining = !config.no_minify_syntax;
+    opts.features.minify_syntax = !config.no_minify_syntax;
     opts.features.dead_code_elimination = true;
     opts.features.commonjs_at_runtime = !config.like_build;
     // Sem `experimentalDecorators` nem `emitDecoratorMetadata` os decorators do TypeScript são os do TC39.
@@ -176,7 +178,7 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
         source_map_handler: Some(SourceMapHandler::for_(ChunkSink(&mut mappings))),
         import_meta_ref: ast.import_meta_ref,
         print_dce_annotations: config.like_build,
-        minify_syntax: true,
+        minify_syntax: !config.no_minify_syntax,
         hmr_ref: ast.wrapper_ref,
         mangled_props: None,
         module_type: if is_commonjs && !config.like_build && !config.compile_body {
