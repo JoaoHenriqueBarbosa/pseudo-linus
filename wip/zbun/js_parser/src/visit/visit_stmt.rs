@@ -643,7 +643,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if let Some(top) = p.react_refresh.hook_ctx_stack.last_mut() {
                             *top = react_hook_data;
                         }
-                        p.store[func_ref] = func_node;
+                        // Cópia: `func` ainda é usada abaixo (o ramo de server components leva o `func.func`).
+                        p.store[func_ref] = func.clone();
 
                         if mark_for_replace {
                             let entry = p
@@ -778,9 +779,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         return Ok(());
                     }
                     StmtData::SClass(mut class_ref) => {
-                        let class: &mut S::Class = &mut p.store[class_ref];
-                        let _ =
-                            p.visit_class(s2_loc, &mut class.class, data.default_name.ref_, false);
+                        // A visita reentra em `p`: a classe é cópia e volta ao Store logo depois, porque
+                        // `lower_class` (abaixo) lê a classe pelo Store.
+                        let mut class_node: S::Class = p.store[class_ref].clone();
+                        let _ = p.visit_class(s2_loc, &mut class_node.class, data.default_name.ref_, false);
+                        p.store[class_ref] = class_node;
 
                         if p.is_control_flow_dead {
                             restore_dead!();
@@ -822,13 +825,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // needs one: legacy TS decorators (`has_decorators`) or
                         // standard decorator lowering, which also covers classes with
                         // only auto-accessor fields and no decorators.
-                        if class.class.has_decorators
-                            || class.class.should_lower_standard_decorators
+                        if p.store[class_ref].class.has_decorators
+                            || p.store[class_ref].class.should_lower_standard_decorators
                         {
-                            if class.class.class_name.is_none()
-                                || class.class.class_name.unwrap().ref_.is_empty()
+                            if p.store[class_ref].class.class_name.is_none()
+                                || p.store[class_ref].class.class_name.unwrap().ref_.is_empty()
                             {
-                                class.class.class_name = Some(data.default_name);
+                                p.store[class_ref].class.class_name = Some(data.default_name);
                             }
                         }
 
@@ -861,8 +864,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             // `data.value` is mutated *after* pushing `stmt`; the pushed
                             // stmt still observes the write because `data` is an arena
                             // backref shared with the pushed copy.
-                            let class_expr =
-                                p.new_expr(core::mem::take(&mut class.class), stmt.loc);
+                            let class_value = core::mem::take(&mut p.store[class_ref].class);
+                            let class_expr = p.new_expr(class_value, stmt.loc);
                             data.value = js_ast::StmtOrExpr::Expr(
                                 p.wrap_value_for_server_component_reference(class_expr, b"default"),
                             );
@@ -1139,11 +1142,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.cur_scope().is_after_const_local_prefix = was_after_after_const_local_prefix;
 
         // visit_decls returns the surviving decl count; truncate `data.decls.len` to it.
+        // `visit_decls` reentra em `p` e compacta a lista no lugar: a lista sai do Store por cópia e volta depois.
+        let mut decl_list = p.store[data.decls].to_vec();
         let new_len = if !(data.is_export && p.options.features.replace_exports.entries.count() > 0) {
-            p.visit_decls::<false>((&mut p.store[data.decls]), data.kind, data.is_export)
+            p.visit_decls::<false>(&mut decl_list, data.kind, data.is_export)
         } else {
-            p.visit_decls::<true>((&mut p.store[data.decls]), data.kind, data.is_export)
+            p.visit_decls::<true>(&mut decl_list, data.kind, data.is_export)
         };
+        p.store[data.decls].copy_from_slice(&decl_list);
         // Drop the whole statement when every decl was
         // eliminated; otherwise we'd emit an empty `var;`/`let;`/`const;`.
         if data.decls.len_u32() > 0 && new_len == 0 {
@@ -1200,7 +1206,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let kind = p.select_local_kind(data.kind);
         if kind == S::Kind::KVar && !data.is_export {
             let relocated =
-                { let arg_a = (&p.store[data.decls]); p.maybe_relocate_vars_to_top_level( arg_a, RelocateVarsMode::Normal) };
+                { let arg_a = p.store[data.decls].to_vec(); p.maybe_relocate_vars_to_top_level(&arg_a, RelocateVarsMode::Normal) };
             if relocated.ok {
                 if let Some(new_stmt) = relocated.stmt {
                     stmts.push(new_stmt);
@@ -1240,7 +1246,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         js_ast::binding::Data::BIdentifier(b) => p.store[b].r#ref,
                         _ => break 'try_register,
                     };
-                    let original_name = p.store.str(p.symbols[id.inner_index() as usize].original_name);
+                    let original_name = p.arena_str(p.symbols[id.inner_index() as usize].original_name);
                     p.handle_react_refresh_register(
                         stmts,
                         original_name,
@@ -1263,7 +1269,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         js_ast::binding::Data::BIdentifier(b) => p.store[b].r#ref,
                         _ => break 'try_annotate,
                     };
-                    let original_name = p.store.str(p.symbols[id.inner_index() as usize].original_name);
+                    let original_name = p.arena_str(p.symbols[id.inner_index() as usize].original_name);
                     decl.value =
                         Some(p.wrap_value_for_server_component_reference(val, original_name));
                 }
@@ -1451,7 +1457,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             let js_ast::ExprData::EBinary(mut bin_ref) = data.value.data else {
                                 break 'convert;
                             };
-                            let bin: &mut E::Binary = &mut p.store[bin_ref];
+                            let bin: E::Binary = p.store[bin_ref].clone();
                             if bin.op == js_ast::OpCode::BinAssign
                                 && matches!(
                                     bin.left.data,
@@ -1461,9 +1467,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 // last entry's value: `keys()` borrows the map; wrap as
                                 // `StoreStr` so the borrow is detached before re-borrowing
                                 // `commonjs_named_exports` mutably below.
-                                let key: Vec<u8> = p.store.str(p.store.alloc_str(
-                                    &p.commonjs_named_exports.keys()[to_convert as usize][..],
-                                )).to_vec();
+                                let key: Vec<u8> =
+                                    p.commonjs_named_exports.keys()[to_convert as usize][..].to_vec();
                                 let decl_value = match bin.right.data {
                                     js_ast::ExprData::EArrow(_)
                                     | js_ast::ExprData::EFunction(_)
@@ -2235,8 +2240,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // ts_namespace is set for the enum scope (push_scope_for_visit_pass populated it
         // during the parse pass); exported_members is an arena-backed `StoreRef`.
+        let ts_namespace = p.cur_scope().ts_namespace.unwrap();
         let mut exported_members: js_ast::StoreRef<js_ast::TSNamespaceMemberMap> =
-            p.store[p.cur_scope().ts_namespace.unwrap()].exported_members;
+            p.store[ts_namespace].exported_members;
 
         // We normally don't fold numeric constants because they might increase code
         // size, but it's important to fold numeric constants inside enums since
