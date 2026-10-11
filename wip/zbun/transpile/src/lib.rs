@@ -139,21 +139,30 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
     opts.features.commonjs_at_runtime = !config.like_build;
     // Sem `experimentalDecorators` nem `emitDecoratorMetadata` os decorators do TypeScript são os do TC39.
     opts.features.standard_decorators = true;
-    let parsed = {
-        let parser = Parser::init(opts, &mut log, &source, &define, &arena).map_err(|e| fail(format!("{e:?}")))?;
-        parser.parse()
+    let messages = |log: &bun_ast::Log| {
+        log.msgs
+            .iter()
+            .filter(|m| m.kind == bun_ast::Kind::Err)
+            .map(|m| String::from_utf8_lossy(&m.data.text).into_owned())
+            .collect::<Vec<_>>()
     };
-    let messages = |log: &bun_ast::Log| log.msgs.iter().map(|m| String::from_utf8_lossy(&m.data.text).into_owned()).collect::<Vec<_>>();
+    // O que o parser recusou: as mensagens de erro do log, ou `fallback` quando ele não registrou nenhuma.
+    let refused = |log: &bun_ast::Log, fallback: String| {
+        let mut all = messages(log);
+        if all.is_empty() {
+            all.push(fallback);
+        }
+        Error { messages: all }
+    };
+    let parser = match Parser::init(opts, &mut log, &source, &define, &arena) {
+        Ok(parser) => parser,
+        Err(e) => return Err(refused(&log, format!("{e:?}"))),
+    };
+    let parsed = parser.parse();
     let mut ast = match parsed {
         Ok(bun_js_parser::Result::Ast(ast)) => ast,
         Ok(_) => return Err(fail("o parser não devolveu uma Ast")),
-        Err(e) => {
-            let mut all = messages(&log);
-            if all.is_empty() {
-                all.push(format!("{e:?}"));
-            }
-            return Err(Error { messages: all });
-        }
+        Err(e) => return Err(refused(&log, format!("{e:?}"))),
     };
     if log.has_errors() {
         return Err(Error { messages: messages(&log) });

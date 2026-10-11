@@ -284,6 +284,10 @@ impl<'a> Lexer<'a> {
 
     /// O deslocamento de uma fatia do código-fonte dentro dele.
     fn source_offset(&self, text: &[u8]) -> usize {
+        // O literal que ainda não foi lido deixa o conteúdo vazio e estático (o `parse_path` do upstream o lê assim).
+        if text.is_empty() {
+            return 0;
+        }
         let offset = (text.as_ptr() as usize).wrapping_sub(self.contents.as_ptr() as usize);
         assert!(offset + text.len() <= self.contents.len(), "a fatia não é do código-fonte");
         offset
@@ -1110,26 +1114,14 @@ impl<'a> Lexer<'a> {
         keyword: &'static [u8],
     ) -> Result<(), Error> {
         if !self.is_contextual_keyword(keyword) {
-            if cfg!(debug_assertions) {
-                self.add_error(
-                    self.start,
-                    format_args!(
-                        "Expected \"{}\" but found \"{}\" (token: {})",
-                        bstr::BStr::new(keyword),
-                        bstr::BStr::new(self.raw()),
-                        <&'static str>::from(self.token),
-                    ),
-                );
-            } else {
-                self.add_error(
-                    self.start,
-                    format_args!(
-                        "Expected \"{}\" but found \"{}\"",
-                        bstr::BStr::new(keyword),
-                        bstr::BStr::new(self.raw()),
-                    ),
-                );
-            }
+            self.add_error(
+                self.start,
+                format_args!(
+                    "Expected \"{}\" but found \"{}\"",
+                    bstr::BStr::new(keyword),
+                    bstr::BStr::new(self.raw()),
+                ),
+            );
             return Err(Error::UnexpectedSyntax);
         }
         self.next()

@@ -43,7 +43,7 @@ fn runtime_transpile_matches_bun_build_target_bun() {
         let source = std::fs::read(dir.join(name)).expect("entrada");
         let expected = std::fs::read(dir.join(format!("{name}.expected.runtime"))).expect("esperado");
         let known = KNOWN_DIVERGENCES.iter().find(|(n, _)| n == name);
-        let outcome = bun_transpile::transpile_with(&format!("/w/{name}"), &source, bun_transpile::Config { like_build: true });
+        let outcome = bun_transpile::transpile_with(&format!("/w/{name}"), &source, bun_transpile::Config { like_build: true, ..Default::default() });
         let matches = matches!(&outcome, Ok(done) if done.text == expected);
         match (matches, known) {
             (true, None) => passed += 1,
