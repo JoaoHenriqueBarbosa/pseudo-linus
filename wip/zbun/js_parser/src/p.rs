@@ -1063,14 +1063,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         &mut self,
         namespace_ref: Ref,
         records: &[u32],
-        properties: &[bun_ast::B::Property],
+        properties: js_ast::StoreSlice<bun_ast::B::Property>,
         keep_all: bool,
     ) -> Option<()> {
         let map = self
             .import_items_for_namespace
             .get_mut(&namespace_ref)
             .unwrap();
-        let rest_ref = record_destructured_aliases(self.arena, map, properties, keep_all)?;
+        let rest_ref = record_destructured_aliases(&mut self.store, map, properties, keep_all)?;
         if let Some((rest, loc)) = rest_ref {
             self.dynamic_import_copied_locals.insert(rest, ());
             self.register_dynamic_import_namespace_local_multi(rest, loc, records);
@@ -1297,8 +1297,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     /// the single argument is an array literal without spread.
     pub(crate) fn promise_all_import_items(
         &self,
-        call: &E::Call,
+        call: bun_ast::StoreRef<E::Call>,
     ) -> Option<bun_ast::StoreRef<E::Array>> {
+        let call = &self.store[call];
         let js_ast::ExprData::EDot(dot) = call.target.data else {
             return None;
         };
@@ -1342,21 +1343,22 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn track_promise_all_destructure(
         &mut self,
         arr: bun_ast::StoreRef<E::Array>,
-        pattern: &bun_ast::B::Array,
+        pattern: bun_ast::StoreRef<bun_ast::B::Array>,
     ) {
+        let pattern = self.store[pattern];
         if pattern.has_spread {
             return;
         }
-        let items = (&self.store[self.store[arr].items]);
-        let bindings = (&self.store[pattern.items]);
-        for (i, item) in items.iter().enumerate() {
+        let items = self.store[arr].items;
+        for i in 0..items.len() {
+            let item = self.store[items][i];
             let js_ast::ExprData::EImport(im) = item.data else {
                 continue;
             };
             if !self.store[im].namespace_ref.is_valid() {
                 continue;
             }
-            let Some(b) = bindings.get(i) else {
+            let Some(&b) = self.store[pattern.items].get(i) else {
                 self.note_tracked_namespace_use(self.store[im].namespace_ref);
                 continue;
             };
@@ -1372,7 +1374,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         .try_track_dynamic_import_destructure(
                             self.store[im].namespace_ref,
                             &[self.store[im].import_record_index],
-                            &self.store[self.store[obj].properties].to_vec(),
+                            self.store[obj].properties,
                             false,
                         )
                         .is_some()
@@ -4647,17 +4649,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     #[inline(never)]
     pub(crate) fn define_exported_namespace_binding(
         &mut self,
-        exported_members: &mut js_ast::TSNamespaceMemberMap,
+        exported_members: js_ast::StoreRef<js_ast::TSNamespaceMemberMap>,
         binding: Binding,
     ) -> Result<(), crate::Error> {
         match binding.data {
             js_ast::b::B::BMissing(_) => {}
             js_ast::b::B::BIdentifier(id) => {
-                let id = (&self.store[id]);
-                // `Symbol.original_name` is an arena-owned `StoreStr` valid for 'a.
-                let name = self.store.str(self.symbols[id.r#ref.inner_index() as usize]
-                    .original_name);
-                exported_members.put(
+                let id = self.store[id];
+                let name = self.arena_str(self.symbols[id.r#ref.inner_index() as usize].original_name);
+                self.store[exported_members].put(
                     name,
                     js_ast::TSNamespaceMember {
                         loc: binding.loc,
@@ -5892,7 +5892,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let count: u32 = calls
                 .iter()
                 .filter(|(name, _)| {
-                    self.commonjs_named_exports.get(name).is_some_and(|export| {
+                    self.commonjs_named_exports.get(&name[..]).is_some_and(|export| {
                         !self.symbols[export.loc_ref.ref_.inner_index() as usize]
                             .call_ignores_this()
                     })
@@ -6340,6 +6340,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // we must also consider "typeof x == 'object'" to be side-effect free.
                 js_ast::op::Code::BinLooseEq | js_ast::op::Code::BinLooseNe => {
                     return crate::scan::scan_side_effects::SideEffects::can_change_strict_to_loose(
+                        &self.store,
                         &self.store[*ex].left.data,
                         &self.store[*ex].right.data,
                     ) && self.expr_can_be_removed_if_unused_without_dce_check(&self.store[*ex].left)
@@ -10056,13 +10057,13 @@ pub(crate) fn is_require_marker(record: &ImportRecord, name: &[u8]) -> bool {
 /// depend on the parser's const generics: validate the pattern, record each
 /// key into `map`, and hand back the trailing `...rest` binding if any.
 fn record_destructured_aliases(
-    arena: &Bump,
+    store: &mut bun_ast::Store,
     map: &mut ImportItemForNamespaceMap,
-    properties: &[bun_ast::B::Property],
+    properties: js_ast::StoreSlice<bun_ast::B::Property>,
     keep_all: bool,
 ) -> Option<Option<(Ref, bun_ast::Loc)>> {
     let mut rest_ref: Option<(Ref, bun_ast::Loc)> = None;
-    for (i, prop) in properties.iter().enumerate() {
+    for (i, prop) in store[properties].iter().enumerate() {
         if prop.flags.contains(bun_ast::flags::Property::IsSpread) {
             // An exported `...rest` is observed whole by importers of this file.
             if i + 1 != properties.len() || keep_all {
@@ -10071,7 +10072,7 @@ fn record_destructured_aliases(
             let bun_ast::binding::Data::BIdentifier(id) = prop.value.data else {
                 return None;
             };
-            rest_ref = Some((id.r#ref, prop.value.loc));
+            rest_ref = Some((store[id].r#ref, prop.value.loc));
             continue;
         }
         if prop.flags.contains(bun_ast::flags::Property::IsComputed) {
@@ -10079,16 +10080,16 @@ fn record_destructured_aliases(
         }
         prop.key.data.as_e_string()?;
     }
-    for prop in properties {
+    for i in 0..properties.len() {
+        let prop = store[properties][i];
         if prop.flags.contains(bun_ast::flags::Property::IsSpread) {
             continue;
         }
-        let alias: &[u8] = prop
-            .key
-            .data
-            .as_e_string()
-            .expect("infallible: checked above")
-            .slice(arena);
+        let key = prop.key.data.as_e_string().expect("infallible: checked above");
+        let mut key_string = store[key];
+        let alias = key_string.slice(store);
+        store[key] = key_string;
+        let alias: &[u8] = store.str(alias);
         // `Ref::NONE` keeps the alias regardless of whether the local is
         // read: a default value makes reading the (possibly absent) export
         // observable, a nested pattern reads through it, and a repeated key
@@ -10097,7 +10098,7 @@ fn record_destructured_aliases(
             bun_ast::binding::Data::BIdentifier(id)
                 if !keep_all && prop.default_value.is_none() && !map.contains(alias) =>
             {
-                id.r#ref
+                store[id].r#ref
             }
             _ => Ref::NONE,
         };

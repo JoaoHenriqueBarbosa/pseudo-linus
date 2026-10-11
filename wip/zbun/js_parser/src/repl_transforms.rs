@@ -45,7 +45,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
             == js_ast::StrictModeKind::ExplicitStrictMode
             && !(!parts.is_empty()
                 && !parts[0].stmts.is_empty()
-                && matches!(parts[0].stmts[0].data, StmtData::SDirective(_)));
+                && matches!(self.store[parts[0].stmts][0].data, StmtData::SDirective(_)));
         total_stmts_count += usize::from(reinject_strict);
 
         if total_stmts_count == 0 {
@@ -330,7 +330,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                             // Share a single await import() between default and named imports.
                             // namespace_ref is synthesized by processImportStatement for all non-star imports.
                             self.repl_convert_named_imports(
-                                &self.store[import_data],
+                                self.store[import_data].namespace_ref,
                                 &import_items,
                                 await_expr,
                                 &mut hoisted_stmts,
@@ -412,8 +412,8 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                     } else if !import_items.is_empty() {
                         // import { a, b } from 'mod' -> destructure from await import('mod')
                         self.repl_convert_named_imports(
-                            &self.store[import_data],
-                            import_items,
+                            self.store[import_data].namespace_ref,
+                            &import_items,
                             await_expr,
                             &mut hoisted_stmts,
                             &mut inner_stmts,
@@ -518,7 +518,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
     #[allow(clippy::too_many_arguments)]
     fn repl_convert_named_imports<'bump>(
         &mut self,
-        import_data: &S::Import,
+        namespace_ref: bun_ast::Ref,
         import_items: &[bun_ast::ClauseItem],
         await_expr: Expr,
         hoisted_stmts: &mut BumpVec<'bump, Stmt>,
@@ -529,14 +529,14 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         // Store the module in the namespace ref: var __ns = await import('mod')
         hoisted_stmts.push({ let arg_a = S::Local {
                 kind: S::Kind::KVar,
-                decls: { let decl_binding = self.b(B::Identifier { r#ref: import_data.namespace_ref, }, loc); repl_one_decl(&mut self.store, decl_binding) },
+                decls: { let decl_binding = self.b(B::Identifier { r#ref: namespace_ref, }, loc); repl_one_decl(&mut self.store, decl_binding) },
                 ..Default::default()
             }; self.s( arg_a,
             loc,
         ) });
         let left = self.new_expr(
             E::Identifier {
-                ref_: import_data.namespace_ref,
+                ref_: namespace_ref,
                 ..Default::default()
             },
             loc,
@@ -569,7 +569,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
             ) });
             let ns_ref_expr = self.new_expr(
                 E::Identifier {
-                    ref_: import_data.namespace_ref,
+                    ref_: namespace_ref,
                     ..Default::default()
                 },
                 loc,

@@ -1504,10 +1504,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 skip = true;
                                 stmt.data = js_ast::stmt::Data::SEmpty(S::Empty {});
                             } else {
-                                let bytes = p.store[*str_].string(p.arena).expect("OOM");
-                                stmt = Stmt::alloc(&mut p.store, 
+                                let string = p.store[*str_];
+                                let value = string.string(&mut p.store);
+                                stmt = Stmt::alloc(&mut p.store,
                                     S::Directive {
-                                        value: p.store.alloc_str(bytes),
+                                        value,
                                     },
                                     stmt.loc,
                                 );

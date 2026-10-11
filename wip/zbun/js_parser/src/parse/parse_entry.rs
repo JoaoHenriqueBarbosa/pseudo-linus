@@ -1010,7 +1010,7 @@ impl<'a> Parser<'a> {
                         // Move class export statements to the top of the file if we can
                         // This automatically resolves some cyclical import issues
                         // https://github.com/kysely-org/kysely/issues/412
-                        let should_move = !p.options.bundle && p.store[*class].class.can_be_moved();
+                        let should_move = !p.options.bundle && p.store[*class].class.can_be_moved(&p.store);
 
                         let sliced = [*stmt];
                         p.append_part(&mut parts, &sliced)?;
@@ -1024,7 +1024,7 @@ impl<'a> Parser<'a> {
                         // We move export default statements when we can
                         // This automatically resolves some cyclical import issues in packages like luxon
                         // https://github.com/oven-sh/bun/issues/1961
-                        let should_move = !p.options.bundle && p.store[*value].can_be_moved();
+                        let should_move = !p.options.bundle && p.store[*value].can_be_moved(&p.store);
                         let sliced = [*stmt];
                         p.append_part(&mut parts, &sliced)?;
 
@@ -2265,7 +2265,7 @@ impl<'a> Parser<'a> {
             // Single up-front reserve; the inner
             // reserve() calls in prepend_from / append become no-ops.
             parts.reserve(before.len() + after.len());
-            parts.prepend_from(&mut before);
+            bun_collections::vec_ext::prepend_from(&mut parts, &mut before);
             parts.append(&mut after);
         }
 

@@ -122,7 +122,7 @@ impl BinaryExpressionVisitor {
 
         let is_call_target = matches!(
             p.call_target,
-            ExprData::EBinary(ptr) if core::ptr::eq(&raw const p.store[ptr], &raw const p.store[e_handle])
+            ExprData::EBinary(ptr) if ptr == e_handle
         );
         let was_anonymous_named_expr = e_.right.is_anonymous_named(&p.store);
         let prev_decorator_class_name = p.decorator_class_name;
@@ -435,7 +435,7 @@ impl BinaryExpressionVisitor {
                     if let Some(res) = fold_string_addition(
                         e_.left,
                         e_.right,
-                        p.arena,
+                        &mut p.store,
                         FoldStringAdditionKind::Normal,
                     ) {
                         return res;
@@ -447,7 +447,7 @@ impl BinaryExpressionVisitor {
                             if let Some(result) = fold_string_addition(
                                 p.store[left].right,
                                 e_.right,
-                                p.arena,
+                                &mut p.store,
                                 FoldStringAdditionKind::NestedLeft,
                             ) {
                                 return p.new_expr(
@@ -597,7 +597,7 @@ impl BinaryExpressionVisitor {
                         );
                     }
                     if let Some(vals) =
-                        Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
+                        Expr::extract_string_values(&mut p.store, &e_.left.data, &e_.right.data)
                     {
                         let ord = p.store[vals[0]].order(&p.store, (&p.store[vals[1]]));
                         return p.new_expr(
@@ -622,7 +622,7 @@ impl BinaryExpressionVisitor {
                         );
                     }
                     if let Some(vals) =
-                        Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
+                        Expr::extract_string_values(&mut p.store, &e_.left.data, &e_.right.data)
                     {
                         let ord = p.store[vals[0]].order(&p.store, (&p.store[vals[1]]));
                         return p.new_expr(
@@ -647,7 +647,7 @@ impl BinaryExpressionVisitor {
                         );
                     }
                     if let Some(vals) =
-                        Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
+                        Expr::extract_string_values(&mut p.store, &e_.left.data, &e_.right.data)
                     {
                         let ord = p.store[vals[0]].order(&p.store, (&p.store[vals[1]]));
                         return p.new_expr(
@@ -672,7 +672,7 @@ impl BinaryExpressionVisitor {
                         );
                     }
                     if let Some(vals) =
-                        Expr::extract_string_values(&e_.left.data, &e_.right.data, p.arena)
+                        Expr::extract_string_values(&mut p.store, &e_.left.data, &e_.right.data)
                     {
                         let ord = p.store[vals[0]].order(&p.store, (&p.store[vals[1]]));
                         return p.new_expr(
@@ -706,7 +706,7 @@ impl BinaryExpressionVisitor {
                 if let Some(dot) = e_.left.data.e_dot() {
                     if let Some(obj) = p.store[dot].target.data.e_object() {
                         if p.store[obj].properties.len_u32() == 0 {
-                            if p.store[dot].name != b"__proto__" {
+                            if p.store.str(p.store[dot].name) != b"__proto__" {
                                 return e_.right;
                             }
                         }

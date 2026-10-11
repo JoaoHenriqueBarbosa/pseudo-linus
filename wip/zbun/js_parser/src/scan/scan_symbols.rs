@@ -54,7 +54,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
 
                 // Is the symbol a member of this scope?
-                if let Some(member) = self.store[scope].get_member_with_hash(name, hash) {
+                if let Some(member) = self.store[scope].get_member_with_hash(&self.store, name, hash) {
                     declare_loc = member.loc;
                     // Unbound globals live in the module scope.
                     scope_use = self.track_scope_uses
@@ -71,7 +71,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if Self::IS_TYPESCRIPT_ENABLED {
                     if let Some(mut ts_namespace) = self.store[scope].ts_namespace {
                         let ts = &self.store[ts_namespace];
-                        let exported: &js_ast::TSNamespaceMemberMap = &ts.exported_members;
+                        let exported: &js_ast::TSNamespaceMemberMap = &self.store[ts.exported_members];
                         if let Some(member) = exported.get(name) {
                             if member.data.is_enum() == ts.is_enum_scope {
                                 declare_loc = member.loc;

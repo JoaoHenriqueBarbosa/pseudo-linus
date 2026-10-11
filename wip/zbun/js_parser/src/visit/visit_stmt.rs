@@ -534,15 +534,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         },
                         stmt.loc,
                     ));
-                    let items = core::slice::from_mut(p.arena.alloc(js_ast::ClauseItem {
+                    let item = js_ast::ClauseItem {
                         alias: p.store.alloc_str(b"default"),
                         alias_loc: data.default_name.loc,
                         name: data.default_name,
                         ..Default::default()
-                    }));
+                    };
                     stmts.push(p.s(
                         S::ExportClause {
-                            items: p.store.alloc_slice(items.iter().copied()),
+                            items: p.store.alloc_slice([item]),
                             is_single_line: false,
                         },
                         stmt.loc,
@@ -1493,13 +1493,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     .append(js_ast::DeclaredSymbol {
                                         ref_,
                                         is_top_level: true,
-                                    })
-                                    .expect("oom");
+                                    });
                                 p.esm_export_keyword.loc = stmt.loc;
                                 p.esm_export_keyword.len = 5;
                                 p.had_commonjs_named_exports_this_visit = true;
                                 let clause_items =
-                                    core::slice::from_mut(p.arena.alloc(js_ast::ClauseItem {
+                                    [js_ast::ClauseItem {
                                         // We want the generated name to not conflict
                                         alias: p.store.alloc_str(key),
                                         alias_loc: bin.left.loc,
@@ -1508,7 +1507,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                             loc: last_loc,
                                         },
                                         ..Default::default()
-                                    }));
+                                    }];
                                 let local = p.s(
                                     S::Local {
                                         kind: S::Kind::KVar,
@@ -1520,7 +1519,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 );
                                 let export = p.s(
                                     S::ExportClause {
-                                        items: p.store.alloc_slice(clause_items.iter().copied()),
+                                        items: p.store.alloc_slice(clause_items),
                                         is_single_line: true,
                                     },
                                     stmt.loc,
@@ -1622,7 +1621,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 == core::mem::discriminant(&stmt.data)
                 && match (p.loop_body, stmt.data) {
                     (StmtData::SBlock(a), StmtData::SBlock(b)) => {
-                        core::ptr::eq(&raw const p.store[a], &raw const p.store[b])
+                        a == b
                     }
                     _ => false,
                 } {
@@ -2161,7 +2160,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     ctx.scan_stmts(p, (&mut p.store[cases[i].body]));
                 }
                 let switch_stmt = vec![*stmt];
-                stmts.extend_from_slice(&ctx.finalize(p, switch_stmt, false));
+                stmts.extend_from_slice(&ctx.finalize(p, &switch_stmt, false));
             }
 
             p.pop_scope();
@@ -2298,7 +2297,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 p.options.features.minify_syntax && js_lexer::is_identifier(name);
 
             let name_as_e_string = if !is_assign_target || !has_string_value {
-                Some(p.new_expr(value.name_as_e_string(p.arena), value.loc))
+                let name_as_e_string = value.name_as_e_string(&mut p.store);
+                Some(p.new_expr(name_as_e_string, value.loc))
             } else {
                 None
             };

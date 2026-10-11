@@ -795,7 +795,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // it may no longer be a template literal after this point (it may turn into
         // a plain string literal instead).
         if p.should_fold_typescript_constant_expressions || p.options.features.inlining {
-            *e = e_.fold(p.arena, expr.loc);
+            *e = E::Template::fold(&mut p.store, e_, expr.loc);
             return;
         }
     }
@@ -879,14 +879,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     fn e_index(p: &mut Self, e: &mut Expr, in_: ExprIn) {
         let expr = *e;
         let mut e_ = expr.data.e_index().expect("infallible: variant checked");
-        let is_call_target = matches!(p.call_target, Data::EIndex(ct) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[ct]));
-        let is_template_tag = matches!(p.template_tag, Data::EIndex(tag) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[tag]));
-        let is_delete_target = matches!(p.delete_target, Data::EIndex(dt) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[dt]));
+        let is_call_target = matches!(p.call_target, Data::EIndex(ct) if e_ == ct);
+        let is_template_tag = matches!(p.template_tag, Data::EIndex(tag) if e_ == tag);
+        let is_delete_target = matches!(p.delete_target, Data::EIndex(dt) if e_ == dt);
 
         // "a['b']" => "a.b"
         if p.options.features.minify_syntax {
-            if let Some(mut s) = p.store[e_].index.data.e_string() {
-                if !p.store[s].is_utf16 && p.store[s].is_identifier(p.arena) {
+            if let Some(s) = p.store[e_].index.data.e_string() {
+                let mut string = p.store[s];
+                let is_identifier = !string.is_utf16 && string.is_identifier(&mut p.store);
+                p.store[s] = string;
+                if is_identifier {
                     let dot = p.new_expr(
                         E::Dot {
                             name: p.store[s].data,
@@ -997,14 +1000,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 p.visit_expr(&mut p.store[e_].index);
 
                 let unwrapped = p.store[e_].index.unwrap_inlined(&p.store);
-                if let Some(mut s) = unwrapped.data.e_string() {
+                if let Some(s) = unwrapped.data.e_string() {
                     if !p.store[s].is_utf16 {
                         // A folded `"a" + "b"` is a rope whose `data` is only "a".
-                        p.store[s].resolve_rope_if_needed(p.arena);
+                        let mut string = p.store[s];
+                        string.resolve_rope_if_needed(&mut p.store);
+                        let is_identifier = p.options.features.minify_syntax && string.is_identifier(&mut p.store);
+                        p.store[s] = string;
 
                         // "a['b' + '']" => "a.b"
                         // "enum A { B = 'b' }; a[A.B]" => "a.b"
-                        if p.options.features.minify_syntax && p.store[s].is_identifier(p.arena) {
+                        if is_identifier {
                             let dot = p.new_expr(
                                 E::Dot {
                                     name: p.store[s].data,
@@ -1078,11 +1084,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .e_number()
                                 .expect("infallible: variant checked")
                                 .to_usize();
-                            debug_assert!(strings::is_all_ascii(&literal));
+                            debug_assert!(strings::is_all_ascii(p.store.str(literal)));
                             if num < literal.len() {
+                                let character = p.store.str(literal)[num..num + 1].to_vec();
                                 *e = p.new_expr(
                                     E::String {
-                                        data: p.store.alloc_str(&literal[num..num + 1]),
+                                        data: p.store.alloc_str(&character),
                                         ..Default::default()
                                     },
                                     expr.loc,
@@ -1094,12 +1101,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let int: usize = number.value() as usize;
                         // [x][0] -> x
                         // ['a', 'b', 'c'][1] -> 'b'
-                        let inlined = if array.items.len_u32() == 1 && int == 0 {
-                            Some(*array.items.at(0))
-                        } else if int < array.items.len_u32() as usize
-                            && p.expr_can_be_removed_if_unused(&target)
-                        {
-                            Some(*array.items.at(int))
+                        let items = p.store[array].items;
+                        let inlined = if items.len() == 1 && int == 0 {
+                            Some(p.store[items][0])
+                        } else if int < items.len() && p.expr_can_be_removed_if_unused(&target) {
+                            Some(p.store[items][int])
                         } else {
                             None
                         };
@@ -1109,7 +1115,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 *e = p.new_expr(E::Undefined {}, inlined.loc);
                                 return;
                             }
-                            if inlined.can_be_inlined_from_property_access() {
+                            if inlined.can_be_inlined_from_property_access(&p.store) {
                                 // "[obj.m][0]()" => "(0, obj.m)()"
                                 *e = if is_call_target && inlined.has_value_for_this_in_call() {
                                     let zero = p.new_expr(E::Number::new(0.0), expr.loc);
@@ -1341,9 +1347,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     fn e_dot(p: &mut Self, e: &mut Expr, in_: ExprIn) {
         let expr = *e;
         let mut e_ = expr.data.e_dot().expect("infallible: variant checked");
-        let is_delete_target = matches!(p.delete_target, Data::EDot(dt) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[dt]));
-        let is_call_target = matches!(p.call_target, Data::EDot(ct) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[ct]));
-        let is_template_tag = matches!(p.template_tag, Data::EDot(tag) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[tag]));
+        let is_delete_target = matches!(p.delete_target, Data::EDot(dt) if e_ == dt);
+        let is_call_target = matches!(p.call_target, Data::EDot(ct) if e_ == ct);
+        let is_template_tag = matches!(p.template_tag, Data::EDot(tag) if e_ == tag);
 
         // `p.define: &'a Define` is `Copy`; hoist so the `dots.get` borrow is
         // tied to `'a`, not `&*p`, and `&mut self` helpers below can be called
@@ -1391,21 +1397,21 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Track ".then().catch()" chains
         if is_call_target
-            && matches!(p.then_catch_chain.next_target, Data::EDot(nt) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[nt]))
+            && matches!(p.then_catch_chain.next_target, Data::EDot(nt) if e_ == nt)
         {
-            if p.store[e_].name == b"catch" {
+            if p.store.str(p.store[e_].name) == b"catch" {
                 p.then_catch_chain = ThenCatchChain {
                     next_target: p.store[e_].target.data,
                     has_catch: true,
                     has_multiple_args: false,
                 };
-            } else if p.store[e_].name == b"then" {
+            } else if p.store.str(p.store[e_].name) == b"then" {
                 p.then_catch_chain = ThenCatchChain {
                     next_target: p.store[e_].target.data,
                     has_catch: p.then_catch_chain.has_catch || p.then_catch_chain.has_multiple_args,
                     has_multiple_args: false,
                 };
-            } else if p.store[e_].name == b"finally" {
+            } else if p.store.str(p.store[e_].name) == b"finally" {
                 p.then_catch_chain = ThenCatchChain {
                     next_target: p.store[e_].target.data,
                     has_catch: p.then_catch_chain.has_catch,
@@ -1424,7 +1430,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         );
 
         // 'require.resolve' -> .e_require_resolve_call_target
-        if matches!(p.store[e_].target.data, Data::ERequireCallTarget) && p.store[e_].name == b"resolve" {
+        if matches!(p.store[e_].target.data, Data::ERequireCallTarget) && p.store.str(p.store[e_].name) == b"resolve" {
             // we do not need to call p.recordUsageOfRuntimeRequire(); because `require`
             // was not a call target. even if the call target is `require.resolve`, it should be set.
             *e = Expr {
@@ -1484,7 +1490,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             .expect("infallible: variant checked")]
                             .was_originally_macro
                     {
-                        if let Some(obj) = p.store[e_].target.get(&p.store[e_].name) {
+                        let target = p.store[e_].target.data.e_object().expect("infallible: variant checked");
+                        let name = p.store.str(p.store[e_].name);
+                        if let Some(obj) = p.store[target].get(&p.store, name) {
                             *e = obj;
                             return;
                         }
@@ -1497,7 +1505,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     fn e_if(p: &mut Self, e: &mut Expr, _: ExprIn) {
         let mut e_ = e.data.e_if().expect("infallible: variant checked");
         let is_call_target =
-            matches!(p.call_target, Data::EIf(ct) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[ct]));
+            matches!(p.call_target, Data::EIf(ct) if e_ == ct);
 
         let prev_in_branch = p.in_branch_condition;
         p.in_branch_condition = true;
@@ -1676,9 +1684,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             && spread_item_count > 0
             && in_.assign_target == js_ast::AssignTarget::None
         {
-            if let Ok(items) = p.store[e_].inline_spread_of_array_literals(p.arena, spread_item_count) {
-                p.store[e_].items = items;
-            }
+            let array = p.store[e_];
+            p.store[e_].items = array.inline_spread_of_array_literals(&mut p.store, spread_item_count);
         }
     }
 
@@ -1865,16 +1872,16 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let state = TransposeState {
                 is_await_target: matches!(
                     p.await_target,
-                    Some(Data::EImport(at)) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[at])
+                    Some(Data::EImport(at)) if e_ == at
                 ),
                 is_then_catch_target: p.then_catch_chain.has_catch
                     && matches!(
                         p.then_catch_chain.next_target,
-                        Data::EImport(nt) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[nt])
+                        Data::EImport(nt) if e_ == nt
                     ),
                 import_options: p.store[e_].options,
                 loc: p.store[e_].expr.loc,
-                import_loader: p.store[e_].import_record_loader(),
+                import_loader: p.store[e_].import_record_loader(&p.store),
                 ..Default::default()
             };
 
@@ -1896,7 +1903,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             has_multiple_args: p.store[e_].args.len_u32() >= 2,
             has_catch: matches!(
                 p.then_catch_chain.next_target,
-                Data::ECall(nt) if core::ptr::eq(&raw const p.store[e_], &raw const p.store[nt])
+                Data::ECall(nt) if e_ == nt
             ) && p.then_catch_chain.has_catch,
         };
 
@@ -1980,7 +1987,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let Data::ECall(inner) = p.store[dot].target.data else {
                 break 'promise_all_then;
             };
-            let Some(items) = p.promise_all_import_items(&inner) else {
+            let Some(items) = p.promise_all_import_items(inner) else {
                 break 'promise_all_then;
             };
             let args = (&p.store[p.store[e_].args]);
@@ -2011,7 +2018,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let js_ast::binding::Data::BArray(pattern) = first.binding.data else {
                         break 'promise_all_then;
                     };
-                    p.track_promise_all_destructure(items, &pattern);
+                    p.track_promise_all_destructure(items, pattern);
                 }
             }
         }
@@ -2061,7 +2068,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             if p.try_track_dynamic_import_destructure(
                                 p.store[im].namespace_ref,
                                 &[p.store[im].import_record_index],
-                                &p.store[p.store[obj].properties].to_vec(),
+                                p.store[obj].properties,
                                 false,
                             )
                             .is_some()
@@ -2451,8 +2458,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         if p.store[e_].args.len_u32() == 1 {
             if let Some(dot) = p.store[e_].target.data.e_dot() {
                 if let Some(target_str) = p.store[dot].target.data.e_string() {
-                    if !p.store[target_str].is_utf16 && p.store[dot].name == b"charCodeAt" {
-                        let str_ = p.store[target_str].data;
+                    if !p.store[target_str].is_utf16 && p.store.str(p.store[dot].name) == b"charCodeAt" {
+                        let str_ = p.store.str(p.store[target_str].data);
                         let arg1 = p.store[p.store[e_].args][0].unwrap_inlined(&p.store);
                         if let Data::ENumber(n) = &arg1.data {
                             let float = n.value();
@@ -2482,8 +2489,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         if p.options.features.minify_syntax {
             if let Some(minified) = js_ast::known_global::KnownGlobal::minify_global_constructor(
-                p.arena,
-                &mut p.store[e_],
+                &mut p.store,
+                e_,
                 &p.symbols,
                 expr.loc,
                 p.options.features.minify_whitespace,
@@ -2568,7 +2575,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             .features
             .bundler_feature_flags
             .as_ref()
-            .is_some_and(|flags| flags.contains(&p.store[flag_string].data));
+            .is_some_and(|flags| flags.contains(p.store.str(p.store[flag_string].data)));
         Some(Expr {
             data: Data::EBranchBoolean(E::Boolean { value: is_enabled }),
             loc,
@@ -2591,17 +2598,19 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         p.push_scope_for_visit_pass(js_ast::scope::Kind::FunctionArgs, expr.loc)
             .expect("unreachable");
-        let dupe: &'a mut [Stmt] = ((&p.store[p.store[e_].body.stmts])).to_vec();
+        let dupe: Vec<Stmt> = p.store[p.store[e_].body.stmts].to_vec();
 
-        let args_mut: &mut [G::Arg] = (&mut p.store[p.store[e_].args]);
+        let mut args = p.store[p.store[e_].args].to_vec();
         p.visit_args(
-            args_mut,
+            &mut args,
             &VisitArgsOpts {
                 has_rest_arg: p.store[e_].has_rest_arg,
-                body: dupe,
+                body: &dupe,
                 is_unique_formal_parameters: true,
             },
         );
+        let args_range = p.store[e_].args;
+        p.store[args_range].clone_from_slice(&args);
         p.push_scope_for_visit_pass(js_ast::scope::Kind::FunctionBody, p.store[e_].body.loc)
             .expect("unreachable");
 
@@ -2769,7 +2778,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     fn e_class(p: &mut Self, e: &mut Expr, in_: ExprIn) {
         let expr = *e;
         let _ = in_;
-        let mut e_ = expr.data.e_class().expect("infallible: variant checked");
+        let e_ = expr.data.e_class().expect("infallible: variant checked");
         if p.is_revisit_for_substitution {
             return;
         }
@@ -2778,11 +2787,15 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let decorator_name_from_context = p.decorator_class_name;
         p.decorator_class_name = None;
 
-        let _ = p.visit_class(expr.loc, &mut e_, Ref::NONE, true);
+        let mut class = p.store[e_];
+        let _ = p.visit_class(expr.loc, &mut class, Ref::NONE, true);
+        p.store[e_] = class;
 
         // Lower standard decorators for class expressions
         if p.store[e_].should_lower_standard_decorators {
-            *e = p.lower_standard_decorators_expr(&mut e_, expr.loc, decorator_name_from_context);
+            let mut class = p.store[e_];
+            *e = p.lower_standard_decorators_expr(&mut class, expr.loc, decorator_name_from_context);
+            p.store[e_] = class;
             return;
         }
 

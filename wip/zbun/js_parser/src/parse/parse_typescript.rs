@@ -358,11 +358,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
                 StmtData::SLocal(local) => {
                     if p.store[*local].is_export {
-                        for decl in (&p.store[p.store[*local].decls]) {
-                            p.define_exported_namespace_binding(
-                                &mut exported_members,
-                                decl.binding,
-                            )?;
+                        let decls = p.store[*local].decls;
+                        for i in 0..decls.len() {
+                            let binding = p.store[decls][i].binding;
+                            p.define_exported_namespace_binding(exported_members, binding)?;
                         }
                     }
                 }

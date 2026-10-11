@@ -74,8 +74,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             .append(bun_ast::DeclaredSymbol {
                 ref_: r#ref,
                 is_top_level: !own_scope && self.current_scope == self.module_scope,
-            })
-            .expect("oom");
+            });
     }
 
     pub(crate) fn visit_func(
@@ -114,7 +113,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         let body_loc = func.body.loc;
-        let body_stmts: &'a [Stmt] = (&self.store[func.body.stmts]).to_vec();
+        let body_stmts: Vec<Stmt> = self.store[func.body.stmts].to_vec();
 
         self.push_scope_for_visit_pass(ScopeKind::FunctionArgs, open_parens_loc)
             .expect("unreachable");
@@ -123,7 +122,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             &mut args,
             &VisitArgsOpts {
                 has_rest_arg: func.flags.contains(flags::Function::HasRestArg),
-                body: body_stmts,
+                body: &body_stmts,
                 is_unique_formal_parameters: true,
             },
         );
@@ -133,7 +132,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             .expect("unreachable");
         // Stmt is Copy: copy the slice into a bump-backed Vec.
         let mut stmts = BumpVec::with_capacity_in(body_stmts.len(), self.arena);
-        stmts.extend_from_slice(body_stmts);
+        stmts.extend_from_slice(&body_stmts);
         let mut temp_opts = PrependTempRefsOpts {
             kind: StmtsKind::FnBody,
         };
@@ -438,7 +437,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .try_track_dynamic_import_destructure(
                                     namespace_ref,
                                     &records,
-                                    &self.store[self.store[obj].properties].to_vec(),
+                                    self.store[obj].properties,
                                     is_export,
                                 )
                                 .is_some()
@@ -519,10 +518,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let BData::BArray(pattern) = decl.binding.data else {
                         break 'promise_all;
                     };
-                    let Some(items) = self.promise_all_import_items(&call) else {
+                    let Some(items) = self.promise_all_import_items(call) else {
                         break 'promise_all;
                     };
-                    self.track_promise_all_destructure(items, &pattern);
+                    self.track_promise_all_destructure(items, pattern);
                 }
 
                 // `const {x} = require("str")` / `const ns = require("str")`
@@ -539,7 +538,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 .try_track_dynamic_import_destructure(
                                     ns,
                                     &[req.import_record_index],
-                                    &self.store[self.store[obj].properties].to_vec(),
+                                    self.store[obj].properties,
                                     is_export,
                                 )
                                 .is_none()
@@ -801,7 +800,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let scope_kind = self.store[self.current_scope].kind;
                 if scope_kind == js_ast::scope::Kind::FunctionArgs
                     || scope_kind == js_ast::scope::Kind::CatchBinding
-                    || (self.symbols[bind.r#ref.inner_index() as usize].is_hoisted()
+                    || (self.symbols[bind.r#ref.inner_index() as usize].kind.is_hoisted()
                         && !self.store[self.current_scope].kind_stops_hoisting())
                 {
                     self.record_scope_use(bind.r#ref);
@@ -837,10 +836,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let item = &mut item;
                     self.visit_binding(item.binding, duplicate_arg_check.as_deref_mut());
                     if let Some(default_value) = item.default_value {
-                        let was_anonymous_named_expr = default_value.is_anonymous_named();
+                        let was_anonymous_named_expr = default_value.is_anonymous_named(&self.store);
                         let prev_decorator_class_name2 = self.decorator_class_name;
                         if was_anonymous_named_expr {
-                            if let ExprData::EClass(e_class) = &default_value.data {
+                            if let ExprData::EClass(e_class) = default_value.data {
                                 if self.store[e_class].should_lower_standard_decorators {
                                     if let BData::BIdentifier(id) = item.binding.data {
                                         let id = (&self.store[id]);
@@ -878,10 +877,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                     self.visit_binding(property.value, duplicate_arg_check.as_deref_mut());
                     if let Some(default_value) = property.default_value {
-                        let was_anonymous_named_expr = default_value.is_anonymous_named();
+                        let was_anonymous_named_expr = default_value.is_anonymous_named(&self.store);
                         let prev_decorator_class_name3 = self.decorator_class_name;
                         if was_anonymous_named_expr {
-                            if let ExprData::EClass(e_class) = &default_value.data {
+                            if let ExprData::EClass(e_class) = default_value.data {
                                 if self.store[e_class].should_lower_standard_decorators {
                                     if let BData::BIdentifier(id) = property.value.data {
                                         let id = (&self.store[id]);
@@ -1001,8 +1000,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             .expect("unreachable");
         let old_enclosing_class_keyword = self.enclosing_class_keyword;
         self.enclosing_class_keyword = class.class_keyword;
-        self.vis_scope()
-            .recursive_set_strict_mode(StrictModeKind::ImplicitStrictModeClass);
+        js_ast::Scope::recursive_set_strict_mode(
+            &mut self.store,
+            self.current_scope,
+            StrictModeKind::ImplicitStrictModeClass,
+        );
 
         // Insert a shadowing name that spans the whole class, which matches
         // JavaScript's semantics. The class body (and extends clause) "captures" the
@@ -1130,7 +1132,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 {
                     if let Some(key) = property.key {
                         if let ExprData::EString(e_str) = key.data {
-                            name_to_keep = Some(self.store[e_str].string(self.arena).expect("oom"));
+                            let string = self.store[e_str];
+                            let name = string.string(&mut self.store);
+                            name_to_keep = Some(self.arena_str(name));
                         }
                     }
                 } else if property.flags.contains(flags::Property::IsMethod) {

@@ -26,9 +26,9 @@ pub struct BinaryExpressionSimplifyVisitor {
 }
 
 impl SideEffects {
-    pub(crate) fn can_change_strict_to_loose(lhs: &ExprData, rhs: &ExprData) -> bool {
-        let left = lhs.known_primitive();
-        let right = rhs.known_primitive();
+    pub(crate) fn can_change_strict_to_loose(store: &bun_ast::Store, lhs: &ExprData, rhs: &ExprData) -> bool {
+        let left = lhs.known_primitive(store);
+        let right = rhs.known_primitive(store);
         left == right
             && left != bun_ast::expr::PrimitiveType::Unknown
             && left != bun_ast::expr::PrimitiveType::Mixed
@@ -214,7 +214,7 @@ impl SideEffects {
                 // can be removed. The annotation causes us to ignore the target.
                 if p.store[call].can_be_unwrapped_if_unused != CallUnwrap::Never {
                     if p.store[call].args.len_u32() > 0 {
-                        let joined = Self::join_all_simplified(p, &p.store[call].args);
+                        let joined = Self::join_all_simplified(p, p.store[call].args);
                         if let Some(j) = &joined {
                             if p.store[call].can_be_unwrapped_if_unused
                                 == CallUnwrap::IfUnusedAndToStringSafe
@@ -236,7 +236,7 @@ impl SideEffects {
                 // can be removed. The annotation causes us to ignore the target.
                 if p.store[call].can_be_unwrapped_if_unused != CallUnwrap::Never {
                     if p.store[call].args.len_u32() > 0 {
-                        let joined = Self::join_all_simplified(p, &p.store[call].args);
+                        let joined = Self::join_all_simplified(p, p.store[call].args);
                         if let Some(j) = &joined {
                             if p.store[call].can_be_unwrapped_if_unused
                                 == CallUnwrap::IfUnusedAndToStringSafe
@@ -441,7 +441,7 @@ impl SideEffects {
 
                 // Otherwise, the array can be completely removed. We only need to keep any
                 // array items with side effects. Apply this simplification recursively.
-                return Self::join_all_simplified(p, &p.store[arr].items);
+                return Self::join_all_simplified(p, p.store[arr].items);
             }
 
             _ => {}
@@ -455,7 +455,7 @@ impl SideEffects {
     /// recursive `simplify_unused_expr` call.
     fn join_all_simplified<'a, const TS: bool, const SCAN: bool>(
         p: &mut P<'a, TS, SCAN>,
-        items: &[Expr],
+        items: bun_ast::ExprNodeList,
     ) -> Option<Expr> {
         let len = items.len();
         if len == 0 {
@@ -463,12 +463,12 @@ impl SideEffects {
         }
         let mut result = Expr {
             data: ExprData::EMissing(E::Missing {}),
-            loc: items[0].loc,
+            loc: p.store[items][0].loc,
         };
         for i in 0..len {
-            // Copy the Expr out of the arena slice before recursing so the borrow
+            // Copy the Expr out of the Store before recursing so the borrow
             // of `items` is released across the `&mut P` call.
-            let item: Expr = items[i];
+            let item: Expr = p.store[items][i];
             let simplified = Self::simplify_unused_expr(p, item).unwrap_or(Expr {
                 data: ExprData::EMissing(E::Missing {}),
                 loc: item.loc,
@@ -880,7 +880,7 @@ impl SideEffects {
                 value: e.value() != 0.0 && !e.value().is_nan(),
                 side_effects: SideEffects::NoSideEffects,
             }),
-            ExprData::EBigInt(e) => E::BigInt::check_equality(&p.store[*e].value, b"0").map(|equal| Known {
+            ExprData::EBigInt(e) => E::BigInt::check_equality(p.store.str(p.store[*e].value), b"0").map(|equal| Known {
                 value: !equal,
                 side_effects: SideEffects::NoSideEffects,
             }),

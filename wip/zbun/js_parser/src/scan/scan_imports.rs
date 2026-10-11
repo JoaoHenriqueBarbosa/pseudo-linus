@@ -369,7 +369,7 @@ impl<'a> ImportScanner<'a> {
                             // by still converting property accesses off the namespace into
                             // bare identifiers even if the namespace is still needed.
                             for alias in &sorted {
-                                let item: LocRef = *existing.get(alias).unwrap();
+                                let item: LocRef = *existing.get(*alias).unwrap();
                                 handle_oom(p.named_imports.put(
                                     &item.ref_,
                                     js_ast::NamedImport {
@@ -408,8 +408,7 @@ impl<'a> ImportScanner<'a> {
                                     .append(js_ast::DeclaredSymbol {
                                         ref_: name_ref,
                                         is_top_level: true,
-                                    })
-                                    .expect("unreachable");
+                                    });
                             }
                         }
 
