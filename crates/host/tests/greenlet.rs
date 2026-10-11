@@ -392,3 +392,14 @@ fn unswitchable_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_unswitchable.out"),
     );
 }
+
+/// `sys.setprofile` com troca de greenlet (o perfil vê o `switch` como C e o código do greenlet como Python), como no
+/// oráculo.
+#[test]
+fn profile_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_profile",
+        include_str!("../../../testbench/oracle/automation/cases/gl_profile.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_profile.out"),
+    );
+}

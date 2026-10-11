@@ -376,6 +376,7 @@ enum DunderNode {
     Text(&'static str),
     Callback(Box<CallbackNode>),
     Signal,
+    CReturn(Item),
     Import(Box<ImportNode>),
     Exec(Box<ExecNode>),
     Replay(Box<ReplayNode>),
@@ -1243,6 +1244,7 @@ impl Encoder {
             Dunder::Text(name) => DunderNode::Text(name),
             Dunder::Callback(s) => DunderNode::Callback(Box::new(self.callback_node(s)?)),
             Dunder::Signal => DunderNode::Signal,
+            Dunder::CReturn(func) => DunderNode::CReturn(self.item(func)?),
             Dunder::Replay(run) => {
                 let op = match &run.op {
                     ReplayOp::Call { func, args, kwargs } => {
@@ -1675,6 +1677,7 @@ impl Rebuilt {
             DunderNode::Text(name) => Dunder::Text(name),
             DunderNode::Callback(s) => Dunder::Callback(Box::new(self.callback_of(s)?)),
             DunderNode::Signal => Dunder::Signal,
+            DunderNode::CReturn(func) => Dunder::CReturn(self.value(*func)?),
             DunderNode::Replay(n) => {
                 let op = match &n.op {
                     ReplayOpNode::Call { func, args, kwargs } => {

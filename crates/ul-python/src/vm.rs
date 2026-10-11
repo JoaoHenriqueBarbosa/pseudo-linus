@@ -1472,6 +1472,7 @@ impl CallLink {
             Dunder::Signal => "signal".into(),
             Dunder::Import(_) => "import".into(),
             Dunder::Exec(_) => "exec".into(),
+            Dunder::CReturn(_) => return None,
             // A nativa repetida (a embutida ou o método com o tipo do receptor, ou a instrução com os tipos dos
             // operandos).
             Dunder::Replay(run) => match &run.op {
@@ -1723,6 +1724,9 @@ pub(crate) enum Dunder {
     /// Uma chamada de usuário de dentro de uma nativa repetida (ver `replay.rs`): o resultado (ou a exceção) entra no
     /// memo e a nativa roda de novo.
     Replay(Box<ReplayRun>),
+    /// A função Python que no CPython é C (`greenlet.switch`), chamada com o perfil ligado: o `c_return` (ou o
+    /// `c_exception`) sai quando o quadro acaba, e o valor segue para o chamador.
+    CReturn(Value),
 }
 
 /// O que se repete: a chamada da nativa, ou a instrução do laço sobre os operandos que ela consumiu.
@@ -2790,6 +2794,20 @@ impl Vm {
                                 }
                             }
                         }
+                        (Ok(v), _, Some(Dunder::CReturn(func))) => match crate::tracing::c_event(self, "c_return", &func) {
+                            Ok(()) => caller.stack.push(Slot::Val(v)),
+                            Err(e) => {
+                                caller.pc -= 1;
+                                pending = Some(e);
+                            }
+                        },
+                        (Err(e), _, Some(Dunder::CReturn(func))) => {
+                            caller.pc -= 1;
+                            pending = Some(match crate::tracing::c_event(self, "c_exception", &func) {
+                                Ok(()) => e,
+                                Err(e2) => e2,
+                            });
+                        }
                         (Ok(v), _, Some(then)) => {
                             let stepped = self.finish_dunder(then, v);
                             let (callee, error) = land_step(caller, stepped);
@@ -2938,7 +2956,27 @@ impl Vm {
         // Função de módulo que no CPython é C: um `c_call`/`c_return` por fora e nada por dentro, o
         // que pede a chamada recursiva, não o quadro entregue ao laço de instruções.
         if crate::tracing::reports_native_python_call(self, func) {
-            return crate::tracing::c_call(self, func, |vm| vm.call_value(func, args, kwargs)).map(Entered::Done);
+            // O quadro vai para o laço (o greenlet troca de dentro dele); o `c_return` sai quando ele acaba.
+            crate::tracing::c_event(self, "c_call", func)?;
+            return match self.enter_callable(func, args, kwargs) {
+                Ok(Entered::Frame(mut callee)) if callee.link.then.is_none() => {
+                    callee.link.then = Some(Dunder::CReturn(func.clone()));
+                    Ok(Entered::Frame(callee))
+                }
+                Ok(Entered::Frame(callee)) => {
+                    // Já tem fecho próprio: roda recursivo, como antes, para o evento não se perder.
+                    let _ = callee;
+                    Err(internal("a native python function opened a frame with its own close"))
+                }
+                Ok(done) => {
+                    crate::tracing::c_event(self, "c_return", func)?;
+                    Ok(done)
+                }
+                Err(e) => {
+                    crate::tracing::c_event(self, "c_exception", func)?;
+                    Err(e)
+                }
+            };
         }
         // Com o perfil ligado, `sorted`, `min`, `sum`... geram `c_call` antes e `c_return` depois dos quadros do
         // callback: a coleta em quadros do laço não tem onde pô-los, então a nativa segue pela chamada recursiva.
@@ -3940,6 +3978,7 @@ impl Vm {
             Dunder::Callback(callback) => self.resume_callback(*callback, Some(v)),
             Dunder::Import(_) | Dunder::Exec(_) => Err(internal("a module body closed as a method")),
             Dunder::Replay(_) => Err(internal("a replayed call closed as a method")),
+            Dunder::CReturn(_) => Err(internal("a native python call closed as a method")),
             Dunder::Truth { how, len } => {
                 let truth = if len { len_result(v)? != 0 } else { bool_result(&v)? };
                 Ok(match how {
