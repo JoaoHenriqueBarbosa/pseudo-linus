@@ -3,8 +3,8 @@
 
 use std::io::Write;
 
-use sysabi::{sys, AccessMode, AtFlags, Errno, Fd, ID_UNCHANGED, KillTarget, MsgFlags, Mode, OFlags, PollEvents, PollFd, RenameFlags, SetTime, Signal, Stat, TimeSpec};
-use zjsc::runtime::host::{FsDirEntry, FsStat, FsStatFs, FsTime, Host, HostFile, HostStat, NetReady, NetWatch};
+use sysabi::{sys, AccessMode, AtFlags, Errno, Fd, FdAction, ID_UNCHANGED, KillTarget, MsgFlags, Mode, OFlags, PollEvents, PollFd, ProcAttrs, RenameFlags, SetTime, Signal, SpawnSpec, Stat, TimeSpec, WaitOptions, WaitStatus, WaitTarget};
+use zjsc::runtime::host::{FsDirEntry, FsStat, FsStatFs, FsTime, Host, HostFile, HostStat, NetReady, NetWatch, ProcExit, SpawnRequest, SpawnStdio, Spawned};
 
 fn errno(error: std::io::Error) -> i32 {
     error.raw_os_error().unwrap_or(Errno::EIO.0)
@@ -86,6 +86,89 @@ macro_rules! syscall_method {
             $body.map_err(|error| error.0)
         }
     };
+}
+
+/// O `PATH` que o `Bun.spawn` usa quando o ambiente do filho não o traz.
+const DEFAULT_PATH: &str = "/usr/local/bin:/usr/bin:/bin";
+
+/// O programa de `request` como caminho: com `/` vale como veio (relativo ao `cwd` pedido), sem ele a busca no `PATH`
+/// do ambiente do filho acha o primeiro arquivo executável (`ENOENT` quando nenhum serve).
+fn resolve_program(request: &SpawnRequest, inherited: &[(String, String)]) -> Result<Vec<u8>, Errno> {
+    let syscalls = sys::current();
+    let executable = |path: &[u8]| {
+        syscalls.faccessat(Fd::CWD, path, AccessMode::X_OK, AtFlags::empty()).is_ok()
+            && syscalls.fstatat(Fd::CWD, path, AtFlags::empty()).is_ok_and(|stat| (stat.mode & sysabi::mode::S_IFMT) != sysabi::mode::S_IFDIR)
+    };
+    if request.file.contains('/') {
+        let joined = match &request.cwd {
+            Some(cwd) if !request.file.starts_with('/') => format!("{cwd}/{}", request.file),
+            _ => request.file.clone(),
+        };
+        return if executable(joined.as_bytes()) { Ok(joined.into_bytes()) } else { Err(Errno::ENOENT) };
+    }
+    let environment = request.env.as_deref().unwrap_or(inherited);
+    let path = environment.iter().find(|(key, _)| key == "PATH").map_or(DEFAULT_PATH, |(_, value)| value.as_str());
+    path.split(':')
+        .map(|dir| format!("{}/{}", if dir.is_empty() { "." } else { dir }, request.file))
+        .find(|candidate| executable(candidate.as_bytes()))
+        .map(String::into_bytes)
+        .ok_or(Errno::ENOENT)
+}
+
+/// Põe a ponta do processo sem bloqueio (o laço de eventos espera com `poll`).
+fn make_nonblocking(fd: Fd) -> Result<(), Errno> {
+    let syscalls = sys::current();
+    let flags = syscalls.get_status_flags(fd)?;
+    syscalls.set_status_flags(fd, flags | OFlags::NONBLOCK)
+}
+
+/// Monta as ações de descritor do filho e os descritores que o processo guarda; os do filho que ficaram abertos aqui
+/// (`child_ends`) fecham depois do `spawn`.
+fn stdio_actions(stdio: &[SpawnStdio]) -> Result<(Vec<FdAction>, Vec<Option<i32>>, Vec<Fd>), Errno> {
+    let syscalls = sys::current();
+    let (mut actions, mut parent_fds, mut child_ends) = (Vec::new(), Vec::new(), Vec::new());
+    let result = (|| {
+        for (index, source) in stdio.iter().enumerate() {
+            let target = Fd(index as i32);
+            parent_fds.push(None);
+            match *source {
+                SpawnStdio::Inherit => {}
+                SpawnStdio::Fd(from) => actions.push(FdAction::Dup2 { from: Fd(from), to: target }),
+                SpawnStdio::Ignore => actions.push(FdAction::Open {
+                    fd: target,
+                    path: b"/dev/null".to_vec(),
+                    flags: if index == 0 { OFlags::RDONLY } else { OFlags::WRONLY },
+                    mode: 0,
+                }),
+                SpawnStdio::Pipe => {
+                    let (read, write) = syscalls.pipe2(OFlags::CLOEXEC)?;
+                    // O filho lê o stdin e escreve nos outros; o processo fica com a outra ponta.
+                    let (child, parent) = if index == 0 { (read, write) } else { (write, read) };
+                    child_ends.push(child);
+                    parent_fds[index] = Some(parent.0);
+                    make_nonblocking(parent)?;
+                    actions.push(FdAction::Dup2 { from: child, to: target });
+                }
+                SpawnStdio::SocketPair => {
+                    let (child, parent) = syscalls.unix_socketpair(1, false, true)?;
+                    child_ends.push(child);
+                    parent_fds[index] = Some(parent.0);
+                    make_nonblocking(parent)?;
+                    actions.push(FdAction::Dup2 { from: child, to: target });
+                }
+            }
+        }
+        Ok(())
+    })();
+    match result {
+        Ok(()) => Ok((actions, parent_fds, child_ends)),
+        Err(error) => {
+            for fd in parent_fds.into_iter().flatten().map(Fd).chain(child_ends) {
+                let _ = syscalls.close(fd);
+            }
+            Err(error)
+        }
+    }
 }
 
 /// O host do pseudo-processo corrente.
@@ -249,6 +332,44 @@ impl Host for SysabiHost {
     syscall_method!(net_recv(fd: i32, max: usize) -> Vec<u8>, |s| s.sock_recv(Fd(fd), max, MsgFlags::DONTWAIT));
     syscall_method!(net_send(fd: i32, bytes: &[u8]) -> usize, |s| s.sock_send(Fd(fd), bytes, MsgFlags::DONTWAIT | MsgFlags::NOSIGNAL));
     syscall_method!(net_shutdown(fd: i32, read: bool, write: bool) -> (), |s| s.tcp_shutdown(Fd(fd), read, write));
+
+    fn proc_spawn(&self, request: &SpawnRequest) -> Result<Spawned, i32> {
+        let path = resolve_program(request, &self.environ()).map_err(|error| error.0)?;
+        let (fd_actions, parent_fds, child_ends) = stdio_actions(&request.stdio).map_err(|error| error.0)?;
+        let attrs = ProcAttrs {
+            env: request.env.as_ref().map(|pairs| pairs.iter().map(|(key, value)| format!("{key}={value}").into_bytes()).collect()),
+            cwd: request.cwd.as_ref().map(|cwd| cwd.clone().into_bytes()),
+            fd_actions,
+            new_session: request.detached,
+            ..ProcAttrs::default()
+        };
+        let argv = request.argv.iter().map(|argument| argument.clone().into_bytes()).collect();
+        let syscalls = sys::current();
+        let spawned = syscalls.spawn(SpawnSpec { path, argv, attrs });
+        for fd in child_ends {
+            let _ = syscalls.close(fd);
+        }
+        match spawned {
+            Ok(pid) => Ok(Spawned { pid, parent_fds }),
+            Err(error) => {
+                for fd in parent_fds.into_iter().flatten() {
+                    let _ = syscalls.close(Fd(fd));
+                }
+                Err(error.0)
+            }
+        }
+    }
+
+    fn proc_wait(&self, pid: i32, nohang: bool) -> Result<Option<ProcExit>, i32> {
+        let options = if nohang { WaitOptions::NOHANG } else { WaitOptions::empty() };
+        let waited = sys::current().wait4(WaitTarget::Pid(pid), options).map_err(|error| error.0)?;
+        Ok(waited.map(|(_, status)| match status {
+            WaitStatus::Signaled { signal, .. } => ProcExit::Signaled(signal.0),
+            WaitStatus::Exited(code) => ProcExit::Exited(code),
+            WaitStatus::Stopped(signal) => ProcExit::Signaled(signal.0),
+            WaitStatus::Continued => ProcExit::Exited(0),
+        }))
+    }
 
     fn net_poll(&self, watch: &[NetWatch], timeout: Option<std::time::Duration>) -> Result<Vec<NetReady>, i32> {
         let mut fds: Vec<PollFd> = watch

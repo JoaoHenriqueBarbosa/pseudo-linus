@@ -1,0 +1,17 @@
+connected,disconnect,exitCode,exited,kill,killed,pid,readable,ref,resourceUsage,send,signalCode,stderr,stdin,stdio,stdout,terminal,unref,writable
+ number false null null undefined ReadableStream undefined
+hi
+ 0 0 null true
+[object Subprocess] Object
+exitCode,stdout,stderr,success,resourceUsage,pid 3 false undefined Buffer out
+ err
+ number
+Error ENOENT -2 undefined nope-xyz Executable not found in $PATH: "nope-xyz"
+Error ENOENT -2 undefined nope-xyz Executable not found in $PATH: "nope-xyz"
+TypeError ERR_INVALID_ARG_TYPE cmd must not be empty
+TypeError ERR_INVALID_ARG_TYPE cmd must be an array
+143 SIGTERM true null
+abc 0
+close,flush,end,start,write,ref,unref,_getFd,sinkId,constructor FileSink
+sleepSync,spawn,spawnSync,stderr
+onExit 7 null undefined true

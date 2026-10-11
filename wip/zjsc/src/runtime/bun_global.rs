@@ -391,7 +391,7 @@ fn string_width_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRes
 host_function!(pub bun_string_width, string_width_body);
 
 /// `bunObjectTable` de `BunObject.cpp`, na ordem do `@begin`, só com as entradas portadas.
-static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 25] = [
+static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 27] = [
     lazy_entry_with_attributes("argv", DONT_DELETE, create_argv),
     native_function_entry("connect", DONT_DELETE, crate::runtime::bun_http::bun_connect, 1, Intrinsic::NoIntrinsic),
     native_function_entry("deepEquals", DONT_DELETE, bun_deep_equals, 2, Intrinsic::NoIntrinsic),
@@ -410,6 +410,8 @@ static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 25] = [
     native_function_entry("serve", DONT_DELETE, crate::runtime::bun_http::bun_serve, 1, Intrinsic::NoIntrinsic),
     native_function_entry("sleep", DONT_DELETE, bun_sleep, 1, Intrinsic::NoIntrinsic),
     native_function_entry("sleepSync", DONT_DELETE, bun_sleep_sync, 1, Intrinsic::NoIntrinsic),
+    native_function_entry("spawn", DONT_DELETE, crate::runtime::proc_spawn::bun_spawn, 1, Intrinsic::NoIntrinsic),
+    native_function_entry("spawnSync", DONT_DELETE, crate::runtime::proc_spawn::bun_spawn_sync, 1, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("stderr", DONT_DELETE, create_stderr),
     lazy_entry_with_attributes("stdin", DONT_DELETE, create_stdin),
     lazy_entry_with_attributes("stdout", DONT_DELETE, create_stdout),

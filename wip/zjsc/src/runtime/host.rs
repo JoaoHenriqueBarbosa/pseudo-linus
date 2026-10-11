@@ -128,6 +128,50 @@ impl NetReady {
     }
 }
 
+/// O que um descritor do filho recebe em [`Host::proc_spawn`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SpawnStdio {
+    /// `/dev/null`.
+    Ignore,
+    /// O descritor de mesmo número do processo.
+    Inherit,
+    /// Um `pipe(2)`: o filho fica com uma ponta, o processo com a outra (sem bloqueio).
+    Pipe,
+    /// Um `socketpair(AF_UNIX)`: a mesma ideia, com os dois sentidos (o `socket-fd` do bun).
+    SocketPair,
+    /// O descritor `n` do processo (um `dup2`).
+    Fd(i32),
+}
+
+/// O pedido de [`Host::proc_spawn`]: o `posix_spawn` que o `Bun.spawn` faz.
+#[derive(Clone, Debug, Default)]
+pub struct SpawnRequest {
+    /// O programa, como o chamador escreveu (com `/` vale o caminho, sem ele a busca no `PATH` é do host).
+    pub file: String,
+    pub argv: Vec<String>,
+    /// O ambiente inteiro do filho; `None` herda o do processo.
+    pub env: Option<Vec<(String, String)>>,
+    pub cwd: Option<String>,
+    /// Um item por descritor do filho, a partir do 0.
+    pub stdio: Vec<SpawnStdio>,
+    /// `setsid()` no filho.
+    pub detached: bool,
+}
+
+/// O filho criado: o pid e, por descritor pedido como `Pipe` ou `SocketPair`, a ponta que ficou com o processo.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Spawned {
+    pub pid: i32,
+    pub parent_fds: Vec<Option<i32>>,
+}
+
+/// Como um filho terminou.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProcExit {
+    Exited(i32),
+    Signaled(i32),
+}
+
 /// A máquina vista pelo motor.
 pub trait Host {
     /// Conteúdo inteiro do arquivo (`/proc/self/stat`, `/etc/hostname`, o arquivo de `function overrides`).
@@ -283,6 +327,16 @@ pub trait Host {
     }
     /// `poll(2)` de `watch`, esperando até `timeout` (`None` espera sem prazo); a resposta tem o tamanho de `watch`.
     fn net_poll(&self, _watch: &[NetWatch], _timeout: Option<std::time::Duration>) -> Result<Vec<NetReady>, Errno> {
+        Err(ENOSYS)
+    }
+
+    // ---- processos filhos ----
+    /// `posix_spawn`: cria o filho com os descritores de `request.stdio`. O `ENOENT` de um programa que não existe vem aqui.
+    fn proc_spawn(&self, _request: &SpawnRequest) -> Result<Spawned, Errno> {
+        Err(ENOSYS)
+    }
+    /// `wait4(pid)`: como o filho terminou; `None` quando `nohang` e ele ainda roda.
+    fn proc_wait(&self, _pid: i32, _nohang: bool) -> Result<Option<ProcExit>, Errno> {
         Err(ENOSYS)
     }
 }
