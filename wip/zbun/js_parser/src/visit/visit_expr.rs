@@ -1253,7 +1253,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             p.store[e_].value = SideEffects::simplify_boolean(p, p.store[e_].value);
                         }
 
-                        if let Some(side_effects) = { let arg_b = &p.store[e_].value.data; SideEffects::to_boolean(p, arg_b) } {
+                        if let Some(side_effects) = { let arg_b = p.store[e_].value.data; SideEffects::to_boolean(p, &arg_b) } {
                             if side_effects.side_effects == SideEffects::NoSideEffects
                                 || { let arg_a = p.store[e_].value; p.expr_can_be_removed_if_unused( &arg_a) }
                             {
@@ -1513,7 +1513,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         p.store[e_].test = SideEffects::simplify_boolean(p, p.store[e_].test);
 
-        let Some(side_effects) = { let arg_b = &p.store[e_].test.data; SideEffects::to_boolean(p, arg_b) } else {
+        let Some(side_effects) = { let arg_b = p.store[e_].test.data; SideEffects::to_boolean(p, &arg_b) } else {
             { let mut arg_a = p.store[e_].yes; p.visit_expr( &mut arg_a); p.store[e_].yes = arg_a; }
             { let mut arg_a = p.store[e_].no; p.visit_expr( &mut arg_a); p.store[e_].no = arg_a; }
             return;

@@ -61,12 +61,14 @@ impl SideEffects {
                                 continue;
                             }
                         }
-                        { let arg_b = &mut p.store[*e].value; Self::_simplify_boolean(p, arg_b) };
+                        let mut value = p.store[*e].value;
+                        Self::_simplify_boolean(p, &mut value);
+                        p.store[*e].value = value;
                     }
                 }
                 ExprData::EBinary(e) => match p.store[*e].op {
                     Op::Code::BinLogicalAnd => {
-                        if let Some(effects) = { let arg_b = &p.store[*e].right.data; SideEffects::to_boolean(p, arg_b) } {
+                        if let Some(effects) = { let arg_b = p.store[*e].right.data; SideEffects::to_boolean(p, &arg_b) } {
                             if effects.value && effects.side_effects == SideEffects::NoSideEffects {
                                 // "if (anything && truthyNoSideEffects)" => "if (anything)"
                                 *expr = p.store[*e].left;
@@ -75,7 +77,7 @@ impl SideEffects {
                         }
                     }
                     Op::Code::BinLogicalOr => {
-                        if let Some(effects) = { let arg_b = &p.store[*e].right.data; SideEffects::to_boolean(p, arg_b) } {
+                        if let Some(effects) = { let arg_b = p.store[*e].right.data; SideEffects::to_boolean(p, &arg_b) } {
                             if !effects.value && effects.side_effects == SideEffects::NoSideEffects
                             {
                                 // "if (anything || falsyNoSideEffects)" => "if (anything)"
@@ -163,24 +165,27 @@ impl SideEffects {
 
                 // "foo() ? 1 : 2" => "foo()"
                 if p.store[ternary].yes.is_empty() && p.store[ternary].no.is_empty() {
-                    return Self::simplify_unused_expr(p, p.store[ternary].test);
+                    let test = p.store[ternary].test;
+                    return Self::simplify_unused_expr(p, test);
                 }
 
                 // "foo() ? 1 : bar()" => "foo() || bar()"
                 if p.store[ternary].yes.is_empty() {
+                    let (test, no) = (p.store[ternary].test, p.store[ternary].no);
                     return Some(Expr::join_with_left_associative_op(&mut p.store, 
                         Op::Code::BinLogicalOr,
-                        p.store[ternary].test,
-                        p.store[ternary].no,
+                        test,
+                        no,
                     ));
                 }
 
                 // "foo() ? bar() : 2" => "foo() && bar()"
                 if p.store[ternary].no.is_empty() {
+                    let (test, yes) = (p.store[ternary].test, p.store[ternary].yes);
                     return Some(Expr::join_with_left_associative_op(&mut p.store, 
                         Op::Code::BinLogicalAnd,
-                        p.store[ternary].test,
-                        p.store[ternary].yes,
+                        test,
+                        yes,
                     ));
                 }
             }
@@ -272,10 +277,9 @@ impl SideEffects {
                     | Op::Code::BinGt
                     | Op::Code::BinLe
                     | Op::Code::BinGe => {
-                        if { let arg_b = p.store[bin].left.loc; let arg_c = &p.store[bin].left.data; Self::is_primitive_with_side_effects(p, arg_b, arg_c) }
-                            && { let arg_b = p.store[bin].right.loc; let arg_c = &p.store[bin].right.data; Self::is_primitive_with_side_effects(
-                                p, arg_b, arg_c,
-                            ) }
+                        let (left, right) = (p.store[bin].left, p.store[bin].right);
+                        if Self::is_primitive_with_side_effects(p, left.loc, &left.data)
+                            && Self::is_primitive_with_side_effects(p, right.loc, &right.data)
                         {
                             let left = p.store[bin].left;
                             let right = p.store[bin].right;
@@ -399,10 +403,8 @@ impl SideEffects {
                         result = Expr::join_with_comma(&mut p.store, result, bin);
                     }
                     let v = value.unwrap();
-                    result = Expr::join_with_comma(&mut p.store, 
-                        result,
-                        Self::simplify_unused_expr(p, v).unwrap_or_else(|| v.to_empty()),
-                    );
+                    let simplified = Self::simplify_unused_expr(p, v).unwrap_or_else(|| v.to_empty());
+                    result = Expr::join_with_comma(&mut p.store, result, simplified);
                 }
 
                 if result.is_missing() {
@@ -425,7 +427,8 @@ impl SideEffects {
                     }
                 }
                 if has_spread {
-                    let items = (&mut p.store[p.store[arr].items]);
+                    let arr_items = p.store[arr].items;
+                    let items = &mut p.store[arr_items];
                     let mut end: usize = 0;
                     for j in 0..len {
                         if !matches!(items[j].data, ExprData::EMissing(_)) {
@@ -842,14 +845,14 @@ impl SideEffects {
                     Some(Known { value: false, side_effects: SideEffects::CouldHaveSideEffects })
                 }
                 Op::Code::BinComma => {
-                    { let arg_b = &p.store[*e].right.data; Self::to_null_or_undefined(p, arg_b) }.map(|res| Known {
+                    { let arg_b = p.store[*e].right.data; Self::to_null_or_undefined(p, &arg_b) }.map(|res| Known {
                         value: res.value,
                         side_effects: SideEffects::CouldHaveSideEffects,
                     })
                 }
                 _ => None,
             },
-            ExprData::EInlinedEnum(e) => { let arg_b = &p.store[*e].value.data; Self::to_null_or_undefined(p, arg_b) },
+            ExprData::EInlinedEnum(e) => { let arg_b = p.store[*e].value.data; Self::to_null_or_undefined(p, &arg_b) },
             _ => None,
         }
     }
@@ -908,28 +911,28 @@ impl SideEffects {
                         side_effects: SideEffects::CouldHaveSideEffects,
                     })
                 }
-                Op::Code::UnNot => { let arg_b = &p.store[*e].value.data; Self::to_boolean(p, arg_b) }.map(|res| Known {
+                Op::Code::UnNot => { let arg_b = p.store[*e].value.data; Self::to_boolean(p, &arg_b) }.map(|res| Known {
                     value: !res.value,
                     side_effects: res.side_effects,
                 }),
                 _ => None,
             },
             ExprData::EBinary(e) => match p.store[*e].op {
-                Op::Code::BinLogicalOr => match { let arg_b = &p.store[*e].right.data; Self::to_boolean(p, arg_b) } {
+                Op::Code::BinLogicalOr => match { let arg_b = p.store[*e].right.data; Self::to_boolean(p, &arg_b) } {
                     Some(res) if res.value => Some(Known {
                         value: true,
                         side_effects: SideEffects::CouldHaveSideEffects,
                     }),
                     _ => None,
                 },
-                Op::Code::BinLogicalAnd => match { let arg_b = &p.store[*e].right.data; Self::to_boolean(p, arg_b) } {
+                Op::Code::BinLogicalAnd => match { let arg_b = p.store[*e].right.data; Self::to_boolean(p, &arg_b) } {
                     Some(res) if !res.value => Some(Known {
                         value: false,
                         side_effects: SideEffects::CouldHaveSideEffects,
                     }),
                     _ => None,
                 },
-                Op::Code::BinComma => { let arg_b = &p.store[*e].right.data; Self::to_boolean(p, arg_b) }.map(|res| Known {
+                Op::Code::BinComma => { let arg_b = p.store[*e].right.data; Self::to_boolean(p, &arg_b) }.map(|res| Known {
                     value: res.value,
                     side_effects: SideEffects::CouldHaveSideEffects,
                 }),
@@ -979,7 +982,7 @@ impl SideEffects {
                 }
                 _ => None,
             },
-            ExprData::EInlinedEnum(e) => { let arg_b = &p.store[*e].value.data; Self::to_boolean(p, arg_b) },
+            ExprData::EInlinedEnum(e) => { let arg_b = p.store[*e].value.data; Self::to_boolean(p, &arg_b) },
             ExprData::ESpecial(special) => match special {
                 E::Special::ModuleExports
                 | E::Special::ResolvedSpecifierString(_)
