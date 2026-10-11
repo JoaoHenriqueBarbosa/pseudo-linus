@@ -1,0 +1,2 @@
+stdio 5 ,Readable,Readable,Socket,Socket
+close 0 null "got:reply\n" "to-stderr\n" "from3\n"

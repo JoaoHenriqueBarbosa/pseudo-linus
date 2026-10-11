@@ -477,6 +477,16 @@
     state.allowHalfOpen = options.allowHalfOpen === true;
     state.paused = options.pauseOnConnect === true;
     return new Promise((resolve, reject) => {
+      // `{ fd }`: um descritor já conectado (o `socket-fd` do `Bun.spawn`) vira o socket na hora, o `open` roda dentro do
+      // `doConnect` (o `jsDoConnect` do bun): quem escreve logo depois já encontra o handle.
+      if (options.fd != null) {
+        state.fd = options.fd;
+        state.readyState = kReadyOpen;
+        call(state, "open");
+        rewatch(state);
+        resolve(state.socket);
+        return;
+      }
       const hostname = options.hostname ?? options.host ?? "localhost";
       const port = Number(options.port);
       state.remotePort = port;
@@ -549,8 +559,9 @@
       state.readyState = 0;
       return state.socket;
     },
+    // Sem handle (o `Socket` de `{ fd }` não tem um antes do `connect`) nasce um socket solto, como o `jsDoConnect` do bun.
     doConnect(socket, options) {
-      return startConnect(stateOf(socket), options);
+      return startConnect(socket == null ? createSocket(-1, {}, undefined, undefined, 0, 0) : stateOf(socket), options);
     },
     getBufferedAmount(socket) {
       const state = states.get(socket);

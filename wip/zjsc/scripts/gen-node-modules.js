@@ -28,10 +28,11 @@ const httpCommon = [
   [/\$newRustFunction\("node_http_binding\.rs", "newDetachedSocket", 1\)/, 'notImplemented("http.Server")'],
 ];
 
-// `Bun.spawn` e `Bun.spawnSync` (o processo filho de verdade) ainda não existem: lançam "not implemented" no ponto de uso.
+// O `child_process.ts` fala com o `Bun.spawn` real; o `writableFromFileSink` vem do módulo gerado de `internal/fs/streams.ts` e o
+// `constructNativeReadable` do registro de internos (`native/native-readable`).
 const childProcess = [
-  [/\bBun\.spawnSync\(/g, 'notImplemented("child_process.spawnSync")('],
-  [/\bBun\.spawn\(/g, 'notImplemented("child_process.spawn")('],
+  [/require\("internal\/fs\/streams"\)/g, "host.fsStreams()"],
+  [/require\("internal\/streams\/native-readable"\)/g, 'require("native/native-readable")'],
   // `$debug` sem chamada é a flag `DEBUG_CHILD_PROCESS`, desligada.
   [/\$debug(?!\()/g, "false"],
   [/\$newRustFunction\("node_util_binding\.rs", "etimedoutErrorCode", 0\)/, "(() => -110)"],

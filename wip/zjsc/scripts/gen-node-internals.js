@@ -107,6 +107,36 @@ const synthetic = {
       }
       toClass(ConnectionsList, "ConnectionsList");
       return { methods, allMethods, HTTPParser, ConnectionsList };`,
+  // `constructNativeReadable` do bun (`internal/streams/native-readable.ts`) liga um `Readable` ao ponteiro nativo do fluxo; aqui o
+  // `Readable` lê do `ReadableStream` pelo leitor, que é o caminho que o `Readable.fromWeb` do bun usa sem o ponteiro nativo.
+  "native/native-readable": `
+      const Readable = require("internal/streams/readable");
+      function constructNativeReadable(readableStream, options) {
+        const reader = readableStream.getReader();
+        let reading = false;
+        return new Readable({
+          ...options,
+          read() {
+            if (reading) return;
+            reading = true;
+            reader.read().then(
+              ({ done, value }) => {
+                reading = false;
+                if (done) this.push(null);
+                else this.push(value);
+              },
+              error => {
+                reading = false;
+                this.destroy(error);
+              },
+            );
+          },
+          destroy(error, callback) {
+            reader.cancel(error).then(() => callback(error), () => callback(error));
+          },
+        });
+      }
+      return { constructNativeReadable };`,
   // Nenhuma categoria de trace está ligada: o `isCategoryGroupEnabled` responde que não e nada é emitido.
   "internal/trace_events": `
       return { isCategoryGroupEnabled: () => false, emitEvent() {}, emitEventWithArgs() {} };`,

@@ -359,7 +359,7 @@
           exitedDueToTimeout,
           exitedDueToMaxBuffer,
           pid
-        } = notImplemented("child_process.spawnSync")({
+        } = Bun.spawnSync({
           cmd: [options.file, ...Array.prototype.slice.call(options.args, 1)],
           env: options[kBunEnv] || options.env || undefined,
           cwd: options.cwd || undefined,
@@ -816,7 +816,7 @@
                   stream.destroy();
                   return stream;
                 }
-                const result = require("internal/fs/streams").writableFromFileSink(stdin);
+                const result = host.fsStreams().writableFromFileSink(stdin);
                 result.readable = false;
                 return result;
               }
@@ -851,7 +851,7 @@
                   stream.destroy();
                   return stream;
                 }
-                const pipe = require("internal/streams/native-readable").constructNativeReadable(value, {});
+                const pipe = require("native/native-readable").constructNativeReadable(value, {});
                 this.#closesNeeded++;
                 pipe.once("close", () => this.#maybeClose());
                 if (autoResume)
@@ -975,7 +975,7 @@
           spawnargs = this.spawnargs = options.args;
         }
         try {
-          this.#handle = notImplemented("child_process.spawn")({
+          this.#handle = Bun.spawn({
             cmd: [file, ...Array.prototype.slice.call(spawnargs, 1)],
             stdio: bunStdio,
             cwd: options.cwd || undefined,
@@ -1221,7 +1221,7 @@
         return handleFd;
       if (item.destroyed)
         return;
-      const sink = item[require("internal/fs/streams").kWriteStreamFastPath];
+      const sink = item[host.fsStreams().kWriteStreamFastPath];
       if (sink && sink !== true) {
         const fd = sink._getFd();
         if (typeof fd === "number" && fd >= 0)

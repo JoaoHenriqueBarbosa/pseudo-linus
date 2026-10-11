@@ -283,7 +283,7 @@ fn builtin_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 host_function!(builtin_function, builtin_body);
 
 /// O módulo com o `ReadStream` e o `WriteStream` (montado uma vez por programa).
-fn streams_module(global_object: &JSGlobalObject) -> HostResult {
+pub(crate) fn streams_module(global_object: &JSGlobalObject) -> HostResult {
     crate::api::builtin_modules::cached("internal:fs-streams", || {
         let host = crate::api::node_js_host::module_host(
             global_object,

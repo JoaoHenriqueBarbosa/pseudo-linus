@@ -60,6 +60,35 @@
       toClass(ConnectionsList, "ConnectionsList");
       return { methods, allMethods, HTTPParser, ConnectionsList };
   }
+  function define_native_native_readable() {
+      const Readable = require("internal/streams/readable");
+      function constructNativeReadable(readableStream, options) {
+        const reader = readableStream.getReader();
+        let reading = false;
+        return new Readable({
+          ...options,
+          read() {
+            if (reading) return;
+            reading = true;
+            reader.read().then(
+              ({ done, value }) => {
+                reading = false;
+                if (done) this.push(null);
+                else this.push(value);
+              },
+              error => {
+                reading = false;
+                this.destroy(error);
+              },
+            );
+          },
+          destroy(error, callback) {
+            reader.cancel(error).then(() => callback(error), () => callback(error));
+          },
+        });
+      }
+      return { constructNativeReadable };
+  }
   function define_internal_trace_events() {
       return { isCategoryGroupEnabled: () => false, emitEvent() {}, emitEventWithArgs() {} };
   }
@@ -1734,6 +1763,7 @@
     },
     "native/secure-context": define_native_secure_context,
     "native/http_parser": define_native_http_parser,
+    "native/native-readable": define_native_native_readable,
     "internal/trace_events": define_internal_trace_events,
   };
   const require = name => {

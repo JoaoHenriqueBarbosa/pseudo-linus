@@ -1,0 +1,18 @@
+echo spawn number
+echo data "hello world\n"
+echo exit 0 null
+echo close 0 null 0 null false echo echo hello world
+exec 2 "out\n" "err\n" false echo out; echo err >&2; exit 2
+cat close 0 "line1\nline2\n"
+missing error ENOENT -2 spawn nope-xyz-cmd nope-xyz-cmd [] Executable not found in $PATH: "nope-xyz-cmd"
+missing close -2 undefined
+kill true
+sleeper exit null SIGTERM true SIGTERM
+execSync "sync\n"
+execFileSync "a b\n"
+spawnSync 4 null o
+ e
+ true 3 undefined
+execSync fail 3 null Command failed: exit 3
+spawnSync missing undefined ENOENT spawnSync nope-xyz-cmd nope-xyz-cmd
+execFile null "file\n"
