@@ -1,0 +1,24 @@
+(2000, 10, 10) True
+pairs 20
+alive 0
+list+dict 2
+self 1
+pair 2
+tuple 2
+closure 4
+closure2 6
+plain 0
+materialized dict 2
+list subclass 1
+[(0, 0), (0, 0), (11, 40)]
+disabled False
+gen0 10
+gen1 10
+gen2 10
+enabled True
+ValueError invalid generation
+ValueError invalid generation
+(5, 2, 3)
+(100, 2, 3)
+no growth True
+auto bounded True

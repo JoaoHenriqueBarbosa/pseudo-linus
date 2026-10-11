@@ -15,42 +15,40 @@ DEBUG_LEAK = 38
 
 garbage = []
 callbacks = []
-_enabled = True
-_threshold = (2000, 10, 10)
 _debug = 0
 
 
 def collect(generation=2):
-    return 0
+    if not isinstance(generation, int):
+        raise TypeError("'%s' object cannot be interpreted as an integer" % type(generation).__name__)
+    return _sys._gc_collect(generation)
 
 
 def enable():
-    global _enabled
-    _enabled = True
+    _sys._gc_config(True, None)
 
 
 def disable():
-    global _enabled
-    _enabled = False
+    _sys._gc_config(False, None)
 
 
 def isenabled():
-    return _enabled
+    return _sys._gc_config(None, None)[0]
 
 
 def get_count():
-    return (_sys._gc_count(0), _sys._gc_count(1), _sys._gc_count(2))
+    return _sys._gc_count()
 
 
 def get_threshold():
-    return _threshold
+    return _sys._gc_config(None, None)[1]
 
 
 def set_threshold(threshold0, threshold1=None, threshold2=None):
-    global _threshold
-    _threshold = (threshold0,
-                  _threshold[1] if threshold1 is None else threshold1,
-                  _threshold[2] if threshold2 is None else threshold2)
+    current = get_threshold()
+    _sys._gc_config(None, (threshold0,
+                           current[1] if threshold1 is None else threshold1,
+                           current[2] if threshold2 is None else threshold2))
 
 
 def get_debug():
@@ -98,4 +96,4 @@ def get_freeze_count():
 
 
 def get_stats():
-    return [{'collections': 0, 'collected': 0, 'uncollectable': 0} for _ in range(3)]
+    return [{'collections': c, 'collected': f, 'uncollectable': 0} for c, f in _sys._gc_stats()]

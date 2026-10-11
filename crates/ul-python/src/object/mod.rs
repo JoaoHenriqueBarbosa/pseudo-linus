@@ -639,7 +639,9 @@ const C_EXTENSION_FUNCTIONS: &[(&str, &str, &[&str])] = &[
 impl FuncObj {
     /// O `__dict__` inicial de uma função: vazio.
     pub fn new_attrs() -> RefCell<Rc<RefCell<Dict>>> {
-        RefCell::new(Rc::new(RefCell::new(Dict::default())))
+        let attrs = Rc::new(RefCell::new(Dict::default()));
+        crate::gcreg::track_dict(&attrs);
+        RefCell::new(attrs)
     }
 
     /// `f.__annotations__`: o dict guardado, ou um dict vazio novo que passa a ser o guardado.
@@ -1062,6 +1064,7 @@ impl InstanceObj {
             return Value::Dict(v.clone());
         }
         let rc = Rc::new(RefCell::new(self.attrs_dict()));
+        crate::gcreg::track_dict(&rc);
         *self.view.borrow_mut() = Some(rc.clone());
         Value::Dict(rc)
     }
