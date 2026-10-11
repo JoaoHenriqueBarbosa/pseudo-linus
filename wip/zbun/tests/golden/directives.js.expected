@@ -1,0 +1,10 @@
+"use client";
+function f() {
+  return 1;
+}
+function g() {
+  "a";
+  "b";
+  return 2;
+}
+console.log(f, g);

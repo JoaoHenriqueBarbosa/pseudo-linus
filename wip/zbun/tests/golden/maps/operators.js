@@ -1,0 +1,10 @@
+let a = 1, b = 2, c = 3;
+a = b + c * 2 - (a - b);
+a = a ? b : c ? a : b;
+a = (a, b);
+a ??= b; a ||= c; a &&= a;
+a = a ** b ** c;
+a = typeof a === "number" && !b || void 0;
+a = a?.b?.[c]?.(d);
+var d;
+console.log(a, b, c);

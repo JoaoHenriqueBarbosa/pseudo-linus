@@ -1,0 +1,23 @@
+import { jsxDEV as l } from "react/jsx-dev-runtime";
+const s = (n) => n;
+const o = (n) => n;
+const t = async (n) => n;
+function e(n, c) {
+  return [n, c];
+}
+
+class T {
+  v;
+  constructor(n) {
+    this.v = n;
+  }
+  m(n) {
+    return n;
+  }
+}
+const r = new T(1), u = s("a"), b = e(1, [2]);
+const U = /* @__PURE__ */ l(T, {
+  v: 1
+}, undefined, false, undefined, this);
+const a = s;
+console.log(r, u, b, U, a, o, t);

@@ -1,0 +1,2 @@
+const c='a"b',b="a'b",n=`a"b'c`,x=`a"b'c`,a=`a"b'c`,o="\\",f=`
+\r	\b\f\v\x00`,u="\x00\x1Fÿ",e="Ā￿",l="\uD800\uDC00",t="\uD83D\uDE00",s="\uD800x",d="x\uDC00",i="ab",g="line1\u2028line2",v="\u2029",h="\x00",j="\uD83D\uDE00",k="\uD83D\uDE00",m="é",p="é",q="é";console.log(c,b,n,x,a,o,f,u,e,l,t,s,d,i,g,v,h,j,k,m,p,q);

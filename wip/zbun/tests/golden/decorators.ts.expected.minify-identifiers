@@ -1,0 +1,32 @@
+import { __decorateElement as c, __decoratorMetadata as l, __decoratorStart as g, __runInitializers as o } from "bun:wrap";
+function i(s) {}
+function p(s, u, a) {}
+var d = [
+  i
+];
+var f = [
+  p
+];
+var y = [
+  i
+];
+var n = g(undefined);
+
+class Greeter {
+  constructor() {
+    o(n, 5, this);
+    this.prop = o(n, 8, this, 1);
+    o(n, 11, this);
+  }
+  greet() {
+    return "hi";
+  }
+}
+c(n, 1, "greet", f, Greeter);
+c(n, 5, "prop", y, Greeter);
+Greeter = c(n, 0, "Greeter", d, Greeter);
+o(n, 1, Greeter);
+l(n, Greeter);
+let _Greeter = Greeter;
+
+export { Greeter };

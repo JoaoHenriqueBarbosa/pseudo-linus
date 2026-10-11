@@ -1,0 +1,5 @@
+const a = 1;
+function f(a) { { let a = 2; { const a = 3; return a; } } return a; }
+const g = (a, b) => { const c = a + b; return (a) => a + c; };
+class C { m(a) { return () => a; } }
+console.log(a, f, g, C);

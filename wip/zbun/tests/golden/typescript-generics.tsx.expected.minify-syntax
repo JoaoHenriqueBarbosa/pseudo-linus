@@ -1,0 +1,19 @@
+import { jsxDEV as jsxDEV_7x81h0kn } from "react/jsx-dev-runtime";
+const f = (a) => a, g = (a) => a, h = async (a) => a;
+function k(a, b) {
+  return [a, b];
+}
+
+class P {
+  v;
+  constructor(v) {
+    this.v = v;
+  }
+  m(u) {
+    return u;
+  }
+}
+const x = new P(1), y = f("a"), z = k(1, [2]), el = /* @__PURE__ */ jsxDEV_7x81h0kn(P, {
+  v: 1
+}, void 0, !1, void 0, this), a = f;
+console.log(x, y, z, el, a, g, h);

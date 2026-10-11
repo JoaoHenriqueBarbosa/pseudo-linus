@@ -1,0 +1,64 @@
+import { jsxDEV as i, Fragment as o } from "react/jsx-dev-runtime";
+import { createElement as t } from "react";
+const d = /* @__PURE__ */ i("div", {
+  children: "  leading and trailing  "
+}, undefined, false, undefined, this);
+const n = /* @__PURE__ */ i("div", {
+  children: "multi line"
+}, undefined, false, undefined, this);
+const c = /* @__PURE__ */ i("div", {
+  children: ' &<>"AA©'
+}, undefined, false, undefined, this);
+const s = /* @__PURE__ */ i("a:b", {
+  "c:d": "e"
+}, undefined, false, undefined, this);
+const v = /* @__PURE__ */ i(A.B.C, {
+  x: true
+}, undefined, false, undefined, this);
+const l = /* @__PURE__ */ i("div", {
+  ...d,
+  ...n
+}, undefined, false, undefined, this);
+const a = /* @__PURE__ */ i("div", {
+  children: [...children]
+}, undefined, true, undefined, this);
+const e = /* @__PURE__ */ i("div", {}, undefined, false, undefined, this);
+const b = /* @__PURE__ */ i("div", {}, undefined, false, undefined, this);
+const k = /* @__PURE__ */ i(o, {
+  children: [
+    d,
+    n
+  ]
+}, undefined, true, undefined, this);
+const g = /* @__PURE__ */ i("div", {
+  a: "1",
+  b: "2",
+  c: 3,
+  d: "4",
+  e: true
+}, undefined, false, undefined, this);
+const u = /* @__PURE__ */ i("div", {
+  ...p
+}, "k", false, undefined, this);
+const q = /* @__PURE__ */ t("div", {
+  ...p,
+  key: "k"
+});
+const y = cond ? /* @__PURE__ */ i(A, {}, undefined, false, undefined, this) : /* @__PURE__ */ i(B, {}, undefined, false, undefined, this), h = cond && /* @__PURE__ */ i(A, {}, undefined, false, undefined, this);
+const m = /* @__PURE__ */ i("input", {
+  value: 'a"b',
+  title: "it's"
+}, undefined, false, undefined, this);
+const f = /* @__PURE__ */ i("div", {
+  children: [
+    d,
+    " ",
+    n
+  ]
+}, undefined, true, undefined, this);
+const x = /* @__PURE__ */ i("div", {
+  children: [
+    d,
+    n
+  ]
+}, undefined, true, undefined, this);

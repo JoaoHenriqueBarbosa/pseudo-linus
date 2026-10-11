@@ -1,0 +1,1 @@
+const e="key",r=1,t={a:1,b:c,c:i,[e]:2,[`t${r}`]:3,"quoted-key":4,5:5,valid:6,get g(){return 1},set g(z){},m(){},async am(){},*gm(){},async*agm(){},...x},y={__proto__:null,a,b:c},g={},s={a:{b:{c:{}}}},o=[1,2,3],n=[,1,,2,,],l=[...o,...n],d=[[1],[[2]]],m=[],{x:_,y:b,z:k=3,...p}=t,[u,,v=2,...q]=o,{a:{b:h}}=s;var c,i,x;console.log(t,y,g,s,o,n,l,d,m,_,b,k,p,u,v,q,h);

@@ -1,0 +1,9 @@
+var async = 1, of = 2, get = 3, set = 4, from = 5, as = 6, type = 7, declare = 8, namespace = 9, abstract = 10, module = 11, global = 12;
+async;
+async = 5;
+const o = { async, of, get, set, from, as };
+for (async of => 1; false;) ;
+async function f() {}
+var let_ = 1, yield_ = 2, await_ = 3;
+function g() { var arguments_ = arguments; return arguments_; }
+console.log(async, of, get, set, from, as, type, declare, namespace, abstract, module, global, o, f, g);

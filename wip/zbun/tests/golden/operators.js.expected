@@ -1,0 +1,28 @@
+let a = 1, b = 2, c = 3, o = {}, arr = [];
+a = b + c * 2 - (a - b) - (a + b);
+a = (a, b);
+a = a ? b : c ? a : b;
+a = (a ? b : c) ? a : b;
+a = a ?? b;
+a = (a ?? b) || c;
+a = a && b || c;
+a = a ** b ** c;
+a = (a ** b) ** c;
+a = (-a) ** b;
+a = !a, a = ~a, a = -a, a = +a, a = - -a, a = + +a, a = -+a, a = !!a;
+a = typeof a, a = undefined, a = delete o.x, a = delete o[a];
+a++, a--, ++a, --a;
+a += 1, a -= 1, a *= 2, a /= 2, a %= 2, a **= 2, a <<= 1, a >>= 1, a >>>= 1, a &= 1, a |= 1, a ^= 1, a &&= 1, a ||= 1, a ??= 1;
+a = a << b >> c >>> a;
+a = a < b, a = a <= b, a = a > b, a = a >= b, a = a == b, a = a != b, a = a === b, a = a !== b;
+a = a in o, a = a instanceof Object;
+a = a & b | c ^ a;
+a = o?.x, a = o?.[a], a = o?.(), a = o?.x.y.z, a = (o?.x).y;
+a = a - -b, a = a + +b, a = a - --b, a = a + ++b;
+a = (a + b) * (c - a) / (b % c);
+a = a / b / c, a = a / (b / c);
+a = (a, b) ? c : a;
+for (i = ("x" in o);i < 1; i++)
+  ;
+console.log(a, b, c);
+var i;

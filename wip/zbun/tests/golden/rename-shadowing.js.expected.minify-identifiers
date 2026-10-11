@@ -1,0 +1,22 @@
+const s = 1;
+function e(n) {
+  {
+    let c = 2;
+    {
+      const t = 3;
+      return t;
+    }
+  }
+  return n;
+}
+const u = (n, c) => {
+  const t = n + c;
+  return (r) => r + t;
+};
+
+class o {
+  m(n) {
+    return () => n;
+  }
+}
+console.log(s, e, u, o);

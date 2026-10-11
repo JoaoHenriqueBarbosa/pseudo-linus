@@ -1,0 +1,1 @@
+const r={a:1};for(n=("a"in r);n;)break;for(f=("a"in r)?1:2;f<3;f++);for(let o=(()=>("a"in r))();o;)break;for(const o in r);for(const o of[1]);for(c in r);for(i of[1]);for(b.y in r);for([e,t]of[[1,2]]);for({a:e,b:t}of[{}]);for(let[o,a]=[1,2];o<a;o++);for(let o=0,a=3;o<a;++o);for(;;)break;for(async(o)=>1;;)break;for(k of[]);for(let in r);var e,t,b={},k;var n;var f;var c;var i;

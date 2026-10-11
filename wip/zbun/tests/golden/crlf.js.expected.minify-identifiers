@@ -1,0 +1,7 @@
+const o = 1;
+let l = `x
+y`;
+if (o) {
+  l = 2;
+}
+console.log(o, l);

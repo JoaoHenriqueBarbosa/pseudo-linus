@@ -1,0 +1,1 @@
+({}).x;({a:n}={});[n]=[1];(function(){})();(class{}).name;(async function(){})();(function(){}).call();let n;({a:n}={a:1});b;n=function(){};n.b.c.d=1;n[b][c]=2;n?.b?.[c]?.(d);new n.b.c;new(n.b());new(n());new n().b;new new n();n=b?function(){}:class{};(function(){})+1;(function(){})();

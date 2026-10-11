@@ -1,0 +1,12 @@
+foo(1, 2);
+function r() {}
+const t = { a: 1, b: 2 };
+const a = [1, 2];
+if (o)
+  ;
+foo();
+bar();
+export const x = 1;
+function f() {}
+const s = /* @__PURE__ */ (() => 1)();
+var o, n, c;

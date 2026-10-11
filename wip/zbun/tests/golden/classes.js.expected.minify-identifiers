@@ -1,0 +1,74 @@
+import { __decoratorMetadata as u, __decoratorStart as d, __privateAdd as p, __privateGet as g, __privateSet as h } from "bun:wrap";
+
+class t {
+}
+
+class a extends t {
+  constructor() {
+    super();
+    this.x = 1;
+  }
+}
+var e = new WeakMap;
+var y = d(undefined);
+
+class c {
+  constructor() {
+    p(this, e, 1);
+  }
+  static s = 1;
+  static #s = 2;
+  #t = 3;
+  pub = 4;
+  get g() {
+    return this.#t;
+  }
+  set g(s) {
+    this.#t = s;
+  }
+  static m() {}
+  async am() {}
+  *gm() {}
+  async* agm() {}
+  #c() {}
+  static #a() {}
+  ["computed"]() {}
+  [`t`] = 1;
+  str = 2;
+  3 = 4;
+  get acc() {
+    return g(this, e);
+  }
+  set acc(b) {
+    h(this, e, b);
+  }
+}
+c.init = 1;
+u(y, c);
+let _C = c;
+const r = class {
+}, o = class s extends t {
+}, m = class extends t.B {
+};
+
+class n extends class {
+} {
+}
+
+class i {
+  constructor(s, x) {
+    this.a = s;
+  }
+  static async* [Symbol.asyncIterator]() {}
+}
+
+class l {
+  x = this.#s;
+  #s = 1;
+  static has(s) {
+    return #s in s;
+  }
+}
+new t, new a, new class {
+};
+console.log(t, a, c, r, o, m, n, i, l);

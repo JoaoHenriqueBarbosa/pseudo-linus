@@ -1,0 +1,13 @@
+class A { static #count = 0; static inc() { return ++A.#count; } #priv() { return 1; } get #acc() { return 1; } set #acc(v) {} static #sp() {} m() { return this.#priv() + this.#acc; } static has(o) { return #priv in o; } }
+class B extends A { constructor() { super(); super.m(); super["m"](); const f = () => super.m(); } static s() { return super.inc(); } get x() { return super.x; } }
+class C { static x = 1; static y = C.x + 1; static { this.z = 3; } static async *[Symbol.asyncIterator]() {} 'a b' = 1; [1 + 2] = 3; static [`k`] = 4; }
+function F() { if (new.target) return new.target; }
+const o = { m() { return super.toString(); } };
+class D extends (A, B) {}
+class E extends A.B.C {}
+class G extends (() => {}) {}
+class H extends (async function () {}) {}
+class I { x; y = 1; static z; ["w"]; }
+class J { constructor() {} }
+class K { 'constructor'() {} }
+console.log(A, B, C, F, o, D, E, G, H, I, J, K);

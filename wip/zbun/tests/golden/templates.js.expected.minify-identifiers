@@ -1,0 +1,9 @@
+const t = `\``, n = `\${x}`, a = `$`, c = `$${1}`, g = `${1}$`, o = `a
+b`, s = `A`, x = `A`, i = `${`${`${1}`}`}`, e = `${t + n}${a ? c : g}${o, s}`;
+const l = tag`\unicode and \u{55}`, u = tag`${1}\n${2}`, b = tag.a.b`x`, d = tag`x`, p = tag()`x`, r = new tag`x`, m = tag`x``y`;
+const w = `</script>`, f = `<!--`, h = `-->`, j = "</script>", k = "<!-- -->";
+const q = `
+multi
+line
+`;
+console.log(t, n, a, c, g, o, s, x, i, e, l, u, b, d, p, r, m, w, f, h, j, k, q);

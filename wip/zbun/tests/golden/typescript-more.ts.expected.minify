@@ -1,0 +1,1 @@
+function t(e){return e}class r{a;b;x;y;m(){}abstract_;static s=1;constructor(e,n){this.a=e;this.b=n}get v(){return 1}set v(e){}m2(...e){}m3(e){return!0}}module.exports=r;

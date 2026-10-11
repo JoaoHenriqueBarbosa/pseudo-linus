@@ -1,0 +1,24 @@
+({}).x;
+({ a } = {});
+[a] = [1];
+(function() {})();
+(class {
+}).name;
+(async function() {})();
+(function() {}).call();
+let a;
+({ a } = { a: 1 });
+b;
+a = function() {};
+a.b.c.d = 1;
+a[b][c] = 2;
+a?.b?.[c]?.(d);
+new a.b.c;
+new (a.b());
+new (a());
+new a().b;
+new new a();
+a = b ? function() {} : class {
+};
+(function() {}) + 1;
+(function() {})();

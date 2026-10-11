@@ -1,0 +1,14 @@
+let { a, b: { c, d: [e, f = 1, ...g] }, ...h } = obj;
+const [i, [j, [k]], { l }, ...[m, n]] = arr;
+let { o = 1, p: q = 2, [key]: r = 3, "s-t": u, 5: v } = obj;
+function f1({ a, b } = {}, [c, d] = [], ...[e, ...f]) {}
+const f2 = ({ a: { b } }) => b, f3 = ([a, [b]]) => b;
+({ a, b } = obj);
+[a, b] = [b, a];
+[a = 1, [b] = [], { c } = {}] = arr;
+({ a: obj.x, b: arr[0], ...rest } = obj);
+for (const { a, b } of list) {}
+for (const [k, v] of Object.entries(o)) {}
+try {} catch ({ message }) {}
+try {} catch ([a]) {}
+var obj, arr, key, list, o2, rest;

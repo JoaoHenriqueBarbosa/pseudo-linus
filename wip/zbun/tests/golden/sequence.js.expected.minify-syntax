@@ -1,0 +1,13 @@
+x = c;
+f(b, c);
+f(a, c);
+for (b;d; f)
+  ;
+while (b)
+  ;
+switch (b) {
+  case d:
+}
+return_ = b;
+const t = b ? d : f;
+var a, b, c, d, e, f, x, return_;

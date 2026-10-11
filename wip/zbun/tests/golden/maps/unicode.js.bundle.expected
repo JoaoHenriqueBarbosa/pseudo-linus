@@ -1,0 +1,10 @@
+var a = "héllo wörld";
+var b = "日本語のテキスト";
+var c = "\uD83D\uDE00 emoji";
+var d = `t${a}é${b}日本`;
+var e = { "é": 1, 日本: 2 };
+console.log(a, b, c, d, e, "ünï", /é+/u);
+function ç(é) {
+  return é + "日本";
+}
+console.log(ç("x"));

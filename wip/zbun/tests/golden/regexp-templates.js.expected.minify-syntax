@@ -1,0 +1,3 @@
+const a = /\//, b = /[\]/]/, c = /a/g.test("a"), d = (x) => /re/.test(x), t1 = tag`a${1}b${2}c`, t2 = String.raw`\n${1}`, t3 = a.b`x`, t4 = b`x`, t5 = `line1
+line2`, t6 = "é ${not}", t7 = "12";
+console.log(a, b, c, d, t1, t2, t3, t4, t5, t6, t7);

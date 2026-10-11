@@ -1,0 +1,29 @@
+import { jsxDEV as jsxDEV_7x81h0kn, Fragment as Fragment_8vg9x3sq } from "react/jsx-dev-runtime";
+import { createElement as createElement_mvmpqhxp } from "react";
+const a = /* @__PURE__ */ createElement_mvmpqhxp("div", {
+  className: "a",
+  id: "b",
+  ...p,
+  key: "k"
+}, "hi ", name, " ", /* @__PURE__ */ jsxDEV_7x81h0kn("b", {
+  children: "x"
+}, undefined, false, undefined, this));
+const b = /* @__PURE__ */ jsxDEV_7x81h0kn(Fragment_8vg9x3sq, {
+  children: [
+    /* @__PURE__ */ jsxDEV_7x81h0kn(A, {}, undefined, false, undefined, this),
+    /* @__PURE__ */ jsxDEV_7x81h0kn(B.C, {
+      x: 1
+    }, undefined, false, undefined, this)
+  ]
+}, undefined, true, undefined, this);
+const c = /* @__PURE__ */ jsxDEV_7x81h0kn("input", {
+  disabled: true,
+  value: 'x"y'
+}, undefined, false, undefined, this);
+export default function App() {
+  return /* @__PURE__ */ jsxDEV_7x81h0kn("main", {
+    children: items.map((i) => /* @__PURE__ */ jsxDEV_7x81h0kn("li", {
+      children: i
+    }, i, false, undefined, this))
+  }, undefined, false, undefined, this);
+}

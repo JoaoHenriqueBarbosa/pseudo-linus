@@ -1,0 +1,15 @@
+i = (c, e, r);
+a((c, e), r);
+a(c, (e, r));
+for (c, e;r, t; f, a)
+  ;
+if (c, e)
+  ;
+while (c, e)
+  ;
+switch (c, e) {
+  case (r, t):
+}
+s = (c, e);
+const h = (c, e) ? (r, t) : (f, a);
+var c, e, r, t, f, a, i, s;

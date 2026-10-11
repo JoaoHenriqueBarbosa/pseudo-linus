@@ -1,0 +1,9 @@
+function o(n, t) {
+  return n + t;
+}
+const c = 1;
+const r = 2;
+const s = /* @__PURE__ */ o(1, 2);
+/*! legal */
+
+export {};

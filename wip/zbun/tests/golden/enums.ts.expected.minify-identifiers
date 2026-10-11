@@ -1,0 +1,23 @@
+var n;
+((m) => {
+  m[m["Red"] = 0] = "Red";
+  m[m["Green"] = 4] = "Green";
+  m[m["Blue"] = 5] = "Blue";
+})(n ||= {});
+var t;
+((e) => {
+  e[e["A"] = 1] = "A";
+  e["B"] = "b";
+  e[e["C"] = 2] = "C";
+  e[e["D"] = "x".length] = "D";
+})(t ||= {});
+export var Exported;
+((A) => {
+  A[A["X"] = 1] = "X";
+})(Exported ||= {});
+export var Inlined;
+((u) => {
+  u[u["A"] = 1] = "A";
+  u[u["B"] = 2] = "B";
+})(Inlined ||= {});
+console.log(0, 1, 1, 2, n[0]);

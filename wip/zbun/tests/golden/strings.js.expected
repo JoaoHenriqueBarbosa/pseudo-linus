@@ -1,0 +1,5 @@
+const a = 'a"b', b = "a'b", c = `a"b'c`, d = `a"b'c`, e = `a"b'c`, f = "\\", g = `
+\r	\b\f\v\x00`, h = "\x00\x1Fÿ", i = "Ā￿", j = "\uD800\uDC00", k = "\uD83D\uDE00", l = "\uD800x", m = "x\uDC00";
+const n = "ab", o = "line1\u2028line2", p = "\u2029", q = "\x00";
+const t = "\uD83D\uDE00", u = "\uD83D\uDE00", v = "é", w = "é", x = "é";
+console.log(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, t, u, v, w, x);

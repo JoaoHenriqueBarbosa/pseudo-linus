@@ -1,0 +1,11 @@
+var n = 1;
+var s = "x";
+var t1 = `a${n}b${s}c`;
+var t2 = String.raw`\n${n}`;
+var t3 = `multi
+line ${n}
+text`;
+console.log(t1, t2, t3, tag`x${n}y`);
+function tag(a, ...b) {
+  return a.raw.join("") + b.join("");
+}

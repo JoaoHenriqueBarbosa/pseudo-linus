@@ -1,0 +1,28 @@
+try {
+  a();
+} catch (e) {
+  b(e);
+} finally {
+  c();
+}
+try {} catch {}
+try {} finally {}
+try {
+  try {
+    a();
+  } finally {
+    b();
+  }
+} catch {}
+function f() {
+  try {
+    return 1;
+  } finally {
+    return 2;
+  }
+}
+label:
+  try {
+    break label;
+  } finally {}
+var a, b, c;

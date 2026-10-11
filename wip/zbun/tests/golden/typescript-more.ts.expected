@@ -1,0 +1,26 @@
+function over(a) {
+  return a;
+}
+
+class C {
+  a;
+  b;
+  x;
+  y;
+  m() {}
+  abstract_;
+  static s = 1;
+  constructor(a, b) {
+    this.a = a;
+    this.b = b;
+  }
+  get v() {
+    return 1;
+  }
+  set v(x) {}
+  m2(...args) {}
+  m3(x) {
+    return true;
+  }
+}
+module.exports = C;

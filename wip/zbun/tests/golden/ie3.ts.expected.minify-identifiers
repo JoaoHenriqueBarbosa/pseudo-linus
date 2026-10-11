@@ -1,0 +1,9 @@
+var o;
+((t) => {
+  let p;
+  ((e) => {
+    e.D = 1;
+  })(p = t.C ||= {});
+})(o ||= {});
+export const E = o.C;
+console.log(E);

@@ -1,0 +1,1 @@
+function l(){var n=1,o=2;for(var r=0;r<1;r++);if(n)var a=3;return n+o+r+a}var t=1,v,t=2;function f(){let n=1;const o=2;{let r=3;const a=4}}console.log(l,f,t,v);

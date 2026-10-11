@@ -1,0 +1,32 @@
+function* g() {
+  yield;
+  yield 1;
+  yield* x;
+  const a = yield;
+  const b = yield 1, c = yield 2;
+  yield yield 3;
+  yield a ? b : c;
+  (yield a) + 1;
+  yield [yield a];
+  return yield;
+}
+const o = { *g() {
+  yield 1;
+}, async* ag() {
+  yield 1;
+} };
+
+class C {
+  *g() {
+    yield 1;
+  }
+  static *sg() {
+    yield 1;
+  }
+  async* ag() {}
+}
+function* h() {
+  yield* yield;
+  yield (a, b);
+}
+var a, b, c, x;

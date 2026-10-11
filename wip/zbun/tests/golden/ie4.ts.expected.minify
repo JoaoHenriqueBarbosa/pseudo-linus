@@ -1,0 +1,1 @@
+const s=require("fs"),t=o.C.D;var o;((r)=>{let p;((e)=>e.D=1)(p=r.C||={})})(o||={});console.log(s,t);

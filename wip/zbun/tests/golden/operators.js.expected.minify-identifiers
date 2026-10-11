@@ -1,0 +1,28 @@
+let e = 1, o = 2, t = 3, l = {}, x = [];
+e = o + t * 2 - (e - o) - (e + o);
+e = (e, o);
+e = e ? o : t ? e : o;
+e = (e ? o : t) ? e : o;
+e = e ?? o;
+e = (e ?? o) || t;
+e = e && o || t;
+e = e ** o ** t;
+e = (e ** o) ** t;
+e = (-e) ** o;
+e = !e, e = ~e, e = -e, e = +e, e = - -e, e = + +e, e = -+e, e = !!e;
+e = typeof e, e = undefined, e = delete l.x, e = delete l[e];
+e++, e--, ++e, --e;
+e += 1, e -= 1, e *= 2, e /= 2, e %= 2, e **= 2, e <<= 1, e >>= 1, e >>>= 1, e &= 1, e |= 1, e ^= 1, e &&= 1, e ||= 1, e ??= 1;
+e = e << o >> t >>> e;
+e = e < o, e = e <= o, e = e > o, e = e >= o, e = e == o, e = e != o, e = e === o, e = e !== o;
+e = e in l, e = e instanceof Object;
+e = e & o | t ^ e;
+e = l?.x, e = l?.[e], e = l?.(), e = l?.x.y.z, e = (l?.x).y;
+e = e - -o, e = e + +o, e = e - --o, e = e + ++o;
+e = (e + o) * (t - e) / (o % t);
+e = e / o / t, e = e / (o / t);
+e = (e, o) ? t : e;
+for (n = ("x" in l);n < 1; n++)
+  ;
+console.log(e, o, t);
+var n;

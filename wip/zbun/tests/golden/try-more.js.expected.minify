@@ -1,0 +1,1 @@
+try{r()}catch(y){t(y)}finally{a()}try{}catch{}try{}finally{}try{try{r()}finally{t()}}catch{}function l(){try{return 1}finally{return 2}}r:try{break r}finally{}var r,t,a;

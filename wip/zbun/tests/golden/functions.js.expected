@@ -1,0 +1,52 @@
+function f1(a, b = 2, ...rest) {
+  return a + b + rest.length;
+}
+function* gen() {
+  yield 1;
+  yield* [2, 3];
+  const x = yield;
+  return x;
+}
+async function af() {
+  await 1;
+  return await Promise.resolve(2);
+}
+async function* ag() {
+  yield await 1;
+  for await (const x of gen()) {
+    yield x;
+  }
+}
+const arrow1 = (x) => x * 2;
+const arrow2 = (x, y) => {
+  return x + y;
+};
+const arrow3 = async (x) => await x;
+const arrow4 = async (x, y) => ({ x, y });
+const arrow5 = () => {};
+const arrow6 = ({ a, b }, [c, d] = [1, 2]) => a + b + c + d;
+const arrow7 = () => () => () => 1;
+const fe = function() {}, fe2 = function named() {
+  return named;
+};
+(function iife() {
+  console.log(1);
+})();
+(() => {
+  console.log(2);
+})();
+(async () => {
+  await 1;
+})();
+(function() {})();
+new class {
+};
+new function() {};
+new f1;
+new f1(1);
+new (f1());
+new (f1.bind());
+function dflt({ a = 1, b: { c = 2 } = {} } = {}) {
+  return a + c;
+}
+console.log(f1, gen, af, ag, arrow1, arrow2, arrow3, arrow4, arrow5, arrow6, arrow7, fe, fe2, dflt);

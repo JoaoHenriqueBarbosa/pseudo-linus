@@ -27,3 +27,6 @@ printer = []
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+bun_js_parser = { path = "../js_parser", features = ["parser"] }

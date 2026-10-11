@@ -1,0 +1,7 @@
+function f(a, b) {
+  return a + b;
+}
+const x = 1, y = 2, z = /* @__PURE__ */ f(1, 2);
+/*! legal */
+
+export {};

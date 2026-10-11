@@ -1,0 +1,1 @@
+let n=1,t=2;++t;const e=n+t,a=[1,2];[1,2].forEach((c)=>c);(function(){})();const o="a";n:while(!1)break n;var f=function(){};

@@ -1,0 +1,37 @@
+async function i() {
+  await a;
+  await (a + b);
+  await (a, b);
+  (await a).b;
+  await a.b;
+  await (async () => 1)();
+  await new X;
+  await await a;
+  await a;
+  -await a;
+  await a;
+  await a ? b : c;
+  (await a) ** 2;
+  await (a ?? b);
+}
+const w = async () => await 1, n = async function() {
+  await 1;
+}, s = { async m() {
+  await 1;
+} }, o = class {
+  async m() {
+    await 1;
+  }
+  static async s() {}
+};
+async function* y() {
+  yield await 1;
+  yield* await 2;
+  await (yield 3);
+}
+(async () => {
+  await import("x");
+  for await (const t of b) {}
+})();
+await top;
+const e = await Promise.resolve(1);

@@ -1,0 +1,9 @@
+foo(1, 2);
+function g() {}
+const o = { a: 1, b: 2 }, arr = [1, 2];
+foo();
+bar();
+export const x = 1;
+function pure() {}
+const y = /* @__PURE__ */ (() => 1)();
+var a, b, c;

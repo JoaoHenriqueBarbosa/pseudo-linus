@@ -1,0 +1,5 @@
+const a = 1;
+function f(x) {
+  return x + a;
+}
+console.log(f(2), "é", `t${a}`);

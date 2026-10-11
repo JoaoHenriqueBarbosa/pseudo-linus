@@ -1,0 +1,1 @@
+function*c(){const n=yield,t=yield 1;yield*c();return yield 2}async function s(){await a;await(a,b);const n=await(async()=>1)();return await new Promise((t)=>t())}const o={async*[Symbol.asyncIterator](){yield 1},async m(){await 1},*g(){yield 1}};class i{async*m(){yield await 1}static async s(){}}(async()=>{for await(const n of y);})();

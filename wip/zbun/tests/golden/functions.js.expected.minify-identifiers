@@ -1,0 +1,52 @@
+function t(n, o = 2, ...c) {
+  return n + o + c.length;
+}
+function* e() {
+  yield 1;
+  yield* [2, 3];
+  const n = yield;
+  return n;
+}
+async function a() {
+  await 1;
+  return await Promise.resolve(2);
+}
+async function* i() {
+  yield await 1;
+  for await (const n of e()) {
+    yield n;
+  }
+}
+const s = (n) => n * 2;
+const w = (n, o) => {
+  return n + o;
+};
+const f = async (n) => await n;
+const u = async (n, o) => ({ x: n, y: o });
+const l = () => {};
+const y = ({ a: n, b: o }, [c, r] = [1, 2]) => n + o + c + r;
+const d = () => () => () => 1;
+const g = function() {}, b = function n() {
+  return n;
+};
+(function n() {
+  console.log(1);
+})();
+(() => {
+  console.log(2);
+})();
+(async () => {
+  await 1;
+})();
+(function() {})();
+new class {
+};
+new function() {};
+new t;
+new t(1);
+new (t());
+new (t.bind());
+function m({ a: n = 1, b: { c: o = 2 } = {} } = {}) {
+  return n + o;
+}
+console.log(t, e, a, i, s, w, f, u, l, y, d, g, b, m);

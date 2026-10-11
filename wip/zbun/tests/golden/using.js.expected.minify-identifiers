@@ -1,0 +1,39 @@
+import { __callDispose as u, __using as n } from "bun:wrap";
+{
+  let o = [];
+  try {
+    const i = n(o, t(), 0);
+    const g = n(o, a(), 1);
+    const c = n(o, null, 0), f = n(o, undefined, 0);
+    console.log(i, g, c, f);
+  } catch (d) {
+    var w = d, y = 1;
+  } finally {
+    var R = u(o, w, y);
+    R && await R;
+  }
+}
+for (const g of l) {
+  let e = [];
+  try {
+    const i = n(e, g, 0);
+  } catch (v) {
+    var x = v, z = 1;
+  } finally {
+    u(e, x, z);
+  }
+}
+for (const g of r) {
+  let s = [];
+  try {
+    const i = n(s, g, 1);
+  } catch (A) {
+    var b = A, h = 1;
+  } finally {
+    var j = u(s, b, h);
+    j && await j;
+  }
+}
+function t() {}
+function a() {}
+var l, r;

@@ -1,0 +1,18 @@
+import def from "./a";
+import * as ns from "./b";
+import { x, y as z } from "./c";
+import def2, { w } from "./d";
+import def3, * as ns2 from "./e";
+import "./side";
+import { default as dd } from "./f";
+export const e1 = 1, e2 = 2;
+export function ef() {}
+export class EC {}
+export { x as xx, z };
+export * from "./h";
+export * as hns from "./i";
+export { r, s as ss } from "./j";
+export default function () {}
+const dyn = import("./k");
+const dyn2 = import("./l", { with: { type: "json" } });
+console.log(def, ns, x, z, def2, w, def3, ns2, dd, dyn, dyn2, import.meta.url);

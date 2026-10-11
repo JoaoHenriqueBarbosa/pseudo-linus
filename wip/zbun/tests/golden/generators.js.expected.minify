@@ -1,0 +1,1 @@
+function*a(){yield;yield 1;yield*n;const i=yield,y=yield 1,e=yield 2;yield yield 3;yield i?y:e;(yield i)+1;yield[yield i];return yield}const s={*g(){yield 1},async*ag(){yield 1}};class l{*g(){yield 1}static*sg(){yield 1}async*ag(){}}function*t(){yield*yield;yield c}var d,c,g,n;

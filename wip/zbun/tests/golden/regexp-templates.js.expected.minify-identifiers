@@ -1,0 +1,5 @@
+const t = /\//, n = /[\]/]/, a = /a/g.test("a"), c = (o) => /re/.test(o);
+const e = tag`a${1}b${2}c`, s = String.raw`\n${1}`, g = t.b`x`, l = (t, n)`x`;
+const b = `line1
+line2`, i = `é \${not}`, r = `${1}${2}`;
+console.log(t, n, a, c, e, s, g, l, b, i, r);

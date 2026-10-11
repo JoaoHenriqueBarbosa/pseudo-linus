@@ -453,3 +453,15 @@ custo, e nesse dia a (A) volta à mesa. O `Prefill` em posições fixas ainda n�
 - `alphabetize_*` e `package_json_sort` usam o `sort_by` estável, que dá a mesma ordem do `index_sort` estável.
 - Pendente: o `Display` de `EString`. `EString::hash` entrou com o `bun_wyhash`, `is_identifier` com as tabelas
   do lexer e `Import::import_record_loader` com o `loader.rs`; os três recebem o `Store`.
+
+## Golden do printer (parte 4)
+
+`js_printer/src/golden_tests.rs` compara byte a byte a saída do porte com o `bun build --no-bundle` do bun 1.4.2
+(imagem `pl-oracle-bun-check`). O harness liga as mesmas opções do `Transpiler::parse`. Cada entrada de
+`tests/golden` tem a saída sem flag e uma por variante (`.minify-whitespace`, `.minify-syntax`,
+`.minify-identifiers`, `.minify`); `scripts/gen_golden.sh` as gera. O mapa de posições se mede num bundle de um
+arquivo só (`--no-bundle` ignora `--sourcemap`): `tests/golden/maps`, `scripts/gen_maps.sh` e `extract_maps.py`.
+
+Estado: 299 de 305 casos batem e os 12 mapas batem. As seis divergências estão em `KNOWN_DIVERGENCES`
+(import-equals com namespace sob `--minify-identifiers`: o nome atribuído ao alias tem outro rank). `mangled_props`
+não é ligado pelo `bun build`, então o golden não o exercita; os nós JSON ficam para o loader json.

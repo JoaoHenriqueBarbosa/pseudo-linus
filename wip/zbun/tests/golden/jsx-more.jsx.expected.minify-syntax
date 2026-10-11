@@ -1,0 +1,48 @@
+import { jsxDEV as jsxDEV_7x81h0kn, Fragment as Fragment_8vg9x3sq } from "react/jsx-dev-runtime";
+import { createElement as createElement_mvmpqhxp } from "react";
+const a = /* @__PURE__ */ jsxDEV_7x81h0kn("div", {
+  children: "  leading and trailing  "
+}, void 0, !1, void 0, this), b = /* @__PURE__ */ jsxDEV_7x81h0kn("div", {
+  children: "multi line"
+}, void 0, !1, void 0, this), c = /* @__PURE__ */ jsxDEV_7x81h0kn("div", {
+  children: ' &<>"AA©'
+}, void 0, !1, void 0, this), d = /* @__PURE__ */ jsxDEV_7x81h0kn("a:b", {
+  "c:d": "e"
+}, void 0, !1, void 0, this), e = /* @__PURE__ */ jsxDEV_7x81h0kn(A.B.C, {
+  x: !0
+}, void 0, !1, void 0, this), f = /* @__PURE__ */ jsxDEV_7x81h0kn("div", {
+  ...a,
+  ...b
+}, void 0, !1, void 0, this), g = /* @__PURE__ */ jsxDEV_7x81h0kn("div", {
+  children: [...children]
+}, void 0, !0, void 0, this), h = /* @__PURE__ */ jsxDEV_7x81h0kn("div", {}, void 0, !1, void 0, this), i = /* @__PURE__ */ jsxDEV_7x81h0kn("div", {}, void 0, !1, void 0, this), j = /* @__PURE__ */ jsxDEV_7x81h0kn(Fragment_8vg9x3sq, {
+  children: [
+    a,
+    b
+  ]
+}, void 0, !0, void 0, this), k = /* @__PURE__ */ jsxDEV_7x81h0kn("div", {
+  a: "1",
+  b: "2",
+  c: 3,
+  d: "4",
+  e: !0
+}, void 0, !1, void 0, this), l = /* @__PURE__ */ jsxDEV_7x81h0kn("div", {
+  ...p
+}, "k", !1, void 0, this), m = /* @__PURE__ */ createElement_mvmpqhxp("div", {
+  ...p,
+  key: "k"
+}), n = cond ? /* @__PURE__ */ jsxDEV_7x81h0kn(A, {}, void 0, !1, void 0, this) : /* @__PURE__ */ jsxDEV_7x81h0kn(B, {}, void 0, !1, void 0, this), o = cond && /* @__PURE__ */ jsxDEV_7x81h0kn(A, {}, void 0, !1, void 0, this), q = /* @__PURE__ */ jsxDEV_7x81h0kn("input", {
+  value: 'a"b',
+  title: "it's"
+}, void 0, !1, void 0, this), r = /* @__PURE__ */ jsxDEV_7x81h0kn("div", {
+  children: [
+    a,
+    " ",
+    b
+  ]
+}, void 0, !0, void 0, this), s = /* @__PURE__ */ jsxDEV_7x81h0kn("div", {
+  children: [
+    a,
+    b
+  ]
+}, void 0, !0, void 0, this);

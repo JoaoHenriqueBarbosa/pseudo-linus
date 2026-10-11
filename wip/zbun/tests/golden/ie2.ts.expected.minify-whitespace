@@ -1,0 +1,1 @@
+var B;((B)=>{B.D=1})(B||={});const A=B.D;console.log(A);

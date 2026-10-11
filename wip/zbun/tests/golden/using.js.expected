@@ -1,0 +1,39 @@
+import { __callDispose as __callDispose_vyva085h, __using as __using_nccbhqtj } from "bun:wrap";
+{
+  let __bun_temp_ref_1$ = [];
+  try {
+    const a = __using_nccbhqtj(__bun_temp_ref_1$, getResource(), 0);
+    const b = __using_nccbhqtj(__bun_temp_ref_1$, getAsyncResource(), 1);
+    const c = __using_nccbhqtj(__bun_temp_ref_1$, null, 0), d = __using_nccbhqtj(__bun_temp_ref_1$, undefined, 0);
+    console.log(a, b, c, d);
+  } catch (__bun_temp_ref_2$) {
+    var __bun_temp_ref_3$ = __bun_temp_ref_2$, __bun_temp_ref_4$ = 1;
+  } finally {
+    var __bun_temp_ref_5$ = __callDispose_vyva085h(__bun_temp_ref_1$, __bun_temp_ref_3$, __bun_temp_ref_4$);
+    __bun_temp_ref_5$ && await __bun_temp_ref_5$;
+  }
+}
+for (const __bun_temp_ref_6$ of y) {
+  let __bun_temp_ref_7$ = [];
+  try {
+    const x = __using_nccbhqtj(__bun_temp_ref_7$, __bun_temp_ref_6$, 0);
+  } catch (__bun_temp_ref_8$) {
+    var __bun_temp_ref_9$ = __bun_temp_ref_8$, __bun_temp_ref_a$ = 1;
+  } finally {
+    __callDispose_vyva085h(__bun_temp_ref_7$, __bun_temp_ref_9$, __bun_temp_ref_a$);
+  }
+}
+for (const __bun_temp_ref_b$ of w) {
+  let __bun_temp_ref_c$ = [];
+  try {
+    const z = __using_nccbhqtj(__bun_temp_ref_c$, __bun_temp_ref_b$, 1);
+  } catch (__bun_temp_ref_d$) {
+    var __bun_temp_ref_e$ = __bun_temp_ref_d$, __bun_temp_ref_f$ = 1;
+  } finally {
+    var __bun_temp_ref_10$ = __callDispose_vyva085h(__bun_temp_ref_c$, __bun_temp_ref_e$, __bun_temp_ref_f$);
+    __bun_temp_ref_10$ && await __bun_temp_ref_10$;
+  }
+}
+function getResource() {}
+function getAsyncResource() {}
+var y, w;

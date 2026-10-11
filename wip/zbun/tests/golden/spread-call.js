@@ -1,0 +1,5 @@
+f(...a), f(a, ...b, c), f(...a, ...b), new F(...a), [...a, ...b], { ...a, ...b }, f(...[1, 2]);
+f(a, b, c)(d)(e);
+f?.(...a);
+a.b(...c);
+super_call = class extends X { constructor() { super(...arguments); } };

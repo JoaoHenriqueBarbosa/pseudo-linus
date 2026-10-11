@@ -1,0 +1,82 @@
+class t {
+  static #c = 0;
+  static inc() {
+    return ++t.#c;
+  }
+  #t() {
+    return 1;
+  }
+  get #s() {
+    return 1;
+  }
+  set #s(s) {}
+  static #r() {}
+  m() {
+    return this.#t() + this.#s;
+  }
+  static has(s) {
+    return #t in s;
+  }
+}
+
+class c extends t {
+  constructor() {
+    super();
+    super.m();
+    super["m"]();
+    const s = () => super.m();
+  }
+  static s() {
+    return super.inc();
+  }
+  get x() {
+    return super.x;
+  }
+}
+
+class r {
+  static x = 1;
+  static y = r.x + 1;
+  static {
+    this.z = 3;
+  }
+  static async* [Symbol.asyncIterator]() {}
+  "a b" = 1;
+  [1 + 2] = 3;
+  static [`k`] = 4;
+}
+function x() {
+  if (new.target)
+    return new.target;
+}
+const p = { m() {
+  return super.toString();
+} };
+
+class e extends (t, c) {
+}
+
+class n extends t.B.C {
+}
+
+class a extends (() => {}) {
+}
+
+class i extends async function() {} {
+}
+
+class u {
+  x;
+  y = 1;
+  static z;
+  ["w"];
+}
+
+class o {
+  constructor() {}
+}
+
+class l {
+  constructor() {}
+}
+console.log(t, c, r, x, p, e, n, a, i, u, o, l);

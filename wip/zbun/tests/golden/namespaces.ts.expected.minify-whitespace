@@ -1,0 +1,1 @@
+var A;((A)=>{A.x=1;function f(){return A.x}A.f=f;class C{}A.C=C;let E;((E)=>{E[E["P"]=0]="P"})(E=A.E||={})})(A||={});((A)=>{let B;((B)=>{let C;((C)=>{C.deep=2})(C=B.C||={})})(B=A.B||={})})(A||={});((A)=>{A.merged=3})(A||={});export var Exp;((Exp)=>{Exp.v=1})(Exp||={});console.log(A.x,A.f(),A.B.C.deep,A.merged,Exp.v);

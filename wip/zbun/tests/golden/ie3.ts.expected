@@ -1,0 +1,9 @@
+var B;
+((B) => {
+  let C;
+  ((C) => {
+    C.D = 1;
+  })(C = B.C ||= {});
+})(B ||= {});
+export const E = B.C;
+console.log(E);

@@ -14,6 +14,9 @@
 pub mod error;
 pub use error::{Error, Result};
 
+#[cfg(test)]
+mod golden_tests;
+
 use bun_ast::{ImportKind, ImportRecord};
 use bun_core::MutableString;
 use bun_core::Output;

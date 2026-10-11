@@ -1,0 +1,9 @@
+a = b ? c : d;
+a ? b = 1 : c = 2;
+(a ? b : c).d;
+(a ? b : c)();
+a || class {
+};
+a = b;
+a ? b = c : d = e;
+var a, b, c, d, e;

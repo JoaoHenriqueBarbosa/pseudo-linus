@@ -1,0 +1,13 @@
+let n = 1;
+let t = 2;
+++t;
+const e = n + t;
+const a = [1, 2];
+[1, 2].forEach((c) => c);
+(function() {})();
+const o = `a`;
+`b`.length;
+n:
+  while (false)
+    break n;
+var f = function() {};

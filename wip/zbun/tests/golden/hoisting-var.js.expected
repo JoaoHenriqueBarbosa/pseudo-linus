@@ -1,0 +1,22 @@
+function f() {
+  var a = 1;
+  {
+    var b = 2;
+  }
+  for (var c = 0;c < 1; c++) {}
+  if (a) {
+    var d = 3;
+  }
+  return a + b + c + d;
+}
+var x = 1, y;
+var x = 2;
+function g() {
+  let l = 1;
+  const k = 2;
+  {
+    let l = 3;
+    const k = 4;
+  }
+}
+console.log(f, g, x, y);

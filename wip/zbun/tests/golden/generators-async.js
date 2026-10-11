@@ -1,0 +1,5 @@
+function* g() { const a = yield; const b = yield 1; yield* g(); return yield 2; }
+async function f() { await a; await (a, b); const c = await (async () => 1)(); return await new Promise(r => r()); }
+const o = { async *[Symbol.asyncIterator]() { yield 1; }, async m() { await 1; }, *g() { yield 1; } };
+class C { async *m() { yield await 1; } static async s() {} }
+(async () => { for await (const x of y) {} })();

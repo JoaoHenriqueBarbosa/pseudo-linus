@@ -1,0 +1,96 @@
+let x = 0;
+if (x)
+  y();
+else
+  z();
+if (x)
+  y();
+else if (x > 1)
+  z();
+else
+  w();
+if (x)
+  if (y)
+    a();
+  else
+    b();
+if (x) {
+  if (y)
+    a();
+} else
+  b();
+for (let i = 0;i < 3; i++)
+  if (i)
+    continue;
+  else
+    break;
+for (;; )
+  break;
+for (const k in {})
+  ;
+for (v of [])
+  ;
+for (const [a, b] of [[1, 2]])
+  ;
+while (x)
+  x--;
+do
+  x++;
+while (x < 3);
+do
+  x++;
+while (x < 3);
+outer:
+  for (let i = 0;i < 2; i++)
+    inner:
+      for (;; )
+        continue outer;
+lbl:
+  break lbl;
+switch (x) {
+  case 1:
+  case 2:
+    y();
+    break;
+  case 3:
+    z();
+  default:
+    w();
+}
+switch (x) {
+}
+try {
+  y();
+} catch (e) {
+  z(e);
+} finally {
+  w();
+}
+try {
+  y();
+} catch {
+  z();
+}
+try {
+  y();
+} finally {
+  w();
+}
+function f() {
+  return;
+}
+function g() {
+  return x ? 1 : 2;
+}
+function h() {
+  throw Error("x");
+}
+debugger;
+{
+  let scoped = 1;
+}
+var y, z, w;
+const { a, b } = { a: 1, b: 2 };
+with (Math)
+  max(1, 2);
+var v;

@@ -1,0 +1,29 @@
+import { __decorateElement as __decorateElement_ggs2dd8p, __decoratorMetadata as __decoratorMetadata_0rk0ydtx, __decoratorStart as __decoratorStart_x73frcn4, __runInitializers as __runInitializers_cst8seht } from "bun:wrap";
+function sealed(c) {}
+function log(t, k, d) {}
+var _dec = [
+  sealed
+], _dec2 = [
+  log
+], _dec3 = [
+  sealed
+], _init = __decoratorStart_x73frcn4(void 0);
+
+class Greeter {
+  constructor() {
+    __runInitializers_cst8seht(_init, 5, this);
+    this.prop = __runInitializers_cst8seht(_init, 8, this, 1);
+    __runInitializers_cst8seht(_init, 11, this);
+  }
+  greet() {
+    return "hi";
+  }
+}
+__decorateElement_ggs2dd8p(_init, 1, "greet", _dec2, Greeter);
+__decorateElement_ggs2dd8p(_init, 5, "prop", _dec3, Greeter);
+Greeter = __decorateElement_ggs2dd8p(_init, 0, "Greeter", _dec, Greeter);
+__runInitializers_cst8seht(_init, 1, Greeter);
+__decoratorMetadata_0rk0ydtx(_init, Greeter);
+let _Greeter = Greeter;
+
+export { Greeter };

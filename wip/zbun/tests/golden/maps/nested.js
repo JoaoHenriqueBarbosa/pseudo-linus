@@ -1,0 +1,3 @@
+const deep = { a: { b: { c: [1, { d: () => ({ e: [2, 3, { f: "g" }] }) }] } } };
+const fn = (a) => (b) => (c) => { const x = [a, b, c].map((v) => v * 2).filter((v) => v > 1); return x.length ? x : null; };
+console.log(deep.a.b.c[1].d().e[2].f, fn(1)(2)(3), `${deep.a.b.c.length} ${fn(1)(1)(1)}`);

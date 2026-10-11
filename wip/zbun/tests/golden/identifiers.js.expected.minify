@@ -1,0 +1,1 @@
+var a=1,n=2,o=3,t=4,s=5,r=6,c=7,l=8,f=9,g=10,module=11,u=12;a=5;const m={async:a,of:n,get:o,set:t,from:s,as:r};for(async(e)=>1;!1;);async function y(){}var _=1,d=2,v=3;function i(){var e=arguments;return e}console.log(a,n,o,t,s,r,c,l,f,g,module,u,m,y,i);

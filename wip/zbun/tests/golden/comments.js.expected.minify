@@ -1,0 +1,1 @@
+function o(n,t){return n+t}const c=1,r=2,s=o(1,2);/*! legal */export{};

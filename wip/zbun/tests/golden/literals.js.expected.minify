@@ -1,0 +1,2 @@
+const s=1,e=0.1,t=1000000000000000000000,i=-0,a=255,c=1000,o=0.5,f=5,l=0.0000001,b=123456789012345680000,d=12345678901234567890n,u=-5n,n="single",g="double",x="tpl",r="it's",m='say "hi"',y=`a
+b	c\\d`,h="é\uD83D\uDE00x",k=`He said "it's"`,N=`a1b${n}c`,j="xy1z",p=/ab+c/gi,z=/[/]\//u,F=/(?<name>x)\k<name>/,H=!0,I=!1,_=null,q=void 0,v=1/0,w=NaN;console.log(s,e,t,i,a,c,o,f,l,b,d,u,n,g,x,r,m,y,h,k,N,j,p,z,F,H,I,_,q,v,w);

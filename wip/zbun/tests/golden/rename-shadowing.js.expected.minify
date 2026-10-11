@@ -1,0 +1,1 @@
+const s=1;function e(n){{let t=2;return 3}return n}const a=(n,t)=>{const c=n+t;return(r)=>r+c};class o{m(n){return()=>n}}console.log(s,e,a,o);

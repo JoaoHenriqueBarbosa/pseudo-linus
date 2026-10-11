@@ -1,0 +1,1 @@
+const a="héllo",b="日本語",c="\u2028\u2029",d="\uD83D\uDE00",e="a\x00b",f="\x01",g="\uD800",h="\uDBFF\uDFFF";const t=`héllo ${a} 日本語`,r=/日本語/u;const o={"é":1,é2:2,日本:3};console.log(a,b,c,d,e,f,g,h,t,r,o);

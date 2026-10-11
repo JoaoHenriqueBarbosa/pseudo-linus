@@ -1,0 +1,13 @@
+let a = 1
+let b = 2
+a
+++b
+const c = a
++ b
+const d = [1,2]
+;[1,2].forEach(x => x)
+;(function(){})()
+const e = `a`
+;`b`.length
+return_label: while (false) break return_label
+var f = function(){}

@@ -1,0 +1,1 @@
+a=c?d:n;a?c=1:d=2;(a?c:d).d;(a?c:d)();a||class{};a=c;a?c=d:n=s;var a,c,d,n,s;

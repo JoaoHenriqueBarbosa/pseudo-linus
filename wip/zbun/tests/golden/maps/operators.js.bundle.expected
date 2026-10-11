@@ -1,0 +1,14 @@
+var a = 1;
+var b = 2;
+var c = 3;
+a = b + c * 2 - (a - b);
+a = a ? b : c ? a : b;
+a = (a, b);
+a ??= b;
+a ||= c;
+a &&= a;
+a = a ** b ** c;
+a = typeof a === "number" && !b || undefined;
+a = a?.b?.[c]?.(d);
+var d;
+console.log(a, b, c);

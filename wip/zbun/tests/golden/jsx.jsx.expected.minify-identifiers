@@ -1,0 +1,29 @@
+import { jsxDEV as i, Fragment as e } from "react/jsx-dev-runtime";
+import { createElement as n } from "react";
+const l = /* @__PURE__ */ n("div", {
+  className: "a",
+  id: "b",
+  ...p,
+  key: "k"
+}, "hi ", name, " ", /* @__PURE__ */ i("b", {
+  children: "x"
+}, undefined, false, undefined, this));
+const s = /* @__PURE__ */ i(e, {
+  children: [
+    /* @__PURE__ */ i(A, {}, undefined, false, undefined, this),
+    /* @__PURE__ */ i(B.C, {
+      x: 1
+    }, undefined, false, undefined, this)
+  ]
+}, undefined, true, undefined, this);
+const t = /* @__PURE__ */ i("input", {
+  disabled: true,
+  value: 'x"y'
+}, undefined, false, undefined, this);
+export default function App() {
+  return /* @__PURE__ */ i("main", {
+    children: items.map((a) => /* @__PURE__ */ i("li", {
+      children: a
+    }, a, false, undefined, this))
+  }, undefined, false, undefined, this);
+}

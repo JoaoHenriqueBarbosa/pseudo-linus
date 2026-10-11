@@ -1,0 +1,3 @@
+const a = 1, b = 0.1, c = 1000000000000000000000, d = -0, e = 255, f = 1000, g = 0.5, h = 5, i = 0.0000001, j = 123456789012345680000, big = 12345678901234567890n, neg = -5n, s1 = "single", s2 = "double", s3 = "tpl", s4 = "it's", s5 = 'say "hi"', s6 = `a
+b	c\\d`, s7 = "é\uD83D\uDE00x", mix = `He said "it's"`, back = `a1b${s1}c`, nested = "xy1z", re1 = /ab+c/gi, re2 = /[/]\//u, re3 = /(?<name>x)\k<name>/, t = !0, f2 = !1, n = null, u = void 0, inf = 1 / 0, nan = NaN;
+console.log(a, b, c, d, e, f, g, h, i, j, big, neg, s1, s2, s3, s4, s5, s6, s7, mix, back, nested, re1, re2, re3, t, f2, n, u, inf, nan);

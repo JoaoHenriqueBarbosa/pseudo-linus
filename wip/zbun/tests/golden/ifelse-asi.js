@@ -1,0 +1,6 @@
+if (a) b; else if (c) d; else e;
+if (a) { b } else { c }
+if (a) ; else ;
+if (a) for (;;) if (b) c; else d;
+while (a) if (b) c; else d;
+if (a) { if (b) c } else d;
