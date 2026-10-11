@@ -22,3 +22,6 @@ dead throw 'GreenletExit'
 dead throw twice 'GreenletExit'
 self throw exit EXC GreenletExit 
 throw bad tb EXC TypeError throw() third argument must be a traceback object
+reparent to dead of exited thread 'set'
+switch after reparent, thread exited EXC error cannot switch to a different thread (which happens to have exited)
+switch after reparent, thread alive ['Cannot switch to a different thread', True]

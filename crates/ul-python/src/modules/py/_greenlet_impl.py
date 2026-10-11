@@ -375,7 +375,18 @@ def _switch_to(target, payload, event):
             raise payload[1]
         return _unpack(payload[1], payload[2])
     # O `PyRequireAttr(self, "run")` do `g_initialstub`: o `run` de uma subclasse vence o campo do tipo.
-    run = None if _st(target).started else getattr(target, 'run')
+    run = None
+    if not _st(target).started:
+        run = getattr(target, 'run')
+        # O `getattr` do `run` pode ter trocado o pai (o `__getattribute__` de uma subclasse): o `g_initialstub` confere
+        # de novo a thread de quem vai receber o retorno.
+        parent = _resolve(_st(target).parent)
+        owner = _st(parent).owner
+        if owner is not _thread():
+            if _exited(owner):
+                raise error('cannot switch to a different thread (which happens to have exited)')
+            raise error('Cannot switch to a different thread\n\tCurrent:  %r\n\tExpected: %r' % (origin, parent))
+        del parent
     _trace(event, origin, target)
     del origin
     return _enter(target, payload, run, False)
@@ -429,7 +440,8 @@ def _set_parent(glet, value):
         if probe is glet:
             raise ValueError('cyclic parent chain')
         probe = _st(probe).parent
-    if _st(value).owner is not state.owner:
+    # O greenlet morto já não tem thread (o C zera o `thread_state` dele ao acabar): só o vivo prende a thread.
+    if not _st(value).dead and _st(value).owner is not state.owner:
         raise ValueError('parent cannot be on a different thread')
     state.parent = value
 

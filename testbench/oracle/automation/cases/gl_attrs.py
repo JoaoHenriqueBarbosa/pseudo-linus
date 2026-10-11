@@ -128,3 +128,62 @@ t('dead throw', lambda: type(dead.throw()).__name__)
 t('dead throw twice', lambda: type(dead.throw()).__name__)
 t('self throw exit', lambda: type(greenlet.getcurrent().throw()).__name__)
 t('throw bad tb', lambda: greenlet.getcurrent().throw(Exception, Exception(), object()))
+
+
+def _reparent_cases():
+    import time
+    another = []
+
+    def worker():
+        g = G(lambda: None)
+        another.append(g)
+        g.switch()
+
+    th = threading.Thread(target=worker)
+    th.start()
+    th.join(10)
+    time.sleep(0.2)
+
+    def direct():
+        g = G(lambda: None)
+        g.parent = another[0]
+        return 'set'
+
+    t('reparent to dead of exited thread', direct)
+
+    class convoluted(G):
+        def __getattribute__(self, name):
+            if name == 'run':
+                self.parent = another[0]
+            return G.__getattribute__(self, name)
+
+    t('switch after reparent, thread exited', lambda: convoluted(lambda: None).switch())
+    del another[:]
+    another2 = []
+    alive = threading.Event()
+    stop = threading.Event()
+
+    def worker2():
+        g = G(lambda: None)
+        another2.append(g)
+        g.switch()
+        alive.set()
+        stop.wait(10)
+
+    th2 = threading.Thread(target=worker2)
+    th2.start()
+    alive.wait(10)
+    another[:] = another2
+    out = []
+    try:
+        convoluted(lambda: None).switch()
+    except greenlet.error as e:
+        out.append(str(e).split('\n')[0])
+        out.append('Current:' in str(e) and 'Expected:' in str(e))
+    print('switch after reparent, thread alive', out)
+    stop.set()
+    th2.join(10)
+    del another[:]
+
+
+_reparent_cases()
