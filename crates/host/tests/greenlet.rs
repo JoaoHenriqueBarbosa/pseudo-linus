@@ -382,3 +382,13 @@ fn frame_chain_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_frame_chain.out"),
     );
 }
+
+/// `UnswitchableGreenlet` (o ajudante de teste do greenlet): a troca que falha de propósito é `SystemError`.
+#[test]
+fn unswitchable_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_unswitchable",
+        include_str!("../../../testbench/oracle/automation/cases/gl_unswitchable.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_unswitchable.out"),
+    );
+}
