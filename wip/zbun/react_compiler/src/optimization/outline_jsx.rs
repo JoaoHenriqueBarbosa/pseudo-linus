@@ -274,13 +274,13 @@ fn collect_props(
         while seen.contains(buf.as_slice()) {
             buf.clear();
             buf.extend_from_slice(old_name);
-            buf.extend_from_slice(itoa.format(id_counter).as_bytes());
+            buf.extend_from_slice(bun_core::fmt::itoa(&mut itoa, id_counter));
             id_counter += 1;
         }
         // TS: env.programContext.addNewReference(newName)
         // We don't have programContext in Rust, but this is needed for unique name tracking
         let stored = HirStr::new(&buf);
-        seen.insert(stored);
+        seen.insert(stored.clone());
         stored
     };
 
@@ -296,7 +296,7 @@ fn collect_props(
                     JsxAttribute::Attribute { name, place } => {
                         let new_name = generate_name(name.slice(), env);
                         attributes.push(OutlinedJsxAttribute {
-                            original_name: *name,
+                            original_name: name.clone(),
                             new_name,
                             place: place.clone(),
                         });
@@ -316,7 +316,7 @@ fn collect_props(
                     }
 
                     let child_name = match &env.identifiers[child_id.0 as usize].name {
-                        Some(IdentifierName::Named(n)) | Some(IdentifierName::Promoted(n)) => *n,
+                        Some(IdentifierName::Named(n)) | Some(IdentifierName::Promoted(n)) => n.clone(),
                         None => unreachable!("promoted above"),
                     };
                     let new_name = generate_name(b"t", env);

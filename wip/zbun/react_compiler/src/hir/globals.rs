@@ -160,8 +160,8 @@ impl GlobalRegistry {
             .then(|| BASE_GLOBAL_INDEX.keys())
             .into_iter()
             .flatten()
-            // SAFETY: comptime_string_map! keys are ASCII byte-string literals.
-            .map(|k| unsafe { core::str::from_utf8_unchecked(k) })
+            // As chaves do comptime_string_map! são literais ASCII.
+            .map(|k| core::str::from_utf8(k).expect("chave ASCII"))
             .filter(move |k| !entries.contains_key(*k));
         entries.keys().map(|k| &**k).chain(base_keys)
     }
@@ -197,8 +197,8 @@ static BASE: LazyLock<BaseRegistries> = LazyLock::new(|| {
     let mut globals: Vec<Global> = Vec::with_capacity(BASE_GLOBAL_INDEX.len());
     for (key, &idx) in BASE_GLOBAL_INDEX.entries() {
         debug_assert_eq!(idx, globals.len());
-        // SAFETY: comptime_string_map! keys are ASCII byte-string literals.
-        let key = unsafe { core::str::from_utf8_unchecked(key) };
+        // As chaves do comptime_string_map! são literais ASCII.
+        let key = core::str::from_utf8(key).expect("chave ASCII");
         let value = globals_map
             .remove(key)
             .unwrap_or_else(|| panic!("BASE_GLOBAL_INDEX key '{key}' missing from built globals"));

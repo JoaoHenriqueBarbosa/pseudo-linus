@@ -105,7 +105,7 @@ pub(crate) fn outline_functions(
                     .id.clone()
                     .or(env.functions[function_id.0 as usize].name_hint.clone());
                 let generated_name =
-                    env.generate_globally_unique_identifier_name(hint.map(|s| s.slice()));
+                    env.generate_globally_unique_identifier_name(hint.as_ref().map(|s| s.slice()));
 
                 // Set the id on the inner function
                 env.functions[function_id.0 as usize].id = Some(generated_name.clone());

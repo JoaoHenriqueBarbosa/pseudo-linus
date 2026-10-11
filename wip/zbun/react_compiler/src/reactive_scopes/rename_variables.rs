@@ -80,7 +80,7 @@ impl Scopes {
                 buf.extend_from_slice(original_value);
                 buf.push(b'$');
             }
-            buf.extend_from_slice(itoa.format(n).as_bytes());
+            buf.extend_from_slice(bun_core::fmt::itoa(&mut itoa, n));
         };
         if is_promoted_temp || is_promoted_jsx {
             regen(&mut name, id);
@@ -96,11 +96,11 @@ impl Scopes {
 
         let stored = HirStr::new(&name);
         self.seen
-            .insert(declaration_id, IdentifierName::Named(stored));
+            .insert(declaration_id, IdentifierName::Named(stored.clone()));
         self.stack
             .last_mut()
             .unwrap()
-            .insert(stored, declaration_id);
+            .insert(stored.clone(), declaration_id);
         self.names.insert(stored);
     }
 
@@ -225,7 +225,8 @@ fn rename_variables_with_parent(
     // parent function body and processed within the parent's scope context.
     if let Some(parent) = parent_names {
         scopes.enter();
-        for &name in parent {
+        for name in parent {
+            let name = name.clone();
             scopes
                 .stack
                 .last_mut()

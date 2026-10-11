@@ -21,7 +21,7 @@ pub(crate) use indexmap::map::Entry;
 // IndexMap
 // ──────────────────────────────────────────────────────────────────────────
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct IndexMap<K, V>(indexmap::IndexMap<K, V, FxBuildHasher>);
 
 impl<K, V> IndexMap<K, V> {
@@ -36,6 +36,14 @@ impl<K: Hash + Eq, V> IndexMap<K, V> {
         self.0.shift_remove(key)
     }
 }
+
+impl<K: Hash + Eq, V: PartialEq> PartialEq for IndexMap<K, V> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<K: Hash + Eq, V: Eq> Eq for IndexMap<K, V> {}
 
 impl<K, V> Deref for IndexMap<K, V> {
     type Target = indexmap::IndexMap<K, V, FxBuildHasher>;
@@ -96,7 +104,7 @@ impl<'a, K, V> IntoIterator for &'a IndexMap<K, V> {
 // IndexSet
 // ──────────────────────────────────────────────────────────────────────────
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct IndexSet<K>(indexmap::IndexSet<K, FxBuildHasher>);
 
 impl<K> IndexSet<K> {
@@ -104,6 +112,14 @@ impl<K> IndexSet<K> {
         Self(indexmap::IndexSet::with_hasher(FxBuildHasher))
     }
 }
+
+impl<K: Hash + Eq> PartialEq for IndexSet<K> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<K: Hash + Eq> Eq for IndexSet<K> {}
 
 impl<K> Deref for IndexSet<K> {
     type Target = indexmap::IndexSet<K, FxBuildHasher>;

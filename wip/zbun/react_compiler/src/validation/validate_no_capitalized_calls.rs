@@ -69,7 +69,7 @@ pub(crate) fn validate_no_capitalized_calls(
                             .first()
                             .is_some_and(u8::is_ascii_uppercase)
                         {
-                            capitalized_properties.insert(lvalue_id, *prop_name.clone());
+                            capitalized_properties.insert(lvalue_id, prop_name.clone());
                         }
                     }
                 }

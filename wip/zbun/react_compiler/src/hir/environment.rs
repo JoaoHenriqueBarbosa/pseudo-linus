@@ -427,7 +427,7 @@ impl Environment {
 
                 // Try module type provider. We resolve first, then do property
                 // lookup on the cloned result to avoid double-borrow of self.
-                let module_type = self.resolve_module_type(*module.clone());
+                let module_type = self.resolve_module_type(module.clone());
 
                 // Check for module type validation errors (hook-name vs hook-type mismatches)
                 if let Some(errors) = self.module_type_errors.remove(module) {
@@ -474,7 +474,7 @@ impl Environment {
                     return Ok(None);
                 }
 
-                let module_type = self.resolve_module_type(*module.clone());
+                let module_type = self.resolve_module_type(module.clone());
 
                 // Check for module type validation errors (hook-name vs hook-type mismatches)
                 if let Some(errors) = self.module_type_errors.remove(module) {
@@ -640,7 +640,7 @@ impl Environment {
         }
 
         // Check pre-resolved provider results first, then fall back to default
-        let module_str = core::str::from_utf8(module_name.clone().slice()).ok();
+        let module_str = core::str::from_utf8(module_name.slice()).ok();
         let module_config = self
             .config
             .module_type_provider
@@ -801,7 +801,7 @@ impl Environment {
         }
 
         let result = HirStr::new(&uid);
-        known.insert(result);
+        known.insert(result.clone());
         result
     }
 
@@ -810,7 +810,7 @@ impl Environment {
     /// matching Babel's behavior where the program scope accumulates all generated UIDs.
     pub fn seed_uid_known_names(&mut self, names: &HashSet<HirStr>) {
         match &mut self.uid_known_names {
-            Some(existing) => existing.extend(names.iter().copied()),
+            Some(existing) => existing.extend(names.iter().cloned()),
             None => self.uid_known_names = Some(names.clone()),
         }
     }

@@ -299,8 +299,8 @@ fn type_equals(a: &Type, b: &Type) -> bool {
 }
 
 fn set_name(names: &mut IdMap<IdentifierId, HirStr>, id: IdentifierId, source: &Identifier) {
-    if let Some(IdentifierName::Named(name)) = source.name {
-        names.insert(id, name);
+    if let Some(IdentifierName::Named(name)) = &source.name {
+        names.insert(id, name.clone());
     }
 }
 
@@ -818,7 +818,7 @@ fn generate_instruction_types(
                                         object_type: Box::new(value_type),
                                         object_name,
                                         property_name: PropertyNameKind::Literal {
-                                            value: PropertyLiteral::String(*name.clone()),
+                                            value: PropertyLiteral::String(name.clone()),
                                         },
                                     },
                                     shapes,
@@ -1290,7 +1290,7 @@ impl Unifier {
                 let object_type = self.try_resolve_type(v, &resolved_obj)?;
                 Some(Type::Property {
                     object_type: Box::new(object_type),
-                    object_name: *object_name.clone(),
+                    object_name: object_name.clone(),
                     property_name: property_name.clone(),
                 })
             }

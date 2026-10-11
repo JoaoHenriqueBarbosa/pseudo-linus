@@ -30,8 +30,8 @@ fn bstr(s: &[u8]) -> &BStr {
 ///
 /// Ported from TS `nameAnonymousFunctions` in `Transform/NameAnonymousFunctions.ts`.
 pub(crate) fn name_anonymous_functions(func: &mut HirFunction, env: &mut Environment) {
-    let fn_id = match func.id {
-        Some(id) => id,
+    let fn_id = match &func.id {
+        Some(id) => id.clone(),
         None => return,
     };
 
@@ -47,7 +47,7 @@ pub(crate) fn name_anonymous_functions(func: &mut HirFunction, env: &mut Environ
         // traverse into its nested functions to assign them names
         let label: &[u8] = if let Some(ref gen_name) = node.generated_name {
             gen_name.as_bytes()
-        } else if let Some(existing) = node.fn_name {
+        } else if let Some(existing) = &node.fn_name {
             existing.slice()
         } else {
             b"<anonymous>"
@@ -79,7 +79,7 @@ pub(crate) fn name_anonymous_functions(func: &mut HirFunction, env: &mut Environ
 
     // Apply name updates to the inner HirFunction in the arena
     for (function_id, name) in &update_map {
-        env.functions[function_id.0 as usize].name_hint = Some(*name.clone());
+        env.functions[function_id.0 as usize].name_hint = Some(name.clone());
     }
 
     // Update name_hint on FunctionExpression instruction values in the outer function
@@ -107,7 +107,7 @@ fn apply_name_hints_to_instructions(
         } = &mut instr.value
         {
             if let Some(new_name) = update_map.get(&lowered_func.func) {
-                *name_hint = Some(*new_name.clone());
+                *name_hint = Some(new_name.clone());
             }
         }
     }
@@ -145,7 +145,7 @@ fn name_anonymous_functions_impl(func: &HirFunction, env: &Environment) -> Vec<N
                 InstructionValue::LoadContext { place, .. }
                 | InstructionValue::LoadLocal { place, .. } => {
                     let ident = &env.identifiers[place.identifier.0 as usize];
-                    if let Some(IdentifierName::Named(name)) = ident.name {
+                    if let Some(IdentifierName::Named(name)) = &ident.name {
                         names.insert(lvalue_id, bstr(name.slice()).to_string());
                     }
                     // If the loaded place was tracked as a function, propagate
@@ -168,7 +168,7 @@ fn name_anonymous_functions_impl(func: &HirFunction, env: &Environment) -> Vec<N
                     let node = Node {
                         function_id: lowered_func.func,
                         generated_name: None,
-                        fn_name: *name.clone(),
+                        fn_name: name.clone(),
                         existing_name_hint: inner_func.name_hint.clone(),
                         inner,
                     };
@@ -193,7 +193,7 @@ fn name_anonymous_functions_impl(func: &HirFunction, env: &Environment) -> Vec<N
                         let node = &mut nodes[node_idx];
                         let var_ident = &env.identifiers[store_lvalue.place.identifier.0 as usize];
                         if node.generated_name.is_none() {
-                            if let Some(IdentifierName::Named(var_name)) = var_ident.name {
+                            if let Some(IdentifierName::Named(var_name)) = &var_ident.name {
                                 node.generated_name = Some(bstr(var_name.slice()).to_string());
                                 functions.remove(&value.identifier);
                             }

@@ -557,7 +557,7 @@ fn evaluate_instruction(
                 // No subexpressions: join all cooked quasis
                 let mut result: Vec<u8> = Vec::new();
                 for q in quasis {
-                    match q.cooked {
+                    match &q.cooked {
                         Some(cooked) => result.extend_from_slice(cooked.slice()),
                         None => return None,
                     }
@@ -580,7 +580,7 @@ fn evaluate_instruction(
             }
 
             let mut quasi_index = 0usize;
-            let mut result: Vec<u8> = quasis[quasi_index].cooked.unwrap().slice().to_vec();
+            let mut result: Vec<u8> = quasis[quasi_index].cooked.as_ref().unwrap().slice().to_vec();
             quasi_index += 1;
 
             for sub_expr in subexprs {
@@ -606,7 +606,7 @@ fn evaluate_instruction(
                     PrimitiveValue::Undefined => return None,
                 };
 
-                result.extend_from_slice(quasis[quasi_index].cooked.unwrap().slice());
+                result.extend_from_slice(quasis[quasi_index].cooked.as_ref().unwrap().slice());
                 quasi_index += 1;
             }
 
@@ -817,13 +817,6 @@ fn is_reserved_word(s: &[u8]) -> bool {
     )
 }
 
-fn push_units(out: &mut Vec<u16>, s: &bun_ast::E::EString) {
-    if s.is_utf16 {
-        out.extend_from_slice(s.slice16());
-    } else {
-        out.extend(s.slice8().iter().map(|&b| b as u16));
-    }
-}
 
 /// Check if a character is valid as the start of a JS identifier (ID_Start + _ + $).
 fn is_id_start(c: char) -> bool {
@@ -881,10 +874,9 @@ fn evaluate_binary_op(
                     _ => {
                         // Concatenate as code units: JS `+` can pair up
                         // surrogate halves split across the operands.
-                        let (le, re) = (l.estring(), r.estring());
-                        let mut units = Vec::with_capacity(le.len() + re.len());
-                        push_units(&mut units, le);
-                        push_units(&mut units, re);
+                        let mut units = Vec::with_capacity(l.len_utf16() + r.len_utf16());
+                        units.extend(l.units());
+                        units.extend(r.units());
                         Some(PrimitiveValue::String(JsString::from_code_units(&units)))
                     }
                 }

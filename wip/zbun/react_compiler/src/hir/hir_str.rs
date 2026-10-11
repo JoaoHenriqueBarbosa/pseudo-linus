@@ -39,6 +39,12 @@ impl Deref for HirStr {
     }
 }
 
+impl core::borrow::Borrow<[u8]> for HirStr {
+    fn borrow(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 impl AsRef<[u8]> for HirStr {
     fn as_ref(&self) -> &[u8] {
         &self.0

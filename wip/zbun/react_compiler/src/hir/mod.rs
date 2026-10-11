@@ -250,8 +250,8 @@ struct StackCursor<'a> {
 impl StackCursor<'_> {
     #[inline]
     fn as_str(&self) -> &str {
-        // SAFETY: `core::fmt::LowerExp` for f64 emits only ASCII.
-        unsafe { core::str::from_utf8_unchecked(&self.buf[..self.len]) }
+        // O `LowerExp` de f64 só emite ASCII.
+        core::str::from_utf8(&self.buf[..self.len]).expect("ASCII")
     }
 }
 impl core::fmt::Write for StackCursor<'_> {
@@ -1188,7 +1188,7 @@ impl IdentifierName {
     /// `#<kind><n>`, e.g. `#t12` for a promoted temporary.
     pub fn promoted(kind: u8, n: u32) -> IdentifierName {
         let mut itoa = bun_core::fmt::ItoaBuf::new();
-        let digits = itoa.format(n).as_bytes();
+        let digits = bun_core::fmt::itoa(&mut itoa, n);
         let mut buf = [0u8; 16];
         buf[0] = b'#';
         buf[1] = kind;
@@ -1418,7 +1418,7 @@ pub enum VariableBinding {
     },
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct NonLocalBinding {
     /// The original Bun symbol this reference resolves to. `Ref::NONE` for
     /// synthetic globals (e.g. `undefined` constructed during lowering with no

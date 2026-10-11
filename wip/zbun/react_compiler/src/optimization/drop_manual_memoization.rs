@@ -730,7 +730,7 @@ fn is_known_react_module(module: &[u8]) -> bool {
 /// callee). Matches upstream's `binding.name === 'React'` check plus
 /// namespace/default imports from a known React module.
 fn is_react_namespace_binding(binding: &NonLocalBinding) -> bool {
-    match binding.kind {
+    match &binding.kind {
         NonLocalKind::ImportNamespace { module, .. }
         | NonLocalKind::ImportDefault { module, .. } => is_known_react_module(module.slice()),
         _ => binding.name() == b"React",

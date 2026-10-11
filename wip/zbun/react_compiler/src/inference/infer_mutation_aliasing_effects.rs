@@ -269,125 +269,47 @@ fn hashset_of(r: ValueReason) -> ValueReasonSet {
 // ValueIdSet — compact points-to set
 // =============================================================================
 
-/// 16-byte points-to set for an identifier.
+/// Conjunto de pontos de um identificador.
 ///
-/// Typical cardinality is 1; phis with N predecessors merge N sets. The inline
-/// storage holds up to 3 `ValueId`s in 12 bytes; the 4th byte word is the
-/// length. Past 3 entries the inline words are repurposed as a heap pointer +
-/// capacity. The dense `Variables::Dense` Vec is mostly inline cells, so its
-/// `clone()` is one allocation + a memcpy.
-///
-/// Layout (64-bit only):
-///   - inline (`len <= INLINE_CAP`): `words[..len]` are `ValueId`s.
-///   - heap (`len > INLINE_CAP`): `words[0..2]` is `*mut ValueId`, `words[2]`
-///     is capacity, `len` is the element count.
-struct ValueIdSet {
-    words: [u32; 3],
-    len: u32,
-}
-
-const _: () = assert!(std::mem::size_of::<ValueIdSet>() == 16);
-const _: () = assert!(std::mem::size_of::<usize>() == 8);
+/// A cardinalidade típica é 1; um phi com N predecessores junta N conjuntos. Até 3 `ValueId` ficam inline no
+/// `SmallVec`, e só passando disso o conjunto vai para o heap. O `Variables::Dense` é quase todo de células inline,
+/// então o clone dele é uma alocação mais a cópia das células.
+#[derive(Clone)]
+struct ValueIdSet(smallvec::SmallVec<[ValueId; ValueIdSet::INLINE_CAP]>);
 
 impl ValueIdSet {
-    const INLINE_CAP: u32 = 3;
+    const INLINE_CAP: usize = 3;
 
     #[inline]
-    const fn new() -> Self {
-        ValueIdSet {
-            words: [0; 3],
-            len: 0,
-        }
+    fn new() -> Self {
+        ValueIdSet(smallvec::SmallVec::new())
     }
 
     #[inline]
     fn singleton(v: ValueId) -> Self {
-        ValueIdSet {
-            words: [v.0, 0, 0],
-            len: 1,
-        }
+        let mut set = Self::new();
+        set.0.push(v);
+        set
     }
 
     #[inline]
     fn is_empty(&self) -> bool {
-        self.len == 0
-    }
-
-    #[inline]
-    fn is_heap(&self) -> bool {
-        self.len > Self::INLINE_CAP
-    }
-
-    #[inline]
-    fn heap_ptr(&self) -> *mut ValueId {
-        debug_assert!(self.is_heap());
-        let raw = (self.words[0] as u64) | ((self.words[1] as u64) << 32);
-        raw as usize as *mut ValueId
-    }
-
-    #[inline]
-    fn set_heap_ptr(&mut self, ptr: *mut ValueId, cap: u32) {
-        let raw = ptr as usize as u64;
-        self.words[0] = raw as u32;
-        self.words[1] = (raw >> 32) as u32;
-        self.words[2] = cap;
+        self.0.is_empty()
     }
 
     #[inline]
     fn as_slice(&self) -> &[ValueId] {
-        if self.is_heap() {
-            // SAFETY: heap layout invariant — `heap_ptr()` points at a live
-            // `Vec<ValueId>` allocation of `len` initialized elements (see
-            // `push`/`clone`/`Drop`).
-            unsafe { std::slice::from_raw_parts(self.heap_ptr(), self.len as usize) }
-        } else {
-            // SAFETY: `ValueId` is `#[repr(transparent)]` over `u32`, so the
-            // inline `[u32; 3]` is layout-identical to `[ValueId; 3]`; `len <=
-            // INLINE_CAP` in this branch.
-            unsafe {
-                std::slice::from_raw_parts(self.words.as_ptr().cast::<ValueId>(), self.len as usize)
-            }
-        }
+        &self.0
     }
 
     #[inline]
     fn contains(&self, v: ValueId) -> bool {
-        self.as_slice().iter().any(|x| x.0 == v.0)
+        self.0.iter().any(|x| x.0 == v.0)
     }
 
+    #[inline]
     fn push(&mut self, v: ValueId) {
-        if self.is_heap() {
-            let cap = self.words[2];
-            if self.len == cap {
-                let new_cap = cap * 2;
-                // SAFETY: heap layout invariant — `heap_ptr()/len/cap` are the
-                // exact `(ptr, len, cap)` triple stored by the previous
-                // `push`/`clone`, originating from a `Vec<ValueId>` allocation.
-                let mut vec = std::mem::ManuallyDrop::new(unsafe {
-                    Vec::from_raw_parts(self.heap_ptr(), self.len as usize, cap as usize)
-                });
-                vec.reserve_exact((new_cap - cap) as usize);
-                vec.push(v);
-                self.set_heap_ptr(vec.as_mut_ptr(), vec.capacity() as u32);
-                self.len = vec.len() as u32;
-            } else {
-                // SAFETY: `len < cap`, so `heap_ptr().add(len)` lies within the
-                // owned allocation; `ValueId` is `Copy` so no drop is skipped.
-                unsafe { *self.heap_ptr().add(self.len as usize) = v };
-                self.len += 1;
-            }
-        } else if self.len < Self::INLINE_CAP {
-            self.words[self.len as usize] = v.0;
-            self.len += 1;
-        } else {
-            let mut vec = std::mem::ManuallyDrop::new(Vec::<ValueId>::with_capacity(8));
-            vec.push(ValueId(self.words[0]));
-            vec.push(ValueId(self.words[1]));
-            vec.push(ValueId(self.words[2]));
-            vec.push(v);
-            self.set_heap_ptr(vec.as_mut_ptr(), vec.capacity() as u32);
-            self.len = vec.len() as u32;
-        }
+        self.0.push(v);
     }
 
     /// Set-insert: push if absent. Returns `true` if inserted.
@@ -403,42 +325,7 @@ impl ValueIdSet {
 
     #[inline]
     fn iter(&self) -> std::slice::Iter<'_, ValueId> {
-        self.as_slice().iter()
-    }
-}
-
-impl Clone for ValueIdSet {
-    #[inline]
-    fn clone(&self) -> Self {
-        if self.is_heap() {
-            let mut vec = std::mem::ManuallyDrop::new(self.as_slice().to_vec());
-            let mut out = ValueIdSet {
-                words: [0; 3],
-                len: vec.len() as u32,
-            };
-            out.set_heap_ptr(vec.as_mut_ptr(), vec.capacity() as u32);
-            out
-        } else {
-            ValueIdSet {
-                words: self.words,
-                len: self.len,
-            }
-        }
-    }
-}
-
-impl Drop for ValueIdSet {
-    #[inline]
-    fn drop(&mut self) {
-        if self.is_heap() {
-            let cap = self.words[2] as usize;
-            // SAFETY: heap layout invariant — exactly the `(ptr, len, cap)`
-            // produced by `push`/`clone` from a `Vec<ValueId>` allocation, and
-            // `ValueIdSet` is not `Copy`, so this is the unique owner.
-            unsafe {
-                drop(Vec::from_raw_parts(self.heap_ptr(), self.len as usize, cap));
-            }
-        }
+        self.0.iter()
     }
 }
 
@@ -470,64 +357,12 @@ impl<'a> IntoIterator for &'a ValueIdSet {
 /// same Vec would be thousands of empty slots for a handful of live ids, so
 /// those keep a `HashMap`.
 ///
-/// `any_heap` records whether any `Dense` slot has spilled past
-/// [`ValueIdSet::INLINE_CAP`]. While it stays `false` (the overwhelming
-/// common case) the slab is plain data — `Clone` is one `memcpy` and `Drop` is
-/// one deallocation, with no per-element loop.
+#[derive(Clone)]
 enum Variables {
     Dense {
         vec: Vec<ValueIdSet>,
-        any_heap: bool,
     },
     Sparse(HashMap<IdentifierId, ValueIdSet>),
-}
-
-impl Clone for Variables {
-    fn clone(&self) -> Self {
-        match self {
-            Variables::Dense { vec, any_heap } => {
-                let len = vec.len();
-                let mut out = Vec::<ValueIdSet>::with_capacity(len);
-                let dst = out.as_mut_ptr();
-                // SAFETY: `dst` has `len` uninitialized slots. Inline cells are
-                // valid as bitcopies; heap cells are overwritten with a fresh
-                // allocation via `ptr::write` (no drop of the bit-aliased
-                // pointer) before `set_len` makes `dst` droppable.
-                unsafe {
-                    std::ptr::copy_nonoverlapping(vec.as_ptr(), dst, len);
-                    if *any_heap {
-                        for (i, src) in vec.iter().enumerate() {
-                            if src.is_heap() {
-                                dst.add(i).write(src.clone());
-                            }
-                        }
-                    }
-                    out.set_len(len);
-                }
-                Variables::Dense {
-                    vec: out,
-                    any_heap: *any_heap,
-                }
-            }
-            Variables::Sparse(m) => Variables::Sparse(m.clone()),
-        }
-    }
-}
-
-impl Drop for Variables {
-    #[inline]
-    fn drop(&mut self) {
-        if let Variables::Dense {
-            vec,
-            any_heap: false,
-        } = self
-        {
-            // SAFETY: every element is inline (no owned heap), so dropping
-            // them is a no-op; clearing `len` lets `Vec`'s own drop deallocate
-            // without the per-element `ValueIdSet::drop` loop.
-            unsafe { vec.set_len(0) };
-        }
-    }
 }
 
 impl Variables {
@@ -553,8 +388,7 @@ impl Variables {
     fn insert(&mut self, id: IdentifierId, set: ValueIdSet) {
         debug_assert!(!set.is_empty());
         match self {
-            Variables::Dense { vec, any_heap } => {
-                *any_heap |= set.is_heap();
+            Variables::Dense { vec } => {
                 let i = id.0 as usize;
                 if i >= vec.len() {
                     vec.resize_with(i + 1, ValueIdSet::new);
@@ -568,18 +402,16 @@ impl Variables {
     }
 
     /// Set-union `values` into the existing entry at `id`. No-op if `id` is
-    /// undefined. Only call site of the former `get_mut_defined`, folded in so
-    /// `any_heap` stays accurate.
+    /// undefined.
     fn extend_values(&mut self, id: IdentifierId, values: &ValueIdSet) {
         match self {
-            Variables::Dense { vec, any_heap } => {
+            Variables::Dense { vec } => {
                 let Some(prev) = vec.get_mut(id.0 as usize).filter(|s| !s.is_empty()) else {
                     return;
                 };
                 for v in values {
                     prev.insert(*v);
                 }
-                *any_heap |= prev.is_heap();
             }
             Variables::Sparse(m) => {
                 let Some(prev) = m.get_mut(&id) else {
@@ -640,10 +472,7 @@ impl InferenceState {
         } else {
             let mut vec = Vec::with_capacity(identifier_capacity);
             vec.resize_with(identifier_capacity, ValueIdSet::new);
-            Variables::Dense {
-                vec,
-                any_heap: false,
-            }
+            Variables::Dense { vec }
         };
         InferenceState {
             values: Vec::new(),
@@ -825,10 +654,7 @@ impl InferenceState {
 
         match (&mut self.variables, &other.variables) {
             (
-                Variables::Dense {
-                    vec: this,
-                    any_heap,
-                },
+                Variables::Dense { vec: this },
                 Variables::Dense { vec: that, .. },
             ) => {
                 if that.len() > this.len() {
@@ -849,7 +675,6 @@ impl InferenceState {
                             }
                         }
                     }
-                    *any_heap |= this_values.is_heap();
                 }
             }
             (Variables::Sparse(this), Variables::Sparse(that)) => {
