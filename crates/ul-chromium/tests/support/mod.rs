@@ -1,7 +1,11 @@
-//! O que os testes de perfil do `--dump-dom` repartem.
+//! O que os testes de perfil do `--dump-dom` e do DevTools repartem.
+#![allow(dead_code)]
+
+use std::time::Duration;
 
 use sysabi::sys;
 use sysabi::*;
+use ul_chromium::devtools::websocket;
 
 /// Responde toda requisição com a página, em HTTP/1.0 como o `http.server` do Python.
 pub fn serve(listener: Fd, page: &'static str) -> i32 {
@@ -20,4 +24,68 @@ pub fn serve(listener: Fd, page: &'static str) -> i32 {
         let _ = sys::write_all(fd, response.as_bytes());
         let _ = sys::close(fd);
     }
+}
+
+/// Escreve todos os bytes no descritor.
+pub fn send_all(fd: Fd, bytes: &[u8]) {
+    let mut at = 0;
+    while at < bytes.len() {
+        at += sys::write(fd, &bytes[at..]).unwrap();
+    }
+}
+
+/// Um quadro de texto do cliente, mascarado como a RFC exige.
+pub fn client_frame(text: &str) -> Vec<u8> {
+    let mut frame = websocket::encode(websocket::TEXT, text.as_bytes());
+    let header = frame.len() - text.len();
+    frame[1] |= 0x80;
+    let mask = [0x12u8, 0x34, 0x56, 0x78];
+    let mut body = frame.split_off(header);
+    body.iter_mut().enumerate().for_each(|(i, b)| *b ^= mask[i % 4]);
+    frame.extend_from_slice(&mask);
+    frame.extend(body);
+    frame
+}
+
+/// Espera a porta do DevTools abrir, pega a URL do navegador em `/json/version` e faz o upgrade do WebSocket; devolve o
+/// descritor já no protocolo.
+pub fn open_browser_socket(port: u16) -> Fd {
+    let s = sys::current();
+    let lo: std::net::IpAddr = std::net::Ipv4Addr::LOCALHOST.into();
+    let fd = (0..500)
+        .find_map(|_| match s.tcp_connect_at(lo, port, false, true) {
+            Ok((fd, _)) => Some(fd),
+            Err(_) => {
+                let mut none: [PollFd; 0] = [];
+                let _ = s.poll(&mut none, Some(Duration::from_millis(20)));
+                None
+            }
+        })
+        .expect("o DevTools não abriu a porta");
+    send_all(fd, format!("GET /json/version HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n\r\n").as_bytes());
+    let mut response = Vec::new();
+    let mut buffer = [0u8; 65536];
+    let version: serde_json::Value = loop {
+        let n = sys::read(fd, &mut buffer).unwrap();
+        response.extend_from_slice(&buffer[..n]);
+        let text = String::from_utf8_lossy(&response).into_owned();
+        if let Some((head, body)) = text.split_once("\r\n\r\n") {
+            let length: usize = head.split("Content-Length:").nth(1).unwrap().split("\r\n").next().unwrap().parse().unwrap();
+            if body.len() >= length {
+                break serde_json::from_str(body).unwrap();
+            }
+        }
+    };
+    let path = version["webSocketDebuggerUrl"].as_str().unwrap().split(&format!("{port}")).nth(1).unwrap().to_owned();
+    send_all(
+        fd,
+        format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n").as_bytes(),
+    );
+    let mut head = Vec::new();
+    while !head.ends_with(b"\r\n\r\n") {
+        let mut byte = [0u8; 1];
+        sys::read(fd, &mut byte).unwrap();
+        head.push(byte[0]);
+    }
+    fd
 }

@@ -174,6 +174,19 @@ impl Browser {
     }
 
     /// O perfil do contexto padrão, o do `--user-data-dir`.
+    /// O History do contexto padrão: o título da primeira aba entra na linha e o commit de 10 segundos, se já é a hora.
+    fn flush_history(&self) {
+        let Some(history) = &self.default_profile().history else { return };
+        self.sync_history_title(history);
+        history.flush_due((ul_common::time::realtime_nanos() / 1000) as i64);
+    }
+
+    fn sync_history_title(&self, history: &crate::history::HistoryLog) {
+        if let Some(page) = self.targets.iter().find(|target| target.kind == "page") {
+            history.set_title(&page.title);
+        }
+    }
+
     fn default_profile(&self) -> &std::sync::Arc<crate::session::Profile> {
         &self.profiles[&self.context_id]
     }
@@ -876,6 +889,7 @@ impl Browser {
                 self.quit.get_or_insert(Exit::Signal);
             }
             self.default_profile().flush_due();
+            self.flush_history();
             let mut at = 0;
             if let Some(listener) = listener {
                 if fds[0].revents.contains(PollEvents::IN) {
@@ -925,7 +939,17 @@ pub fn run(ctx: &mut Ctx, options: &Options, url: &str, default_profile: crate::
     if options.pipe {
         browser.add_conn(Fd(3), Transport::Pipe { output: Fd(4) });
     }
+    let started_us = (ul_common::time::realtime_nanos() / 1000) as i64;
     browser.open_target(url, true, false, None);
+    if let Some(history) = &browser.default_profile().history {
+        history.record(crate::history::Navigation { url: url.to_owned(), title: String::new(), start_us: started_us });
+    }
     browser.serve(listener);
-    browser.quit.unwrap_or(Exit::Signal)
+    let exit = browser.quit.unwrap_or(Exit::Signal);
+    // O `Browser.close` fecha a visita; o SIGTERM só vale o que o commit de 10 segundos já gravou.
+    if let (Exit::Close, Some(history)) = (exit, &browser.default_profile().history) {
+        browser.sync_history_title(history);
+        history.close((ul_common::time::realtime_nanos() / 1000) as i64);
+    }
+    exit
 }

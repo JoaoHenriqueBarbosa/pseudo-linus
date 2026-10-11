@@ -200,18 +200,20 @@ pub struct Profile {
     local_storage: Option<Arc<LocalStorageStore>>,
     /// O banco do `sessionStorage`: cada aba ganha o `namespace` dela nele.
     session_storage: Option<Arc<SessionStorageStore>>,
+    /// O History do navegador de pé: a navegação da aba entra no banco 10 segundos depois ou no `Browser.close`.
+    pub history: Option<Arc<crate::history::HistoryLog>>,
 }
 
 impl Profile {
     /// O perfil do `--user-data-dir`: o `localStorage` e o IndexedDB persistem nos bancos dele.
     pub fn on_disk(local_storage: Option<Arc<LocalStorageStore>>, indexed_db: Option<Arc<IndexedDbStore>>) -> Profile {
         let store = local_storage.clone().map(|store| store as Arc<dyn AreaStore>);
-        Profile { local: Mutex::new(Areas { map: HashMap::new(), store }), indexed_db: indexed_db.unwrap_or_default(), local_storage, session_storage: None }
+        Profile { local: Mutex::new(Areas { map: HashMap::new(), store }), indexed_db: indexed_db.unwrap_or_default(), local_storage, session_storage: None, history: None }
     }
 
     /// O perfil com todos os bancos do `DiskProfile`, o `sessionStorage` incluído.
     pub fn from_disk(disk: &DiskProfile) -> Profile {
-        Profile { session_storage: disk.session_storage(), ..Profile::on_disk(disk.local_storage(), disk.indexed_db()) }
+        Profile { session_storage: disk.session_storage(), history: disk.history_log(), ..Profile::on_disk(disk.local_storage(), disk.indexed_db()) }
     }
 
     /// Algum banco do perfil grava o que as páginas guardam.

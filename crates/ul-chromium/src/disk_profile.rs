@@ -42,7 +42,10 @@ const LOCAL_STORAGE_DB: &[u8] = b"Default/Local Storage/leveldb";
 /// O diretório do banco do Session Storage: apagado e recriado a cada início, pelo leveldb próprio.
 const SESSION_STORAGE_DB: &[u8] = b"Default/Session Storage";
 /// Os arquivos do molde que uma execução seguinte encontra e mantém, como o Chromium faz.
-const KEPT_ACROSS_RUNS: [&[u8]; 2] = [b"Default/History", b"Default/History-journal"];
+const KEPT_ACROSS_RUNS: [&[u8]; 1] = [b"Default/History"];
+/// O journal do History: o molde o deixa quente (66176 bytes) quando o navegador de pé sai sem o commit de 10 segundos;
+/// com a visita já no banco ele fica vazio.
+const HISTORY_JOURNAL: &[u8] = b"Default/History-journal";
 /// Os bancos que o molde traz mas que o leveldb próprio grava.
 const OWN_DBS: [&[u8]; 2] = [LOCAL_STORAGE_DB, SESSION_STORAGE_DB];
 /// O `shared_proto_db`: no `--dump-dom` o leveldb próprio o grava (o molde só vale para a primeira execução do DevTools).
@@ -284,6 +287,8 @@ pub struct DiskProfile {
     session_storage: Option<Arc<SessionStorageStore>>,
     /// O IndexedDB do perfil, criado na primeira vez que o navegador o pede.
     indexed_db: OnceLock<Arc<IndexedDbStore>>,
+    /// O History do navegador de pé, criado na primeira vez que o DevTools o pede.
+    history: OnceLock<Arc<history::HistoryLog>>,
     /// As navegações da aba nesta execução, para o History.
     navigations: Mutex<Vec<Navigation>>,
     /// As respostas que o navegador buscou nesta execução, cada uma com a página de topo, para o cache de disco.
@@ -315,7 +320,7 @@ impl DiskProfile {
             Some(path) if !path.is_empty() => path,
             _ => [home.as_slice(), b"/.config"].concat(),
         };
-        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None, indexed_db: OnceLock::new(), navigations: Mutex::new(Vec::new()), resources: Mutex::new(Vec::new()), window_id: random_below(1 << 31) as i64 }
+        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None, indexed_db: OnceLock::new(), history: OnceLock::new(), navigations: Mutex::new(Vec::new()), resources: Mutex::new(Vec::new()), window_id: random_below(1 << 31) as i64 }
     }
 
     /// O IndexedDB do perfil (`Default/IndexedDB`): cada origem ganha o leveldb dela no primeiro uso.
@@ -403,6 +408,26 @@ impl DiskProfile {
         }
     }
 
+    /// O History do navegador de pé (DevTools): o commit de 10 segundos e o `Browser.close` o gravam. Sem
+    /// `--user-data-dir` não há History.
+    pub fn history_log(&self) -> Option<Arc<history::HistoryLog>> {
+        let dir = self.user_data_dir.as_deref()?;
+        let path = String::from_utf8_lossy(&[dir, b"/Default/History"].concat()).into_owned();
+        Some(self.history.get_or_init(|| Arc::new(history::HistoryLog::new(path, self.start_us, self.window_id))).clone())
+    }
+
+    /// O journal quente do History que o navegador de pé deixa se sai antes do commit de 10 segundos com uma navegação.
+    fn leave_hot_history_journal(&self) {
+        let (Some(dir), Some(log)) = (&self.user_data_dir, self.history.get()) else { return };
+        if !log.pending() {
+            return;
+        }
+        let Ok(db) = sys::read_file(&[dir.as_slice(), b"/Default/History"].concat()) else { return };
+        if let Some(journal) = history::hot_journal(&db, u32::from_be_bytes(random_bytes::<4>())) {
+            let _ = sysabi::util::write_file(&[dir.as_slice(), b"/", HISTORY_JOURNAL].concat(), &journal, 0o600);
+        }
+    }
+
     /// O `shared_proto_db` da saída do `--dump-dom`: o roteiro de cada execução, pelo leveldb próprio.
     fn write_shared_proto_db(&self) {
         let Some(dir) = &self.user_data_dir else { return };
@@ -447,7 +472,7 @@ impl DiskProfile {
         let Some(dir) = &self.user_data_dir else { return };
         let path = String::from_utf8_lossy(&[dir.as_slice(), b"/Default/History"].concat()).into_owned();
         let navigations = self.navigations.lock().unwrap_or_else(PoisonError::into_inner);
-        let process = history::Process { start_us: self.start_us, exit_us: (ul_common::time::realtime_nanos() / 1000) as i64, window_id: self.window_id, dump: self.run == Run::DumpDom };
+        let process = history::Process { start_us: self.start_us, exit_us: (ul_common::time::realtime_nanos() / 1000) as i64, window_id: self.window_id, ending: history::Ending::Dump };
         let _ = history::write(&path, &navigations, process);
     }
 
@@ -494,6 +519,9 @@ impl DiskProfile {
         }
         let previous_preferences = self.user_data_dir.as_ref().and_then(|dir| sys::read_file(&[dir.as_slice(), b"/Default/Preferences"].concat()).ok()).map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
         let _ = self.write_layer(template(self.run), LAYER_EXIT);
+        if self.run == Run::DevTools {
+            self.leave_hot_history_journal();
+        }
         if self.run == Run::DumpDom {
             self.write_shared_proto_db();
             self.write_network_state();
@@ -550,6 +578,10 @@ impl DiskProfile {
             let path = [base, b"/", &relative].concat();
             // O que o Chromium guarda de uma execução para a outra (o History acumula as visitas) não é refeito.
             if entry.kind == KIND_FILE && KEPT_ACROSS_RUNS.contains(&relative.as_slice()) && sys::lstat(&path).is_ok() {
+                continue;
+            }
+            let committed = || self.history.get().is_some_and(|log| log.committed());
+            if entry.kind == KIND_FILE && relative.as_slice() == HISTORY_JOURNAL && (self.run == Run::DumpDom || committed()) && sys::lstat(&path).is_ok() {
                 continue;
             }
             match entry.kind {
