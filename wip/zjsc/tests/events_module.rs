@@ -6,11 +6,6 @@ use std::rc::Rc;
 const PROGRAM: &str = include_str!("golden/events_main.js");
 const EXPECTED: &str = include_str!("golden/events_main.expected.txt");
 
-/// Linhas que ainda divergem. [14]: no bun `prototype` aparece em `Object.keys(EventEmitter)` (a propriedade do builtin
-/// é enumerável e configurável); no motor o `prototype` de toda função é não configurável, então o JavaScript do
-/// módulo não consegue torná-lo enumerável. Fecha quando o `prototype` de função de builtin nascer como o do bun.
-const KNOWN_DIVERGENCES: &[usize] = &[14];
-
 #[test]
 fn events_module_matches_bun() {
     check_against_bun(None);
@@ -35,7 +30,7 @@ fn check_against_bun(stress: Option<usize>) {
         .lines()
         .zip(actual.lines())
         .enumerate()
-        .filter(|(index, (expected, actual))| expected != actual && !KNOWN_DIVERGENCES.contains(index))
+        .filter(|(_, (expected, actual))| expected != actual)
         .map(|(index, (expected, actual))| format!("[{index}]\n  esperado {expected}\n  obtido   {actual}"))
         .collect();
     assert_eq!(code, 0, "saída {code}, stderr:\n{stderr}");
