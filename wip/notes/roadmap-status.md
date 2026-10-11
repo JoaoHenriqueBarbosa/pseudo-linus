@@ -9,7 +9,7 @@ Convenção da coluna "Fonte": **eu** = medido pelo coordenador com comando pró
 por um fork na saída do container dele, não recompilado pelo coordenador; **vigente** = valor herdado de um arquivo
 versionado, com a data do arquivo.
 
-Última verificação: 2026-10-11 14:30 (CEST).
+Última verificação: 2026-10-11 14:45 (CEST).
 
 ## Ritmo medido
 
@@ -31,7 +31,7 @@ por dia no zjsc e 60 a 70 no zbun.
 
 | Marco | Critério do PRD | Estado medido | Fonte |
 |---|---|---|---|
-| M5.1 | JavaScriptCore passando 80% do test262 | **NÃO MEDIDO.** Não há harness de test262 no repositório (busca em todo o git: só menções no fonte vendorizado do JSC). A suíte de 447 arquivos de teste do zjsc é outra coisa: goldens medidos no bun 1.4.2 | eu |
+| M5.1 | JavaScriptCore passando 80% do test262 | **NÃO MEDIDO ainda.** test262 clonado fora do repositório (commit `2e0a5676`, 2026-10-07, 53 910 arquivos `.js` em `test/`, fonte **eu**); runner em escrita pelo fork da suíte. Não há harness de test262 no repositório (busca em todo o git: só menções no fonte vendorizado do JSC). A suíte de 447 arquivos de teste do zjsc é outra coisa: goldens medidos no bun 1.4.2 | eu |
 | M5.2 | `node` com CommonJS e ESM, `fs`, `path`, `http` e `npm install` | Direção trocada para o bun: `bun` é programa do userland, com CJS e ESM, `node:fs` completo, `Bun.serve` e `fetch` em loopback, `Bun.file`, streams, CLI parcial. Comando `node` e `npm install`: não existem (só `bun` está registrado) | eu |
 | M5.3 | `--dump-dom` correto em páginas com scripts simples | Cumprido além do critério: 42 de 42 páginas da internet idênticas ao Chromium 154 (meta do goal era 95% por grupo) | fork |
 | M5.4 | Recorte do Web Platform Tests acima de 90% | **NÃO MEDIDO.** Não há recorte de WPT no repositório | eu |
@@ -99,3 +99,4 @@ formais; este arquivo a substitui. Corrigido também: o PRD pede screenshot por 
 ## Registro de atualizações
 
 - 2026-10-11 14:30: arquivo criado. Achados: test262 e WPT nunca foram medidos; `--screenshot` e `--print-to-pdf` não existem; o alvo de screenshot é perceptual.
+- 2026-10-11 14:45: test262 clonado (commit `2e0a5676`, 53 910 testes); runner e baseline ainda não existem. Os 4 forks rodando.
