@@ -847,12 +847,15 @@ fn reg_exp_replace_generic(
     }
 
     // 10 a 12. results.
+    // O `MarkedArgumentBuffer results` do C++: os resultados vivem só neste vetor enquanto o callback roda JS.
+    let marked = crate::runtime::gc::RootScope::new(&[]);
     let mut results: Vec<JSValue> = Vec::new();
     loop {
         let result = reg_exp_exec(global_object, this_object, string)?;
         if result.is_null() {
             break;
         }
+        marked.append(result);
         results.push(result);
         if !global {
             break;
