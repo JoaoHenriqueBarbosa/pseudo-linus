@@ -53,7 +53,7 @@ impl ModuleHost for EntryHost {
         self.inner.position_map(key)
     }
 
-    fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+    fn build_errors(&self, key: &str) -> Option<Vec<crate::api::source_transpiler::BuildDiagnostic>> {
         self.inner.build_errors(key)
     }
 
@@ -229,7 +229,7 @@ impl ModuleHost for MemoryModuleHost {
         self.reprinted.position_map(key)
     }
 
-    fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+    fn build_errors(&self, key: &str) -> Option<Vec<crate::api::source_transpiler::BuildDiagnostic>> {
         self.reprinted.build_errors(key)
     }
 
@@ -331,7 +331,7 @@ impl ModuleHost for FileUrlHost {
         self.inner.position_map(key)
     }
 
-    fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+    fn build_errors(&self, key: &str) -> Option<Vec<crate::api::source_transpiler::BuildDiagnostic>> {
         self.inner.build_errors(key)
     }
 

@@ -49,6 +49,48 @@ pub struct Transpiled {
 pub struct Error {
     pub messages: Vec<String>,
     pub report: Vec<u8>,
+    /// As mesmas mensagens com a posição e as notas de cada uma (o que o `BuildMessage` do bun expõe).
+    pub diagnostics: Vec<Diagnostic>,
+}
+
+/// Uma mensagem do log do parser: o texto, onde ela aponta e as notas que a acompanham.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Diagnostic {
+    pub message: String,
+    pub position: Option<Position>,
+    pub notes: Vec<Diagnostic>,
+}
+
+/// Onde uma mensagem aponta: `line` e `column` de 1 em diante, `offset` em bytes do fonte e `length` os bytes que o
+/// trecho destaca (os campos de `BuildMessage.position` do bun).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Position {
+    pub line_text: String,
+    pub file: String,
+    pub namespace: String,
+    pub line: i32,
+    pub column: i32,
+    pub length: usize,
+    pub offset: usize,
+}
+
+impl Diagnostic {
+    fn from_data(data: &bun_ast::Data, notes: Vec<Diagnostic>) -> Diagnostic {
+        let lossy = |bytes: &[u8]| String::from_utf8_lossy(bytes).into_owned();
+        Diagnostic {
+            message: lossy(&data.text),
+            position: data.location.as_ref().map(|l| Position {
+                line_text: l.line_text.as_deref().map(lossy).unwrap_or_default(),
+                file: lossy(&l.file),
+                namespace: lossy(&l.namespace),
+                line: l.line,
+                column: l.column,
+                length: l.length,
+                offset: l.offset,
+            }),
+            notes,
+        }
+    }
 }
 
 impl core::fmt::Display for Error {
@@ -61,7 +103,7 @@ impl std::error::Error for Error {}
 
 fn fail(text: impl Into<String>) -> Error {
     let text = text.into();
-    Error { report: format!("error: {text}\n").into_bytes(), messages: vec![text] }
+    Error { report: format!("error: {text}\n").into_bytes(), diagnostics: vec![Diagnostic { message: text.clone(), position: None, notes: Vec::new() }], messages: vec![text] }
 }
 
 /// O loader que o bun escolhe pela extensão; `None` para o que o transpilador de JavaScript não trata (`.json`,
@@ -164,7 +206,13 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
         }
         let mut report = Vec::new();
         let _ = log.print(&mut report);
-        Error { messages, report }
+        let diagnostics = log
+            .msgs
+            .iter()
+            .filter(|m| m.kind == bun_ast::Kind::Err)
+            .map(|m| Diagnostic::from_data(&m.data, m.notes.iter().map(|n| Diagnostic::from_data(n, Vec::new())).collect()))
+            .collect();
+        Error { messages, report, diagnostics }
     };
     let parser = match Parser::init(opts, &mut log, &source, &define, &arena) {
         Ok(parser) => parser,

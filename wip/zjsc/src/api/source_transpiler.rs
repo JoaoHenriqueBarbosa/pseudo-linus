@@ -24,14 +24,42 @@ pub struct TranspiledSource {
     pub is_commonjs: bool,
 }
 
+/// Onde uma mensagem do transpilador aponta (os campos de `BuildMessage.position` do bun): `line` e `column` de 1 em
+/// diante, `offset` em bytes do fonte e `length` os bytes que o trecho destaca.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BuildPosition {
+    pub line_text: String,
+    pub file: String,
+    pub namespace: String,
+    pub line: i32,
+    pub column: i32,
+    pub length: usize,
+    pub offset: usize,
+}
+
+/// Um erro do transpilador: o texto, a posição (quando há) e as notas que o acompanham, o que o `BuildMessage` do bun expõe.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BuildDiagnostic {
+    pub message: String,
+    pub position: Option<BuildPosition>,
+    pub notes: Vec<BuildDiagnostic>,
+}
+
+impl BuildDiagnostic {
+    /// Uma mensagem sem posição nem notas.
+    pub fn plain(message: impl Into<String>) -> BuildDiagnostic {
+        BuildDiagnostic { message: message.into(), position: None, notes: Vec::new() }
+    }
+}
+
 /// O transpilador que o hospedeiro instala.
 pub trait SourceTranspiler {
     /// Transpila o arquivo `path` (o loader sai da extensão). `None` quando o caminho não é de JavaScript nem de
-    /// TypeScript (o texto segue como está); `Some(Err)` quando o fonte não parseia, com o texto de cada erro (o carregador de módulos os relata como o bun, `BuildMessage`;
+    /// TypeScript (o texto segue como está); `Some(Err)` quando o fonte não parseia, com cada erro (texto, posição e notas; o carregador de módulos os relata como o bun, `BuildMessage`;
     /// os outros caminhos entregam o texto cru e o motor relata o próprio `SyntaxError`).
     /// `compile_body`: o texto é o corpo de `module._compile`, que o chamador embrulha (sem função de wrapper no
     /// texto devolvido).
-    fn transpile(&self, path: &str, source: &str, compile_body: bool) -> Option<Result<TranspiledSource, Vec<String>>>;
+    fn transpile(&self, path: &str, source: &str, compile_body: bool) -> Option<Result<TranspiledSource, Vec<BuildDiagnostic>>>;
 }
 
 thread_local! {
@@ -57,7 +85,7 @@ pub fn transpile_source(path: &str, source: &str, compile_body: bool) -> Option<
 }
 
 /// Como [`transpile_source`], mas o fonte que não parseia devolve o texto de cada erro.
-pub(crate) fn attempt_transpile(path: &str, source: &str, compile_body: bool) -> Option<Result<Transpiled, Vec<String>>> {
+pub(crate) fn attempt_transpile(path: &str, source: &str, compile_body: bool) -> Option<Result<Transpiled, Vec<BuildDiagnostic>>> {
     let transpiler = TRANSPILER.with(|slot| slot.borrow().clone())?;
     let done = match transpiler.transpile(path, source, compile_body)? {
         Ok(done) => done,
@@ -80,7 +108,7 @@ pub fn has_source_transpiler() -> bool {
 #[derive(Default)]
 pub struct ReprintedModules {
     maps: RefCell<HashMap<String, Rc<PositionMap>>>,
-    failures: RefCell<HashMap<String, Vec<String>>>,
+    failures: RefCell<HashMap<String, Vec<BuildDiagnostic>>>,
     /// Os arquivos que o transpilador classificou como CommonJS, por chave: o `import` deles roda o wrapper.
     commonjs: RefCell<HashMap<String, Rc<Transpiled>>>,
 }
@@ -115,7 +143,7 @@ impl ReprintedModules {
     }
 
     /// Os erros do transpilador para o módulo `key`, quando ele o recusou.
-    pub fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+    pub fn build_errors(&self, key: &str) -> Option<Vec<BuildDiagnostic>> {
         self.failures.borrow().get(key).cloned()
     }
 }

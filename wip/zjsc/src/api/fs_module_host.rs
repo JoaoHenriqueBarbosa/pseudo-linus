@@ -68,7 +68,7 @@ impl ModuleHost for FsModuleHost {
         self.reprinted.commonjs_module(key)
     }
 
-    fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+    fn build_errors(&self, key: &str) -> Option<Vec<crate::api::source_transpiler::BuildDiagnostic>> {
         self.reprinted.build_errors(key)
     }
 

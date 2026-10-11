@@ -30,6 +30,7 @@
 //!   `moduleLoaderImportModule` do Bun calcula), `-1` sem referrer ou fora de avaliação assíncrona.
 //! - O loader vive num `thread_local` (um `VM` por thread, um realm), como o registro de células.
 
+use crate::api::source_transpiler::{BuildDiagnostic, BuildPosition};
 use crate::runtime::js_promise_host::PromiseHost;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -130,7 +131,7 @@ pub trait ModuleHost {
     /// As mensagens de erro do transpilador de fonte para `key`, quando ele recusou o texto que `fetch` acabou de
     /// devolver (o bun relata o arquivo que não parseia como `BuildMessage`, ou `AggregateError` com vários erros,
     /// e não como o `SyntaxError` do motor).
-    fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+    fn build_errors(&self, key: &str) -> Option<Vec<crate::api::source_transpiler::BuildDiagnostic>> {
         let _ = key;
         None
     }
@@ -242,6 +243,8 @@ pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: c
     let messages = crate::runtime::gc::side_table(&MESSAGE_STATES, marker, phase, |state, out| {
         out.extend(state.message_override);
         out.extend(state.stack_override);
+        out.extend(state.build.position_cache);
+        out.extend(state.build.notes_cache);
     });
     let imports = crate::runtime::gc::side_table(&PENDING_IMPORTS, marker, phase, |_, _| {});
     messages | imports
@@ -284,6 +287,26 @@ struct MessageState {
     /// O que o programa gravou em `message` e `stack` (os acessores têm setter; `toString` e `toJSON` seguem o original).
     message_override: Option<JSValue>,
     stack_override: Option<JSValue>,
+    /// O que só um `BuildMessage` tem: a posição, as notas e o nível.
+    build: BuildDetails,
+}
+
+/// A posição, as notas e o nível de um `BuildMessage` (ou de uma nota dele), com os valores que os acessores
+/// devolvem sempre o mesmo objeto (`position` e `notes` são idênticos entre leituras no bun).
+#[derive(Clone, Default)]
+struct BuildDetails {
+    position: Option<BuildPosition>,
+    notes: Vec<BuildDiagnostic>,
+    /// A instância é uma nota: `level` é `note` e não `error`.
+    is_note: bool,
+    position_cache: Option<JSValue>,
+    notes_cache: Option<JSValue>,
+}
+
+impl BuildDetails {
+    fn level(&self) -> &'static str {
+        if self.is_note { "note" } else { "error" }
+    }
 }
 
 impl MessageState {
@@ -390,13 +413,64 @@ fn message_set_stack<const KIND: usize>(global_object: &JSGlobalObject, call_fra
     store_message_override::<KIND>(global_object, call_frame, "stack", |state, value| state.stack_override = Some(value))
 }
 
+/// O objeto de `BuildMessage.position` (as chaves na ordem do bun).
+fn position_object(global_object: &JSGlobalObject, position: &BuildPosition) -> JSValue {
+    let vm = global_object.vm();
+    let object = JSFinalObject::create(vm, &global_object.object_structure_for_object_constructor());
+    let int = |value: usize| JSValue::Int32(i32::try_from(value).unwrap_or(i32::MAX));
+    let fields = [
+        ("lineText", js_text(vm, &position.line_text)),
+        ("file", js_text(vm, &position.file)),
+        ("namespace", js_text(vm, &position.namespace)),
+        ("line", JSValue::Int32(position.line)),
+        ("column", JSValue::Int32(position.column)),
+        ("length", int(position.length)),
+        ("offset", int(position.offset)),
+    ];
+    for (name, value) in fields {
+        object.put_direct(vm, &property_key(vm, name), value, 0);
+    }
+    object.as_value()
+}
+
+/// `BuildMessage.position`: o objeto da posição (o mesmo a cada leitura) ou `null` sem posição.
+fn build_position(global_object: &JSGlobalObject, this: JSValue, state: &MessageState) -> JSValue {
+    let Some(position) = &state.build.position else {
+        return JSValue::null();
+    };
+    let value = state.build.position_cache.unwrap_or_else(|| position_object(global_object, position));
+    remember_build_value(this, |details| details.position_cache = Some(value));
+    value
+}
+
+/// `BuildMessage.notes`: o array de notas, cada uma um `BuildMessage` de nível `note` (o mesmo array a cada leitura).
+fn build_notes(global_object: &JSGlobalObject, this: JSValue, state: &MessageState) -> JSValue {
+    let vm = global_object.vm();
+    let value = state.build.notes_cache.unwrap_or_else(|| {
+        let items: Vec<JSValue> = state.build.notes.iter().filter_map(|note| message_instance(vm, build_message_state(note, true))).collect();
+        construct_array(vm, &global_object.array_structure(), &items).as_value()
+    });
+    remember_build_value(this, |details| details.notes_cache = Some(value));
+    value
+}
+
+/// Grava no estado da instância `this` o valor que um acessor acabou de criar.
+fn remember_build_value(this: JSValue, store: impl FnOnce(&mut BuildDetails)) {
+    MESSAGE_STATES.with(|states| {
+        if let Some(state) = states.borrow_mut().get_mut(&this.encode()) {
+            store(&mut state.build);
+        }
+    });
+}
+
 /// Os acessores do protótipo de uma classe de mensagem, na ordem em que o bun os instala.
 macro_rules! message_getters {
     ($table:ident, $kind:expr, $class:literal; $($function:ident, $label:literal, $value:expr;)*) => {
         $(
             fn $function(global_object: &JSGlobalObject, call_frame: &mut NativeCallFrame<'_>) -> EncodedJSValue {
-                let make: fn(&JSGlobalObject, &MessageState) -> JSValue = $value;
-                match with_message_state($kind, call_frame.this_value(), |state| make(global_object, state)) {
+                let make: fn(&JSGlobalObject, JSValue, &MessageState) -> JSValue = $value;
+                let this = call_frame.this_value();
+                match with_message_state($kind, this, MessageState::clone).map(|state| make(global_object, this, &state)) {
                     Some(value) => value.encode(),
                     None => {
                         throw_native_type_error(
@@ -414,27 +488,27 @@ macro_rules! message_getters {
 
 message_getters! {
     RESOLVE_MESSAGE_GETTERS, RESOLVE, "ResolveMessage";
-    resolve_message_code, "code", |g, state| js_text(g.vm(), &state.code);
-    resolve_message_column, "column", |_g, _state| JSValue::Int32(0);
-    resolve_message_import_kind, "importKind", |g, state| js_text(g.vm(), state.import_kind);
-    resolve_message_level, "level", |g, _state| js_text(g.vm(), "error");
-    resolve_message_line, "line", |_g, _state| JSValue::Int32(0);
-    resolve_message_message, "message", |g, state| state.message_override.unwrap_or_else(|| js_text(g.vm(), &state.message));
-    resolve_message_position, "position", |_g, _state| JSValue::null();
-    resolve_message_referrer, "referrer", |g, state| js_text(g.vm(), &state.referrer);
-    resolve_message_require_stack, "requireStack", |_g, _state| JSValue::undefined();
-    resolve_message_specifier, "specifier", |g, state| js_text(g.vm(), &state.specifier);
-    resolve_message_stack, "stack", |g, state| state.stack_override.unwrap_or_else(|| js_text(g.vm(), &state.text()));
+    resolve_message_code, "code", |g, _this, state| js_text(g.vm(), &state.code);
+    resolve_message_column, "column", |_g, _this, _state| JSValue::Int32(0);
+    resolve_message_import_kind, "importKind", |g, _this, state| js_text(g.vm(), state.import_kind);
+    resolve_message_level, "level", |g, _this, _state| js_text(g.vm(), "error");
+    resolve_message_line, "line", |_g, _this, _state| JSValue::Int32(0);
+    resolve_message_message, "message", |g, _this, state| state.message_override.unwrap_or_else(|| js_text(g.vm(), &state.message));
+    resolve_message_position, "position", |_g, _this, _state| JSValue::null();
+    resolve_message_referrer, "referrer", |g, _this, state| js_text(g.vm(), &state.referrer);
+    resolve_message_require_stack, "requireStack", |_g, _this, _state| JSValue::undefined();
+    resolve_message_specifier, "specifier", |g, _this, state| js_text(g.vm(), &state.specifier);
+    resolve_message_stack, "stack", |g, _this, state| state.stack_override.unwrap_or_else(|| js_text(g.vm(), &state.text()));
 }
 
 message_getters! {
     BUILD_MESSAGE_GETTERS, BUILD, "BuildMessage";
-    build_message_column, "column", |_g, _state| JSValue::Int32(0);
-    build_message_level, "level", |g, _state| js_text(g.vm(), "error");
-    build_message_line, "line", |_g, _state| JSValue::Int32(0);
-    build_message_message, "message", |g, state| state.message_override.unwrap_or_else(|| js_text(g.vm(), &state.message));
-    build_message_notes, "notes", |g, _state| crate::runtime::js_array::construct_array(g.vm(), &g.array_structure(), &[]).as_value();
-    build_message_position, "position", |_g, _state| JSValue::null();
+    build_message_column, "column", |_g, _this, state| JSValue::Int32(state.build.position.as_ref().map_or(0, |p| p.column - 1));
+    build_message_level, "level", |g, _this, state| js_text(g.vm(), state.build.level());
+    build_message_line, "line", |_g, _this, state| JSValue::Int32(state.build.position.as_ref().map_or(0, |p| p.line - 1));
+    build_message_message, "message", |g, _this, state| state.message_override.unwrap_or_else(|| js_text(g.vm(), &state.message));
+    build_message_notes, "notes", build_notes;
+    build_message_position, "position", build_position;
 }
 
 /// `toJSON` de uma classe de mensagem: os campos comuns, e os do resolvedor só em `ResolveMessage`.
@@ -447,9 +521,9 @@ fn message_to_json<const KIND: usize>(global_object: &JSGlobalObject, call_frame
     let object = JSFinalObject::create(vm, &global_object.object_structure_for_object_constructor());
     let mut fields = vec![
         ("name", js_text(vm, MESSAGE_CLASS_NAMES[KIND])),
-        ("position", JSValue::null()),
+        ("position", state.build.position.as_ref().map_or_else(JSValue::null, |position| position_object(global_object, position))),
         ("message", js_text(vm, &state.message)),
-        ("level", js_text(vm, "error")),
+        ("level", js_text(vm, state.build.level())),
     ];
     if KIND == RESOLVE {
         fields.extend([
@@ -684,6 +758,7 @@ fn throw_resolve_message(global_object: &JSGlobalObject, message: &str, code: &s
         import_kind: "import-statement",
         message_override: None,
         stack_override: None,
+        build: BuildDetails::default(),
     };
     throw_message(global_object, state)
 }
@@ -726,6 +801,7 @@ pub(crate) fn throw_require_failure(global_object: &JSGlobalObject, argument: JS
         import_kind: if resolve { "require-resolve" } else { "require-call" },
         message_override: None,
         stack_override: None,
+        build: BuildDetails::default(),
     };
     throw_message(global_object, state)
 }
@@ -743,19 +819,20 @@ fn build_message_text(specifier: &str) -> Option<String> {
 
 /// Lança um `BuildMessage` do bun com `message`.
 pub(crate) fn throw_build_message(global_object: &JSGlobalObject, message: String) -> Thrown {
-    throw_message(global_object, build_message_state(message))
+    throw_message(global_object, build_message_state(&BuildDiagnostic::plain(message), false))
 }
 
-fn build_message_state(message: String) -> MessageState {
+fn build_message_state(diagnostic: &BuildDiagnostic, is_note: bool) -> MessageState {
     MessageState {
         kind: BUILD,
-        message,
+        message: diagnostic.message.clone(),
         code: String::new(),
         specifier: String::new(),
         referrer: String::new(),
         import_kind: "import-statement",
         message_override: None,
         stack_override: None,
+        build: BuildDetails { position: diagnostic.position.clone(), notes: diagnostic.notes.clone(), is_note, ..BuildDetails::default() },
     }
 }
 
@@ -794,13 +871,13 @@ fn create_commonjs_record(
 
 /// O arquivo `key` que o transpilador do bun recusa: um erro vira `BuildMessage`; vários, um `AggregateError`
 /// `N errors building "key"` com os `BuildMessage` em `errors`. Sem lançar: o arquivo principal recusado volta como `Err`.
-pub(crate) fn build_failure_value(global_object: &JSGlobalObject, key: &str, messages: &[String]) -> JSValue {
+pub(crate) fn build_failure_value(global_object: &JSGlobalObject, key: &str, messages: &[BuildDiagnostic]) -> JSValue {
     let vm = global_object.vm();
     if let [only] = messages {
-        return message_instance(vm, build_message_state(only.clone()))
-            .unwrap_or_else(|| JSValue::from_js_string(js_string(vm, &WtfString::from_utf8(only.as_bytes()))));
+        return message_instance(vm, build_message_state(only, false))
+            .unwrap_or_else(|| JSValue::from_js_string(js_string(vm, &WtfString::from_utf8(only.message.as_bytes()))));
     }
-    let items: Vec<JSValue> = messages.iter().filter_map(|text| message_instance(vm, build_message_state(text.clone()))).collect();
+    let items: Vec<JSValue> = messages.iter().filter_map(|diagnostic| message_instance(vm, build_message_state(diagnostic, false))).collect();
     let errors = construct_array(vm, &global_object.array_structure(), &items).as_value();
     let message = format!("{} errors building \"{key}\"", messages.len());
     let structure = global_object.error_structure_for(ErrorType::AggregateError);
