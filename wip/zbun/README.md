@@ -227,16 +227,24 @@ de chegar aos tipos. O que falta, por grupo:
   `ExportRenamer` perde a arena e devolve `Vec<u8>`. `NestedRenamer::new` perde o parâmetro da arena. Em `lib.rs`,
   `print_ast` deixa de reapontar o `parent` dos filhos do escopo do módulo (o índice do pai já vale) e passa
   `&tree.store` aos renamers; `print_json`, `print` e `print_with_writer*` ganham `'a` no `Ast` e no `Store`.
-  **O que falta, por grupo** (de `cargo check -p bun_js_printer --features printer`, 71 erros depois da 3a):
-  (b) 15 `unsafe` e 6 `unsafe impl` (o `write_wtf8_as_utf16le` já saiu): `Encoding` const genérico e `ConstParamTy`
-  (feature `adt_const_params`) viram argumento de execução, os `unsafe impl Send/Sync` do `Writer` somem, e
-  `reserve_spare_bytes`/`commit_spare` do `BufferWriter` viram `Vec::extend`; (c) `BackRef` (3 usos) vira cópia do
-  valor; (d) `EString` com `flattened`, `slice8`, `slice16` e `string` pedem o `Store` (`str.flattened(self.store)`,
+  **Parte 3b, zero `unsafe` (feita, 0 `unsafe` em `js_printer`, sem `#![feature]`):** `Encoding` deixou de ser parâmetro
+  const (`ConstParamTy`, a feature `adt_const_params`) e virou argumento de execução de
+  `write_pre_quoted_string_inner` e `write_json_string`; a fachada const `write_pre_quoted_string`, que só
+  repassava, saiu. Os seis `unsafe impl bytemuck` do `ModuleInfo` não tinham uso e saíram. O `Writer` perdeu
+  `reserve`/`advance` (ponteiro cru em `*mut u8`): `WriterTrait::reserve_capacity` só pré-dimensiona e
+  `write_reserved` é `print_slice` mais o erro do escritor, sem `reserve_spare_bytes` nem `commit_spare`. Os três
+  ponteiros apagados viraram objetos: `SourceMapHandler` e `RequireOrImportMetaCallback` guardam um
+  `Box<dyn ... + 'a>` (com `impl` para `&mut T`; `Box` e não `&'a mut dyn` porque atrás de `&mut` o `'a` seria
+  invariante e `print_ast` precisa encolher o `Options<'a>` para criar o renamer na pilha), e
+  `runtime_transpiler_cache` é `Option<&'a mut RuntimeTranspilerCache>`. `Renamer` guarda só empréstimo
+  compartilhado, é `Copy` e `name_for_symbol(self)` devolve `&'r [u8]`, o que dispensou o helper do `Printer` que
+  descolava o empréstimo com ponteiro cru: os 30 chamadores usam `self.renamer.name_for_symbol` direto. `slice_of`
+  (que o `store_fix.py` deixou com `self` num fn livre) saiu: `self.store[x]` (ou `tree.store`/`ast.store` nos drivers).
+  **O que falta, por grupo** (de `cargo check -p bun_js_printer --features printer`, 71 erros depois da 3a, 54 depois da 3b):
+  (c) `BackRef` (3 usos) vira cópia do valor; (d) `EString` com `flattened`, `slice8`, `slice16` e `string` pedem o `Store` (`str.flattened(self.store)`,
   `slice8(self.store)`), e o `flattened(self.bump)` que escrevia na arena vira um `Cow` sobre a cadeia de cordas;
   (e) os 24 `E0308` são `StoreStr` no lugar de `&[u8]`, `Option<StoreRef<Scope>>` no lugar de `&Scope` e
   `*mut Symbol`; (f) `If.no`, `For.body` e afins (`E0609` em `s::*`): o campo existe, falta o `self.store[..]`.
-- 14 usos de `unsafe` (e 6 `unsafe impl`) e o `#![feature(adt_const_params)]`, que pede trocar os parâmetros
-  const de enum (`Encoding`) por `u8` ou por argumento de execução.
 
 Depois da resolução vem a troca sistemática do `Deref` do `StoreRef` por `p.store[r]` em todo `p.rs`, `parse/` e
 `visit/`, que é o grosso do trabalho. Os `Define` guardam `ExprData` com índices: como cada arquivo tem o seu

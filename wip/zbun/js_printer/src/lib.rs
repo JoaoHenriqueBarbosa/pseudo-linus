@@ -10,7 +10,6 @@
 // `cargo check -p bun_js_printer --features printer` mede o que falta.
 #![cfg(feature = "printer")]
 #![warn(unused_must_use)]
-#![feature(adt_const_params)]
 
 pub mod error;
 pub use error::{Error, Result};
@@ -26,10 +25,9 @@ use bun_core::strings;
 use bun_core::strings::CodepointIterator;
 use bun_options_types::bundle_enums as bundle_opts;
 
-/// Local stand-in for `bun_core::strings::Encoding` that derives `ConstParamTy` so it can
-/// be used as a const-generic parameter (`const ENCODING: Encoding`). The variant set is
-/// identical; convert at the boundary if a `strings::Encoding` is ever needed.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, core::marker::ConstParamTy)]
+/// Como o texto de `write_pre_quoted_string_inner` é indexado. No upstream era parâmetro const (`const ENCODING`);
+/// aqui é argumento de execução, porque o `adt_const_params` não existe no Rust estável.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Encoding {
     Ascii,
     Utf8,
@@ -133,17 +131,11 @@ pub mod analyze_transpiled_module {
         }
     }
 
-    // SAFETY: `#[repr(u8)]` enum with no fields → single initialized byte, no padding.
-    unsafe impl bytemuck::NoUninit for RecordKind {}
 
     /// Index into `ModuleInfo`'s interned-string table. Two reserved sentinels.
     #[repr(transparent)]
     #[derive(Clone, Copy, PartialEq, Eq, Hash)]
     pub struct StringID(pub u32);
-    // SAFETY: `#[repr(transparent)]` over `u32`.
-    unsafe impl bytemuck::Zeroable for StringID {}
-    // SAFETY: `#[repr(transparent)]` over `u32` (Pod).
-    unsafe impl bytemuck::Pod for StringID {}
     impl StringID {
         pub const STAR_DEFAULT: Self = Self(u32::MAX);
         pub const STAR_NAMESPACE: Self = Self(u32::MAX - 1);
@@ -153,10 +145,6 @@ pub mod analyze_transpiled_module {
     #[repr(transparent)]
     #[derive(Clone, Copy, PartialEq, Eq)]
     pub struct FetchParameters(pub u32);
-    // SAFETY: `#[repr(transparent)]` over `u32`.
-    unsafe impl bytemuck::Zeroable for FetchParameters {}
-    // SAFETY: `#[repr(transparent)]` over `u32` (Pod).
-    unsafe impl bytemuck::Pod for FetchParameters {}
     #[allow(non_upper_case_globals)]
     impl FetchParameters {
         pub const None: Self = Self(u32::MAX);
@@ -192,8 +180,6 @@ pub mod analyze_transpiled_module {
         Evaluation = 0,
         Defer = 1,
     }
-    // SAFETY: `#[repr(u8)]` enum with no fields → single initialized byte, no padding.
-    unsafe impl bytemuck::NoUninit for ModulePhase {}
 
     /// Borrowing view over a finalized/serialized `ModuleInfo`.
     /// Built on demand
@@ -863,11 +849,6 @@ pub mod analyze_transpiled_module {
     }
 }
 
-/// Cold path: called at most once per print to persist output. Dispatch lives
-/// on the parser-tier `RuntimeTranspilerCache` (`TranspilerCacheImpl`
-/// link-interface); the printer just holds the raw pointer.
-pub type RuntimeTranspilerCacheRef = core::ptr::NonNull<bun_ast::RuntimeTranspilerCache>;
-
 use bun_core::fmt::hex2_upper; // remaining `\xHH` site below
 use bun_core::printer::{
     FIRST_ASCII, FIRST_HIGH_SURROGATE, LAST_ASCII, LAST_LOW_SURROGATE, bmp_escape,
@@ -881,7 +862,7 @@ const ASCII_ONLY_ALWAYS_ON_UNLESS_MINIFYING: bool = true;
 // PERF: `ascii_only` is a *runtime* arg so the large
 // callers (`write_pre_quoted_string_inner`, `estimate_length_for_utf8`) collapse to a
 // single monomorphization instead of one per (ascii_only × quote_char × …) combo -
-// see the comment on `write_pre_quoted_string`.
+// see the comment on `write_pre_quoted_string_inner`.
 #[inline]
 pub(crate) fn can_print_without_escape(c: i32, ascii_only: bool) -> bool {
     if c <= LAST_ASCII as i32 {
@@ -1001,39 +982,16 @@ macro_rules! ws {
 // PERF: `ascii_only`/`quote_char` are runtime args: collapses
 // the monomorphization fan-out; the inner branches are cheap and well-predicted.
 
-/// Thin const-generic facade kept for source-stable call sites (and external
-/// callers in other crates that pass literal const args). It forwards to the
-/// single non-generic-over-(quote/ascii/json) [`write_pre_quoted_string_inner`]
-/// so the large escaping loop is monomorphized once per `(W, ENCODING)` instead
-/// of once per `(W, QUOTE_CHAR, ASCII_ONLY, JSON, ENCODING)`: that fan-out was a
-/// meaningful slice of this crate's `.text`. `#[inline]` so the wrapper itself
-/// (a single tail call) costs nothing.
-#[inline]
-pub fn write_pre_quoted_string<
-    W,
-    const QUOTE_CHAR: u8,
-    const ASCII_ONLY: bool,
-    const JSON: bool,
-    const ENCODING: Encoding,
->(
-    text_in: &[u8],
-    writer: &mut W,
-) -> crate::Result<()>
-where
-    W: Write + ?Sized,
-{
-    write_pre_quoted_string_inner::<W, ENCODING>(text_in, writer, QUOTE_CHAR, ASCII_ONLY, JSON)
-}
-
 /// `quote_char` / `ascii_only` / `json` are runtime args (were `const`): the
 /// branches on them are cheap and well-predicted, and collapsing the
 /// monomorphizations keeps the hot transpile pages dense (see the facade above).
-/// `ENCODING` stays `const`: it changes the code-unit indexing structure of the
-/// loop, so a per-encoding copy is genuinely different code.
+/// `encoding` também é argumento de execução (no upstream era `const`): muda a indexação das unidades de código,
+/// mas o ramo é previsível.
 #[inline(never)]
-pub fn write_pre_quoted_string_inner<W, const ENCODING: Encoding>(
+pub fn write_pre_quoted_string_inner<W>(
     text_in: &[u8],
     writer: &mut W,
+    encoding: Encoding,
     quote_char: u8,
     ascii_only: bool,
     json: bool,
@@ -1050,14 +1008,14 @@ where
     // utf16 path needs &[u16] handling.
     let text = text_in;
     let mut i: usize = 0;
-    let n: usize = match ENCODING {
+    let n: usize = match encoding {
         Encoding::Utf16 => text.len() / 2,
         _ => text.len(),
     };
 
     macro_rules! code_unit_at {
         ($idx:expr) => {
-            match ENCODING {
+            match encoding {
                 Encoding::Utf16 => {
                     let lo = text[$idx * 2];
                     let hi = text[$idx * 2 + 1];
@@ -1069,13 +1027,13 @@ where
     }
 
     while i < n {
-        let width: u8 = match ENCODING {
+        let width: u8 = match encoding {
             Encoding::Latin1 | Encoding::Ascii => 1,
             Encoding::Utf8 => strings::wtf8_byte_sequence_length_with_invalid(text[i]),
             Encoding::Utf16 => 1,
         };
         let clamped_width = (width as usize).min(n.saturating_sub(i));
-        let c: i32 = match ENCODING {
+        let c: i32 = match encoding {
             Encoding::Utf8 => {
                 let bytes: [u8; 4] = match clamped_width {
                     1 => [text[i], 0, 0, 0],
@@ -1100,7 +1058,7 @@ where
         };
 
         if can_print_without_escape(c, ascii_only) {
-            match ENCODING {
+            match encoding {
                 Encoding::Ascii | Encoding::Utf8 => {
                     let remain = &text[i + clamped_width..];
                     if let Some(j) =
@@ -1241,17 +1199,18 @@ pub fn quote_for_json(
     // source. The writer still grows on demand if this under-shoots.
     bytes.grow_if_needed(text.len() + (text.len() >> 3) + 8)?;
     bytes.append_char(b'"')?;
-    write_pre_quoted_string_inner::<_, { Encoding::Utf8 }>(text, bytes, b'"', ascii_only, true)?;
+    write_pre_quoted_string_inner(text, bytes, Encoding::Utf8, b'"', ascii_only, true)?;
     bytes.append_char(b'"').expect("unreachable");
     Ok(())
 }
 
-pub fn write_json_string<W: Write + ?Sized, const ENCODING: Encoding>(
+pub fn write_json_string<W: Write + ?Sized>(
     input: &[u8],
     writer: &mut W,
+    encoding: Encoding,
 ) -> crate::Result<()> {
     writer.write_all(b"\"")?;
-    write_pre_quoted_string_inner::<_, ENCODING>(input, writer, b'"', false, true)?;
+    write_pre_quoted_string_inner(input, writer, encoding, b'"', false, true)?;
     writer.write_all(b"\"")?;
     Ok(())
 }
@@ -1260,15 +1219,13 @@ pub fn write_json_string<W: Write + ?Sized, const ENCODING: Encoding>(
 // SourceMapHandler / Options: gated on bun_sourcemap::Chunk::Builder and the
 // real bun_js_parser::{runtime, Ast::*} surface.
 // ───────────────────────────────────────────────────────────────────────────
+/// Dono do tratador (`Box`) e não `&'a mut dyn`: atrás de `&mut` o `'a` da `dyn` seria invariante, e o `Options<'a>`
+/// precisa encolher o `'a` quando `print_ast` cria o renamer na própria pilha. Um `&mut T` também serve (ver o
+/// `impl` abaixo), ao custo de uma alocação por impressão.
 pub struct SourceMapHandler<'a> {
-    pub(crate) ctx: NonNull<()>,
-    pub(crate) callback: fn(*mut (), SourceMap::Chunk, &bun_ast::Source) -> crate::Result<()>,
-    _marker: core::marker::PhantomData<&'a mut ()>,
+    pub(crate) ctx: Box<dyn OnSourceMapChunk + 'a>,
 }
 
-/// PORTING.md §Dispatch: manual vtable. Rust cannot bake a *runtime* fn pointer
-/// into a captureless `fn(*mut (), ..)` thunk, so the handler is a trait method
-/// and the thunk is monomorphized over `T: OnSourceMapChunk`.
 pub trait OnSourceMapChunk {
     fn on_source_map_chunk(
         &mut self,
@@ -1277,33 +1234,27 @@ pub trait OnSourceMapChunk {
     ) -> crate::Result<()>;
 }
 
-impl<'a> SourceMapHandler<'a> {
-    pub(crate) fn on_source_map_chunk(
-        &self,
+impl<T: OnSourceMapChunk + ?Sized> OnSourceMapChunk for &mut T {
+    fn on_source_map_chunk(
+        &mut self,
         chunk: SourceMap::Chunk,
         source: &bun_ast::Source,
     ) -> crate::Result<()> {
-        (self.callback)(self.ctx.as_ptr(), chunk, source)
+        (**self).on_source_map_chunk(chunk, source)
+    }
+}
+
+impl<'a> SourceMapHandler<'a> {
+    pub(crate) fn on_source_map_chunk(
+        &mut self,
+        chunk: SourceMap::Chunk,
+        source: &bun_ast::Source,
+    ) -> crate::Result<()> {
+        self.ctx.on_source_map_chunk(chunk, source)
     }
 
-    pub fn for_<T: OnSourceMapChunk>(ctx: &'a mut T) -> SourceMapHandler<'a> {
-        // Monomorphized erased thunk: cast `*mut ()` back to `*mut T` and forward to the trait.
-        fn thunk<T: OnSourceMapChunk>(
-            p: *mut (),
-            chunk: SourceMap::Chunk,
-            source: &bun_ast::Source,
-        ) -> crate::Result<()> {
-            // SAFETY: `p` was constructed from `&'a mut T` in `for_` below; the `'a` lifetime
-            // on `SourceMapHandler` ties the handler's lifetime to the borrow, so `p` is a
-            // valid, exclusive `*mut T` for as long as the handler exists.
-            unsafe { (*p.cast::<T>()).on_source_map_chunk(chunk, source) }
-        }
-        SourceMapHandler {
-            // Type-erased to `*mut ()` and cast back to `*mut T` inside the thunk before dereference.
-            ctx: NonNull::from(ctx).cast::<()>(),
-            callback: thunk::<T>,
-            _marker: core::marker::PhantomData,
-        }
+    pub fn for_<T: OnSourceMapChunk + 'a>(ctx: T) -> SourceMapHandler<'a> {
+        SourceMapHandler { ctx: Box::new(ctx) }
     }
 }
 
@@ -1326,7 +1277,7 @@ pub struct Options<'a> {
     pub source_map_handler: Option<SourceMapHandler<'a>>,
     pub target: bun_ast::Target,
 
-    pub runtime_transpiler_cache: Option<RuntimeTranspilerCacheRef>,
+    pub runtime_transpiler_cache: Option<&'a mut bun_ast::RuntimeTranspilerCache>,
     pub module_info: Option<&'a mut analyze_transpiled_module::ModuleInfo>,
     pub input_files_for_dev_server: Option<&'a [bun_ast::Source]>,
 
@@ -1346,7 +1297,7 @@ pub struct Options<'a> {
     pub inline_require_and_import_errors: bool,
     pub has_run_symbol_renamer: bool,
 
-    pub require_or_import_meta_for_source_callback: RequireOrImportMetaCallback,
+    pub require_or_import_meta_for_source_callback: RequireOrImportMetaCallback<'a>,
 
     /// Module type of the file being printed. `Esm` prints `__toESM(.., 1)`, which ignores `__esModule`.
     pub input_module_type: bundle_opts::ModuleType,
@@ -1377,19 +1328,14 @@ pub struct Options<'a> {
 
 impl<'a> Options<'a> {
     pub(crate) fn require_or_import_meta_for_source(
-        &self,
+        &mut self,
         id: u32,
         was_unwrapped_require: bool,
     ) -> RequireOrImportMeta {
-        if self
-            .require_or_import_meta_for_source_callback
-            .ctx
-            .is_none()
-        {
-            return RequireOrImportMeta::default();
+        match self.require_or_import_meta_for_source_callback.ctx.as_deref_mut() {
+            Some(source) => source.require_or_import_meta_for_source(id, was_unwrapped_require),
+            None => RequireOrImportMeta::default(),
         }
-        self.require_or_import_meta_for_source_callback
-            .call(id, was_unwrapped_require)
     }
 }
 
@@ -1468,28 +1414,11 @@ pub struct RequireOrImportMeta {
     pub was_unwrapped_require: bool,
 }
 
-// Clone/Copy: bitwise OK: `ctx` is a non-owning opaque backref the caller
-// keeps alive for the print pass; `callback` is POD.
-#[derive(Clone, Copy)]
-pub struct RequireOrImportMetaCallback {
-    pub(crate) ctx: Option<NonNull<()>>,
-    pub(crate) callback: fn(*mut (), u32, bool) -> RequireOrImportMeta,
+#[derive(Default)]
+pub struct RequireOrImportMetaCallback<'a> {
+    pub(crate) ctx: Option<Box<dyn RequireOrImportMetaSource + 'a>>,
 }
 
-impl Default for RequireOrImportMetaCallback {
-    fn default() -> Self {
-        fn noop(_: *mut (), _: u32, _: bool) -> RequireOrImportMeta {
-            RequireOrImportMeta::default()
-        }
-        Self {
-            ctx: None,
-            callback: noop,
-        }
-    }
-}
-
-/// PORTING.md §Dispatch: manual vtable. The erased thunk is monomorphized
-/// over `T: RequireOrImportMetaSource`, so `callback` stays a captureless `fn`.
 pub trait RequireOrImportMetaSource {
     fn require_or_import_meta_for_source(
         &mut self,
@@ -1498,27 +1427,19 @@ pub trait RequireOrImportMetaSource {
     ) -> RequireOrImportMeta;
 }
 
-impl RequireOrImportMetaCallback {
-    pub(crate) fn call(&self, id: u32, was_unwrapped_require: bool) -> RequireOrImportMeta {
-        (self.callback)(self.ctx.unwrap().as_ptr(), id, was_unwrapped_require)
+impl<T: RequireOrImportMetaSource + ?Sized> RequireOrImportMetaSource for &mut T {
+    fn require_or_import_meta_for_source(
+        &mut self,
+        id: u32,
+        was_unwrapped_require: bool,
+    ) -> RequireOrImportMeta {
+        (**self).require_or_import_meta_for_source(id, was_unwrapped_require)
     }
+}
 
-    pub fn init<T: RequireOrImportMetaSource>(ctx: &mut T) -> Self {
-        fn thunk<T: RequireOrImportMetaSource>(
-            p: *mut (),
-            id: u32,
-            was_unwrapped_require: bool,
-        ) -> RequireOrImportMeta {
-            // SAFETY: `p` was constructed from `&mut T` in `init` below; caller guarantees
-            // `ctx` outlives this `RequireOrImportMetaCallback`, so the cast-back
-            // deref is valid and exclusive.
-            unsafe { (*p.cast::<T>()).require_or_import_meta_for_source(id, was_unwrapped_require) }
-        }
-        Self {
-            // Type-erased to `*mut ()` and cast back to `*mut T` inside the thunk before dereference.
-            ctx: Some(NonNull::from(ctx).cast::<()>()),
-            callback: thunk::<T>,
-        }
+impl<'a> RequireOrImportMetaCallback<'a> {
+    pub fn init<T: RequireOrImportMetaSource + 'a>(ctx: T) -> Self {
+        Self { ctx: Some(Box::new(ctx)) }
     }
 }
 
@@ -1618,12 +1539,6 @@ pub(crate) mod __gated_printer {
     // lower-tier crate API surface without editing those crates.
     // ──────────────────────────────────────────────────────────────────────────
 
-    /// Re-borrow an arena-owned `StoreSlice<T>` for the print pass. Kept as a
-    /// free fn (vs. calling `.slice()` inline); the printer only ever reads these.
-    #[inline(always)]
-    pub(crate) fn slice_of<'a, T>(p: js_ast::StoreSlice<T>) -> &'a [T] {
-        (&self.store[p])
-    }
     /// `EnumSet<T>` field-style mutation helper.
     #[inline(always)]
     fn set_flag<T: enumset::EnumSetType>(set: &mut enumset::EnumSet<T>, flag: T, on: bool) {
@@ -1815,7 +1730,7 @@ pub(crate) mod __gated_printer {
             if let ExprData::EPrivateIdentifier(private) = &self.store[e].left.data
                 && self.store[e].op == Op::Code::BinIn
             {
-                let name = self.name_for_symbol(private.ref_);
+                let name = self.renamer.name_for_symbol(private.ref_);
                 self.add_source_mapping_for_name(self.store[e].left.loc, name, private.ref_);
                 self.print_identifier(name);
                 self.binary_visit_right_and_finish(v);
@@ -1944,7 +1859,7 @@ pub(crate) mod __gated_printer {
                     return name;
                 }
             }
-            self.name_for_symbol(ref_)
+            self.renamer.name_for_symbol(ref_)
         }
 
         #[inline]
@@ -2043,7 +1958,7 @@ pub(crate) mod __gated_printer {
                 self.print_semicolon_after_statement();
             }
 
-            if slice_of(import.items).len() > 0 {
+            if self.store[import.items].len() > 0 {
                 self.print_semicolon_if_needed();
                 self.print_whitespacer(ws!(b"var {"));
 
@@ -2053,7 +1968,7 @@ pub(crate) mod __gated_printer {
                     self.print_indent();
                 }
 
-                for (i, item) in slice_of(import.items).iter().enumerate() {
+                for (i, item) in self.store[import.items].iter().enumerate() {
                     if i > 0 {
                         self.print(b",");
                         self.print_space();
@@ -2144,7 +2059,7 @@ pub(crate) mod __gated_printer {
             match &stmt.data {
                 StmtData::SBlock(block) => {
                     self.print_space();
-                    self.print_block(stmt.loc, slice_of(self.store[*block].stmts), Some(self.store[*block].close_brace_loc));
+                    self.print_block(stmt.loc, &self.store[self.store[*block].stmts], Some(self.store[*block].close_brace_loc));
                     self.print_newline();
                 }
                 _ => {
@@ -2412,7 +2327,7 @@ pub(crate) mod __gated_printer {
 
         pub(crate) fn print_symbol(&mut self, ref_: Ref) {
             debug_assert!(!ref_.is_empty()); // Invalid Symbol
-            let name = self.name_for_symbol(ref_);
+            let name = self.renamer.name_for_symbol(ref_);
             self.print_identifier(name);
         }
 
@@ -2468,12 +2383,12 @@ pub(crate) mod __gated_printer {
         pub(crate) fn print_func(&mut self, func: &G::Fn) {
             self.print_fn_args(
                 Some(func.open_parens_loc),
-                slice_of(func.args),
+                &self.store[func.args],
                 func.flags.contains(G::FnFlags::HasRestArg),
                 false,
             );
             self.print_space();
-            self.print_block(func.body.loc, slice_of(func.body.stmts), None);
+            self.print_block(func.body.loc, &self.store[func.body.stmts], None);
         }
 
         pub(crate) fn print_class(&mut self, class: &G::Class) {
@@ -2490,7 +2405,7 @@ pub(crate) mod __gated_printer {
             self.print_newline();
             self.indent();
 
-            for item in slice_of(class.properties).iter() {
+            for item in self.store[class.properties].iter() {
                 self.print_semicolon_if_needed();
                 self.print_indent();
 
@@ -2572,9 +2487,10 @@ pub(crate) mod __gated_printer {
         pub(crate) fn print_string_characters_utf8(&mut self, text: &[u8], quote: u8) {
             debug_assert!(matches!(quote, b'\'' | b'"' | b'`'));
             let mut writer = self.writer.std_writer();
-            let _ = write_pre_quoted_string_inner::<_, { Encoding::Utf8 }>(
+            let _ = write_pre_quoted_string_inner(
                 text,
                 &mut writer,
+                Encoding::Utf8,
                 quote,
                 ASCII_ONLY,
                 false,
@@ -2585,9 +2501,10 @@ pub(crate) mod __gated_printer {
             debug_assert!(matches!(quote, b'\'' | b'"' | b'`'));
             let slice: &[u8] = bytemuck::cast_slice(text);
             let mut writer = self.writer.std_writer();
-            let _ = write_pre_quoted_string_inner::<_, { Encoding::Utf16 }>(
+            let _ = write_pre_quoted_string_inner(
                 slice,
                 &mut writer,
+                Encoding::Utf16,
                 quote,
                 ASCII_ONLY,
                 false,
@@ -2614,21 +2531,6 @@ pub(crate) mod __gated_printer {
         #[inline]
         fn symbols(&self) -> &js_ast::symbol::Map {
             self.renamer.symbols()
-        }
-
-        /// Borrowck-reshape helper: `Renamer::name_for_symbol` returns a slice
-        /// borrowing `&mut self.renamer`, which conflicts with the immediately
-        /// following `self.print_*` call. The returned bytes always point into
-        /// either the AST arena (`Symbol::original_name: *const [u8]`) or the
-        /// `Source::contents` buffer: both are kept alive for `'a` by the
-        /// caller of `Printer::init`. Detach the borrow to a raw ptr per the
-        /// parser's ARENA convention (matching `slice_of` for AST fields).
-        /// Reshaped for borrowck: a future refactor could thread `'bump` through Renamer.
-        #[inline]
-        fn name_for_symbol(&mut self, ref_: Ref) -> &'a [u8] {
-            let p = std::ptr::from_ref::<[u8]>(self.renamer.name_for_symbol(ref_));
-            // SAFETY: arena/source-backed; outlives 'a (see renamer.rs SAFETY notes).
-            unsafe { &*p }
         }
 
         // Emitting a `throw` shim is a diagnostic/error path: keep it out of the
@@ -3082,7 +2984,7 @@ pub(crate) mod __gated_printer {
         }
 
         fn print_clause_item_as(&mut self, item: &js_ast::ClauseItem, as_: ClauseItemAs) {
-            let name = self.name_for_symbol(item.name.ref_);
+            let name = self.renamer.name_for_symbol(item.name.ref_);
 
             match as_ {
                 ClauseItemAs::Import => {
@@ -3780,7 +3682,7 @@ pub(crate) mod __gated_printer {
 
                     let mut was_printed = false;
                     if self.store[*e].body.stmts.len() == 1 && self.store[*e].prefer_expr {
-                        if let StmtData::SReturn(ret) = slice_of(self.store[*e].body.stmts)[0].data {
+                        if let StmtData::SReturn(ret) = self.store[self.store[*e].body.stmts][0].data {
                             if let Some(val) = &self.store[ret].value {
                                 self.arrow_expr_start = self.writer.written();
                                 self.print_expr(*val, Level::Comma, ExprFlag::ForbidIn.into());
@@ -3790,7 +3692,7 @@ pub(crate) mod __gated_printer {
                     }
 
                     if !was_printed {
-                        self.print_block(self.store[*e].body.loc, slice_of(self.store[*e].body.stmts), None);
+                        self.print_block(self.store[*e].body.loc, &self.store[self.store[*e].body.stmts], None);
                     }
 
                     if wrap {
@@ -4092,7 +3994,7 @@ pub(crate) mod __gated_printer {
                     self.print_number(e.value(), level);
                 }
                 ExprData::EIdentifier(e) => {
-                    let name = self.name_for_symbol(e.ref_);
+                    let name = self.renamer.name_for_symbol(e.ref_);
                     // A for-of loop initializer must not start with the token "let" and
                     // must not be the exact token sequence "async of" (e.g. the escaped
                     // identifier in "for (\u0061sync of []) ;"), so wrap in parentheses.
@@ -4752,7 +4654,7 @@ pub(crate) mod __gated_printer {
                         if let Some(val) = &item.value {
                             match &val.data {
                                 ExprData::EIdentifier(e) => {
-                                    if key_str.slice8() == self.name_for_symbol(e.ref_) {
+                                    if key_str.slice8() == self.renamer.name_for_symbol(e.ref_) {
                                         if let Some(initial) = &item.initializer {
                                             self.print_initializer(*initial);
                                         }
@@ -4768,7 +4670,7 @@ pub(crate) mod __gated_printer {
                                     }
                                     if let Some(symbol) = self.symbols().get_const(ref_) {
                                         if symbol.namespace_alias.is_none()
-                                            && key_str.slice8() == self.name_for_symbol(e.ref_)
+                                            && key_str.slice8() == self.renamer.name_for_symbol(e.ref_)
                                         {
                                             if let Some(initial) = &item.initializer {
                                                 self.print_initializer(*initial);
@@ -4794,7 +4696,7 @@ pub(crate) mod __gated_printer {
                                     if item.flags.contains(js_ast::flags::Property::WasShorthand)
                                         || strings::utf16_eql_string(
                                             key_str.slice16(),
-                                            self.name_for_symbol(e.ref_),
+                                            self.renamer.name_for_symbol(e.ref_),
                                         )
                                     {
                                         if let Some(initial) = &item.initializer {
@@ -4809,7 +4711,7 @@ pub(crate) mod __gated_printer {
                                         if symbol.namespace_alias.is_none()
                                             && strings::utf16_eql_string(
                                                 key_str.slice16(),
-                                                self.name_for_symbol(e.ref_),
+                                                self.renamer.name_for_symbol(e.ref_),
                                             )
                                         {
                                             if let Some(initial) = &item.initializer {
@@ -4895,7 +4797,7 @@ pub(crate) mod __gated_printer {
                     self.print_symbol(b.r#ref);
                     if Self::MAY_HAVE_MODULE_INFO && tlm.is_export {
                         // reshaped for borrowck: fetch name before borrowing module_info.
-                        let local_name = self.name_for_symbol(b.r#ref);
+                        let local_name = self.renamer.name_for_symbol(b.r#ref);
                         if let Some(mi) = self.module_info() {
                             let name_id = mi.str(local_name);
                             mi.add_export_info_local(name_id, name_id);
@@ -4904,7 +4806,7 @@ pub(crate) mod __gated_printer {
                 }
                 BindingData::BArray(b) => {
                     let b = (&self.store[*b]);
-                    let items = slice_of(b.items);
+                    let items = &self.store[b.items];
                     self.print(b"[");
                     if !items.is_empty() {
                         if !b.is_single_line {
@@ -4948,7 +4850,7 @@ pub(crate) mod __gated_printer {
                 }
                 BindingData::BObject(b) => {
                     let b = (&self.store[*b]);
-                    let properties = slice_of(b.properties);
+                    let properties = &self.store[b.properties];
                     // A local the linker bound to an export (`const { a } =
                     // await import(…)`) is that export, so it is not declared.
                     let is_bound = |printer: &Self, property: &B::Property| {
@@ -5027,7 +4929,7 @@ pub(crate) mod __gated_printer {
                                                 let id = (&self.store[*id]);
                                                 if strings::utf16_eql_string(
                                                     str.slice16(),
-                                                    self.name_for_symbol(id.r#ref),
+                                                    self.renamer.name_for_symbol(id.r#ref),
                                                 ) {
                                                     if Self::MAY_HAVE_MODULE_INFO && tlm.is_export {
                                                         // reshaped for borrowck: bump access first.
@@ -5095,7 +4997,7 @@ pub(crate) mod __gated_printer {
                 // Use a shorthand property if the names are the same
                 if let BindingData::BIdentifier(id) = &value.data {
                     let id = &self.store[*id];
-                    if name == self.name_for_symbol(id.r#ref) {
+                    if name == self.renamer.name_for_symbol(id.r#ref) {
                         if Self::MAY_HAVE_MODULE_INFO && tlm.is_export {
                             if let Some(mi) = self.module_info() {
                                 let name_id = mi.str(name);
@@ -5187,7 +5089,7 @@ pub(crate) mod __gated_printer {
                     }
 
                     self.add_source_mapping(name.loc);
-                    let local_name = self.name_for_symbol(name_ref);
+                    let local_name = self.renamer.name_for_symbol(name_ref);
                     self.print_identifier(local_name);
                     self.print_func(&self.store[*s].func);
 
@@ -5216,7 +5118,7 @@ pub(crate) mod __gated_printer {
 
                     self.print(b"class ");
                     self.add_source_mapping(self.store[*s].class.class_name.as_ref().unwrap().loc);
-                    let name_str = self.name_for_symbol(name_ref);
+                    let name_str = self.renamer.name_for_symbol(name_ref);
                     self.print_identifier(name_str);
                     self.print_class(&self.store[*s].class);
 
@@ -5285,7 +5187,7 @@ pub(crate) mod __gated_printer {
                                         .func
                                         .name
                                         .as_ref()
-                                        .map(|name| self.name_for_symbol(name.ref_));
+                                        .map(|name| self.renamer.name_for_symbol(name.ref_));
                                     if let Some(fn_name) = func_name {
                                         self.print_identifier(fn_name);
                                     }
@@ -5312,10 +5214,10 @@ pub(crate) mod __gated_printer {
                                         .class
                                         .class_name
                                         .as_ref()
-                                        .map(|name| self.name_for_symbol(name.ref_));
+                                        .map(|name| self.renamer.name_for_symbol(name.ref_));
                                     if let Some(name) = &self.store[*class].class.class_name {
                                         self.print(b"class ");
-                                        let n = self.name_for_symbol(name.ref_);
+                                        let n = self.renamer.name_for_symbol(name.ref_);
                                         self.print_identifier(n);
                                     } else {
                                         self.print(b"class");
@@ -5409,7 +5311,7 @@ pub(crate) mod __gated_printer {
                     self.print(b"export");
                     self.print_space();
 
-                    if slice_of(self.store[*s].items).is_empty() {
+                    if self.store[self.store[*s].items].is_empty() {
                         self.print(b"{}");
                         self.print_semicolon_after_statement();
                         self.prev_stmt_tag = new_tag;
@@ -5421,7 +5323,7 @@ pub(crate) mod __gated_printer {
                     // the only consumer of the filtered list, and a re-print
                     // recomputes the identical filtering, so the AST write-back
                     // is unnecessary.
-                    let mut array: Vec<&js_ast::ClauseItem> = slice_of(self.store[*s].items).iter().collect();
+                    let mut array: Vec<&js_ast::ClauseItem> = self.store[self.store[*s].items].iter().collect();
                     {
                         let mut i: usize = 0;
                         while i < array.len() {
@@ -5491,7 +5393,7 @@ pub(crate) mod __gated_printer {
                             self.print_indent();
                         }
 
-                        let name = self.name_for_symbol(item.name.ref_);
+                        let name = self.renamer.name_for_symbol(item.name.ref_);
                         self.print_export_clause_item(item);
 
                         if Self::MAY_HAVE_MODULE_INFO {
@@ -5529,7 +5431,7 @@ pub(crate) mod __gated_printer {
                         self.print_space();
                     }
 
-                    for (i, item) in slice_of(self.store[*s].items).iter().enumerate() {
+                    for (i, item) in self.store[self.store[*s].items].iter().enumerate() {
                         if i != 0 {
                             self.print(b",");
                             if self.store[*s].is_single_line {
@@ -5565,8 +5467,8 @@ pub(crate) mod __gated_printer {
                             mi.request_module(id, analyze_transpiled_module::FetchParameters::None);
                             id
                         };
-                        for item in slice_of(self.store[*s].items).iter() {
-                            let name = self.name_for_symbol(item.name.ref_);
+                        for item in self.store[self.store[*s].items].iter() {
+                            let name = self.renamer.name_for_symbol(item.name.ref_);
                             let mi = self.module_info().expect("infallible: module_info enabled");
                             let alias_id = mi.str(self.store.str(item.alias));
                             let name_id = mi.str(name);
@@ -5622,7 +5524,7 @@ pub(crate) mod __gated_printer {
                             self.print_space();
                             self.print_block(
                                 self.store[*s].body.loc,
-                                slice_of(self.store[block].stmts),
+                                &self.store[self.store[block].stmts],
                                 Some(self.store[block].close_brace_loc),
                             );
                             self.print_space();
@@ -5718,7 +5620,7 @@ pub(crate) mod __gated_printer {
                     self.add_source_mapping(stmt.loc);
                     self.print(b"try");
                     self.print_space();
-                    self.print_block(self.store[*s].body_loc, slice_of(self.store[*s].body), None);
+                    self.print_block(self.store[*s].body_loc, &self.store[self.store[*s].body], None);
 
                     if let Some(catch) = &self.store[*s].catch {
                         self.print_space();
@@ -5731,14 +5633,14 @@ pub(crate) mod __gated_printer {
                             self.print(b")");
                         }
                         self.print_space();
-                        self.print_block(catch.body_loc, slice_of(catch.body), None);
+                        self.print_block(catch.body_loc, &self.store[catch.body], None);
                     }
 
                     if let Some(finally) = &self.store[*s].finally {
                         self.print_space();
                         self.print(b"finally");
                         self.print_space();
-                        self.print_block(finally.loc, slice_of(finally.stmts), None);
+                        self.print_block(finally.loc, &self.store[finally.stmts], None);
                     }
 
                     self.print_newline();
@@ -5785,7 +5687,7 @@ pub(crate) mod __gated_printer {
                     self.print_newline();
                     self.indent();
 
-                    for c in slice_of(self.store[*s].cases).iter() {
+                    for c in self.store[self.store[*s].cases].iter() {
                         self.print_semicolon_if_needed();
                         self.print_indent();
 
@@ -5798,13 +5700,13 @@ pub(crate) mod __gated_printer {
                         }
 
                         self.print(b":");
-                        let c_body = slice_of(c.body);
+                        let c_body = &self.store[c.body];
                         if c_body.len() == 1 {
                             if let StmtData::SBlock(block) = &c_body[0].data {
                                 self.print_space();
                                 self.print_block(
                                     c_body[0].loc,
-                                    slice_of(self.store[*block].stmts),
+                                    &self.store[self.store[*block].stmts],
                                     Some(self.store[*block].close_brace_loc),
                                 );
                                 self.print_newline();
@@ -5856,7 +5758,7 @@ pub(crate) mod __gated_printer {
                             self.print_semicolon_after_statement();
                         }
 
-                        if !slice_of(self.store[*s].items).is_empty() || self.store[*s].default_name.is_some() {
+                        if !self.store[self.store[*s].items].is_empty() || self.store[*s].default_name.is_some() {
                             self.print_indent();
                             self.print_space_before_identifier();
                             self.print_whitespacer(ws!(b"var {"));
@@ -5867,22 +5769,22 @@ pub(crate) mod __gated_printer {
                                 self.print_space();
                                 self.print_symbol(default_name.ref_);
 
-                                if !slice_of(self.store[*s].items).is_empty() {
+                                if !self.store[self.store[*s].items].is_empty() {
                                     self.print_space();
                                     self.print(b",");
                                     self.print_space();
-                                    for (i, item) in slice_of(self.store[*s].items).iter().enumerate() {
+                                    for (i, item) in self.store[self.store[*s].items].iter().enumerate() {
                                         self.print_clause_item_as(item, ClauseItemAs::Var);
-                                        if i < slice_of(self.store[*s].items).len() - 1 {
+                                        if i < self.store[self.store[*s].items].len() - 1 {
                                             self.print(b",");
                                             self.print_space();
                                         }
                                     }
                                 }
                             } else {
-                                for (i, item) in slice_of(self.store[*s].items).iter().enumerate() {
+                                for (i, item) in self.store[self.store[*s].items].iter().enumerate() {
                                     self.print_clause_item_as(item, ClauseItemAs::Var);
-                                    if i < slice_of(self.store[*s].items).len() - 1 {
+                                    if i < self.store[self.store[*s].items].len() - 1 {
                                         self.print(b",");
                                         self.print_space();
                                     }
@@ -5942,7 +5844,7 @@ pub(crate) mod __gated_printer {
                         item_count += 1;
                     }
 
-                    if !slice_of(self.store[*s].items).is_empty() {
+                    if !self.store[self.store[*s].items].is_empty() {
                         if item_count > 0 {
                             self.print(b",");
                         }
@@ -5955,7 +5857,7 @@ pub(crate) mod __gated_printer {
                             self.print_space();
                         }
 
-                        for (i, item) in slice_of(self.store[*s].items).iter().enumerate() {
+                        for (i, item) in self.store[self.store[*s].items].iter().enumerate() {
                             if i != 0 {
                                 self.print(b",");
                                 if self.store[*s].is_single_line {
@@ -5999,7 +5901,7 @@ pub(crate) mod __gated_printer {
                             || record
                                 .flags
                                 .contains(ImportRecordFlags::CONTAINS_IMPORT_STAR)
-                            || slice_of(self.store[*s].items).is_empty()
+                            || self.store[self.store[*s].items].is_empty()
                         {
                             self.print(b" ");
                         }
@@ -6134,7 +6036,7 @@ pub(crate) mod __gated_printer {
                         };
 
                         if let Some(name) = &self.store[*s].default_name {
-                            let local_name = self.name_for_symbol(name.ref_);
+                            let local_name = self.renamer.name_for_symbol(name.ref_);
                             let mi = self.module_info().expect("infallible: module_info enabled");
                             let local_name_id = mi.str(local_name);
                             let default_id = mi.str(b"default");
@@ -6147,8 +6049,8 @@ pub(crate) mod __gated_printer {
                             );
                         }
 
-                        for item in slice_of(self.store[*s].items).iter() {
-                            let local_name = self.name_for_symbol(item.name.ref_);
+                        for item in self.store[self.store[*s].items].iter() {
+                            let local_name = self.renamer.name_for_symbol(item.name.ref_);
                             let mi = self.module_info().expect("infallible: module_info enabled");
                             let local_name_id = mi.str(local_name);
                             let alias_id = mi.str(self.store.str(item.alias));
@@ -6165,7 +6067,7 @@ pub(crate) mod __gated_printer {
                             .flags
                             .contains(ImportRecordFlags::CONTAINS_IMPORT_STAR)
                         {
-                            let local_name = self.name_for_symbol(self.store[*s].namespace_ref);
+                            let local_name = self.renamer.name_for_symbol(self.store[*s].namespace_ref);
                             let mi = self.module_info().expect("infallible: module_info enabled");
                             let local_name_id = mi.str(local_name);
                             if phase_defer {
@@ -6186,7 +6088,7 @@ pub(crate) mod __gated_printer {
                 }
                 StmtData::SBlock(s) => {
                     self.print_indent();
-                    self.print_block(stmt.loc, slice_of(self.store[*s].stmts), Some(self.store[*s].close_brace_loc));
+                    self.print_block(stmt.loc, &self.store[self.store[*s].stmts], Some(self.store[*s].close_brace_loc));
                     self.print_newline();
                 }
                 StmtData::SDebugger(_) => {
@@ -6338,7 +6240,7 @@ pub(crate) mod __gated_printer {
                     self.print_space();
                     self.print_block(
                         s.yes.loc,
-                        slice_of(self.store[*block].stmts),
+                        &self.store[self.store[*block].stmts],
                         Some(self.store[*block].close_brace_loc),
                     );
                     if s.no.is_some() {
@@ -6388,7 +6290,7 @@ pub(crate) mod __gated_printer {
                 match &no_block.data {
                     StmtData::SBlock(block) => {
                         self.print_space();
-                        self.print_block(no_block.loc, slice_of(self.store[*block].stmts), None);
+                        self.print_block(no_block.loc, &self.store[self.store[*block].stmts], None);
                         self.print_newline();
                     }
                     StmtData::SIf(s_if) => {
@@ -6432,7 +6334,7 @@ pub(crate) mod __gated_printer {
             let BindingData::BObject(object) = &decl.binding.data else {
                 return false;
             };
-            let properties = slice_of((&self.store[*object]).properties);
+            let properties = &self.store[self.store[*object].properties];
             !properties.is_empty()
                 && properties.iter().all(|property| {
                     matches!(&property.value.data, BindingData::BIdentifier(id)
@@ -6809,7 +6711,7 @@ pub(crate) mod __gated_printer {
 
             self.print_string_literal_utf8(source.path.pretty, false);
 
-            let stmts = slice_of(part.stmts);
+            let stmts = &self.store[part.stmts];
             let func = &self.store[self.store[stmts[0]
                 .data
                 .s_expr()
@@ -6826,7 +6728,7 @@ pub(crate) mod __gated_printer {
             // `bun build --format=internal_bake_dev` rewrites it into a
             // `module.exports = ...` assignment printed by the CommonJS branch
             // below.
-            let body_stmts = slice_of(func.body.stmts);
+            let body_stmts = &self.store[func.body.stmts];
             if ast.has_lazy_export
                 && let Some(lazy) = body_stmts
                     .first()
@@ -6834,7 +6736,7 @@ pub(crate) mod __gated_printer {
             {
                 self.print_fn_args(
                     Some(func.open_parens_loc),
-                    slice_of(func.args),
+                    &self.store[func.args],
                     func.flags.contains(G::FnFlags::HasRestArg),
                     false,
                 );
@@ -6874,7 +6776,7 @@ pub(crate) mod __gated_printer {
                         self.print_string_literal_utf8(self.store.str(record.path.pretty), false);
 
                         let item_count = u32::from(self.store[import].default_name.is_some())
-                            + u32::try_from(slice_of(self.store[import].items).len()).expect("int cast");
+                            + u32::try_from(self.store[self.store[import].items].len()).expect("int cast");
                         let _ = self.fmt(format_args!(", {},", item_count));
                         if item_count == 0 {
                             // Add a comment explaining why the number could be zero
@@ -6887,7 +6789,7 @@ pub(crate) mod __gated_printer {
                             if self.store[import].default_name.is_some() {
                                 self.print(b" \"default\",");
                             }
-                            for item in slice_of(self.store[import].items).iter() {
+                            for item in self.store[self.store[import].items].iter() {
                                 self.print(b" ");
                                 self.print_string_literal_utf8(self.store.str(item.alias), false);
                                 self.print(b",");
@@ -6949,13 +6851,13 @@ pub(crate) mod __gated_printer {
                 }
                 self.print_fn_args(
                     Some(func.open_parens_loc),
-                    slice_of(func.args),
+                    &self.store[func.args],
                     func.flags.contains(G::FnFlags::HasRestArg),
                     false,
                 );
                 self.print(b" => {\n");
                 self.indent();
-                self.print_block_body(slice_of(func.body.stmts));
+                self.print_block_body(&self.store[func.body.stmts]);
                 self.unindent();
                 self.print_indent();
                 self.print(b"}, ");
@@ -7028,8 +6930,8 @@ pub trait WriterContext {
     fn write_all(&mut self, buf: &[u8]) -> crate::Result<usize>;
     fn get_last_byte(&self) -> u8;
     fn get_last_last_byte(&self) -> u8;
-    fn reserve_next(&mut self, count: u64) -> crate::Result<*mut u8>;
-    fn advance_by(&mut self, count: u64);
+    /// Pede espaço para `count` bytes a mais, sem escrever nada.
+    fn reserve_capacity(&mut self, _count: usize) {}
     fn slice(&self) -> &[u8];
     fn take_buffer(&mut self) -> MutableString;
     fn flush(&mut self) -> crate::Result<()> {
@@ -7047,18 +6949,13 @@ pub trait WriterTrait {
     fn prev_prev_char(&self) -> u8;
     fn print_byte(&mut self, b: u8);
     fn print_slice(&mut self, s: &[u8]);
-    fn reserve(&mut self, count: u64) -> crate::Result<*mut u8>;
-    fn advance(&mut self, count: u64);
-    /// Reserve `bytes.len()`, memcpy `bytes` into the reserved region, then advance.
-    /// Centralizes the open-coded `reserve + copy_nonoverlapping + advance` triplet
+    /// Pede espaço para `count` bytes a mais, sem escrever nada (o pré-dimensionamento da saída).
+    fn reserve_capacity(&mut self, count: u64);
+    /// Escreve `bytes` e devolve o erro do escritor, se houve.
     #[inline]
     fn write_reserved(&mut self, bytes: &[u8]) -> crate::Result<()> {
-        let ptr = self.reserve(bytes.len() as u64)?;
-        // SAFETY: `reserve(n)` returns a writable region of >= n bytes owned by the
-        // writer's internal buffer, which is disjoint from caller-provided `bytes`.
-        unsafe { core::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, bytes.len()) };
-        self.advance(bytes.len() as u64);
-        Ok(())
+        self.print_slice(bytes);
+        self.get_error()
     }
     fn slice(&self) -> &[u8];
     fn get_error(&self) -> crate::Result<()>;
@@ -7123,19 +7020,6 @@ impl<C: WriterContext> Writer<C> {
     #[inline]
     pub(crate) fn prev_prev_char(&self) -> u8 {
         self.ctx.get_last_last_byte()
-    }
-
-    pub(crate) fn reserve(&mut self, count: u64) -> crate::Result<*mut u8> {
-        self.ctx.reserve_next(count)
-    }
-
-    pub(crate) fn advance(&mut self, count: u64) {
-        self.ctx.advance_by(count);
-        // PERF: output never approaches 2 GiB; the checked add of
-        // a u64→i32 here was a measurable branch in the per-token print path.
-        // Keep the debug-mode overflow check without paying for it in release.
-        debug_assert!(count <= i32::MAX as u64);
-        self.written = self.written.wrapping_add(count as i32);
     }
 
     #[inline]
@@ -7204,12 +7088,8 @@ impl<C: WriterContext> WriterTrait for Writer<C> {
         self.print_slice(s)
     }
     #[inline]
-    fn reserve(&mut self, count: u64) -> crate::Result<*mut u8> {
-        self.reserve(count)
-    }
-    #[inline]
-    fn advance(&mut self, count: u64) {
-        self.advance(count)
+    fn reserve_capacity(&mut self, count: u64) {
+        self.ctx.reserve_capacity(usize::try_from(count).expect("int cast"))
     }
     #[inline]
     fn slice(&self) -> &[u8] {
@@ -7252,12 +7132,8 @@ impl<W: WriterTrait> WriterTrait for &mut W {
         (**self).print_slice(s)
     }
     #[inline]
-    fn reserve(&mut self, count: u64) -> crate::Result<*mut u8> {
-        (**self).reserve(count)
-    }
-    #[inline]
-    fn advance(&mut self, count: u64) {
-        (**self).advance(count)
+    fn reserve_capacity(&mut self, count: u64) {
+        (**self).reserve_capacity(count)
     }
     #[inline]
     fn slice(&self) -> &[u8] {
@@ -7363,18 +7239,6 @@ impl BufferWriter {
         if len >= 2 { list[len - 2] } else { 0 }
     }
 
-    pub(crate) fn reserve_next(&mut self, count: u64) -> crate::Result<*mut u8> {
-        let n = usize::try_from(count).expect("int cast");
-        // SAFETY: caller treats as write-only; advance_by() commits via commit_spare.
-        Ok(unsafe { bun_core::vec::reserve_spare_bytes(&mut self.buffer.list, n) }.as_mut_ptr())
-    }
-
-    pub(crate) fn advance_by(&mut self, count: u64) {
-        let count_usize = usize::try_from(count).expect("int cast");
-        // SAFETY: reserve_next reserved and the caller initialized [len..len+count).
-        unsafe { bun_core::vec::commit_spare(&mut self.buffer.list, count_usize) };
-    }
-
     pub fn reset(&mut self) {
         self.buffer.reset();
         self.written_len = 0;
@@ -7430,12 +7294,8 @@ impl WriterContext for BufferWriter {
         self.get_last_last_byte()
     }
     #[inline]
-    fn reserve_next(&mut self, count: u64) -> crate::Result<*mut u8> {
-        self.reserve_next(count)
-    }
-    #[inline]
-    fn advance_by(&mut self, count: u64) {
-        self.advance_by(count)
+    fn reserve_capacity(&mut self, count: usize) {
+        self.buffer.list.reserve(count);
     }
     #[inline]
     fn slice(&self) -> &[u8] {
@@ -7472,7 +7332,7 @@ pub enum Format {
     EsmAscii,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, core::marker::ConstParamTy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum GenerateSourceMap {
     Disable,
     Lazy,
@@ -7500,7 +7360,7 @@ impl GenerateSourceMap {
 // `printer.options`, `*mut Symbol` for `must_not_be_renamed`, raw-ptr
 // `Scope.parent` backref). `print_json` is live as well.
 // ───────────────────────────────────────────────────────────────────────────
-use self::__gated_printer::{Printer, slice_of};
+use self::__gated_printer::Printer;
 use SourceMap::chunk::LineOffsetTables;
 use js_ast::Ast;
 
@@ -7638,7 +7498,7 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
         let minifier = tree.char_freq.as_ref().unwrap().compile();
         minify_renamer.assign_names_by_frequency(&minifier);
 
-        rename::Renamer::MinifyRenamer(&mut *minify_renamer)
+        rename::Renamer::MinifyRenamer(&*minify_renamer)
     } else {
         no_op_renamer = rename::NoOpRenamer::init(symbols, source, &tree.store);
         no_op_renamer.to_renamer()
@@ -7652,7 +7512,7 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
     // is almost always within a small factor of the input, so reserving up front
     // keeps the per-token appends below from repeatedly growing+memmoving the
     // backing `Vec`. Cheap no-op on a reused (already-grown) writer.
-    let _ = writer.reserve(source.contents().len() as u64);
+    writer.reserve_capacity(source.contents().len() as u64);
 
     let mut opts = opts;
     let source_map_builder = get_source_map_builder(
@@ -7702,7 +7562,7 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
     }
 
     for part in tree.parts.iter() {
-        for stmt in slice_of(part.stmts).iter() {
+        for stmt in tree.store[part.stmts].iter() {
             printer.print_stmt(*stmt)?;
             printer.writer.get_error()?;
             printer.print_semicolon_if_needed();
@@ -7736,7 +7596,7 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
         None
     };
 
-    if let Some(cache) = printer.options.runtime_transpiler_cache {
+    if let Some(cache) = printer.options.runtime_transpiler_cache.take() {
         let mut srlz_res: Vec<u8> = Vec::new();
         if have_module_info {
             printer
@@ -7747,8 +7607,7 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
                 .serialize(&mut srlz_res)
                 .map_err(|_| crate::Error::WriteFailed)?;
         }
-        // SAFETY: caller guarantees the cache outlives the print call.
-        unsafe { &mut *cache.as_ptr() }.put(
+        cache.put(
             printer.writer.slice(),
             source_maps_chunk
                 .as_ref()
@@ -7759,7 +7618,7 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
     }
 
     if GENERATE_SOURCE_MAP {
-        if let Some(handler) = &printer.options.source_map_handler {
+        if let Some(handler) = &mut printer.options.source_map_handler {
             handler.on_source_map_chunk(source_maps_chunk.take().unwrap(), source)?;
         }
     }
@@ -7893,7 +7752,7 @@ pub(crate) fn print_with_writer_and_platform<
     renamer: rename::Renamer<'a, 'a>,
 ) -> PrintResult {
     // See `print_ast`: pre-size the output buffer to avoid grow+memmove churn.
-    let _ = writer.reserve(source.contents().len() as u64);
+    writer.reserve_capacity(source.contents().len() as u64);
 
     type PrinterType<'a, W, const B: bool, const G: bool> =
         Printer<'a, W, /*ASCII_ONLY=*/ B, B, false, G>;
@@ -7934,7 +7793,7 @@ pub(crate) fn print_with_writer_and_platform<
         }
 
         for part in parts {
-            for stmt in slice_of(part.stmts).iter() {
+            for stmt in ast.store[part.stmts].iter() {
                 if let Err(err) = printer.print_stmt(*stmt) {
                     return PrintResult::Err(err);
                 }

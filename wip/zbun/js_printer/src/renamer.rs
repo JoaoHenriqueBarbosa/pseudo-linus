@@ -108,7 +108,7 @@ impl<'a> NoOpRenamer<'a> {
         }
     }
 
-    pub(crate) fn to_renamer(&mut self) -> Renamer<'_, 'a> {
+    pub(crate) fn to_renamer(&self) -> Renamer<'_, 'a> {
         Renamer::NoOpRenamer(self)
     }
 }
@@ -117,14 +117,18 @@ impl<'a> NoOpRenamer<'a> {
 // `'src` is `NoOpRenamer`'s borrow of the `Source`. Erasing both with a
 // single lifetime via `&'a mut NoOpRenamer<'a>` would make
 // `'a` invariant and lock the source borrow to the renamer borrow.
+//
+// Só empréstimo compartilhado: imprimir não muda o renamer, e assim `Renamer` é `Copy` e o nome devolvido vive 'r,
+// sem prender o `Printer` que o guarda.
+#[derive(Clone, Copy)]
 pub enum Renamer<'r, 'src> {
-    NumberRenamer(&'r mut NumberRenamer<'src>),
-    NoOpRenamer(&'r mut NoOpRenamer<'src>),
-    MinifyRenamer(&'r mut MinifyRenamer<'src>),
+    NumberRenamer(&'r NumberRenamer<'src>),
+    NoOpRenamer(&'r NoOpRenamer<'src>),
+    MinifyRenamer(&'r MinifyRenamer<'src>),
 }
 
 impl<'r, 'src> Renamer<'r, 'src> {
-    pub(crate) fn symbols(&self) -> &symbol::Map {
+    pub(crate) fn symbols(self) -> &'r symbol::Map {
         match self {
             Renamer::NumberRenamer(r) => &r.symbols,
             Renamer::NoOpRenamer(r) => &r.symbols,
@@ -132,7 +136,7 @@ impl<'r, 'src> Renamer<'r, 'src> {
         }
     }
 
-    pub fn name_for_symbol(&self, ref_: Ref) -> &[u8] {
+    pub fn name_for_symbol(self, ref_: Ref) -> &'r [u8] {
         match self {
             Renamer::NumberRenamer(r) => r.name_for_symbol(ref_),
             Renamer::NoOpRenamer(r) => r.name_for_symbol(ref_),
