@@ -6,7 +6,7 @@ use crate::diagnostics::{
 };
 use crate::hir::*;
 use bun_ast::expr::Data;
-use bun_ast::{self as ast, E, Expr, G, Loc, OpCode, Ref, StoreRef, symbol};
+use bun_ast::{self as ast, E, Expr, G, Loc, OpCode, Ref, symbol};
 
 use super::function::{lower_function_to_value, lower_object_method};
 use super::helpers::{

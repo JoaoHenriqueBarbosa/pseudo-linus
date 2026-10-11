@@ -41,12 +41,12 @@ pub mod dead_code_elimination;
 pub mod drop_manual_memoization;
 pub mod inline_iifes;
 pub(crate) mod merge_consecutive_blocks;
-#[cfg(any(debug_assertions, bun_asan, feature = "fixtures"))]
+#[cfg(any(debug_assertions, feature = "fixtures"))]
 pub mod name_anonymous_functions;
 pub mod optimize_for_ssr;
 pub(crate) mod optimize_props_method_calls;
 pub(crate) mod outline_functions;
-#[cfg(any(debug_assertions, bun_asan, feature = "fixtures"))]
+#[cfg(any(debug_assertions, feature = "fixtures"))]
 pub mod outline_jsx;
 pub(crate) mod prune_maybe_throws;
 pub(crate) mod prune_unused_labels_hir;
@@ -55,12 +55,12 @@ pub(crate) use constant_propagation::constant_propagation;
 pub(crate) use dead_code_elimination::dead_code_elimination;
 pub(crate) use drop_manual_memoization::drop_manual_memoization;
 pub(crate) use inline_iifes::inline_immediately_invoked_function_expressions;
-#[cfg(any(debug_assertions, bun_asan, feature = "fixtures"))]
+#[cfg(any(debug_assertions, feature = "fixtures"))]
 pub(crate) use name_anonymous_functions::name_anonymous_functions;
 pub(crate) use optimize_for_ssr::optimize_for_ssr;
 pub(crate) use optimize_props_method_calls::optimize_props_method_calls;
 pub(crate) use outline_functions::outline_functions;
-#[cfg(any(debug_assertions, bun_asan, feature = "fixtures"))]
+#[cfg(any(debug_assertions, feature = "fixtures"))]
 pub(crate) use outline_jsx::outline_jsx;
 pub(crate) use prune_maybe_throws::prune_maybe_throws;
 pub(crate) use prune_unused_labels_hir::prune_unused_labels_hir;

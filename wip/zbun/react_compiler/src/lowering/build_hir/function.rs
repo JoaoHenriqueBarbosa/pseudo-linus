@@ -9,7 +9,7 @@ use crate::hir::{
     ObjectProperty, ObjectPropertyKey, ObjectPropertyType, Place, HirStr, VariableBinding,
 };
 use bun_ast::expr::Data;
-use bun_ast::{self as ast, E, Expr, G, Loc, Ref};
+use bun_ast::{self as ast, Expr, G, Loc, Ref};
 
 use super::super::hir_builder::{HirBuilder, convert_loc};
 use super::FunctionNode;
