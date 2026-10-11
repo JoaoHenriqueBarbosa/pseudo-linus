@@ -94,6 +94,42 @@
   {"method": "Target.sendMessageToTarget", "params": {"sessionId": "$n", "message": "{\"id\": 2, \"method\": \"Target.getTargetInfo\", \"params\": {}}"}, "after": 0.3},
   {"method": "Target.sendMessageToTarget", "params": {"sessionId": "$n", "message": "{\"id\": 3, \"method\": \"Runtime.evaluate\", \"params\": {\"expression\": \"1+1\"}}"}, "after": 0.3}
  ]},
+ {"name": "domains_enable", "steps": [
+  {"method": "Target.getTargets"},
+  {"method": "Target.attachToTarget", "params": {"targetId": "$TARGET", "flatten": true}, "save": "s", "save_field": "sessionId", "after": 0.3},
+  {"method": "Log.enable", "session": "s", "after": 0.2},
+  {"method": "Performance.enable", "session": "s", "after": 0.2},
+  {"method": "Security.enable", "session": "s", "after": 0.3},
+  {"method": "Network.enable", "session": "s", "after": 0.2},
+  {"method": "Network.disable", "session": "s", "after": 0.2},
+  {"method": "Security.enable", "session": "s", "after": 0.3},
+  {"method": "Security.disable", "session": "s", "after": 0.2},
+  {"method": "Log.disable", "session": "s"},
+  {"method": "Performance.disable", "session": "s"}
+ ]},
+ {"name": "network_navigate", "steps": [
+  {"method": "Target.getTargets"},
+  {"method": "Target.attachToTarget", "params": {"targetId": "$TARGET", "flatten": true}, "save": "s", "save_field": "sessionId", "after": 0.3},
+  {"method": "Page.enable", "session": "s", "after": 0.2},
+  {"method": "Network.enable", "session": "s", "after": 0.2},
+  {"method": "Security.enable", "session": "s", "after": 0.3},
+  {"method": "Runtime.enable", "session": "s", "after": 0.2},
+  {"method": "Page.navigate", "session": "s", "params": {"url": "data:text/html,<title>T</title><p>hello"}, "after": 1.5},
+  {"method": "Page.navigate", "session": "s", "params": {"url": "about:blank"}, "after": 1.0},
+  {"method": "Page.navigate", "session": "s", "params": {"url": "http://127.0.0.1:1/"}, "after": 1.5}
+ ]},
+ {"name": "emulation_metrics", "steps": [
+  {"method": "Target.getTargets"},
+  {"method": "Target.attachToTarget", "params": {"targetId": "$TARGET", "flatten": true}, "save": "s", "save_field": "sessionId", "after": 0.3},
+  {"method": "Page.enable", "session": "s", "after": 0.2},
+  {"method": "Runtime.evaluate", "session": "s", "params": {"expression": "[innerWidth, innerHeight, outerWidth, outerHeight, devicePixelRatio, screen.width, screen.height, matchMedia('(max-width: 700px)').matches, 'ontouchstart' in window, navigator.maxTouchPoints]", "returnByValue": true}},
+  {"method": "Emulation.setDeviceMetricsOverride", "session": "s", "params": {"mobile": false, "width": 600, "height": 400, "deviceScaleFactor": 2, "screenOrientation": {"angle": 0, "type": "portraitPrimary"}}, "after": 0.3},
+  {"method": "Runtime.evaluate", "session": "s", "params": {"expression": "[innerWidth, innerHeight, outerWidth, outerHeight, devicePixelRatio, screen.width, screen.height, matchMedia('(max-width: 700px)').matches, 'ontouchstart' in window, navigator.maxTouchPoints]", "returnByValue": true}},
+  {"method": "Emulation.setTouchEmulationEnabled", "session": "s", "params": {"enabled": true, "configuration": "mobile", "maxTouchPoints": 5}},
+  {"method": "Runtime.evaluate", "session": "s", "params": {"expression": "['ontouchstart' in window, navigator.maxTouchPoints]", "returnByValue": true}},
+  {"method": "Emulation.clearDeviceMetricsOverride", "session": "s", "after": 0.3},
+  {"method": "Runtime.evaluate", "session": "s", "params": {"expression": "[innerWidth, innerHeight, devicePixelRatio]", "returnByValue": true}}
+ ]},
  {"name": "auto_attach_wait", "steps": [
   {"method": "Target.setDiscoverTargets", "params": {"discover": true}, "after": 0.3},
   {"method": "Target.setAutoAttach", "params": {"autoAttach": true, "waitForDebuggerOnStart": true, "flatten": true}, "after": 0.5},

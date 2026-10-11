@@ -223,7 +223,7 @@ fn score(name: &str) -> (usize, usize) {
 fn transcripts_match_the_oracle() {
     let mut same = 0;
     let mut total = 0;
-    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait"] {
+    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics"] {
         let (s, t) = score(name);
         same += s;
         total += t;

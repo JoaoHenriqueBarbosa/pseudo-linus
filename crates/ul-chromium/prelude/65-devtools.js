@@ -506,6 +506,22 @@ const devtoolsAgent = (() => {
       state.enabled.delete(message.sessionId === undefined ? '' : message.sessionId);
       reply(message, {});
     },
+    'Emulation.setDeviceMetricsOverride': (message, params) => {
+      if (params.width > 0) windowMetrics.innerWidth = params.width;
+      if (params.height > 0) windowMetrics.innerHeight = params.height;
+      if (params.deviceScaleFactor > 0) windowMetrics.devicePixelRatio = params.deviceScaleFactor;
+      reply(message, {});
+    },
+    'Emulation.clearDeviceMetricsOverride': (message) => {
+      windowMetrics.innerWidth = VIEWPORT.width;
+      windowMetrics.innerHeight = VIEWPORT.height;
+      windowMetrics.devicePixelRatio = 1;
+      reply(message, {});
+    },
+    'Emulation.setTouchEmulationEnabled': (message, params) => {
+      emulation.touchPoints = params.enabled === true ? (params.maxTouchPoints > 0 ? params.maxTouchPoints : 1) : 0;
+      reply(message, {});
+    },
     'Runtime.evaluate': evaluate,
     'Runtime.callFunctionOn': callFunctionOn,
     'Runtime.getProperties': getProperties,

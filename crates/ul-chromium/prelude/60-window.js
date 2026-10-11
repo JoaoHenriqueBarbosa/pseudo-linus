@@ -38,6 +38,8 @@ const afterNetwork = (fn, delaysLoad = false) => {
 // A janela do headless medida no oráculo (o WINDOW do hospedeiro): conteúdo 780x493, janela 780x580, tela 800x600.
 const VIEWPORT = Object.freeze({ width: 780, height: 493, outerWidth: 0, outerHeight: 0 });
 const pageState = { url: op('pageUrl') };
+// O que o `Emulation` sobrepõe na janela: os pontos de toque do navegador.
+const emulation = { touchPoints: 0 };
 
 class Location {
   constructor() { throw new TypeError('Illegal constructor'); }
@@ -142,7 +144,7 @@ class Navigator {
   get webdriver() { return false; }
   get hardwareConcurrency() { return 8; }
   get deviceMemory() { return 8; }
-  get maxTouchPoints() { return 0; }
+  get maxTouchPoints() { return emulation.touchPoints; }
   get doNotTrack() { return null; }
   get pdfViewerEnabled() { return true; }
   get plugins() { return []; }

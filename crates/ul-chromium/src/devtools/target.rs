@@ -64,6 +64,8 @@ struct Tab {
     page_enabled: Vec<String>,
     lifecycle_enabled: Vec<String>,
     runtime_enabled: Vec<String>,
+    network_enabled: Vec<String>,
+    security_enabled: Vec<String>,
     /// Os marcos do carregador corrente com o seu `timestamp`, repetidos a quem liga os eventos de ciclo de vida depois.
     lifecycle: Vec<(String, f64)>,
     context: Option<(i64, String)>,
@@ -104,6 +106,8 @@ impl Tab {
             page_enabled: Vec::new(),
             lifecycle_enabled: Vec::new(),
             runtime_enabled: Vec::new(),
+            network_enabled: Vec::new(),
+            security_enabled: Vec::new(),
             lifecycle: Vec::new(),
             context: None,
             closed: false,
@@ -274,6 +278,8 @@ impl Tab {
         }
         let navigated = Json::object([("frame", self.frame(unreachable)), ("type", Json::str("Navigation"))]);
         self.emit(&self.page_enabled.clone(), "Page.frameNavigated", &navigated);
+        self.emit(&self.network_enabled.clone(), "Network.policyUpdated", &Json::object([]));
+        self.emit_security_state(&self.security_enabled.clone());
         let id = self.next_context;
         self.next_context += 1;
         let unique = format!("{}.{}", random_i64(), random_i64());
@@ -383,6 +389,23 @@ impl Tab {
         }
     }
 
+    /// O `Security.visibleSecurityStateChanged` do documento corrente: `https` é seguro, `about:blank` neutro e o resto
+    /// (data, http, file) inseguro por esquema não criptográfico.
+    fn emit_security_state(&self, sessions: &[String]) {
+        let (state, issues) = if self.url.starts_with("https:") {
+            ("secure", Vec::new())
+        } else if self.url.is_empty() || self.url == "about:blank" {
+            ("neutral", vec![Json::str("scheme-is-not-cryptographic")])
+        } else {
+            ("insecure", vec![Json::str("scheme-is-not-cryptographic")])
+        };
+        let params = Json::object([(
+            "visibleSecurityState",
+            Json::object([("securityState", Json::str(state)), ("securityStateIssueIds", Json::Array(issues))]),
+        )]);
+        self.emit(sessions, "Security.visibleSecurityStateChanged", &params);
+    }
+
     /// Trata uma linha do laço do navegador; `Some` encerra a página corrente.
     fn command(&mut self, runner: &PageRunner, hook: &HostHandle, line: &str) -> Option<Next> {
         let (kind, rest) = line.split_at(1.min(line.len()));
@@ -392,7 +415,7 @@ impl Tab {
                 return Some(Next::Close);
             }
             "D" => {
-                for list in [&mut self.page_enabled, &mut self.lifecycle_enabled, &mut self.runtime_enabled] {
+                for list in [&mut self.page_enabled, &mut self.lifecycle_enabled, &mut self.runtime_enabled, &mut self.network_enabled, &mut self.security_enabled] {
                     list.retain(|s| s != rest);
                 }
                 return None;
@@ -413,6 +436,26 @@ impl Tab {
             "Page.disable" => {
                 self.page_enabled.retain(|s| *s != session);
                 self.lifecycle_enabled.retain(|s| *s != session);
+                self.reply(&message, Json::object([]));
+            }
+            "Log.enable" | "Log.disable" | "Performance.enable" | "Performance.disable" => self.reply(&message, Json::object([])),
+            "Network.enable" | "Network.disable" => {
+                self.network_enabled.retain(|s| *s != session);
+                if method == "Network.enable" {
+                    self.network_enabled.push(session);
+                }
+                self.reply(&message, Json::object([]));
+            }
+            "Security.enable" | "Security.disable" => {
+                let first = method == "Security.enable" && !self.security_enabled.contains(&session);
+                self.security_enabled.retain(|s| *s != session);
+                if method == "Security.enable" {
+                    self.security_enabled.push(session.clone());
+                }
+                // O estado visível sai antes do resultado, só na primeira ligação (medido no oráculo).
+                if first {
+                    self.emit_security_state(std::slice::from_ref(&session));
+                }
                 self.reply(&message, Json::object([]));
             }
             "Page.getFrameTree" => self.reply(&message, Json::object([("frameTree", Json::object([("frame", self.frame(None))]))])),
@@ -445,6 +488,15 @@ impl Tab {
                 return Some(Next::Navigate(self.url.clone(), None));
             }
             _ => {
+                // O `frameResized` sai antes do resultado: uma vez ao pôr as métricas, três ao limpar (medido no oráculo).
+                let resized = match method.as_str() {
+                    "Emulation.setDeviceMetricsOverride" => 1,
+                    "Emulation.clearDeviceMetricsOverride" => 3,
+                    _ => 0,
+                };
+                for _ in 0..resized {
+                    self.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
+                }
                 if method == "Runtime.enable" && !self.runtime_enabled.contains(&session) {
                     self.runtime_enabled.push(session);
                 } else if method == "Runtime.disable" {
