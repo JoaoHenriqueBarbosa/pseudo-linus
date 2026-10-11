@@ -21,6 +21,8 @@ pub struct NetExchange {
     pub protocol: String,
     pub remote_ip: String,
     pub remote_port: u16,
+    /// A resposta veio do `Fetch.fulfillRequest`: sem conexão, sem `ExtraInfo`.
+    pub synthetic: bool,
 }
 
 /// O documento (ou o favicon): os redirecionamentos seguidos e a troca final, mais os tamanhos do corpo.
@@ -32,13 +34,15 @@ pub struct NetMeta {
     pub data_length: usize,
     /// Bytes do corpo no fio, sem a cabeça.
     pub body_encoded: usize,
+    /// O corpo decodificado, para o `Network.getResponseBody`.
+    pub body: Vec<u8>,
 }
 
 fn text(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).into_owned()
 }
 
-fn exchange(url: &Url, status: u16, reason: &str, headers: &[(Vec<u8>, Vec<u8>)], head: &[u8], sent: &[(String, String)], version: (u8, u8)) -> NetExchange {
+fn exchange(url: &Url, status: u16, reason: &str, headers: &[(Vec<u8>, Vec<u8>)], head: &[u8], sent: &[(String, String)], version: (u8, u8), synthetic: bool) -> NetExchange {
     let headers: Vec<(String, String)> = headers.iter().map(|(n, v)| (text(n), text(v))).collect();
     let content_type = headers.iter().find(|(n, _)| n.eq_ignore_ascii_case("Content-Type")).map(|(_, v)| v.clone());
     let mime_type = content_type.as_deref().and_then(|c| c.split(';').next()).map(|m| m.trim().to_ascii_lowercase());
@@ -62,19 +66,21 @@ fn exchange(url: &Url, status: u16, reason: &str, headers: &[(Vec<u8>, Vec<u8>)]
             (2, _) => "h2".to_owned(),
             (major, minor) => format!("http/{major}.{minor}"),
         },
-        remote_ip: url.host_for_url().trim_matches(|c| c == '[' || c == ']').to_owned(),
-        remote_port: url.port_or_default(),
+        remote_ip: if synthetic { String::new() } else { url.host_for_url().trim_matches(|c| c == '[' || c == ']').to_owned() },
+        remote_port: if synthetic { 0 } else { url.port_or_default() },
+        synthetic,
     }
 }
 
 impl NetMeta {
     pub fn from_response(response: &Response) -> NetMeta {
-        let hop = |h: &Hop| exchange(&h.url, h.status, &h.reason, &h.headers, &h.head, &h.sent, h.version);
+        let hop = |h: &Hop| exchange(&h.url, h.status, &h.reason, &h.headers, &h.head, &h.sent, h.version, false);
         NetMeta {
             redirects: response.hops.iter().map(hop).collect(),
-            last: exchange(&response.url, response.status, &response.reason, &response.headers, &response.head, &response.sent, response.transfer.version),
+            last: exchange(&response.url, response.status, &response.reason, &response.headers, &response.head, &response.sent, response.transfer.version, response.synthetic),
             data_length: response.body.len(),
             body_encoded: response.transfer.encoded_size,
+            body: response.body.clone(),
         }
     }
 
@@ -94,9 +100,11 @@ impl NetMeta {
                 protocol: "data".to_owned(),
                 remote_ip: String::new(),
                 remote_port: 0,
+                synthetic: false,
             },
             data_length: length,
             body_encoded: length,
+            body: Vec::new(),
         }
     }
 }

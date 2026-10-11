@@ -88,7 +88,7 @@ fn serve(root: PathBuf, page_path: String, page_override: Option<Vec<u8>>) -> Fe
         let status = if body.is_some() { 200 } else { 404 };
         let body = body.unwrap_or_default();
         let transfer = Transfer { version: (1, 1), ..Transfer::identity(body.len()) };
-        Ok(Response { status, reason: String::new(), headers, body, url: parsed, transfer, head: Vec::new(), sent: Vec::new(), hops: Vec::new() })
+        Ok(Response { status, reason: String::new(), headers, body, url: parsed, transfer, head: Vec::new(), sent: Vec::new(), hops: Vec::new(), synthetic: false })
     })
 }
 

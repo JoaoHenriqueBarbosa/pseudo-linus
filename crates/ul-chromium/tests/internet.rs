@@ -96,7 +96,7 @@ fn tape_fetcher(dir: &Path) -> Fetcher {
             }
             // A fita guarda o corpo já decodificado e não guarda a versão do protocolo.
             let transfer = Transfer { redirects, ..Transfer::identity(entry.body.len()) };
-            return Ok(Response { status: entry.status, reason: String::new(), headers: entry.headers.clone(), body: entry.body.clone(), url: current, transfer, head: Vec::new(), sent: Vec::new(), hops: Vec::new() });
+            return Ok(Response { status: entry.status, reason: String::new(), headers: entry.headers.clone(), body: entry.body.clone(), url: current, transfer, head: Vec::new(), sent: Vec::new(), hops: Vec::new(), synthetic: false });
         }
         Err(FetchError::TooManyRedirects)
     })

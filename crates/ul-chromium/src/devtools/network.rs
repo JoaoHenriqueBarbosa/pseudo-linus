@@ -35,6 +35,8 @@ fn site(url: &str) -> String {
 /// A `Network.Response` de uma troca (`responseReceived` e `redirectResponse`).
 pub fn response(e: &NetExchange, secure: bool, request_time: f64, response_time_ms: f64) -> Json {
     let data = e.protocol == "data";
+    // Sem conexão (`data:` ou a resposta do `Fetch.fulfillRequest`): nem endereço nem porta.
+    let wireless = data || e.synthetic;
     let mut fields = vec![
         ("url", Json::str(&e.url)),
         ("status", number(f64::from(e.status))),
@@ -45,7 +47,7 @@ pub fn response(e: &NetExchange, secure: bool, request_time: f64, response_time_
         ("connectionReused", Json::Bool(false)),
         ("connectionId", number(0.0)),
     ];
-    if data {
+    if wireless {
         fields.push(("remoteIPAddress", Json::str("")));
         fields.push(("remotePort", number(0.0)));
     } else {
@@ -67,7 +69,7 @@ pub fn response(e: &NetExchange, secure: bool, request_time: f64, response_time_
         fields.push(("responseTime", number(response_time_ms)));
     }
     fields.push(("protocol", Json::str(&e.protocol)));
-    fields.push(("alternateProtocolUsage", Json::str(if data { "alternativeJobWonWithoutRace" } else { "unspecifiedReason" })));
+    fields.push(("alternateProtocolUsage", Json::str(if wireless { "alternativeJobWonWithoutRace" } else { "unspecifiedReason" })));
     fields.push(("securityState", Json::str(if secure { "secure" } else { "insecure" })));
     Json::Object(fields.into_iter().map(|(k, v)| (k.to_owned(), v)).collect())
 }
@@ -107,21 +109,27 @@ pub fn request_will_be_sent(request_id: &str, loader_id: &str, frame_id: &str, d
     Json::Object(fields.into_iter().map(|(k, v)| (k.to_owned(), v)).collect())
 }
 
+/// O espaço de endereços do documento que pede os subrecursos: o do servidor que o entregou, `Unknown` quando a resposta é
+/// do cliente do `Fetch` ou não veio da rede.
+pub fn document_space(meta: Option<&crate::netmeta::NetMeta>) -> &'static str {
+    meta.filter(|m| !m.last.synthetic && m.last.protocol != "data").map_or("Unknown", |m| address_space(&m.last.remote_ip))
+}
+
 /// `Network.requestWillBeSentExtraInfo`: os cabeçalhos que saíram no fio. O pedido de subrecurso leva o
-/// `clientSecurityState` do iniciador.
-pub fn request_extra_info(request_id: &str, e: &NetExchange, request_time: f64, subresource: bool, cookies: Json) -> Json {
+/// `clientSecurityState` do iniciador, com o espaço de endereços do documento (`initiator`).
+pub fn request_extra_info(request_id: &str, e: &NetExchange, request_time: f64, initiator: Option<&str>, cookies: Json) -> Json {
     let mut fields = vec![
         ("requestId", Json::str(request_id)),
         ("associatedCookies", cookies),
         ("headers", pairs(&e.sent)),
         ("connectTiming", Json::object([("requestTime", number(request_time))])),
     ];
-    if subresource {
+    if let Some(space) = initiator {
         fields.push((
             "clientSecurityState",
             Json::object([
                 ("initiatorIsSecureContext", Json::Bool(true)),
-                ("initiatorIPAddressSpace", Json::str(address_space(&e.remote_ip))),
+                ("initiatorIPAddressSpace", Json::str(space)),
                 ("localNetworkAccessRequestPolicy", Json::str("PermissionBlock")),
             ]),
         ));

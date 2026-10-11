@@ -86,7 +86,24 @@ def run(scenario, ws):
                 break
             log.append({"in": json.loads(raw)})
 
+    def wait_event(step):
+        """Espera o evento `wait` (com o texto `match`, se houver) e guarda o campo `save_field` dos parâmetros dele."""
+        end = time.time() + step.get("timeout", 5.0)
+        while True:
+            for entry in reversed(log):
+                message = entry.get("in", {})
+                if message.get("method") == step["wait"] and step.get("match", "") in json.dumps(message):
+                    if "save" in step:
+                        sessions[step["save"]] = _pointer(message["params"], step["save_field"])
+                    return
+            if time.time() >= end:
+                return
+            drain(0.1)
+
     for step in scenario["steps"]:
+        if "wait" in step:
+            wait_event(step)
+            continue
         if "drain" in step:
             drain(step["drain"])
             continue
@@ -107,7 +124,8 @@ def run(scenario, ws):
             message["sessionId"] = sessions.get(step["session"], step["session"])
         ws.send(json.dumps(message))
         log.append({"out": message})
-        reply = recv_until(message["id"])
+        # `nowait`: o comando só responde depois de outro (a navegação parada num `Fetch.requestPaused`).
+        reply = drain(0.2) if step.get("nowait") else recv_until(message["id"])
         if reply and "result" in reply:
             if step["method"] == "Target.getTargets" and "target" not in sessions:
                 sessions["target"] = next(t["targetId"] for t in reply["result"]["targetInfos"] if t["type"] == "page")

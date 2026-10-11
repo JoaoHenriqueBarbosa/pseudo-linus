@@ -51,6 +51,10 @@ pub fn favicon(fetcher: &Fetcher, page_url: &str) -> Option<Captured> {
 /// O destino de um subrecurso: o que o Chromium põe em `Sec-Fetch-Dest`, no `Accept` e no `type` dos eventos de `Network`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
+    /// A navegação do quadro: o documento.
+    Document,
+    /// O `/favicon.ico` que o navegador pede depois de carregar a página.
+    Favicon,
     Stylesheet,
     Script,
     Image,
@@ -86,20 +90,21 @@ impl Kind {
     /// O `type` do `ResourceType` do protocolo.
     pub fn cdp_type(self) -> &'static str {
         match self {
+            Kind::Document => "Document",
             Kind::Stylesheet => "Stylesheet",
             Kind::Script => "Script",
             Kind::Image => "Image",
             Kind::Font => "Font",
             Kind::Fetch => "Fetch",
             Kind::Xhr => "XHR",
-            Kind::Other => "Other",
+            Kind::Other | Kind::Favicon => "Other",
         }
     }
 
     pub fn priority(self) -> &'static str {
         match self {
-            Kind::Stylesheet => "VeryHigh",
-            Kind::Script | Kind::Font | Kind::Fetch | Kind::Xhr => "High",
+            Kind::Document | Kind::Stylesheet => "VeryHigh",
+            Kind::Script | Kind::Font | Kind::Fetch | Kind::Xhr | Kind::Favicon => "High",
             Kind::Image | Kind::Other => "Medium",
         }
     }
@@ -107,7 +112,8 @@ impl Kind {
     fn accept(self) -> &'static str {
         match self {
             Kind::Stylesheet => "text/css,*/*;q=0.1",
-            Kind::Image => "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            Kind::Image | Kind::Favicon => "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            Kind::Document => "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             _ => "*/*",
         }
     }
@@ -116,8 +122,9 @@ impl Kind {
         match self {
             Kind::Stylesheet => "style",
             Kind::Script => "script",
-            Kind::Image => "image",
+            Kind::Image | Kind::Favicon => "image",
             Kind::Font => "font",
+            Kind::Document => "document",
             Kind::Fetch | Kind::Xhr | Kind::Other => "empty",
         }
     }
@@ -169,6 +176,7 @@ pub fn subresource_headers(kind: Kind, document_url: &str, target: &str) -> Vec<
     [
         ("Accept", kind.accept().to_owned()),
         ("Accept-Language", "en-US,en;q=0.9".to_owned()),
+        ("Connection", "keep-alive".to_owned()),
         ("Referer", referer),
         ("Sec-Fetch-Dest", kind.dest().to_owned()),
         ("Sec-Fetch-Mode", kind.mode().to_owned()),

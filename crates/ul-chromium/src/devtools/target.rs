@@ -9,7 +9,8 @@ use zjsc::api::embed::{HostArg, HostHandle, PageRunner};
 
 use super::json::{self, Json};
 use super::{monotonic_seconds, random_i64, token};
-use super::overrides::{self, NetOverrides, Observation, Observed};
+use super::hub::Hub;
+use super::overrides::{self, NetOverrides, Observation};
 use crate::fetch;
 use crate::page::Page;
 
@@ -75,11 +76,8 @@ enum NavKind {
 
 struct Tab {
     target_id: String,
-    input: Fd,
-    output: Fd,
-    inbox: Vec<u8>,
-    /// Comandos lidos e ainda não tratados (os que chegaram enquanto a navegação carregava).
-    queue: std::collections::VecDeque<String>,
+    /// A linha com o laço do navegador e o que a rede da aba divide com o fetcher (a fila de comandos, o `Fetch`, os corpos).
+    hub: std::rc::Rc<Hub>,
     isolate_id: String,
     next_context: i64,
     loader_id: String,
@@ -88,14 +86,11 @@ struct Tab {
     page_enabled: Vec<String>,
     lifecycle_enabled: Vec<String>,
     runtime_enabled: Vec<String>,
-    network_enabled: Vec<String>,
     /// O `dataReceived` e o `loadingFinished` do documento, que saem depois do contexto de execução novo: os bytes
     /// do corpo e os do fio.
     finishing: Option<(usize, usize)>,
     /// O que o `Emulation`, a janela e os mundos da aba guardam entre os documentos.
     emu: Emulation,
-    /// As substituições de rede do DevTools, que o fetcher da aba lê a cada pedido.
-    net: std::rc::Rc<std::cell::RefCell<NetOverrides>>,
     /// O histórico de navegação da aba (`Page.getNavigationHistory`) e a entrada corrente.
     history: Vec<HistoryEntry>,
     current: usize,
@@ -108,14 +103,6 @@ struct Tab {
     restoring: bool,
     /// Os ids de contexto dos mundos isolados do documento corrente.
     world_ids: Vec<i64>,
-    /// Quantos subrecursos (favicon incluído) esta aba já relatou: o contador do `requestId` `pid.n`.
-    resource_requests: u32,
-    /// Os subrecursos que o fetcher da aba viu e ainda faltam relatar.
-    observed: Observed,
-    /// O HTML do documento corrente, para o `initiator` de parser.
-    source: String,
-    /// Os subrecursos de parser que o documento corrente já pediu (o Chromium pede cada um uma vez).
-    requested: Vec<(crate::fetch::Kind, String)>,
     security_enabled: Vec<String>,
     /// Os marcos do carregador corrente com o seu `timestamp`, repetidos a quem liga os eventos de ciclo de vida depois.
     lifecycle: Vec<(String, f64)>,
@@ -215,11 +202,8 @@ fn message_session(message: &Json) -> String {
 impl Tab {
     fn new(target_id: String, input: Fd, output: Fd, profile: std::sync::Arc<crate::session::Profile>) -> Tab {
         Tab {
+            hub: std::rc::Rc::new(Hub::new(target_id.clone(), input, output, profile.clone())),
             target_id,
-            input,
-            output,
-            inbox: Vec::new(),
-            queue: Default::default(),
             isolate_id: random_i64().unsigned_abs().to_string(),
             next_context: 1,
             loader_id: token(),
@@ -228,10 +212,8 @@ impl Tab {
             page_enabled: Vec::new(),
             lifecycle_enabled: Vec::new(),
             runtime_enabled: Vec::new(),
-            network_enabled: Vec::new(),
             finishing: None,
             emu: Emulation::default(),
-            net: Default::default(),
             history: vec![HistoryEntry { id: 1, url: "about:blank".to_owned(), typed: "about:blank".to_owned(), title: String::new(), transition: "auto_toplevel" }],
             current: 0,
             next_entry: 2,
@@ -239,10 +221,6 @@ impl Tab {
             history_busy: false,
             restoring: false,
             world_ids: Vec::new(),
-            resource_requests: 0,
-            observed: Default::default(),
-            source: String::new(),
-            requested: Vec::new(),
             security_enabled: Vec::new(),
             lifecycle: Vec::new(),
             context: None,
@@ -264,16 +242,7 @@ impl Tab {
 
     /// O fetcher da aba: a rede com as substituições do DevTools e o pote de cookies do perfil.
     fn fetcher(&self) -> fetch::Fetcher {
-        overrides::fetcher(self.net.clone(), self.session.profile.clone(), self.observed.clone())
-    }
-
-    /// Os cookies que o pedido a `url` levou, como o `associatedCookies` do `requestWillBeSentExtraInfo`.
-    fn associated_cookies(&self, exchange: &crate::netmeta::NetExchange) -> Json {
-        // Só a troca que levou o `Cookie:` associa cookies: o pote de agora pode ter ganho um depois dela.
-        if !exchange.sent.iter().any(|(name, _)| name.eq_ignore_ascii_case("cookie")) {
-            return Json::Array(Vec::new());
-        }
-        crate::cookies::associated(&self.session.profile.cookies.lock().unwrap_or_else(std::sync::PoisonError::into_inner), &exchange.url)
+        overrides::fetcher(self.hub.clone())
     }
 
     /// A carga que acaba de comprometer entra no histórico (ou só move a entrada corrente).
@@ -310,49 +279,6 @@ impl Tab {
         Json::object([("currentIndex", Json::Number(self.current as f64)), ("entries", Json::Array(entries.collect()))])
     }
 
-    fn write_line(&self, kind: char, text: &str) {
-        let mut bytes = Vec::with_capacity(text.len() + 2);
-        bytes.push(kind as u8);
-        bytes.extend_from_slice(text.as_bytes());
-        bytes.push(b'\n');
-        let mut at = 0;
-        while at < bytes.len() {
-            match sysabi::sys::write(self.output, &bytes[at..]) {
-                Ok(n) => at += n,
-                Err(sysabi::Errno::EINTR) => {}
-                Err(_) => return,
-            }
-        }
-    }
-
-    fn send(&self, message: &Json) {
-        self.write_line('M', &message.to_compact());
-    }
-
-    fn reply(&self, request: &Json, result: Json) {
-        let mut fields = vec![("id".to_owned(), request.get("id").cloned().unwrap_or(Json::Null)), ("result".to_owned(), result)];
-        if let Some(session) = request.get("sessionId") {
-            fields.push(("sessionId".to_owned(), session.clone()));
-        }
-        self.send(&Json::Object(fields));
-    }
-
-    fn fail(&self, request: &Json, code: i64, text: &str) {
-        let error = Json::object([("code", Json::Number(code as f64)), ("message", Json::str(text))]);
-        let mut fields = vec![("id".to_owned(), request.get("id").cloned().unwrap_or(Json::Null)), ("error".to_owned(), error)];
-        if let Some(session) = request.get("sessionId") {
-            fields.push(("sessionId".to_owned(), session.clone()));
-        }
-        self.send(&Json::Object(fields));
-    }
-
-    /// Um evento para cada sessão da lista.
-    fn emit(&self, sessions: &[String], method: &str, params: &Json) {
-        for session in sessions {
-            self.send(&Json::object([("method", Json::str(method)), ("params", params.clone()), ("sessionId", Json::str(session))]));
-        }
-    }
-
     fn lifecycle_event(&mut self, name: &str, timestamp: f64) {
         self.lifecycle.push((name.to_owned(), timestamp));
         let params = Json::object([
@@ -361,7 +287,7 @@ impl Tab {
             ("name", Json::str(name)),
             ("timestamp", Json::Number(timestamp)),
         ]);
-        self.emit(&self.lifecycle_enabled.clone(), "Page.lifecycleEvent", &params);
+        self.hub.emit(&self.lifecycle_enabled.clone(), "Page.lifecycleEvent", &params);
     }
 
     fn frame(&self, unreachable: Option<&str>) -> Json {
@@ -386,28 +312,6 @@ impl Tab {
         Json::Object(fields.into_iter().map(|(k, v)| (k.to_owned(), v)).collect())
     }
 
-    /// Lê o que o laço do navegador mandou, esperando até `wait_ms`. Falso quando o pipe fechou.
-    fn receive(&mut self, wait_ms: u64) -> bool {
-        let mut fds = [PollFd { fd: self.input, events: PollEvents::IN, revents: PollEvents::empty() }];
-        let sys = sysabi::sys::current();
-        if !matches!(sys.poll(&mut fds, Some(std::time::Duration::from_millis(wait_ms))), Ok(n) if n > 0) {
-            return true;
-        }
-        let mut buffer = [0u8; 65536];
-        loop {
-            match sysabi::sys::read(self.input, &mut buffer) {
-                Ok(0) => return false,
-                Ok(n) => self.inbox.extend_from_slice(&buffer[..n]),
-                Err(_) => break,
-            }
-        }
-        while let Some(end) = self.inbox.iter().position(|&b| b == b'\n') {
-            let line: Vec<u8> = self.inbox.drain(..=end).collect();
-            self.queue.push_back(String::from_utf8_lossy(&line[..line.len() - 1]).into_owned());
-        }
-        true
-    }
-
     fn run(mut self, url: String) {
         let mut next = Next::Initial(url);
         loop {
@@ -427,6 +331,7 @@ impl Tab {
     fn load(&mut self, url: String, request: Option<Json>, announce: bool) -> Next {
         let kind = std::mem::replace(&mut self.nav, NavKind::Link);
         self.loader_id = token();
+        *self.hub.loader_id.borrow_mut() = self.loader_id.clone();
         let started = Json::object([
             ("frameId", Json::str(&self.target_id)),
             ("url", Json::str(&url)),
@@ -439,13 +344,13 @@ impl Tab {
         ]);
         if announce {
             let sessions = self.page_enabled.clone();
-            self.emit(&sessions, "Page.frameStartedNavigating", &started);
-            self.emit(&sessions, "Page.frameStartedLoading", &Json::object([("frameId", Json::str(&self.target_id))]));
+            self.hub.emit(&sessions, "Page.frameStartedNavigating", &started);
+            self.hub.emit(&sessions, "Page.frameStartedLoading", &Json::object([("frameId", Json::str(&self.target_id))]));
         }
         self.apply_engine_overrides();
         let fetcher = self.fetcher();
         let started_us = (ul_common::time::realtime_nanos() / 1000) as i64;
-        let (page, error) = match Page::load(&url, fetcher.clone()) {
+        let (page, error) = match fetch::tagged(fetch::Kind::Document, || Page::load(&url, fetcher.clone())) {
             Ok(page) => (page, None),
             Err(error) => {
                 // A navegação que falha compromete a página de erro do Chromium no lugar do documento.
@@ -454,14 +359,13 @@ impl Tab {
             }
         };
         self.record_entry(kind, &url, error.is_some());
-        self.source = page.source().to_owned();
-        self.requested.clear();
         self.restoring = matches!(kind, NavKind::History(_));
         page.enter_tab(self.session.clone());
         if error.is_none() {
             self.record_visit(&page, started_us);
         }
         let next_url = if error.is_some() { "chrome-error://chromewebdata/".to_owned() } else { page.bridge.url.borrow().clone() };
+        self.hub.new_document(&self.loader_id, &next_url, page.source(), super::network::document_space(page.net_meta()));
         // Troca de processo (medido no oráculo): a primeira navegação da aba fica no processo do `about:blank` inicial, o
         // `about:blank` nunca troca, e o resto troca quando o documento novo tem origem opaca (data, página de erro) ou
         // outra origem (http para http da mesma origem não).
@@ -477,7 +381,7 @@ impl Tab {
                 result.push(("errorText", Json::str(error)));
             }
             result.push(("isDownload", Json::Bool(false)));
-            self.reply(request, Json::Object(result.into_iter().map(|(k, v)| (k.to_owned(), v)).collect()));
+            self.hub.reply(request, Json::Object(result.into_iter().map(|(k, v)| (k.to_owned(), v)).collect()));
         }
         let unreachable = error.as_ref().map(|_| url.clone());
         let tab = std::cell::RefCell::new(&mut *self);
@@ -494,15 +398,15 @@ impl Tab {
     fn commit(&mut self, runner: &PageRunner, hook: &HostHandle, unreachable: Option<&str>) {
         if std::mem::take(&mut self.history_busy) {
             // O `Page.getNavigationHistory` que chegou com a navegação de histórico ainda em voo falha (medido no oráculo).
-            self.receive(30);
+            self.hub.receive(30);
             let mut kept = std::collections::VecDeque::new();
-            for line in std::mem::take(&mut self.queue) {
+            for line in std::mem::take(&mut *self.hub.queue.borrow_mut()) {
                 match json::parse(line.get(1..).unwrap_or_default()) {
-                    Ok(message) if message.get("method").and_then(Json::as_str) == Some("Page.getNavigationHistory") => self.fail(&message, -32000, "Not attached to an active page"),
+                    Ok(message) if message.get("method").and_then(Json::as_str) == Some("Page.getNavigationHistory") => self.hub.fail(&message, -32000, "Not attached to an active page"),
                     _ => kept.push_back(line),
                 }
             }
-            self.queue = kept;
+            *self.hub.queue.borrow_mut() = kept;
         }
         self.lifecycle.clear();
         self.idle = None;
@@ -510,12 +414,12 @@ impl Tab {
         if self.context.take().is_some() {
             let sessions = self.runtime_enabled.clone();
             for _ in 0..2 {
-                self.emit(&sessions, "Runtime.executionContextsCleared", &Json::object([]));
+                self.hub.emit(&sessions, "Runtime.executionContextsCleared", &Json::object([]));
             }
         }
         let navigated = Json::object([("frame", self.frame(unreachable)), ("type", Json::str("Navigation"))]);
-        self.emit(&self.page_enabled.clone(), "Page.frameNavigated", &navigated);
-        self.emit(&self.network_enabled.clone(), "Network.policyUpdated", &Json::object([]));
+        self.hub.emit(&self.page_enabled.clone(), "Page.frameNavigated", &navigated);
+        self.hub.emit(&self.hub.network.borrow().clone(), "Network.policyUpdated", &Json::object([]));
         if std::mem::take(&mut self.restoring) {
             self.emit_back_forward_cache_not_used();
         }
@@ -557,12 +461,12 @@ impl Tab {
         }
         self.drain(runner, hook);
         if let Some((data, encoded)) = self.finishing.take() {
-            let sessions = self.network_enabled.clone();
+            let sessions = self.hub.network.borrow().clone();
             let id = Json::str(&self.loader_id);
             let params = Json::object([("requestId", id.clone()), ("timestamp", Json::Number(monotonic_seconds())), ("dataLength", Json::Number(data as f64)), ("encodedDataLength", Json::Number(0.0))]);
-            self.emit(&sessions, "Network.dataReceived", &params);
+            self.hub.emit(&sessions, "Network.dataReceived", &params);
             let params = Json::object([("requestId", id), ("timestamp", Json::Number(monotonic_seconds())), ("encodedDataLength", Json::Number(encoded as f64))]);
-            self.emit(&sessions, "Network.loadingFinished", &params);
+            self.hub.emit(&sessions, "Network.loadingFinished", &params);
         }
         self.title.clear();
         self.announce();
@@ -582,12 +486,12 @@ impl Tab {
             ("notRestoredExplanations", Json::Array(reasons.clone())),
             ("notRestoredExplanationsTree", Json::object([("url", Json::str(&self.url)), ("explanations", Json::Array(reasons)), ("children", Json::Array(Vec::new()))])),
         ]);
-        self.emit(&self.page_enabled, "Page.backForwardCacheNotUsed", &params);
+        self.hub.emit(&self.page_enabled, "Page.backForwardCacheNotUsed", &params);
     }
 
     /// Manda ao agente o estado da aba (janela, `Emulation`, mundos).
     fn push_emulation(&self, runner: &PageRunner, hook: &HostHandle) {
-        let message = Json::object([("method", Json::str("__emulation")), ("params", self.emu.json(&self.world_ids, &self.net.borrow()))]);
+        let message = Json::object([("method", Json::str("__emulation")), ("params", self.emu.json(&self.world_ids, &self.hub.net.borrow()))]);
         let _ = runner.call_hidden(hook, &[HostArg::Str("cdp"), HostArg::Str(&message.to_compact())]);
     }
 
@@ -600,49 +504,42 @@ impl Tab {
             ("uniqueId", Json::str(format!("{}.{}", random_i64(), random_i64()))),
             ("auxData", Json::object([("isDefault", Json::Bool(false)), ("type", Json::str("isolated")), ("frameId", Json::str(&self.target_id))])),
         ]);
-        self.emit(sessions, "Runtime.executionContextCreated", &Json::object([("context", context)]));
+        self.hub.emit(sessions, "Runtime.executionContextCreated", &Json::object([("context", context)]));
     }
 
     /// Os eventos de `Network` do pedido do documento: `requestWillBeSent` (um por redirecionamento), os `ExtraInfo` do
     /// fio e a resposta (`responseReceived`) ou a falha (`loadingFailed`). O `dataReceived` e o `loadingFinished` saem no
     /// `commit`. `about:blank` e `file:` não têm (`meta` vazio e sem erro).
     fn network_document(&mut self, url: &str, meta: Option<&crate::netmeta::NetMeta>, error: Option<&str>) {
+        use super::hub::Announced;
         use super::network;
+        // O que a pausa do `Fetch` já mostrou do pedido do documento.
+        let announced = self.hub.announced.borrow_mut().take().map(|(_, level)| level);
         if meta.is_none() && error.is_none() {
             return;
         }
-        let sessions = self.network_enabled.clone();
+        let sessions = self.hub.network.borrow().clone();
         let id = self.loader_id.clone();
         let frame = self.target_id.clone();
-        let wire = meta.is_some_and(|m| m.last.protocol != "data") || error.is_some();
-        let mut renderer_headers: Vec<(String, String)> = if wire {
-            [
-                ("Upgrade-Insecure-Requests", "1"),
-                ("User-Agent", super::http::USER_AGENT),
-                ("sec-ch-ua", "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\""),
-                ("sec-ch-ua-mobile", "?0"),
-                ("sec-ch-ua-platform", "\"Linux\""),
-            ]
-            .into_iter()
-            .map(|(k, v)| (k.to_owned(), v.to_owned()))
-            .collect()
-        } else {
-            Vec::new()
-        };
-        if wire {
-            self.net.borrow().apply(&mut renderer_headers);
-        }
+        let shows_headers = meta.is_some_and(|m| m.last.protocol != "data") || error.is_some();
+        let wire = shows_headers && !meta.is_some_and(|m| m.last.synthetic);
+        let renderer_headers = if shows_headers { self.hub.renderer_headers(fetch::Kind::Document) } else { Vec::new() };
         let headers: Vec<(&str, &str)> = renderer_headers.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
         let headers = headers.as_slice();
         let wall = || ul_common::time::realtime_nanos() as f64 / 1e9;
-        let sent = |this: &Self, document: &str, request: &str, redirect: Option<Json>| {
+        // O primeiro `requestWillBeSent` já saiu quando a pausa do `Fetch` o mostrou.
+        let mut skip_sent = announced.is_some();
+        let mut sent = |this: &Self, document: &str, request: &str, redirect: Option<Json>| {
+            if std::mem::take(&mut skip_sent) {
+                return;
+            }
             let params = network::request_will_be_sent(&id, &id, &frame, document, request, headers, "Document", "VeryHigh", true, Json::object([("type", Json::str("other"))]), redirect, false, monotonic_seconds(), wall());
-            this.emit(&sessions, "Network.requestWillBeSent", &params);
+            this.hub.emit(&sessions, "Network.requestWillBeSent", &params);
         };
         if let Some(error) = error {
             sent(self, url, url, None);
             let failed = Json::object([("requestId", Json::str(&id)), ("timestamp", Json::Number(monotonic_seconds())), ("type", Json::str("Document")), ("errorText", Json::str(error)), ("canceled", Json::Bool(false))]);
-            self.emit(&sessions, "Network.loadingFailed", &failed);
+            self.hub.emit(&sessions, "Network.loadingFailed", &failed);
             return;
         }
         let Some(meta) = meta else { return };
@@ -655,9 +552,14 @@ impl Tab {
             previous = Some(exchange);
         }
         if wire {
-            for exchange in meta.redirects.iter().chain(std::iter::once(&meta.last)) {
-                self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, exchange, monotonic_seconds(), false, self.associated_cookies(exchange)));
-                self.emit(&sessions, "Network.responseReceivedExtraInfo", &network::response_extra_info(&id, exchange));
+            let total = meta.redirects.len() + 1;
+            for (index, exchange) in meta.redirects.iter().chain(std::iter::once(&meta.last)).enumerate() {
+                // A pausa na resposta já mostrou os `ExtraInfo` da troca final.
+                if announced == Some(Announced::Response) && index + 1 == total {
+                    continue;
+                }
+                self.hub.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, exchange, monotonic_seconds(), None, self.hub.associated_cookies(exchange)));
+                self.hub.emit(&sessions, "Network.responseReceivedExtraInfo", &network::response_extra_info(&id, exchange));
             }
         }
         let response = vec![
@@ -669,7 +571,8 @@ impl Tab {
             ("hasExtraInfo".to_owned(), Json::Bool(wire)),
             ("frameId".to_owned(), Json::str(&frame)),
         ];
-        self.emit(&sessions, "Network.responseReceived", &Json::Object(response));
+        self.hub.emit(&sessions, "Network.responseReceived", &Json::Object(response));
+        self.hub.store_body(&id, &meta.body, &meta.last.mime_type);
         self.finishing = Some((meta.data_length, meta.last.head.len() + meta.body_encoded));
     }
 
@@ -692,105 +595,73 @@ impl Tab {
     /// oráculo não o repete na navegação seguinte à mesma origem). O pedido sai sempre, o servidor o vê; os eventos de
     /// `Network` só vão a quem os ligou. O `dataReceived` só existe com corpo.
     fn favicon(&mut self) {
-        use super::network;
-        static SEEN: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
         let Some(origin) = crate::bridge::origin_of(&self.url) else { return };
         {
-            let Ok(mut seen) = SEEN.lock() else { return };
+            let Ok(mut seen) = self.session.profile.favicons.lock() else { return };
             if seen.contains(&origin) {
                 return;
             }
-            seen.push(origin);
+            // O pedido que o `Fetch` pausou o cliente não o termina: sem resposta guardada, o navegador o repete.
+            let address = format!("{origin}/favicon.ico");
+            if !self.hub.intercepts(fetch::Kind::Favicon, &address, false) && !self.hub.intercepts(fetch::Kind::Favicon, &address, true) {
+                seen.push(origin);
+            }
         }
         let started = (monotonic_seconds(), ul_common::time::realtime_nanos() as f64 / 1e9);
         let requested = ul_common::time::webkit_now_micros();
-        let Some(response) = fetch::favicon_response(&self.fetcher(), &self.url) else { return };
+        let fetcher = self.fetcher();
+        let Some(response) = fetch::tagged(fetch::Kind::Favicon, || fetch::favicon_response(&fetcher, &self.url)) else { return };
+        let announced = self.hub.announced.borrow_mut().take();
+        self.finish_favicon(&self.url.clone(), &response, requested, Observation { kind: fetch::Kind::Favicon, address: String::new(), started: started.0, wall: started.1, result: Ok(crate::netmeta::NetMeta::from_response(&response)), announced, space: None, stale: false });
+    }
+
+    /// Anota o favicon para a saída e relata os eventos de `Network` dele.
+    fn finish_favicon(&self, page_url: &str, response: &ul_net::net::client::Response, requested: i64, observation: Observation) {
         if let Some(visits) = &self.session.profile.visits {
-            visits.record_resource(&self.url, crate::http_cache::Captured::from_response(&response, requested, ul_common::time::webkit_now_micros()));
+            visits.record_resource(page_url, crate::http_cache::Captured::from_response(response, requested, ul_common::time::webkit_now_micros()));
         }
-        let observation = Observation { kind: fetch::Kind::Other, address: String::new(), started: started.0, wall: started.1, result: Ok(crate::netmeta::NetMeta::from_response(&response)) };
-        self.emit_resource(&observation, Json::object([("type", Json::str("other"))]), "High", false);
+        self.hub.report(&observation);
     }
 
-    /// Os eventos de `Network` de um subrecurso: `requestWillBeSent`, os `ExtraInfo` do fio, `responseReceived`,
-    /// `dataReceived` e `loadingFinished`, ou `loadingFailed`. O pedido sai sempre, os eventos só vão a quem ligou `Network`.
-    fn emit_resource(&mut self, observation: &Observation, initiator: Json, priority: &str, blocking: bool) {
-        use super::network;
-        self.resource_requests += 1;
-        let id = format!("{}.{}", sysabi::sys::current().getpid(), self.resource_requests + 1);
-        let sessions = self.network_enabled.clone();
-        let (started, wall) = (observation.started, observation.wall);
-        let mut renderer_headers: Vec<(String, String)> = [("sec-ch-ua-platform", "\"Linux\""), ("Referer", self.url.as_str()), ("User-Agent", super::http::USER_AGENT), ("sec-ch-ua", "\"Not A(Brand\";v=\"99\", \"Chromium\";v=\"154\""), ("sec-ch-ua-mobile", "?0")]
-            .into_iter()
-            .map(|(k, v)| (k.to_owned(), v.to_owned()))
-            .collect();
-        self.net.borrow().apply(&mut renderer_headers);
-        let headers: Vec<(&str, &str)> = renderer_headers.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
-        let kind = observation.kind;
-        let address = observation.result.as_ref().map_or(observation.address.as_str(), |meta| meta.last.url.as_str());
-        let host = |u: &str| url::Url::parse(u).ok().and_then(|u| u.host_str().map(str::to_owned));
-        let same_site = host(&self.url) == host(address);
-        let sent = network::request_will_be_sent(&id, &self.loader_id, &self.target_id, &self.url, address, &headers, kind.cdp_type(), priority, same_site, initiator, None, blocking, started, wall);
-        self.emit(&sessions, "Network.requestWillBeSent", &sent);
-        let meta = match &observation.result {
-            Ok(meta) => meta,
-            Err(error) => {
-                let failed = Json::object([("requestId", Json::str(&id)), ("timestamp", Json::Number(monotonic_seconds())), ("type", Json::str(kind.cdp_type())), ("errorText", Json::str(error)), ("canceled", Json::Bool(false))]);
-                self.emit(&sessions, "Network.loadingFailed", &failed);
-                return;
+    /// Termina os pedidos de favicon que o cliente do `Fetch` liberou (`continueRequest`, `failRequest` ou `Fetch.disable`).
+    fn release_favicons(&mut self) {
+        for held in self.hub.take_released() {
+            let requested = ul_common::time::webkit_now_micros();
+            let announced = Some((held.id.clone(), held.announced));
+            let stale = held.loader_id != *self.hub.loader_id.borrow();
+            let observation = |result| Observation { kind: fetch::Kind::Favicon, address: String::new(), started: held.started, wall: held.wall, result, announced: announced.clone(), space: Some(held.space), stale };
+            if let Some(code) = held.failure {
+                self.hub.report(&observation(Err(code.to_owned())));
+                continue;
             }
-        };
-        self.emit(&sessions, "Network.requestWillBeSentExtraInfo", &network::request_extra_info(&id, &meta.last, started, true, self.associated_cookies(&meta.last)));
-        self.emit(&sessions, "Network.responseReceivedExtraInfo", &network::response_extra_info(&id, &meta.last));
-        let received = Json::object([
-            ("requestId", Json::str(&id)),
-            ("loaderId", Json::str(&self.loader_id)),
-            ("timestamp", Json::Number(monotonic_seconds())),
-            ("type", Json::str(kind.cdp_type())),
-            ("response", network::response(&meta.last, true, started, wall * 1000.0)),
-            ("hasExtraInfo", Json::Bool(true)),
-            ("frameId", Json::str(&self.target_id)),
-        ]);
-        self.emit(&sessions, "Network.responseReceived", &received);
-        let data = |length: usize, encoded: usize| Json::object([("requestId", Json::str(&id)), ("timestamp", Json::Number(monotonic_seconds())), ("dataLength", Json::Number(length as f64)), ("encodedDataLength", Json::Number(encoded as f64))]);
-        if meta.data_length > 0 {
-            // `fetch` entrega o corpo de uma vez; o resto chega em duas partes: o conteúdo e depois os bytes do fio.
-            if kind == fetch::Kind::Fetch {
-                self.emit(&sessions, "Network.dataReceived", &data(meta.data_length, meta.body_encoded));
-            } else {
-                self.emit(&sessions, "Network.dataReceived", &data(meta.data_length, 0));
-                if kind != fetch::Kind::Other {
-                    self.emit(&sessions, "Network.dataReceived", &data(0, meta.body_encoded));
+            let response = match held.response {
+                Some(response) => response,
+                None => {
+                    let fetcher = self.fetcher();
+                    self.hub.unpaused.set(true);
+                    let response = fetch::tagged(fetch::Kind::Favicon, || fetch::favicon_response(&fetcher, &held.page_url));
+                    self.hub.unpaused.set(false);
+                    let Some(response) = response else { continue };
+                    response
                 }
-            }
-        }
-        let finished = Json::object([("requestId", Json::str(&id)), ("timestamp", Json::Number(monotonic_seconds())), ("encodedDataLength", Json::Number((meta.last.head.len() + meta.body_encoded) as f64))]);
-        self.emit(&sessions, "Network.loadingFinished", &finished);
-    }
-
-    /// Relata os subrecursos que o fetcher viu: o `initiator` é o parser (linha e coluna da tag no HTML) quando o
-    /// documento tem a tag, e o script no resto (`fetch`, XHR, elemento inserido pela página).
-    fn report_resources(&mut self) {
-        let observed = std::mem::take(&mut *self.observed.borrow_mut());
-        for observation in observed {
-            use fetch::Kind;
-            let parsed = matches!(observation.kind, Kind::Stylesheet | Kind::Script | Kind::Image | Kind::Font);
-            if parsed {
-                let key = (observation.kind, observation.address.clone());
-                if self.requested.contains(&key) {
-                    continue;
-                }
-                self.requested.push(key);
-            }
-            let position = parsed.then(|| super::network::parser_position(&self.source, &self.url, &observation.address)).flatten();
-            let (initiator, blocking) = match position {
-                Some((line, column)) => (
-                    Json::object([("type", Json::str("parser")), ("url", Json::str(&self.url)), ("lineNumber", Json::Number(line as f64)), ("columnNumber", Json::Number(column as f64))]),
-                    matches!(observation.kind, Kind::Stylesheet | Kind::Script),
-                ),
-                None => (Json::object([("type", Json::str("script")), ("stack", Json::object([("callFrames", Json::Array(Vec::new()))]))]), false),
             };
-            self.emit_resource(&observation, initiator, observation.kind.priority(), blocking);
+            self.finish_favicon(&held.page_url, &response, requested, observation(Ok(crate::netmeta::NetMeta::from_response(&response))));
+            // A resposta que chegou ao documento corrente fica guardada: o navegador não pede o favicon dessa origem de novo.
+            if !stale {
+                if let (Some(origin), Ok(mut seen)) = (crate::bridge::origin_of(&held.page_url), self.session.profile.favicons.lock()) {
+                    if !seen.contains(&origin) {
+                        seen.push(origin);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Relata os subrecursos que o fetcher viu.
+    fn report_resources(&mut self) {
+        let observed = std::mem::take(&mut *self.hub.observed.borrow_mut());
+        for observation in observed {
+            self.hub.report(&observation);
         }
     }
 
@@ -799,7 +670,7 @@ impl Tab {
         let url = self.held.as_deref().unwrap_or(&self.url);
         let title = if self.title.is_empty() { url } else { &self.title };
         let redirects = Json::Array(self.redirects.iter().map(|hop| Json::str(hop)).collect());
-        self.write_line('I', &Json::object([("url", Json::str(url)), ("title", Json::str(title)), ("redirects", redirects)]).to_compact());
+        self.hub.write_line('I', &Json::object([("url", Json::str(url)), ("title", Json::str(title)), ("redirects", redirects)]).to_compact());
     }
 
     /// Os marcos de rede ociosa e a primeira pintura significativa, que o Chromium só decide depois de um tempo sem
@@ -821,18 +692,19 @@ impl Tab {
     /// Recolhe a caixa de saída do agente: respostas e eventos seguem; os marcos do carregamento viram eventos de `Page`.
     fn drain(&mut self, runner: &PageRunner, hook: &HostHandle) {
         self.report_resources();
+        self.release_favicons();
         let Some(text) = runner.call_hidden(hook, &[HostArg::Str("cdpDrain")]).ok().and_then(|h| h.as_text()) else { return };
         for line in text.split('\n').filter(|l| !l.is_empty()) {
             let Ok(item) = json::parse(line) else { continue };
             let Some(name) = item.get("$lifecycle").and_then(Json::as_str) else {
-                self.write_line('M', line);
+                self.hub.write_line('M', line);
                 continue;
             };
             let now = monotonic_seconds();
             let sessions = self.page_enabled.clone();
             match name {
                 "DOMContentLoaded" => {
-                    self.emit(&sessions, "Page.domContentEventFired", &Json::object([("timestamp", Json::Number(now))]));
+                    self.hub.emit(&sessions, "Page.domContentEventFired", &Json::object([("timestamp", Json::Number(now))]));
                     self.lifecycle_event("DOMContentLoaded", now);
                 }
                 _ => {
@@ -841,9 +713,9 @@ impl Tab {
                         entry.title = self.title.clone();
                     }
                     self.announce();
-                    self.emit(&sessions, "Page.loadEventFired", &Json::object([("timestamp", Json::Number(now))]));
+                    self.hub.emit(&sessions, "Page.loadEventFired", &Json::object([("timestamp", Json::Number(now))]));
                     self.lifecycle_event("load", now);
-                    self.emit(&sessions, "Page.frameStoppedLoading", &Json::object([("frameId", Json::str(&self.target_id))]));
+                    self.hub.emit(&sessions, "Page.frameStoppedLoading", &Json::object([("frameId", Json::str(&self.target_id))]));
                     self.favicon();
                     let paint = monotonic_seconds();
                     let contentful = item.get("contentful").and_then(Json::as_bool) == Some(true);
@@ -876,13 +748,14 @@ impl Tab {
                     return Next::Navigate(url, None);
                 }
             }
-            while let Some(line) = self.queue.pop_front() {
+            loop {
+                let Some(line) = self.hub.queue.borrow_mut().pop_front() else { break };
                 if let Some(next) = self.command(runner, hook, &line) {
                     return next;
                 }
                 self.drain(runner, hook);
             }
-            if !self.receive(TICK_MS) {
+            if !self.hub.receive(TICK_MS) {
                 self.closed = true;
                 return Next::Close;
             }
@@ -906,7 +779,7 @@ impl Tab {
             "visibleSecurityState",
             Json::object([("securityState", Json::str(state)), ("securityStateIssueIds", Json::Array(issues))]),
         )]);
-        self.emit(sessions, "Security.visibleSecurityStateChanged", &params);
+        self.hub.emit(sessions, "Security.visibleSecurityStateChanged", &params);
     }
 
     /// Trata uma linha do laço do navegador; `Some` encerra a página corrente.
@@ -918,9 +791,10 @@ impl Tab {
                 return Some(Next::Close);
             }
             "D" => {
-                for list in [&mut self.page_enabled, &mut self.lifecycle_enabled, &mut self.runtime_enabled, &mut self.network_enabled, &mut self.security_enabled] {
+                for list in [&mut self.page_enabled, &mut self.lifecycle_enabled, &mut self.runtime_enabled, &mut self.security_enabled] {
                     list.retain(|s| s != rest);
                 }
+                self.hub.network.borrow_mut().retain(|s| s != rest);
                 return None;
             }
             _ => {}
@@ -934,20 +808,20 @@ impl Tab {
                 if !self.page_enabled.contains(&session) {
                     self.page_enabled.push(session);
                 }
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Page.disable" => {
                 self.page_enabled.retain(|s| *s != session);
                 self.lifecycle_enabled.retain(|s| *s != session);
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
-            "Log.enable" | "Log.disable" | "Performance.enable" | "Performance.disable" => self.reply(&message, Json::object([])),
+            "Log.enable" | "Log.disable" | "Performance.enable" | "Performance.disable" => self.hub.reply(&message, Json::object([])),
             "Network.enable" | "Network.disable" => {
-                self.network_enabled.retain(|s| *s != session);
+                self.hub.network.borrow_mut().retain(|s| *s != session);
                 if method == "Network.enable" {
-                    self.network_enabled.push(session);
+                    self.hub.network.borrow_mut().push(session);
                 }
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Security.enable" | "Security.disable" => {
                 let first = method == "Security.enable" && !self.security_enabled.contains(&session);
@@ -959,7 +833,7 @@ impl Tab {
                 if first {
                     self.emit_security_state(std::slice::from_ref(&session));
                 }
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Browser.setWindowBounds" => {
                 let bounds = params.get("bounds").cloned().unwrap_or(Json::Object(Vec::new()));
@@ -968,29 +842,29 @@ impl Tab {
                 self.emu.window = (size("width", before.0), size("height", before.1));
                 self.push_emulation(runner, hook);
                 if self.emu.window != before {
-                    self.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
+                    self.hub.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
                 }
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Emulation.setDeviceMetricsOverride" => {
                 let number = |key: &str| params.get(key).and_then(Json::as_f64).unwrap_or(0.0);
                 self.emu.metrics = Some((number("width") as i64, number("height") as i64, if number("deviceScaleFactor") > 0.0 { number("deviceScaleFactor") } else { 1.0 }));
                 self.push_emulation(runner, hook);
-                self.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
-                self.reply(&message, Json::object([]));
+                self.hub.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Emulation.clearDeviceMetricsOverride" => {
                 self.emu.metrics = None;
                 self.push_emulation(runner, hook);
                 for _ in 0..3 {
-                    self.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
+                    self.hub.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
                 }
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Emulation.setTouchEmulationEnabled" => {
                 self.emu.touch = if params.get("enabled").and_then(Json::as_bool) == Some(true) { params.get("maxTouchPoints").and_then(Json::as_int).filter(|n| *n > 0).unwrap_or(1) } else { 0 };
                 self.push_emulation(runner, hook);
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Emulation.setEmulatedMedia" => {
                 self.emu.media = params.get("media").and_then(Json::as_str).unwrap_or_default().to_owned();
@@ -999,29 +873,29 @@ impl Tab {
                     _ => Vec::new(),
                 };
                 self.push_emulation(runner, hook);
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
-            "Emulation.setFocusEmulationEnabled" | "Page.setFontFamilies" => self.reply(&message, Json::object([])),
+            "Emulation.setFocusEmulationEnabled" | "Page.setFontFamilies" => self.hub.reply(&message, Json::object([])),
             "Page.addScriptToEvaluateOnNewDocument" => {
                 let text = |key: &str| params.get(key).and_then(Json::as_str).unwrap_or_default().to_owned();
                 let identifier = self.emu.next_script.to_string();
                 self.emu.next_script += 1;
                 self.emu.scripts.push((identifier.clone(), text("source"), text("worldName")));
-                self.reply(&message, Json::object([("identifier", Json::str(identifier))]));
+                self.hub.reply(&message, Json::object([("identifier", Json::str(identifier))]));
             }
             "Page.removeScriptToEvaluateOnNewDocument" => {
                 let identifier = params.get("identifier").and_then(Json::as_str).unwrap_or_default();
                 match self.emu.scripts.iter().position(|(id, _, _)| id == identifier) {
                     Some(index) => {
                         self.emu.scripts.remove(index);
-                        self.reply(&message, Json::object([]));
+                        self.hub.reply(&message, Json::object([]));
                     }
-                    None => self.fail(&message, -32000, "Script not found"),
+                    None => self.hub.fail(&message, -32000, "Script not found"),
                 }
             }
             "Page.createIsolatedWorld" => {
                 if params.get("frameId").and_then(Json::as_str) != Some(self.target_id.as_str()) {
-                    self.fail(&message, -32602, "No frame for given id found");
+                    self.hub.fail(&message, -32602, "No frame for given id found");
                 } else {
                     let name = params.get("worldName").and_then(Json::as_str).unwrap_or_default().to_owned();
                     let id = self.next_context;
@@ -1030,10 +904,10 @@ impl Tab {
                     self.world_ids.push(id);
                     self.emit_world(&self.runtime_enabled.clone(), &name, id);
                     self.push_emulation(runner, hook);
-                    self.reply(&message, Json::object([("executionContextId", Json::Number(id as f64))]));
+                    self.hub.reply(&message, Json::object([("executionContextId", Json::Number(id as f64))]));
                 }
             }
-            "Page.getFrameTree" => self.reply(&message, Json::object([("frameTree", Json::object([("frame", self.frame(None))]))])),
+            "Page.getFrameTree" => self.hub.reply(&message, Json::object([("frameTree", Json::object([("frame", self.frame(None))]))])),
             "Page.setLifecycleEventsEnabled" => {
                 let enabled = params.get("enabled").and_then(Json::as_bool) == Some(true);
                 self.lifecycle_enabled.retain(|s| *s != session);
@@ -1049,10 +923,10 @@ impl Tab {
                             ("name", Json::str(name)),
                             ("timestamp", Json::Number(timestamp)),
                         ]);
-                        self.emit(std::slice::from_ref(&session), "Page.lifecycleEvent", &params);
+                        self.hub.emit(std::slice::from_ref(&session), "Page.lifecycleEvent", &params);
                     }
                 }
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Page.navigate" => {
                 let url = params.get("url").and_then(Json::as_str).unwrap_or_default().to_owned();
@@ -1060,64 +934,72 @@ impl Tab {
                 return Some(Next::Navigate(url, Some(message)));
             }
             "Page.reload" => {
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
                 self.nav = NavKind::Reload;
                 return Some(Next::Navigate(self.url.clone(), None));
             }
-            "Page.getNavigationHistory" => self.reply(&message, self.history_json()),
+            "Page.getNavigationHistory" => self.hub.reply(&message, self.history_json()),
             "Page.navigateToHistoryEntry" => {
                 let id = params.get("entryId").and_then(Json::as_int).unwrap_or(-1);
                 match self.history.iter().position(|e| e.id == id) {
                     Some(index) => {
                         let url = self.history[index].url.clone();
-                        self.reply(&message, Json::object([]));
+                        self.hub.reply(&message, Json::object([]));
                         self.nav = NavKind::History(index);
                         self.history_busy = true;
                         return Some(Next::Navigate(url, None));
                     }
-                    None => self.fail(&message, -32602, "No entry with passed id"),
+                    None => self.hub.fail(&message, -32602, "No entry with passed id"),
                 }
             }
             "Network.setExtraHTTPHeaders" => {
-                self.net.borrow_mut().extra = match params.get("headers") {
+                self.hub.net.borrow_mut().extra = match params.get("headers") {
                     Some(Json::Object(headers)) => headers.iter().map(|(k, v)| (k.clone(), v.as_str().unwrap_or_default().to_owned())).collect(),
                     _ => Vec::new(),
                 };
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Network.setUserAgentOverride" | "Emulation.setUserAgentOverride" => {
                 let text = |key: &str| params.get(key).and_then(Json::as_str).unwrap_or_default().to_owned();
                 {
-                    let mut net = self.net.borrow_mut();
+                    let mut net = self.hub.net.borrow_mut();
                     net.user_agent = text("userAgent");
                     net.accept_language = text("acceptLanguage");
                     net.platform = params.get("userAgentMetadata").and_then(|m| m.get("platform")).and_then(Json::as_str).unwrap_or_default().to_owned();
                 }
                 self.emu.nav_platform = text("platform");
                 self.push_emulation(runner, hook);
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Network.emulateNetworkConditions" => {
-                self.net.borrow_mut().offline = params.get("offline").and_then(Json::as_bool) == Some(true);
+                self.hub.net.borrow_mut().offline = params.get("offline").and_then(Json::as_bool) == Some(true);
                 self.push_emulation(runner, hook);
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
-            "Network.setCacheDisabled" => self.reply(&message, Json::object([])),
+            "Network.setCacheDisabled" => self.hub.reply(&message, Json::object([])),
+            "Network.getResponseBody" => match self.hub.response_body(params.get("requestId").and_then(Json::as_str).unwrap_or_default()) {
+                Some(body) => self.hub.reply(&message, body),
+                None => self.hub.fail(&message, -32000, "No resource with given identifier found"),
+            },
+            m if m.starts_with("Fetch.") => {
+                let _ = self.hub.fetch_command(&message, None);
+                self.release_favicons();
+            }
             "Emulation.setLocaleOverride" => {
                 self.emu.locale = params.get("locale").and_then(Json::as_str).unwrap_or_default().to_owned();
                 self.apply_engine_overrides();
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Emulation.setTimezoneOverride" => {
                 self.emu.timezone = params.get("timezoneId").and_then(Json::as_str).unwrap_or_default().to_owned();
                 self.apply_engine_overrides();
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Emulation.setGeolocationOverride" => {
                 let number = |key: &str| params.get(key).and_then(Json::as_f64);
                 self.emu.geo = number("latitude").zip(number("longitude")).map(|(latitude, longitude)| (latitude, longitude, number("accuracy").unwrap_or(0.0)));
                 self.push_emulation(runner, hook);
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Runtime.addBinding" => {
                 let name = params.get("name").and_then(Json::as_str).unwrap_or_default().to_owned();
@@ -1125,12 +1007,12 @@ impl Tab {
                     self.emu.bindings.push(name);
                 }
                 self.push_emulation(runner, hook);
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             "Runtime.removeBinding" => {
                 let name = params.get("name").and_then(Json::as_str).unwrap_or_default();
                 self.emu.bindings.retain(|b| b != name);
-                self.reply(&message, Json::object([]));
+                self.hub.reply(&message, Json::object([]));
             }
             _ => {
                 // O `frameResized` sai antes do resultado: uma vez ao pôr as métricas, três ao limpar (medido no oráculo).
@@ -1140,7 +1022,7 @@ impl Tab {
                     _ => 0,
                 };
                 for _ in 0..resized {
-                    self.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
+                    self.hub.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
                 }
                 if method == "Runtime.enable" && !self.runtime_enabled.contains(&session) {
                     self.runtime_enabled.push(session);

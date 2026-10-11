@@ -5,6 +5,7 @@
 
 pub mod http;
 pub mod json;
+pub mod hub;
 pub mod network;
 pub mod overrides;
 pub mod protocol;

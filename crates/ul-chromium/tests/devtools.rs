@@ -41,6 +41,26 @@ fn cdp_client(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     let mut saved: std::collections::HashMap<String, String> = Default::default();
     let mut next_id = 1i64;
     for step in scenario["steps"].as_array().unwrap() {
+        // Espera o evento `wait` (com o texto `match`) e guarda o campo `save_field` dos parâmetros dele.
+        if let Some(method) = step.get("wait").and_then(Value::as_str) {
+            let deadline = std::time::Instant::now() + Duration::from_secs_f64(step.get("timeout").and_then(Value::as_f64).unwrap_or(5.0));
+            let wanted = step.get("match").and_then(Value::as_str).unwrap_or_default();
+            loop {
+                let found = client.log.iter().rev().filter_map(|entry| entry.get("in")).find(|m| m.get("method").and_then(Value::as_str) == Some(method) && m.to_string().contains(wanted)).cloned();
+                if let Some(message) = found {
+                    if let (Some(key), Some(field)) = (step.get("save").and_then(Value::as_str), step.get("save_field").and_then(Value::as_str)) {
+                        let value = message["params"].pointer(field).cloned().unwrap_or(Value::Null);
+                        saved.insert(key.to_owned(), value.as_str().map_or_else(|| value.to_string(), str::to_owned));
+                    }
+                    break;
+                }
+                if std::time::Instant::now() >= deadline {
+                    break;
+                }
+                client.receive(None, Duration::from_millis(100));
+            }
+            continue;
+        }
         if let Some(seconds) = step.get("drain").and_then(Value::as_f64) {
             client.receive(None, Duration::from_secs_f64(seconds));
             continue;
@@ -65,7 +85,7 @@ fn cdp_client(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
         }
         send_all(fd, &client_frame(&message.to_string()));
         client.log.push(serde_json::json!({ "out": message }));
-        let reply = client.receive(message["id"].as_i64(), Duration::from_secs(10));
+        let reply = if step.get("nowait").and_then(Value::as_bool) == Some(true) { client.receive(None, Duration::from_millis(200)) } else { client.receive(message["id"].as_i64(), Duration::from_secs(10)) };
         if let Some(result) = reply.as_ref().and_then(|r| r.get("result")) {
             if step["method"] == "Target.getTargets" && !saved.contains_key("target") {
                 let page = result["targetInfos"].as_array().unwrap().iter().find(|t| t["type"] == "page").unwrap();
@@ -142,7 +162,7 @@ fn score(name: &str) -> (usize, usize) {
 fn transcripts_match_the_oracle() {
     let mut same = 0;
     let mut total = 0;
-    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics", "network_http", "playwright_handshake", "playwright_state", "playwright_network", "playwright_cookies", "playwright_locale"] {
+    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics", "network_http", "playwright_handshake", "playwright_state", "playwright_network", "playwright_cookies", "playwright_locale", "playwright_fetch"] {
         let (s, t) = score(name);
         same += s;
         total += t;

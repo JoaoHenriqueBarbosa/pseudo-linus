@@ -210,13 +210,15 @@ pub struct Profile {
     pub cookies: Mutex<ul_net::net::cookies::Jar>,
     /// O que o DevTools concedeu (`Browser.grantPermissions`): origem (vazia vale para todas) e nome da permissão.
     pub permissions: Mutex<Vec<(String, String)>>,
+    /// As origens de que o navegador já pediu o `/favicon.ico` (a resposta, mesmo a 404, fica guardada e ele não a repete).
+    pub favicons: Mutex<Vec<String>>,
 }
 
 impl Profile {
     /// O perfil do `--user-data-dir`: o `localStorage` e o IndexedDB persistem nos bancos dele.
     pub fn on_disk(local_storage: Option<Arc<LocalStorageStore>>, indexed_db: Option<Arc<IndexedDbStore>>) -> Profile {
         let store = local_storage.clone().map(|store| store as Arc<dyn AreaStore>);
-        Profile { local: Mutex::new(Areas { map: HashMap::new(), store }), indexed_db: indexed_db.unwrap_or_default(), local_storage, session_storage: None, history: None, sessions: None, visits: None, cookies: Mutex::default(), permissions: Mutex::default() }
+        Profile { local: Mutex::new(Areas { map: HashMap::new(), store }), indexed_db: indexed_db.unwrap_or_default(), local_storage, session_storage: None, history: None, sessions: None, visits: None, cookies: Mutex::default(), permissions: Mutex::default(), favicons: Mutex::default() }
     }
 
     /// O perfil com todos os bancos do `DiskProfile`, o `sessionStorage` incluído.

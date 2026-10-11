@@ -31,6 +31,8 @@ pub struct Response {
     pub sent: Vec<(String, String)>,
     /// Os redirecionamentos seguidos antes da resposta final, em ordem.
     pub hops: Vec<Hop>,
+    /// A resposta que o DevTools forneceu (`Fetch.fulfillRequest`): não houve conexão.
+    pub synthetic: bool,
 }
 
 /// Um redirecionamento seguido: a troca que respondeu com a `Location`.
@@ -114,6 +116,8 @@ pub enum FetchError {
     UnknownScheme(String),
     /// `net::ERR_INTERNET_DISCONNECTED`: o navegador está emulando a rede desligada.
     Offline,
+    /// O pedido que o DevTools derrubou (`Fetch.failRequest`): o código de rede inteiro, `net::ERR_...`.
+    Blocked(&'static str),
 }
 
 impl FetchError {
@@ -131,6 +135,7 @@ impl FetchError {
             FetchError::Io(_) => "net::ERR_CONNECTION_RESET",
             FetchError::UnknownScheme(_) => "net::ERR_UNKNOWN_URL_SCHEME",
             FetchError::Offline => "net::ERR_INTERNET_DISCONNECTED",
+            FetchError::Blocked(code) => code,
         }
     }
 }
@@ -297,6 +302,7 @@ fn exchange(u: &Url, method: &str, spec: &RequestSpec<'_>, body: &[u8]) -> Resul
         head: head.raw.clone(),
         sent: lines,
         hops: Vec::new(),
+        synthetic: false,
     };
     Ok((response, location))
 }

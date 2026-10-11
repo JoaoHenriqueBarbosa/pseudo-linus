@@ -240,7 +240,7 @@ pub fn normalize(value: &Value, key: &str) -> Value {
         Value::Number(_) if key == "connectionId" => Value::String("<n>".into()),
         Value::Bool(_) if key == "connectionReused" => Value::String("<bool>".into()),
         // O `requestId` de subrecurso é `pid.n`.
-        Value::String(s) if key == "requestId" && s.split_once('.').is_some_and(|(a, b)| !a.is_empty() && a.bytes().all(|c| c.is_ascii_digit()) && b.bytes().all(|c| c.is_ascii_digit())) => Value::String("<requestId>".into()),
+        Value::String(s) if (key == "requestId" || key == "networkId") && s.split_once('.').is_some_and(|(a, b)| !a.is_empty() && a.bytes().all(|c| c.is_ascii_digit()) && b.bytes().all(|c| c.is_ascii_digit())) => Value::String("<requestId>".into()),
         Value::Number(_) if key == "windowId" => Value::String("<windowId>".into()),
         // O `backendNodeId` é um contador do processo, atribuído quando o cliente pergunta pelo nó.
         Value::Number(_) if key == "backendNodeId" => Value::String("<backendNodeId>".into()),

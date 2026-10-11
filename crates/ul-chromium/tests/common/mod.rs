@@ -45,7 +45,7 @@ fn serve(files: &[(&str, &str)], headers: &[(&str, &str)]) -> Fetcher {
         response_headers.extend(extra.iter().cloned());
         let body = body.1.into_bytes();
         let transfer = Transfer { version: (1, 0), ..Transfer::identity(body.len()) };
-        Ok(Response { status, reason: String::new(), headers: response_headers, body, url: parsed, transfer, head: Vec::new(), sent: Vec::new(), hops: Vec::new() })
+        Ok(Response { status, reason: String::new(), headers: response_headers, body, url: parsed, transfer, head: Vec::new(), sent: Vec::new(), hops: Vec::new(), synthetic: false })
     })
 }
 

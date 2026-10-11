@@ -232,8 +232,12 @@ class TreeWalker {
     for (;;) {
       if (!skipChildren && node.firstChild) node = node.firstChild;
       else {
-        while (node !== this.root && !node.nextSibling) node = node.parentNode;
-        if (node === this.root || !node) return null;
+        // Fora da árvore da raiz (o `currentNode` de um fragmento), subir termina em `null`, e a travessia acaba.
+        while (node !== this.root && !node.nextSibling) {
+          node = node.parentNode;
+          if (!node) return null;
+        }
+        if (node === this.root) return null;
         node = node.nextSibling;
       }
       skipChildren = false;
