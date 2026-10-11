@@ -12,13 +12,14 @@
 //! a árvore estar completa e pede um molde à parte. O banco do Local Storage já não vem do molde: o leveldb próprio
 //! (`ul-leveldb`) o cria e o `LocalStorageStore` grava nele o que as páginas guardam.
 
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 
 use sysabi::{sys, AtFlags, Errno, Fd, Mode};
 
 use ul_common::fsutil::mkdir_p;
 use ul_common::time::Civil;
 
+use crate::history::{self, Navigation};
 use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
 use crate::session_storage::{Exit, SessionStorageStore};
@@ -35,6 +36,8 @@ static PACK_DUMP: &[u8] = include_bytes!("../profile/template-dump.pack");
 const LOCAL_STORAGE_DB: &[u8] = b"Default/Local Storage/leveldb";
 /// O diretório do banco do Session Storage: apagado e recriado a cada início, pelo leveldb próprio.
 const SESSION_STORAGE_DB: &[u8] = b"Default/Session Storage";
+/// Os arquivos do molde que uma execução seguinte encontra e mantém, como o Chromium faz.
+const KEPT_ACROSS_RUNS: [&[u8]; 2] = [b"Default/History", b"Default/History-journal"];
 /// Os bancos que o molde traz mas que o leveldb próprio grava.
 const OWN_DBS: [&[u8]; 2] = [LOCAL_STORAGE_DB, SESSION_STORAGE_DB];
 /// O diretório do IndexedDB no perfil: só existe depois que uma página o usa.
@@ -265,6 +268,10 @@ pub struct DiskProfile {
     local_storage: Option<Arc<LocalStorageStore>>,
     /// O banco do Session Storage (`Default/Session Storage`), recriado a cada início.
     session_storage: Option<Arc<SessionStorageStore>>,
+    /// As navegações da aba nesta execução, para o History.
+    navigations: Mutex<Vec<Navigation>>,
+    /// O id da janela das anotações de contexto do History: aleatório por execução.
+    window_id: i64,
 }
 
 impl DiskProfile {
@@ -290,7 +297,7 @@ impl DiskProfile {
             Some(path) if !path.is_empty() => path,
             _ => [home.as_slice(), b"/.config"].concat(),
         };
-        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None }
+        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None, navigations: Mutex::new(Vec::new()), window_id: random_below(1 << 31) as i64 }
     }
 
     /// O IndexedDB do perfil (`Default/IndexedDB`): cada origem ganha o leveldb dela no primeiro uso.
@@ -317,6 +324,20 @@ impl DiskProfile {
         open(Arc::new(SysEnv::new()), &String::from_utf8_lossy(&dir), thread_id).ok().map(Arc::new)
     }
 
+    /// Anota uma navegação concluída da aba: o History a grava na saída.
+    pub fn record_navigation(&self, navigation: Navigation) {
+        self.navigations.lock().unwrap_or_else(PoisonError::into_inner).push(navigation);
+    }
+
+    /// O History da saída do `--dump-dom`: a cadeia de navegações da aba, no banco que o molde trouxe.
+    fn write_history(&self) {
+        let Some(dir) = &self.user_data_dir else { return };
+        let path = String::from_utf8_lossy(&[dir.as_slice(), b"/Default/History"].concat()).into_owned();
+        let navigations = self.navigations.lock().unwrap_or_else(PoisonError::into_inner);
+        let process = history::Process { start_us: self.start_us, exit_us: (ul_common::time::realtime_nanos() / 1000) as i64, window_id: self.window_id, dump: self.run == Run::DumpDom };
+        let _ = history::write(&path, &navigations, process);
+    }
+
     /// A saída: o que o Chromium só grava ao encerrar (`Preferences`, o `Local State` completo), depois do commit do
     /// que as páginas gravaram no Local Storage e no Session Storage, que ainda grava o que a forma de sair pede.
     pub fn finish(&self, exit: Exit) {
@@ -328,6 +349,7 @@ impl DiskProfile {
         }
         let _ = self.write_layer(template(self.run), LAYER_EXIT);
         if self.run == Run::DumpDom {
+            self.write_history();
             self.remove_singletons();
         }
     }
@@ -372,7 +394,12 @@ impl DiskProfile {
                 ROOT_CONFIG => self.config_base.as_slice(),
                 _ => continue,
             };
-            let path = [base, b"/", &expander.expand(&entry.path)].concat();
+            let relative = expander.expand(&entry.path);
+            let path = [base, b"/", &relative].concat();
+            // O que o Chromium guarda de uma execução para a outra (o History acumula as visitas) não é refeito.
+            if entry.kind == KIND_FILE && KEPT_ACROSS_RUNS.contains(&relative.as_slice()) && sys::lstat(&path).is_ok() {
+                continue;
+            }
             match entry.kind {
                 KIND_DIR => {
                     mkdir_p(&path, entry.mode)?;

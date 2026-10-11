@@ -8,6 +8,7 @@ use sysabi::Ctx;
 use crate::devtools;
 use crate::disk_profile::{DiskProfile, Run};
 use crate::fetch;
+use crate::history::Navigation;
 use crate::page::Page;
 use crate::session::Profile;
 use crate::session_storage::Exit;
@@ -79,6 +80,7 @@ fn load(ctx: &mut Ctx, options: &Options, first: &str, disk: &DiskProfile) -> i3
     let profile = std::sync::Arc::new(Profile::from_disk(disk));
     let tab = std::rc::Rc::new(crate::session::Tab::new(profile));
     for _ in 0..MAX_NAVIGATIONS {
+        let started_us = (ul_common::time::realtime_nanos() / 1000) as i64;
         let mut page = match Page::load(&address, fetch::network()) {
             Ok(page) => page,
             Err(message) => {
@@ -91,6 +93,7 @@ fn load(ctx: &mut Ctx, options: &Options, first: &str, disk: &DiskProfile) -> i3
             page.budget_ms = budget;
         }
         page.run();
+        disk.record_navigation(Navigation { url: page.url(), title: page.title(), start_us: started_us });
         if let Some(next) = page.pending_navigation() {
             address = next;
             continue;

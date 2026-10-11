@@ -14,6 +14,9 @@ ul-common = { workspace = true }
 ul-net = { path = "../ul-net" }
 # O banco do Local Storage e do IndexedDB do perfil, no formato em disco do leveldb do Chromium.
 ul-leveldb = { path = "../ul-leveldb" }
+# O History do perfil é SQLite de verdade, pelo VFS do sandbox (o mesmo do `sqlite3`).
+ul-sqlite = { path = "../ul-sqlite" }
+rusqlite = { version = "=0.40.2", default-features = false, features = ["modern_sqlite"] }
 # Parser de HTML conforme a especificação (o mesmo do Servo), na versão que o blitz-html usa.
 html5ever = "0.39"
 markup5ever = "0.39"

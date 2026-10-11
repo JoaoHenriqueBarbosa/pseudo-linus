@@ -561,6 +561,13 @@ pub fn outer_html(doc: &BaseDocument, id: NodeId) -> String {
     out
 }
 
+/// `document.title`: o texto do primeiro `<title>`, com o espaço em branco colapsado.
+pub fn title(doc: &BaseDocument) -> String {
+    let found = doc.query_selector_in(doc.root_element().id, "title").ok().flatten();
+    let text = found.and_then(|id| doc.get_node(id)).map(|node| node.text_content()).unwrap_or_default();
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 /// `innerHTML` do nó `id`.
 pub fn inner_html(doc: &BaseDocument, id: NodeId) -> String {
     let mut out = String::new();
