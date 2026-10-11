@@ -235,6 +235,44 @@ fn spawn(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::Int(tid))
 }
 
+/// As referências fortes da thread verde `tid` que não roda (suspensa, ou nova e sem rodar), para o coletor de ciclos.
+/// `None`: não há tal entrada (ou o escalonador está emprestado).
+pub(crate) fn parked_visit(tid: i64, f: &mut dyn FnMut(crate::gccollect::Child)) -> Option<()> {
+    SCHED
+        .try_with(|s| {
+            let s = s.try_borrow().ok()?;
+            match s.entries.get(&tid)? {
+                Entry::Fresh(callable) => f(crate::gccollect::Child::Val(callable)),
+                Entry::Parked(p) => {
+                    p.outer.gc_visit(f);
+                    p.suspended.iter().for_each(|c| c.gc_visit(f));
+                    if let Some(c) = p.child.as_ref() {
+                        c.gc_visit(f);
+                    }
+                    p.handled.iter().for_each(|v| f(crate::gccollect::Child::Val(v)));
+                    p.frames.iter().for_each(|(_, _, env)| f(crate::gccollect::Child::Env(env)));
+                }
+            }
+            Some(())
+        })
+        .ok()
+        .flatten()
+}
+
+/// Tira a thread verde `tid` (que não roda) do escalonador e a entrega, para o coletor soltá-la fora do empréstimo.
+pub(crate) fn take_parked(tid: i64) -> Option<Box<dyn std::any::Any>> {
+    let gone = SCHED.try_with(|s| {
+        let mut s = s.try_borrow_mut().ok()?;
+        if tid == s.current {
+            return None;
+        }
+        let gone = s.entries.remove(&tid);
+        sync_others(&s);
+        gone
+    });
+    gone.ok().flatten().map(|e| Box::new(e) as Box<dyn std::any::Any>)
+}
+
 /// `_gt_drop(tid)`: descarta a thread suspensa `tid` sem nunca a retomar (o greenlet de uma thread que já acabou: nada
 /// pode trocar para ele, e o C só libera a pilha copiada dele). Devolve se havia o que descartar. A thread que roda e as
 /// que ainda esperam para começar não se descartam.

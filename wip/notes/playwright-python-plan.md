@@ -202,7 +202,7 @@ que o `cdp_tee` não intercepta).
 
 O teste `greenlet_test_suite_fails_only_where_declared` (`crates/host/tests/greenlet.rs`) roda a suíte inteira e exige
 que os testes que falham sejam exatamente os de `DECLARED_DIVERGENCES`, cada um com a causa. Estado de 2026-10-11:
-156 testes executados (os módulos `test_cpp` e `test_extension_interface` nem importam, o oráculo roda 172), 17 divergências declaradas.
+156 testes executados (os módulos `test_cpp` e `test_extension_interface` nem importam, o oráculo roda 172), 13 divergências declaradas (extensão C da suíte, testes que esperam vazamento e três de thread cruzada com greenlet solto por outra thread).
 
 1. **Coletor de ciclos (projeto à parte).** O plinus não acha ciclos de instâncias: `gc.collect()`, `__del__` e
    `weakref` de objetos em ciclo só rodam na saída do interpretador. Atinge `test_circular_greenlet`,

@@ -41,6 +41,10 @@ enum Handle {
     Traceback(Rc<dyn ExtObject>),
     /// Um objeto `frame` do programa.
     Frame(Rc<dyn ExtObject>),
+    /// A pilha de uma thread verde que não roda (o segmento de um greenlet suspenso), dona das referências que os
+    /// quadros dela seguram. O `_State` do greenlet é quem a possui (guarda o `tid`); o escalonador tem a única
+    /// referência forte.
+    Parked(i64),
 }
 
 /// Uma aresta de saída: o que um nó segura.
@@ -51,6 +55,42 @@ pub(crate) enum Child<'a> {
     Func(&'a Rc<FuncObj>),
     Entries(&'a Rc<Vec<TbEntry>>),
     Hold(&'a Rc<FrameHold>),
+    Parked(i64),
+}
+
+/// O `tid` da thread verde que a instância `_State` do greenlet possui, se ela ainda existe.
+fn parked_owner_tid(i: &InstanceObj, dict: &crate::object::AttrMap) -> Option<i64> {
+    if i.class().name != "_State" {
+        return None;
+    }
+    let Some(Value::Int(tid)) = dict.get("tid") else { return None };
+    // O CPython não enxerga os locais de um quadro de greenlet suspenso (o quadro vive na pilha de C salva): um
+    // greenlet que o próprio quadro dele segura (`self` em `run`) nunca é coletado. Aqui o dono de fora é a pilha.
+    let mut holds_owner = false;
+    let mut owned_by_state = |v: &Value| {
+        if let Value::Instance(x) = v {
+            if let Ok(d) = x.dict.try_borrow() {
+                if let Some(Value::Instance(st)) = d.get("_greenlet__st") {
+                    holds_owner |= std::ptr::eq(Rc::as_ptr(st), i);
+                }
+            }
+        }
+    };
+    let found = crate::gthread::parked_visit(*tid, &mut |c| match c {
+        Child::Val(v) => owned_by_state(v),
+        Child::Env(e) => {
+            if let Ok(vars) = e.vars.try_borrow() {
+                vars.items.iter().for_each(|(_, v)| owned_by_state(v));
+            }
+        }
+        _ => {}
+    });
+    found.filter(|()| !holds_owner).map(|()| *tid)
+}
+
+/// A chave de um nó `Parked`: ímpar, que nenhum endereço alinhado é.
+fn parked_key(tid: i64) -> usize {
+    ((tid as usize) << 1) | 1
 }
 
 fn ext_key(e: &Rc<dyn ExtObject>) -> usize {
@@ -103,6 +143,7 @@ impl Handle {
             Handle::Entries(x) => Rc::as_ptr(x) as *const u8 as usize,
             Handle::Hold(x) => Rc::as_ptr(x) as *const u8 as usize,
             Handle::Traceback(x) | Handle::Frame(x) => ext_key(x),
+            Handle::Parked(tid) => parked_key(*tid),
         }
     }
 
@@ -122,6 +163,8 @@ impl Handle {
             Handle::Entries(x) => Rc::strong_count(x),
             Handle::Hold(x) => Rc::strong_count(x),
             Handle::Traceback(x) | Handle::Frame(x) => Rc::strong_count(x),
+            // Sem `Rc` próprio: o escalonador e o `_State` que o possui (descontado como o do `Handle` de um `Rc`).
+            Handle::Parked(_) => 2,
         }
     }
 
@@ -139,6 +182,7 @@ impl Handle {
                 | Handle::Hold(_)
                 | Handle::Traceback(_)
                 | Handle::Frame(_)
+                | Handle::Parked(_)
         )
     }
 
@@ -171,7 +215,11 @@ impl Handle {
                 if let Some(d) = view.as_ref() {
                     f(Child::Dict(d));
                 }
+                if let Some(tid) = parked_owner_tid(i, &dict) {
+                    f(Child::Parked(tid));
+                }
             }
+            Handle::Parked(tid) => return crate::gthread::parked_visit(*tid, f).is_some(),
             Handle::Env(e) => {
                 let Ok(vars) = e.vars.try_borrow() else { return false };
                 vars.items.iter().for_each(|(_, v)| f(Child::Val(v)));
@@ -273,6 +321,11 @@ impl Handle {
                     graveyard.push(Box::new(std::mem::take(&mut *v)));
                 }
             }
+            Handle::Parked(tid) => {
+                if let Some(gone) = crate::gthread::take_parked(*tid) {
+                    graveyard.push(gone);
+                }
+            }
             // Os intermediários caem sozinhos quando o contêiner que os segurava se esvazia.
             _ => {}
         }
@@ -281,6 +334,7 @@ impl Handle {
 
 fn child_handle(c: &Child) -> Option<Handle> {
     match c {
+        Child::Parked(tid) => Some(Handle::Parked(*tid)),
         Child::Entries(e) => Some(Handle::Entries((*e).clone())),
         Child::Hold(h) => Some(Handle::Hold((*h).clone())),
         Child::Val(v) => Handle::from_value(v),
@@ -306,6 +360,7 @@ fn child_key(c: &Child) -> Option<usize> {
             Value::Ext(e) => ext_handle(e).map(|h| h.key()),
             _ => None,
         },
+        Child::Parked(tid) => Some(parked_key(*tid)),
         Child::Entries(e) => Some(Rc::as_ptr(e) as *const u8 as usize),
         Child::Hold(h) => Some(Rc::as_ptr(h) as *const u8 as usize),
         Child::Env(e) => Some(Rc::as_ptr(e) as *const u8 as usize),
@@ -338,6 +393,12 @@ fn deduce(nodes: &mut [Node], index: &HashMap<usize, usize>) -> bool {
         n.reachable = false;
     }
     let mut internal = vec![0isize; nodes.len()];
+    let registered = crate::frameobj::registry_pointers();
+    for (n, own) in nodes.iter_mut().zip(internal.iter_mut()) {
+        if matches!(n.handle, Handle::Frame(_)) && registered.contains(&n.handle.key()) {
+            *own += 1;
+        }
+    }
     for n in nodes.iter().filter(|n| !n.opaque) {
         n.handle.visit(&mut |c| {
             if let Some(&i) = child_key(&c).and_then(|k| index.get(&k)) {
@@ -487,7 +548,7 @@ pub(crate) fn collect(vm: &mut crate::vm::Vm, generation: usize, options: &Optio
                     Handle::Slice(x) => Some(Value::Slice(x.clone())),
                     Handle::Exception(x) => Some(Value::Exception(x.clone())),
                     Handle::Traceback(x) | Handle::Frame(x) => Some(Value::Ext(x.clone())),
-                    Handle::Env(_) | Handle::Entries(_) | Handle::Hold(_) => None,
+                    Handle::Env(_) | Handle::Entries(_) | Handle::Hold(_) | Handle::Parked(_) => None,
                 };
                 saved.extend(v);
             }
@@ -540,7 +601,7 @@ fn weight<'a>(handles: impl Iterator<Item = &'a Handle> + Clone) -> usize {
     let mut frames = std::collections::HashSet::new();
     for h in handles {
         total += match h {
-            Handle::Env(_) | Handle::Entries(_) | Handle::Frame(_) => 0,
+            Handle::Env(_) | Handle::Entries(_) | Handle::Frame(_) | Handle::Parked(_) => 0,
             // A exceção e a tupla dos `args` (que o CPython conta à parte), o `frame` (uma vez por quadro, mesmo
             // compartilhado por vários tracebacks) e o(s) `traceback`.
             Handle::Exception(e) => 1 + usize::from(!e.args.is_empty()),

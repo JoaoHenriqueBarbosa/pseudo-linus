@@ -312,6 +312,14 @@ pub fn live_frame_at(chain: Vec<FrameLink>, depth: usize, fresh_innermost: bool)
     result
 }
 
+/// Os objetos `frame` que o registro por thread segura (endereço do `Rc`): a referência do registro é do
+/// interpretador, não do programa, e o coletor de ciclos a desconta como uma aresta interna.
+pub(crate) fn registry_pointers() -> std::collections::HashSet<usize> {
+    REGISTRY
+        .try_with(|reg| reg.try_borrow().map(|r| r.values().map(|e| Rc::as_ptr(&e.obj) as *const () as usize).collect()).unwrap_or_default())
+        .unwrap_or_default()
+}
+
 /// Um quadro de traceback (`tb_frame`): terminou, não tem identidade; `hold` é o dono do quadro que ele
 /// divide com o traceback, e com ele as variáveis locais.
 pub fn detached_frame(link: &FrameLink, hold: Option<Rc<FrameHold>>) -> Value {

@@ -1373,6 +1373,18 @@ pub(crate) struct Frame {
 }
 
 impl Frame {
+    /// As referências fortes do quadro, para o coletor de ciclos: o escopo, os valores da pilha e as exceções em
+    /// tratamento. Os iteradores da pilha não entram (o que eles seguram conta como dono de fora).
+    pub(crate) fn gc_visit(&self, f: &mut dyn FnMut(crate::gccollect::Child)) {
+        f(crate::gccollect::Child::Env(&self.env));
+        for slot in &self.stack {
+            if let Slot::Val(v) = slot {
+                f(crate::gccollect::Child::Val(v));
+            }
+        }
+        self.handled.iter().for_each(|v| f(crate::gccollect::Child::Val(v)));
+    }
+
     pub(crate) fn new(code: Rc<Code>, env: Rc<Env>) -> Frame {
         // A pilha de quase todo quadro cabe em poucas posições: uma alocação só, sem crescer aos poucos.
         Frame { code, env, stack: Vec::with_capacity(8), blocks: Vec::new(), pc: 0, handled: Vec::new(), handled_base: 0 }
@@ -1917,6 +1929,19 @@ impl Chain {
 pub(crate) struct Callee {
     pub(crate) frame: Frame,
     pub(crate) link: CallLink,
+}
+
+impl Callee {
+    /// As referências fortes do chamado para o coletor de ciclos: o quadro, a função e a instância de `Classe(...)`.
+    pub(crate) fn gc_visit(&self, f: &mut dyn FnMut(crate::gccollect::Child)) {
+        self.frame.gc_visit(f);
+        if let Some(func) = self.link.func.as_ref() {
+            f(crate::gccollect::Child::Func(func));
+        }
+        if let Some(instance) = self.link.instance.as_ref() {
+            f(crate::gccollect::Child::Val(instance));
+        }
+    }
 }
 
 /// O resultado de iniciar uma chamada: o valor já pronto, ou o quadro a executar.
