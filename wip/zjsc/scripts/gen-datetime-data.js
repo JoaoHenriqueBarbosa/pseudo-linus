@@ -434,6 +434,11 @@ function extras(locale) {
         const cycled = make(locale, { ...scenario.options, hourCycle: cycle }).formatRangeToParts(scenario.from, scenario.to);
         const startHour = cycled.find((part) => part.type === "hour" && part.source === "startRange");
         if (startHour) out.push([`range|${scenario.name}|hourpad|${label}`, [...startHour.value].length >= 2 ? "1" : "0"]);
+        // O texto do que fecha o intervalo depois do último extremo (só literais, o AM/PM comum tem caminho próprio): o padrão de intervalo tem literal que o `format` do extremo não tem
+        // (` Uhr` em de, `22:13–23:13 Uhr`), e só no ciclo de 24 horas.
+        const last = cycled.map((part) => part.source).lastIndexOf("endRange");
+        const trailing = cycled.slice(last + 1);
+        out.push([`range|${scenario.name}|tailtext|${label}`, trailing.every((part) => part.type === "literal") ? trailing.map((part) => part.value).join("") : ""]);
       }
     }
   }

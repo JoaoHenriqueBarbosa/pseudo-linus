@@ -340,6 +340,9 @@ fn data_range(state: &DateTimeFormatState, level: Level, first: &Moment, second:
         let (_, end_core) = end.split_at(time_start(&end)?);
         let (start_core, _) = split_trailing_literals(start_core);
         let (end_core, tail) = split_trailing_literals(end_core);
+        // O padrão de intervalo pode fechar com um literal que o `format` do extremo não tem (` Uhr` em de): vem medido.
+        let measured_tail = [literal(range_value(state, data, scenario, if matches!(state.cycle, HourCycle::H11 | HourCycle::H12) { "tailtext|12" } else { "tailtext|24" }).unwrap_or(""))];
+        let tail = if tail.is_empty() && !measured_tail[0].1.is_empty() { &measured_tail[..] } else { tail };
         let head = &with_same_day_joiner(state, head)[..];
         if same_period && range_value(state, data, scenario, "collapse") == Some("1") {
             return Some(assemble_shared_day_period(head, start_core, separator, end_core, tail));
