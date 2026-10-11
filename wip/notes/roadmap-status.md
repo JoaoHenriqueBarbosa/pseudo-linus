@@ -9,7 +9,7 @@ Convenção da coluna "Fonte": **eu** = medido pelo coordenador com comando pró
 por um fork na saída do container dele, não recompilado pelo coordenador; **vigente** = valor herdado de um arquivo
 versionado, com a data do arquivo.
 
-Última verificação: 2026-10-11 16:25 (CEST).
+Última verificação: 2026-10-11 17:00 (CEST).
 
 ## Ritmo medido
 
@@ -31,12 +31,12 @@ por dia no zjsc e 60 a 70 no zbun.
 
 | Marco | Critério do PRD | Estado medido | Fonte |
 |---|---|---|---|
-| M5.1 | JavaScriptCore passando 80% do test262 | **NÃO MEDIDO ainda.** test262 clonado fora do repositório (commit `2e0a5676`, 2026-10-07, 53 910 arquivos `.js` em `test/`, fonte **eu**); runner em escrita pelo fork da suíte. Não há harness de test262 no repositório (busca em todo o git: só menções no fonte vendorizado do JSC). A suíte de 447 arquivos de teste do zjsc é outra coisa: goldens medidos no bun 1.4.2 | eu |
+| M5.1 | JavaScriptCore passando 80% do test262 | **CUMPRIDO: 50 706 de 52 017 (97,5%)**, test262 no commit `2e0a56762801e275a9fdf96dc49d90ba0cddcf63`. Por topo: built-ins 98,0%, language 97,3%, annexB 96,6%, intl402 95,8% (`test/staging` e `test/harness` fora). Corredor `wip/zjsc/scripts/test262-run.py` (sloppy e strict, `negative` com fase, `includes`, `async`, módulo). Corredor validado por mim com 6 testes de controle (2 passam, 4 falham pelo motivo certo). 553 das 1311 falhas são limite do corredor (fixtures de módulo e `$262.createRealm`), 104 são `import source/defer`, 8 crashes e 2 timeouts | fork, controle eu |
 | M5.2 | `node` com CommonJS e ESM, `fs`, `path`, `http` e `npm install` | Direção trocada para o bun: `bun` é programa do userland, com CJS e ESM, `node:fs` completo, `Bun.serve` e `fetch` em loopback, `Bun.file`, streams, CLI parcial. Comando `node` e `npm install`: não existem (só `bun` está registrado) | eu |
 | M5.3 | `--dump-dom` correto em páginas com scripts simples | Cumprido além do critério: 42 de 42 páginas da internet idênticas ao Chromium 154 (meta do goal era 95% por grupo) | fork |
 | M5.4 | Recorte do Web Platform Tests acima de 90% | **NÃO MEDIDO.** Não há recorte de WPT no repositório | eu |
 | M5.5 | `--screenshot` e `--print-to-pdf` com diferença perceptual baixa | **NÃO EXISTE.** O `cli.rs` do `ul-chromium` só trata `--dump-dom`; `Page.captureScreenshot` responde "wasn't found". Pintura de página não existe (o `vello_cpu` só serve ao canvas 2D). O alvo é diferença perceptual, não byte a byte | eu |
-| M5.6 | CDP completo para Puppeteer e Playwright; test262 acima de 95% | CDP: 290 de 326 no placar (89%) no último commit integrado (`acdd7bba`); o fork reporta 347 de 379 (91,6%) com o cenário novo `playwright_handshake` em 53 de 53 (setWindowBounds, setDownloadBehavior, scripts de documento novo, mundos isolados, emulação de mídia), ainda sem commit. pyppeteer: pip install, launch, goto (com `Response`), title, evaluate e close funcionam com saída igual ao oráculo. Playwright: handshake de CDP em 53 de 53 (fork, integrado em `a2ff72c6`); replay da sessão CDP real do driver do Playwright contra o `ul-chromium`: 402 de 664 mensagens (60,5%, fork; era 245 antes de o harness expandir os blobs do golden; harness integrado em `36b73524`; `DOM.*` e `Input.*` implementados, sem commit, replay rodando; metas são os `golden/pw_*.cdp.jsonl`, gravados com o driver real e o Chromium 154); driver Node: incógnita medida em `wip/notes/playwright-driver.md` (o bun real roda o driver; no nosso bun faltam `child_process`, `net`, `crypto`, `zlib`, `tls`, `http`, `https`, `readline`, `tty`, `inspector`, `dns`). test262: NÃO MEDIDO | fork |
+| M5.6 | CDP completo para Puppeteer e Playwright; test262 acima de 95% | CDP: 290 de 326 no placar (89%) no último commit integrado (`acdd7bba`); o fork reporta 347 de 379 (91,6%) com o cenário novo `playwright_handshake` em 53 de 53 (setWindowBounds, setDownloadBehavior, scripts de documento novo, mundos isolados, emulação de mídia), ainda sem commit. pyppeteer: pip install, launch, goto (com `Response`), title, evaluate e close funcionam com saída igual ao oráculo. Playwright: handshake de CDP em 53 de 53 (fork, integrado em `a2ff72c6`); replay da sessão CDP real do driver do Playwright contra o `ul-chromium`: 402 de 664 mensagens (60,5%, fork; era 245 antes de o harness expandir os blobs do golden; harness integrado em `36b73524`; `DOM.*` e `Input.*` implementados, sem commit, replay rodando; metas são os `golden/pw_*.cdp.jsonl`, gravados com o driver real e o Chromium 154); driver Node: incógnita medida em `wip/notes/playwright-driver.md` (o bun real roda o driver; no nosso bun faltam `child_process`, `net`, `crypto`, `zlib`, `tls`, `http`, `https`, `readline`, `tty`, `inspector`, `dns`). test262 acima de 95%: cumprido no agregado (97,5%) e em todos os diretórios de topo (ver M5.1) | fork |
 
 ## Estado por frente
 
@@ -64,7 +64,7 @@ por dia no zjsc e 60 a 70 no zbun.
 
 ## Fila priorizada
 
-1. **Medir test262 e um recorte de WPT** (M5.1, M5.4, M5.6): sem isso não se sabe o estado real do motor contra o critério. Primeiro passo: runner do test262 sobre o zjsc, com o commit do test262 fixado.
+1. **Medir um recorte de WPT** (M5.4). test262 medido (M5.1 e M5.6 cumpridos); resta fechar o corredor (fixtures em memória, `createRealm`), os 8 crashes e 2 timeouts, depois `Atomics` (68,4%), `module-code` (81,8%) e `import source/defer`.
 2. CDP e Playwright (M5.6): fechar a lista de métodos, depois o driver Node no bun.
 3. `--screenshot` e `--print-to-pdf` (M5.5): pintura de página (`blitz-paint` sobre `vello_cpu`), PNG e PDF, medido por diferença perceptual.
 4. bun/node (M5.2): `bun run`, `-p`, opções, `test`, `x`; decidir se o comando `node` e o `npm install` entram.
@@ -76,8 +76,7 @@ Método: ritmo medido acima, aplicado a itens com escopo conhecido. Item sem bas
 
 | Item | Estimativa otimista | Base |
 |---|---|---|
-| Runner de test262 e primeira medição | 1 dia | hipótese; depende do formato do harness e de rede para clonar o test262 |
-| Fechar o que o test262 apontar para 80% | sem estimativa até a primeira medição | |
+| test262 | feito | primeira medição em cerca de 1,5 hora desde a ordem; resta limpar crashes e corredor (1 dia, otimista) |
 | CDP completo e pyppeteer sem screenshot | 1 dia | 36 cenários faltando, ritmo de 40 a 70 por dia |
 | Playwright | 2 a 3 dias | o driver Node no bun é a incógnita |
 | Screenshot e PDF perceptuais | 2 a 4 dias | pintura não existe |
@@ -104,3 +103,4 @@ formais; este arquivo a substitui. Corrigido também: o PRD pede screenshot por 
 - 2026-10-11 15:25: driver Node do Playwright medido (`playwright-driver.md`). `bun run` com package.json integrado (`90460435`).
 - 2026-10-11 16:00: replay do Playwright real em 245 de 664 (36,9%), primeira medida direta do M5.6 para o Playwright. Faltam `Target.createTarget` com contexto, `DOM.*`, `Input.*` e o que o log completo do replay listar.
 - 2026-10-11 16:25: replay do Playwright corrigido para 402 de 664 (60,5%): o harness enviava o script injetado como texto literal. `DOM.*` e `Input.*` implementados (fork), placar novo pendente. test262 em 29 500 de 52 017 testes rodados, sem baseline ainda.
+- 2026-10-11 17:00: test262 medido: 97,5% (M5.1 e a parte de test262 do M5.6 cumpridos). Corredor validado com 6 controles. Próxima lacuna de medição: WPT (M5.4).
