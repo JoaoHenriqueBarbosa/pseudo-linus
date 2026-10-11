@@ -792,7 +792,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         match binding.data {
             BData::BMissing(_) => {}
             BData::BIdentifier(bind) => {
-                let bind = (&self.store[bind]);
+                let bind = self.store[bind].clone();
                 self.record_declared_symbol(bind.r#ref);
                 // Bindings the renamer must see outside the scope that owns
                 // them (`ScopeUses::sees`): a hoisted `var`, a parameter, a
@@ -1322,8 +1322,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
                     }
 
-                    for slot in (&mut self.store[class.properties]).iter_mut() {
-                        let prop = core::mem::take(slot);
+                    let class_properties = class.properties;
+                    for index in 0..class_properties.len() {
+                        let prop = core::mem::take(&mut self.store[class_properties][index]);
                         if !lower_fields || !is_instance_field(&prop) {
                             class_body.push(prop);
                             continue;
@@ -1825,10 +1826,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             }
                             if !p.store[local].is_export && !p.store[local].origin.is_commonjs_export() {
                                 let mut any_decl_in_const_values = p.store[local].kind == LocalKind::KConst;
-                                let decls: &mut [Decl] = (&mut p.store[p.store[local].decls]);
+                                let decls = p.store[local].decls;
                                 let mut end: usize = 0;
                                 for idx in 0..decls.len() {
-                                    if let BData::BIdentifier(id_ptr) = decls[idx].binding.data {
+                                    if let BData::BIdentifier(id_ptr) = p.store[decls][idx].binding.data {
                                         let id_ref = p.store[id_ptr].r#ref;
                                         if p.const_values.contains(&id_ref) {
                                             any_decl_in_const_values = true;
@@ -1841,7 +1842,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     }
                                     // `Decl` is field-wise `Copy` but lacks the
                                     // derive; `swap` compacts in place (idx >= end always).
-                                    decls.swap(end, idx);
+                                    p.store[decls].swap(end, idx);
                                     end += 1;
                                 }
                                 p.store[local].decls.truncate(end);
@@ -1932,7 +1933,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // The variable must be initialized, since we will be substituting
                     // the value into the usage.
                     let last_idx = (p.store[local].decls.len_u32() - 1) as usize;
-                    let last: &mut Decl = &mut (&mut p.store[p.store[local].decls])[last_idx];
+                    let last: Decl = p.store[p.store[local].decls][last_idx].clone();
                     let Some(replacement) = last.value else { break };
 
                     // The binding must be an identifier that is only used once.
@@ -2027,8 +2028,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 p.store[prev_expr].does_not_affect_tree_shaking = p.store[prev_expr]
                                     .does_not_affect_tree_shaking
                                     && p.store[s_expr].does_not_affect_tree_shaking;
-                                p.store[prev_expr].value =
-                                    Expr::join_with_comma(&mut p.store, p.store[prev_expr].value, p.store[s_expr].value);
+                                let (prev_value, value) = (p.store[prev_expr].value, p.store[s_expr].value);
+                                p.store[prev_expr].value = Expr::join_with_comma(&mut p.store, prev_value, value);
                                 continue;
                             }
                         } else if let StmtData::SLocal(prev_local) = prev_stmt.data {
@@ -2048,10 +2049,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     && p.store[prev_local].kind == LocalKind::KVar
                                 {
                                     if let ExprData::EIdentifier(left_id) = p.store[bin_assign].left.data {
-                                        // `prev_local` is a `StoreRef` (Copy) so
-                                        // re-slicing here writes through to the arena slot.
-                                        let mut prev_local = prev_local;
-                                        let decl = &mut (&mut p.store[p.store[prev_local].decls])[0];
+                                        let decl_range = p.store[prev_local].decls;
+                                        let decl = p.store[decl_range][0].clone();
                                         if let BData::BIdentifier(bid_ptr) = decl.binding.data {
                                             let bid_ref = p.store[bid_ptr].r#ref;
                                             if bid_ref.eql(left_id.ref_)
@@ -2060,7 +2059,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                                 // We don't have a more granular way to check symbol usage so this is the best we can do
                                                 && decl.value.is_none()
                                             {
-                                                decl.value = Some(p.store[bin_assign].right);
+                                                let right = p.store[bin_assign].right;
+                                                p.store[decl_range][0].value = Some(right);
                                                 p.ignore_usage(left_id.ref_);
                                                 continue;
                                             }
@@ -2079,8 +2079,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
                             if !prev_stmt.is_super_call(&p.store) {
-                                p.store[s_switch].test =
-                                    Expr::join_with_comma(&mut p.store, p.store[prev_expr].value, p.store[s_switch].test);
+                                let (prev_value, test) = (p.store[prev_expr].value, p.store[s_switch].test);
+                                p.store[s_switch].test = Expr::join_with_comma(&mut p.store, prev_value, test);
                                 output.truncate(prev_idx);
                             }
                         }
@@ -2094,7 +2094,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
                             if !prev_stmt.is_super_call(&p.store) {
-                                p.store[s_if].test = Expr::join_with_comma(&mut p.store, p.store[prev_expr].value, p.store[s_if].test);
+                                let (prev_value, test) = (p.store[prev_expr].value, p.store[s_if].test);
+                                p.store[s_if].test = Expr::join_with_comma(&mut p.store, prev_value, test);
                                 output.truncate(prev_idx);
                             }
                         }
@@ -2113,10 +2114,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
                             if !prev_stmt.is_super_call(&p.store) {
-                                p.store[ret].value = Some(Expr::join_with_comma(&mut p.store, 
-                                    p.store[prev_expr].value,
-                                    p.store[ret].value.unwrap(),
-                                ));
+                                let (prev_value, ret_value) = (p.store[prev_expr].value, p.store[ret].value.unwrap());
+                                p.store[ret].value = Some(Expr::join_with_comma(&mut p.store, prev_value, ret_value));
                                 output[prev_idx] = stmt;
                                 continue;
                             }
@@ -2138,14 +2137,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         let prev_stmt = output[prev_idx];
                         if let StmtData::SExpr(prev_expr) = prev_stmt.data {
                             if !prev_stmt.is_super_call(&p.store) {
-                                output[prev_idx] = { let arg_a = S::Throw {
-                                        value: Expr::join_with_comma(&mut p.store, 
-                                            p.store[prev_expr].value,
-                                            p.store[s_throw].value,
-                                        ),
-                                    }; p.s( arg_a,
-                                    stmt.loc,
-                                ) };
+                                let (prev_value, throw_value) = (p.store[prev_expr].value, p.store[s_throw].value);
+                                let joined = Expr::join_with_comma(&mut p.store, prev_value, throw_value);
+                                output[prev_idx] = p.s(S::Throw { value: joined }, stmt.loc);
                                 continue;
                             }
                         }
