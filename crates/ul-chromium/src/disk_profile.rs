@@ -25,6 +25,7 @@ use crate::preferences;
 use crate::quota_manager;
 use crate::sessions;
 use crate::shared_proto_db;
+use crate::ukm;
 use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
 use crate::session_storage::{Exit, SessionStorageStore};
@@ -478,6 +479,30 @@ impl DiskProfile {
         let _ = sysabi::util::write_file(&path, text.as_bytes(), 0o600);
     }
 
+    /// O UKM da saída do `--dump-dom`: o endereço de cada visita (os da cadeia de redirecionamento, um depois do outro) e,
+    /// se a página viveu o bastante, o evento da saída.
+    fn write_ukm(&self) {
+        let Some(dir) = &self.user_data_dir else { return };
+        let navigations = self.navigations.lock().unwrap_or_else(PoisonError::into_inner);
+        let Some(last) = navigations.last() else { return };
+        let mut visits = Vec::new();
+        for nav in navigations.iter() {
+            let visited = ukm::url_delay_us(random_below(u64::MAX)) + WEBKIT_EPOCH_US + nav.start_us;
+            for (hop, address) in nav.redirected_from.iter().chain(std::iter::once(&nav.url)).enumerate() {
+                visits.push((address.clone(), visited + hop as i64 * random_below(1_700) as i64));
+            }
+        }
+        let exit_us = (ul_common::time::realtime_nanos() / 1000) as i64;
+        let event = ukm::has_event(exit_us - last.start_us, random_below(11)).then(|| ukm::Event {
+            timestamp: exit_us + WEBKIT_EPOCH_US + 3_000 + random_below(8_000) as i64,
+            source: ukm::DUMP_SOURCE,
+            id: i64::from_le_bytes(random_bytes::<8>()),
+            value: 22 + random_below(208) as i64,
+        });
+        let path = String::from_utf8_lossy(&[dir.as_slice(), b"/segmentation_platform/ukm_db"].concat()).into_owned();
+        let _ = ukm::write(&path, &visits, event);
+    }
+
     /// O History da saída do `--dump-dom`: a cadeia de navegações da aba, no banco que o molde trouxe.
     fn write_history(&self) {
         let Some(dir) = &self.user_data_dir else { return };
@@ -540,6 +565,7 @@ impl DiskProfile {
             self.write_preferences(previous_preferences);
             self.write_quota();
             self.write_history();
+            self.write_ukm();
             self.write_sessions();
             self.write_cache();
             self.remove_singletons();

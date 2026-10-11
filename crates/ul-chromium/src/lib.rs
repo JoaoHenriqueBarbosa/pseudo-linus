@@ -27,6 +27,7 @@ pub mod sessions;
 pub mod session_storage;
 pub mod shared_proto_db;
 pub mod storage_state;
+pub mod ukm;
 pub mod sys_env;
 pub mod webp;
 

@@ -86,6 +86,18 @@ vite.dev, htmx.org, solidjs.com).
   sandbox não emula e não deve emular; nenhum agente lê o arquivo para decidir algo.
 - Perfil, IndexedDB em `iframe`: o oráculo cria bucket no QuotaManager (próprio no mesmo site, particionado em outro
   site); o motor ainda não executa script de `iframe`, então não nasce (`crates/ul-chromium/src/quota_manager.rs`).
+- Perfil, UKM (`segmentation_platform/ukm_db`, `crates/ul-chromium/src/ukm.rs`): o `--dump-dom` grava `urls` (url_id =
+  MD5, atraso do `last_timestamp` sorteado das 44 execuções medidas) e o evento da saída pela regra de duração medida
+  (nenhum abaixo de 46 ms, todos acima de 90 ms); o `metric_value` é sorteado na faixa medida, sem a relação com a
+  página. Fora do medido: o navegador de pé (SIGTERM deixa o banco de 4096 bytes e o WAL de 90 KB, o `Browser.close` o de
+  49152 bytes com a fonte 49 e sempre um evento).
+- Perfil, saída do `Browser.close` do navegador de pé: a árvore do oráculo é a de uma saída limpa (medido em
+  `redir-close`), bem diferente da do SIGTERM: cache de disco, `DIPS` (36864 bytes), `Shortcuts`, `Network Action
+  Predictor`, `GCM Store`, `Download Service`, `BudgetDatabase`, `heavy_ad_intervention_opt_out.db`, `Network
+  Persistent State` de 1474 bytes e `TransportSecurity`, `Singleton*` removidos, `ukm_db` de 49152 bytes sem WAL. Só o
+  History e o Sessions do `Browser.close` estão feitos; o resto da árvore ainda sai como o do SIGTERM.
+- Perfil, redirecionamento: medido com um salto de servidor (`301`); cadeias maiores e o redirecionamento do cliente
+  depois do de servidor seguem sem medida (`crates/ul-chromium/src/history.rs`).
 
 ## Canvas (decisão do coordenador, 2026-10-10: os dois de verdade)
 

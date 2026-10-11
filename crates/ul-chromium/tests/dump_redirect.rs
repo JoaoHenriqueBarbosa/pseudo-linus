@@ -30,6 +30,18 @@ fn redirect_client(ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
     let argv: Vec<Vec<u8>> = ["sqlite3", "/tmp/p/Default/History", query].iter().map(|a| a.as_bytes().to_vec()).collect();
     let pid = s.spawn(SpawnSpec { path: b"/usr/bin/sqlite3".to_vec(), argv, attrs: ProcAttrs::default() }).unwrap();
     let _ = s.wait4(WaitTarget::Pid(pid), WaitOptions::empty());
+    // O UKM: uma linha de `urls` por endereço da cadeia (o `url_id` é o MD5), o `last_timestamp` de 4 a 37 ms depois da visita,
+    // no máximo um evento (`metrics`), o arquivo de 49152 bytes e nenhum WAL.
+    let size = |path: &[u8]| sys::read_file(path).map_or(-1, |bytes| bytes.len() as i64);
+    let _ = ctx.stdout().write_all(format!("ukm {} wal {} shm {}\n", size(b"/tmp/p/segmentation_platform/ukm_db"), sys::lstat(b"/tmp/p/segmentation_platform/ukm_db-wal").is_ok(), sys::lstat(b"/tmp/p/segmentation_platform/ukm_db-shm").is_ok()).as_bytes());
+    // O banco está em WAL e o `sqlite3` do sandbox não abre o dele sem memória compartilhada: a leitura passa pelo mesmo
+    // caminho do navegador, em modo exclusivo.
+    let connection = ul_sqlite::cli::open_conn("/tmp/p/segmentation_platform/ukm_db", rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE).unwrap();
+    connection.query_row("PRAGMA locking_mode=EXCLUSIVE", [], |_| Ok(())).unwrap();
+    let mut statement = connection.prepare("select url_id, url, counter, title, profile_id from urls order by url_id").unwrap();
+    let rows: Vec<String> = statement.query_map([], |row| Ok(format!("{}|{}|{:?}|{:?}|{}", row.get::<_, i64>(0)?, row.get::<_, String>(1)?, row.get::<_, Option<i64>>(2)?, row.get::<_, Option<String>>(3)?, row.get::<_, String>(4)?))).unwrap().map(Result::unwrap).collect();
+    let events: i64 = connection.query_row("select count(*) from metrics", [], |row| row.get(0)).unwrap();
+    let _ = ctx.stdout().write_all(format!("{}\nevents <= 1 {}\n", rows.join("\n"), events <= 1).as_bytes());
     // O `Session_`: o tamanho do oráculo (2042) e as ocorrências dos endereços (o pedido é prefixo do final: duas).
     let found = sys::read_dir(b"/tmp/p/Default/Sessions").unwrap_or_default().into_iter().find(|e| e.name.starts_with(b"Session_"));
     let session = found.and_then(|e| sys::read_file(&[b"/tmp/p/Default/Sessions/".as_slice(), &e.name].concat()).ok()).unwrap_or_default();
@@ -40,11 +52,11 @@ fn redirect_client(ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
     0
 }
 
-/// Os instantes (14 dígitos ou mais), a duração da última visita e o primeiro plano viram `T`: o resto é a forma.
+/// Os instantes (de 14 a 17 dígitos; o `url_id` tem 19), a duração da última visita e o primeiro plano viram `T`: o resto é a forma.
 fn mask(out: &str) -> String {
     out.lines()
         .map(|line| {
-            let mut fields: Vec<String> = line.split('|').map(|field| if field.len() >= 14 && field.bytes().all(|b| b.is_ascii_digit()) { "T".to_owned() } else { field.to_owned() }).collect();
+            let mut fields: Vec<String> = line.split('|').map(|field| if (14..=17).contains(&field.len()) && field.bytes().all(|b| b.is_ascii_digit()) { "T".to_owned() } else { field.to_owned() }).collect();
             if fields.len() == 18 && fields[0] == "2" {
                 fields[7] = "D".to_owned();
             }
@@ -75,6 +87,10 @@ fn a_server_redirect_gives_the_oracles_chain_in_the_dump() {
         1|http://127.0.0.1/redir|1\n\
         2|-1|||-1|0|||||||1|0\n\
         2|0|-1000000|6|F|1|T|T|T|T|-1|200\n\
+        ukm 49152 wal false shm false\n\
+        -8650618196860082061|http://127.0.0.1:8000/redir/|None|None|1673893443\n\
+        8262361356634260248|http://127.0.0.1:8000/redir|None|None|1673893443\n\
+        events <= 1 true\n\
         session 2042 final 1 requested 2";
     // Depois do DOM que o `--dump-dom` imprime vêm as linhas do History e a do `Session_`.
     let rows = stdout.split_once("</html>\n").map_or(stdout.as_str(), |(_, rest)| rest);
