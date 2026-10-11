@@ -88,6 +88,10 @@ def _current():
 
 
 def getcurrent():
+    # Na limpeza final do interpretador (o `__del__` de um ciclo que só a finalização coleta) o greenlet principal
+    # já se foi: o C responde com um erro em vez de devolver um greenlet.
+    if _sysmod.is_finalizing():
+        raise RuntimeError('greenlet is being finalized')
     return _current()
 
 

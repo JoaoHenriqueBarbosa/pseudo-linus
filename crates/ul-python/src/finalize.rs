@@ -77,8 +77,14 @@ struct Registry {
 
 thread_local! {
     static PENDING: Cell<bool> = const { Cell::new(false) };
+    static FINALIZING: Cell<bool> = const { Cell::new(false) };
     static QUEUE: RefCell<Vec<Doomed>> = const { RefCell::new(Vec::new()) };
     static LIVE: RefCell<Registry> = const { RefCell::new(Registry { items: Vec::new(), limit: 1024 }) };
+}
+
+/// O interpretador desta thread está desligando (`sys.is_finalizing()`): vale da finalização do desligamento em diante.
+pub(crate) fn is_finalizing() -> bool {
+    FINALIZING.with(Cell::get)
 }
 
 /// Há objetos na fila de finalização desta thread? Lido a cada instrução.
@@ -154,6 +160,7 @@ impl Vm {
     /// A finalização do desligamento: depois do `atexit`, o `__del__` de tudo o que ainda vive, na ordem
     /// de criação, repetindo enquanto a finalização criar objetos novos (até `EXIT_ROUNDS`).
     pub(crate) fn finalize_at_exit(&mut self) {
+        FINALIZING.with(|f| f.set(true));
         for _ in 0..EXIT_ROUNDS {
             self.run_finalizers();
             let items = LIVE

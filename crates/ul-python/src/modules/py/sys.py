@@ -340,7 +340,7 @@ def _build():
     @public
     def is_finalizing():
         """Return True if Python is exiting."""
-        return False
+        return _sys._is_finalizing()
 
     @public
     def getswitchinterval():
