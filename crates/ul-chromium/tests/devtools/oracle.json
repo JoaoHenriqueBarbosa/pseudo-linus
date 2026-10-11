@@ -18000,5 +18000,422 @@
     "sessionId": "014F83BDF5094CC01B603271A75C7D27"
    }
   }
+ ],
+ "dom_describe_special_nodes": [
+  {
+   "out": {
+    "id": 1,
+    "method": "Target.getTargets"
+   }
+  },
+  {
+   "in": {
+    "id": 1,
+    "result": {
+     "targetInfos": [
+      {
+       "targetId": "DF0F51868F381DAB6B3BD0A144C0C405",
+       "type": "browser_ui",
+       "title": "chrome://omnibox-popup.top-chrome",
+       "url": "chrome://omnibox-popup.top-chrome/",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "B46F4234EE24BAEAF11E3E35D185582B"
+      },
+      {
+       "targetId": "C85194A552C1CCAB341376675F46969B",
+       "type": "browser_ui",
+       "title": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+       "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "B46F4234EE24BAEAF11E3E35D185582B"
+      },
+      {
+       "targetId": "0D14773EA72476E3AB7262D946E71BD5",
+       "type": "page",
+       "title": "about:blank",
+       "url": "about:blank",
+       "attached": false,
+       "canAccessOpener": false,
+       "browserContextId": "B46F4234EE24BAEAF11E3E35D185582B"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 2,
+    "method": "Target.attachToTarget",
+    "params": {
+     "targetId": "0D14773EA72476E3AB7262D946E71BD5",
+     "flatten": true
+    }
+   }
+  },
+  {
+   "in": {
+    "method": "Target.attachedToTarget",
+    "params": {
+     "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D",
+     "targetInfo": {
+      "targetId": "0D14773EA72476E3AB7262D946E71BD5",
+      "type": "page",
+      "title": "about:blank",
+      "url": "about:blank",
+      "attached": true,
+      "canAccessOpener": false,
+      "browserContextId": "B46F4234EE24BAEAF11E3E35D185582B"
+     },
+     "waitingForDebugger": false
+    }
+   }
+  },
+  {
+   "in": {
+    "id": 2,
+    "result": {
+     "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+    }
+   }
+  },
+  {
+   "out": {
+    "id": 3,
+    "method": "Page.enable",
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "id": 3,
+    "result": {},
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "out": {
+    "id": 4,
+    "method": "Page.navigate",
+    "params": {
+     "url": "data:text/html,<body><div id=d></div>"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedNavigating",
+    "params": {
+     "frameId": "0D14773EA72476E3AB7262D946E71BD5",
+     "url": "data:text/html,<body><div id=d></div>",
+     "loaderId": "1BDFBAF9124CB41B73333965BB8F1EB3",
+     "navigationType": "differentDocument"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStartedLoading",
+    "params": {
+     "frameId": "0D14773EA72476E3AB7262D946E71BD5"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "id": 4,
+    "result": {
+     "frameId": "0D14773EA72476E3AB7262D946E71BD5",
+     "loaderId": "1BDFBAF9124CB41B73333965BB8F1EB3",
+     "isDownload": false
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameNavigated",
+    "params": {
+     "frame": {
+      "id": "0D14773EA72476E3AB7262D946E71BD5",
+      "loaderId": "1BDFBAF9124CB41B73333965BB8F1EB3",
+      "url": "data:text/html,<body><div id=d></div>",
+      "domainAndRegistry": "",
+      "securityOrigin": "://",
+      "securityOriginDetails": {
+       "isLocalhost": false
+      },
+      "mimeType": "text/html",
+      "adFrameStatus": {
+       "adFrameType": "none"
+      },
+      "secureContextType": "InsecureScheme",
+      "crossOriginIsolatedContextType": "NotIsolated",
+      "gatedAPIFeatures": []
+     },
+     "type": "Navigation"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.domContentEventFired",
+    "params": {
+     "timestamp": 184007.883747
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.loadEventFired",
+    "params": {
+     "timestamp": 184007.884107
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "method": "Page.frameStoppedLoading",
+    "params": {
+     "frameId": "0D14773EA72476E3AB7262D946E71BD5"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "out": {
+    "id": 5,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "(() => { const d = document.getElementById('d'); d.append(document.createProcessingInstruction('a', 'b'), document.implementation.createDocument(null, 'r').createCDATASection('c'), document.createComment('k'), 'tx'); return d.childNodes.length; })()",
+     "returnByValue": true
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "id": 5,
+    "result": {
+     "result": {
+      "type": "number",
+      "value": 4,
+      "description": "4"
+     }
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "out": {
+    "id": 6,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "document.getElementById('d').childNodes[0]"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "id": 6,
+    "result": {
+     "result": {
+      "type": "object",
+      "subtype": "node",
+      "className": "ProcessingInstruction",
+      "description": "a",
+      "objectId": "9017061915633504776.2.1"
+     }
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "out": {
+    "id": 7,
+    "method": "DOM.describeNode",
+    "params": {
+     "objectId": "9017061915633504776.2.1"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "id": 7,
+    "result": {
+     "node": {
+      "nodeId": 0,
+      "backendNodeId": 3,
+      "nodeType": 7,
+      "nodeName": "a",
+      "localName": "",
+      "nodeValue": "b"
+     }
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "out": {
+    "id": 8,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "document.getElementById('d').childNodes[1]"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "id": 8,
+    "result": {
+     "result": {
+      "type": "object",
+      "subtype": "node",
+      "className": "CDATASection",
+      "description": "#cdata-section",
+      "objectId": "9017061915633504776.2.2"
+     }
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "out": {
+    "id": 9,
+    "method": "DOM.describeNode",
+    "params": {
+     "objectId": "9017061915633504776.2.2"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "id": 9,
+    "result": {
+     "node": {
+      "nodeId": 0,
+      "backendNodeId": 4,
+      "nodeType": 4,
+      "nodeName": "#cdata-section",
+      "localName": "",
+      "nodeValue": "c"
+     }
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "out": {
+    "id": 10,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "document.getElementById('d').childNodes[2]"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "id": 10,
+    "result": {
+     "result": {
+      "type": "object",
+      "subtype": "node",
+      "className": "Comment",
+      "description": "#comment",
+      "objectId": "9017061915633504776.2.3"
+     }
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "out": {
+    "id": 11,
+    "method": "DOM.describeNode",
+    "params": {
+     "objectId": "9017061915633504776.2.3"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "id": 11,
+    "result": {
+     "node": {
+      "nodeId": 0,
+      "backendNodeId": 5,
+      "nodeType": 8,
+      "nodeName": "#comment",
+      "localName": "",
+      "nodeValue": "k"
+     }
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "out": {
+    "id": 12,
+    "method": "Runtime.evaluate",
+    "params": {
+     "expression": "document.getElementById('d').childNodes[3]"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "id": 12,
+    "result": {
+     "result": {
+      "type": "object",
+      "subtype": "node",
+      "className": "Text",
+      "description": "#text",
+      "objectId": "9017061915633504776.2.4"
+     }
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "out": {
+    "id": 13,
+    "method": "DOM.describeNode",
+    "params": {
+     "objectId": "9017061915633504776.2.4"
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  },
+  {
+   "in": {
+    "id": 13,
+    "result": {
+     "node": {
+      "nodeId": 0,
+      "backendNodeId": 6,
+      "nodeType": 3,
+      "nodeName": "#text",
+      "localName": "",
+      "nodeValue": "tx"
+     }
+    },
+    "sessionId": "D1DB3BE7EA795F628DFF93AAC1D99D2D"
+   }
+  }
  ]
 }

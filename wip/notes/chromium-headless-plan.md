@@ -77,8 +77,19 @@ vite.dev, htmx.org, solidjs.com).
   (0.900135 contra 0.944158), que vêm de layout e métricas de fonte, e a ordem do meta `theme-color`.
 - Codificação sem declaração: o Chromium usa o detector CED, que erra em amostras minúsculas
   (`testbench/corpus/headless/s05`). Portar o CED, ou aproximar com o `chardetng`, é item próprio.
-- `<template>`, `DocumentFragment` e PI: o Blitz não tem esses tipos de nó; fragmento emulado por elemento marcado,
+- `<template>` e `DocumentFragment`: o Blitz não tem esses tipos de nó; fragmento emulado por elemento marcado,
   `template.content` compartilha o nó do template.
+- `ProcessingInstruction` e `CDATASection`: o Blitz também não os tem; a ponte os guarda como comentário com a marca do
+  tipo (7 ou 4) e o alvo (`document.rs`, `special_node`), e tudo que lê nó consulta a marca (serialização, `textContent`,
+  tipo, nome). A página nunca vê o comentário: `tests/scripts.rs` compara o dump de uma sonda inteira com o do Chromium 154
+  (`tests/fixtures/pi_cdata_probe.html` e `pi_cdata_oracle.txt`) e o cenário CDP `dom_describe_special_nodes` fixa o
+  `DOM.describeNode`.
+- `XMLSerializer.serializeToString` de um elemento HTML não escreve o `xmlns` do XHTML no elemento raiz da
+  serialização. Sonda: `div.append('x', pi, comment); new XMLSerializer().serializeToString(div)`. Chromium 154 do
+  oráculo: `<div xmlns="http://www.w3.org/1999/xhtml">x<?a b?><!--k--></div>`; aqui: `<div>x<?a b?><!--k--></div>`.
+  (O mesmo vale para a raiz de um fragmento ou de um documento XHTML.) Não é a marca de PI: é a regra de namespaces
+  da serialização XML do DOM Parsing, que o XMLSerializer do prelúdio ainda não implementa (ele reusa `outerHTML`). A
+  linha fica fora da comparação em `processing_instruction_and_cdata_never_leak_the_comment_they_are_stored_as`.
 - `document.write` durante o parse insere depois do script corrente em vez de alimentar o tokenizador.
 - Perfil, estado de rede (decisão do coordenador, 2026-10-11): o `Network Persistent State` e o `TransportSecurity` do
   `--dump-dom` saem na forma sem rede do oráculo (116 bytes, sem `TransportSecurity`; com rede o oráculo grava de

@@ -329,5 +329,19 @@
   {"method": "Page.enable", "session": "s", "after": 0.5},
   {"method": "Runtime.evaluate", "params": {"expression": "prompt('late?', 'x')", "returnByValue": true}, "session": "s", "nowait": true, "after": 1.5},
   {"method": "Page.handleJavaScriptDialog", "params": {"accept": true, "promptText": "y"}, "session": "s", "after": 0.5},
-  {"method": "Runtime.evaluate", "params": {"expression": "2 + 2", "returnByValue": true}, "session": "s"}]}
+  {"method": "Runtime.evaluate", "params": {"expression": "2 + 2", "returnByValue": true}, "session": "s"}]},
+ {"name": "dom_describe_special_nodes", "steps": [
+  {"method": "Target.getTargets"},
+  {"method": "Target.attachToTarget", "params": {"targetId": "$TARGET", "flatten": true}, "save": "s", "save_field": "sessionId", "after": 0.3},
+  {"method": "Page.enable", "session": "s", "after": 0.2},
+  {"method": "Page.navigate", "session": "s", "params": {"url": "data:text/html,<body><div id=d></div>"}, "after": 1.0},
+  {"method": "Runtime.evaluate", "session": "s", "params": {"expression": "(() => { const d = document.getElementById('d'); d.append(document.createProcessingInstruction('a', 'b'), document.implementation.createDocument(null, 'r').createCDATASection('c'), document.createComment('k'), 'tx'); return d.childNodes.length; })()", "returnByValue": true}},
+  {"method": "Runtime.evaluate", "session": "s", "params": {"expression": "document.getElementById('d').childNodes[0]"}, "save": "pi", "save_field": "/result/objectId"},
+  {"method": "DOM.describeNode", "session": "s", "params": {"objectId": "$pi"}},
+  {"method": "Runtime.evaluate", "session": "s", "params": {"expression": "document.getElementById('d').childNodes[1]"}, "save": "cdata", "save_field": "/result/objectId"},
+  {"method": "DOM.describeNode", "session": "s", "params": {"objectId": "$cdata"}},
+  {"method": "Runtime.evaluate", "session": "s", "params": {"expression": "document.getElementById('d').childNodes[2]"}, "save": "comment", "save_field": "/result/objectId"},
+  {"method": "DOM.describeNode", "session": "s", "params": {"objectId": "$comment"}},
+  {"method": "Runtime.evaluate", "session": "s", "params": {"expression": "document.getElementById('d').childNodes[3]"}, "save": "text", "save_field": "/result/objectId"},
+  {"method": "DOM.describeNode", "session": "s", "params": {"objectId": "$text"}}]}
 ]
