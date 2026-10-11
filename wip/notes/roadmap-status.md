@@ -9,7 +9,7 @@ Convenção da coluna "Fonte": **eu** = medido pelo coordenador com comando pró
 por um fork na saída do container dele, não recompilado pelo coordenador; **vigente** = valor herdado de um arquivo
 versionado, com a data do arquivo.
 
-Última verificação: 2026-10-11 14:45 (CEST).
+Última verificação: 2026-10-11 15:05 (CEST).
 
 ## Ritmo medido
 
@@ -36,7 +36,7 @@ por dia no zjsc e 60 a 70 no zbun.
 | M5.3 | `--dump-dom` correto em páginas com scripts simples | Cumprido além do critério: 42 de 42 páginas da internet idênticas ao Chromium 154 (meta do goal era 95% por grupo) | fork |
 | M5.4 | Recorte do Web Platform Tests acima de 90% | **NÃO MEDIDO.** Não há recorte de WPT no repositório | eu |
 | M5.5 | `--screenshot` e `--print-to-pdf` com diferença perceptual baixa | **NÃO EXISTE.** O `cli.rs` do `ul-chromium` só trata `--dump-dom`; `Page.captureScreenshot` responde "wasn't found". Pintura de página não existe (o `vello_cpu` só serve ao canvas 2D). O alvo é diferença perceptual, não byte a byte | eu |
-| M5.6 | CDP completo para Puppeteer e Playwright; test262 acima de 95% | CDP: 290 de 326 no placar (89%). pyppeteer: pip install, launch, goto (com `Response`), title, evaluate e close funcionam com saída igual ao oráculo. Playwright: nada implementado, só mapeado. test262: NÃO MEDIDO | fork |
+| M5.6 | CDP completo para Puppeteer e Playwright; test262 acima de 95% | CDP: 290 de 326 no placar (89%) no último commit integrado (`acdd7bba`); o fork reporta 347 de 379 (91,6%) com o cenário novo `playwright_handshake` em 53 de 53 (setWindowBounds, setDownloadBehavior, scripts de documento novo, mundos isolados, emulação de mídia), ainda sem commit. pyppeteer: pip install, launch, goto (com `Response`), title, evaluate e close funcionam com saída igual ao oráculo. Playwright: nada implementado, só mapeado. test262: NÃO MEDIDO | fork |
 
 ## Estado por frente
 
@@ -100,3 +100,4 @@ formais; este arquivo a substitui. Corrigido também: o PRD pede screenshot por 
 
 - 2026-10-11 14:30: arquivo criado. Achados: test262 e WPT nunca foram medidos; `--screenshot` e `--print-to-pdf` não existem; o alvo de screenshot é perceptual.
 - 2026-10-11 14:45: test262 clonado (commit `2e0a5676`, 53 910 testes); runner e baseline ainda não existem. Os 4 forks rodando.
+- 2026-10-11 15:05: CDP reportado em 347 de 379 e `playwright_handshake` 53 de 53, pendentes de commit (fork do greenlet).
