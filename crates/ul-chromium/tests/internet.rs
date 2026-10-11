@@ -126,27 +126,41 @@ static CURRENT: Mutex<Option<(PathBuf, String)>> = Mutex::new(None);
 
 /// Programa do sandbox de teste: carrega a página de `CURRENT` sobre a fita e deixa o DOM em `DUMP`. Um pânico do
 /// motor vira status de saída diferente de zero, e a medição das outras páginas segue.
+/// A pilha da thread da página, em bytes: a thread do pseudo-processo do TestKit tem 2 MiB, e o VM grava o limite nativo
+/// (`is_safe_to_recurse`) 1 MiB abaixo do ponteiro de pilha de quando nasce. A hidratação de uma página real recursa
+/// além disso, e o parser a toma por pilha esgotada (`RangeError: Maximum call stack size exceeded`).
+const PAGE_STACK_BYTES: usize = 256 << 20;
+
 fn tape_page_main(ctx: &mut sysabi::Ctx, _argv: &[std::ffi::OsString]) -> i32 {
     let (dir, address) = CURRENT.lock().unwrap().clone().unwrap();
-    let mut page = match Page::load(&address, tape_fetcher(&dir)) {
-        Ok(page) => page,
-        Err(message) => {
-            let _ = ctx.stderr().write_all(message.as_bytes());
-            return 1;
-        }
-    };
-    page.budget_ms = BUDGET_MS;
-    // A mesma semente do oráculo (`--js-flags=--random-seed=1` em replay-dump.sh).
-    page.random_seed = Some(1);
     // INSPECT=arquivo.js roda um script de diagnóstico antes dos da página (o caminho é visto de dentro do contêiner).
-    page.inspector = std::env::var("INSPECT").ok().and_then(|path| std::fs::read_to_string(path).ok());
-    if std::env::var("CONSOLE").is_ok() {
-        page.console = Rc::new(StderrConsole);
+    let inspector = std::env::var("INSPECT").ok().and_then(|path| std::fs::read_to_string(path).ok());
+    let console = std::env::var("CONSOLE").is_ok();
+    let outcome = ul_common::thread::run_with_stack(PAGE_STACK_BYTES, move || {
+        zjsc::runtime::vm::VM::set_thread_stack_budget(PAGE_STACK_BYTES - 16 * 1024 * 1024);
+        let mut page = Page::load(&address, tape_fetcher(&dir))?;
+        page.budget_ms = BUDGET_MS;
+        // A mesma semente do oráculo (`--js-flags=--random-seed=1` em replay-dump.sh).
+        page.random_seed = Some(1);
+        page.inspector = inspector;
+        if console {
+            page.console = Rc::new(StderrConsole);
+        }
+        page.run();
+        // O DOM volta por memória: o pipe de stdout do TestKit tem 1 MiB, menos que algumas páginas (wikipedia-debian).
+        Ok::<String, String>(page.dump_dom())
+    });
+    match outcome {
+        Some(Ok(dump)) => {
+            *DUMP.lock().unwrap() = Some(dump);
+            0
+        }
+        Some(Err(message)) => {
+            let _ = ctx.stderr().write_all(message.as_bytes());
+            1
+        }
+        None => 1,
     }
-    page.run();
-    // O DOM volta por memória: o pipe de stdout do TestKit tem 1 MiB, menos que algumas páginas (wikipedia-debian).
-    *DUMP.lock().unwrap() = Some(page.dump_dom());
-    0
 }
 
 static DUMP: Mutex<Option<String>> = Mutex::new(None);
