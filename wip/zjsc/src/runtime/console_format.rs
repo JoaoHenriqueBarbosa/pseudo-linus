@@ -113,10 +113,34 @@ fn has_exception(global_object: &JSGlobalObject) -> bool {
     global_object.vm().exception().is_some()
 }
 
+/// A unidade `index` é metade de um par substituto cuja outra metade não está ao lado.
+fn is_lone_surrogate(text: &[u16], index: usize) -> bool {
+    match text[index] {
+        0xD800..=0xDBFF => !text.get(index + 1).is_some_and(|next| (0xDC00..=0xDFFF).contains(next)),
+        0xDC00..=0xDFFF => !(index > 0 && (0xD800..=0xDBFF).contains(&text[index - 1])),
+        _ => false,
+    }
+}
+
+/// O comprimento (em unidades de 16 bits) de `JSON.stringify(texto)`: as aspas, `\"`, `\\` e os cinco controles curtos em
+/// duas unidades, os demais controles e a metade de par substituto sem a outra em seis.
+fn json_quoted_length(text: &[u16]) -> usize {
+    let mut length = 2;
+    for (index, &unit) in text.iter().enumerate() {
+        length += match unit {
+            0x22 | 0x5C | 0x08 | 0x09 | 0x0A | 0x0C | 0x0D => 2,
+            control if control < 0x20 => 6,
+            _ if is_lone_surrogate(text, index) => 6,
+            _ => 1,
+        };
+    }
+    length
+}
+
 /// `"texto"` com as escapadas do bun: `\n \t \r \b \f \" \\` e `\uXXXX` (maiúsculo) para os demais controles.
 fn push_quoted(out: &mut Vec<u16>, text: &[u16]) {
     out.push(u16::from(b'"'));
-    for &unit in text {
+    for (index, &unit) in text.iter().enumerate() {
         match unit {
             0x0A => ascii(out, "\\n"),
             0x09 => ascii(out, "\\t"),
@@ -126,6 +150,8 @@ fn push_quoted(out: &mut Vec<u16>, text: &[u16]) {
             0x22 => ascii(out, "\\\""),
             0x5C => ascii(out, "\\\\"),
             control if control < 0x20 => ascii(out, &format!("\\u{control:04X}")),
+            // Metade de par substituto sem a outra: `\udXXX` em minúsculas (medido: `Bun.inspect("\ude40")`).
+            _ if is_lone_surrogate(text, index) => ascii(out, &format!("\\u{unit:04x}")),
             other => out.push(other),
         }
     }
@@ -456,6 +482,11 @@ impl Formatter {
         if value.is_string() {
             let text = wtf_string_to_units(&value.to_wtf_string());
             self.est += text.len();
+            // Uma string de 16 bits sai pelo `print_json` do bun, que soma ao estimador o comprimento do `JSON.stringify`
+            // (aspas e escapadas incluídas) depois do comprimento da string; a de 8 bits, não.
+            if text.iter().any(|&unit| unit > 0xFF) {
+                self.est += json_quoted_length(&text);
+            }
             // `print_string`: a string vazia sai sem cor; senão `<r><green>"..."<r>`.
             if text.is_empty() {
                 push_quoted(out, &text);

@@ -1,0 +1,64 @@
+pbkdf2Sync sha1 95c9338ea3a049dc400b5ed6617b5c45bdda0c14
+pbkdf2Sync sha256 0a38253555ce37f5c72a6b703f996814ebf241f203af146e93dcdeb031c5567e
+pbkdf2Sync bufs 0668af5dc7dd156c
+pbkdf2Sync bad digest throws TypeError ERR_CRYPTO_INVALID_DIGEST Invalid digest: nope
+pbkdf2Sync noargs throws TypeError ERR_INVALID_ARG_TYPE The "keylen" argument must be of type number. Received undefined
+pbkdf2Sync iterations throws RangeError ERR_OUT_OF_RANGE The value of "iterations" is out of range. It must be >= 1 and <= 2147483647. Received 0
+pbkdf2Sync keylen throws RangeError ERR_OUT_OF_RANGE The value of "keylen" is out of range. It must be >= 0 and <= 2147483647. Received -1
+pbkdf2Sync keylen 0 throws Error undefined PBKDF2 derivation failed
+pbkdf2Sync nodigest throws TypeError ERR_INVALID_ARG_TYPE The "digest" argument must be of type string. Received undefined
+pbkdf2 nocb throws TypeError ERR_INVALID_ARG_TYPE The "callback" argument must be of type function. Received undefined
+pbkdf2 shapes [ 6, 5, "pbkdf2", "pbkdf2Sync" ]
+scryptSync c0b515908e61334cae6d6003c00be60e
+scryptSync opts 9f1f8695838e682c1689750f45a69fb9
+scryptSync bad N throws RangeError ERR_CRYPTO_INVALID_SCRYPT_PARAMS Invalid scrypt params: error:06000085:public key routines:OPENSSL_internal:INVALID_PARAMETERS
+scryptSync noargs throws TypeError ERR_INVALID_ARG_TYPE The "password" argument must be of type string, ArrayBuffer, Buffer, TypedArray, or DataView. Received undefined
+scrypt shapes [ 5, 4 ]
+hkdfSync 9ca0d662557439e3b83365f2da4626d3
+hkdfSync bad digest throws TypeError ERR_CRYPTO_INVALID_DIGEST Invalid digest: nope
+hkdfSync noargs throws TypeError ERR_INVALID_ARG_TYPE The "digest" argument must be of type string. Received undefined
+hkdfSync too long throws RangeError ERR_CRYPTO_INVALID_KEYLEN Invalid key length
+hkdfSync type [object ArrayBuffer]
+hkdf shapes [ 6, 5 ]
+cipher roundtrip [ "1c90dd4078388a2f2cdee31205b1f222", "hello world" ]
+cipher gcm [ "334270bfc8ea", "6058beb9962f5bd5920aa33a332c7f9b" ]
+cipher bad name throws Error ERR_CRYPTO_UNKNOWN_CIPHER Unknown cipher
+cipher bad key throws RangeError ERR_CRYPTO_INVALID_KEYLEN Invalid key length
+cipher bad iv throws TypeError ERR_CRYPTO_INVALID_IV Invalid initialization vector
+cipher shapes [ "Cipheriv2", 4, "Decipheriv2", 4 ]
+getCipherInfo [
+  {
+    mode: "gcm",
+    name: "id-aes256-gcm",
+    nid: 901,
+    blockSize: 1,
+    ivLength: 12,
+    keyLength: 32,
+  }, undefined, {
+    mode: "cbc",
+    name: "aes-128-cbc",
+    nid: 419,
+    blockSize: 16,
+    ivLength: 16,
+    keyLength: 16,
+  }, {
+    mode: "cbc",
+    name: "aes-128-cbc",
+    nid: 419,
+    blockSize: 16,
+    ivLength: 16,
+    keyLength: 16,
+  }
+]
+createSecretKey [ "secret", 3, "616263" ]
+hmac secret key f9bef091fe00d9f5128593836dba99e193f08174
+generateKeyPairSync ed25519 [ "public", "private", 64, true ]
+createSign [ 128, true ]
+diffieHellman true
+checkPrimeSync [ true, false ]
+generatePrimeSync true
+publicEncrypt x
+X509Certificate function
+KeyObject [ "function", "KeyObject", 2, "function" ]
+argon2Sync e02eba553b299fd0226d56b560e5946c
+Certificate [ "function", [ "prototype", "verifySpkac", "exportPublicKey", "exportChallenge" ] ]

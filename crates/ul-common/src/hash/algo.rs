@@ -6,12 +6,13 @@ use super::keccak::Keccak;
 use super::ripemd::Ripemd160;
 use super::sha512::Sha512;
 use super::sm3::Sm3;
-use super::{Md5, Sha1, Sha256};
+use super::{Md4, Md5, Sha1, Sha256};
 
 /// Um algoritmo de resumo. `Blake2b` e `Blake2s` levam o tamanho do resumo em bytes e `Sha3` o tamanho do
 /// resumo (28, 32, 48 ou 64); `Shake128` e `Shake256` são de saída livre (sem tamanho fixo).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Algo {
+    Md4,
     Md5,
     Sha1,
     Sha224,
@@ -37,6 +38,7 @@ impl Algo {
     pub fn from_name(name: &str) -> Option<Algo> {
         let compact: String = name.chars().filter(|c| !matches!(c, '-' | '_' | '/')).map(|c| c.to_ascii_lowercase()).collect();
         Some(match compact.as_str() {
+            "md4" => Algo::Md4,
             "md5" => Algo::Md5,
             "sha1" => Algo::Sha1,
             "sha224" | "sha2224" => Algo::Sha224,
@@ -63,6 +65,7 @@ impl Algo {
     /// O nome que o `hashlib` mostra em `.name`.
     pub fn name(&self) -> &'static str {
         match self {
+            Algo::Md4 => "md4",
             Algo::Md5 => "md5",
             Algo::Sha1 => "sha1",
             Algo::Sha224 => "sha224",
@@ -85,32 +88,35 @@ impl Algo {
         }
     }
 
+    /// `(bytes do resumo, bytes por bloco)`: o resumo é zero nos de saída livre; o bloco é o `block_size` do `hashlib`
+    /// (a taxa nas esponjas).
+    fn sizes(&self) -> (usize, usize) {
+        match self {
+            Algo::Md4 | Algo::Md5 => (16, 64),
+            Algo::Sha1 | Algo::Ripemd160 => (20, 64),
+            Algo::Sha224 => (28, 64),
+            Algo::Sha256 | Algo::Sm3 => (32, 64),
+            Algo::Md5Sha1 => (36, 64),
+            Algo::Sha384 => (48, 128),
+            Algo::Sha512 => (64, 128),
+            Algo::Sha512Trunc224 => (28, 128),
+            Algo::Sha512Trunc256 => (32, 128),
+            Algo::Shake128 => (0, 168),
+            Algo::Shake256 => (0, 136),
+            Algo::Blake2b(n) => (*n, blake2::b::BLOCK),
+            Algo::Blake2s(n) => (*n, blake2::s::BLOCK),
+            Algo::Sha3(n) => (*n, 200 - 2 * n),
+        }
+    }
+
     /// Bytes do resumo; zero nos de saída livre.
     pub fn digest_size(&self) -> usize {
-        match self {
-            Algo::Md5 => 16,
-            Algo::Sha1 | Algo::Ripemd160 => 20,
-            Algo::Sha224 | Algo::Sha512Trunc224 => 28,
-            Algo::Sha256 | Algo::Sha512Trunc256 | Algo::Sm3 => 32,
-            Algo::Sha384 => 48,
-            Algo::Sha512 => 64,
-            Algo::Md5Sha1 => 36,
-            Algo::Shake128 | Algo::Shake256 => 0,
-            Algo::Blake2b(n) | Algo::Blake2s(n) | Algo::Sha3(n) => *n,
-        }
+        self.sizes().0
     }
 
     /// Bytes por bloco (o `block_size` do `hashlib`; a taxa nas esponjas).
     pub fn block_size(&self) -> usize {
-        match self {
-            Algo::Md5 | Algo::Sha1 | Algo::Sha224 | Algo::Sha256 | Algo::Ripemd160 | Algo::Sm3 | Algo::Md5Sha1 => 64,
-            Algo::Blake2s(_) => blake2::s::BLOCK,
-            Algo::Sha384 | Algo::Sha512 | Algo::Sha512Trunc224 | Algo::Sha512Trunc256 => 128,
-            Algo::Blake2b(_) => blake2::b::BLOCK,
-            Algo::Sha3(n) => 200 - 2 * n,
-            Algo::Shake128 => 168,
-            Algo::Shake256 => 136,
-        }
+        self.sizes().1
     }
 
     /// O algoritmo é de saída livre (SHAKE): o tamanho do resumo vem de quem pede.
@@ -120,6 +126,7 @@ impl Algo {
 
     pub fn hasher(&self) -> Hasher {
         match self {
+            Algo::Md4 => Hasher::Md4(Md4::new()),
             Algo::Md5 => Hasher::Md5(Md5::new()),
             Algo::Sha1 => Hasher::Sha1(Sha1::new()),
             Algo::Sha224 => Hasher::Sha256(Sha256::new_224(), 28),
@@ -151,6 +158,7 @@ impl Algo {
 /// estado: é o `copy()` do `hashlib`.
 #[derive(Clone)]
 pub enum Hasher {
+    Md4(Md4),
     Md5(Md5),
     Sha1(Sha1),
     /// SHA-256 ou SHA-224, com o tamanho do resumo em bytes.
@@ -168,6 +176,7 @@ pub enum Hasher {
 impl Hasher {
     pub fn update(&mut self, data: &[u8]) {
         match self {
+            Hasher::Md4(h) => h.update(data),
             Hasher::Md5(h) => h.update(data),
             Hasher::Sha1(h) => h.update(data),
             Hasher::Sha256(h, _) => h.update(data),
@@ -188,6 +197,7 @@ impl Hasher {
     /// tamanho pedido); nos demais o tamanho é o do algoritmo.
     pub fn finalize(&self, xof_len: usize) -> Vec<u8> {
         match self.clone() {
+            Hasher::Md4(h) => h.finalize().to_vec(),
             Hasher::Md5(h) => h.finalize().to_vec(),
             Hasher::Sha1(h) => h.finalize().to_vec(),
             Hasher::Sha256(h, n) => h.finalize()[..n].to_vec(),
@@ -222,6 +232,7 @@ mod tests {
 
     #[test]
     fn digests_through_the_enum() {
+        assert_eq!(hex_lower(&Algo::Md4.digest(b"abc")), "a448017aaf21d8525fc10ae87aa6729d");
         assert_eq!(hex_lower(&Algo::Md5.digest(b"abc")), "900150983cd24fb0d6963f7d28e17f72");
         assert_eq!(hex_lower(&Algo::Sha224.digest(b"abc")), "23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7");
         assert_eq!(Algo::Md5Sha1.digest(b"abc").len(), 36);

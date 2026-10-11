@@ -51,6 +51,7 @@ pub mod js_disposable_stack;
 pub mod js_dom_exception;
 pub mod native_class_support;
 pub mod node_buffer;
+pub mod node_crypto;
 pub mod node_error;
 pub mod node_fs;
 pub mod node_os;

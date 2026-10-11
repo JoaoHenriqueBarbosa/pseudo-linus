@@ -25,6 +25,7 @@ const KNOWN: &[(&str, &str)] = &[
     ("cli-print-eq", CAUSE_PRINT),
     ("cli-e-and-p", CAUSE_PRINT),
     ("process-stdout-shape", "o process.stdout do porte (process_stdio.rs) não é um fs.WriteStream/tty.WriteStream real: não é instanceof stream.Writable e não tem os métodos de tty.WriteStream (getColorDepth, hasColors, columns)"),
+    ("module-crypto-pending", "o node:crypto ainda não porta o que o BoringSSL do bun responde fora dos resumos e dos bytes aleatórios: pbkdf2, scrypt, hkdf, argon2, cifras (createCipheriv/createDecipheriv, getCipherInfo), KeyObject e createSecretKey, geração de chaves, sign/verify, ECDH, primos e publicEncrypt (PLAN, seção do node:crypto)"),
     ("fs-utf8-buffer", "o bun 1.4.2 lança TypeError em mergeBuf (Utf8Stream síncrono com contentMode buffer) com stack de fonte interno; o zjsc roda o mesmo código gerado e não reproduz o fonte interno do bun"),
 ];
 

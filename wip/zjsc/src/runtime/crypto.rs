@@ -290,6 +290,11 @@ fn random_uuid_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResu
 
 fn timing_safe_equal_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     crypto_this(global_object, call)?;
+    timing_safe_equal_core(global_object, call)
+}
+
+/// `timingSafeEqual(buf1, buf2)` sem o `this`: o de `Crypto.prototype` e o de `node:crypto` (`crypto.timingSafeEqual`).
+fn timing_safe_equal_core(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let mut buffers = Vec::with_capacity(2);
     for (index, name) in ["buf1", "buf2"].iter().enumerate() {
         match input_bytes(call.argument(index)) {
@@ -3103,6 +3108,7 @@ host_function!(construct_illegal, illegal_constructor_body);
 host_function!(crypto_get_random_values, get_random_values_body);
 host_function!(crypto_random_uuid, random_uuid_body);
 host_function!(crypto_timing_safe_equal, timing_safe_equal_body);
+host_function!(pub timing_safe_equal_function, timing_safe_equal_core);
 host_function!(crypto_subtle_getter, subtle_getter_body);
 host_function!(crypto_subtle_setter, subtle_setter_body);
 /// `[Symbol.for('nodejs.util.inspect.custom')](depth, options)` do `CryptoKey` (medido no bun 1.4.2): fora de uma chave,

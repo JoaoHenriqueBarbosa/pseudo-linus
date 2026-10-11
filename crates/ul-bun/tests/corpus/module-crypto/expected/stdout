@@ -1,0 +1,93 @@
+same true
+keys [
+  "getRandomValues", "constants", "KeyObject", "generateKey", "generateKeySync", "generateKeyPair",
+  "generateKeyPairSync", "createSecretKey", "createPublicKey", "createPrivateKey", "hash", "pbkdf2",
+  "pbkdf2Sync", "hkdf", "hkdfSync", "getCurves", "getCipherInfo", "timingSafeEqual", "webcrypto",
+  "subtle", "X509Certificate", "Certificate", "Sign", "sign", "createSign", "Verify", "verify", "createVerify",
+  "Hash", "createHash", "Hmac", "createHmac", "getHashes", "randomInt", "randomFill", "randomFillSync",
+  "randomBytes", "randomUUID", "randomUUIDv7", "argon2", "argon2Sync", "checkPrime", "checkPrimeSync",
+  "generatePrime", "generatePrimeSync", "secureHeapUsed", "setEngine", "getFips", "setFips", "DiffieHellmanGroup",
+  "createDiffieHellmanGroup", "getDiffieHellman", "createDiffieHellman", "DiffieHellman",
+  "diffieHellman", "ECDH", "createECDH", "Cipheriv", "Decipheriv", "createCipheriv", "createDecipheriv",
+  "getCiphers", "scrypt", "scryptSync", "publicEncrypt", "publicDecrypt", "privateEncrypt", "privateDecrypt"
+]
+types []
+hashes [
+  "md4", "md5", "ripemd160", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512-224", "sha512-256",
+  "sha3-224", "sha3-256", "sha3-384", "sha3-512"
+]
+hash md5 900150983cd24fb0d6963f7d28e17f72
+hash sha1 a9993e364706816aba3e25717850c26c9cd0d89d
+hash sha224 23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7
+hash sha256 ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+hash sha384 cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7
+hash sha512 ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f
+hash sha512-256 53048e2681941ef99b2e29b76b4c7dabe4c2d0c634fc6d46e0e2f13107e7af23
+hash ripemd160 8eb208f7e05d987a9b044a8e98c6b087f15a0bfc
+hash SHA256 ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+hash sha-256 ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+hash blake2b512 ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d17d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923
+hash sha3-256 3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532
+hash nope throws Error undefined Digest method not supported
+encodings [ "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=",
+  "ungWv48Bz-pBQUDeXa4iI7ADYaOWF3qctBD_YfIAFa0", "ºx\u0016¿\u0001ÏêAA@Þ]®\"#°\u0003a£\u0017z´\u0010ÿaò\u0000\u0015­", "ºx\u0016¿\u0001ÏêAA@Þ]®\"#°\u0003a£\u0017z´\u0010ÿaò\u0000\u0015­",
+  ":x\u0016?\u000F\u0001OjAA@^].\"#0\u0003a#\u0016\u0017z\u001C4\u0010ar\u0000\u0015-", "�x\u0016��\u0001��AA@�]�\"#�\u0003a��\u0017z��\u0010�a�\u0000\u0015�",
+  "確뼖Ə䅁\ude40깝⌢ΰꍡព鱺Ⴔ懿ò괕", "<Buffer ba 78 16 bf 8f 01 cf ea 41 41 40 de 5d ae 22 23 b0 03 61 a3 96 17 7a 9c b4 10 ff 61 f2 00 15 ad>",
+  "<Buffer ba 78 16 bf 8f 01 cf ea 41 41 40 de 5d ae 22 23 b0 03 61 a3 96 17 7a 9c b4 10 ff 61 f2 00 15 ad>"
+]
+chain true
+update enc d2249c7d493b4ca56c7c91a18d4d12f1c745772b
+update bad throws TypeError ERR_INVALID_ARG_TYPE The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type number (1)
+update null throws TypeError ERR_INVALID_ARG_TYPE The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received null
+update obj throws TypeError ERR_INVALID_ARG_TYPE The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received an instance of Object
+digest twice throws Error ERR_CRYPTO_HASH_FINALIZED Digest already called
+update after digest throws Error ERR_CRYPTO_HASH_FINALIZED Digest already called
+copy [ "86f7e437faa5a7fce15d1ddcb9eaeaea377667b8", "da23614e02469a0d7c7bd1bdab5c9c474b1904dc" ]
+copy after digest throws Error ERR_CRYPTO_HASH_FINALIZED Digest already called
+no args throws TypeError ERR_INVALID_ARG_TYPE The "algorithm" argument must be of type string. Received undefined
+bad algo type throws TypeError ERR_INVALID_ARG_TYPE The "algorithm" argument must be of type string. Received type number (1)
+xof 5881092d
+stream 900150983cd24fb0d6963f7d28e17f72
+hash fn a9993e364706816aba3e25717850c26c9cd0d89d
+hash fn enc qZk+NkcGgWq6PiVxeFDCbJzQ2J0=
+hmac 9c196e32dc0175f86f4b1cb89289d6619de6bee699e4c378e68309ed97a1a6ab
+hmac buf key +b7wkf4A2fUShZODbbqZ4ZPwgXQ=
+hmac empty key 9b4a918f398d74d3e367970aba3cbe54e4d2b5d9
+hmac bad algo throws TypeError ERR_CRYPTO_INVALID_DIGEST Invalid digest: nope
+hmac bad key throws TypeError ERR_INVALID_ARG_TYPE The "key" argument must be of type string or an instance of ArrayBuffer, Buffer, TypedArray, DataView, KeyObject, or CryptoKey. Received type number (1)
+hmac twice 
+hmac no key throws TypeError ERR_INVALID_ARG_TYPE The "key" argument must be of type string or an instance of ArrayBuffer, Buffer, TypedArray, DataView, KeyObject, or CryptoKey. Received undefined
+ctor shapes [ "function", "deprecated", 2, "createHash", 2, 3, "function" ]
+instanceof [ true, true, [ "constructor", "copy", "_transform", "_flush", "update", "digest" ] ]
+randomBytes [ 8, true, "Buffer" ]
+randomBytes 0 0
+randomBytes neg throws RangeError ERR_OUT_OF_RANGE The value of "size" is out of range. It must be >= 0 && <= 2147483647. Received -1
+randomBytes str throws TypeError ERR_INVALID_ARG_TYPE The "size" argument must be of type number. Received type string ('8')
+randomBytes big throws RangeError ERR_OUT_OF_RANGE The value of "size" is out of range. It must be >= 0 && <= 2147483647. Received 2147483648
+randomBytes frac 1
+randomBytes nan throws RangeError ERR_OUT_OF_RANGE The value of "size" is out of range. It must be >= 0 && <= 2147483647. Received NaN
+randomBytes undef throws TypeError ERR_INVALID_ARG_TYPE The "size" argument must be of type number. Received undefined
+randomFillSync [ true, true ]
+randomFillSync offset [ true, true ]
+randomFillSync bad throws TypeError ERR_INVALID_ARG_TYPE The "buf" argument must be of type ArrayBuffer or ArrayBufferView. Received type string ('x')
+randomFillSync range throws RangeError ERR_OUT_OF_RANGE The value of "offset" is out of range. It must be >= 0 && <= 4. Received 5
+randomFillSync size throws RangeError ERR_OUT_OF_RANGE The value of "size + offset" is out of range. It must be <= 4. Received 10
+randomFillSync ab 4
+randomFillSync u32 2
+randomUUID true
+randomUUID opts 36
+randomUUID bad throws TypeError ERR_INVALID_ARG_TYPE The "options" property must be of type object, got number
+randomInt true
+randomInt range true
+randomInt bad throws RangeError ERR_OUT_OF_RANGE The value of "max" is out of range. It must be greater than the value of "min" (0). Received 0
+randomInt bad2 throws RangeError ERR_OUT_OF_RANGE The value of "max" is out of range. It must be greater than the value of "min" (5). Received 5
+randomInt type throws TypeError ERR_INVALID_ARG_TYPE The "max" argument must be a safe integer. Received type string ('a')
+timingSafeEqual [ true, false ]
+timingSafeEqual len throws RangeError ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH Input buffers must have the same byte length
+timingSafeEqual type throws TypeError ERR_INVALID_ARG_TYPE The "buf1" argument must be an instance of ArrayBuffer, Buffer, TypedArray, or DataView.
+getRandomValues 4
+webcrypto [ true, true ]
+constants true
+getCiphers function
+getCurves true
+fn names [ "randomBytes", 2, 3, 1, 2, 2, 0, "", 1 ]

@@ -1,4 +1,4 @@
-//! Resumos MD5, SHA-1, SHA-2 (SHA-256, SHA-224 e a família SHA-512), SHA-3 e SHAKE, BLAKE2b e BLAKE2s,
+//! Resumos MD4, MD5, SHA-1, SHA-2 (SHA-256, SHA-224 e a família SHA-512), SHA-3 e SHAKE, BLAKE2b e BLAKE2s,
 //! RIPEMD-160 e SM3 em Rust puro, com a API de uma passada e a incremental (`new`, `update`, `finalize`),
 //! mais HMAC, PBKDF2 e scrypt. [`Algo`] e [`Hasher`] escolhem o algoritmo pelo nome do OpenSSL.
 
@@ -106,6 +106,47 @@ fn store_words<const N: usize>(words: &[u32], little_endian: bool) -> [u8; N] {
     out
 }
 
+/// `state[i] += v[i]` (a soma final de cada função de compressão).
+fn add_words<const N: usize>(state: &mut [u32; N], v: [u32; N]) {
+    for (s, w) in state.iter_mut().zip(v) {
+        *s = s.wrapping_add(w);
+    }
+}
+
+/// Um passo do MD4 e do MD5: `[a, b, c, d]` vira `[d, base + (a + f + addend) <<< shift, b, c]`, com `base` zero no MD4 e
+/// `b` no MD5.
+fn md_step([a, b, c, d]: [u32; 4], f: u32, addend: u32, shift: u32, base: u32) -> [u32; 4] {
+    [d, base.wrapping_add(a.wrapping_add(f).wrapping_add(addend).rotate_left(shift)), b, c]
+}
+
+/// A compressão do MD5 (`MD5`, 64 passos) e do MD4 (48 passos): a mesma forma de passo, com a função da rodada, a
+/// palavra da mensagem, a rotação e a constante de cada um.
+fn md_compress<const MD5: bool>(state: &mut [u32; 4], block: &[u8; 64]) {
+    let x = load_words(block, true);
+    let k = md5_constants();
+    let mut v = *state;
+    for i in 0..if MD5 { 64 } else { 48 } {
+        let [_, b, c, d] = v;
+        let (f, word, shift, constant) = if MD5 {
+            let (f, word) = match i / 16 {
+                0 => ((b & c) | (!b & d), i),
+                1 => ((d & b) | (!d & c), (5 * i + 1) % 16),
+                2 => (b ^ c ^ d, (3 * i + 5) % 16),
+                _ => (c ^ (b | !d), (7 * i) % 16),
+            };
+            (f, word, MD5_SHIFTS[i], k[i])
+        } else {
+            match i / 16 {
+                0 => ((b & c) | (!b & d), i, [3, 7, 11, 19][i % 4], 0),
+                1 => ((b & c) | (b & d) | (c & d), MD4_ROUND2[i % 16], [3, 5, 9, 13][i % 4], 0x5A82_7999),
+                _ => (b ^ c ^ d, MD4_ROUND3[i % 16], [3, 9, 11, 15][i % 4], 0x6ED9_EBA1),
+            }
+        };
+        v = md_step(v, f, x[word].wrapping_add(constant), shift, if MD5 { b } else { 0 });
+    }
+    add_words(state, v);
+}
+
 macro_rules! default_via_new {
     ($t:ty) => {
         impl Default for $t {
@@ -132,28 +173,6 @@ fn md5_constants() -> &'static [u32; 64] {
     K.get_or_init(|| std::array::from_fn(|i| (((i + 1) as f64).sin().abs() * 4_294_967_296.0) as u32))
 }
 
-fn md5_compress(state: &mut [u32; 4], block: &[u8; 64]) {
-    let k = md5_constants();
-    let m = load_words(block, true);
-    let [mut a, mut b, mut c, mut d] = *state;
-    for i in 0..64usize {
-        let (f, g) = match i / 16 {
-            0 => ((b & c) | (!b & d), i),
-            1 => ((d & b) | (!d & c), (5 * i + 1) % 16),
-            2 => (b ^ c ^ d, (3 * i + 5) % 16),
-            _ => (c ^ (b | !d), (7 * i) % 16),
-        };
-        let f = f.wrapping_add(a).wrapping_add(k[i]).wrapping_add(m[g]);
-        a = d;
-        d = c;
-        c = b;
-        b = b.wrapping_add(f.rotate_left(MD5_SHIFTS[i]));
-    }
-    for (s, v) in state.iter_mut().zip([a, b, c, d]) {
-        *s = s.wrapping_add(v);
-    }
-}
-
 /// MD5 incremental.
 #[derive(Clone)]
 pub struct Md5 {
@@ -167,7 +186,7 @@ impl Md5 {
     }
 }
 
-block_hash!(Md5, md5_compress, length_big_endian: false, words_little_endian: true, out: 16);
+block_hash!(Md5, md_compress::<true>, length_big_endian: false, words_little_endian: true, out: 16);
 
 default_via_new!(Md5);
 
@@ -177,6 +196,31 @@ pub fn md5(data: &[u8]) -> [u8; 16] {
     h.update(data);
     h.finalize()
 }
+
+// ---------------------------------------------------------------------------------------------
+// MD4
+// ---------------------------------------------------------------------------------------------
+
+/// A ordem das palavras da mensagem nas rodadas 2 e 3 do MD4 (a rodada 1 usa `0..16`).
+const MD4_ROUND2: [usize; 16] = [0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15];
+const MD4_ROUND3: [usize; 16] = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15];
+
+/// MD4 incremental.
+#[derive(Clone)]
+pub struct Md4 {
+    state: [u32; 4],
+    blocks: Blocks<64>,
+}
+
+impl Md4 {
+    pub fn new() -> Md4 {
+        Md4 { state: [0x6745_2301, 0xefcd_ab89, 0x98ba_dcfe, 0x1032_5476], blocks: Blocks::new() }
+    }
+}
+
+block_hash!(Md4, md_compress::<false>, length_big_endian: false, words_little_endian: true, out: 16);
+
+default_via_new!(Md4);
 
 // ---------------------------------------------------------------------------------------------
 // SHA-1
@@ -203,9 +247,7 @@ fn sha1_compress(state: &mut [u32; 5], block: &[u8; 64]) {
         b = a;
         a = temp;
     }
-    for (s, v) in state.iter_mut().zip([a, b, c, d, e]) {
-        *s = s.wrapping_add(v);
-    }
+    add_words(state, [a, b, c, d, e]);
 }
 
 /// SHA-1 incremental.
@@ -278,9 +320,7 @@ fn sha256_compress(state: &mut [u32; 8], block: &[u8; 64]) {
         v[1] = v[0];
         v[0] = t1.wrapping_add(t2);
     }
-    for (s, x) in state.iter_mut().zip(v) {
-        *s = s.wrapping_add(x);
-    }
+    add_words(state, v);
 }
 
 /// SHA-256 incremental. Com `new_224` é o SHA-224: o resumo são os 28 primeiros bytes do que
@@ -293,12 +333,16 @@ pub struct Sha256 {
 
 impl Sha256 {
     pub fn new() -> Sha256 {
-        Sha256 { state: SHA256_INIT, blocks: Blocks::new() }
+        Sha256::from_state(SHA256_INIT)
     }
 
     /// Estado inicial do SHA-224.
     pub fn new_224() -> Sha256 {
-        Sha256 { state: SHA224_INIT, blocks: Blocks::new() }
+        Sha256::from_state(SHA224_INIT)
+    }
+
+    fn from_state(state: [u32; 8]) -> Sha256 {
+        Sha256 { state, blocks: Blocks::new() }
     }
 }
 
@@ -333,6 +377,19 @@ mod tests {
         assert_eq!(hex_lower(&md5(b"")), "d41d8cd98f00b204e9800998ecf8427e");
         assert_eq!(hex_lower(&md5(b"abc")), "900150983cd24fb0d6963f7d28e17f72");
         assert_eq!(hex_lower(&md5(b"message digest")), "f96b697d7cb7938d525a2f31aaf161d0");
+    }
+
+    #[test]
+    fn md4_vectors() {
+        let md4 = |data: &[u8]| {
+            let mut h = Md4::new();
+            h.update(data);
+            hex_lower(&h.finalize())
+        };
+        assert_eq!(md4(b""), "31d6cfe0d16ae931b73c59d7e0c089c0");
+        assert_eq!(md4(b"abc"), "a448017aaf21d8525fc10ae87aa6729d");
+        assert_eq!(md4(b"message digest"), "d9130a8164549fe818874806e1c7014b");
+        assert_eq!(md4(b"abcdefghijklmnopqrstuvwxyz"), "d79e1c308aa5bbcdeea8ed63df412da9");
     }
 
     #[test]

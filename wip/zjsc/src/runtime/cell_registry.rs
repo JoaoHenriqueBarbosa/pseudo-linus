@@ -770,6 +770,7 @@ fn reset_program_state() {
     crate::runtime::message_channel::reset_for_program();
     crate::runtime::worker_host::reset_for_program();
     crate::runtime::crypto::reset_for_program();
+    crate::runtime::node_crypto::reset_for_program();
     crate::runtime::queuing_strategy::reset_for_program();
     crate::runtime::streams::reset_for_program();
     crate::runtime::performance::reset_for_program();
