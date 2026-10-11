@@ -1193,3 +1193,7 @@ do `MemoryModuleHost`, `URLPattern`, `node:assert`, `node:util` completo, pilha 
   - `array_bun_golden`, 1 de 2509, ainda não classificado.
   - `error_stack_bun_golden`, 93 de 954 (linha e coluna de frame; classe `stack`, não sobe).
 - `generator_state_bun_golden` passou a rodar na thread de pilha grande (`run_factored_big_stack`): o caso do `yield*` recursivo de 1000 níveis aninha o laço nativo a cada nível e estourava a pilha de 2 MiB da thread de teste comum, o que não é o limite do bun.
+
+### Backlog do printer do zbun (2026-10-11)
+
+- Golden contra `bun build --no-bundle` do bun 1.4.2: 299 de 305 casos batem e o mapa de posições bate 12 de 12. As 6 divergências ficam em `KNOWN_DIVERGENCES` (`ie6.ts`, `ie7.ts` e `typescript-import-equals.ts`, em `.minify-identifiers` e `.minify`): `import x = require(...)` com namespace sob `--minify-identifiers`, o oráculo dá `s` ao alias e o porte dá `t`. Causa não isolada, o `assign_nested_scope_slots` é igual ao do upstream, o desvio está noutro ponto do `MinifyRenamer`. Texto reimpresso, sem vazamento: backlog.
