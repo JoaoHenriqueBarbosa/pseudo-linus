@@ -25,3 +25,4 @@ throw bad tb EXC TypeError throw() third argument must be a traceback object
 reparent to dead of exited thread 'set'
 switch after reparent, thread exited EXC error cannot switch to a different thread (which happens to have exited)
 switch after reparent, thread alive ['Cannot switch to a different thread', True]
+parent during kill is main True restored to hub True

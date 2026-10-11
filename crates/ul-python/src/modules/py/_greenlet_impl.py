@@ -631,12 +631,16 @@ def _reap():
         state = _st(glet)
         if state.dead:
             continue
+        # O `deallocGreenlet` do C põe o corrente como pai só durante o `kill` e devolve o pai de antes depois.
+        old_parent = state.parent
         state.parent = _current()
         try:
             _switch_to(glet, ('throw', GreenletExit()), 'throw')
         except BaseException as exc:
             import _unraisable
             _sysmod.unraisablehook(_unraisable.UnraisableHookArgs((type(exc), exc, exc.__traceback__, None, glet)))
+        finally:
+            state.parent = old_parent
 
 
 greenlet.GreenletExit = GreenletExit
