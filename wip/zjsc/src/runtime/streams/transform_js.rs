@@ -243,6 +243,9 @@ impl EffectState for Transform {
     fn apply_other(global_object: &JSGlobalObject, stream: &TransformRef, effect: Effect<JSValue>) -> Result<(), Thrown> {
         match effect {
             Effect::CallTransform(chunk, result) => call_transform(global_object, stream, chunk, result),
+            Effect::ResolveWith(outer, inner) => {
+                super::readable::resolve(global_object, promise_of(stream, outer), promise_of(stream, inner));
+            }
             Effect::CallFlush => call_flush(global_object, stream),
             Effect::CallCancel(reason, from_sink) => call_cancel(global_object, stream, reason, from_sink),
             Effect::NewPromise(_) | Effect::Resolve(_) | Effect::Reject(..) => unreachable!("efeito de promessa é de `effects::drain`"),

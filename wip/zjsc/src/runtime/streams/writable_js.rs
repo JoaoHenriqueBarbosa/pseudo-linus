@@ -381,7 +381,7 @@ fn finish_start(global_object: &JSGlobalObject, stream: StreamRef, start_result:
         for_rejected.borrow_mut().core.on_start_rejected(error);
         drain(global_object, &for_rejected)
     });
-    let start_promise = resolved_with(global_object, start_result);
+    let start_promise = super::readable::fresh_resolved_with(global_object, start_result);
     then(global_object, start_promise, on_fulfilled, on_rejected, JSValue::undefined());
 }
 

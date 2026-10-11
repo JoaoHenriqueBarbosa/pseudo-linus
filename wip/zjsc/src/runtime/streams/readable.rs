@@ -553,6 +553,15 @@ pub(super) fn resolved_with(global_object: &JSGlobalObject, value: JSValue) -> J
     promise
 }
 
+/// `promiseResolvedWith` do bun: sempre uma promessa nova resolvida com o valor, então uma promessa de `start` entra pela
+/// tarefa do thenable (dois tempos a mais que `resolved_with`, que devolve a própria promessa; medido no oráculo com o
+/// `TransformStream`, cujo `start` interno é uma promessa).
+pub(super) fn fresh_resolved_with(global_object: &JSGlobalObject, value: JSValue) -> JSValue {
+    let promise = new_promise(global_object);
+    resolve(global_object, promise, value);
+    promise
+}
+
 pub(super) fn rejected_with(global_object: &JSGlobalObject, error: JSValue) -> JSValue {
     JSPromise::rejected_promise(global_object, error).as_value()
 }
@@ -1542,7 +1551,7 @@ fn finish_start(global_object: &JSGlobalObject, controller: ControllerRef, start
     });
     let for_rejected = controller;
     let on_rejected = reaction(global_object, move |global_object, error| controller_error(global_object, &for_rejected, error));
-    let start_promise = resolved_with(global_object, start_result);
+    let start_promise = fresh_resolved_with(global_object, start_result);
     then(global_object, start_promise, on_fulfilled, on_rejected, JSValue::undefined());
 }
 
@@ -1667,7 +1676,7 @@ fn start_byte_controller(global_object: &JSGlobalObject, state: ByteRef, start_r
         byte_call_pull_if_needed(global_object, &for_fulfilled)
     });
     let on_rejected = reaction(global_object, move |global_object, error| byte_controller_error(global_object, &state, error));
-    let start_promise = resolved_with(global_object, start_result);
+    let start_promise = fresh_resolved_with(global_object, start_result);
     then(global_object, start_promise, on_fulfilled, on_rejected, JSValue::undefined());
 }
 

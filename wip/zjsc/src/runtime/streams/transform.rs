@@ -34,6 +34,9 @@ pub enum Effect<V> {
     Reject(P, V),
     /// `transformer.transform(chunk, controller)`; resultado em `on_transform_done(result_promise, ..)`.
     CallTransform(V, P),
+    /// Resolve a primeira promessa com a segunda (como o `resolve(promise, thenable)` do C++: a tarefa do thenable
+    /// custa dois tempos, o que o `result` do sink de escrita paga em `onTSSinkWriteBackpressureChangeFulfilled`).
+    ResolveWith(P, P),
     /// `transformer.flush(controller)`; resultado em `on_flush_done`.
     CallFlush,
     /// `transformer.cancel(reason)`; resultado em `on_cancel_done` (`from_sink` diz qual dos dois caminhos).
@@ -87,7 +90,7 @@ impl<V: Clone> Core<V> {
         for effect in &self.effects {
             match effect {
                 Effect::Reject(_, value) | Effect::CallTransform(value, _) | Effect::CallCancel(value, _) => visit(value),
-                Effect::NewPromise(_) | Effect::Resolve(_) | Effect::CallFlush => {}
+                Effect::NewPromise(_) | Effect::Resolve(_) | Effect::ResolveWith(..) | Effect::CallFlush => {}
             }
         }
         self.pending_write.values().for_each(|pending| visit(&pending.chunk));
@@ -266,7 +269,8 @@ impl<V: Clone> Core<V> {
             return;
         }
         // O resultado do transform encadeia no `result` original: o integrador liga a nova promessa a ele.
-        self.effects.push(Effect::CallTransform(pw.chunk, pw.result));
+        let inner = self.perform_transform(pw.chunk);
+        self.effects.push(Effect::ResolveWith(pw.result, inner));
     }
 
     fn start_finish(&mut self) -> Result<P, P> {
