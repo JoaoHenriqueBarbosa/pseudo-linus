@@ -458,3 +458,13 @@ fn perverse_parent_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/gl_perverse_parent.out"),
     );
 }
+
+/// O `repr` do greenlet que ainda não começou tem `(otid=0x(nil))`, como no oráculo.
+#[test]
+fn repr_pending_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_repr_pending",
+        include_str!("../../../testbench/oracle/automation/cases/gl_repr_pending.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_repr_pending.out"),
+    );
+}
