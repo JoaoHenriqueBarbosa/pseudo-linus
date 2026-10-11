@@ -211,6 +211,15 @@ que os testes que falham sejam exatamente os de `DECLARED_DIVERGENCES`, cada um 
    eliminação por tentativa (_trial deletion_: subtrai das contagens as referências internas ao conjunto, usando o
    grafo de `gc.get_referents`, e o que sobra com contagem zero é lixo); finaliza o lixo (`__del__`, na ordem de
    criação) e quebra o ciclo limpando os contêineres, para o `Rc` cair.
+   **Estado em 2026-10-11 (dde94b50):** o coletor existe (registro, eliminação por tentativa, finalização, exceção com
+   traceback, pilha de greenlet suspenso). Ficam declarados três testes de thread cruzada
+   (`test_threaded_updatecurrent`, `test_threaded_adv_leak`, `test_issue251_killing_cross_thread_leaks_list`).
+   O que se achou: sobra por iteração um `Env` de quadro não terminado (`finished` falso, sem variáveis, filho do
+   escopo do teste), segurado por fora do conjunto (`gc_refs` 1), e com ele o `Thread`, o `_Green` e o greenlet
+   principal da thread. Acontece com um greenlet solto em outra thread (o `_defer_to` do dono) junto com um `__del__`
+   que bloqueia numa trava (`lock1.acquire()` no finalizador). O `SCHED` está vazio na hora da coleta (nenhum
+   segmento suspenso o segura), e cada peça isolada (thread com `getcurrent`, trava, greenlet solto em outra thread
+   com e sem `join`) não vaza: só a combinação do teste. O dono não foi achado; não se persegue agora.
 2. **Trashcan.** Os 30 subtestes de `TestTrashCanReEnter` (a destruição de uma cadeia profunda de greenlets) passam no
    estado atual; ficam no backlog só para reabrir se voltarem a falhar.
 3. **"Expected to leak but it did not".** `test_finalizer_crash`, `test_permutations`, `test_recursive_startup`,
