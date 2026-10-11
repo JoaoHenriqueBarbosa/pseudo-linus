@@ -13,7 +13,7 @@
 //!   devolve nulo e os outros são no-ops, exatamente como no C++ para um provider sem cache. Pelo mesmo
 //!   motivo `CodeCache::updateCache` (que só repassa ao `SourceProvider::updateCache`, no-op no C++) não
 //!   existe.
-//! - `ApproximateTime` é `std::time::Instant`.
+//! - `ApproximateTime` são os nanossegundos do `CLOCK_MONOTONIC` do pseudo-processo.
 //! - `getUnlinkedGlobalCodeBlock` recebe o executável como `&dyn GlobalCodeExecutable` (o `ExecutableType`
 //!   do template); o `IndirectEvalExecutable`/`DirectEvalExecutable` do C++ são o `EvalExecutable` do
 //!   porte (o indireto tem `needsClassFieldInitializer = No` e `privateBrandRequirement = None`, os
@@ -25,7 +25,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::DerefMut;
 use std::rc::Rc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use crate::bytecode::executable_info::{
     DerivedContextType, EvalContextType, ExecutableInfo, NeedsClassFieldInitializer,
@@ -122,7 +122,7 @@ pub struct CodeCacheMap {
     map: HashMap<SourceCodeKey, SourceCodeValue>,
     size: i64,
     size_at_last_prune: i64,
-    time_at_last_prune: Instant,
+    time_at_last_prune: u64,
     min_capacity: i64,
     capacity: i64,
     age: i64,
@@ -134,7 +134,7 @@ impl Default for CodeCacheMap {
             map: HashMap::new(),
             size: 0,
             size_at_last_prune: 0,
-            time_at_last_prune: Instant::now(),
+            time_at_last_prune: ul_common::time::monotonic_nanos(),
             min_capacity: 0,
             capacity: 0,
             age: 0,
@@ -213,7 +213,7 @@ impl CodeCacheMap {
             return;
         }
 
-        if self.time_at_last_prune.elapsed() < WORKING_SET_TIME
+        if Duration::from_nanos(ul_common::time::monotonic_nanos().saturating_sub(self.time_at_last_prune)) < WORKING_SET_TIME
             && self.size - self.size_at_last_prune < WORKING_SET_MAX_BYTES
             && self.can_prune_quickly()
         {
@@ -227,7 +227,7 @@ impl CodeCacheMap {
     fn prune_slow_case(&mut self) {
         self.min_capacity = (self.size - self.size_at_last_prune).max(0);
         self.size_at_last_prune = self.size;
-        self.time_at_last_prune = Instant::now();
+        self.time_at_last_prune = ul_common::time::monotonic_nanos();
 
         if self.capacity < self.min_capacity {
             self.capacity = self.min_capacity;

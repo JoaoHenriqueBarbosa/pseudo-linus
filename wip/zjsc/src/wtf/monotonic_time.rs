@@ -1,19 +1,9 @@
 //! Parte de `wtf/MonotonicTime.h` que o `Parser` usa: `now()` e a diferença entre dois instantes.
 //!
-//! O C++ lê `CLOCK_MONOTONIC`; Rust seguro só expõe `Instant`, cuja origem é opaca. Como o relógio
-//! monotônico só é observável por diferenças, ancora-se um `Instant` no primeiro uso do processo e o
-//! valor é o tempo decorrido desde então, em segundos.
+//! O C++ lê `CLOCK_MONOTONIC`: aqui é o do pseudo-processo (`ul_common::time::monotonic_nanos`), em segundos.
 
 use std::ops::Sub;
-use std::sync::OnceLock;
-use std::time::Instant;
-
 use crate::wtf::seconds::Seconds;
-
-fn epoch() -> Instant {
-    static EPOCH: OnceLock<Instant> = OnceLock::new();
-    *EPOCH.get_or_init(Instant::now)
-}
 
 /// `class MonotonicTime`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
@@ -23,7 +13,7 @@ pub struct MonotonicTime {
 
 impl MonotonicTime {
     pub fn now() -> MonotonicTime {
-        MonotonicTime { value: epoch().elapsed().as_secs_f64() }
+        MonotonicTime { value: ul_common::time::monotonic_nanos() as f64 / 1e9 }
     }
 
     pub fn seconds_since_epoch(self) -> Seconds {

@@ -5,6 +5,20 @@ processos e a saída DO SANDBOX, nunca os do host. O zjsc tinha 16 arquivos que 
 documento lista cada ponto e o destino. A fronteira é o trait `crate::runtime::host::Host`, instalado por thread
 (`host::install`), como o `ConsoleHost` e o `ModuleFs` já eram instalados pelo hospedeiro.
 
+## Estado (feito em 2026-10-11)
+
+- `src/runtime/host.rs`: o trait `Host` (read_file, stat, create_file, environ/getenv, cwd, pid, cpus, random_fill, kill,
+  set_priority, write_stderr, exit), `install`/`uninstall`/`host()` por thread e o `Detached` (máquina vazia) quando
+  ninguém instalou nada. Os relógios e o sono ficam em `ul_common::time` (`realtime_nanos`, `monotonic_nanos`, `sleep`),
+  que já respondem com o relógio do pseudo-processo.
+- Os 16 arquivos da tabela abaixo usam a fronteira; `tests/host_boundary.rs` varre o `src/` sem exceção e falha se
+  `std::fs`, `std::net`, `std::env`, `std::process`, `Command`, `Instant::now`, `SystemTime::now`, `thread::sleep`,
+  `available_parallelism`, `eprintln!` e afins voltarem.
+- O host que lê a máquina real existe só em `tests/common/std_host.rs` (e é incluído por `#[path]` nos testes de unidade);
+  `process_bun_golden` o instala porque confere `kill`, `pid` e `/proc` contra o bun desta máquina.
+- `crates/ul-bun`: o `SysabiHost` (sobre o `sysio`/`sysabi`), o `FdConsole` (fds 0, 1, 2), o `SandboxFs` (VFS do processo)
+  e o programa `bun` (`-e`, `run`, `ARQUIVO`, `--version`). Testes no kernel de teste do sysabi.
+
 Medido por `grep -rnE "std::(fs|net|env|process|thread::sleep|time)|Instant|SystemTime|eprintln!|available_parallelism"`.
 
 ## Pontos de acesso e destino

@@ -10,7 +10,7 @@
 //!   os chama. O `JSDateMath` do JSC calcula o deslocamento local pelo `DateCache`
 //!   (`runtime/js_date_math.rs`), que recebe o fuso por um `TimeZoneSource`.
 //! - `makeRFC2822DateString` fica fora (só o WebCore usa).
-//! - `jsCurrentTime()` lê o relógio por `std::time::SystemTime`; o sandbox pode trocar a fonte do
+//! - `jsCurrentTime()` lê o relógio do pseudo-processo (`ul_common::time::realtime_nanos`); o sandbox pode trocar a fonte do
 //!   tempo no `JSGlobalObject::jsDateNow` (o `overridenDateNow` do Bun já a envolve).
 //! - Os parsers trabalham sobre os bytes UTF-8 da string (o C++ passa o UTF-8 como se fosse Latin1) e
 //!   usam `i64` onde o C++ usa `long` (LP64) e `i32` onde usa `int`.

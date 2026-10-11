@@ -69,7 +69,6 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::Read;
 
 use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockDecrypt, BlockEncrypt, KeyInit};
@@ -78,6 +77,7 @@ use aes_kw::{KekAes128, KekAes192, KekAes256};
 use chacha20poly1305::aead::{Aead, KeyInit as _, Payload};
 use chacha20poly1305::{ChaCha20Poly1305, Nonce};
 
+use crate::runtime::host::host;
 use crate::runtime::iterator_operations::for_each_in_iterable;
 use crate::runtime::string_regexp_support::get_object_property;
 use ul_common::codec::{base64_decode, base64_encode, BASE64_URL};
@@ -238,19 +238,6 @@ fn is_subtle(value: JSValue) -> bool {
     INSTANCES.with(|instances| instances.borrow().iter().any(|(_, _, subtle)| *subtle == value.encode()))
 }
 
-/// `length` bytes do SO.
-fn random_bytes(bytes: &mut [u8]) {
-    if let Ok(mut source) = std::fs::File::open("/dev/urandom") {
-        if source.read_exact(bytes).is_ok() {
-            return;
-        }
-    }
-    for chunk in bytes.chunks_mut(4) {
-        let word = crate::wtf::weak_random::cryptographically_random_number().to_le_bytes();
-        chunk.copy_from_slice(&word[..chunk.len()]);
-    }
-}
-
 fn illegal_constructor_body(global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
     Err(throw_coded_type_error(global_object, "Illegal constructor", "ERR_ILLEGAL_CONSTRUCTOR"))
 }
@@ -280,7 +267,7 @@ fn get_random_values_body(global_object: &JSGlobalObject, call: &HostCall) -> Ho
     let length = view.byte_length();
     view.with_vector_mut(|vector| {
         let length = length.min(vector.len());
-        random_bytes(&mut vector[..length]);
+        host().random_fill(&mut vector[..length]);
     });
     Ok(data)
 }
@@ -288,7 +275,7 @@ fn get_random_values_body(global_object: &JSGlobalObject, call: &HostCall) -> Ho
 fn random_uuid_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     crypto_this(global_object, call)?;
     let mut bytes = [0u8; 16];
-    random_bytes(&mut bytes);
+    host().random_fill(&mut bytes);
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
     let mut text = String::with_capacity(36);
@@ -1673,7 +1660,7 @@ fn generate_aes_key(global_object: &JSGlobalObject, call: &HostCall, id: Algorit
         return Err(dom_error(global_object, call, "OperationError", OPERATION_FAILED));
     }
     let mut secret = vec![0u8; length as usize / 8];
-    random_bytes(&mut secret);
+    host().random_fill(&mut secret);
     if usages == 0 {
         return Err(throw_native_syntax_error(global_object, "Usages cannot be empty when creating a key."));
     }
@@ -1951,7 +1938,7 @@ fn generate_key_body_impl(global_object: &JSGlobalObject, call: &HostCall) -> Ho
         return Err(dom_error(global_object, call, "OperationError", OPERATION_FAILED));
     }
     let mut secret = vec![0u8; bits / 8];
-    random_bytes(&mut secret);
+    host().random_fill(&mut secret);
     if usages == 0 {
         return Err(throw_native_syntax_error(global_object, "Usages cannot be empty when creating a key."));
     }

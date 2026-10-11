@@ -135,6 +135,7 @@ pub mod crypto;
 pub(crate) mod crypto_ec;
 pub(crate) mod crypto_rsa;
 pub mod console_host;
+pub mod host;
 pub mod module_fs;
 pub mod console_client;
 pub mod console_format;

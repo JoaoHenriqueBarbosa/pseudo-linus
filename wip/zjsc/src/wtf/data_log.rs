@@ -6,8 +6,9 @@
 //! existem: quem chama formata com `format!`.
 
 use std::cell::RefCell;
-use std::fs::File;
-use std::io::{self, Write};
+use std::io::Write;
+
+use crate::runtime::host::{host, HostWriter};
 
 thread_local! {
     static DATA_FILE: RefCell<Option<Box<dyn Write>>> = const { RefCell::new(None) };
@@ -21,9 +22,9 @@ pub fn set_data_file(file: Box<dyn Write>) {
 /// `setDataFile(const char* path)`: abre (truncando) o arquivo; se não abrir, o C++ avisa em
 /// `stderr` e continua com o arquivo anterior.
 pub fn set_data_file_path(path: &str) {
-    match File::create(path) {
-        Ok(file) => set_data_file(Box::new(file)),
-        Err(_) => eprintln!("Warning: Could not open log file {path} for writing."),
+    match host().create_file(path, false) {
+        Ok(file) => set_data_file(Box::new(HostWriter(file))),
+        Err(_) => crate::runtime::host::eprintln(&format!("Warning: Could not open log file {path} for writing.")),
     }
 }
 
@@ -35,9 +36,7 @@ pub fn data_log(text: &str) {
             let _ = file.flush();
         }
         None => {
-            let mut stderr = io::stderr().lock();
-            let _ = stderr.write_all(text.as_bytes());
-            let _ = stderr.flush();
+            host().write_stderr(text.as_bytes());
         }
     });
 }

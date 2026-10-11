@@ -203,13 +203,13 @@ impl OptionRange {
 fn kern_tcsm_aware_number_of_processor_cores() -> i32 {
     static CORES: OnceLock<i32> = OnceLock::new();
     *CORES.get_or_init(|| {
-        if let Ok(text) = std::env::var("WTF_numberOfProcessorCores") {
+        if let Some(text) = crate::runtime::host::host().getenv("WTF_numberOfProcessorCores") {
             if let Ok(parsed) = text.parse::<u32>() {
                 return parsed as i32;
             }
-            eprintln!("WARNING: failed to parse WTF_numberOfProcessorCores={text}");
+            crate::runtime::host::eprintln(&format!("WARNING: failed to parse WTF_numberOfProcessorCores={text}"));
         }
-        std::thread::available_parallelism().map_or(1, |count| count.get() as i32)
+        crate::runtime::host::host().cpus() as i32
     })
 }
 

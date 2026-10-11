@@ -31,13 +31,13 @@ const MICROS_PER_TICK: u64 = 10_000;
 /// O campo `index` de `/proc/self/stat` contado a partir do estado (campo 3 do manual), que é o primeiro depois do `)`
 /// do nome do comando.
 pub(crate) fn stat_field(index: usize) -> Option<u64> {
-    let stat = std::fs::read_to_string("/proc/self/stat").ok()?;
+    let stat = crate::runtime::host::read_text("/proc/self/stat")?;
     stat.rsplit_once(')')?.1.split_whitespace().nth(index)?.parse().ok()
 }
 
 /// O número da linha `key:` de `/proc/self/status` (kB ou contagem).
 fn status_value(key: &str) -> u64 {
-    let status = std::fs::read_to_string("/proc/self/status").unwrap_or_default();
+    let status = crate::runtime::host::read_text("/proc/self/status").unwrap_or_default();
     status
         .lines()
         .find_map(|line| line.strip_prefix(key)?.strip_prefix(':'))
@@ -47,13 +47,13 @@ fn status_value(key: &str) -> u64 {
 
 /// O número da linha `key:` de `/proc/self/io`.
 fn io_value(key: &str) -> u64 {
-    let io = std::fs::read_to_string("/proc/self/io").unwrap_or_default();
+    let io = crate::runtime::host::read_text("/proc/self/io").unwrap_or_default();
     io.lines().find_map(|line| line.strip_prefix(key)?.strip_prefix(':')?.trim().parse().ok()).unwrap_or(0)
 }
 
 /// Os campos `resident` e `shared` (em páginas) de `/proc/self/statm`.
 fn statm_pages() -> (u64, u64) {
-    let statm = std::fs::read_to_string("/proc/self/statm").unwrap_or_default();
+    let statm = crate::runtime::host::read_text("/proc/self/statm").unwrap_or_default();
     let mut fields = statm.split_whitespace().skip(1).map(|field| field.parse::<u64>().unwrap_or(0));
     (fields.next().unwrap_or(0), fields.next().unwrap_or(0))
 }

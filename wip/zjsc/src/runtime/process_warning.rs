@@ -89,7 +89,7 @@ fn process_flag(global_object: &JSGlobalObject, name: &str) -> bool {
 pub(crate) fn print_warning(global_object: &JSGlobalObject, warning: JSValue) {
     let Some(host) = global_object.console_host() else { return };
     let field = |name: &str| property(global_object, warning, name).ok().filter(JSValue::is_string).and_then(|value| text_of(global_object, value).ok());
-    let mut line = format!("(node:{}) ", std::process::id());
+    let mut line = format!("(node:{}) ", crate::runtime::host::host().pid());
     if let Some(code) = field("code") {
         line.push_str(&format!("[{code}] "));
     }

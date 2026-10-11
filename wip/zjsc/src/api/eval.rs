@@ -321,6 +321,12 @@ pub fn evaluate_browser_script_result(source: &str, url: &str, result_name: &str
     })
 }
 
+/// O sistema de arquivos de onde o programa principal carrega `import`, `require` e `fetch('file://...')`; vale para o próximo
+/// programa (configuração do embedder, como `set_script_arguments`). Sem ele o programa não lê arquivo.
+pub fn set_main_module_fs(fs: Option<Rc<dyn ModuleFs>>) {
+    MAIN_FS.with(|slot| *slot.borrow_mut() = fs);
+}
+
 /// `bun arquivo.js`: roda `source` (arquivo `url`) como o programa principal sobre um global novo com `console`
 /// instalado e devolve o código de saída. Uma exceção não capturada do topo é relatada no stderr do console
 /// (`uncaught_report.rs`) e dá o código 1; as microtarefas só esvaziam quando o script termina sem lançar.
@@ -356,6 +362,9 @@ pub fn evaluate_main_script_reporting_signal(
         let (vm, global_object) = new_global_object();
         let _finalizer = VmFinalizer::new(&vm);
         global_object.set_console_host(console);
+        let fs = MAIN_FS.with(|slot| slot.borrow().clone());
+        CJS_FS.with(|slot| *slot.borrow_mut() = fs.clone());
+        global_object.set_module_fs(fs);
         // O relato acumula os blocos de toda exceção fatal (script, microtarefa, timer, rejeição sem tratador) e sai
         // uma vez, com o rodapé; a primeira delas para o laço de eventos.
         let report = Rc::new(RefCell::new(Vec::<u8>::new()));
@@ -823,6 +832,8 @@ struct ModuleState {
 }
 
 thread_local! {
+    /// O sistema de arquivos do próximo programa principal (`set_main_module_fs`).
+    static MAIN_FS: RefCell<Option<Rc<dyn ModuleFs>>> = const { RefCell::new(None) };
     /// O sistema de arquivos do programa CJS em curso (`None`: `require` não carrega módulo).
     static CJS_FS: RefCell<Option<Rc<dyn ModuleFs>>> = const { RefCell::new(None) };
     /// O `__filename` do programa CJS em curso (a "Require stack" das falhas de `require`).

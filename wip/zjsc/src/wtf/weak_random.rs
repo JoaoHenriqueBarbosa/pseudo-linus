@@ -1,18 +1,15 @@
 //! Tradução de `wtf/WeakRandom.h` (xorshift128+, Vigna 2014) e, de `wtf/CryptographicallyRandomNumber.h`, o
 //! `cryptographicallyRandomNumber<unsigned>()` que semeia o gerador.
 //!
-//! DIVERGÊNCIA: `cryptographicallyRandomNumber` lê `arc4random`/`/dev/urandom` no C++. O porte é
-//! seguro e sem dependências, então a semente vem do `RandomState` da biblioteca padrão, que o próprio
-//! sistema semeia com bytes aleatórios do sistema operacional por processo (`getrandom`). Os offsets
+//! DIVERGÊNCIA: `cryptographicallyRandomNumber` lê `arc4random`/`/dev/urandom` no C++. Aqui a semente vem do
+//! `random_fill` do `Host` instalado (o `getrandom` do pseudo-processo no sandbox). Os offsets
 //! `lowOffset`/`highOffset` e `generate` existem só para o JIT inlinar o gerador e não são portados.
-
-use std::hash::{BuildHasher, Hasher};
 
 /// `cryptographicallyRandomNumber<unsigned>()`.
 pub fn cryptographically_random_number() -> u32 {
-    let mut hasher = std::collections::hash_map::RandomState::new().build_hasher();
-    hasher.write_u8(0);
-    hasher.finish() as u32
+    let mut bytes = [0u8; 4];
+    crate::runtime::host::host().random_fill(&mut bytes);
+    u32::from_le_bytes(bytes)
 }
 
 /// `class WeakRandom`.

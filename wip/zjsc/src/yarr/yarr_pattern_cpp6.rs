@@ -1008,7 +1008,7 @@ impl crate::yarr::yarr_pattern::YarrPattern {
     pub fn dump_pattern(&mut self, pattern_string: &crate::wtf::text::wtf_string::String) {
         let mut out = std::string::String::new();
         self.dump_pattern_to(&mut out, pattern_string);
-        eprint!("{}", out);
+        crate::wtf::data_log::data_log(&out);
     }
 
     /// `YarrPattern::dumpPattern(PrintStream&, StringView)`.

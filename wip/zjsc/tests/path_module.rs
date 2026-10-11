@@ -12,8 +12,12 @@ const EXPECTED: &str = include_str!("golden/path_main.expected.txt");
 /// `Object.getOwnPropertyNames(path)` e a última (`Object.keys(path.win32).length`).
 const KNOWN_DIVERGENCES: &[usize] = &[0, 1, 218];
 
+mod common;
+
 #[test]
 fn path_module_matches_bun() {
+    // `path.resolve` parte do `process.cwd()` da máquina que roda o teste, como o golden.
+    common::std_host::install();
     let console = Rc::new(zjsc::runtime::console_host::MemoryConsole::new(b""));
     let (code, _, _) = zjsc::api::eval::evaluate_main_script_reporting_signal(PROGRAM, "/app/main.js", console.clone());
     let actual = String::from_utf8_lossy(&console.stdout_bytes()).into_owned();

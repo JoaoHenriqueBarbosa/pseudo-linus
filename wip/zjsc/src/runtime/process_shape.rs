@@ -15,11 +15,11 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::os::unix::fs::MetadataExt;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use crate::host_function;
 use crate::runtime::collection_support::put_to_string_tag;
+use crate::runtime::host::host;
 use crate::runtime::host_call::{HostCall, HostResult};
 use crate::runtime::intl_support::prop;
 use crate::runtime::js_array::construct_array;
@@ -272,7 +272,7 @@ const MEMBERS: &[Member] = &[
 
 thread_local! {
     /// O instante em que o `process` nasceu, base de `uptime()`.
-    static START: Instant = Instant::now();
+    static START: u64 = ul_common::time::monotonic_nanos();
     /// Os valores gravados pelos setters dos acessores (`process.argv = [...]`), por nome.
     static SLOTS: RefCell<HashMap<&'static str, JSValue>> = RefCell::new(HashMap::new());
 }
@@ -338,7 +338,7 @@ host_function!(empty_array_function, empty_array_body);
 
 /// O tempo desde que o `process` nasceu, base de `uptime()` e de `hrtime`.
 pub(crate) fn elapsed_since_start() -> Duration {
-    START.with(Instant::elapsed)
+    Duration::from_nanos(ul_common::time::monotonic_nanos().saturating_sub(START.with(|start| *start)))
 }
 
 fn uptime_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
@@ -347,7 +347,7 @@ fn uptime_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostResult 
 host_function!(uptime_function, uptime_body);
 
 fn owner_ids() -> (u32, u32) {
-    std::fs::metadata("/proc/self").map_or((0, 0), |metadata| (metadata.uid(), metadata.gid()))
+    host().stat("/proc/self").map_or((0, 0), |stat| (stat.uid, stat.gid))
 }
 
 fn user_id_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
@@ -533,7 +533,7 @@ fn install_member(global_object: &JSGlobalObject, process: &JSObject, member: &M
             put_accessor_with(global_object, process, name, getter, Some(setter), 0);
         }
         Data("pid", _) => {
-            process.put_direct(vm, &prop(vm, "pid"), js_number(std::process::id()), 0);
+            process.put_direct(vm, &prop(vm, "pid"), js_number(host().pid()), 0);
         }
         Data(name, value) => {
             process.put_direct(vm, &prop(vm, name), build(global_object, value, name), 0);

@@ -171,7 +171,7 @@ fn sleep_sync_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResul
     if milliseconds < 0 {
         return Err(throw_coded_type_error(global_object, &format!("argument to sleepSync must not be negative, got {milliseconds}"), "ERR_INVALID_ARG_TYPE"));
     }
-    std::thread::sleep(std::time::Duration::from_millis(milliseconds as u64));
+    ul_common::time::sleep(std::time::Duration::from_millis(milliseconds as u64));
     Ok(JSValue::undefined())
 }
 

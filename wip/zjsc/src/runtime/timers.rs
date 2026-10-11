@@ -949,7 +949,7 @@ pub fn run_event_loop_until_held(global_object: &JSGlobalObject) -> bool {
                 // com o laço realmente vazio, por isso esta espera vem antes dele.
                 if crate::runtime::worker_host::holds_event_loop() {
                     if !crate::runtime::worker_host::deliver_pending(global_object) {
-                        std::thread::sleep(std::time::Duration::from_millis(1));
+                        ul_common::time::sleep(std::time::Duration::from_millis(1));
                     }
                     continue;
                 }

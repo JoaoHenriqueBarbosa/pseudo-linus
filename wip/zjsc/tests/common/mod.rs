@@ -18,6 +18,7 @@
 #![allow(dead_code)]
 
 pub mod module_golden;
+pub mod std_host;
 
 use std::panic::{catch_unwind, AssertUnwindSafe};
 

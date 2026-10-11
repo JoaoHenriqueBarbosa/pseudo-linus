@@ -322,7 +322,7 @@ fn stress_threshold() -> Option<usize> {
         .try_with(std::cell::Cell::get)
         .ok()
         .flatten()
-        .or_else(|| std::env::var("ZJSC_GC_STRESS").ok().and_then(|value| value.parse().ok()).filter(|&value| value > 0))
+        .or_else(|| crate::runtime::host::host().getenv("ZJSC_GC_STRESS").and_then(|value| value.parse().ok()).filter(|&value| value > 0))
 }
 
 fn initial_threshold() -> usize {

@@ -68,6 +68,8 @@ fn in_scope(index: usize) -> bool {
 fn process_next_tick_matches_bun() {
     common::run_with_stack(256 * 1024 * 1024, || {
         zjsc::runtime::vm::VM::set_thread_stack_budget(240 * 1024 * 1024);
+        // O golden confere `process.kill`, `pid` e `/proc` contra o bun nesta máquina.
+        common::std_host::install();
         let preludes = common::parse_preludes(PRELUDES);
         let mut covered = 0;
         let mut expected_failing = 0;

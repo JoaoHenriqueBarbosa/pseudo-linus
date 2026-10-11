@@ -76,7 +76,7 @@ pub fn set_environment(pairs: &[(&str, &str)]) {
 fn current_environment() -> Vec<(String, String)> {
     ENVIRONMENT
         .with(|environment| environment.borrow().clone())
-        .unwrap_or_else(|| std::env::vars_os().map(|(key, value)| (key.to_string_lossy().into_owned(), value.to_string_lossy().into_owned())).collect())
+        .unwrap_or_else(|| crate::runtime::host::host().environ())
 }
 
 /// O valor da variável `name` no ambiente do programa (o mesmo que `process.env.NAME` mostra na instalação).

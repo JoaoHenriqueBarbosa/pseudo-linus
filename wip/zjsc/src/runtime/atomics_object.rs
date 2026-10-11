@@ -348,7 +348,7 @@ fn atomics_wait(global_object: &JSGlobalObject, call: &HostCall, wait_type: Atom
     }
     match timeout.filter(|milliseconds| milliseconds.is_finite()).and_then(|milliseconds| Duration::try_from_secs_f64(milliseconds / 1000.0).ok()) {
         Some(duration) => {
-            std::thread::sleep(duration);
+            ul_common::time::sleep(duration);
             Ok(JSValue::from_js_string(js_string(vm, &WtfString::from_latin1(b"timed-out"))))
         }
         // Sem prazo, ou com um tão grande que a `Duration` não o representa (a espera seria eterna).

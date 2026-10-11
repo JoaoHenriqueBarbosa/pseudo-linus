@@ -2,9 +2,9 @@
 //! bytes saem. A chave privada é guardada como o escalar (NIST) ou a semente (Ed25519/X25519), a pública como o ponto SEC1
 //! não comprimido (NIST) ou os 32 bytes da curva (25519). `crypto.rs` cuida das mensagens de erro do bun.
 
-use std::io::Read;
-
 use ul_common::hash::Algo;
+
+use crate::runtime::host::host;
 
 /// As curvas que o WebCrypto do bun conhece.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -16,31 +16,25 @@ pub(crate) enum Curve {
     X25519,
 }
 
-/// Bytes aleatórios do sistema (`/dev/urandom`), a mesma fonte de `crypto.getRandomValues`.
-pub(crate) fn fill_random(bytes: &mut [u8]) {
-    let mut urandom = std::fs::File::open("/dev/urandom").expect("/dev/urandom existe no Debian");
-    urandom.read_exact(bytes).expect("/dev/urandom não falha");
-}
-
-/// O gerador que as crates de curva pedem, sobre [`fill_random`].
+/// O gerador que as crates de curva pedem, sobre o `random_fill` do host (a mesma fonte de `crypto.getRandomValues`).
 pub(crate) struct SystemRng;
 
 impl p256::elliptic_curve::rand_core::RngCore for SystemRng {
     fn next_u32(&mut self) -> u32 {
         let mut bytes = [0u8; 4];
-        fill_random(&mut bytes);
+        host().random_fill(&mut bytes);
         u32::from_le_bytes(bytes)
     }
     fn next_u64(&mut self) -> u64 {
         let mut bytes = [0u8; 8];
-        fill_random(&mut bytes);
+        host().random_fill(&mut bytes);
         u64::from_le_bytes(bytes)
     }
     fn fill_bytes(&mut self, dest: &mut [u8]) {
-        fill_random(dest);
+        host().random_fill(dest);
     }
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), p256::elliptic_curve::rand_core::Error> {
-        fill_random(dest);
+        host().random_fill(dest);
         Ok(())
     }
 }
@@ -76,7 +70,7 @@ macro_rules! nist_curve {
             pub(super) fn random_secret() -> Vec<u8> {
                 loop {
                     let mut bytes = vec![0u8; SIZE];
-                    super::fill_random(&mut bytes);
+                    crate::runtime::host::host().random_fill(&mut bytes);
                     // O P-521 tem 521 bits: o byte alto só carrega um bit.
                     if SIZE == 66 {
                         bytes[0] &= 1;
@@ -209,7 +203,7 @@ impl Curve {
     pub(crate) fn generate(self) -> Vec<u8> {
         on_nist!(self, ops => ops::random_secret(), _ => {
             let mut seed = vec![0u8; 32];
-            fill_random(&mut seed);
+            host().random_fill(&mut seed);
             seed
         })
     }

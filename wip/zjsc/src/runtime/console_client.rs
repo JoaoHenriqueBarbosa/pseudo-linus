@@ -38,7 +38,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::time::Instant;
 
 use crate::interpreter::call_frame::CallFrame;
 use crate::runtime::cell_registry::{self, CellEntry};
@@ -59,7 +58,7 @@ use crate::wtf::text::wtf_string::String as WtfString;
 #[derive(Default)]
 struct ConsoleState {
     counts: HashMap<Vec<u16>, u64>,
-    timers: HashMap<Vec<u16>, Instant>,
+    timers: HashMap<Vec<u16>, u64>,
     depth: usize,
 }
 
@@ -474,7 +473,7 @@ impl HostConsoleClient {
         let label = units(label);
         let Some(started) = self.state.borrow().timers.get(&label).copied() else { return };
         let mut line = Vec::new();
-        push_ascii(&mut line, &format!("[{}]", format_elapsed(started.elapsed().as_secs_f64() * 1000.0)));
+        push_ascii(&mut line, &format!("[{}]", format_elapsed(ul_common::time::monotonic_nanos().saturating_sub(started) as f64 / 1e6)));
         if !label.is_empty() {
             line.push(u16::from(b' '));
             line.extend(&label);
@@ -533,7 +532,7 @@ impl ConsoleClient for HostConsoleClient {
     fn take_heap_snapshot(&self, _global_object: &JSGlobalObject, _title: &WtfString) {}
 
     fn time(&self, _global_object: &JSGlobalObject, label: &WtfString) {
-        self.state.borrow_mut().timers.entry(units(label)).or_insert_with(Instant::now);
+        self.state.borrow_mut().timers.entry(units(label)).or_insert_with(ul_common::time::monotonic_nanos);
     }
 
     fn time_log(&self, global_object: &JSGlobalObject, label: &WtfString, arguments: ScriptArguments) {

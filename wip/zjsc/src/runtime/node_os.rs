@@ -1,7 +1,7 @@
 //! O módulo `node:os` do bun 1.4.2.
 //!
 //! As chaves e a ordem foram medidas com `Object.keys(require("os"))`. Os valores que dependem da máquina saem do mesmo
-//! lugar que o resto do porte lê (`process_system.rs` consulta `/proc/{pid}` com `std::fs`): `/proc/sys/kernel/*` para
+//! lugar que o resto do porte lê (`process_system.rs` consulta `/proc/{pid}` pelo `Host`): `/proc/sys/kernel/*` para
 //! `hostname`, `type`, `release` e `version`, `/proc/uptime`, `/proc/loadavg`, `/proc/meminfo`, `/proc/cpuinfo`,
 //! `/proc/stat`, `/proc/self/status` e `/etc/passwd` para o usuário, e o ambiente do programa (`process_env`) para
 //! `HOME` e `TMPDIR`. Dentro do pseudo-linus esses arquivos são os do sistema simulado, então nada aqui denuncia o host.
@@ -11,7 +11,7 @@
 //! inexistente lança o `SystemError ERR_SYSTEM_ERROR` `A system error occurred: uv_os_getpriority returned ESRCH (no such
 //! process)`; `userInfo(1)` lança `TypeError: Type error`.
 
-use std::process::Command;
+use crate::runtime::host::{host, read_text};
 
 use crate::host_function;
 use crate::runtime::host_call::{HostCall, HostResult, Thrown};
@@ -72,11 +72,6 @@ const PRIORITY: &[(&str, i32)] = &[
 ];
 
 const DLOPEN: &[(&str, i32)] = &[("RTLD_LAZY", 1), ("RTLD_NOW", 2), ("RTLD_GLOBAL", 256), ("RTLD_LOCAL", 0), ("RTLD_DEEPBIND", 8)];
-
-/// O conteúdo de um arquivo de `/proc` ou `/etc`, sem a quebra de linha final.
-fn read_text(path: &str) -> Option<String> {
-    std::fs::read_to_string(path).ok().map(|text| text.trim_end_matches('\n').to_string())
-}
 
 fn kernel_value(name: &str) -> String {
     read_text(&format!("/proc/sys/kernel/{name}")).unwrap_or_default()
@@ -438,7 +433,7 @@ fn fib_trie_addresses() -> (Vec<u32>, Vec<(u32, u32)>) {
             in_local = trimmed == "Local:";
             current = None;
         } else if let Some(address) = trimmed.strip_prefix("|-- ") {
-            current = address.parse::<std::net::Ipv4Addr>().ok().map(u32::from);
+            current = address.parse::<core::net::Ipv4Addr>().ok().map(u32::from);
         } else if in_local {
             let Some(address) = current else { continue };
             let Some((prefix, kind)) = trimmed.strip_prefix('/').and_then(|rest| rest.split_once(' ')) else { continue };
@@ -483,7 +478,7 @@ fn network_interfaces_body(global_object: &JSGlobalObject, _call: &HostCall) -> 
             .filter_map(|address| {
                 let (interface, prefix) = locate_ipv4(*address, &networks, &routes)?;
                 (interface == name).then(|| InterfaceAddress {
-                    address: std::net::Ipv4Addr::from(*address).to_string(),
+                    address: core::net::Ipv4Addr::from(*address).to_string(),
                     netmask: ipv4_netmask(prefix),
                     ipv6: false,
                     prefix,
@@ -598,12 +593,12 @@ fn set_priority_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRes
         return Err(throw_coded_range_error(global_object, &message, "ERR_OUT_OF_RANGE"));
     }
     let priority = number as i32;
-    let target = if pid == 0 { std::process::id() as i32 } else { pid };
-    let exists = std::path::Path::new(&format!("/proc/{target}")).exists();
+    let target = if pid == 0 { host().pid() as i32 } else { pid };
+    let exists = host().stat(&format!("/proc/{target}")).is_ok();
     if !exists {
         return Err(priority_system_error(global_object, "uv_os_setpriority", -3, "ESRCH", "no such process"));
     }
-    let applied = Command::new("renice").arg("-n").arg(priority.to_string()).arg("-p").arg(target.to_string()).output().is_ok_and(|output| output.status.success());
+    let applied = host().set_priority(target, priority).is_ok();
     if !applied {
         return Err(priority_system_error(global_object, "uv_os_setpriority", -13, "EACCES", "permission denied"));
     }

@@ -4,6 +4,7 @@
 //! o OID e o tamanho.
 
 use ml_kem::{Decapsulate, KeyExport, MlKem1024, MlKem768};
+use crate::runtime::host::host;
 
 /// Roda `$body` com `$p` sendo o conjunto de parâmetros ML-KEM do algoritmo; `None` nos de assinatura.
 macro_rules! with_kem {
@@ -182,7 +183,7 @@ impl PqAlgorithm {
         with_kem!(self, P => {
             let key = ml_kem::EncapsulationKey::<P>::new(&public.try_into().ok()?).ok()?;
             let mut message = [0u8; 32];
-            super::random_bytes(&mut message);
+            host().random_fill(&mut message);
             let (ciphertext, shared) = key.encapsulate_deterministic(&ml_kem::B32::from(message));
             Some((ciphertext.as_slice().to_vec(), shared.as_slice().to_vec()))
         })
@@ -199,7 +200,7 @@ impl PqAlgorithm {
     }
 
     /// Assina `data` com a chave privada da semente (FIPS 204, `ML-DSA.Sign` com aleatoriedade): `M' = 0x00 || len(ctx) || ctx
-    /// || M` e 32 bytes de `random_bytes` na semente de mascaramento. `None` se o `context` passa de 255 bytes ou o
+    /// || M` e 32 bytes aleatórios do host na semente de mascaramento. `None` se o `context` passa de 255 bytes ou o
     /// parâmetro não é de assinatura.
     pub(crate) fn sign(self, seed: &[u8], data: &[u8], context: &[u8]) -> Option<Vec<u8>> {
         if context.len() > 255 || self.is_kem() || seed.len() != 32 {
@@ -266,7 +267,7 @@ impl PqAlgorithm {
     /// Uma semente nova do tamanho do parâmetro, do mesmo gerador do resto do `SubtleCrypto`.
     pub(crate) fn generate_seed(self) -> Vec<u8> {
         let mut seed = vec![0u8; self.seed_len()];
-        super::random_bytes(&mut seed);
+        host().random_fill(&mut seed);
         seed
     }
 
@@ -319,7 +320,7 @@ where
 {
     let seed = ml_dsa::Seed::from_fn(|index| seed[index]);
     let mut random = [0u8; 32];
-    super::random_bytes(&mut random);
+    host().random_fill(&mut random);
     let random = ml_dsa::B32::from_fn(|index| random[index]);
     let key = ml_dsa::SigningKey::<P>::from_seed(&seed);
     let signature = key.expanded_key().sign_internal(&[&[0u8], &[context.len() as u8], context, data], &random);

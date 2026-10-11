@@ -1799,7 +1799,7 @@ impl<'s, 'i> SectionParser<'s, 'i> {
                 Ok(name_section) => self.info.set_name_section(name_section),
                 Err(message) => {
                     if Options::with(|options| options.dump_wasm_warnings) {
-                        eprintln!("Could not parse name section: {}", message);
+                        crate::runtime::host::eprintln(&format!("Could not parse name section: {}", message));
                     }
                 }
             }

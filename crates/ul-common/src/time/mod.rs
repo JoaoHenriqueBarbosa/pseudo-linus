@@ -30,6 +30,29 @@ pub fn realtime_nanos() -> i128 {
     }
 }
 
+/// Nanossegundos no `CLOCK_MONOTONIC` do pseudo-processo. Fora de um pseudo-processo, o tempo decorrido desde a
+/// primeira chamada no host (a origem do monotônico só se observa por diferenças).
+pub fn monotonic_nanos() -> u64 {
+    if let Some(sys) = sysabi::sys::try_current() {
+        if let Ok(spec) = sys.clock_gettime(sysabi::Clock::Monotonic) {
+            return (i128::from(spec.sec) * 1_000_000_000 + i128::from(spec.nsec)) as u64;
+        }
+    }
+    static ANCHOR: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+    ANCHOR.get_or_init(std::time::Instant::now).elapsed().as_nanos() as u64
+}
+
+/// Dorme `duration` no relógio do pseudo-processo (`nanosleep`, que cede a vez e entrega sinais); fora de um
+/// sandbox, dorme a thread do host.
+pub fn sleep(duration: std::time::Duration) {
+    match sysabi::sys::try_current() {
+        Some(sys) => {
+            let _ = sys.nanosleep(duration);
+        }
+        None => std::thread::sleep(duration),
+    }
+}
+
 /// Segundos num dia.
 pub const SECS_PER_DAY: i64 = 86_400;
 

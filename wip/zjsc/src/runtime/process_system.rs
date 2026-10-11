@@ -9,9 +9,9 @@
 
 use std::cell::{Cell, RefCell};
 use std::path::{Component, Path, PathBuf};
-use std::process::Command;
 
 use crate::host_function;
+use crate::runtime::host::host;
 use crate::runtime::host_call::{HostCall, HostResult};
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_module_loader::rust_string;
@@ -91,7 +91,7 @@ pub(crate) fn current_directory() -> String {
     if let Some(directory) = PROGRAM.with(|state| state.borrow().cwd.clone()) {
         return directory;
     }
-    std::env::current_dir().map_or_else(|_| String::from("/"), |path| path.to_string_lossy().into_owned())
+    host().cwd()
 }
 
 /// Junta `target` ao diretório `base` e normaliza `.` e `..` (sem seguir ligações simbólicas).
@@ -116,12 +116,12 @@ fn cwd_body(global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
 host_function!(pub cwd_function, cwd_body);
 
 /// `(errno, nome, descrição)` do erro de sistema de `chdir`, pelo `errno` do host.
-fn chdir_error(raw: Option<i32>, kind: std::io::ErrorKind) -> (i32, &'static str, &'static str) {
-    match (raw, kind) {
-        (Some(13), _) | (_, std::io::ErrorKind::PermissionDenied) => (-13, "EACCES", "permission denied"),
-        (Some(20), _) | (_, std::io::ErrorKind::NotADirectory) => (-20, "ENOTDIR", "not a directory"),
-        (Some(36), _) => (-36, "ENAMETOOLONG", "name too long"),
-        (Some(40), _) => (-40, "ELOOP", "too many symbolic links encountered"),
+fn chdir_error(errno: i32) -> (i32, &'static str, &'static str) {
+    match errno {
+        13 => (-13, "EACCES", "permission denied"),
+        20 => (-20, "ENOTDIR", "not a directory"),
+        36 => (-36, "ENAMETOOLONG", "name too long"),
+        40 => (-40, "ELOOP", "too many symbolic links encountered"),
         _ => (-2, "ENOENT", "no such file or directory"),
     }
 }
@@ -135,10 +135,10 @@ fn chdir_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let given = rust_string(&argument.as_js_string().value());
     let old = current_directory();
     let target = resolve_path(&old, &given);
-    let failure = match std::fs::metadata(&target) {
-        Ok(metadata) if metadata.is_dir() => None,
-        Ok(_) => Some(chdir_error(Some(20), std::io::ErrorKind::NotADirectory)),
-        Err(error) => Some(chdir_error(error.raw_os_error(), error.kind())),
+    let failure = match host().stat(&target.to_string_lossy()) {
+        Ok(stat) if stat.is_dir => None,
+        Ok(_) => Some(chdir_error(20)),
+        Err(errno) => Some(chdir_error(errno)),
     };
     if let Some((errno, code, description)) = failure {
         let message = format!("{code}: {description}, chdir '{old}' -> '{given}'");
@@ -251,20 +251,20 @@ const NOT_PERMITTED: KillFailure = (1, "EPERM", "Operation not permitted");
 /// Envia `signal` a `pid`: sinal 0 só testa a existência; para o próprio pid os ouvintes de `process.on(SINAL)` recebem
 /// o sinal (sem ouvinte o programa morre por ele); para os outros vai um `kill` de verdade.
 fn send_signal(global_object: &JSGlobalObject, pid: i32, signal: i32) -> Result<Result<(), KillFailure>, crate::runtime::host_call::Thrown> {
-    let alive = |pid: i32| Path::new(&format!("/proc/{pid}")).exists();
+    let alive = |pid: i32| host().stat(&format!("/proc/{pid}")).is_ok();
     if pid > 0 && !alive(pid) {
         return Ok(Err(NO_SUCH_PROCESS));
     }
     if signal == 0 {
         return Ok(Ok(()));
     }
-    if u32::try_from(pid).is_ok_and(|pid| pid == std::process::id()) {
+    if u32::try_from(pid).is_ok_and(|pid| pid == host().pid()) {
         if !IGNORED_BY_DEFAULT.contains(&signal) {
             deliver_signal(global_object, signal_name(signal).unwrap_or("SIGTERM"), signal)?;
         }
         return Ok(Ok(()));
     }
-    let delivered = Command::new("kill").arg("-s").arg(signal.to_string()).arg("--").arg(pid.to_string()).output().is_ok_and(|output| output.status.success());
+    let delivered = host().kill(pid, signal).is_ok();
     if delivered {
         return Ok(Ok(()));
     }

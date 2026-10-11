@@ -683,7 +683,7 @@ fn report_parse_times_if_needed(source: &SourceCode, succeeded: bool, before: Op
         let after = MonotonicTime::now();
         let hash = ParseHash::new(source);
         let message = if succeeded { "Parsed #" } else { "Failed to parse #" };
-        eprintln!("{}{}/#{} in {} ms.", message, hash.hash_for_call(), hash.hash_for_construct(), (after - before).milliseconds());
+        crate::runtime::host::eprintln(&format!("{}{}/#{} in {} ms.", message, hash.hash_for_call(), hash.hash_for_construct(), (after - before).milliseconds()));
     }
 }
 
@@ -741,7 +741,7 @@ fn parse_with_char_type<T: CharType, P: ParsedNode>(
     if log_builtin_errors && builtin_mode == JSParserBuiltinMode::Builtin && result.is_none() {
         debug_assert!(error.is_valid());
         if error.type_() != ErrorType::StackOverflow {
-            eprintln!("Unexpected error compiling builtin: {} on line {} for function {}.", String::from_utf8_lossy(&error.message().utf8(crate::wtf::text::conversion_mode::ConversionMode::LenientConversion)), error.line(), String::from_utf8_lossy(&name.utf8()));
+            crate::runtime::host::eprintln(&format!("Unexpected error compiling builtin: {} on line {} for function {}.", String::from_utf8_lossy(&error.message().utf8(crate::wtf::text::conversion_mode::ConversionMode::LenientConversion)), error.line(), String::from_utf8_lossy(&name.utf8())));
         }
     }
     result

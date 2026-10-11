@@ -13,14 +13,14 @@
 //! - `fgets`/`FILE*` são o `BufRead` do Rust com a mesma regra do `fgets` (para no `\n` ou em
 //!   `BUFSIZ - 1` bytes); `strstr`/`strchr` são buscas de bytes. O texto é lido como Latin1, como o
 //!   `String(span<const char>)` do C++.
-//! - `dataLog` é `stderr`, `exitProcess(EXIT_FAILURE)` é `std::process::exit(1)`.
+//! - `dataLog` é o stderr do `Host`, `exitProcess(EXIT_FAILURE)` é `Host::exit(1)`.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 use crate::parser::source_code::SourceCode;
+use crate::runtime::host::host;
 use crate::parser::source_provider::{SourceProviderSourceType, StringSourceProvider};
 use crate::parser::source_tainted_origin::SourceTaintedOrigin;
 use crate::runtime::options_list::Options;
@@ -109,15 +109,15 @@ thread_local! {
 
 /// `FAIL_WITH_ERROR(error, errorMessageInBrackets)`.
 fn fail_with_error(error: &str, message: &str) -> ! {
-    eprint!("functionOverrides {}: {}", error, message);
-    std::process::exit(1);
+    host().write_stderr(format!("functionOverrides {}: {}", error, message).as_bytes());
+    host().exit(1)
 }
 
 const SYNTAX_ERROR: &str = "SYNTAX ERROR";
 const IO_ERROR: &str = "IO ERROR";
 
 /// `fgets(buffer, bufferSize, file)`: lê até o `\n` (incluído) ou `bufferSize - 1` bytes.
-fn fgets(file: &mut BufReader<File>, buffer_size: usize) -> Option<Vec<u8>> {
+fn fgets(file: &mut impl BufRead, buffer_size: usize) -> Option<Vec<u8>> {
     let mut line = Vec::new();
     loop {
         let available = match file.fill_buf() {
@@ -164,7 +164,7 @@ fn has_disallowed_characters(string: &[u8]) -> bool {
 }
 
 /// `parseClause(const char* keyword, size_t keywordLength, FILE*, const char* line, char* buffer, size_t bufferSize)`.
-fn parse_clause(keyword: &str, file: &mut BufReader<File>, first_line: &[u8]) -> WtfString {
+fn parse_clause(keyword: &str, file: &mut impl BufRead, first_line: &[u8]) -> WtfString {
     let keyword_bytes = keyword.as_bytes();
     let keyword_length = keyword_bytes.len();
     let line_text = || String::from_utf8_lossy(first_line).into_owned();
@@ -296,7 +296,7 @@ impl FunctionOverrides {
             return;
         };
 
-        let file = match File::open(file_name) {
+        let file = match host().read_file(file_name) {
             Ok(file) => file,
             Err(_) => fail_with_error(
                 IO_ERROR,
@@ -306,7 +306,7 @@ impl FunctionOverrides {
                 ),
             ),
         };
-        let mut file = BufReader::new(file);
+        let mut file = BufReader::new(file.as_slice());
 
         while let Some(mut line) = fgets(&mut file, BUFSIZ) {
             if line.starts_with(b"//") {

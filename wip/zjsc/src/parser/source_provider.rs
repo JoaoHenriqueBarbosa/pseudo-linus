@@ -18,15 +18,12 @@
 //!   `JSObject` (camada do runtime).
 
 use std::cell::{Cell, RefCell};
-use std::fs;
-use std::io::Write;
-use std::os::unix::ffi::{OsStrExt, OsStringExt};
-use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicIsize, Ordering};
 
 use crate::parser::position_map::PositionMap;
 use crate::parser::source_tainted_origin::SourceTaintedOrigin;
+use crate::runtime::host::{host, HostFile};
 use crate::runtime::source_origin::SourceOrigin;
 use crate::wtf::text::string_impl::StringImpl;
 use crate::wtf::text::conversion_mode::ConversionMode;
@@ -344,20 +341,18 @@ pub trait SourceProvider: std::fmt::Debug {
         if !local_path.is_null() {
             dump_file_path = local_path.utf8(ConversionMode::LenientConversion);
         } else {
-            let base_name = format!("source-{}-{}", self.as_id(), std::process::id());
+            let base_name = format!("source-{}-{}", self.as_id(), host().pid());
             let opened = match dump_directory {
                 None => open_temporary_file(&base_name, ".js"),
                 Some(directory) => {
-                    let mut file_path = PathBuf::from(std::ffi::OsStr::from_bytes(directory));
-                    file_path.push(format!("{}.js", base_name));
-                    fs::File::create(&file_path).ok().map(|handle| (file_path, handle))
+                    let file_path = format!("{}/{}.js", String::from_utf8_lossy(directory), base_name);
+                    host().create_file(&file_path, false).ok().map(|handle| (file_path, handle))
                 }
             };
             if let Some((file_path, mut handle)) = opened {
                 let source_text = self.source().utf8(ConversionMode::LenientConversion);
                 let _ = handle.write_all(&source_text);
-                let _ = handle.flush();
-                dump_file_path = file_path.into_os_string().into_vec();
+                dump_file_path = file_path.into_bytes();
             }
         }
 
@@ -385,15 +380,12 @@ fn try_extract_local_path(url_string: &WtfString) -> WtfString {
 
 /// `FileSystem::openTemporaryFile(prefix, suffix)`: cria um arquivo novo e exclusivo no diretório
 /// temporário (`prefix`, seis caracteres únicos e `suffix`).
-fn open_temporary_file(prefix: &str, suffix: &str) -> Option<(PathBuf, fs::File)> {
+fn open_temporary_file(prefix: &str, suffix: &str) -> Option<(String, Box<dyn HostFile>)> {
     static COUNTER: AtomicIsize = AtomicIsize::new(0);
-    let directory = std::env::temp_dir();
+    let directory = host().getenv("TMPDIR").filter(|directory| !directory.is_empty()).unwrap_or_else(|| String::from("/tmp"));
     for _ in 0..64 {
         let serial = COUNTER.fetch_add(1, Ordering::SeqCst) as u64;
-        let nanos = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|elapsed| elapsed.subsec_nanos() as u64)
-            .unwrap_or(0);
+        let nanos = crate::wtf::date_math::current_time_in_nanoseconds().rem_euclid(1_000_000_000) as u64;
         let mut mix = serial.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ nanos;
         let alphabet = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         let mut token = String::new();
@@ -402,8 +394,8 @@ fn open_temporary_file(prefix: &str, suffix: &str) -> Option<(PathBuf, fs::File)
             mix /= alphabet.len() as u64;
             mix ^= mix.rotate_left(7) ^ nanos;
         }
-        let path = directory.join(format!("{}{}{}", prefix, token, suffix));
-        if let Ok(handle) = fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+        let path = format!("{}/{}{}{}", directory, prefix, token, suffix);
+        if let Ok(handle) = host().create_file(&path, true) {
             return Some((path, handle));
         }
     }
