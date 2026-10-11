@@ -1,0 +1,16 @@
+1 | export const = 1;
+                 ^
+error: Expected identifier but found "="
+    at /app/bad.ts:1:14
+
+1 | export const = 1;
+                   ^
+error: Expected ";" but found "1"
+    at /app/bad.ts:1:16
+
+1 | export const = 1;
+                 ^
+error: This constant must be initialized
+    at /app/bad.ts:1:14
+
+Bun v1.4.2 (Linux x64)

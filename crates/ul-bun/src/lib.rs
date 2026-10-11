@@ -5,6 +5,7 @@
 pub mod cli;
 pub mod console;
 pub mod host;
+pub mod transpiler;
 
 use sysabi::Program;
 

@@ -13,6 +13,8 @@ use zjsc::runtime::vm::VM;
 
 use crate::console::{FdConsole, SandboxFs};
 use crate::host::SysabiHost;
+use crate::transpiler::BunTranspiler;
+use zjsc::api::source_transpiler::install_source_transpiler;
 
 /// A versão do bun que o zjsc reproduz.
 const VERSION: &str = "1.4.2";
@@ -64,6 +66,7 @@ fn absolute(file: &str) -> String {
 fn run_program(source: String, url: String, arguments: Vec<String>) -> (i32, bool, Option<i32>) {
     ul_common::thread::run_with_stack(STACK_BYTES, move || {
         host::install(Rc::new(SysabiHost));
+        install_source_transpiler(Some(Rc::new(BunTranspiler)));
         set_main_module_fs(Some(Rc::new(SandboxFs)));
         VM::set_thread_stack_budget(STACK_BYTES - STACK_GUARD_BYTES);
         let arguments: Vec<&str> = arguments.iter().map(String::as_str).collect();

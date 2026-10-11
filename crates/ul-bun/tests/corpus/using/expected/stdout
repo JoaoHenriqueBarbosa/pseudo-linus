@@ -1,0 +1,6 @@
+open a
+open b
+body
+close b
+close a
+1

@@ -817,6 +817,24 @@ pub(crate) fn import_commonjs(path: &str, done: &crate::api::source_transpiler::
     get_object_property(&global_object, module, &exports_name)
 }
 
+/// O `import.meta.require` do módulo ES `path`: o `require` do CommonJS (monta o estado do carregador no primeiro uso,
+/// com o próprio módulo no lugar do principal) com o pedido `specifier`.
+pub(crate) fn import_meta_require(global_object: &JSGlobalObject, path: &str, specifier: JSValue) -> HostResult {
+    CJS_FS.with(|slot| {
+        if slot.borrow().is_none() {
+            *slot.borrow_mut() = global_object.module_fs();
+        }
+    });
+    if CJS_STATE.with(|state| state.borrow().is_none()) {
+        let (_, _, module) = boot_cjs_state(&crate::runtime::js_module_record::realm(), path);
+        let cache = JSObject::from_value(&cjs_slot(0)).expect("require.cache não é objeto");
+        let vm = global_object.vm();
+        cache.define_own_property(vm, &key_of(vm, path), &PropertyDescriptor::new(module, 0), false)?;
+    }
+    let parent = CJS_STATE.with(|state| state.borrow().as_ref().map(|state| state.modules[0].module.clone())).expect("estado do CJS");
+    require_module(global_object, specifier, false, path, parent)
+}
+
 /// A diretiva que `canonicalSource` preserva no começo do programa CJS estrito.
 const CJS_STRICT_DIRECTIVE: &str = "\"use strict\";\n";
 

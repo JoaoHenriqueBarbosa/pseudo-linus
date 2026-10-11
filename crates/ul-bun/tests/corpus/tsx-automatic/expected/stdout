@@ -1,0 +1,1 @@
+{"type":"div","props":{"id":"root","className":"a"},"children":[{"type":"Card","props":{"title":"t"},"children":"hello"},{"type":"b","props":{},"children":"x"}]}

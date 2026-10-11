@@ -1,0 +1,8 @@
+1 | function inner(n: number): number {
+2 |   if (n > 2) throw new RangeError('too big: ' + n);
+                           ^
+RangeError: too big: 3
+      at inner (/app/main.ts:2:24)
+      at /app/main.ts:6:1
+
+Bun v1.4.2 (Linux x64)

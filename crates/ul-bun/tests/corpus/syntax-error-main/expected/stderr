@@ -1,0 +1,6 @@
+2 | let y = (1 + ;
+                 ^
+error: Unexpected ;
+    at /app/bad.ts:2:14
+
+Bun v1.4.2 (Linux x64)

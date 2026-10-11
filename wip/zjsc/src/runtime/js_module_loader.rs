@@ -265,6 +265,8 @@ thread_local! {
     static IMPORT_META_STRUCTURE: RefCell<Option<StructureRef>> = const { RefCell::new(None) };
     /// `cell_id` de cada `import.meta.resolve` do navegador -> a chave do módulo dele (o referrer da resolução).
     static HTML_RESOLVERS: RefCell<HashMap<usize, String>> = RefCell::new(HashMap::new());
+    /// O caminho do módulo de cada `import.meta.require` (a função nativa é a chave).
+    static META_REQUIRES: RefCell<HashMap<usize, String>> = RefCell::new(HashMap::new());
 }
 
 /// Índice (e parâmetro const dos nativos) da classe `ResolveMessage`.
@@ -327,6 +329,67 @@ fn property_key(vm: &VM, name: &str) -> PropertyName {
 /// O estado de `this` quando é uma instância da classe `kind` (a de outra classe não vale).
 fn with_message_state<R>(kind: usize, this: JSValue, pick: impl FnOnce(&MessageState) -> R) -> Option<R> {
     MESSAGE_STATES.with(|states| states.borrow().get(&this.encode()).filter(|state| state.kind == kind).map(pick))
+}
+
+/// O bloco que o bun escreve no stderr para um `BuildMessage` ou `ResolveMessage` não capturado (`Data.writeFormat`, sem
+/// cores): o trecho do fonte com o número da linha, o `^` (e `~` pelo resto do destaque), `error: texto`, `at
+/// arquivo:linha:coluna` e, depois de uma linha em branco, cada nota com `note:` e o `at` um espaço menos recuado. Um
+/// `ResolveMessage` sai só como `error: texto`, e o "imported from X" da mensagem vira "from 'X'" (medido no bun 1.4.2).
+/// `None` quando `value` não é uma instância de nenhuma das duas classes.
+pub(crate) fn message_block(value: JSValue) -> Option<Vec<u8>> {
+    let state = MESSAGE_STATES.with(|states| states.borrow().get(&value.encode()).cloned())?;
+    if state.kind == RESOLVE {
+        let message = match state.message.split_once(" imported from ") {
+            Some((head, referrer)) if head.starts_with("Cannot find ") && !referrer.contains('\n') => format!("{head} from '{referrer}'"),
+            _ => state.message.clone(),
+        };
+        return Some(format!("error: {message}\n").into_bytes());
+    }
+    let mut out = String::new();
+    write_data_block(&mut out, "error", &state.message, state.build.position.as_ref(), "    at ");
+    for note in &state.build.notes {
+        out.push('\n');
+        write_data_block(&mut out, "note", &note.message, note.position.as_ref(), "   at ");
+    }
+    Some(out.into_bytes())
+}
+
+fn write_data_block(out: &mut String, kind: &str, text: &str, position: Option<&BuildPosition>, at_indent: &str) {
+    if text.is_empty() {
+        return;
+    }
+    if let Some(position) = position {
+        let line_text = position.line_text.trim_end_matches([' ', '\r', '\n', '\t']).trim_start_matches(['\n', '\r']);
+        if position.column > -1 && !line_text.is_empty() {
+            let mut offset = usize::try_from(position.column - 1).unwrap_or(0);
+            if position.line > -1 {
+                let prefix = format!("{} | ", position.line);
+                out.push_str(&prefix);
+                offset += prefix.len();
+            }
+            out.push_str(line_text);
+            out.push('\n');
+            out.push_str(&" ".repeat(offset));
+            out.push('^');
+            if position.length > 1 {
+                let column = usize::try_from(position.column - 1).unwrap_or(0);
+                let rest = line_text.len().saturating_sub(column + 1);
+                out.push_str(&"~".repeat((position.length - 1).min(rest)));
+            }
+            out.push('\n');
+        }
+    }
+    out.push_str(&format!("{kind}: {text}\n"));
+    if let Some(position) = position {
+        if !position.file.is_empty() {
+            out.push_str(at_indent);
+            out.push_str(&position.file);
+            if position.line > -1 && position.column > -1 {
+                out.push_str(&format!(":{}:{}", position.line, position.column));
+            }
+            out.push('\n');
+        }
+    }
 }
 
 /// Como o bun descreve o `this` recebido na mensagem de `ERR_INVALID_THIS`; `undefined` não acrescenta nada.
@@ -896,6 +959,7 @@ pub(crate) fn reset_for_program() {
     let _ = IMPORT_META_OBJECTS.try_with(|objects| objects.borrow_mut().clear());
     let _ = IMPORT_META_STRUCTURE.try_with(|slot| slot.borrow_mut().take());
     let _ = HTML_RESOLVERS.try_with(|resolvers| resolvers.borrow_mut().clear());
+    let _ = META_REQUIRES.try_with(|requires| requires.borrow_mut().clear());
 }
 
 fn loader() -> Option<Rc<ModuleLoader>> {
@@ -1439,6 +1503,13 @@ pub fn create_import_meta_properties(global_object: &JSGlobalObject, key: &Ident
             define(b"dirname", text_value(directory));
             define(b"dir", text_value(directory));
             define(b"file", text_value(file));
+            // `require` (comprimento 1, `name` "require"): o `require` do CommonJS ligado ao módulo (o printer do bun
+            // emite `var {require} = import.meta` para o `require()` de um arquivo ES).
+            let require = crate::runtime::timers::native(global_object, "require", 1, import_meta_require);
+            if let JSValue::Cell(cell_id) = require {
+                META_REQUIRES.with(|requires| requires.borrow_mut().insert(cell_id, path.to_owned()));
+            }
+            define(b"require", require);
         }
         define(b"main", JSValue::Bool(loader.host.is_main_module(&key_string)));
         // `resolve` e `resolveSync` (comprimento 0 no Bun), nativas: o referrer sai do chamador.
@@ -1459,6 +1530,14 @@ pub fn create_import_meta_properties(global_object: &JSGlobalObject, key: &Ident
     IMPORT_META_OBJECTS.with(|objects| objects.borrow_mut().insert(object.as_value().encode(), values));
     Ok(object.as_value())
 }
+
+fn import_meta_require_body(global_object: &JSGlobalObject, call: &crate::runtime::host_call::HostCall) -> crate::runtime::host_call::HostResult {
+    let Some(path) = META_REQUIRES.with(|requires| requires.borrow().get(&call.callee()).cloned()) else {
+        return Ok(JSValue::undefined());
+    };
+    crate::api::eval::import_meta_require(global_object, &path, call.argument(0))
+}
+crate::host_function!(import_meta_require, import_meta_require_body);
 
 /// O `import.meta` do Chromium 154, medido: protótipo `null`, extensível, só `url` e `resolve` próprios (graváveis,
 /// enumeráveis, configuráveis). `resolve` (comprimento 1, não construtor) resolve contra o módulo dele qualquer que
@@ -1492,7 +1571,7 @@ fn html_import_meta_resolve_body(global_object: &JSGlobalObject, call: &crate::r
 crate::host_function!(html_import_meta_resolve, html_import_meta_resolve_body);
 
 /// Os nomes que o protótipo escondido do `ImportMeta` serve.
-const IMPORT_META_NAMES: [&[u8]; 9] = [b"url", b"path", b"filename", b"dirname", b"dir", b"file", b"main", b"resolve", b"resolveSync"];
+const IMPORT_META_NAMES: [&[u8]; 10] = [b"url", b"path", b"filename", b"dirname", b"dir", b"file", b"main", b"require", b"resolve", b"resolveSync"];
 
 static IMPORT_META_S_INFO: ClassInfo =
     ClassInfo { class_name: "Object", parent_class: Some(&JS_FINAL_OBJECT_INFO), static_prop_hash_table: None, inherits_js_type_range: None };

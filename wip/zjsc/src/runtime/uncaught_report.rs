@@ -63,6 +63,27 @@ pub fn finish_report(global_object: &JSGlobalObject, report: &[u8]) -> i32 {
 /// a exceção saiu de um callback (timer, microtarefa): um valor que não é `Error` ganha então o trecho, o `^` e o frame
 /// do `throw` (lidos da última exceção do VM) no lugar da segunda linha com o valor.
 pub fn append_exception_report(out: &mut Vec<u8>, global_object: &JSGlobalObject, source: &str, exception: JSValue, with_trace: bool) {
+    // O `BuildMessage` (o arquivo que o transpilador recusa) e o `ResolveMessage` (o import que não resolve) saem como o
+    // log do bun, não como objeto; o `AggregateError` de `BuildMessage` os relata um depois do outro, separados por linha em branco.
+    if let Some(block) = crate::runtime::js_module_loader::message_block(exception) {
+        out.extend_from_slice(&block);
+        return;
+    }
+    if let JSValue::Cell(cell_id) = &exception {
+        if let Some(error) = ErrorInstance::from_cell_id(*cell_id).filter(|error| error.error_type() == Some(ErrorType::AggregateError)) {
+            let vm = global_object.vm();
+            if let Some(list) = JSObject::from_value(&own_property(global_object, &error, &vm.property_names.errors)) {
+                let length = list.get(vm, &PropertyName::from_identifier(&vm.property_names.length));
+                let blocks: Vec<Vec<u8>> = (0..if length.is_number() { length.as_number() as u32 } else { 0 })
+                    .map_while(|index| crate::runtime::js_module_loader::message_block(list.get_by_index(vm, index)))
+                    .collect();
+                if !blocks.is_empty() {
+                    out.extend_from_slice(&blocks.join(&b'\n'));
+                    return;
+                }
+            }
+        }
+    }
     let (text, inspected) = match &exception {
         JSValue::Cell(cell_id) if ErrorInstance::from_cell_id(*cell_id).is_some() => {
             // Saída de um callback, o bun relata a `JSC::Exception` e não o valor: `JSC__JSValue__toZigException` passa

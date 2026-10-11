@@ -13,6 +13,8 @@ sysio = { path = "../sysio" }
 ul-common = { workspace = true }
 # O motor: JavaScriptCore do WebKit do Bun, traduzido sem unsafe (fora do workspace).
 zjsc = { path = "../../wip/zjsc" }
+# O transpilador do bun (TypeScript, JSX, decorators): o que o `bun run a.ts` passa o fonte antes de o motor rodá-lo.
+bun_transpile = { path = "../../wip/zbun/transpile" }
 
 [dev-dependencies]
 sysabi = { workspace = true, features = ["testkit"] }

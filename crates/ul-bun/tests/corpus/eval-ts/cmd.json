@@ -1,0 +1,1 @@
+["-e", "const x: number = 1; interface I { a: string } enum E { A = 3 } console.log(x + E.A, ({a: \"z\"} as I).a)"]

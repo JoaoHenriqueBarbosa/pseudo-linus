@@ -9,6 +9,7 @@
 //! O mapa sai do VLQ do `Builder` do printer, um segmento por token mapeado: o JSC do bun remapeia a pilha pelo
 //! segmento que cobre a posição (`SavedSourceMap`), e o zjsc consome os mesmos segmentos.
 
+pub use bun_ast::Loader;
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
@@ -157,6 +158,8 @@ pub struct Config {
     /// O `bun build --no-bundle` sem `--target=bun`: sem `tree_shaking` o topo é uma parte só, e o `mangle_stmts` junta as
     /// declarações adjacentes (`const a = f(), b = g();`); com ele cada instrução de topo é visitada sozinha (medido).
     pub no_tree_shaking: bool,
+    /// O loader de um arquivo sem extensão de JavaScript (`[eval]` do `bun -e` é `tsx`); `None` escolhe pela extensão.
+    pub loader: Option<bun_ast::Loader>,
 }
 
 /// Transpila `source` (o arquivo `path`) como o runtime do bun faz antes de entregá-lo ao JSC.
@@ -166,7 +169,7 @@ pub fn transpile(path: &str, source: &[u8]) -> Result<Transpiled, Error> {
 
 /// [`transpile`] com a [`Config`] escolhida.
 pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Transpiled, Error> {
-    let loader = loader_for(path).ok_or_else(|| fail(format!("sem loader de JavaScript para {path}")))?;
+    let loader = config.loader.or_else(|| loader_for(path)).ok_or_else(|| fail(format!("sem loader de JavaScript para {path}")))?;
     let source = Source::init_path_string(interned_path(path), source.to_vec());
     let arena = Arena::default();
     let mut log = bun_ast::Log::default();
