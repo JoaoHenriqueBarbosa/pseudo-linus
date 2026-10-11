@@ -82,8 +82,15 @@ def _thread():
 
 
 def _current():
-    """O greenlet corrente da thread que roda; o principal dela nasce na primeira consulta."""
+    """O greenlet corrente da thread que roda; o principal dela nasce na primeira consulta. É também o
+    `green_updatecurrent` do C: os greenlets que outra thread soltou (a `deleteme` desta) morrem agora, nela."""
     green = _thread()
+    if getattr(green, 'deleteme', None):
+        if _sys._gt_can_switch():
+            _reap_deleted(green)
+        else:
+            # Chamado de dentro de uma nativa (o `__new__` do tipo): a troca espera o próximo ponto seguro, ainda nesta thread.
+            _gsched.at_safe_point(lambda green=green: _reap_deleted(green))
     glet = getattr(green, 'glet', None)
     if glet is None:
         glet = object.__new__(greenlet)
@@ -632,9 +639,28 @@ from ``g_raiser`` to ``g``.
         if state.main or not state.started or state.dead:
             return
         if state.owner is not _thread():
+            _defer_to(state.owner, self)
             return
         _doomed.append(self)
         _gsched.at_safe_point(_reap)
+
+
+def _defer_to(owner, glet):
+    """O greenlet que outra thread soltou só morre na thread dona dele (o `deleteme` do C): a dona o descarta na
+    próxima vez que consultar o greenlet corrente. Dona que já saiu: o greenlet fica como está."""
+    if _exited(owner):
+        return
+    pending = getattr(owner, 'deleteme', None)
+    if pending is None:
+        pending = owner.deleteme = []
+    pending.append(glet)
+
+
+def _reap_deleted(green):
+    pending, green.deleteme = green.deleteme, []
+    _doomed.extend(pending)
+    del pending
+    _reap()
 
 
 def _reap():

@@ -1,0 +1,7 @@
+after creation []
+after main drop []
+after bg alloc [('GreenletExit', 'Bg')]
+other dropped the holder
+main before getcurrent
+bomb del in MainThread
+main after getcurrent
