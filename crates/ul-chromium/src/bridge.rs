@@ -138,7 +138,13 @@ impl Bridge {
     /// Serve os subrecursos pendentes do Blitz: a folha de estilo e a imagem chegadas valem para o layout.
     pub fn serve_resources(&self) {
         let document_url = self.url.borrow().clone();
-        let fetch = |address: &str| crate::fetch::subresource(&self.fetcher, crate::fetch::Kind::infer(address), &document_url, address).ok().filter(|r| r.status < 400).map(|r| r.body);
+        let fetch = |address: &str| {
+            // O `data:` não passa pela rede: o corpo está na própria URL.
+            if address.get(..5).is_some_and(|scheme| scheme.eq_ignore_ascii_case("data:")) {
+                return data_url::DataUrl::process(address).ok().and_then(|parsed| parsed.decode_to_vec().ok()).map(|(bytes, _)| bytes);
+            }
+            crate::fetch::subresource(&self.fetcher, crate::fetch::Kind::infer(address), &document_url, address).ok().filter(|r| r.status < 400).map(|r| r.body)
+        };
         self.net.serve(&mut self.doc.borrow_mut(), &fetch);
     }
 

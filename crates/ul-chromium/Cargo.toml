@@ -26,6 +26,11 @@ encoding_rs = "0.8"
 blitz-dom = { version = "=0.3.0-beta.2", default-features = false, features = ["svg", "woff", "accessibility", "file-input", "custom-widget"] }
 blitz-html = "=0.3.0-beta.2"
 blitz-traits = "=0.3.0-beta.2"
+# A pintura do documento (o `--screenshot` e o `Page.captureScreenshot`): o Blitz desenha pelo anyrender, aqui no
+# rasterizador em CPU do vello.
+blitz-paint = { version = "=0.3.0-beta.2", default-features = true }
+anyrender = "0.13"
+anyrender_vello_cpu = "0.17"
 # O contexto de fontes do Blitz, montado aqui com as fontes da VFS (sem as do sistema hospedeiro).
 parley = { version = "0.11.1", default-features = false, features = ["std"] }
 # Contornos e caixas dos glifos para o texto do canvas (o mesmo leitor de fonte do parley).

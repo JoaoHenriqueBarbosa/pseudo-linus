@@ -22,6 +22,7 @@ pub mod netmeta;
 pub mod preferences;
 pub mod quota_manager;
 pub mod page;
+pub mod paint;
 pub mod session;
 pub mod sessions;
 pub mod session_storage;

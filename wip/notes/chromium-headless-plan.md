@@ -115,6 +115,24 @@ parâmetros, métodos, extensões, atributos de contexto, precisões de shader e
    (`measureText('Hello')` em `10px sans-serif` = 22.7880859375); `toDataURL` com os bytes do codificador PNG do Skia
    (canvas vazio 300x150: 2118 caracteres).
 
+## Pintura (M5.5: `--screenshot`, depois `Page.captureScreenshot` e `--print-to-pdf`)
+
+`crates/ul-chromium/src/paint.rs`: o Blitz resolve o layout e o `blitz-paint` desenha pelo `anyrender_vello_cpu` num RGBA
+de viewport, composto sobre o branco do Chromium e codificado em PNG. Fontes: as da VFS (Liberation e DejaVu do Debian), as
+mesmas do oráculo, sem fallback inventado.
+
+Métrica fixa e versionada: `paint-ssim-v1` em `crates/ul-chromium/tests/paint.rs` (SSIM médio, luminância Rec. 709, janela
+uniforme 8x8 com passo 4, L=255, K1=0,01, K2=0,03). Razão: pesa estrutura (bordas, glifos, alinhamento) e não o valor de cada
+pixel; o antisserrilhado e o hinting do texto diferem do Skia sem a página parecer outra, e o SSIM cai quando um elemento muda
+de lugar, de tamanho ou some, o que o erro médio quadrático esconde numa página quase toda branca. Os goldens são screenshots
+do Chromium 154 do oráculo (`--headless --hide-scrollbars --window-size=780,493`, páginas em `tests/paint/pages`). O limiar de
+cada página é o medido menos 0,02 (catraca: só sobe).
+
+Medido na primeira pintura (SSIM contra o oráculo): texto 0,871; caixa e borda 0,884; imagem 0,891; flex e grid 0,834; site
+local 0,740 (as imagens `data:` só pintaram depois de servidas pelo corpo da própria URL). O que falta, todo de layout do `blitz-dom` e não da pintura: `vertical-align: top` em imagem inline (a imagem fica
+na linha de base), a tabela (larguras de coluna e a espessura da borda colapsada), alturas de linha 1 a 2 px diferentes em
+parágrafos e 1 px a mais na altura do cabeçalho.
+
 ## Ordem
 
 1. Placar da internet a 95% em cada grupo (agora).

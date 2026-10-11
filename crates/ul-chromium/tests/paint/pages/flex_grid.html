@@ -1,0 +1,7 @@
+<!doctype html><html><head><meta charset="utf-8"><title>flex grid</title>
+<style>body{margin:10px;font-family:sans-serif;font-size:14px}.f{display:flex;gap:8px;margin-bottom:10px}.f>div{background:#9cf;padding:8px;border:1px solid #369}
+.f1{justify-content:space-between}.f2>div{flex:1}.f2>div:nth-child(2){flex:2;background:#fc9}.f3{flex-direction:column;width:200px;align-items:flex-end}
+.g{display:grid;grid-template-columns:1fr 2fr 1fr;grid-gap:6px}.g>div{background:#cec;padding:10px;border:1px solid #484}.g>div:nth-child(1){grid-column:span 2}.w{display:flex;flex-wrap:wrap;width:260px;gap:4px}.w>div{width:80px;height:30px;background:#c9f}</style></head><body>
+<div class="f f1"><div>A</div><div>BB</div><div>CCC</div></div><div class="f f2"><div>one</div><div>two twice as wide</div><div>three</div></div>
+<div class="f f3"><div>col 1</div><div>col 2 longer</div></div><div class="g"><div>span two</div><div>cell</div><div>cell</div><div>cell</div><div>cell</div></div>
+<div class="w"><div></div><div></div><div></div><div></div><div></div></div></body></html>

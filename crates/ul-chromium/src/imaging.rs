@@ -141,7 +141,7 @@ fn png_chunk(out: &mut Vec<u8>, kind: &[u8; 4], data: &[u8]) {
 /// flush de sincronia no fim dos dados (IDATs de 4 KiB) e o bloco final num IDAT próprio. Medido em
 /// `testbench/oracle/measured/canvas-encode.html`. O zlib vai direto ao miniz_oxide porque, no workspace, o flate2
 /// que o `png` crate usaria compila com o backend zlib-rs (que o `ul-net` liga) e comprime diferente.
-fn encode_png(width: u32, height: u32, rgba: &[u8]) -> Vec<u8> {
+pub fn encode_png(width: u32, height: u32, rgba: &[u8]) -> Vec<u8> {
     let stride = width as usize * 4;
     let mut raw = Vec::with_capacity((stride + 1) * height as usize);
     let mut previous = vec![0u8; stride];

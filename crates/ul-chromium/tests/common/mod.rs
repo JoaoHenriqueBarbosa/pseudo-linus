@@ -30,7 +30,8 @@ impl zjsc::runtime::console_host::ConsoleHost for Capture {
 
 /// Serve `files` (caminho, corpo) em qualquer host; o resto é 404. `headers` entram em toda resposta. Responde em
 /// HTTP/1.0, como o `http.server` do Python que serve as medições do oráculo.
-fn serve(files: &[(&str, &str)], headers: &[(&str, &str)]) -> Fetcher {
+#[allow(dead_code)]
+pub fn serve(files: &[(&str, &str)], headers: &[(&str, &str)]) -> Fetcher {
     let files: Vec<(String, String)> = files.iter().map(|(p, b)| ((*p).to_owned(), (*b).to_owned())).collect();
     let extra: Vec<(Vec<u8>, Vec<u8>)> = headers.iter().map(|(n, v)| (n.as_bytes().to_vec(), v.as_bytes().to_vec())).collect();
     Rc::new(move |target: &str, _spec: &ul_net::net::client::RequestSpec<'_>| {

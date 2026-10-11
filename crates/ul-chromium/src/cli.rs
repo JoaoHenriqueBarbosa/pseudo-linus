@@ -18,6 +18,10 @@ use crate::session_storage::Exit;
 pub struct Options {
     pub headless: bool,
     pub dump_dom: bool,
+    /// `--screenshot[=<arquivo>]`: o caminho do PNG (`screenshot.png` sem argumento).
+    pub screenshot: Option<String>,
+    /// `--window-size=<largura>,<altura>`: o viewport do screenshot.
+    pub window_size: Option<(u32, u32)>,
     /// `--virtual-time-budget=<ms>`: quanto tempo virtual a página tem para ficar ociosa antes do despejo.
     pub virtual_time_budget: Option<f64>,
     /// `--remote-debugging-port`, `--remote-debugging-pipe` e `--remote-allow-origins`.
@@ -35,6 +39,11 @@ pub fn parse(args: &[String]) -> Options {
         match arg.as_str() {
             "--headless" | "--headless=new" | "--headless=old" => options.headless = true,
             "--dump-dom" => options.dump_dom = true,
+            "--screenshot" => options.screenshot = Some("screenshot.png".to_owned()),
+            flag if flag.starts_with("--screenshot=") => options.screenshot = Some(flag["--screenshot=".len()..].to_owned()),
+            flag if flag.starts_with("--window-size=") => {
+                options.window_size = flag["--window-size=".len()..].split_once(',').and_then(|(w, h)| Some((w.parse().ok()?, h.parse().ok()?)));
+            }
             "--remote-debugging-pipe" => options.devtools.pipe = true,
             flag if flag.starts_with("--virtual-time-budget=") => options.virtual_time_budget = flag["--virtual-time-budget=".len()..].parse().ok(),
             flag if flag.starts_with("--remote-debugging-port=") => options.devtools.port = flag["--remote-debugging-port=".len()..].parse().ok(),
@@ -107,6 +116,13 @@ fn load(ctx: &mut Ctx, options: &Options, first: &str, disk: &DiskProfile) -> i3
         }
         if options.dump_dom {
             let _ = ctx.stdout().write_all(page.dump_dom().as_bytes());
+        }
+        if let Some(path) = &options.screenshot {
+            let (width, height) = options.window_size.unwrap_or(crate::document::WINDOW);
+            let png = page.screenshot_png(width, height);
+            if sysabi::util::write_file(path.as_bytes(), &png, 0o644).is_ok() {
+                let _ = ctx.stderr().write_all(format!("{} bytes written to file {path}\n", png.len()).as_bytes());
+            }
         }
         return 0;
     }
