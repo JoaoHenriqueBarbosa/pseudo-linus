@@ -4,3 +4,39 @@ response iter ok [ 3 ]
 stream iter ok [ 1 ]
 values ok [ "function", true, "ReadableStream" ]
 values call ok [ false, 3 ]
+break cancels ok [ undefined, false ]
+prevent cancel ok [ false, false ]
+locked err TypeError ERR_INVALID_STATE Invalid state: ReadableStream is locked
+errored err Error undefined boom
+after done ok [
+  {
+    value: undefined,
+    done: true,
+  }, {
+    value: undefined,
+    done: true,
+  }, {
+    value: 7,
+    done: true,
+  }, false
+]
+return value ok [
+  {
+    value: 9,
+    done: true,
+  }, false
+]
+chain ok [
+  {
+    value: 1,
+    done: false,
+  }, {
+    value: 2,
+    done: false,
+  }, {
+    value: undefined,
+    done: true,
+  }
+]
+proto ok [ true, [ "next", "return" ], true, "[object Object]" ]
+bad this err TypeError ERR_INVALID_THIS Can only call ReadableStreamAsyncIterator.next on instances of ReadableStreamAsyncIterator

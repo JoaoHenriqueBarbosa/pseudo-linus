@@ -207,6 +207,16 @@ pub(crate) fn reset_for_program() {
     compression_streams::reset_for_program();
 }
 
+/// `ReadableStream.prototype.values`: o iterador assíncrono, escrito em JavaScript sobre `getReader`.
+fn values_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let exports = crate::api::builtin_modules::cached("internal:stream-iter", || {
+        let host = crate::api::node_js_host::module_host(global_object, &[])?;
+        Ok(crate::api::node_js_host::run_factory(global_object, include_str!("stream_iter.js"), "stream-iter", &host))
+    })?;
+    let function = crate::runtime::string_regexp_support::get_object_property(global_object, exports, &Identifier::from_span(global_object.vm(), b"values"))?;
+    crate::api::node_js_host::call_value(global_object, function, call.this_value(), call.arguments(), "ReadableStream")
+}
+
 fn throw_invalid_this(global_object: &JSGlobalObject, kind: Kind) -> Thrown {
     throw_coded_type_error(global_object, &format!("Value of \"this\" must be of type {}", kind.name()), "ERR_INVALID_THIS")
 }
@@ -361,7 +371,7 @@ members! {
     rs_pipe_through => (Kind::ReadableStream, Mode::Real(pipe::rs_pipe_through)),
     rs_pipe_to => (Kind::ReadableStream, Mode::Real(pipe::rs_pipe_to)),
     rs_tee => (Kind::ReadableStream, Mode::Real(readable::rs_tee)),
-    rs_values => (Kind::ReadableStream, Mode::Throw),
+    rs_values => (Kind::ReadableStream, Mode::Real(values_body)),
     rs_blob => (Kind::ReadableStream, Mode::Reject),
     rs_bytes => (Kind::ReadableStream, Mode::Reject),
     rs_json => (Kind::ReadableStream, Mode::Reject),
