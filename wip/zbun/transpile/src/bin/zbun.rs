@@ -44,9 +44,7 @@ fn build(args: &[String]) -> i32 {
             0
         }
         Err(error) => {
-            for message in &error.messages {
-                eprintln!("error: {message}");
-            }
+            std::io::stderr().write_all(&error.report).expect("gravar o stderr");
             1
         }
     }

@@ -42,10 +42,13 @@ pub struct Transpiled {
     pub is_commonjs: bool,
 }
 
-/// O que impediu a transpilação: o texto das mensagens do parser, na ordem em que ele as registrou.
+/// O que impediu a transpilação: o texto das mensagens do parser, na ordem em que ele as registrou, e o `report`, o
+/// mesmo que o bun imprime no stderr (o trecho do fonte, o circunflexo, `error: texto` e `at arquivo:linha:coluna`,
+/// com as notas, um bloco por mensagem). Sem posição (falha que não veio do parser), o `report` é `error: texto`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error {
     pub messages: Vec<String>,
+    pub report: Vec<u8>,
 }
 
 impl core::fmt::Display for Error {
@@ -57,7 +60,8 @@ impl core::fmt::Display for Error {
 impl std::error::Error for Error {}
 
 fn fail(text: impl Into<String>) -> Error {
-    Error { messages: vec![text.into()] }
+    let text = text.into();
+    Error { report: format!("error: {text}\n").into_bytes(), messages: vec![text] }
 }
 
 /// O loader que o bun escolhe pela extensão; `None` para o que o transpilador de JavaScript não trata (`.json`,
@@ -146,20 +150,21 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
     opts.features.commonjs_at_runtime = !config.like_build;
     // Sem `experimentalDecorators` nem `emitDecoratorMetadata` os decorators do TypeScript são os do TC39.
     opts.features.standard_decorators = true;
-    let messages = |log: &bun_ast::Log| {
-        log.msgs
+    // O que o parser recusou: as mensagens de erro do log (e o relatório que o bun imprime), ou `fallback` quando ele
+    // não registrou nenhuma.
+    let refused = |log: &bun_ast::Log, fallback: String| {
+        let messages: Vec<String> = log
+            .msgs
             .iter()
             .filter(|m| m.kind == bun_ast::Kind::Err)
             .map(|m| String::from_utf8_lossy(&m.data.text).into_owned())
-            .collect::<Vec<_>>()
-    };
-    // O que o parser recusou: as mensagens de erro do log, ou `fallback` quando ele não registrou nenhuma.
-    let refused = |log: &bun_ast::Log, fallback: String| {
-        let mut all = messages(log);
-        if all.is_empty() {
-            all.push(fallback);
+            .collect();
+        if messages.is_empty() {
+            return fail(fallback);
         }
-        Error { messages: all }
+        let mut report = Vec::new();
+        let _ = log.print(&mut report);
+        Error { messages, report }
     };
     let parser = match Parser::init(opts, &mut log, &source, &define, &arena) {
         Ok(parser) => parser,
@@ -172,7 +177,7 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
         Err(e) => return Err(refused(&log, format!("{e:?}"))),
     };
     if log.has_errors() {
-        return Err(Error { messages: messages(&log) });
+        return Err(refused(&log, String::new()));
     }
     let is_commonjs = ast.exports_kind == bun_ast::ExportsKind::Cjs;
     let symbols = bun_ast::symbol::Map::init_with_one_list(core::mem::take(&mut ast.symbols));

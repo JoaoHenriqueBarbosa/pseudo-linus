@@ -1,0 +1,14 @@
+1 | const = 1
+          ^
+error: Expected identifier but found "="
+    at /w/ident.js:1:7
+
+1 | const = 1
+            ^
+error: Expected ";" but found "1"
+    at /w/ident.js:1:9
+
+1 | const = 1
+          ^
+error: This constant must be initialized
+    at /w/ident.js:1:7

@@ -1,0 +1,4 @@
+2 |   return (1 + ;
+                  ^
+error: Unexpected ;
+    at /w/paren.js:2:15

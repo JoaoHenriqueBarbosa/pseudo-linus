@@ -1,0 +1,4 @@
+1 | var s = "abc
+            ^
+error: Unterminated string literal
+    at /w/unterminated.js:1:9

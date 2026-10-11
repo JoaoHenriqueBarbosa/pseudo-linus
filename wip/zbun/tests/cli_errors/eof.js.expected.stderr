@@ -1,0 +1,4 @@
+2 |   y();
+          ^
+error: Unexpected end of file
+    at /w/eof.js:2:7

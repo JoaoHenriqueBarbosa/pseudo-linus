@@ -1,0 +1,9 @@
+2 | let a = 2;
+        ^
+error: "a" has already been declared
+    at /w/redecl.js:2:5
+
+1 | let a = 1;
+        ^
+note: "a" was originally declared here
+   at /w/redecl.js:1:5

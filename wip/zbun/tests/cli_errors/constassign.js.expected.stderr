@@ -1,0 +1,9 @@
+2 | c = 2;
+    ^
+error: Cannot assign to "c" because it is a constant
+    at /w/constassign.js:2:1
+
+1 | const c = 1;
+          ^
+note: The symbol "c" was declared a constant here:
+   at /w/constassign.js:1:7

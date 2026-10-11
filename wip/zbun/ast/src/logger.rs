@@ -196,7 +196,8 @@ impl Data {
         to.write_all(b"\n")?;
         if let Some(location) = &self.location {
             if !location.file.is_empty() {
-                to.write_all(b"    at ")?;
+                // O oráculo recua o `at` de uma nota um espaço a menos que o de um erro.
+                to.write_all(if kind == Kind::Note { b"   at " } else { b"    at " })?;
                 to.write_all(&location.file)?;
                 if location.line > -1 && location.column > -1 {
                     write!(to, ":{}:{}", location.line, location.column)?;
@@ -310,12 +311,19 @@ impl Log {
     #[inline]
     /// `Log.print` do upstream, sem cores: cada mensagem que o nível do log deixa passar, com as notas depois.
     pub fn print(&self, to: &mut impl std::io::Write) -> std::io::Result<()> {
+        let mut first = true;
         for msg in &self.msgs {
             if !msg.kind.should_print(self.level) {
                 continue;
             }
+            // Uma linha em branco separa os blocos (o oráculo não deixa uma depois do último).
+            if !first {
+                to.write_all(b"\n")?;
+            }
+            first = false;
             msg.data.write_format(to, msg.kind)?;
             for note in msg.notes.iter() {
+                to.write_all(b"\n")?;
                 note.write_format(to, Kind::Note)?;
             }
         }
