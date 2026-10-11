@@ -87,7 +87,7 @@ class Context:
     def run(self, callable, /, *args, **kwargs):
         if _getattr(self, '_Context__entered'):
             raise RuntimeError('cannot enter context: %r is already entered' % (self,))
-        _setattr(self, '_Context__prev', _current_context())
+        _setattr(self, '_Context__prev', _gsched.current().ctx)
         _setattr(self, '_Context__entered', True)
         _set_current(self)
         try:

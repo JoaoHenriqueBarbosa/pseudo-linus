@@ -202,7 +202,7 @@ que o `cdp_tee` não intercepta).
 
 O teste `greenlet_test_suite_fails_only_where_declared` (`crates/host/tests/greenlet.rs`) roda a suíte inteira e exige
 que os testes que falham sejam exatamente os de `DECLARED_DIVERGENCES`, cada um com a causa. Estado de 2026-10-11:
-156 testes executados (os módulos `test_cpp` e `test_extension_interface` nem importam, o oráculo roda 172), 18 divergências declaradas.
+156 testes executados (os módulos `test_cpp` e `test_extension_interface` nem importam, o oráculo roda 172), 17 divergências declaradas.
 
 1. **Coletor de ciclos (projeto à parte).** O plinus não acha ciclos de instâncias: `gc.collect()`, `__del__` e
    `weakref` de objetos em ciclo só rodam na saída do interpretador. Atinge `test_circular_greenlet`,
@@ -226,5 +226,5 @@ que os testes que falham sejam exatamente os de `DECLARED_DIVERGENCES`, cada um 
    (`_c_frame_bytes` ganhou memo) e os segmentos dos greenlets de uma thread que acabou, que ficavam para sempre no
    escalonador (`_gt_drop` os libera quando o greenlet é solto). 20 mil greenlets: de mais de 30 s para cerca de 10 s
    por rodada; os três `test_untracked_memory_*` passam. Resta o custo por greenlet (~0,3 ms), bem acima do CPython.
-8. **`gr_context` dentro de `Context.run`** (`test_context_propagated_by_context_run`): devolve o Context em vez de
-   `None`; causa ainda não analisada.
+8. **`gr_context` dentro de `Context.run`**: feito. A causa era comportamento: o `Context.run` guardava como anterior o contexto
+   corrente criando um vazio quando não havia, e o devolvia ao sair; o CPython guarda o `NULL` como está.

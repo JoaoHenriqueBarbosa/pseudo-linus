@@ -340,7 +340,6 @@ const DECLARED_DIVERGENCES: &[(&str, &str)] = &[
     ("greenlet.tests.test_extension_interface (_FailedTest)", "extensão C `_test_extension` (.so) da suíte, que o sandbox não carrega: no oráculo ela existe (divergência declarada, item 6)"),
     ("test_api_getcurrent_no_system_error_at_module_gc_time (test_interpreter_shutdown)", "extensão C `_test_extension` (.so) da suíte, que o sandbox não carrega: no oráculo ela existe (divergência declarada, item 6)"),
     ("test_circular_greenlet (test_gc)", "o plinus não acha ciclos de instâncias (sem coletor: `gc.collect`, `__del__` e `weakref` de ciclo); fica para o projeto do coletor de ciclos (item 1)"),
-    ("test_context_propagated_by_context_run (test_contextvars)", "o `gr_context` de um greenlet que rodou dentro de `Context.run` devolve o Context em vez de `None`; causa ainda não analisada, backlog"),
     ("test_finalizer_crash (test_gc)", "o teste espera um vazamento (`expect_greenlet_leak`) que o CPython tem e o plinus não: aqui o greenlet morre ao soltar a última referência (divergência declarada, item 3)"),
     ("test_get_stack_with_nested_c_calls (test_greenlet)", "extensão C `_test_extension` (.so) da suíte, que o sandbox não carrega: no oráculo ela existe (divergência declarada, item 6)"),
     ("test_inactive_ref (test_gc)", "o plinus não acha ciclos de instâncias (sem coletor: `gc.collect`, `__del__` e `weakref` de ciclo); fica para o projeto do coletor de ciclos (item 1)"),
@@ -501,6 +500,17 @@ fn repr_pending_scene_matches_the_oracle() {
         "gl_repr_pending",
         include_str!("../../../testbench/oracle/automation/cases/gl_repr_pending.py"),
         include_str!("../../../testbench/oracle/automation/golden/gl_repr_pending.out"),
+    );
+}
+
+/// `Context.run` guarda o contexto anterior como ele está (sem criar um): o greenlet que roda dentro de `run` sem ter
+/// contexto acaba com `gr_context` `None`. Como no oráculo.
+#[test]
+fn context_run_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_context_run",
+        include_str!("../../../testbench/oracle/automation/cases/gl_context_run.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_context_run.out"),
     );
 }
 
