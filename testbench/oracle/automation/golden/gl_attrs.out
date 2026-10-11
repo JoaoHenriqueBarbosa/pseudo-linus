@@ -14,3 +14,7 @@ set dict EXC TypeError __dict__ must be a dictionary
 ctx del EXC AttributeError can't delete context attribute
 sub type 'S'
 sub switch 7
+get default no ctx 3 None
+new greenlet ctx (None, None)
+ctx get other thread EXC ValueError cannot get context of a greenlet that is running in a different thread
+ctx set other thread EXC ValueError cannot set context of a greenlet that is running in a different thread

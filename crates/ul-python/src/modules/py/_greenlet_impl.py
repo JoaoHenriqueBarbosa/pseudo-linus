@@ -433,6 +433,13 @@ def _no_delete_parent(glet):
     raise AttributeError("can't delete attribute")
 
 
+def _check_context_thread(glet, verb):
+    """O contexto de um greenlet que roda em outra thread não se lê nem se troca daqui."""
+    owner = _st(glet).owner
+    if owner is not _thread() and getattr(owner, 'glet', None) is glet:
+        raise ValueError('cannot %s context of a greenlet that is running in a different thread' % verb)
+
+
 def _get_run(glet):
     state = _st(glet)
     if state.main:
@@ -538,6 +545,7 @@ from ``g_raiser`` to ``g``.
 
     @property
     def gr_context(self):
+        _check_context_thread(self, 'get')
         # O do greenlet que roda é o contexto corrente da thread; o dos outros, o guardado na última troca.
         if self is getattr(_thread(), 'glet', None):
             return _thread().ctx
@@ -549,6 +557,7 @@ from ``g_raiser`` to ``g``.
 
     @gr_context.setter
     def gr_context(self, value):
+        _check_context_thread(self, 'set')
         if value is not None and type(value) is not _Context:
             raise TypeError('greenlet context must be a contextvars.Context or None')
         if self is getattr(_thread(), 'glet', None):

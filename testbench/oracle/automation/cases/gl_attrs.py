@@ -86,3 +86,38 @@ class S(G):
 
 t('sub type', lambda: type(S()).__name__)
 t('sub switch', lambda: S().switch())
+
+
+import contextvars
+import threading
+
+var = contextvars.ContextVar('var')
+print('get default no ctx', contextvars.ContextVar('d', default=3).get(), greenlet.getcurrent().gr_context)
+cg = G(lambda: (greenlet.getcurrent().gr_context, var.get(None)))
+print('new greenlet ctx', cg.switch())
+
+running = threading.Event()
+release = threading.Event()
+holder = []
+
+
+def in_thread():
+    gr = G(lambda: (running.set(), release.wait(10)))
+    holder.append(gr)
+    gr.switch()
+
+
+th = threading.Thread(target=in_thread)
+th.start()
+running.wait(10)
+other = holder[0]
+t('ctx get other thread', lambda: other.gr_context)
+
+
+def set_ctx():
+    other.gr_context = None
+
+
+t('ctx set other thread', set_ctx)
+release.set()
+th.join()

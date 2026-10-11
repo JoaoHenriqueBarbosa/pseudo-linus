@@ -158,7 +158,9 @@ class ContextVar:
     def get(self, *args):
         if len(args) > 1:
             raise TypeError('get expected at most 1 argument, got %d' % len(args))
-        vars = _vars(_current_context())
+        # Como o `PyContextVar_Get`: sem contexto na thread, ler não cria um (quem cria é o `set`).
+        ctx = _gsched.current().ctx
+        vars = _vars(ctx) if ctx is not None else {}
         if self in vars:
             return vars[self]
         if args:
