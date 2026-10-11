@@ -73,6 +73,8 @@ struct State {
 }
 
 thread_local! {
+    /// `gc.garbage` e `gc.callbacks` (as listas do módulo `gc` do programa) e as flags de `gc.set_debug`.
+    static BOUND: RefCell<(Option<Value>, Option<Value>, i64)> = const { RefCell::new((None, None, 0)) };
     static STATE: RefCell<State> = const {
         RefCell::new(State {
             enabled: true,
@@ -219,10 +221,60 @@ fn advance(generation: usize, found: usize) {
     });
 }
 
-/// `gc.collect(generation)`: devolve quantos objetos inalcançáveis achou.
-pub(crate) fn collect_generation(generation: usize) -> usize {
-    let _ = STATE.try_with(|s| s.try_borrow_mut().map(|mut s| s.running = true));
-    let found = crate::gccollect::collect(generation);
+/// `gc.py` entrega as duas listas do módulo e, a cada `set_debug`, as flags.
+pub(crate) fn bind(garbage: Option<Value>, callbacks: Option<Value>, debug: Option<i64>) {
+    let _ = BOUND.try_with(|b| {
+        let Ok(mut b) = b.try_borrow_mut() else { return };
+        if garbage.is_some() {
+            b.0 = garbage;
+        }
+        if callbacks.is_some() {
+            b.1 = callbacks;
+        }
+        if let Some(d) = debug {
+            b.2 = d;
+        }
+    });
+}
+
+/// O que o módulo `gc` do programa guarda e a coleta usa: a lista `garbage`, as `callbacks` e as flags de `set_debug`.
+fn gc_module_state(_vm: &mut crate::vm::Vm) -> (Option<Value>, Vec<Value>, i64) {
+    BOUND
+        .try_with(|b| {
+            let Ok(b) = b.try_borrow() else { return (None, Vec::new(), 0) };
+            let callbacks = match &b.1 {
+                Some(Value::List(l)) => l.borrow().clone(),
+                _ => Vec::new(),
+            };
+            (b.0.clone(), callbacks, b.2)
+        })
+        .unwrap_or((None, Vec::new(), 0))
+}
+
+/// Chama cada `gc.callbacks` com a fase (`start`/`stop`) e o `info` dela; o erro de uma delas vai ao `unraisablehook`.
+fn run_callbacks(vm: &mut crate::vm::Vm, callbacks: &[Value], phase: &str, generation: usize, collected: usize) {
+    for cb in callbacks {
+        let mut info = Dict::default();
+        let _ = info.set(Value::str("generation"), Value::Int(generation as i64));
+        let _ = info.set(Value::str("collected"), Value::Int(collected as i64));
+        let _ = info.set(Value::str("uncollectable"), Value::Int(0));
+        if let Err(e) = vm.call(cb, vec![Value::str(phase), Value::dict(info)], Vec::new()) {
+            vm.write_unraisable(cb, e);
+        }
+    }
+}
+
+/// `gc.collect(generation)`: devolve quantos objetos inalcançáveis achou. Uma coleta por dentro de outra (o `__del__`
+/// que chama `gc.collect()`) não faz nada, como no CPython.
+pub(crate) fn collect_generation(vm: &mut crate::vm::Vm, generation: usize) -> usize {
+    let busy = STATE.try_with(|s| s.try_borrow_mut().map_or(true, |mut s| std::mem::replace(&mut s.running, true))).unwrap_or(true);
+    if busy {
+        return 0;
+    }
+    let (garbage, callbacks, debug) = gc_module_state(vm);
+    run_callbacks(vm, &callbacks, "start", generation, 0);
+    let options = crate::gccollect::Options { save_all: debug & 32 != 0, garbage };
+    let found = crate::gccollect::collect(vm, generation, &options);
     advance(generation, found);
     let _ = STATE.try_with(|s| {
         s.try_borrow_mut().map(|mut s| {
@@ -230,12 +282,13 @@ pub(crate) fn collect_generation(generation: usize) -> usize {
             s.due = false;
         })
     });
+    run_callbacks(vm, &callbacks, "stop", generation, found);
     found
 }
 
 /// O ponto seguro do laço: se o limiar da geração 0 venceu, coleta a geração mais velha que também venceu
 /// (a 2 depois de `threshold[2]` coletas da 1, a 1 depois de `threshold[1]` da 0).
-pub(crate) fn collect_if_due() {
+pub(crate) fn collect_if_due(vm: &mut crate::vm::Vm) {
     let generation = STATE
         .try_with(|s| {
             let s = s.try_borrow().ok()?;
@@ -254,7 +307,7 @@ pub(crate) fn collect_if_due() {
         .flatten();
     match generation {
         Some(g) => {
-            collect_generation(g);
+            collect_generation(vm, g);
         }
         None => {
             let _ = STATE.try_with(|s| s.try_borrow_mut().map(|mut s| s.due = false));

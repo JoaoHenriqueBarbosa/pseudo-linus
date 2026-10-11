@@ -274,12 +274,31 @@ fn gc_count(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 }
 
 /// `_gc_collect(generation)`: `gc.collect`, devolve os objetos inalcançáveis achados.
-fn gc_collect(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+fn gc_collect(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     let generation = match args.first() {
         Some(Value::Int(g)) if (0..=2).contains(g) => *g as usize,
         _ => return Err(exc("ValueError", "invalid generation")),
     };
-    Ok(Value::Int(crate::gcreg::collect_generation(generation) as i64))
+    Ok(Value::Int(crate::gcreg::collect_generation(vm, generation) as i64))
+}
+
+/// `_gc_is_finalized(obj)`: o `gc.is_finalized`.
+fn gc_is_finalized(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(Value::Bool(matches!(args.first(), Some(Value::Instance(i)) if i.finalized.get())))
+}
+
+/// `_gc_bind(garbage, callbacks)` entrega as listas do módulo `gc`; `_gc_bind(None, None, flags)` as flags de debug.
+fn gc_bind(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let list = |v: Option<&Value>| match v {
+        Some(v @ Value::List(_)) => Some(v.clone()),
+        _ => None,
+    };
+    let debug = match args.get(2) {
+        Some(Value::Int(d)) => Some(*d),
+        _ => None,
+    };
+    crate::gcreg::bind(list(args.first()), list(args.get(1)), debug);
+    Ok(Value::None)
 }
 
 /// `_gc_stats()`: o `gc.get_stats()`, uma tupla `(collections, collected)` por geração.
@@ -470,6 +489,8 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_gc_count", gc_count)
         .func("_gc_collect", gc_collect)
         .func("_gc_stats", gc_stats)
+        .func("_gc_bind", gc_bind)
+        .func("_gc_is_finalized", gc_is_finalized)
         .func("_gc_config", gc_config)
         .func("_gc_is_tracked", gc_is_tracked)
         .func("_gc_freeze", gc_freeze)

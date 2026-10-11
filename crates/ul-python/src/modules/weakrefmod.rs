@@ -32,6 +32,8 @@ enum Target {
 
 pub struct WeakRef {
     target: Target,
+    /// O coletor de ciclos limpou esta referência (o referente é lixo): ela não devolve mais o objeto.
+    cleared: std::cell::Cell<bool>,
     me: Weak<WeakRef>,
     callback: RefCell<Option<Value>>,
     /// O hash fica fixo na primeira vez que o referente estava vivo (como no CPython).
@@ -40,6 +42,9 @@ pub struct WeakRef {
 
 impl WeakRef {
     fn upgrade(&self) -> Option<Value> {
+        if self.cleared.get() {
+            return None;
+        }
         match &self.target {
             Target::Instance(w) => w.upgrade().map(Value::Instance),
             Target::Class(w) => w.upgrade().map(Value::Class),
@@ -168,6 +173,28 @@ thread_local! {
     /// As referências com função de retorno a instâncias vivas, pelo endereço da instância: o `Drop` dela
     /// avisa (`referent_died`) e as funções de retorno rodam no próximo ponto seguro.
     static WATCHED: RefCell<HashMap<usize, Vec<Weak<WeakRef>>>> = RefCell::new(HashMap::new());
+    /// Todas as referências a instâncias e funções, pelo endereço do referente, na ordem de criação: o coletor de ciclos
+    /// limpa as do lixo antes de finalizá-lo (`handle_weakrefs`).
+    static TARGETS: RefCell<HashMap<usize, Vec<Weak<WeakRef>>>> = RefCell::new(HashMap::new());
+}
+
+/// O coletor achou lixo em `addrs` (endereços de instâncias e funções): limpa cada referência fraca a elas e devolve as
+/// que têm função de retorno, na ordem de criação, para o coletor chamar antes de finalizar.
+pub(crate) fn clear_targets(addrs: &std::collections::HashSet<usize>) -> Vec<Rc<WeakRef>> {
+    let mut to_fire = Vec::new();
+    let _ = TARGETS.try_with(|t| {
+        let Ok(mut t) = t.try_borrow_mut() else { return };
+        for addr in addrs {
+            let Some(list) = t.remove(addr) else { continue };
+            for r in list.into_iter().filter_map(|w| w.upgrade()) {
+                r.cleared.set(true);
+                if r.callback.borrow().is_some() {
+                    to_fire.push(r);
+                }
+            }
+        }
+    });
+    to_fire
 }
 
 /// Chamado pelo `Drop` de uma instância: se há referências com função de retorno a ela, entrega-as à fila
@@ -209,7 +236,32 @@ fn new_ref(target: Target, callback: Option<Value>, hash: Option<i64>) -> Value 
         (Target::Instance(w), Some(_)) => Some(w.as_ptr() as usize),
         _ => None,
     };
-    let r = Rc::new_cyclic(|me| WeakRef { target, me: me.clone(), callback: RefCell::new(callback), hash: RefCell::new(hash) });
+    let key = match &target {
+        Target::Instance(w) => Some(w.as_ptr() as usize),
+        Target::Function(w) => Some(w.as_ptr() as usize),
+        _ => None,
+    };
+    let r = Rc::new_cyclic(|me| WeakRef {
+        target,
+        cleared: std::cell::Cell::new(false),
+        me: me.clone(),
+        callback: RefCell::new(callback),
+        hash: RefCell::new(hash),
+    });
+    if let Some(addr) = key {
+        let _ = TARGETS.try_with(|t| {
+            let Ok(mut t) = t.try_borrow_mut() else { return };
+            // As soltas e as de referentes que já morreram saem antes que o mapa ou a lista cresçam.
+            if t.len() >= 1024 && t.len().is_power_of_two() {
+                t.retain(|_, list| list.iter().any(|r| r.strong_count() > 0));
+            }
+            let list = t.entry(addr).or_default();
+            if list.len() >= 16 {
+                list.retain(|r| r.strong_count() > 0);
+            }
+            list.push(Rc::downgrade(&r));
+        });
+    }
     if let Some(addr) = watch {
         let _ = WATCHED.try_with(|w| {
             let mut w = w.borrow_mut();

@@ -173,7 +173,7 @@ impl Vm {
     /// Esvazia a fila de finalização: chama o `__del__` de cada objeto, inclusive dos que a própria
     /// finalização enfileirar. É o ponto seguro: só roda entre instruções.
     pub(crate) fn run_finalizers(&mut self) {
-        crate::gcreg::collect_if_due();
+        crate::gcreg::collect_if_due(self);
         loop {
             PENDING.with(|p| p.set(false));
             let batch = QUEUE
@@ -192,7 +192,7 @@ impl Vm {
     /// laço (`Dunder::Finalize`) para poder trocar de greenlet; o resto da fila espera o próximo ponto seguro. O
     /// gerador, a referência fraca e o `__del__` que não é função rodam aqui mesmo, como em `run_finalizers`.
     pub(crate) fn finalizer_frame(&mut self) -> Option<Callee> {
-        crate::gcreg::collect_if_due();
+        crate::gcreg::collect_if_due(self);
         loop {
             let floor = FLOORS.try_with(|f| f.try_borrow().ok().and_then(|f| f.last().copied())).ok().flatten().unwrap_or(0);
             let next = QUEUE
@@ -266,7 +266,7 @@ impl Vm {
 
     /// Chama o `__del__` de `obj` (marcando-o antes como finalizado). O estado de exceções tratadas fica
     /// como estava, e o erro do `__del__` vai para o `unraisablehook`.
-    fn finalize(&mut self, obj: &Rc<InstanceObj>) {
+    pub(crate) fn finalize(&mut self, obj: &Rc<InstanceObj>) {
         obj.finalized.set(true);
         let Some(del) = obj.class().finalizer() else { return };
         let handled = self.handled.borrow().len();

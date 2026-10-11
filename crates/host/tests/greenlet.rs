@@ -205,6 +205,18 @@ fn gl_context_scene_matches_the_oracle() {
     );
 }
 
+/// A finalização do lixo cíclico: o `__del__` uma vez e em ordem de criação, a ressurreição, as referências fracas
+/// (limpas antes, função de retorno antes do `__del__`), `DEBUG_SAVEALL` com `gc.garbage`, `gc.callbacks`, o erro do
+/// `__del__` e o `__del__` que aloca. Como no oráculo.
+#[test]
+fn gc_finalize_scene_matches_the_oracle() {
+    scene_matches(
+        "gc_finalize",
+        include_str!("../../../testbench/oracle/automation/cases/gc_finalize.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gc_finalize.out"),
+    );
+}
+
 /// A coleta de ciclos: o que `gc.collect` devolve para cada forma de lixo (pares de instâncias, closures, o `__dict__`
 /// materializado), `get_stats`, o `disable`, as gerações, os limiares e a memória de um loop de ciclos (a coleta
 /// automática mantém o heap limitado). Como no oráculo.
@@ -362,38 +374,24 @@ const DECLARED_DIVERGENCES: &[(&str, &str)] = &[
     ("greenlet.tests.test_cpp (_FailedTest)", "extensão C `_test_extension` (.so) da suíte, que o sandbox não carrega: no oráculo ela existe (divergência declarada, item 6)"),
     ("greenlet.tests.test_extension_interface (_FailedTest)", "extensão C `_test_extension` (.so) da suíte, que o sandbox não carrega: no oráculo ela existe (divergência declarada, item 6)"),
     ("test_api_getcurrent_no_system_error_at_module_gc_time (test_interpreter_shutdown)", "extensão C `_test_extension` (.so) da suíte, que o sandbox não carrega: no oráculo ela existe (divergência declarada, item 6)"),
-    ("test_can_access_f_back_of_suspended_greenlet (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_circular_greenlet (test_gc)", "o plinus não acha ciclos de instâncias (sem coletor: `gc.collect`, `__del__` e `weakref` de ciclo); fica para o projeto do coletor de ciclos (item 1)"),
-    ("test_context_assignment_different_thread (test_contextvars)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_dealloc_other_thread (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_frame (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_frames_always_exposed (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
+    ("test_can_access_f_back_of_suspended_greenlet (test_greenlet)", "o leakcheck vê objetos que o coletor ainda não alcança (quadros de greenlet, exceções com traceback, geradores seguram escopos fora do registro); some com a fatia de quadros e exceções do coletor"),
+    ("test_finalizer_crash (test_gc)", "o teste espera um vazamento (`expect_greenlet_leak`) que o CPython tem e o plinus não: aqui o greenlet morre ao soltar a última referência (divergência declarada, item 3)"),
+    ("test_frame (test_greenlet)", "o leakcheck vê objetos que o coletor ainda não alcança (quadros de greenlet, exceções com traceback, geradores seguram escopos fora do registro); some com a fatia de quadros e exceções do coletor"),
+    ("test_frames_always_exposed (test_greenlet)", "o leakcheck vê objetos que o coletor ainda não alcança (quadros de greenlet, exceções com traceback, geradores seguram escopos fora do registro); some com a fatia de quadros e exceções do coletor"),
     ("test_get_stack_with_nested_c_calls (test_greenlet)", "extensão C `_test_extension` (.so) da suíte, que o sandbox não carrega: no oráculo ela existe (divergência declarada, item 6)"),
-    ("test_inactive_ref (test_gc)", "o plinus não acha ciclos de instâncias (sem coletor: `gc.collect`, `__del__` e `weakref` de ciclo); fica para o projeto do coletor de ciclos (item 1)"),
     ("test_issue251_issue252_explicit_reference_not_collectable (test_leaks)", "o teste espera um vazamento (`expect_greenlet_leak`) que o CPython tem e o plinus não: aqui o greenlet morre ao soltar a última referência (divergência declarada, item 3)"),
     ("test_issue251_issue252_need_to_collect_in_background (test_leaks)", "o teste espera um vazamento (`expect_greenlet_leak`) que o CPython tem e o plinus não: aqui o greenlet morre ao soltar a última referência (divergência declarada, item 3)"),
     ("test_issue251_issue252_need_to_collect_in_background_cleanup_disabled (test_leaks)", "o teste espera um vazamento (`expect_greenlet_leak`) que o CPython tem e o plinus não: aqui o greenlet morre ao soltar a última referência (divergência declarada, item 3)"),
     ("test_issue251_killing_cross_thread_leaks_list (test_leaks)", "o plinus não acha ciclos de instâncias (sem coletor: `gc.collect`, `__del__` e `weakref` de ciclo); fica para o projeto do coletor de ciclos (item 1)"),
-    ("test_issue251_with_cleanup_disabled (test_leaks)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_issue_245_reference_counting_subclass_threads (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_layered_genlets (test_generator_nested)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_main_from_other_thread (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_parent_restored_on_kill (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
+    ("test_parent_restored_on_kill (test_greenlet)", "o leakcheck vê objetos que o coletor ainda não alcança (quadros de greenlet, exceções com traceback, geradores seguram escopos fora do registro); some com a fatia de quadros e exceções do coletor"),
     ("test_switch_no_error_at_module_gc_time (test_interpreter_shutdown)", "extensão C `_test_extension` (.so) da suíte, que o sandbox não carrega: no oráculo ela existe (divergência declarada, item 6)"),
-    ("test_switch_to_another_thread (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_switching_holding_critical_section_no_crash (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_thread_bug (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
+    ("test_switching_holding_critical_section_no_crash (test_greenlet)", "o leakcheck vê objetos que o coletor ainda não alcança (quadros de greenlet, exceções com traceback, geradores seguram escopos fora do registro); some com a fatia de quadros e exceções do coletor"),
     ("test_threaded_adv_leak (test_leaks)", "o plinus não acha ciclos de instâncias (sem coletor: `gc.collect`, `__del__` e `weakref` de ciclo); fica para o projeto do coletor de ciclos (item 1)"),
-    ("test_threaded_leak (test_leaks)", "o plinus não acha ciclos de instâncias (sem coletor: `gc.collect`, `__del__` e `weakref` de ciclo); fica para o projeto do coletor de ciclos (item 1)"),
-    ("test_threaded_reparent (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_threaded_updatecurrent (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_threads (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_throw_to_dead_thread_doesnt_crash_wait (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_trace_events_multiple_greenlets_switching (test_tracing)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_trace_events_multiple_greenlets_switching_siblings (test_tracing)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_tuple_subclass (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_unexpected_reparenting (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
-    ("test_unexpected_reparenting_thread_running (test_greenlet)", "o greenlet em ciclo tem `__del__` e o coletor ainda não finaliza (fatia 3 do coletor de ciclos: finalização e ressurreição); some com ela"),
+    ("test_threaded_updatecurrent (test_greenlet)", "o leakcheck vê objetos que o coletor ainda não alcança (quadros de greenlet, exceções com traceback, geradores seguram escopos fora do registro); some com a fatia de quadros e exceções do coletor"),
+    ("test_throw_to_dead_thread_doesnt_crash (test_greenlet)", "o teste espera um vazamento (`expect_greenlet_leak`) que o CPython tem e o plinus não: aqui o greenlet morre ao soltar a última referência (divergência declarada, item 3)"),
+    ("test_trace_events_multiple_greenlets_switching (test_tracing)", "o leakcheck vê objetos que o coletor ainda não alcança (quadros de greenlet, exceções com traceback, geradores seguram escopos fora do registro); some com a fatia de quadros e exceções do coletor"),
+    ("test_trace_events_multiple_greenlets_switching_siblings (test_tracing)", "o leakcheck vê objetos que o coletor ainda não alcança (quadros de greenlet, exceções com traceback, geradores seguram escopos fora do registro); some com a fatia de quadros e exceções do coletor"),
+    ("test_tuple_subclass (test_greenlet)", "o leakcheck vê objetos que o coletor ainda não alcança (quadros de greenlet, exceções com traceback, geradores seguram escopos fora do registro); some com a fatia de quadros e exceções do coletor"),
 ];
 
 /// A suíte `greenlet/tests` do 3.5.6 (a da wheel, copiada do oráculo com o `psutil` mínimo que ela importa) roda

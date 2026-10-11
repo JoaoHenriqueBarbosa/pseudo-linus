@@ -1,0 +1,15 @@
+collected 2 [('del', 'a1'), ('del', 'a2')]
+ring 3 [('del', 'r1'), ('del', 'r2'), ('del', 'r3')]
+resurrect 0 ['R del'] 1 False
+second collect (still alive, finalizer not rerun) 0 []
+is_finalized True
+after drop 1 []
+weakref 1 ['callback', 'W del'] True
+weakref in garbage 3 []
+saveall 2 2 True
+garbage cleared 2 0
+with callbacks 2
+[('start', {'generation': 2, 'collected': 0, 'uncollectable': 0}), ('stop', {'generation': 2, 'collected': 2, 'uncollectable': 0})]
+after remove []
+raising del 1 [('ValueError', 'boom')]
+allocating del 1 2 [('del', 'nested1'), ('del', 'nested2')]
