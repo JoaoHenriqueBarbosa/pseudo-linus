@@ -133,7 +133,6 @@ replaceable('external', () => external);
 replaceable('event', () => currentEvent);
 replaceable('clientInformation', () => navigator);
 readonly('styleMedia', () => styleMedia);
-readonly('frameElement', () => null);
 readonly('credentialless', () => false);
 readonly('fence', () => null);
 defineHandlerProperties(globalThis, ['gamepadconnected', 'gamepaddisconnected']);

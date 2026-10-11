@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::api::browser_modules::{evaluate_page_module, install_url_module_loader, ModuleFetch, UrlModuleHost};
-use crate::api::eval::{describe_exception, evaluate, named_program_source, new_global_object, VmFinalizer};
+use crate::api::eval::{describe_exception, evaluate, named_program_source, new_global_object, new_global_object_in, VmFinalizer};
 use crate::host_function;
 use crate::runtime::cell_registry::run_program;
 use crate::runtime::console_host::ConsoleHost;
@@ -85,6 +85,10 @@ pub enum HostArg<'a> {
     Str(&'a str),
     Num(f64),
     Null,
+    /// Um valor que o hospedeiro guardou (o elemento `<iframe>` que o gancho devolveu).
+    Handle(&'a HostHandle),
+    /// O `globalThis` de outro programa do mesmo `VM` (a janela de um frame, ou a do pai).
+    Global(&'a PageRunner),
 }
 
 /// O programa em curso: avalia scripts no global da página.
@@ -95,6 +99,14 @@ pub struct PageRunner {
 }
 
 impl PageRunner {
+    /// O programa de um frame: um `JSGlobalObject` novo no `VM` desta página (heap, microtarefas, timers e relógio
+    /// compartilhados), com o DOM `dom` e o módulo de URL `document_url` próprios.
+    pub fn new_frame(&self, console: Rc<dyn ConsoleHost>, dom: Rc<dyn DomHost>, document_url: &str, fetch: ModuleFetch) -> PageRunner {
+        let global_object = new_global_object_in(&self.vm);
+        let modules = configure_global(&global_object, console, dom, document_url, fetch);
+        PageRunner { vm: self.vm.clone(), global_object, modules }
+    }
+
     /// Avalia um `<script type=module>`: inline (`source`, com `url` `None`) ou externo (`url` absoluta). Esvazia as
     /// microtarefas; `Err` é a rejeição da avaliação já conhecida (`Nome: mensagem`). Um módulo que ainda espera
     /// (`await` de topo, `import` pela rede) segue no laço de eventos.
@@ -138,6 +150,8 @@ impl PageRunner {
                 HostArg::Str(text) => JSValue::from_js_string(js_string(&self.vm, &WtfString::from_utf8(text.as_bytes()))),
                 HostArg::Num(number) => js_number(*number),
                 HostArg::Null => JSValue::null(),
+                HostArg::Handle(handle) => handle.0,
+                HostArg::Global(runner) => runner.global_object.global_this().map_or_else(JSValue::undefined, |object| object.as_value()),
             })
             .collect();
         // Os argumentos já criados vivem só aqui até a chamada os pôr na pilha do JavaScript.
@@ -224,26 +238,33 @@ impl PageRunner {
     }
 }
 
+/// O que cada global de página (a janela e as dos frames) recebe do hospedeiro: console, DOM, as funções privadas
+/// e o carregador de módulos de URL.
+fn configure_global(global_object: &JSGlobalObjectRef, console: Rc<dyn ConsoleHost>, dom: Rc<dyn DomHost>, document_url: &str, fetch: ModuleFetch) -> Rc<UrlModuleHost> {
+    global_object.set_console_host(console);
+    dom_bridge::install(global_object, dom);
+    install_global_function_with_visibility(global_object, "__pl_eval", 2, pl_eval, ImplementationVisibility::Private);
+    install_global_function_with_visibility(global_object, "__pl_set_code_guard", 1, pl_set_code_guard, ImplementationVisibility::Private);
+    install_global_function_with_visibility(global_object, "__pl_microtask_checkpoint", 0, pl_microtask_checkpoint, ImplementationVisibility::Private);
+    install_global_function_with_visibility(
+        global_object,
+        "__pl_private",
+        1,
+        crate::runtime::js_global_object_private_functions::create_private_symbol,
+        ImplementationVisibility::Private,
+    );
+    let modules = Rc::new(UrlModuleHost::new(document_url, fetch));
+    install_url_module_loader(global_object, modules.clone());
+    modules
+}
+
 /// Cria o programa da página e entrega o [`PageRunner`] a `body`. `document_url` e `fetch` alimentam os módulos ES
 /// (`<script type=module>` e `import()`): o texto de cada URL absoluta, ou `None` para erro de rede.
 pub fn run_page<T>(console: Rc<dyn ConsoleHost>, dom: Rc<dyn DomHost>, document_url: &str, fetch: ModuleFetch, body: impl FnOnce(&PageRunner) -> T) -> T {
     run_program(|| {
         let (vm, global_object) = new_global_object();
         let _finalizer = VmFinalizer::new(&vm);
-        global_object.set_console_host(console);
-        dom_bridge::install(&global_object, dom);
-        install_global_function_with_visibility(&global_object, "__pl_eval", 2, pl_eval, ImplementationVisibility::Private);
-        install_global_function_with_visibility(&global_object, "__pl_set_code_guard", 1, pl_set_code_guard, ImplementationVisibility::Private);
-        install_global_function_with_visibility(&global_object, "__pl_microtask_checkpoint", 0, pl_microtask_checkpoint, ImplementationVisibility::Private);
-        install_global_function_with_visibility(
-            &global_object,
-            "__pl_private",
-            1,
-            crate::runtime::js_global_object_private_functions::create_private_symbol,
-            ImplementationVisibility::Private,
-        );
-        let modules = Rc::new(UrlModuleHost::new(document_url, fetch));
-        install_url_module_loader(&global_object, modules.clone());
+        let modules = configure_global(&global_object, console, dom, document_url, fetch);
         crate::runtime::timers::enable_event_loop();
         let runner = PageRunner { vm, global_object, modules };
         let result = body(&runner);

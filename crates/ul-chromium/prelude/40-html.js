@@ -248,7 +248,20 @@ class TemplateContent extends DocumentFragment {
 tag(TemplateContent, 'DocumentFragment');
 defineHtml('HTMLIFrameElement', ['iframe'], (cls) => {
   reflect(cls, [['src', 'src', 'url'], ['srcdoc', 'srcdoc'], ['name', 'name'], ['allow', 'allow'], ['allowFullscreen', 'allowfullscreen', 'bool'], ['loading', 'loading'], ['referrerPolicy', 'referrerpolicy']]);
-  Object.defineProperties(cls.prototype, { contentWindow: { get() { return null; }, configurable: true }, contentDocument: { get() { return null; }, configurable: true } });
+  Object.defineProperties(cls.prototype, {
+    // A janela do frame que o hospedeiro ligou a este elemento (`frameAttach`); `null` sem documento aninhado.
+    contentWindow: { get() { return this[P.__frameWindow] || null; }, configurable: true },
+    // O documento só vale no mesmo origem; `about:blank` e `about:srcdoc` herdam a do pai.
+    contentDocument: {
+      get() {
+        const frame = this[P.__frameWindow];
+        if (!frame) return null;
+        const address = frame.location.href;
+        return address.startsWith('about:') || frame.location.origin === location.origin ? frame.document : null;
+      },
+      configurable: true,
+    },
+  });
 });
 defineHtml('HTMLCanvasElement', ['canvas'], (cls) => {
   for (const [dim, def] of [['width', 300], ['height', 150]]) Object.defineProperty(cls.prototype, dim, { get() { const n = parseInt(this.getAttribute(dim), 10); return Number.isFinite(n) ? n : def; }, set(v) { this.setAttribute(dim, String(Number(v) >>> 0)); canvasResized(this); }, configurable: true, enumerable: true });

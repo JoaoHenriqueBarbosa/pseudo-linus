@@ -701,8 +701,31 @@ function runDynamicScript(el) {
 
 // ---- Gancho de ciclo de vida, chamado pelo hospedeiro.
 const reportedRejections = new WeakSet();
-const hook = (name, a, b) => {
+// ---- Árvore de frames: o pai de uma janela, o topo, o elemento que a hospeda e as janelas dos filhos.
+const frameLinks = { parent: globalThis, top: globalThis, element: null, done: null };
+const frameWindows = [];
+const replaceFrameKey = (key) => (value) => { Object.defineProperty(globalThis, key, { value, writable: true, configurable: true, enumerable: true }); };
+Object.defineProperties(globalThis, {
+  parent: { get: () => frameLinks.parent, set: replaceFrameKey('parent'), configurable: true, enumerable: true },
+  top: { get: () => frameLinks.top, configurable: true, enumerable: true },
+  frameElement: { get: () => frameLinks.element, configurable: true, enumerable: true },
+  length: { get: () => frameWindows.length, set: replaceFrameKey('length'), configurable: true, enumerable: true },
+});
+const hook = (name, a, b, c, d) => {
   switch (name) {
+    // O frame do elemento `a` ganhou a janela `b`: ela vale já para `contentWindow` e `window[i]`, e o `load` do
+    // documento espera o do filho. Devolve o que o filho chama ao carregar.
+    case 'frameAttach': {
+      const frame = wrappers.get(a) || wrap(a);
+      hidden(frame, '__frameWindow', b);
+      const index = frameWindows.push(b) - 1;
+      Object.defineProperty(globalThis, String(index), { value: b, configurable: true, enumerable: true });
+      loadBlockers++;
+      return () => { loadBlockers--; completeWhenUnblocked(); };
+    }
+    case 'frameElement': return wrappers.get(a) || wrap(a);
+    // Na janela do filho: o pai, o topo, o elemento do pai que a hospeda e a função de `load` concluído.
+    case 'frameInit': frameLinks.parent = a; frameLinks.top = b; frameLinks.element = c; frameLinks.done = d; break;
     // As imagens do documento pedem a fonte quando o parser as cria (o preload scanner adianta as eager).
     case 'parsedImages': {
       for (const img of Array.from(document.getElementsByTagName('img'))) if (img.namespaceURI === HTML_NS && !img[P.__imageStarted]) updateImage(img);
@@ -729,6 +752,7 @@ const hook = (name, a, b) => {
       window.dispatchEvent(load);
       window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }));
       devtoolsAgent.lifecycle('load');
+      if (frameLinks.done) frameLinks.done();
       // Logo depois do `load` o navegador busca o ícone declarado (`link rel=icon`; sem ele, nenhuma busca aparece no
       // resource timing do oráculo). A busca fica em voo por FAVICON_ROUND_TRIP_MS, e enquanto isso os quadros pedidos
       // ainda saem (medido na wikipedia: o rAF pedido pelo mw.loader depois do `load` roda e os módulos ficam prontos).

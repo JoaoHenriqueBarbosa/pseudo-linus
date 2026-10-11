@@ -17,28 +17,33 @@ use crate::runtime::property_slot::PropertySlot;
 use crate::wtf::text::wtf_string::String as WtfString;
 
 thread_local! {
-    /// O `cell_id` do global com gancho e a função que responde pelo nome.
-    static HOOK: RefCell<Option<(usize, JSValue)>> = const { RefCell::new(None) };
+    /// O `cell_id` de cada global com gancho (a janela e os frames dela) e a função que responde pelo nome.
+    static HOOK: RefCell<Vec<(usize, JSValue)>> = const { RefCell::new(Vec::new()) };
     /// O gancho está rodando: a busca que ele mesmo faz no global não volta a ele.
     static ACTIVE: Cell<bool> = const { Cell::new(false) };
 }
 
 /// Instala `function(nome)` como o acesso nomeado de `global_object`: devolve o valor, ou `undefined` para ausente.
 pub fn set_global_named_lookup(global_object: &JSGlobalObject, function: JSValue) {
-    HOOK.with(|hook| *hook.borrow_mut() = Some((global_object.cell_id(), function)));
+    let cell_id = global_object.cell_id();
+    HOOK.with(|hook| {
+        let mut hooks = hook.borrow_mut();
+        hooks.retain(|(id, _)| *id != cell_id);
+        hooks.push((cell_id, function));
+    });
 }
 
 /// Fim do programa.
 /// As raízes do coletor: o gancho instalado.
 pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
-    if let Some((cell_id, value)) = HOOK.with(|hook| *hook.borrow()) {
+    for (cell_id, value) in HOOK.with(|hook| hook.borrow().clone()) {
         marker.cell(cell_id);
         marker.value(value);
     }
 }
 
 pub(crate) fn reset_for_program() {
-    let _ = HOOK.try_with(|hook| hook.borrow_mut().take());
+    let _ = HOOK.try_with(|hook| hook.borrow_mut().clear());
     let _ = ACTIVE.try_with(|active| active.set(false));
 }
 
@@ -46,10 +51,9 @@ pub(crate) fn reset_for_program() {
 /// `JSGlobalProxy` (o `window`/`globalThis` da página) que aponta para ele. Exceção do gancho fica pendente para quem
 /// buscou.
 pub(crate) fn lookup(object: &JSObject, property_name: &PropertyName, slot: &mut PropertySlot) -> bool {
-    let Some((global_id, function)) = HOOK.with(|hook| hook.borrow().clone()) else { return false };
-    let is_global = global_id == object.cell_id()
-        || crate::runtime::js_global_proxy::target_of(object).is_some_and(|target| target.cell_id() == global_id);
-    if !is_global || ACTIVE.with(Cell::get) || property_name.parse_index().is_some() {
+    let target_id = crate::runtime::js_global_proxy::target_of(object).map(|target| target.cell_id());
+    let Some((_, function)) = HOOK.with(|hook| hook.borrow().iter().find(|(id, _)| *id == object.cell_id() || Some(*id) == target_id).copied()) else { return false };
+    if ACTIVE.with(Cell::get) || property_name.parse_index().is_some() {
         return false;
     }
     let Some(name) = property_name.public_name() else { return false };

@@ -84,6 +84,14 @@ impl ConsoleHost for SilentConsole {
     }
 }
 
+/// O documento aninhado de um `<iframe>`: a página, o programa (global) e o gancho dele.
+struct Frame {
+    node: NodeId,
+    page: Page,
+    runner: PageRunner,
+    hook: HostHandle,
+}
+
 /// Como um `<script>` do documento é executado.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum ScriptKind {
@@ -250,18 +258,38 @@ impl Page {
     /// `after` no lugar do orçamento de tempo virtual: o programa e o gancho do prelúdio seguem vivos enquanto `after`
     /// roda (o laço do DevTools). `None` quando o prelúdio falhou.
     pub fn run_with<T>(&self, start: impl FnOnce(&PageRunner, &HostHandle), after: impl FnOnce(&PageRunner, &HostHandle) -> T) -> Option<T> {
-        let scripts = self.collect_scripts();
-        let bridge = self.bridge.clone();
         let document_url = self.bridge.url.borrow().clone();
-        let module_bridge = self.bridge.clone();
-        let module_fetch: zjsc::api::browser_modules::ModuleFetch = Rc::new(move |address: &str| {
-            let text = fetch_text(&module_bridge.fetcher, &module_bridge.url.borrow(), address);
+        run_page(self.console.clone(), self.bridge.clone(), &document_url, self.module_fetch(), |runner| {
+            // Os frames de todos os níveis vivem aqui, dentro do programa: acabam antes dele.
+            let arena: RefCell<Vec<Rc<Frame>>> = RefCell::new(Vec::new());
+            let hook = self.begin(runner, true)?;
+            start(runner, &hook);
+            if let Some(source) = &self.inspector {
+                if let Err(error) = runner.eval(source, "inspector.js") {
+                    eprintln!("inspector: {error}");
+                }
+            }
+            self.execute(runner, &hook, runner, &arena);
+            Some(after(runner, &hook))
+        })
+    }
+
+    /// A busca dos módulos ES do documento: o texto de cada URL absoluta, ou `None` para erro de rede.
+    fn module_fetch(&self) -> zjsc::api::browser_modules::ModuleFetch {
+        let bridge = self.bridge.clone();
+        Rc::new(move |address: &str| {
+            let text = fetch_text(&bridge.fetcher, &bridge.url.borrow(), address);
             if let Some(text) = &text {
                 zjsc::runtime::cpu_clock::charge_source_bytes(text.len());
             }
             text
-        });
-        run_page(self.console.clone(), bridge.clone(), &document_url, module_fetch, |runner| {
+        })
+    }
+
+    /// Prepara o programa do documento: o prelúdio e o gancho dele. A janela de topo (`top_level`) também põe o estado
+    /// único do processo (formato do V8, relógios, rejeições, console, semente); um frame só o essencial.
+    fn begin(&self, runner: &PageRunner, top_level: bool) -> Option<HostHandle> {
+        if top_level {
             // `Number.prototype.toString(radix)` arredonda a cauda como o V8.
             zjsc::runtime::number_prototype::set_v8_radix_strings(true);
             // `Error.prototype.stack` e as mensagens de erro no formato do V8.
@@ -281,104 +309,175 @@ impl Page {
             let origin_ticks_us = (self.navigation_start / 1000) as i64;
             let resolution = if self.bridge.cross_origin_isolated { zjsc::runtime::time_clamper::FINE_RESOLUTION_US } else { zjsc::runtime::time_clamper::COARSE_RESOLUTION_US };
             zjsc::runtime::time_clamper::set_time_clamper(clock_secret(), resolution, origin_ticks_us, unix_at_zero_us);
-            // O valor do programa é a função gancho: o hospedeiro a guarda, sem binding global que a página veja.
-            let prelude = format!("(function () {{ 'use strict';\nconst DOCUMENT_CSP = {};\nconst DOCUMENT_TRANSFER = {};\n{}{}\nreturn hook;\n}})();", self.csp_json, self.transfer_json, PRELUDE_PARTS.concat(), PRELUDE_TAIL);
-            let hook = match runner.eval_hidden_value(&prelude) {
-                Ok(hook) => hook,
-                Err(error) => {
-                    // O prelúdio é parte do navegador: falha dele é bug nosso e a página fica sem DOM de script.
-                    eprintln!("chromium: prelúdio falhou: {error}");
-                    return None;
-                }
-            };
-            runner.set_rejection_hook(&hook);
-            // O acesso nomeado da janela (`window.x` para o elemento de id `x`), pedido ao gancho.
-            if let Ok(named) = runner.call_hidden(&hook, &[HostArg::Str("namedLookup")]) {
-                runner.set_global_named_lookup(&named);
+        }
+        // O valor do programa é a função gancho: o hospedeiro a guarda, sem binding global que a página veja.
+        let prelude = format!("(function () {{ 'use strict';\nconst DOCUMENT_CSP = {};\nconst DOCUMENT_TRANSFER = {};\n{}{}\nreturn hook;\n}})();", self.csp_json, self.transfer_json, PRELUDE_PARTS.concat(), PRELUDE_TAIL);
+        let hook = match runner.eval_hidden_value(&prelude) {
+            Ok(hook) => hook,
+            Err(error) => {
+                // O prelúdio é parte do navegador: falha dele é bug nosso e a página fica sem DOM de script.
+                eprintln!("chromium: prelúdio falhou: {error}");
+                return None;
             }
+        };
+        if top_level {
+            runner.set_rejection_hook(&hook);
+        }
+        // O acesso nomeado da janela (`window.x` para o elemento de id `x`), pedido ao gancho.
+        if let Ok(named) = runner.call_hidden(&hook, &[HostArg::Str("namedLookup")]) {
+            runner.set_global_named_lookup(&named);
+        }
+        if top_level {
             // Cada chamada de `console` vai também ao agente do DevTools, que a guarda para o `Runtime.consoleAPICalled`.
             if let Ok(console) = runner.call_hidden(&hook, &[HostArg::Str("consoleHook")]) {
                 runner.set_console_hook(&console);
             }
-            runner.set_network_latency_ms(NETWORK_LATENCY_MS);
+        }
+        runner.set_network_latency_ms(NETWORK_LATENCY_MS);
+        if top_level {
             if let Some(seed) = self.random_seed {
                 runner.set_random_seed(seed);
             }
-            start(runner, &hook);
-            if let Some(source) = &self.inspector {
-                if let Err(error) = runner.eval(source, "inspector.js") {
-                    eprintln!("inspector: {error}");
-                }
-            }
-            // Daqui em diante o trabalho da página custa tempo virtual, como no renderer do Chromium: o parse do
-            // documento, a compilação de cada script e as instruções que ela executa.
-            zjsc::runtime::cpu_clock::set_cpu_cost(NS_PER_INSTRUCTION, NS_PER_SOURCE_BYTE);
-            zjsc::runtime::cpu_clock::charge_source_bytes(self.document_bytes);
-            let call = |args: &[HostArg]| {
-                let _ = runner.call_hidden(&hook, args);
-            };
-            let run_script = |info: &ScriptInfo| {
-                let node = HostArg::Num(info.node.as_u64() as f64);
-                if info.kind == ScriptKind::Module {
-                    // `document.currentScript` é `null` durante um módulo; a busca é do carregador de módulos.
-                    let result = match &info.src {
-                        Some(address) => runner.eval_module(None, Some(address)),
-                        None => {
-                            let text = self.bridge.doc.borrow().get_node(info.node).map(|n| n.text_content()).unwrap_or_default();
-                            zjsc::runtime::cpu_clock::charge_source_bytes(text.len());
-                            runner.eval_module(Some(&text), None)
-                        }
-                    };
-                    if let Err(message) = result {
-                        call(&[HostArg::Str("scriptError"), HostArg::Str(&message), HostArg::Str(info.src.as_deref().unwrap_or(&document_url))]);
+        }
+        Some(hook)
+    }
+
+    /// Roda o documento já preparado por [`Page::begin`]: os scripts na ordem do navegador, os frames que ele cria,
+    /// `DOMContentLoaded` e a espera do `load`. `top` é a janela de topo do programa; `arena` guarda os frames de
+    /// todos os níveis até o fim do programa.
+    fn execute(&self, runner: &PageRunner, hook: &HostHandle, top: &PageRunner, arena: &RefCell<Vec<Rc<Frame>>>) {
+        // Daqui em diante o trabalho da página custa tempo virtual, como no renderer do Chromium: o parse do
+        // documento, a compilação de cada script e as instruções que ela executa.
+        zjsc::runtime::cpu_clock::set_cpu_cost(NS_PER_INSTRUCTION, NS_PER_SOURCE_BYTE);
+        zjsc::runtime::cpu_clock::charge_source_bytes(self.document_bytes);
+        let scripts = self.collect_scripts();
+        let bridge = self.bridge.clone();
+        let document_url = self.bridge.url.borrow().clone();
+        let mine: RefCell<Vec<Rc<Frame>>> = RefCell::new(Vec::new());
+        let call = |args: &[HostArg]| {
+            let _ = runner.call_hidden(&hook, args);
+        };
+        let run_script = |info: &ScriptInfo| {
+            let node = HostArg::Num(info.node.as_u64() as f64);
+            if info.kind == ScriptKind::Module {
+                // `document.currentScript` é `null` durante um módulo; a busca é do carregador de módulos.
+                let result = match &info.src {
+                    Some(address) => runner.eval_module(None, Some(address)),
+                    None => {
+                        let text = self.bridge.doc.borrow().get_node(info.node).map(|n| n.text_content()).unwrap_or_default();
+                        zjsc::runtime::cpu_clock::charge_source_bytes(text.len());
+                        runner.eval_module(Some(&text), None)
                     }
-                    return;
-                }
-                let Some((source, name)) = self.script_source(info) else {
-                    call(&[HostArg::Str("fire"), node, HostArg::Str("error")]);
-                    return;
                 };
-                call(&[HostArg::Str("currentScript"), HostArg::Num(info.node.as_u64() as f64)]);
-                zjsc::runtime::cpu_clock::charge_source_bytes(source.len());
-                if let Err(message) = runner.eval(&source, &name) {
-                    call(&[HostArg::Str("scriptError"), HostArg::Str(&message), HostArg::Str(&name)]);
+                if let Err(message) = result {
+                    call(&[HostArg::Str("scriptError"), HostArg::Str(&message), HostArg::Str(info.src.as_deref().unwrap_or(&document_url))]);
                 }
-                call(&[HostArg::Str("currentScript"), HostArg::Null]);
-                if info.src.is_some() {
-                    call(&[HostArg::Str("fire"), node, HostArg::Str("load")]);
-                }
+                return;
+            }
+            let Some((source, name)) = self.script_source(info) else {
+                call(&[HostArg::Str("fire"), node, HostArg::Str("error")]);
+                return;
             };
-            // As imagens que o parser criou pedem a fonte já (as eager seguram o `load`; as lazy esperam o quadro).
-            call(&[HostArg::Str("parsedImages")]);
-            for info in scripts.iter().filter(|s| s.kind == ScriptKind::Sync) {
-                // O parser só viu o que vem antes do script: o resto do documento fica fora até ele terminar.
-                let held = bridge.detach_following(info.node);
-                run_script(info);
-                bridge.restore_following(held);
+            call(&[HostArg::Str("currentScript"), HostArg::Num(info.node.as_u64() as f64)]);
+            zjsc::runtime::cpu_clock::charge_source_bytes(source.len());
+            if let Err(message) = runner.eval(&source, &name) {
+                call(&[HostArg::Str("scriptError"), HostArg::Str(&message), HostArg::Str(&name)]);
             }
-            let deferred: Vec<&ScriptInfo> = scripts.iter().filter(|s| matches!(s.kind, ScriptKind::Defer | ScriptKind::Module)).collect();
-            if !deferred.is_empty() {
-                // Scripts adiados e módulos esperam a rede (a busca deles e a do que já foi pedido): nesse meio tempo
-                // as tarefas já na fila andam.
-                runner.run_event_loop_for(2.0 * NETWORK_LATENCY_MS);
+            call(&[HostArg::Str("currentScript"), HostArg::Null]);
+            if info.src.is_some() {
+                call(&[HostArg::Str("fire"), node, HostArg::Str("load")]);
             }
-            for info in deferred {
-                run_script(info);
+        };
+        // As imagens que o parser criou pedem a fonte já (as eager seguram o `load`; as lazy esperam o quadro).
+        call(&[HostArg::Str("parsedImages")]);
+        for info in scripts.iter().filter(|s| s.kind == ScriptKind::Sync) {
+            // O parser só viu o que vem antes do script: o resto do documento fica fora até ele terminar.
+            let held = bridge.detach_following(info.node);
+            self.attach_frames(runner, hook, top, arena, &mine);
+            run_script(info);
+            bridge.restore_following(held);
+        }
+        let deferred: Vec<&ScriptInfo> = scripts.iter().filter(|s| matches!(s.kind, ScriptKind::Defer | ScriptKind::Module)).collect();
+        if !deferred.is_empty() {
+            // Scripts adiados e módulos esperam a rede (a busca deles e a do que já foi pedido): nesse meio tempo
+            // as tarefas já na fila andam.
+            runner.run_event_loop_for(2.0 * NETWORK_LATENCY_MS);
+        }
+        for info in deferred {
+            run_script(info);
+        }
+        self.attach_frames(runner, hook, top, arena, &mine);
+        call(&[HostArg::Str("interactive")]);
+        // Os documentos aninhados carregam depois do `DOMContentLoaded` do pai e antes do `load` dele (que espera por eles).
+        let started: Vec<Rc<Frame>> = mine.borrow().clone();
+        for frame in &started {
+            frame.page.execute(&frame.runner, &frame.hook, top, arena);
+        }
+        for info in scripts.iter().filter(|s| s.kind == ScriptKind::Async) {
+            // Cada `async` é uma tarefa própria: o que venceu enquanto o anterior rodava (um quadro, um timer)
+            // roda antes dele.
+            runner.run_event_loop_for(0.0);
+            run_script(info);
+        }
+        self.attach_frames(runner, hook, top, arena, &mine);
+        let late: Vec<Rc<Frame>> = mine.borrow().iter().filter(|f| !started.iter().any(|s| Rc::ptr_eq(s, f))).cloned().collect();
+        for frame in &late {
+            frame.page.execute(&frame.runner, &frame.hook, top, arena);
+        }
+        // As folhas de `<link rel=stylesheet>` chegam antes do `load` da janela; cada uma dispara `load` ou `error`.
+        for (node, ok) in self.stylesheet_results() {
+            call(&[HostArg::Str("fire"), HostArg::Num(node.as_u64() as f64), HostArg::Str(if ok { "load" } else { "error" })]);
+        }
+        call(&[HostArg::Str("subresourcesDone")]);
+    }
+
+    /// Cria o documento aninhado de cada `<iframe>` que o parser já viu e ainda não tem frame: o realm dele (um
+    /// global novo no mesmo programa) existe já, com `parent`, `top` e `frameElement`; os scripts rodam depois.
+    fn attach_frames(&self, runner: &PageRunner, hook: &HostHandle, top: &PageRunner, arena: &RefCell<Vec<Rc<Frame>>>, mine: &RefCell<Vec<Rc<Frame>>>) {
+        let found: Vec<(NodeId, Option<String>, Option<String>)> = {
+            let doc = self.bridge.doc.borrow();
+            let base = self.bridge.url.borrow().clone();
+            let ids = doc.query_selector_all("iframe").map(|f| f.to_vec()).unwrap_or_default();
+            ids.into_iter()
+                .filter_map(|id| {
+                    let node = doc.get_node(id)?;
+                    let srcdoc = node.attr(markup5ever::local_name!("srcdoc")).map(str::to_owned);
+                    let src = node.attr(markup5ever::local_name!("src")).and_then(|src| url::parse(&base, false).ok().and_then(|b| url::resolve(&b, src).ok()).map(|u| u.to_string_with(false)));
+                    Some((id, srcdoc, src))
+                })
+                .collect()
+        };
+        for (id, srcdoc, src) in found {
+            if mine.borrow().iter().any(|frame| frame.node == id) {
+                continue;
             }
-            call(&[HostArg::Str("interactive")]);
-            for info in scripts.iter().filter(|s| s.kind == ScriptKind::Async) {
-                // Cada `async` é uma tarefa própria: o que venceu enquanto o anterior rodava (um quadro, um timer)
-                // roda antes dele.
-                runner.run_event_loop_for(0.0);
-                run_script(info);
-            }
-            // As folhas de `<link rel=stylesheet>` chegam antes do `load` da janela; cada uma dispara `load` ou `error`.
-            for (node, ok) in self.stylesheet_results() {
-                call(&[HostArg::Str("fire"), HostArg::Num(node.as_u64() as f64), HostArg::Str(if ok { "load" } else { "error" })]);
-            }
-            call(&[HostArg::Str("subresourcesDone")]);
-            Some(after(runner, &hook))
-        })
+            let fetcher = self.bridge.fetcher.clone();
+            let child = match (srcdoc, src) {
+                (Some(html), _) => Page::from_html(html, "about:srcdoc", fetcher),
+                (None, Some(address)) => Page::load(&address, fetcher.clone()).unwrap_or_else(|_| Page::from_html(String::new(), "about:blank", fetcher)),
+                (None, None) => Page::from_html(String::new(), "about:blank", fetcher),
+            };
+            let mut child = child;
+            child.console = self.console.clone();
+            child.random_seed = self.random_seed;
+            child.enter_tab(self.bridge.tab.borrow().clone());
+            let child_url = child.bridge.url.borrow().clone();
+            let child_runner = runner.new_frame(child.console.clone(), child.bridge.clone(), &child_url, child.module_fetch());
+            let Some(child_hook) = child.begin(&child_runner, false) else { continue };
+            let node = HostArg::Num(id.as_u64() as f64);
+            let (Ok(element), Ok(done)) = (runner.call_hidden(hook, &[HostArg::Str("frameElement"), node]), runner.call_hidden(hook, &[HostArg::Str("frameAttach"), node, HostArg::Global(&child_runner)])) else { continue };
+            let _ = child_runner.call_hidden(&child_hook, &[HostArg::Str("frameInit"), HostArg::Global(runner), HostArg::Global(top), HostArg::Handle(&element), HostArg::Handle(&done)]);
+            let frame = Rc::new(Frame { node: id, page: child, runner: child_runner, hook: child_hook });
+            mine.borrow_mut().push(frame.clone());
+            arena.borrow_mut().push(frame);
+        }
+    }
+
+    /// Um documento a partir do texto HTML e do endereço dele (`about:srcdoc`, `about:blank`), sem rede.
+    fn from_html(html: String, address: &str, fetcher: Fetcher) -> Page {
+        let timing = Fetched { navigation_start: ul_common::time::monotonic_nanos(), fetch_start: 0, fetch_end: 0 };
+        let response = DocumentResponse { bytes: html.into_bytes(), final_url: address.to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, csp: Vec::new(), cross_origin_isolated: false, transfer: None, timing, captured: None, net: None };
+        Page::build(response, fetcher)
     }
 
     /// Busca cada `<link rel=stylesheet href>` do documento e diz se chegou (status de sucesso).

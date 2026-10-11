@@ -31,7 +31,7 @@ class XMLSerializer {
 tag(XMLSerializer, 'XMLSerializer');
 
 const windowGlobals = {
-  window, self: window, globalThis: window, frames: window, top: window, parent: window, document, location, history, navigator, CSS, NodeFilter,
+  window, self: window, globalThis: window, frames: window, document, location, history, navigator, CSS, NodeFilter,
   screen: { width: 800, height: 600, availWidth: 800, availHeight: 600, availLeft: 0, availTop: 0, colorDepth: 24, pixelDepth: 24, orientation: { type: 'landscape-primary', angle: 0, addEventListener() {}, removeEventListener() {} } },
   customElements,
   getComputedStyle, matchMedia, fetch: realFetch, Request, XMLHttpRequest, MutationObserver, MutationRecord, ResizeObserver, ResizeObserverEntry, IntersectionObserver, IntersectionObserverEntry, TextTrack, TextTrackList, PerformanceObserver,
@@ -67,7 +67,7 @@ const namedValue = (name) => {
   return found.length === 1 ? found[0] : liveList(HTMLCollection.prototype, () => namedTargets(name));
 };
 
-const windowMetrics = { innerWidth: VIEWPORT.width, innerHeight: VIEWPORT.height, outerWidth: VIEWPORT.outerWidth, outerHeight: VIEWPORT.outerHeight, devicePixelRatio: 1, scrollX: 0, scrollY: 0, pageXOffset: 0, pageYOffset: 0, screenX: 0, screenY: 0, screenLeft: 0, screenTop: 0, length: 0, closed: false, opener: null, name: '', status: '', isSecureContext: pageState.url.startsWith('https:') || pageState.url.startsWith('http://localhost'), origin: location.origin === 'null' ? 'null' : location.origin, crossOriginIsolated, originAgentCluster: true };
+const windowMetrics = { innerWidth: VIEWPORT.width, innerHeight: VIEWPORT.height, outerWidth: VIEWPORT.outerWidth, outerHeight: VIEWPORT.outerHeight, devicePixelRatio: 1, scrollX: 0, scrollY: 0, pageXOffset: 0, pageYOffset: 0, screenX: 0, screenY: 0, screenLeft: 0, screenTop: 0, closed: false, opener: null, name: '', status: '', isSecureContext: pageState.url.startsWith('https:') || pageState.url.startsWith('http://localhost'), origin: location.origin === 'null' ? 'null' : location.origin, crossOriginIsolated, originAgentCluster: true };
 for (const [key, value] of Object.entries(windowMetrics)) Object.defineProperty(globalThis, key, { value, writable: true, configurable: true, enumerable: true });
 
 // Métodos de EventTarget na própria janela.
