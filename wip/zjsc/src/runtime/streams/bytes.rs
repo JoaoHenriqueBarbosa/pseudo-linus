@@ -211,7 +211,14 @@ impl ByteCore {
         if !self.pending.is_empty() {
             out.push(Action::InvalidateByobRequest);
         }
-        // Com um `pullInto` pendente (inclusive o do `autoAllocateChunkSize`) o chunk passa pela fila e preenche o descritor.
+        // Leitor padrão com pedidos de leitura: o chunk INTEIRO atende o pedido e o descritor do `autoAllocateChunkSize`
+        // sai (`ShiftPendingPullInto`); medido no bun: `enqueue` de 5 bytes com `autoAllocateChunkSize` 3 entrega 5.
+        if reader == ReaderKind::Default && read_requests > 0 {
+            self.pending.pop_front();
+            out.push(Action::FulfillDefaultRead(chunk));
+            return out;
+        }
+        // Sem pedido pendente, com um `pullInto` (o do `autoAllocateChunkSize`) o chunk passa pela fila e preenche o descritor.
         if !self.pending.is_empty() && reader == ReaderKind::Default {
             self.enqueue_chunk_to_queue(chunk);
             self.process_pull_into_descriptors_using_queue(&mut out);
@@ -345,6 +352,12 @@ impl ByteCore {
             if self.fill_from_queue() {
                 let ready = self.pending.pop_front().unwrap_or(descriptor);
                 self.commit(ready, out);
+                // `HandleQueueDrain`: a fila esvaziou com `close()` pedido, o stream fecha (a leitura que acabou de sair
+                // continua com `done` falso, medido no bun; a seguinte já é a vazia com `done` verdadeiro).
+                if self.queue_total == 0 && self.close_requested {
+                    self.closed = true;
+                    out.push(Action::CloseStream);
+                }
                 return Ok(());
             }
             if self.close_requested {

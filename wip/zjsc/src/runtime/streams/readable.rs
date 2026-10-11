@@ -162,8 +162,9 @@ impl EffectState for ByteState {
             // os bytes preenchidos; sem bytes (stream fechado) o `CloseStream` já resolveu os pedidos.
             Action::FulfillByobRead { pull_into, .. } if pull_into.reader == ReaderKind::Default => {
                 if pull_into.bytes_filled > 0 {
-                    let chunk = Chunk { buffer: pull_into.buffer, offset: pull_into.byte_offset, length: pull_into.bytes_filled };
-                    let view = chunk_view(global_object, state, chunk)?;
+                    // Medido no bun: a view é um `Uint8Array` dos bytes preenchidos sobre o buffer INTEIRO do descritor
+                    // (`respond(1)` de um buffer de 4 bytes dá `byteLength` 1 com `buffer.byteLength` 4).
+                    let view = byob_view(global_object, state, &pull_into, pull_into.bytes_filled)?;
                     let stream = state.borrow().stream.clone();
                     fulfill_read_request(global_object, &stream, view, false);
                 }
