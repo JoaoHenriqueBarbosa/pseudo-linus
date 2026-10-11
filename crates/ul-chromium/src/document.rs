@@ -64,8 +64,20 @@ fn parse_with(html: &str, config: DocumentConfig) -> BaseDocument {
         html5ever::interface::QuirksMode::LimitedQuirks => selectors::matching::QuirksMode::LimitedQuirks,
         html5ever::interface::QuirksMode::NoQuirks => selectors::matching::QuirksMode::NoQuirks,
     });
+    if mode == html5ever::interface::QuirksMode::Quirks {
+        doc.add_user_agent_stylesheet(QUIRKS_CSS);
+    }
     doc
 }
+
+/// A parte do `quirks.css` do Chromium que o layout do Blitz precisa: a margem de cima do primeiro filho e a de baixo do
+/// último filho de `body`, de célula e de legenda, quando vêm da folha do agente (as de `p`, `h1` a `h6`, listas,
+/// `blockquote`, `pre` e `form`), são ignoradas. Folha de usuário do agente perde para qualquer regra do autor, como a
+/// margem ignorada do Chromium.
+const QUIRKS_CSS: &str = "
+:is(body, td, th) > :is(h1, h2, h3, h4, h5, h6, p, ul, ol, dl, menu, dir, blockquote, pre, listing, xmp, form):first-child { margin-top: 0 }
+:is(body, td, th) > :is(h1, h2, h3, h4, h5, h6, p, ul, ol, dl, menu, dir, blockquote, pre, listing, xmp, form):last-child { margin-bottom: 0 }
+";
 
 /// O provedor de rede do Blitz para a página: guarda os pedidos (o Blitz exige `Send + Sync`, e a rede do hospedeiro é
 /// de uma thread só) até o hospedeiro servi-los.

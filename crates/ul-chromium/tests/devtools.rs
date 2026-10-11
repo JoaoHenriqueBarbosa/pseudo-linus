@@ -221,22 +221,19 @@ fn screenshots_match_the_oracle_perceptually() {
     assert!(worst >= 0.78, "ssim {worst}");
 }
 
-/// O mesmo cenário num documento SEM `<!doctype html>` (modo quirks), medido no oráculo. DIVERGÊNCIA CONHECIDA, do
-/// `blitz-dom`, que não tem quirks mode (`QuirksMode::NoQuirks` fixo): no Chromium o `body` zera a margem de cima do
-/// primeiro filho (o `h1` sobe 21 px), a altura de linha de tabela e de imagem inline segue o modo quirks e o
-/// `document.compatMode` vale `BackCompat` (observável pelo JS). O que muda nas imagens: o tamanho do documento inteiro
-/// (altura) e o SSIM, que cai onde o conteúdo desloca. O piso é o medido menos 0,03 e só sobe quando o motor ganhar o modo.
+/// O mesmo cenário num documento SEM `<!doctype html>` (modo quirks), medido no oráculo. O `document.compatMode` vale
+/// `BackCompat` e a folha de quirks do documento (`QUIRKS_CSS`) zera a margem de cima do primeiro filho e a de baixo do
+/// último filho de `body`, `td` e `th`, como o Chromium (o `h1` sobe 21 px). Medido antes da folha: viewport 0,96 e
+/// recortes de 100x60 e 200x120 em 0,23 e 0,40; depois: o pior é 0,77. DIVERGÊNCIA QUE SOBRA: a altura de linha de
+/// tabela e de imagem inline do modo quirks (o documento inteiro sai 2 px mais alto). O piso é o medido menos 0,03.
 #[test]
 fn screenshots_without_doctype_diverge_as_declared() {
     let mut worst = 1.0_f64;
     for (id, (ew, eh), (aw, ah), score) in compare_captures("paint_capture_quirks") {
         assert_eq!(ew, aw, "captura #{id}: largura");
-        // Só a altura do documento inteiro muda de tamanho (a margem de cima que o Blitz não zera).
-        assert!(eh.abs_diff(ah) <= 16, "captura #{id}: altura {eh} contra {ah}");
+        assert!(eh.abs_diff(ah) <= 2, "captura #{id}: altura {eh} contra {ah}");
         worst = worst.min(score);
     }
     eprintln!("captura sem doctype pior ssim {worst:.4}");
-    // Medido: viewport 0,96, documento inteiro 0,98 e recortes de 100x60 e 200x120 em 0,23 e 0,40 (o recorte cai na faixa
-    // que o deslocamento de 15 px atravessa).
-    assert!(worst >= 0.20, "ssim {worst}");
+    assert!(worst >= 0.74, "ssim {worst}");
 }
