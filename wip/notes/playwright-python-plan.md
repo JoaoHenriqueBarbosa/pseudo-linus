@@ -197,3 +197,32 @@ python3 -I testbench/oracle/automation/cdp-methods.py [cena...]   # métodos que
 `<cena>.cdp.jsonl`: uma mensagem por linha (`"out"` do cliente ao navegador, `"in"` o contrário), strings acima de 2 KB
 trocadas por `<sha256:HEX len=N>` com o texto em `golden/blobs/`. `pw_connect` não tem transcrição (liga por WebSocket,
 que o `cdp_tee` não intercepta).
+
+## Backlog do `greenlet` (a suíte oficial do 3.5.6 no sandbox)
+
+O teste `greenlet_test_suite_fails_only_where_declared` (`crates/host/tests/greenlet.rs`) roda a suíte inteira e exige
+que os testes que falham sejam exatamente os de `DECLARED_DIVERGENCES`, cada um com a causa. Estado de 2026-10-11:
+156 testes executados (os módulos `test_cpp` e `test_extension_interface` nem importam, o oráculo roda 172), 20 divergências declaradas.
+
+1. **Coletor de ciclos (projeto à parte).** O plinus não acha ciclos de instâncias: `gc.collect()`, `__del__` e
+   `weakref` de objetos em ciclo só rodam na saída do interpretador. Atinge `test_circular_greenlet`,
+   `test_inactive_ref`, `test_threaded_leak`, `test_threaded_adv_leak`, `test_issue251_killing_cross_thread_leaks_list`.
+   Desenho: registrar todos os contêineres (instâncias, listas, dicts, tuplas, cells, frames); a coleta faz a
+   eliminação por tentativa (_trial deletion_: subtrai das contagens as referências internas ao conjunto, usando o
+   grafo de `gc.get_referents`, e o que sobra com contagem zero é lixo); finaliza o lixo (`__del__`, na ordem de
+   criação) e quebra o ciclo limpando os contêineres, para o `Rc` cair.
+2. **Trashcan.** Os 30 subtestes de `TestTrashCanReEnter` (a destruição de uma cadeia profunda de greenlets) passam no
+   estado atual; ficam no backlog só para reabrir se voltarem a falhar.
+3. **"Expected to leak but it did not".** `test_finalizer_crash`, `test_permutations`, `test_recursive_startup`,
+   `test_throw_to_dead_thread_doesnt_crash` e os três `test_issue251_issue252_*` esperam um vazamento que o CPython
+   tem (referência ao greenlet preso numa pilha de C) e o plinus não tem. Divergência declarada: o plinus libera mais.
+4. **`smaps_rollup`**: feito (`/proc/<pid>/smaps_rollup`).
+5. **Switch reentrante e morte entre threads**: feito (`settrace` do lado de quem chega, `__del__` como quadro do laço,
+   `deleteme` por thread, principal de thread encerrada, pai perverso).
+6. **Extensão C `_test_extension` (.so).** `test_cpp`, `test_extension_interface`, `test_get_stack_with_nested_c_calls`
+   e os dois `test_*_at_module_gc_time` importam o `.so` de teste do greenlet, que o sandbox não executa. Declarado.
+7. **Desempenho do `switch`.** `_save_stacks` varre todos os greenlets suspensos da thread a cada troca: criar e trocar
+   para N greenlets é O(N^2) (2000 greenlets: 31 s; no CPython, milissegundos). Os dois
+   `test_untracked_memory_doesnt_increase_unfinished_thread_dealloc_*` (20 mil greenlets) estouram os 30 s por isso.
+8. **`gr_context` dentro de `Context.run`** (`test_context_propagated_by_context_run`): devolve o Context em vez de
+   `None`; causa ainda não analisada.
