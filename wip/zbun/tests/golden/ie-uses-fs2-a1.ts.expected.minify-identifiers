@@ -1,0 +1,11 @@
+const p = require("fs");
+const s = e.C.D;
+export const E = e.C;
+var e;
+((t) => {
+  let r;
+  ((o) => {
+    o.D = 1;
+  })(r = t.C ||= {});
+})(e ||= {});
+console.log(p, p, s);

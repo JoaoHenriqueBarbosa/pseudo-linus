@@ -17,17 +17,8 @@ use crate::{BufferPrinter, BufferWriter, Options, PrintResult};
 
 /// Divergências conhecidas: `(entrada, causa medida no oráculo)`. Uma entrada aqui continua rodando; se passar a
 /// bater, o teste falha pedindo a remoção da linha. Vazia quando tudo bate.
-const KNOWN_DIVERGENCES: &[(&str, &str)] = &[
-    ("ie6.ts.minify-identifiers", IMPORT_EQUALS_RANK),
-    ("ie6.ts.minify", IMPORT_EQUALS_RANK),
-    ("ie7.ts.minify-identifiers", IMPORT_EQUALS_RANK),
-    ("ie7.ts.minify", IMPORT_EQUALS_RANK),
-    ("typescript-import-equals.ts.minify-identifiers", IMPORT_EQUALS_RANK),
-    ("typescript-import-equals.ts.minify", IMPORT_EQUALS_RANK),
-];
+const KNOWN_DIVERGENCES: &[(&str, &str)] = &[];
 
-const IMPORT_EQUALS_RANK: &str =
-    "import-equals com namespace: o MinifyRenamer do porte dá ao alias um nome de rank diferente do oráculo (bun 1.4.2: `const s = require(\"fs\")` e `s = e.C.D`; porte: `t` e `m`); a contagem de usos e os slots aninhados batem com o upstream, causa ainda não isolada, backlog do zbun";
 
 fn loader_for(name: &str) -> bun_ast::Loader {
     match Path::new(name).extension().and_then(|e| e.to_str()) {
@@ -73,6 +64,8 @@ fn transpile(name: &str, text: &[u8], variant: &Variant) -> Result<Vec<u8>, Stri
     opts.keep_names = true;
     opts.suppress_warnings_about_weird_code = true;
     opts.warn_about_unbundled_modules = true;
+    // `bun build --no-bundle` (`transform_only`) liga `allow_runtime = false` (`build_command.rs`).
+    opts.features.allow_runtime = false;
     opts.features.top_level_await = true;
     opts.features.auto_import_jsx = true;
     opts.features.lower_using = true;

@@ -1,0 +1,2 @@
+import q from "zzzzzzzzzzzzzzzzzzzz";
+console.log(q);

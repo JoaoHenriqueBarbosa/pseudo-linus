@@ -179,7 +179,9 @@ pub fn transpile_with(path: &str, source: &[u8], config: Config) -> Result<Trans
     opts.tree_shaking = !config.no_tree_shaking;
     // `warn_about_unbundled_modules` é `!target.is_bun()`.
     opts.warn_about_unbundled_modules = false;
-    opts.features.allow_runtime = true;
+    // `bun build --no-bundle` (`transform_only`) liga `allow_runtime = false`: o `require("x")` fica como está, sem registro
+    // de import (o que muda a frequência de letras do `--minify-identifiers`); o transpilador do runtime deixa ligado.
+    opts.features.allow_runtime = !config.like_build;
     opts.features.top_level_await = true;
     opts.features.remove_cjs_module_wrapper = config.compile_body;
     opts.features.auto_import_jsx = true;

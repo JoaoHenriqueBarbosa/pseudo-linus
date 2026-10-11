@@ -1,0 +1,2 @@
+const e = require.resolve("zzzzzzzzzzzzzzzzzzzz");
+console.log(e);

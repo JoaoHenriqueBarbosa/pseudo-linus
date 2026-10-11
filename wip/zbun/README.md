@@ -462,8 +462,10 @@ custo, e nesse dia a (A) volta à mesa. O `Prefill` em posições fixas ainda n�
 `.minify-identifiers`, `.minify`); `scripts/gen_golden.sh` as gera. O mapa de posições se mede num bundle de um
 arquivo só (`--no-bundle` ignora `--sourcemap`): `tests/golden/maps`, `scripts/gen_maps.sh` e `extract_maps.py`.
 
-Estado: 299 de 305 casos batem e os 12 mapas batem. As seis divergências estão em `KNOWN_DIVERGENCES`
-(import-equals com namespace sob `--minify-identifiers`: o nome atribuído ao alias tem outro rank). `mangled_props`
+Estado: os 360 casos batem (nenhuma divergência declarada) e os 12 mapas batem. O harness liga `allow_runtime = false`,
+como o `bun build --no-bundle` (`transform_only` em `build_command.rs`): `require("x")` fica sem registro de import, e é
+isso que decide a frequência de letras do `--minify-identifiers` (o caminho do `require` não sai do histograma, o do
+`import` e do `import()` sai). Foi essa a causa dos seis casos de import-equals que ficaram declarados por um tempo. `mangled_props`
 não é ligado pelo `bun build`, então o golden não o exercita; os nós JSON ficam para o loader json.
 
 ## react_compiler (parte 5)

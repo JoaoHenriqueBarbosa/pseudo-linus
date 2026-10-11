@@ -1,0 +1,2 @@
+const q = require.resolve("zzzzzzzzzzzzzzzzzzzz");
+console.log(q);
