@@ -54,6 +54,13 @@ class _State:
         self.dead = False
         self.frame = None
         self.context = None
+        # O `_stack_saved` (ver `_save_stacks`): onde a pilha do greenlet começa e onde ela parou, em bytes de pilha de
+        # máquina contados do início da do principal, o que o corpo dele gasta antes do código do usuário, e quanto
+        # dela já foi copiado para o heap.
+        self.start = 0
+        self.base = 0
+        self.sp = None
+        self.saved = 0
 
 
 def _st(glet):
@@ -158,6 +165,82 @@ def _trace(event, origin, target):
         tracer(event, (origin, target))
 
 
+# O `_stack_saved` conta bytes da pilha de máquina que o greenlet do C copiou para o heap. Aqui não há pilha de máquina:
+# os números são os do CPython 3.13 com o greenlet 3.5.6 da wheel no oráculo, e cada um vale um caminho de C.
+# O que o C empilha para chegar a um quadro Python chamado por nativa ou por slot (`_sys._gt_c_frames` dá o nome de
+# cada um que espera no segmento): a chamada Python comum não gasta pilha de máquina no 3.13.
+_C_FRAME_BYTES = {
+    'binary': 656, 'binary_inplace': 608, 'equal': 592, 'order': 592, 'scan': 608, 'getitem': 576, 'setitem': 592,
+    'iter': 544, 'truth': 544, 'init': 672, 'builtin_len': 720, 'builtin_bool': 624,
+    'text__str__': 704, 'text__repr__': 704,
+    'replay_call_format:__format__': 736, 'replay_call_format:__str__': 896,
+    'replay_step_format_value:__format__': 656, 'replay_step_format_value:__str__': 816,
+    'replay_step_binary:__str__': 1040, 'replay_call_print:__str__': 912,
+    'callback_mapped': 768, 'callback_kept': 736, 'callback_keyed_fold_sorted': 5040,
+    'callback_keyed_fold_min': 656, 'callback_keyed_fold_max': 656,
+    'resume_next': 544, 'resume_for': 448, 'resume_delegate': 0, 'resume_collect_list': 672,
+    'resume_collect_tuple': 560, 'resume_fold_sum': 640,
+}
+# Um caminho ainda não medido: a mediana dos medidos.
+_C_FRAME_UNMEASURED = 608
+# O corpo do greenlet até o código do usuário (`g_initialstub` e a chamada do `run`): função Python, método ligado,
+# objeto chamável e `functools.partial`; com argumentos nomeados no primeiro `switch` o C monta o dicionário.
+_RUN_FUNCTION = 1512
+_RUN_METHOD = 1656
+_RUN_CALLABLE = 1800
+_RUN_PARTIAL = 1544
+_RUN_GREENLET_SWITCH = 984
+_RUN_KWARGS = 96
+# Onde o `slp_switch` deixa a pilha de quem troca: para o principal, para outro greenlet já iniciado, para um novo
+# (o `g_initialstub` fica no caminho); e quanto acima desse ponto a pilha do greenlet novo começa.
+_TO_MAIN = 0
+_TO_STARTED = 64
+_TO_NEW = 336
+_NEW_STOP = 552
+
+
+def _run_base(run, kwargs):
+    from types import FunctionType, MethodType
+    if isinstance(run, MethodType):
+        base = _RUN_GREENLET_SWITCH if run.__func__ is greenlet.switch else _RUN_METHOD
+    elif isinstance(run, FunctionType) or type(run).__name__ in ('builtin_function_or_method', 'method_descriptor'):
+        base = _RUN_FUNCTION
+    elif type(run).__name__ == 'partial':
+        base = _RUN_PARTIAL
+    else:
+        base = _RUN_CALLABLE
+    return base + (_RUN_KWARGS if kwargs else 0)
+
+
+def _save_stacks(green, origin_state, state, new, finishing, run, payload):
+    """A cópia preguiçosa de pilha do greenlet: ao trocar para `state`, cada greenlet suspenso desta thread cuja pilha
+    passa do começo da de `state` tem essa parte copiada (a do principal começa no topo, então trocar para ele copia
+    tudo); a de quem é retomado volta inteira."""
+    live = getattr(green, 'gstacks', None)
+    if live is None:
+        live = green.gstacks = []
+    if not finishing:
+        off = _TO_NEW if new else (_TO_MAIN if state.main else _TO_STARTED)
+        native = sum(_C_FRAME_BYTES.get(n, _C_FRAME_UNMEASURED) for n in _sys._gt_c_frames())
+        origin_state.sp = origin_state.start + origin_state.base + native + off
+        if not any(x is origin_state for x in live):
+            live.append(origin_state)
+    if new:
+        state.start = (origin_state.sp - _NEW_STOP) if not finishing else origin_state.start
+        state.base = _run_base(run, payload[2] if payload[0] == 'switch' else None)
+    for other in live:
+        if other is state:
+            continue
+        # A pilha do principal começa no topo da pilha da thread: nada limita a parte dela a copiar.
+        full = None if other.main else other.sp - other.start
+        part = max(0, other.sp - state.start) if full is None else full if state.main else min(full, max(0, other.sp - state.start))
+        if part > other.saved:
+            other.saved = part
+    live[:] = [x for x in live if x is not state and not x.dead]
+    state.saved = 0
+    state.sp = None
+
+
 def _land():
     """Tira da caixa o que a troca trouxe e o entrega como o resultado do `switch` (ou levanta, num `throw`)."""
     payload = _box[0]
@@ -177,6 +260,7 @@ def _enter(target, payload, run, finishing):
     if not _sys._gt_can_switch():
         # Dentro de um callback de nativa a VM não troca de segmento (`gthread.rs`): nada muda antes do erro.
         raise RuntimeError('cannot switch threads inside a callback of the interpreter')
+    _save_stacks(green, origin_state, state, not state.started, finishing, run, payload)
     if not state.started:
         state.started = True
         state.tid = _sys._gt_spawn(lambda state=state, run=run: _entry(state, run))
@@ -361,6 +445,13 @@ from ``g_raiser`` to ``g``.
     def dead(self):
         state = _st(self)
         return state.dead and not state.main
+
+    @property
+    def _stack_saved(self):
+        state = _st(self)
+        if state.dead or not state.started or self is getattr(_thread(), 'glet', None):
+            return 0
+        return state.saved
 
     @property
     def gr_frame(self):

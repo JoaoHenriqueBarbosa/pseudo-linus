@@ -341,6 +341,19 @@ fn urge(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::None)
 }
 
+/// `_gt_c_frames()`: o que cada quadro que espera no segmento corrente fez o C do CPython empilhar ao chamá-lo (o
+/// `_stack_saved` do greenlet conta esses bytes da pilha de máquina). Um nome por chamado vindo de uma nativa ou de um
+/// slot (o método mágico de um operador, o `__str__` do `str()`, a chave do `sorted`...); a chamada Python comum não
+/// empilha C no 3.13 e não aparece.
+fn c_frames(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_gt_c_frames", &kw)?;
+    if !args.is_empty() {
+        return Err(crate::vm::type_error("_gt_c_frames() takes no arguments"));
+    }
+    let names: Vec<Value> = vm.frames_stack.borrow().iter().filter_map(|c| c.link.c_entry()).map(Value::str).collect();
+    Ok(Value::list(names))
+}
+
 /// Registra as nativas no módulo `_sys`.
 pub(crate) fn register(builder: ModuleBuilder) -> ModuleBuilder {
     builder
@@ -351,4 +364,5 @@ pub(crate) fn register(builder: ModuleBuilder) -> ModuleBuilder {
         .func("_gt_can_switch", can_switch)
         .func("_gt_interval", interval)
         .func("_gt_urge", urge)
+        .func("_gt_c_frames", c_frames)
 }

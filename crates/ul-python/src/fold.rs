@@ -53,6 +53,24 @@ pub(crate) enum Fold {
     },
 }
 
+impl Fold {
+    /// A embutida que faz a conta (`gthread::c_frames`).
+    pub(crate) fn name(&self) -> &'static str {
+        match self {
+            Fold::Sum { .. } => "sum",
+            Fold::Set { frozen: false, .. } => "set",
+            Fold::Set { frozen: true, .. } => "frozenset",
+            Fold::Dict { .. } => "dict",
+            Fold::MinMax { max: false, .. } => "min",
+            Fold::MinMax { max: true, .. } => "max",
+            Fold::Any => "any",
+            Fold::All => "all",
+            Fold::Extend { .. } => "extend",
+            Fold::Sorted { .. } => "sorted",
+        }
+    }
+}
+
 /// A lista que `lista.sort` esvaziou: se a conta acaba sem ordenar (a chave levantou), os itens voltam para ela.
 pub(crate) struct SortRestore {
     pub(crate) list: Rc<RefCell<Vec<Value>>>,

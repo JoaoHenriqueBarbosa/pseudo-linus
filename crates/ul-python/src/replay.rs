@@ -181,3 +181,27 @@ pub(crate) fn suspended(level: usize) -> bool {
 pub(crate) fn suspension() -> PyException {
     suspend()
 }
+
+/// O nome da nativa repetida, para o `CallLink::c_entry`: a embutida (`format`, `print`) ou o método (`str.format`).
+pub(crate) fn callee_name(func: &Value) -> String {
+    match func {
+        Value::Bound(b) => b.name.to_string(),
+        Value::NativeFn(f) => f.name.to_string(),
+        other => crate::fold::builtin_name(other).unwrap_or("native").to_string(),
+    }
+}
+
+/// O nome da instrução repetida, para o `CallLink::c_entry`.
+pub(crate) fn op_name(op: &Op) -> &'static str {
+    match op {
+        Op::Compare(_) => "compare",
+        Op::Binary { .. } => "binary",
+        Op::Subscript => "subscript",
+        Op::StoreSubscript => "store_subscript",
+        Op::DeleteSubscript => "delete_subscript",
+        Op::FormatValue { .. } => "format_value",
+        Op::BuildSet(_) => "build_set",
+        Op::BuildDict(_) => "build_dict",
+        _ => "op",
+    }
+}

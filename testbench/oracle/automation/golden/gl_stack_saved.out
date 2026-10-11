@@ -1,0 +1,18 @@
+main 0 new 0
+main_while_g 552 1512
+dead 0 True
+def 1512 lambda 1512
+bound 1656 callable 1800 partial 1544
+args 1512 kwargs 1608 subclass 1656 subclass_kw 1752
+pct 2552 str 2216 format 2248
+format_str 2408 fstr 2168 fstr_str 2328
+eq 2104 in 2120 getitem 2088
+iter 2056 len 2232 add 2168 lt 2104
+sorted 6552 min 2168 map 2280 filter 2248
+gen_next 2056 gen_for 1960 list_yf 2184 tuple 2072 sum 2152
+nested 7592 sorted2 11592
+a_while_t 552 a_after 1848
+main_to_started 280
+main_sorted_to_started 5320
+x_before 1512
+y_to_x 0 True 1576

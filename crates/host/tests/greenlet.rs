@@ -283,6 +283,18 @@ fn gl_leaks_scene_matches_the_oracle() {
     );
 }
 
+
+/// `_stack_saved`: o tamanho da pilha de máquina copiada de cada greenlet suspenso, pelo caminho do `run`, pelas
+/// nativas no caminho até a troca (`sorted`, `'%s' %`, `next`...) e pela cópia preguiçosa entre greenlets.
+#[test]
+fn stack_saved_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_stack_saved",
+        include_str!("../../../testbench/oracle/automation/cases/gl_stack_saved.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_stack_saved.out"),
+    );
+}
+
 /// `collections.Counter` como o do CPython 3.13: operadores binários, unários e in-place, `most_common` (com o
 /// `heapq.nlargest` e o empate na ordem de inserção), `elements`, `total`, `repr`, comparações e o `fromkeys` que lança.
 #[test]
