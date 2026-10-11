@@ -175,6 +175,16 @@ impl Page {
         Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), csp_json, transfer_json, navigation_start }
     }
 
+    /// O endereço do documento (o final, depois dos redirecionamentos).
+    pub fn url(&self) -> String {
+        self.bridge.url.borrow().clone()
+    }
+
+    /// `document.title`.
+    pub fn title(&self) -> String {
+        document::title(&self.bridge.doc.borrow())
+    }
+
     /// A navegação que a página pediu (`location.href = ...`) e ainda não aconteceu.
     pub fn pending_navigation(&self) -> Option<String> {
         self.bridge.navigation.borrow_mut().take()

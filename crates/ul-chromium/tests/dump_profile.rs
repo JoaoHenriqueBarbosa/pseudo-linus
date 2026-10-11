@@ -47,6 +47,10 @@ fn dump_client(ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
         let status = s.wait4(WaitTarget::Pid(pid), WaitOptions::empty()).unwrap().unwrap().1;
         let _ = ctx.stdout().write_all(format!("\nstatus {status:?}\n").as_bytes());
     }
+    let query = "select url, title, visit_count, typed_count from urls; select count(*), count(distinct segment_id), min(transition), max(visit_duration) > 0 from visits; select count(*) from segments; select visit_id, page_end_reason from context_annotations order by visit_id desc limit 1";
+    let argv: Vec<Vec<u8>> = ["sqlite3", "/tmp/p/Default/History", query].iter().map(|a| a.as_bytes().to_vec()).collect();
+    let pid = s.spawn(SpawnSpec { path: b"/usr/bin/sqlite3".to_vec(), argv, attrs: ProcAttrs::default() }).unwrap();
+    let _ = s.wait4(WaitTarget::Pid(pid), WaitOptions::empty());
     let singletons = ["SingletonCookie", "SingletonLock", "SingletonSocket"].iter().filter(|n| sys::lstat(format!("/tmp/p/{n}").as_bytes()).is_ok()).count();
     let _ = ctx.stdout().write_all(format!("singletons {singletons}\n").as_bytes());
     let _ = s.kill(KillTarget::Pid(server), Signal::SIGKILL);
@@ -58,6 +62,7 @@ fn dump_client(ctx: &mut Ctx, _argv: &[OsString]) -> i32 {
 fn each_dump_reads_what_the_previous_one_wrote() {
     let kernel = Kernel::new(KernelConfig::default());
     let mut programs = ul_chromium::programs();
+    programs.extend(ul_sqlite::programs());
     programs.push(Program::bin("dump_client", dump_client));
     let sandbox = kernel.create_sandbox(SandboxConfig { programs, ..SandboxConfig::default() }).unwrap();
     let output = sandbox.run(RunRequest { argv: vec![b"dump_client".to_vec()], timeout: Some(Duration::from_secs(120)), ..RunRequest::default() }).unwrap();
@@ -65,5 +70,8 @@ fn each_dump_reads_what_the_previous_one_wrote() {
     let bodies: Vec<&str> = stdout.lines().filter_map(|line| line.strip_prefix("</head><body>")).collect();
     assert_eq!(bodies, ["ls=null idb=0</body></html>", "ls=1 idb=1</body></html>", "ls=2 idb=2</body></html>"], "{stdout}");
     assert_eq!(stdout.matches("status Exited(0)").count(), 3, "{stdout}");
+    // O History: a mesma página digitada três vezes é um endereço com três visitas, de um segmento só, e a última
+    // visita de cada execução termina com o fechamento do processo (motivo 6).
+    assert!(stdout.contains("http://127.0.0.1:8000/persist.html|persist|3|3\n3|1|939524097|1\n1\n3|6\n"), "{stdout}");
     assert!(stdout.ends_with("singletons 0\n"), "{stdout}");
 }
