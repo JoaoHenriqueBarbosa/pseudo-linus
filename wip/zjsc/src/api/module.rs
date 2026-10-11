@@ -107,26 +107,103 @@ fn join_relative(referrer: &str, specifier: &str, keep_empty: bool) -> String {
     if rooted { format!("/{joined}") } else { joined }
 }
 
+/// Separa o `?consulta` do especificador (o `#fragmento` fica no nome do arquivo, medido no bun): a chave do módulo os conserva (`./a.mjs?x` é outra instância),
+/// o arquivo é o de antes deles.
+fn split_suffix(specifier: &str) -> (&str, &str) {
+    specifier.find('?').map_or((specifier, ""), |at| specifier.split_at(at))
+}
+
+/// Extensões e índices que o bun tenta quando o caminho não existe como está (medido: `./a` acha `a.mjs`, `./sub` acha
+/// `sub/index.mjs`, `./A.mjs` acha `a.mjs`).
+const PROBE_EXTENSIONS: [&str; 8] = [".tsx", ".jsx", ".ts", ".mjs", ".js", ".cjs", ".json", ".mts"];
+
+impl MemoryModuleHost {
+    fn find_file(&self, key: &str) -> Option<String> {
+        if self.files.contains_key(key) {
+            return Some(key.to_owned());
+        }
+        let candidates = PROBE_EXTENSIONS
+            .iter()
+            .map(|extension| format!("{key}{extension}"))
+            .chain(PROBE_EXTENSIONS.iter().map(|extension| format!("{key}/index{extension}")));
+        for candidate in candidates {
+            if self.files.contains_key(&candidate) {
+                return Some(candidate);
+            }
+        }
+        let lowered = key.to_lowercase();
+        self.files.keys().find(|known| known.to_lowercase() == lowered).cloned()
+    }
+}
+
+/// `data:[<tipo>][;base64],<dados>` de um módulo: o texto depois da vírgula, sem o escape de porcentagem.
+fn data_url_source(specifier: &str) -> Option<String> {
+    let (head, body) = specifier.strip_prefix("data:")?.split_once(',')?;
+    if head.ends_with(";base64") {
+        return None;
+    }
+    let bytes = body.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        let decoded = (bytes[index] == b'%' && index + 2 < bytes.len() + 0)
+            .then(|| u8::from_str_radix(&body[index + 1..index + 3], 16).ok())
+            .flatten();
+        match decoded {
+            Some(byte) => {
+                out.push(byte);
+                index += 3;
+            }
+            None => {
+                out.push(bytes[index]);
+                index += 1;
+            }
+        }
+    }
+    String::from_utf8(out).ok()
+}
+
 impl ModuleHost for MemoryModuleHost {
     fn resolve(&self, specifier: &str, referrer: Option<&str>) -> Result<String, String> {
         let from = referrer.unwrap_or("");
+        if specifier.starts_with("data:") && data_url_source(specifier).is_some() {
+            return Ok(specifier.to_owned());
+        }
+        if let Some(path) = specifier.strip_prefix("file://") {
+            let (path, suffix) = split_suffix(path);
+            return self.find_file(path).map(|key| format!("{key}{suffix}")).ok_or_else(|| format!("Cannot find module '{path}' imported from {from}"));
+        }
+        let (path_part, suffix) = split_suffix(specifier);
         let is_path = specifier.starts_with("./") || specifier.starts_with("../") || specifier.starts_with('/') || specifier.starts_with('\\');
         if is_path {
             // `//x` é caminho absoluto do disco no bun (nunca uma chave do mapa) e `\x` nunca existe.
-            let key = join_relative(from, specifier, false);
-            if !specifier.starts_with("//") && !specifier.starts_with('\\') && self.files.contains_key(&key) {
-                return Ok(key);
+            let key = join_relative(from, path_part, false);
+            if !specifier.starts_with("//") && !specifier.starts_with('\\') {
+                if let Some(found) = self.find_file(&key) {
+                    return Ok(format!("{found}{suffix}"));
+                }
             }
             return Err(format!("Cannot find module '{specifier}' imported from {from}"));
         }
         if self.files.contains_key(specifier) {
             return Ok(specifier.to_owned());
         }
-        Err(format!("Cannot find package '{specifier}' imported from {from}"))
+        if specifier.is_empty() {
+            return Err(format!("Cannot find module '' imported from {from}"));
+        }
+        // O pacote é o primeiro segmento (`@escopo/nome` tem dois): `nopkg/sub` falha em `nopkg`.
+        let mut parts = specifier.split('/');
+        let first = parts.next().unwrap_or("");
+        let package = if first.starts_with('@') { format!("{first}/{}", parts.next().unwrap_or("")) } else { first.to_owned() };
+        Err(format!("Cannot find package '{package}' imported from {from}"))
     }
 
     fn fetch(&self, key: &str) -> Result<String, String> {
-        self.files.get(key).cloned().ok_or_else(|| format!("Could not open the module '{key}'."))
+        if let Some(source) = data_url_source(key) {
+            return Ok(source);
+        }
+        let (path, _) = split_suffix(key);
+        self.files.get(path).cloned().ok_or_else(|| format!("Could not open the module '{key}'."))
     }
 }
 
