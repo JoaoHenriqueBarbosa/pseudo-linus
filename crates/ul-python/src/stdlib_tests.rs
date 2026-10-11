@@ -7273,3 +7273,11 @@ fn exception_traceback_accepts_only_a_traceback_or_none() {
         ("TypeError __traceback__ must be a traceback or None\nTypeError __traceback__ must be a traceback or None\n\ntraceback\n", "")
     );
 }
+
+/// `traceback.format_stack()` guarda objetos `frame` de quadros que acabam; o registro deles, destruído com a thread,
+/// não pode abortar o processo ao soltar o escopo de um quadro (`thread local panicked on drop`).
+#[test]
+fn frame_objects_survive_thread_teardown() {
+    let r = in_process("import traceback\ndef f():\n    print(len(traceback.format_stack()))\nf()\nprint('ok')\n");
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("2\nok\n", ""));
+}

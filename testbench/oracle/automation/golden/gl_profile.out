@@ -1,0 +1,4 @@
+[('return', '__enter__'), ('c_call', 'trace_switch'), ('call', 'run'), ('call', 'callback'), ('return', 'callback'), ('return', 'run'), ('c_return', 'trace_switch'), ('call', '__exit__'), ('c_call', '__exit__')]
+[('return', '__enter__'), ('c_call', 'trace_switch'), ('call', 'run'), ('call', 'callback'), ('return', 'callback'), ('return', 'run'), ('c_return', 'trace_switch'), ('call', '__exit__'), ('c_call', '__exit__')]
+42
+[('return', '__enter__'), ('call', 'callback'), ('return', 'callback'), ('c_call', 'g1_run'), ('call', 'g2_run'), ('call', 'callback'), ('return', 'callback'), ('call', '__exit__'), ('c_call', '__exit__')]

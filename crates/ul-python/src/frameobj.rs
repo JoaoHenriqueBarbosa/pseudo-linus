@@ -402,7 +402,8 @@ pub fn release_locals(code: &Code, env: &Rc<Env>) {
     if !code.is_function || !env.finished.get() || env.holds.get() > 0 || Rc::strong_count(env) == 1 {
         return;
     }
-    if REGISTRY.with(|reg| reg.borrow().contains_key(&Key::Env(Rc::as_ptr(env) as usize))) {
+    // Com o registro já destruído (a thread acaba) ou emprestado, não há objeto `frame` a respeitar.
+    if REGISTRY.try_with(|reg| reg.try_borrow().map_or(true, |r| r.contains_key(&Key::Env(Rc::as_ptr(env) as usize)))).unwrap_or(true) {
         return;
     }
     // O que sai é solto depois do empréstimo: um `__del__` pode voltar a este escopo.
