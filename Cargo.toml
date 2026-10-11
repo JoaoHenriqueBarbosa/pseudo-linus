@@ -4,7 +4,7 @@
 [workspace]
 resolver = "3"
 # O glob não pega crates/zbun (diretório sem manifesto, só agrupa os crates do porte do bun).
-members = ["crates/[!z]*", "crates/zjsc", "crates/zdeflate", "crates/zft", "crates/zhb", "crates/zjpeg", "crates/zsqlite", "crates/zbun/ast", "crates/zbun/bun_alloc", "crates/zbun/bun_collections", "crates/zbun/bun_core", "crates/zbun/bun_core_macros", "crates/zbun/bun_wyhash", "crates/zbun/js_parser", "crates/zbun/js_printer", "crates/zbun/options_types", "crates/zbun/paths", "crates/zbun/react_compiler", "crates/zbun/sourcemap", "crates/zbun/transpile"]
+members = ["crates/[!z]*", "crates/zjsc", "crates/zdeflate", "crates/zft", "crates/zhb", "crates/zjpeg", "crates/zbun/ast", "crates/zbun/bun_alloc", "crates/zbun/bun_collections", "crates/zbun/bun_core", "crates/zbun/bun_core_macros", "crates/zbun/bun_wyhash", "crates/zbun/js_parser", "crates/zbun/js_printer", "crates/zbun/options_types", "crates/zbun/paths", "crates/zbun/react_compiler", "crates/zbun/sourcemap", "crates/zbun/transpile"]
 # A bancada é outro workspace (testbench/Cargo.toml); o harness entra aqui só como dependência.
 exclude = ["testbench"]
 
