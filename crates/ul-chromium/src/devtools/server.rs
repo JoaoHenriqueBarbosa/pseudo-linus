@@ -8,6 +8,10 @@ use sysabi::{Ctx, Fd, PollEvents, PollFd};
 use super::http::{self, Endpoint, Reply, TargetEntry};
 use super::json::{self, Json};
 use super::target::{self, Link};
+
+/// O Chromium responde ao `Browser.close` e leva ainda 140 a 210 ms para sair (medido no oráculo em três rodadas):
+/// quem confere o processo logo depois da resposta, como o pyppeteer, o encontra vivo.
+const QUIT_DELAY: std::time::Duration = std::time::Duration::from_millis(150);
 use super::websocket::{self, Decoder, Incoming};
 use super::{token, uuid};
 use crate::session_storage::Exit;
@@ -83,6 +87,8 @@ pub struct Browser {
     allowed_origins: Vec<String>,
     /// A saída pedida (`Browser.close` ou um sinal): o laço termina depois de mandar a resposta.
     quit: Option<Exit>,
+    /// Quando o `Browser.close` chegou: o processo só sai `QUIT_DELAY` depois, atendendo as conexões nesse meio tempo.
+    quit_at: Option<std::time::Instant>,
     /// Abas a fechar depois da resposta corrente.
     closing: Vec<String>,
     /// Janelas abertas até aqui: a da aba inicial e, sem `--user-data-dir`, a do primeiro alvo criado, cada uma com
@@ -166,6 +172,7 @@ impl Browser {
             next_key: 1,
             allowed_origins: options.allowed_origins.clone(),
             quit: None,
+            quit_at: None,
             closing: Vec::new(),
             windows: 0,
             max_windows: if options.user_data_dir { 1 } else { 2 },
@@ -433,7 +440,7 @@ impl Browser {
     fn session_target_result(&self, session: &str, method: &str) -> Option<Json> {
         let target = self.sessions.iter().find(|s| s.id == session).map(|s| s.target.clone()).unwrap_or_default();
         match method {
-            "Target.setAutoAttach" | "Target.setDiscoverTargets" | "Target.autoAttachRelated" => Some(Json::object([])),
+            "Target.setAutoAttach" | "Target.setDiscoverTargets" | "Target.autoAttachRelated" | "Target.activateTarget" => Some(Json::object([])),
             "Target.getTargetInfo" => self.info(&target).map(|info| Json::object([("targetInfo", info)])),
             _ => None,
         }
@@ -466,6 +473,8 @@ impl Browser {
             ])),
             "Browser.close" => {
                 self.quit = Some(Exit::Close);
+                self.quit_at = Some(std::time::Instant::now());
+                self.close_visit();
                 Ok(Json::object([]))
             }
             "Browser.getWindowForTarget" => match target_id {
@@ -859,10 +868,19 @@ impl Browser {
         }
     }
 
+    /// O `Browser.close` fecha a visita na hora, antes do atraso da saída; o SIGTERM só vale o que o commit de 10
+    /// segundos já gravou.
+    fn close_visit(&self) {
+        if let Some(history) = &self.default_profile().history {
+            self.sync_history_title(history);
+            history.close((ul_common::time::realtime_nanos() / 1000) as i64);
+        }
+    }
+
     /// O laço: espera conexão, mensagem ou saída de página, trata, e escreve o que ficou pendente.
     fn serve(&mut self, listener: Option<Fd>) {
         let sys = sysabi::sys::current();
-        while self.quit.is_none() || self.conns.iter().any(|c| !c.outbox.is_empty()) {
+        while self.quit.is_none() || self.conns.iter().any(|c| !c.outbox.is_empty()) || self.quit_at.is_some_and(|at| at.elapsed() < QUIT_DELAY) {
             let mut fds = Vec::new();
             if let Some(listener) = listener {
                 fds.push(PollFd { fd: listener, events: PollEvents::IN, revents: PollEvents::empty() });
@@ -880,7 +898,11 @@ impl Browser {
             let pending = self.targets.iter().any(|t| !t.pending.is_empty()) || self.conns.iter().any(|c| matches!(c.transport, Transport::Pipe { .. }) && !c.outbox.is_empty());
             // Com o banco do Local Storage de pé, o laço acorda a cada segundo para gravar o que passou dos 5 s.
             let commit_tick = self.default_profile().persists().then_some(std::time::Duration::from_secs(1));
-            let wait = if pending { Some(std::time::Duration::from_millis(1)) } else { commit_tick };
+            let mut wait = if pending { Some(std::time::Duration::from_millis(1)) } else { commit_tick };
+            if let Some(at) = self.quit_at {
+                let left = QUIT_DELAY.saturating_sub(at.elapsed());
+                wait = Some(wait.map_or(left, |w| w.min(left)));
+            }
             if matches!(sys.poll(&mut fds, wait), Err(e) if e != sysabi::Errno::EINTR) {
                 return;
             }
@@ -946,10 +968,5 @@ pub fn run(ctx: &mut Ctx, options: &Options, url: &str, default_profile: crate::
     }
     browser.serve(listener);
     let exit = browser.quit.unwrap_or(Exit::Signal);
-    // O `Browser.close` fecha a visita; o SIGTERM só vale o que o commit de 10 segundos já gravou.
-    if let (Exit::Close, Some(history)) = (exit, &browser.default_profile().history) {
-        browser.sync_history_title(history);
-        history.close((ul_common::time::realtime_nanos() / 1000) as i64);
-    }
     exit
 }
