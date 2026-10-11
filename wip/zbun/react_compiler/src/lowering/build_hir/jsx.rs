@@ -4,10 +4,11 @@
 //! before the React Compiler runs (see `src/js_parser/visit/visit_expr.rs::e_jsx_element`).
 //! This module decodes that call shape back into the HIR `JsxExpression` instruction.
 
+use bun_ast::NodeStore;
 use crate::diagnostics::{CompilerError, CompilerErrorDetail, ErrorCategory};
 use crate::hir::{
     BuiltinTag, Effect, HirVec, InstructionValue, JsxAttribute, JsxTag, Place,
-    PrimitiveValue, PropertyLiteral, SourceLocation, StoreStr, VariableBinding,
+    PrimitiveValue, PropertyLiteral, SourceLocation, HirStr, VariableBinding,
 };
 use bun_ast::expr::Data as ExprData;
 use bun_ast::{E, Expr, G, Loc, Ref};
@@ -16,15 +17,16 @@ use super::expr::lower_expression;
 use super::helpers::{lower_expression_to_temporary, lower_identifier, lower_value_to_temporary};
 use crate::lowering::hir_builder::{HirBuilder, convert_loc};
 
-fn estring_to_store_str(s: &E::EString) -> StoreStr {
+fn estring_to_store_str(store: &bun_ast::Store, s: &E::EString) -> HirStr {
     if s.is_utf16 {
-        super::helpers::arena_str(&bun_core::strings::to_utf8_alloc(s.slice16()))
+        super::helpers::arena_str(&bun_core::strings::to_utf8_alloc(s.slice16(store)))
     } else {
-        StoreStr::new(s.slice8())
+        HirStr::new(s.slice8(store))
     }
 }
 
 fn lower_jsx_element_name(builder: &mut HirBuilder, tag: &Expr) -> Result<JsxTag, CompilerError> {
+    let store = builder.store();
     let loc = convert_loc(tag.loc);
     match tag.data {
         ExprData::EIdentifier(id) => {
@@ -37,7 +39,7 @@ fn lower_jsx_element_name(builder: &mut HirBuilder, tag: &Expr) -> Result<JsxTag
                 Ok(JsxTag::Place(temp))
             } else {
                 Ok(JsxTag::Builtin(BuiltinTag {
-                    name: StoreStr::new(name),
+                    name: HirStr::new(name),
                     loc,
                 }))
             }
@@ -49,13 +51,13 @@ fn lower_jsx_element_name(builder: &mut HirBuilder, tag: &Expr) -> Result<JsxTag
                 Ok(JsxTag::Place(temp))
             } else {
                 Ok(JsxTag::Builtin(BuiltinTag {
-                    name: StoreStr::new(name),
+                    name: HirStr::new(name),
                     loc,
                 }))
             }
         }
-        ExprData::EString(s) => {
-            let name = estring_to_store_str(&s);
+        ExprData::EString(s) => { let s = &store[s];
+            let name = estring_to_store_str(store, &s);
             let bytes = name.slice();
             if let Some(idx) = bun_core::strings::index_of_char_usize(bytes, b':') {
                 let namespace = &bytes[..idx];
@@ -90,7 +92,7 @@ fn lower_jsx_element_name(builder: &mut HirBuilder, tag: &Expr) -> Result<JsxTag
                 Ok(JsxTag::Builtin(BuiltinTag { name, loc }))
             }
         }
-        ExprData::EDot(dot) => {
+        ExprData::EDot(dot) => { let dot = &store[dot];
             let place = lower_jsx_member_expression(builder, &dot, tag.loc)?;
             Ok(JsxTag::Place(place))
         }
@@ -109,6 +111,7 @@ fn lower_jsx_member_expression(
     expr: &E::Dot,
     expr_loc: Loc,
 ) -> Result<Place, CompilerError> {
+    let store = builder.store();
     // Use the full member expression's loc for instruction locs (matching TS: exprPath.node.loc)
     let expr_loc = convert_loc(expr_loc);
     let object = match expr.target.data {
@@ -121,7 +124,7 @@ fn lower_jsx_member_expression(
             let id_loc = convert_loc(expr.target.loc);
             lower_tag_identifier(builder, id.ref_, id_loc, expr_loc)?
         }
-        ExprData::EDot(inner) => lower_jsx_member_expression(builder, &inner, expr.target.loc)?,
+        ExprData::EDot(inner) => { let inner = &store[inner]; lower_jsx_member_expression(builder, &inner, expr.target.loc)? },
         _ => {
             builder.record_error(CompilerErrorDetail {
                 category: ErrorCategory::Todo,
@@ -144,7 +147,7 @@ fn lower_jsx_member_expression(
     };
     let value = InstructionValue::PropertyLoad {
         object,
-        property: PropertyLiteral::String(StoreStr::new(expr.name.slice())),
+        property: PropertyLiteral::String(HirStr::new(store.str(expr.name))),
         loc: expr_loc,
     };
     lower_value_to_temporary(builder, value)
@@ -200,6 +203,7 @@ pub(super) fn lower_jsx_call(
     call: &E::Call,
     expr_loc: Loc,
 ) -> Result<InstructionValue, CompilerError> {
+    let store = builder.store();
     let loc = convert_loc(expr_loc);
     let args: &[Expr] = &call.args;
 
@@ -277,7 +281,7 @@ pub(super) fn lower_jsx_call(
             if !matches!(key_arg.data, ExprData::EUndefined(_)) {
                 let place = lower_expression_to_temporary(builder, key_arg)?;
                 props.push(JsxAttribute::Attribute {
-                    name: StoreStr::new(b"key"),
+                    name: HirStr::new(b"key"),
                     place,
                 });
             }
@@ -306,7 +310,7 @@ pub(super) fn lower_jsx_call(
                 continue;
             };
             let _key_loc = convert_loc(key_expr.loc);
-            let name = estring_to_store_str(key_str);
+            let name = estring_to_store_str(store, key_str);
             let Some(value_expr) = prop.value.as_ref() else {
                 continue;
             };
@@ -323,8 +327,8 @@ pub(super) fn lower_jsx_call(
     } else {
         // Classic: createElement(tag, propsOrNull, ...children)
         if let Some(p) = props_arg {
-            if let ExprData::EObject(obj) = &p.data {
-                for prop in obj.properties.iter() {
+            if let ExprData::EObject(obj) = &p.data { let obj = &store[*obj];
+                for prop in store[obj.properties].iter() {
                     if matches!(prop.kind, G::PropertyKind::Spread) {
                         let value = prop.value.as_ref().ok_or_else(|| {
                             todo_err("(BuildHIR::lowerJsxCall) spread without value", loc)
@@ -348,7 +352,7 @@ pub(super) fn lower_jsx_call(
                         continue;
                     };
                     let _key_loc = convert_loc(key_expr.loc);
-                    let name = estring_to_store_str(key_str);
+                    let name = estring_to_store_str(store, key_str);
                     let Some(value_expr) = prop.value.as_ref() else {
                         continue;
                     };
@@ -406,12 +410,13 @@ fn lower_jsx_children(
     is_static_children: bool,
     out: &mut HirVec<Place>,
 ) -> Result<(), CompilerError> {
+    let store = builder.store();
     if is_static_children {
-        if let ExprData::EArray(arr) = &value.data {
-            for item in arr.items.iter() {
+        if let ExprData::EArray(arr) = &value.data { let arr = &store[*arr];
+            for item in store[arr.items].iter() {
                 match &item.data {
                     ExprData::EMissing(_) => {}
-                    ExprData::ESpread(spread) => {
+                    ExprData::ESpread(spread) => { let spread = &store[*spread];
                         out.push(lower_expression_to_temporary(builder, &spread.value)?);
                     }
                     _ => {

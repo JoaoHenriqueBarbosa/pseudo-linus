@@ -6,7 +6,7 @@ use crate::diagnostics::{
 };
 use crate::hir::{
     Effect, FunctionExpressionType, InstructionKind, InstructionValue, LValue, LoweredFunction,
-    ObjectProperty, ObjectPropertyKey, ObjectPropertyType, Place, StoreStr, VariableBinding,
+    ObjectProperty, ObjectPropertyKey, ObjectPropertyType, Place, HirStr, VariableBinding,
 };
 use bun_ast::expr::Data;
 use bun_ast::{self as ast, E, Expr, G, Loc, Ref};
@@ -25,7 +25,7 @@ pub(super) fn lower_function_to_value(
     let loc = convert_loc(func_loc);
     let name = func
         .name_ref()
-        .map(|r| StoreStr::new(builder.host().ref_name(r)));
+        .map(|r| HirStr::new(builder.host().ref_name(r)));
     let lowered_func = lower_function(builder, func, func_loc)?;
     Ok(InstructionValue::FunctionExpression {
         name,
@@ -44,7 +44,7 @@ fn lower_function(
     let loc = convert_loc(func_loc);
     let id = func
         .name_ref()
-        .map(|r| StoreStr::new(builder.host().ref_name(r)));
+        .map(|r| HirStr::new(builder.host().ref_name(r)));
 
     // Bun's parser already linked every function to its scope tree; the
     // synthetic zero-width scope search upstream performs is a Hermes-desugar
@@ -109,7 +109,7 @@ pub(super) fn lower_function_declaration(
     let func = FunctionNode::Function(func_decl);
 
     let func_name_ref = func.name_ref();
-    let func_name = func_name_ref.map(|r| StoreStr::new(builder.host().ref_name(r)));
+    let func_name = func_name_ref.map(|r| HirStr::new(builder.host().ref_name(r)));
 
     let parent_function_scope = builder.function_scope();
     let component_scope = builder.component_scope();
@@ -318,11 +318,11 @@ pub(super) fn lower_object_method(
     let key = match key_expr {
         Some(k) => {
             lower_object_property_key(builder, k, computed)?.unwrap_or(ObjectPropertyKey::String {
-                name: StoreStr::EMPTY,
+                name: HirStr::EMPTY,
             })
         }
         None => ObjectPropertyKey::String {
-            name: StoreStr::EMPTY,
+            name: HirStr::EMPTY,
         },
     };
 
@@ -365,17 +365,18 @@ fn lower_object_property_key(
     key: &Expr,
     computed: bool,
 ) -> Result<Option<ObjectPropertyKey>, CompilerError> {
+    let store = builder.store();
     match &key.data {
         // Upstream matches `StringLiteral` regardless of `computed`, so a
         // constant string in a computed key (`{["foo"]: x}`) still lowers to
         // the static-key path. Roped strings fall through to the
         // computed/unsupported arms below.
-        Data::EString(s) if s.next.is_none() => {
-            let name = estring_to_store_str(s);
+        Data::EString(s) if store[*s].next.is_none() => { let s = &store[*s];
+            let name = estring_to_store_str(store, s);
             // Bun stores non-computed identifier keys as `EString`; classify as
             // Identifier when the bytes form a valid identifier so the HIR
             // matches upstream's `Expression::Identifier` arm.
-            if !computed && !s.is_utf16 && is_identifier(s.slice8()) {
+            if !computed && !s.is_utf16 && is_identifier(s.slice8(store)) {
                 Ok(Some(ObjectPropertyKey::Identifier { name }))
             } else {
                 Ok(Some(ObjectPropertyKey::String { name }))
@@ -388,7 +389,7 @@ fn lower_object_property_key(
             }))
         }
         Data::EIdentifier(id) if !computed => Ok(Some(ObjectPropertyKey::Identifier {
-            name: StoreStr::new(builder.host().ref_name(id.ref_)),
+            name: HirStr::new(builder.host().ref_name(id.ref_)),
         })),
         Data::EPrivateIdentifier(_) => {
             builder.record_error(CompilerErrorDetail {
@@ -417,12 +418,12 @@ fn lower_object_property_key(
     }
 }
 
-fn estring_to_store_str(s: &E::EString) -> StoreStr {
+fn estring_to_store_str(store: &bun_ast::Store, s: &E::EString) -> HirStr {
     debug_assert!(s.next.is_none());
     if s.is_utf16 {
-        super::helpers::arena_str(bun_core::strings::to_utf8_alloc(s.slice16()).as_slice())
+        super::helpers::arena_str(bun_core::strings::to_utf8_alloc(s.slice16(store)).as_slice())
     } else {
-        StoreStr::new(s.slice8())
+        HirStr::new(s.slice8(store))
     }
 }
 

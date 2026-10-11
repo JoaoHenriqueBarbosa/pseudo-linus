@@ -62,6 +62,10 @@ pub trait Host {
     fn source(&self) -> &[u8];
     fn arena(&self) -> &bun_alloc::Arena;
 
+    /// Os nós do arquivo em compilação: o lowering lê o AST por aqui e o codegen grava por `store_mut`.
+    fn store(&self) -> &bun_ast::Store;
+    fn store_mut(&mut self) -> &mut bun_ast::Store;
+
     /// Name bytes for any `Ref`, regardless of tag (`Symbol`,
     /// `SourceContentsSlice`, `AllocatedName`). Post-visit, identifier
     /// references are resolved `Symbol` refs, so this is just a symbol-table

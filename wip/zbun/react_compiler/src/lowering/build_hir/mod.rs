@@ -14,6 +14,7 @@
 //! | 6242–6468 | `jsx` (`lower_jsx_*`) |
 //! | 4257–4361, 5985–6241 | this file: `lower()` entry + `lower_inner()` driver |
 
+use bun_ast::NodeStore;
 use crate::collections::{IndexMap, IndexSet};
 use crate::diagnostics::{
     CompilerDiagnostic, CompilerDiagnosticDetail, CompilerError, ErrorCategory,
@@ -21,7 +22,7 @@ use crate::diagnostics::{
 use crate::hir::{
     BlockKind, Effect, EvaluationOrder, HirFunction, HirVec, IdentifierId,
     InstructionKind, InstructionValue, ParamPattern, Place, PrimitiveValue, ReactFunctionType,
-    ReturnVariant, SourceLocation, SpreadPattern, StoreStr, Terminal, VariableBinding,
+    ReturnVariant, SourceLocation, SpreadPattern, HirStr, Terminal, VariableBinding,
     environment::Environment,
 };
 use bun_ast::expr::Data as ExprData;
@@ -112,7 +113,7 @@ pub(crate) fn lower(
 #[allow(clippy::too_many_arguments)]
 pub(super) fn lower_inner<'h>(
     func: &FunctionNode<'_>,
-    id: Option<StoreStr>,
+    id: Option<HirStr>,
     loc: Option<SourceLocation>,
     host: &'h dyn Host,
     env: &'h mut Environment,
@@ -125,11 +126,12 @@ pub(super) fn lower_inner<'h>(
     import_bindings: &IndexMap<Ref, VariableBinding>,
     is_top_level: bool,
 ) -> Result<(HirFunction, IndexSet<Ref>, IndexMap<Ref, IdentifierId>), CompilerError> {
+    let store = host.store();
     // `validate_ts_this_parameter`: Bun's parser strips `this` parameters
     // before this pass runs, so the upstream check is a no-op here.
 
     let params = func.args();
-    let body_stmts = func.body().stmts.slice();
+    let body_stmts = &store[func.body().stmts];
     let generator = func.is_generator();
     let is_async = func.is_async();
     let has_rest_arg = func.has_rest_arg();
@@ -255,8 +257,8 @@ pub(super) fn lower_inner<'h>(
     }
 
     // Lower the body
-    let mut directives: HirVec<StoreStr> = Vec::new();
-    let expr_body = arrow_expression_body(func);
+    let mut directives: HirVec<HirStr> = Vec::new();
+    let expr_body = arrow_expression_body(store, func);
     match expr_body {
         Some(expr) => {
             let fallthrough = builder.reserve(BlockKind::Block);
@@ -274,7 +276,7 @@ pub(super) fn lower_inner<'h>(
         }
         None => {
             for s in body_stmts {
-                if let StmtData::SDirective(d) = &s.data {
+                if let StmtData::SDirective(d) = &s.data { let d = &store[*d];
                     directives.push(d.value);
                 }
             }
@@ -341,18 +343,18 @@ pub(super) fn lower_inner<'h>(
 /// as a single `SReturn` with `prefer_expr` set. Detect that shape so the
 /// upstream `FunctionBody::Expression` arm is preserved (emits `Implicit`
 /// return variant instead of `Explicit`).
-fn arrow_expression_body<'a>(func: &FunctionNode<'a>) -> Option<&'a Expr> {
+fn arrow_expression_body<'a>(store: &bun_ast::Store, func: &FunctionNode<'a>) -> Option<&'a Expr> {
     let FunctionNode::Arrow(a) = func else {
         return None;
     };
     if !a.prefer_expr {
         return None;
     }
-    let stmts = a.body.stmts.slice();
+    let stmts = &store[a.body.stmts];
     if stmts.len() != 1 {
         return None;
     }
-    if let StmtData::SReturn(r) = &stmts[0].data {
+    if let StmtData::SReturn(r) = &stmts[0].data { let r = &store[r];
         return r.value.as_ref();
     }
     None
@@ -385,6 +387,7 @@ pub(super) fn gather_captured_context<'h>(
     enclosing_scope: &'h ast::Scope,
     _component_scope: &ast::Scope,
 ) -> IndexMap<Ref, Option<SourceLocation>> {
+    let store = host.store();
     let mut walker = CaptureWalker {
         host,
         scope_stack: vec![enclosing_scope],
@@ -394,7 +397,7 @@ pub(super) fn gather_captured_context<'h>(
     walker.push_scope(func.args_loc());
     walker.push_scope(func.body().loc);
     walker.walk_args(func.args());
-    walker.walk_stmts(func.body().stmts.slice());
+    walker.walk_stmts(&store[func.body().stmts]);
 
     let module_scope = host.module_scope();
     let symbols = host.symbols();
@@ -427,7 +430,7 @@ pub(super) fn gather_captured_context<'h>(
         ) {
             continue;
         }
-        if let Some(member) = module_scope.members.get(sym.original_name.slice()) {
+        if let Some(member) = module_scope.members.get(store.str(sym.original_name)) {
             if member.ref_ == ref_ {
                 continue;
             }
@@ -510,18 +513,19 @@ impl<'h> CaptureWalker<'h> {
     }
 
     fn walk_binding_decl(&mut self, binding: &ast::Binding) {
+        let store = self.host.store();
         match &binding.data {
-            b::B::BIdentifier(id) => self.record_decl(id.r#ref),
-            b::B::BArray(arr) => {
-                for item in arr.items() {
+            b::B::BIdentifier(id) => { let id = &store[*id]; self.record_decl(id.r#ref) },
+            b::B::BArray(arr) => { let arr = &store[*arr];
+                for item in arr.items(store) {
                     self.walk_binding_decl(&item.binding);
                     if let Some(default) = &item.default_value {
                         self.walk_expr(default);
                     }
                 }
             }
-            b::B::BObject(obj) => {
-                for prop in obj.properties() {
+            b::B::BObject(obj) => { let obj = &store[*obj];
+                for prop in obj.properties(store) {
                     if prop.flags.contains(ast::flags::Property::IsComputed) {
                         self.walk_expr(&prop.key);
                     }
@@ -545,6 +549,7 @@ impl<'h> CaptureWalker<'h> {
     }
 
     fn walk_fn(&mut self, func: &G::Fn) {
+        let store = self.host.store();
         if let Some(name) = &func.name {
             self.record_decl(name.ref_);
         }
@@ -553,8 +558,8 @@ impl<'h> CaptureWalker<'h> {
         }
         self.push_scope(func.open_parens_loc);
         self.push_scope(func.body.loc);
-        self.walk_args(func.args.slice());
-        self.walk_stmts(func.body.stmts.slice());
+        self.walk_args(&store[func.args]);
+        self.walk_stmts(&store[func.body.stmts]);
         self.pop_scope();
         self.pop_scope();
     }
@@ -566,36 +571,37 @@ impl<'h> CaptureWalker<'h> {
     }
 
     fn walk_stmt(&mut self, stmt: &Stmt) {
+        let store = self.host.store();
         let stmt_loc = stmt.loc;
         match &stmt.data {
-            StmtData::SBlock(b) => {
+            StmtData::SBlock(b) => { let b = &store[*b];
                 self.push_scope(stmt_loc);
-                self.walk_stmts(b.stmts.slice());
+                self.walk_stmts(&store[b.stmts]);
                 self.pop_scope();
             }
-            StmtData::SExpr(e) => self.walk_expr(&e.value),
-            StmtData::SLocal(l) => {
-                for decl in l.decls.iter() {
+            StmtData::SExpr(e) => { let e = &store[*e]; self.walk_expr(&e.value) },
+            StmtData::SLocal(l) => { let l = &store[*l];
+                for decl in store[l.decls].iter() {
                     self.walk_binding_decl(&decl.binding);
                     if let Some(value) = &decl.value {
                         self.walk_expr(value);
                     }
                 }
             }
-            StmtData::SReturn(r) => {
+            StmtData::SReturn(r) => { let r = &store[*r];
                 if let Some(v) = &r.value {
                     self.walk_expr(v);
                 }
             }
             StmtData::SThrow(t) => self.walk_expr(&t.value),
-            StmtData::SIf(i) => {
+            StmtData::SIf(i) => { let i = &store[*i];
                 self.walk_expr(&i.test);
                 self.walk_stmt(&i.yes);
                 if let Some(no) = &i.no {
                     self.walk_stmt(no);
                 }
             }
-            StmtData::SFor(f) => {
+            StmtData::SFor(f) => { let f = &store[*f];
                 self.push_scope(stmt_loc);
                 if let Some(init) = &f.init {
                     self.walk_stmt(init);
@@ -609,42 +615,42 @@ impl<'h> CaptureWalker<'h> {
                 self.walk_stmt(&f.body);
                 self.pop_scope();
             }
-            StmtData::SForIn(f) => {
+            StmtData::SForIn(f) => { let f = &store[*f];
                 self.push_scope(stmt_loc);
                 self.walk_stmt(&f.init);
                 self.walk_expr(&f.value);
                 self.walk_stmt(&f.body);
                 self.pop_scope();
             }
-            StmtData::SForOf(f) => {
+            StmtData::SForOf(f) => { let f = &store[*f];
                 self.push_scope(stmt_loc);
                 self.walk_stmt(&f.init);
                 self.walk_expr(&f.value);
                 self.walk_stmt(&f.body);
                 self.pop_scope();
             }
-            StmtData::SWhile(w) => {
+            StmtData::SWhile(w) => { let w = &store[*w];
                 self.walk_expr(&w.test);
                 self.walk_stmt(&w.body);
             }
-            StmtData::SDoWhile(d) => {
+            StmtData::SDoWhile(d) => { let d = &store[*d];
                 self.walk_stmt(&d.body);
                 self.walk_expr(&d.test);
             }
-            StmtData::SSwitch(s) => {
+            StmtData::SSwitch(s) => { let s = &store[*s];
                 self.walk_expr(&s.test);
                 self.push_scope(s.body_loc);
-                for case in s.cases.slice() {
+                for case in &store[s.cases] {
                     if let Some(v) = &case.value {
                         self.walk_expr(v);
                     }
-                    self.walk_stmts(case.body.slice());
+                    self.walk_stmts(&store[case.body]);
                 }
                 self.pop_scope();
             }
-            StmtData::STry(t) => {
+            StmtData::STry(t) => { let t = &store[*t];
                 self.push_scope(stmt_loc);
-                self.walk_stmts(t.body.slice());
+                self.walk_stmts(&store[t.body]);
                 self.pop_scope();
                 if let Some(catch) = &t.catch {
                     self.push_scope(catch.loc);
@@ -652,68 +658,69 @@ impl<'h> CaptureWalker<'h> {
                         self.walk_binding_decl(binding);
                     }
                     self.push_scope(catch.body_loc);
-                    self.walk_stmts(catch.body.slice());
+                    self.walk_stmts(&store[catch.body]);
                     self.pop_scope();
                     self.pop_scope();
                 }
                 if let Some(finally) = &t.finally {
                     self.push_scope(finally.loc);
-                    self.walk_stmts(finally.stmts.slice());
+                    self.walk_stmts(&store[finally.stmts]);
                     self.pop_scope();
                 }
             }
-            StmtData::SLabel(l) => self.walk_stmt(&l.stmt),
-            StmtData::SWith(w) => {
+            StmtData::SLabel(l) => { let l = &store[*l]; self.walk_stmt(&l.stmt) },
+            StmtData::SWith(w) => { let w = &store[*w];
                 self.walk_expr(&w.value);
                 self.push_scope(w.body_loc);
                 self.walk_stmt(&w.body);
                 self.pop_scope();
             }
-            StmtData::SFunction(f) => {
+            StmtData::SFunction(f) => { let f = &store[*f];
                 if let Some(name) = &f.func.name {
                     self.record_decl(name.ref_);
                 }
                 self.walk_fn(&f.func);
             }
-            StmtData::SClass(c) => {
+            StmtData::SClass(c) => { let c = &store[*c];
                 if let Some(name) = &c.class.class_name {
                     self.record_decl(name.ref_);
                 }
             }
-            StmtData::SExportDefault(e) => match &e.value {
+            StmtData::SExportDefault(e) => { let e = &store[*e]; match &e.value {
                 StmtOrExpr::Stmt(s) => self.walk_stmt(s),
                 StmtOrExpr::Expr(ex) => self.walk_expr(ex),
-            },
+            } },
             _ => {}
         }
     }
 
     fn walk_expr(&mut self, e: &Expr) {
+        let store = self.host.store();
         match &e.data {
             ExprData::EIdentifier(id) => self.record_ref(id.ref_, e.loc),
             ExprData::EImportIdentifier(id) => self.record_ref(id.ref_, e.loc),
-            ExprData::EBinary(bin) => {
+            ExprData::EBinary(bin) => { let bin = &store[*bin];
                 self.walk_expr(&bin.left);
                 self.walk_expr(&bin.right);
             }
-            ExprData::EUnary(u) => self.walk_expr(&u.value),
-            ExprData::EArrow(a) => {
+            ExprData::EUnary(u) => { let u = &store[*u]; self.walk_expr(&u.value) },
+            ExprData::EArrow(a) => { let a = &store[*a];
                 self.push_scope(a.body.loc);
                 self.push_scope(a.body.loc);
-                self.walk_args(a.args.slice());
-                self.walk_stmts(a.body.stmts.slice());
+                self.walk_args(&store[a.args]);
+                self.walk_stmts(&store[a.body.stmts]);
                 self.pop_scope();
                 self.pop_scope();
             }
-            ExprData::EFunction(f) => self.walk_fn(&f.func),
+            ExprData::EFunction(f) => { let f = &store[*f]; self.walk_fn(&f.func) },
             ExprData::EClass(_) => {}
-            ExprData::EArray(a) => {
-                for item in a.items.iter() {
+            ExprData::EArray(a) => { let a = &store[*a];
+                for item in store[a.items].iter() {
                     self.walk_expr(item);
                 }
             }
-            ExprData::EObject(o) => {
-                for p in o.properties.iter() {
+            ExprData::EObject(o) => { let o = &store[*o];
+                for p in store[o.properties].iter() {
                     if p.flags.contains(ast::flags::Property::IsComputed) {
                         if let Some(key) = &p.key {
                             self.walk_expr(key);
@@ -727,52 +734,52 @@ impl<'h> CaptureWalker<'h> {
                     }
                 }
             }
-            ExprData::ESpread(s) => self.walk_expr(&s.value),
-            ExprData::EIf(c) => {
+            ExprData::ESpread(s) => { let s = &store[*s]; self.walk_expr(&s.value) },
+            ExprData::EIf(c) => { let c = &store[*c];
                 self.walk_expr(&c.test);
                 self.walk_expr(&c.yes);
                 self.walk_expr(&c.no);
             }
-            ExprData::EDot(d) => self.walk_expr(&d.target),
-            ExprData::EIndex(i) => {
+            ExprData::EDot(d) => { let d = &store[*d]; self.walk_expr(&d.target) },
+            ExprData::EIndex(i) => { let i = &store[*i];
                 self.walk_expr(&i.target);
                 self.walk_expr(&i.index);
             }
-            ExprData::ECall(c) => {
+            ExprData::ECall(c) => { let c = &store[*c];
                 self.walk_expr(&c.target);
-                for a in c.args.iter() {
+                for a in store[c.args].iter() {
                     self.walk_expr(a);
                 }
             }
-            ExprData::ENew(n) => {
+            ExprData::ENew(n) => { let n = &store[*n];
                 self.walk_expr(&n.target);
-                for a in n.args.iter() {
+                for a in store[n.args].iter() {
                     self.walk_expr(a);
                 }
             }
-            ExprData::EImport(i) => {
+            ExprData::EImport(i) => { let i = &store[*i];
                 self.walk_expr(&i.expr);
                 self.walk_expr(&i.options);
             }
-            ExprData::EAwait(a) => self.walk_expr(&a.value),
-            ExprData::EYield(y) => {
+            ExprData::EAwait(a) => { let a = &store[*a]; self.walk_expr(&a.value) },
+            ExprData::EYield(y) => { let y = &store[*y];
                 if let Some(v) = &y.value {
                     self.walk_expr(v);
                 }
             }
-            ExprData::ETemplate(t) => {
+            ExprData::ETemplate(t) => { let t = &store[*t];
                 if let Some(tag) = &t.tag {
                     self.walk_expr(tag);
                 }
-                for part in t.parts() {
+                for part in t.parts(store) {
                     self.walk_expr(&part.value);
                 }
             }
-            ExprData::EJsxElement(j) => {
+            ExprData::EJsxElement(j) => { let j = &store[*j];
                 if let Some(tag) = &j.tag {
                     self.walk_expr(tag);
                 }
-                for p in j.properties.iter() {
+                for p in store[j.properties].iter() {
                     if let Some(value) = &p.value {
                         self.walk_expr(value);
                     }
@@ -780,11 +787,11 @@ impl<'h> CaptureWalker<'h> {
                         self.walk_expr(init);
                     }
                 }
-                for child in j.children.iter() {
+                for child in store[j.children].iter() {
                     self.walk_expr(child);
                 }
             }
-            ExprData::EInlinedEnum(ie) => self.walk_expr(&ie.value),
+            ExprData::EInlinedEnum(ie) => { let ie = &store[*ie]; self.walk_expr(&ie.value) },
             _ => {}
         }
     }

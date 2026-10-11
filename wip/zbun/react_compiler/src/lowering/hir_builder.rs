@@ -4,6 +4,7 @@
 //! `&dyn Host` (which exposes `symbols()/module_scope()/import_records()`)
 //! instead, since Bun's parser already resolved every reference to a `Ref`.
 
+use bun_ast::NodeStore;
 use crate::collections::IndexMap;
 use crate::collections::IndexSet;
 use crate::diagnostics::CompilerDiagnostic;
@@ -137,9 +138,10 @@ pub(crate) enum FunctionNode<'a> {
 
 impl<'a> FunctionNode<'a> {
     pub(crate) fn args(&self) -> &'a [G::Arg] {
+        let store = self.host.store();
         match self {
-            FunctionNode::Function(f) => f.args.slice(),
-            FunctionNode::Arrow(a) => a.args.slice(),
+            FunctionNode::Function(f) => &store[f.args],
+            FunctionNode::Arrow(a) => &store[a.args],
         }
     }
 
@@ -358,6 +360,11 @@ impl<'h> HirBuilder<'h> {
 
     pub(crate) fn host(&self) -> &'h dyn Host {
         self.host
+    }
+
+    /// Os nós do arquivo, com o lifetime do host: não prende o `builder`.
+    pub(crate) fn store(&self) -> &'h bun_ast::Store {
+        self.host.store()
     }
 
     pub(crate) fn set_import_bindings(&mut self, bindings: IndexMap<Ref, VariableBinding>) {
@@ -911,11 +918,11 @@ impl<'h> HirBuilder<'h> {
             index += 1;
         }
 
-        let stored_name = StoreStr::new(self.host.ref_name(ref_));
+        let stored_name = HirStr::new(self.host.ref_name(ref_));
         let stored_candidate = if candidate == name {
             stored_name
         } else {
-            StoreStr::new(bun_ast::data_store_dupe_str(candidate.as_bytes()))
+            HirStr::new(bun_ast::data_store_dupe_str(candidate.as_bytes()))
         };
         if candidate != name {
             if let Some(start) = loc.as_ref().and_then(|l| l.start.index) {
@@ -960,6 +967,7 @@ impl<'h> HirBuilder<'h> {
         ref_: Ref,
         loc: Option<SourceLocation>,
     ) -> Result<VariableBinding, CompilerError> {
+        let store = self.host.store();
         let ref_ = self.resolve_ref(ref_);
         let Some(sym) = self.symbol(ref_) else {
             return Err(crate::diagnostics::cold_todo(
@@ -984,9 +992,9 @@ impl<'h> HirBuilder<'h> {
                         .import_records()
                         .get(alias.import_record_index as usize)
                     {
-                        let module = StoreStr::new(record.path.text);
+                        let module = HirStr::new(record.path.text);
                         let imported = alias.alias;
-                        return Ok(if imported.slice() == b"default" {
+                        return Ok(if store.str(imported) == b"default" {
                             VariableBinding::ImportDefault { name, module }
                         } else {
                             VariableBinding::ImportSpecifier {
@@ -1016,7 +1024,7 @@ impl<'h> HirBuilder<'h> {
         }
 
         let module_scope = self.host.module_scope();
-        if let Some(member) = module_scope.members.get(sym.original_name.slice()) {
+        if let Some(member) = module_scope.members.get(store.str(sym.original_name)) {
             if member.ref_ == ref_ {
                 return Ok(VariableBinding::ModuleLocal { name });
             }
@@ -1042,12 +1050,13 @@ impl<'h> HirBuilder<'h> {
     /// Check if a `Ref` resolves to a context identifier (captured from an
     /// enclosing function scope).
     pub(crate) fn is_context_identifier(&self, ref_: Ref) -> bool {
+        let store = self.host.store();
         let ref_ = self.resolve_ref(ref_);
         if let Some(member) = self.symbol(ref_).and_then(|sym| {
             self.host
                 .module_scope()
                 .members
-                .get(sym.original_name.slice())
+                .get(store.str(sym.original_name))
         }) {
             if member.ref_ == ref_ {
                 return false;

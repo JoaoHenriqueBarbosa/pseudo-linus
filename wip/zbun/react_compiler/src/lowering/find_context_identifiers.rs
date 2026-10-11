@@ -137,18 +137,19 @@ impl<'a> ContextIdentifierVisitor<'a> {
     }
 
     fn walk_binding_decl(&mut self, binding: &ast::Binding) {
+        let store = self.host.store();
         match &binding.data {
-            B::BIdentifier(id) => self.record_decl(id.r#ref),
-            B::BArray(arr) => {
-                for item in arr.items() {
+            B::BIdentifier(id) => { let id = &store[*id]; self.record_decl(id.r#ref) },
+            B::BArray(arr) => { let arr = &store[*arr];
+                for item in arr.items(store) {
                     self.walk_binding_decl(&item.binding);
                     if let Some(default) = &item.default_value {
                         self.walk_expr(default);
                     }
                 }
             }
-            B::BObject(obj) => {
-                for prop in obj.properties() {
+            B::BObject(obj) => { let obj = &store[*obj];
+                for prop in obj.properties(store) {
                     if prop.flags.contains(ast::flags::Property::IsComputed) {
                         self.walk_expr(&prop.key);
                     }
@@ -172,6 +173,7 @@ impl<'a> ContextIdentifierVisitor<'a> {
     }
 
     fn walk_fn(&mut self, func: &G::Fn) {
+        let store = self.host.store();
         self.push_function_scope();
         self.push_scope(func.open_parens_loc);
         self.push_scope(func.body.loc);
@@ -181,32 +183,33 @@ impl<'a> ContextIdentifierVisitor<'a> {
         if func.arguments_ref.is_valid() {
             self.record_decl(func.arguments_ref);
         }
-        self.walk_args(func.args.slice());
-        self.walk_stmts(func.body.stmts.slice());
+        self.walk_args(&store[func.args]);
+        self.walk_stmts(&store[func.body.stmts]);
         self.pop_scope();
         self.pop_scope();
         self.pop_function_scope();
     }
 
     fn walk_class(&mut self, class: &G::Class) {
+        let store = self.host.store();
         if let Some(extends) = &class.extends {
             self.walk_expr(extends);
         }
-        for d in class.ts_decorators.iter() {
+        for d in store[class.ts_decorators].iter() {
             self.walk_expr(d);
         }
-        for prop in class.properties.slice() {
-            if let Some(block) = prop.class_static_block_ref() {
+        for prop in &store[class.properties] {
+            if let Some(block) = prop.class_static_block_ref(store) {
                 // Intentional deviation: upstream's AstWalker skips class bodies
                 // entirely, but static blocks are function-scoped per spec.
                 self.push_function_scope();
-                for s in block.stmts.iter() {
+                for s in store[block.stmts].iter() {
                     self.walk_stmt(s);
                 }
                 self.pop_function_scope();
                 continue;
             }
-            for d in prop.ts_decorators.iter() {
+            for d in store[prop.ts_decorators].iter() {
                 self.walk_expr(d);
             }
             if prop.flags.contains(ast::flags::Property::IsComputed) {
@@ -230,36 +233,37 @@ impl<'a> ContextIdentifierVisitor<'a> {
     }
 
     fn walk_stmt(&mut self, stmt: &Stmt) {
+        let store = self.host.store();
         let stmt_loc = stmt.loc;
         match &stmt.data {
-            StmtData::SBlock(b) => {
+            StmtData::SBlock(b) => { let b = &store[*b];
                 self.push_scope(stmt_loc);
-                self.walk_stmts(b.stmts.slice());
+                self.walk_stmts(&store[b.stmts]);
                 self.pop_scope();
             }
-            StmtData::SExpr(e) => self.walk_expr(&e.value),
-            StmtData::SLocal(l) => {
-                for decl in l.decls.iter() {
+            StmtData::SExpr(e) => { let e = &store[*e]; self.walk_expr(&e.value) },
+            StmtData::SLocal(l) => { let l = &store[*l];
+                for decl in store[l.decls].iter() {
                     self.walk_binding_decl(&decl.binding);
                     if let Some(value) = &decl.value {
                         self.walk_expr(value);
                     }
                 }
             }
-            StmtData::SReturn(r) => {
+            StmtData::SReturn(r) => { let r = &store[*r];
                 if let Some(v) = &r.value {
                     self.walk_expr(v);
                 }
             }
             StmtData::SThrow(t) => self.walk_expr(&t.value),
-            StmtData::SIf(i) => {
+            StmtData::SIf(i) => { let i = &store[*i];
                 self.walk_expr(&i.test);
                 self.walk_stmt(&i.yes);
                 if let Some(no) = &i.no {
                     self.walk_stmt(no);
                 }
             }
-            StmtData::SFor(f) => {
+            StmtData::SFor(f) => { let f = &store[*f];
                 self.push_scope(stmt_loc);
                 if let Some(init) = &f.init {
                     self.walk_stmt(init);
@@ -273,42 +277,42 @@ impl<'a> ContextIdentifierVisitor<'a> {
                 self.walk_stmt(&f.body);
                 self.pop_scope();
             }
-            StmtData::SForIn(f) => {
+            StmtData::SForIn(f) => { let f = &store[*f];
                 self.push_scope(stmt_loc);
                 self.walk_stmt(&f.init);
                 self.walk_expr(&f.value);
                 self.walk_stmt(&f.body);
                 self.pop_scope();
             }
-            StmtData::SForOf(f) => {
+            StmtData::SForOf(f) => { let f = &store[*f];
                 self.push_scope(stmt_loc);
                 self.walk_stmt(&f.init);
                 self.walk_expr(&f.value);
                 self.walk_stmt(&f.body);
                 self.pop_scope();
             }
-            StmtData::SWhile(w) => {
+            StmtData::SWhile(w) => { let w = &store[*w];
                 self.walk_expr(&w.test);
                 self.walk_stmt(&w.body);
             }
-            StmtData::SDoWhile(d) => {
+            StmtData::SDoWhile(d) => { let d = &store[*d];
                 self.walk_stmt(&d.body);
                 self.walk_expr(&d.test);
             }
-            StmtData::SSwitch(s) => {
+            StmtData::SSwitch(s) => { let s = &store[*s];
                 self.walk_expr(&s.test);
                 self.push_scope(s.body_loc);
-                for case in s.cases.slice() {
+                for case in &store[s.cases] {
                     if let Some(v) = &case.value {
                         self.walk_expr(v);
                     }
-                    self.walk_stmts(case.body.slice());
+                    self.walk_stmts(&store[case.body]);
                 }
                 self.pop_scope();
             }
-            StmtData::STry(t) => {
+            StmtData::STry(t) => { let t = &store[*t];
                 self.push_scope(stmt_loc);
-                self.walk_stmts(t.body.slice());
+                self.walk_stmts(&store[t.body]);
                 self.pop_scope();
                 if let Some(catch) = &t.catch {
                     self.push_scope(catch.loc);
@@ -316,24 +320,24 @@ impl<'a> ContextIdentifierVisitor<'a> {
                         self.walk_binding_decl(binding);
                     }
                     self.push_scope(catch.body_loc);
-                    self.walk_stmts(catch.body.slice());
+                    self.walk_stmts(&store[catch.body]);
                     self.pop_scope();
                     self.pop_scope();
                 }
                 if let Some(finally) = &t.finally {
                     self.push_scope(finally.loc);
-                    self.walk_stmts(finally.stmts.slice());
+                    self.walk_stmts(&store[finally.stmts]);
                     self.pop_scope();
                 }
             }
-            StmtData::SLabel(l) => self.walk_stmt(&l.stmt),
-            StmtData::SWith(w) => {
+            StmtData::SLabel(l) => { let l = &store[*l]; self.walk_stmt(&l.stmt) },
+            StmtData::SWith(w) => { let w = &store[*w];
                 self.walk_expr(&w.value);
                 self.push_scope(w.body_loc);
                 self.walk_stmt(&w.body);
                 self.pop_scope();
             }
-            StmtData::SFunction(f) => {
+            StmtData::SFunction(f) => { let f = &store[*f];
                 // Record the declaration name AFTER walk_fn so the enclosing
                 // depth wins the last-write into decl_depth (walk_fn re-records
                 // func.name at the inner depth, which is correct only for
@@ -343,20 +347,20 @@ impl<'a> ContextIdentifierVisitor<'a> {
                     self.record_decl(name.ref_);
                 }
             }
-            StmtData::SClass(c) => {
+            StmtData::SClass(c) => { let c = &store[*c];
                 if let Some(name) = &c.class.class_name {
                     self.record_decl(name.ref_);
                 }
                 self.walk_class(&c.class);
             }
-            StmtData::SExportDefault(e) => match &e.value {
+            StmtData::SExportDefault(e) => { let e = &store[*e]; match &e.value {
                 StmtOrExpr::Stmt(s) => self.walk_stmt(s),
                 StmtOrExpr::Expr(ex) => self.walk_expr(ex),
-            },
-            StmtData::SExportEquals(e) => self.walk_expr(&e.value),
-            StmtData::SNamespace(n) => self.walk_stmts(n.stmts.slice()),
-            StmtData::SEnum(e) => {
-                for v in e.values.slice() {
+            } },
+            StmtData::SExportEquals(e) => { let e = &store[*e]; self.walk_expr(&e.value) },
+            StmtData::SNamespace(n) => { let n = &store[*n]; self.walk_stmts(&store[n.stmts]) },
+            StmtData::SEnum(e) => { let e = &store[*e];
+                for v in &store[e.values] {
                     if let Some(value) = &v.value {
                         self.walk_expr(value);
                     }
@@ -382,12 +386,13 @@ impl<'a> ContextIdentifierVisitor<'a> {
         reason = "expr::Data variants are arena-backed StoreRef; live residency is bounded"
     )]
     fn walk_expr(&mut self, e: &Expr) {
+        let store = self.host.store();
         match &e.data {
             Data::EObjectJSON(_) | Data::EArrayJSON(_) => {}
             Data::EIdentifier(id) => self.check_captured_reference(id.ref_),
             Data::EImportIdentifier(id) => self.check_captured_reference(id.ref_),
 
-            Data::EBinary(b) => {
+            Data::EBinary(b) => { let b = &store[*b];
                 if !matches!(b.op.binary_assign_target(), AssignTarget::None) {
                     if self.error.is_none() {
                         if let Err(error) = walk_lval_for_reassignment(self, &b.left) {
@@ -398,7 +403,7 @@ impl<'a> ContextIdentifierVisitor<'a> {
                 self.walk_expr(&b.left);
                 self.walk_expr(&b.right);
             }
-            Data::EUnary(u) => {
+            Data::EUnary(u) => { let u = &store[*u];
                 if matches!(
                     u.op,
                     OpCode::UnPreInc | OpCode::UnPreDec | OpCode::UnPostInc | OpCode::UnPostDec
@@ -410,33 +415,33 @@ impl<'a> ContextIdentifierVisitor<'a> {
                 self.walk_expr(&u.value);
             }
 
-            Data::EArrow(a) => {
+            Data::EArrow(a) => { let a = &store[*a];
                 self.push_function_scope();
                 self.push_scope(a.body.loc);
                 self.push_scope(a.body.loc);
-                self.walk_args(a.args.slice());
-                self.walk_stmts(a.body.stmts.slice());
+                self.walk_args(&store[a.args]);
+                self.walk_stmts(&store[a.body.stmts]);
                 self.pop_scope();
                 self.pop_scope();
                 self.pop_function_scope();
             }
-            Data::EFunction(f) => {
+            Data::EFunction(f) => { let f = &store[*f];
                 self.walk_fn(&f.func);
             }
-            Data::EClass(c) => {
+            Data::EClass(c) => { let c = &store[*c];
                 if let Some(name) = &c.class_name {
                     self.record_decl(name.ref_);
                 }
                 self.walk_class(c);
             }
 
-            Data::EArray(a) => {
-                for item in a.items.iter() {
+            Data::EArray(a) => { let a = &store[*a];
+                for item in store[a.items].iter() {
                     self.walk_expr(item);
                 }
             }
-            Data::EObject(o) => {
-                for p in o.properties.iter() {
+            Data::EObject(o) => { let o = &store[*o];
+                for p in store[o.properties].iter() {
                     if p.flags.contains(ast::flags::Property::IsComputed) {
                         if let Some(key) = &p.key {
                             self.walk_expr(key);
@@ -450,52 +455,52 @@ impl<'a> ContextIdentifierVisitor<'a> {
                     }
                 }
             }
-            Data::ESpread(s) => self.walk_expr(&s.value),
-            Data::EIf(c) => {
+            Data::ESpread(s) => { let s = &store[*s]; self.walk_expr(&s.value) },
+            Data::EIf(c) => { let c = &store[*c];
                 self.walk_expr(&c.test);
                 self.walk_expr(&c.yes);
                 self.walk_expr(&c.no);
             }
-            Data::EDot(d) => self.walk_expr(&d.target),
-            Data::EIndex(i) => {
+            Data::EDot(d) => { let d = &store[*d]; self.walk_expr(&d.target) },
+            Data::EIndex(i) => { let i = &store[*i];
                 self.walk_expr(&i.target);
                 self.walk_expr(&i.index);
             }
-            Data::ECall(c) => {
+            Data::ECall(c) => { let c = &store[*c];
                 self.walk_expr(&c.target);
-                for a in c.args.iter() {
+                for a in store[c.args].iter() {
                     self.walk_expr(a);
                 }
             }
-            Data::ENew(n) => {
+            Data::ENew(n) => { let n = &store[*n];
                 self.walk_expr(&n.target);
-                for a in n.args.iter() {
+                for a in store[n.args].iter() {
                     self.walk_expr(a);
                 }
             }
-            Data::EImport(i) => {
+            Data::EImport(i) => { let i = &store[*i];
                 self.walk_expr(&i.expr);
                 self.walk_expr(&i.options);
             }
-            Data::EAwait(a) => self.walk_expr(&a.value),
-            Data::EYield(y) => {
+            Data::EAwait(a) => { let a = &store[*a]; self.walk_expr(&a.value) },
+            Data::EYield(y) => { let y = &store[*y];
                 if let Some(v) = &y.value {
                     self.walk_expr(v);
                 }
             }
-            Data::ETemplate(t) => {
+            Data::ETemplate(t) => { let t = &store[*t];
                 if let Some(tag) = &t.tag {
                     self.walk_expr(tag);
                 }
-                for part in t.parts() {
+                for part in t.parts(store) {
                     self.walk_expr(&part.value);
                 }
             }
-            Data::EJsxElement(j) => {
+            Data::EJsxElement(j) => { let j = &store[*j];
                 if let Some(tag) = &j.tag {
                     self.walk_expr(tag);
                 }
-                for p in j.properties.iter() {
+                for p in store[j.properties].iter() {
                     if p.flags.contains(ast::flags::Property::IsComputed) {
                         if let Some(key) = &p.key {
                             self.walk_expr(key);
@@ -508,11 +513,11 @@ impl<'a> ContextIdentifierVisitor<'a> {
                         self.walk_expr(init);
                     }
                 }
-                for child in j.children.iter() {
+                for child in store[j.children].iter() {
                     self.walk_expr(child);
                 }
             }
-            Data::EInlinedEnum(e) => self.walk_expr(&e.value),
+            Data::EInlinedEnum(e) => { let e = &store[*e]; self.walk_expr(&e.value) },
 
             Data::EPrivateIdentifier(_)
             | Data::ECommonjsExportIdentifier(_)
@@ -546,6 +551,7 @@ fn walk_lval_for_reassignment(
     visitor: &mut ContextIdentifierVisitor<'_>,
     pattern: &Expr,
 ) -> Result<(), CompilerError> {
+    let store = visitor.host.store();
     match &pattern.data {
         Data::EIdentifier(ident) => {
             visitor.handle_reassignment_identifier(ident.ref_);
@@ -553,15 +559,15 @@ fn walk_lval_for_reassignment(
         Data::EImportIdentifier(ident) => {
             visitor.handle_reassignment_identifier(ident.ref_);
         }
-        Data::EArray(pat) => {
-            for element in pat.items.iter() {
+        Data::EArray(pat) => { let pat = &store[*pat];
+            for element in store[pat.items].iter() {
                 if !matches!(element.data, Data::EMissing(_)) {
                     walk_lval_for_reassignment(visitor, element)?;
                 }
             }
         }
-        Data::EObject(pat) => {
-            for prop in pat.properties.iter() {
+        Data::EObject(pat) => { let pat = &store[*pat];
+            for prop in store[pat.properties].iter() {
                 match prop.kind {
                     G::PropertyKind::Spread => {
                         if let Some(value) = &prop.value {
@@ -576,10 +582,10 @@ fn walk_lval_for_reassignment(
                 }
             }
         }
-        Data::EBinary(pat) if pat.op == OpCode::BinAssign => {
+        Data::EBinary(pat) if store[*pat].op == OpCode::BinAssign => { let pat = &store[*pat];
             walk_lval_for_reassignment(visitor, &pat.left)?;
         }
-        Data::ESpread(pat) => {
+        Data::ESpread(pat) => { let pat = &store[*pat];
             walk_lval_for_reassignment(visitor, &pat.value)?;
         }
         Data::EDot(_) | Data::EIndex(_) => {
@@ -598,9 +604,9 @@ fn walk_lval_for_reassignment(
 
 fn expr_type_name(data: &Data) -> &'static str {
     match data {
-        Data::EBinary(_) => "BinaryExpression",
-        Data::EUnary(_) => "UnaryExpression",
-        Data::ECall(_) => "CallExpression",
+        Data::EBinary(_) => { "BinaryExpression" },
+        Data::EUnary(_) => { "UnaryExpression" },
+        Data::ECall(_) => { "CallExpression" },
         _ => "Expression",
     }
 }
@@ -653,6 +659,7 @@ pub(crate) fn find_context_identifiers(
     host: &dyn Host,
     env: &mut Environment,
 ) -> Result<RefSet, CompilerError> {
+    let store = host.store();
     let mut visitor = ContextIdentifierVisitor {
         host,
         env,
@@ -669,7 +676,7 @@ pub(crate) fn find_context_identifiers(
     visitor.push_scope(func.args_loc());
     visitor.push_scope(func.body().loc);
     visitor.walk_args(func.args());
-    visitor.walk_stmts(func.body().stmts.slice());
+    visitor.walk_stmts(&store[func.body().stmts]);
 
     if let Some(error) = visitor.error {
         return Err(error);

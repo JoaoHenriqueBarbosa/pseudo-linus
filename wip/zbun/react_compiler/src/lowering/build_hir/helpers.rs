@@ -1,5 +1,6 @@
 //! Port of build_hir.rs lines 1–662 and 4362–5509 — see mod.rs.
 
+use bun_ast::NodeStore;
 use crate::diagnostics::{CompilerError, CompilerErrorDetail, ErrorCategory, cold_todo};
 use crate::hir::*;
 use bun_ast::expr::Data;
@@ -11,8 +12,8 @@ use super::expr::lower_reorderable_expression;
 use super::lower_expression;
 
 #[inline]
-pub(super) fn arena_str(bytes: &[u8]) -> StoreStr {
-    StoreStr::new(ast::data_store_dupe_str(bytes))
+pub(super) fn arena_str(bytes: &[u8]) -> HirStr {
+    HirStr::new(ast::data_store_dupe_str(bytes))
 }
 
 struct WriteBytes<'a>(&'a mut HirVec<u8>);
@@ -42,56 +43,56 @@ macro_rules! serialize_pattern {
     };
 }
 
-pub(super) fn expression_type_name(expr: &Expr) -> &'static str {
+pub(super) fn expression_type_name(store: &bun_ast::Store, expr: &Expr) -> &'static str {
     match &expr.data {
         Data::EIdentifier(_) | Data::EImportIdentifier(_) => "Identifier",
         Data::EPrivateIdentifier(_) => "PrivateName",
         Data::EBoolean(_) => "BooleanLiteral",
         Data::ENumber(_) => "NumericLiteral",
-        Data::EString(_) => "StringLiteral",
-        Data::EBigInt(_) => "BigIntLiteral",
-        Data::ERegExp(_) => "RegExpLiteral",
+        Data::EString(_) => { "StringLiteral" },
+        Data::EBigInt(_) => { "BigIntLiteral" },
+        Data::ERegExp(_) => { "RegExpLiteral" },
         Data::ENull(_) => "NullLiteral",
         Data::EUndefined(_) => "Identifier",
         Data::EThis(_) => "ThisExpression",
         Data::ESuper(_) => "Super",
         Data::ENewTarget(_) | Data::EImportMeta(_) => "MetaProperty",
-        Data::EArray(_) => "ArrayExpression",
-        Data::EObject(_) => "ObjectExpression",
-        Data::ESpread(_) => "SpreadElement",
-        Data::EUnary(_) => "UnaryExpression",
-        Data::EBinary(_) => "BinaryExpression",
-        Data::EIf(_) => "ConditionalExpression",
-        Data::EDot(d) => {
+        Data::EArray(_) => { "ArrayExpression" },
+        Data::EObject(_) => { "ObjectExpression" },
+        Data::ESpread(_) => { "SpreadElement" },
+        Data::EUnary(_) => { "UnaryExpression" },
+        Data::EBinary(_) => { "BinaryExpression" },
+        Data::EIf(_) => { "ConditionalExpression" },
+        Data::EDot(d) => { let d = &store[*d];
             if d.optional_chain.is_some() {
                 "OptionalMemberExpression"
             } else {
                 "MemberExpression"
             }
         }
-        Data::EIndex(i) => {
+        Data::EIndex(i) => { let i = &store[*i];
             if i.optional_chain.is_some() {
                 "OptionalMemberExpression"
             } else {
                 "MemberExpression"
             }
         }
-        Data::ECall(c) => {
+        Data::ECall(c) => { let c = &store[*c];
             if c.optional_chain.is_some() {
                 "OptionalCallExpression"
             } else {
                 "CallExpression"
             }
         }
-        Data::ENew(_) => "NewExpression",
-        Data::EImport(_) => "CallExpression",
-        Data::EAwait(_) => "AwaitExpression",
-        Data::EYield(_) => "YieldExpression",
-        Data::ETemplate(_) => "TemplateLiteral",
-        Data::EArrow(_) => "ArrowFunctionExpression",
-        Data::EFunction(_) => "FunctionExpression",
-        Data::EJsxElement(_) => "JSXElement",
-        Data::EClass(_) => "ClassExpression",
+        Data::ENew(_) => { "NewExpression" },
+        Data::EImport(_) => { "CallExpression" },
+        Data::EAwait(_) => { "AwaitExpression" },
+        Data::EYield(_) => { "YieldExpression" },
+        Data::ETemplate(_) => { "TemplateLiteral" },
+        Data::EArrow(_) => { "ArrowFunctionExpression" },
+        Data::EFunction(_) => { "FunctionExpression" },
+        Data::EJsxElement(_) => { "JSXElement" },
+        Data::EClass(_) => { "ClassExpression" },
         Data::EMissing(_) => "Hole",
         _ => "UnsupportedNode",
     }
@@ -263,10 +264,11 @@ pub(super) fn lower_arguments(
     builder: &mut HirBuilder,
     args: &[Expr],
 ) -> Result<HirVec<PlaceOrSpread>, CompilerError> {
+    let store = builder.store();
     let mut result = Vec::new();
     for arg in args {
         match &arg.data {
-            Data::ESpread(spread) => {
+            Data::ESpread(spread) => { let spread = &store[*spread];
                 let place = lower_expression_to_temporary(builder, &spread.value)?;
                 result.push(PlaceOrSpread::Spread(SpreadPattern { place }));
             }
@@ -301,14 +303,15 @@ pub(super) fn lower_member_expression(
     expr: &Expr,
     lowered_object: Option<Place>,
 ) -> Result<LoweredMemberExpression, CompilerError> {
+    let store = builder.store();
     let loc = convert_loc(expr.loc);
     match &expr.data {
-        Data::EDot(d) => {
+        Data::EDot(d) => { let d = &store[*d];
             let object = match lowered_object {
                 Some(obj) => obj,
                 None => lower_expression_to_temporary(builder, &d.target)?,
             };
-            let prop_literal = PropertyLiteral::String(StoreStr::new(d.name.slice()));
+            let prop_literal = PropertyLiteral::String(HirStr::new(store.str(d.name)));
             let value = InstructionValue::PropertyLoad {
                 object: object.clone(),
                 property: prop_literal.clone(),
@@ -320,7 +323,7 @@ pub(super) fn lower_member_expression(
                 value,
             })
         }
-        Data::EIndex(i) => {
+        Data::EIndex(i) => { let i = &store[*i];
             let object = match lowered_object {
                 Some(obj) => obj,
                 None => lower_expression_to_temporary(builder, &i.target)?,
@@ -336,7 +339,7 @@ pub(super) fn lower_member_expression(
                 })?;
                 return Ok(LoweredMemberExpression {
                     object,
-                    property: MemberProperty::Literal(PropertyLiteral::String(StoreStr::EMPTY)),
+                    property: MemberProperty::Literal(PropertyLiteral::String(HirStr::EMPTY)),
                     value: InstructionValue::UnsupportedNode {
                         node_type: Some("MemberExpression"),
                         original_node: serialize_expression!(expr),
@@ -382,7 +385,7 @@ pub(super) fn lower_member_expression(
 
 pub(super) enum IdentifierForAssignment {
     Place(Place),
-    Global { name: StoreStr, ref_: Ref },
+    Global { name: HirStr, ref_: Ref },
 }
 
 #[derive(Clone, Copy)]
@@ -445,7 +448,7 @@ pub(super) fn lower_identifier_for_assignment(
         }
         _ => {
             if kind == InstructionKind::Reassign {
-                let name = StoreStr::new(builder.host().ref_name(ref_));
+                let name = HirStr::new(builder.host().ref_name(ref_));
                 Ok(Some(IdentifierForAssignment::Global { name, ref_ }))
             } else {
                 builder.record_error(CompilerErrorDetail {
@@ -481,6 +484,7 @@ pub(super) fn lower_assignment(
     value: Place,
     assignment_style: AssignmentStyle,
 ) -> Result<Option<Place>, CompilerError> {
+    let store = builder.store();
     match &target.data {
         Data::EIdentifier(_) | Data::EImportIdentifier(_) => {
             let ref_ = assignment_target_ref(target).unwrap();
@@ -578,13 +582,13 @@ pub(super) fn lower_assignment(
             Ok(Some(temp))
         }
 
-        Data::EArray(pattern) => {
+        Data::EArray(pattern) => { let pattern = &store[*pattern];
             let mut items: HirVec<ArrayPatternElement> = Vec::new();
             let mut followups: Vec<(Place, &Expr)> = Vec::new();
 
             let force_temporaries = if kind == InstructionKind::Reassign {
                 let mut found = false;
-                for elem in pattern.items.iter() {
+                for elem in store[pattern.items].iter() {
                     match assignment_target_ref(elem) {
                         Some(ref_) => {
                             if builder.is_context_identifier(ref_) {
@@ -610,12 +614,12 @@ pub(super) fn lower_assignment(
                 false
             };
 
-            for element in pattern.items.iter() {
+            for element in store[pattern.items].iter() {
                 match &element.data {
                     Data::EMissing(_) => {
                         items.push(ArrayPatternElement::Hole);
                     }
-                    Data::ESpread(rest) => {
+                    Data::ESpread(rest) => { let rest = &store[*rest];
                         let rest_loc = convert_loc(element.loc);
                         if let Some(ref_) = assignment_target_ref(&rest.value) {
                             let is_context = builder.is_context_identifier(ref_);
@@ -725,13 +729,13 @@ pub(super) fn lower_assignment(
             Ok(Some(temporary))
         }
 
-        Data::EObject(pattern) => {
+        Data::EObject(pattern) => { let pattern = &store[*pattern];
             let mut properties: HirVec<ObjectPropertyOrSpread> = Vec::new();
             let mut followups: Vec<(Place, &Expr, Option<&Expr>)> = Vec::new();
 
             let force_temporaries = if kind == InstructionKind::Reassign {
                 let mut found = false;
-                for prop in pattern.properties.iter() {
+                for prop in store[pattern.properties].iter() {
                     if matches!(prop.kind, G::PropertyKind::Spread) {
                         found = true;
                         break;
@@ -761,7 +765,7 @@ pub(super) fn lower_assignment(
                 false
             };
 
-            for prop in pattern.properties.iter() {
+            for prop in store[pattern.properties].iter() {
                 if matches!(prop.kind, G::PropertyKind::Spread) {
                     let Some(arg) = prop.value.as_ref() else {
                         continue;
@@ -804,7 +808,7 @@ pub(super) fn lower_assignment(
                         builder.record_error(CompilerErrorDetail {
                             reason: format!(
                                 "(BuildHIR::lowerAssignment) Handle {} rest element in ObjectPattern",
-                                expression_type_name(arg)
+                                expression_type_name(store, arg)
                             ),
                             category: ErrorCategory::Todo,
                             loc: rest_loc,
@@ -920,20 +924,20 @@ pub(super) fn lower_assignment(
             Ok(Some(temporary))
         }
 
-        Data::EBinary(b) if b.op == OpCode::BinAssign => {
+        Data::EBinary(b) if store[*b].op == OpCode::BinAssign => { let b = &store[*b];
             let pat_loc = convert_loc(target.loc);
             let temp = lower_assignment_pattern_default(builder, pat_loc, value, &b.right)?;
             lower_assignment(builder, pat_loc, kind, &b.left, temp, assignment_style)
         }
 
-        Data::ESpread(s) => lower_assignment(builder, loc, kind, &s.value, value, assignment_style),
+        Data::ESpread(s) => { let s = &store[*s]; lower_assignment(builder, loc, kind, &s.value, value, assignment_style) },
 
         _ => {
             builder.record_error(CompilerErrorDetail {
                 category: ErrorCategory::Todo,
                 reason: format!(
                     "(BuildHIR::lowerAssignment) Handle {} assignment target",
-                    expression_type_name(target)
+                    expression_type_name(store, target)
                 ),
                 description: None,
                 loc,
@@ -1048,20 +1052,21 @@ fn lower_member_store(
     value: Place,
     loc: Option<SourceLocation>,
 ) -> Result<Place, CompilerError> {
+    let store = builder.store();
     match &target.data {
-        Data::EDot(d) => {
+        Data::EDot(d) => { let d = &store[*d];
             let object = lower_expression_to_temporary(builder, &d.target)?;
             lower_value_to_temporary(
                 builder,
                 InstructionValue::PropertyStore {
                     object,
-                    property: PropertyLiteral::String(StoreStr::new(d.name.slice())),
+                    property: PropertyLiteral::String(HirStr::new(store.str(d.name))),
                     value,
                     loc,
                 },
             )
         }
-        Data::EIndex(i) => {
+        Data::EIndex(i) => { let i = &store[*i];
             let object = lower_expression_to_temporary(builder, &i.target)?;
             if let Data::EPrivateIdentifier(_) = &i.index.data {
                 builder.record_error(CompilerErrorDetail {
@@ -1111,14 +1116,15 @@ pub(super) fn lower_object_property_key(
     key: &Expr,
     computed: bool,
 ) -> Result<Option<ObjectPropertyKey>, CompilerError> {
+    let store = builder.store();
     match &key.data {
-        Data::EString(s) => {
+        Data::EString(s) => { let s = &store[*s];
             let name = if s.is_utf16 {
-                arena_str(&bun_core::strings::to_utf8_alloc(s.slice16()))
+                arena_str(&bun_core::strings::to_utf8_alloc(s.slice16(store)))
             } else if s.next.is_some() {
                 return Err(cold_todo("rope property key", convert_loc(key.loc)));
             } else {
-                StoreStr::new(s.slice8())
+                HirStr::new(s.slice8(store))
             };
             Ok(Some(ObjectPropertyKey::String { name }))
         }
@@ -1126,7 +1132,7 @@ pub(super) fn lower_object_property_key(
             let mut buf: HirVec<u8> = Vec::with_capacity(24);
             let _ = core::fmt::write(&mut WriteBytes(&mut buf), format_args!("{}", n.value()));
             Ok(Some(ObjectPropertyKey::Identifier {
-                name: StoreStr::new(buf.leak()),
+                name: HirStr::new(buf.leak()),
             }))
         }
         _ if computed => {
@@ -1150,19 +1156,19 @@ pub(super) fn lower_object_property_key(
 // Optional chains
 // =============================================================================
 
-fn member_object<'a>(expr: &'a Expr) -> &'a Expr {
+fn member_object<'a>(store: &bun_ast::Store, expr: &'a Expr) -> &'a Expr {
     match &expr.data {
-        Data::EDot(d) => &d.target,
-        Data::EIndex(i) => &i.target,
+        Data::EDot(d) => { let d = &store[*d]; &d.target },
+        Data::EIndex(i) => { let i = &store[*i]; &i.target },
         _ => unreachable!(),
     }
 }
 
-fn optional_chain_of(expr: &Expr) -> Option<OptionalChain> {
+fn optional_chain_of(store: &bun_ast::Store, expr: &Expr) -> Option<OptionalChain> {
     match &expr.data {
-        Data::EDot(d) => d.optional_chain,
-        Data::EIndex(i) => i.optional_chain,
-        Data::ECall(c) => c.optional_chain,
+        Data::EDot(d) => { let d = &store[*d]; d.optional_chain },
+        Data::EIndex(i) => { let i = &store[*i]; i.optional_chain },
+        Data::ECall(c) => { let c = &store[*c]; c.optional_chain },
         _ => None,
     }
 }
@@ -1184,7 +1190,8 @@ fn lower_optional_member_expression_impl(
     expr: &Expr,
     parent_alternate: Option<BlockId>,
 ) -> Result<(Place, Place), CompilerError> {
-    let optional = matches!(optional_chain_of(expr), Some(OptionalChain::Start));
+    let store = builder.store();
+    let optional = matches!(optional_chain_of(store, expr), Some(OptionalChain::Start));
     let loc = convert_loc(expr.loc);
     let place = build_temporary_place(builder, loc);
     let continuation_block = builder.reserve(builder.current_block_kind());
@@ -1225,8 +1232,8 @@ fn lower_optional_member_expression_impl(
 
     let mut object: Option<Place> = None;
     let test_block = builder.try_enter(BlockKind::Value, |builder, _block_id| {
-        let obj_expr = member_object(expr);
-        match (&obj_expr.data, optional_chain_of(obj_expr)) {
+        let obj_expr = member_object(store, expr);
+        match (&obj_expr.data, optional_chain_of(store, obj_expr)) {
             (Data::EDot(_) | Data::EIndex(_), Some(_)) => {
                 let (_obj, value) =
                     lower_optional_member_expression_impl(builder, obj_expr, Some(alternate))?;
@@ -1304,6 +1311,7 @@ fn lower_optional_call_expression_impl(
     expr: &Expr,
     parent_alternate: Option<BlockId>,
 ) -> Result<InstructionValue, CompilerError> {
+    let store = builder.store();
     let Data::ECall(call) = &expr.data else {
         return Err(cold_todo(
             "lower_optional_call_expression: expected ECall",
@@ -1358,7 +1366,7 @@ fn lower_optional_call_expression_impl(
 
     let test_block = builder.try_enter(BlockKind::Value, |builder, _block_id| {
         let callee = &call.target;
-        match (&callee.data, optional_chain_of(callee)) {
+        match (&callee.data, optional_chain_of(store, callee)) {
             (Data::ECall(_), Some(_)) => {
                 let value = lower_optional_call_expression_impl(builder, callee, Some(alternate))?;
                 let value_place = lower_value_to_temporary(builder, value)?;
