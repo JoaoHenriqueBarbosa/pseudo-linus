@@ -14,10 +14,6 @@
 pub mod error;
 pub use error::{Error, Result};
 
-use bun_collections::VecExt;
-
-use core::ptr::NonNull;
-
 use bun_ast::{ImportKind, ImportRecord};
 use bun_core::MutableString;
 use bun_core::Output;
@@ -1443,7 +1439,7 @@ impl<'a> RequireOrImportMetaCallback<'a> {
     }
 }
 
-fn is_identifier_or_numeric_constant_or_property_access(expr: &js_ast::Expr) -> bool {
+fn is_identifier_or_numeric_constant_or_property_access(store: &bun_ast::Store, expr: &js_ast::Expr) -> bool {
     use js_ast::ExprData;
     match &expr.data {
         ExprData::EIdentifier(_) | ExprData::EDot(_) | ExprData::EIndex(_) => true,
@@ -1457,7 +1453,7 @@ fn is_identifier_or_numeric_constant_or_property_access(expr: &js_ast::Expr) -> 
         | ExprData::EImportMeta(_)
         | ExprData::EImportMetaMain(_)
         | ExprData::EUndefined(_) => true,
-        ExprData::EInlinedEnum(e) => is_identifier_or_numeric_constant_or_property_access(&e.value),
+        ExprData::EInlinedEnum(e) => is_identifier_or_numeric_constant_or_property_access(store, &store[*e].value),
         ExprData::ENumber(e) => e.value().is_infinite() || e.value().is_nan(),
         _ => false,
     }
@@ -1527,7 +1523,6 @@ pub(crate) mod __gated_printer {
     use super::*;
     use bun_ast::ImportRecordTag;
     use bun_ast::new_store::NodeStore as _;
-    use js_ast::Symbol;
     use js_ast::binding::{Binding, Data as BindingData};
     use js_ast::expr::{Data as ExprData, Expr};
     use js_ast::op::{Level, Op as OpInfo};
@@ -2413,7 +2408,7 @@ pub(crate) mod __gated_printer {
                     self.print(b"static");
                     self.print_space();
                     let csb = item.class_static_block_ref(&self.store).unwrap();
-                    self.print_block(csb.loc, (&self.store[csb.stmts]), None);
+                    self.print_block(csb.loc, &self.store[csb.stmts], None);
                     self.print_newline();
                     continue;
                 }
@@ -2436,7 +2431,7 @@ pub(crate) mod __gated_printer {
             self.print(b"}");
         }
 
-        pub(crate) fn best_quote_char_for_e_string(str: &E::String, allow_backtick: bool) -> u8 {
+        pub(crate) fn best_quote_char_for_e_string(str: &E::FlatString<'_>, allow_backtick: bool) -> u8 {
             if IS_JSON {
                 return b'"';
             }
@@ -2914,7 +2909,7 @@ pub(crate) mod __gated_printer {
 
         pub(crate) fn print_string_literal_e_string(
             &mut self,
-            str: &E::String,
+            str: &E::FlatString<'_>,
             allow_backtick: bool,
         ) {
             let quote = Self::best_quote_char_for_e_string(str, allow_backtick);
@@ -3302,7 +3297,7 @@ pub(crate) mod __gated_printer {
                     self.print(b"new");
                     self.print_space();
                     self.print_expr(self.store[*e].target, Level::New, ExprFlag::forbid_call());
-                    let args = (&self.store[self.store[*e].args]);
+                    let args = &self.store[self.store[*e].args];
                     if !args.is_empty() || level.gte(Level::Postfix) {
                         self.print(b"(");
 
@@ -3374,7 +3369,7 @@ pub(crate) mod __gated_printer {
                         self.print(b"?.");
                     }
                     self.print(b"(");
-                    let args = (&self.store[self.store[*e].args]);
+                    let args = &self.store[self.store[*e].args];
 
                     if !args.is_empty() {
                         self.print_expr(args[0], Level::Comma, ExprFlag::none());
@@ -3473,7 +3468,7 @@ pub(crate) mod __gated_printer {
                 }
                 ExprData::EImport(e) => {
                     // Handle non-string expressions
-                    if e.is_import_record_null() {
+                    if self.store[*e].is_import_record_null() {
                         let wrap = level.gte(Level::New) || flags.contains(ExprFlag::ForbidCall);
                         if wrap {
                             self.print(b"(");
@@ -3520,13 +3515,13 @@ pub(crate) mod __gated_printer {
 
                         // Inline cross-module TypeScript enum references here
                         if let Some(inlined) =
-                            self.try_to_get_imported_enum_value(self.store[*e].target, &self.store[*e].name)
+                            self.try_to_get_imported_enum_value(self.store[*e].target, self.store.str(self.store[*e].name))
                         {
-                            self.print_inlined_enum(inlined, &self.store[*e].name, level);
+                            self.print_inlined_enum(inlined, self.store.str(self.store[*e].name), level);
                             return;
                         }
                         if self.store[*e].is_import_property_use
-                            && let Some(binding) = self.import_member_binding(self.store[*e].target, &self.store[*e].name)
+                            && let Some(binding) = self.import_member_binding(self.store[*e].target, self.store.str(self.store[*e].name))
                         {
                             self.print_expr(binding, level, flags);
                             return;
@@ -3542,7 +3537,7 @@ pub(crate) mod __gated_printer {
 
                     self.print_expr(self.store[*e].target, Level::Postfix, flags);
 
-                    if lexer::is_identifier(&self.store[*e].name) {
+                    if lexer::is_identifier(self.store.str(self.store[*e].name)) {
                         if is_optional_chain {
                             self.print(b"?.");
                         } else {
@@ -3554,14 +3549,14 @@ pub(crate) mod __gated_printer {
                         }
 
                         self.add_source_mapping(self.store[*e].name_loc);
-                        self.print_identifier(&self.store[*e].name);
+                        self.print_identifier(self.store.str(self.store[*e].name));
                     } else {
                         if is_optional_chain {
                             self.print(b"?.[");
                         } else {
                             self.print(b"[");
                         }
-                        self.print_string_literal_utf8(&self.store[*e].name, false);
+                        self.print_string_literal_utf8(self.store.str(self.store[*e].name), false);
                         self.print(b"]");
                     }
 
@@ -3575,7 +3570,7 @@ pub(crate) mod __gated_printer {
                         flags.insert(ExprFlag::HasNonOptionalChainParent);
 
                         if let Some(str) = self.store[*e].index.data.as_e_string() {
-                            let str = str.flattened(self.bump);
+                            let str = self.store[str].flat(self.store);
                             if str.is_utf8() {
                                 if let Some(value) =
                                     self.try_to_get_imported_enum_value(self.store[*e].target, str.slice8())
@@ -3587,7 +3582,7 @@ pub(crate) mod __gated_printer {
                         }
                         if self.store[*e].is_import_property_use
                             && let Some(str) = self.store[*e].index.unwrap_inlined(&self.store).data.as_e_string()
-                            && let str = str.flattened(self.bump)
+                            && let str = self.store[str].flat(self.store)
                             && str.is_utf8()
                             && let Some(binding) =
                                 self.import_member_binding(self.store[*e].target, str.slice8())
@@ -3669,7 +3664,7 @@ pub(crate) mod __gated_printer {
 
                     self.print_fn_args(
                         if self.store[*e].is_async { None } else { Some(expr.loc) },
-                        &self.store[*e].args,
+                        &self.store[self.store[*e].args],
                         self.store[*e].has_rest_arg,
                         true,
                     );
@@ -3739,7 +3734,7 @@ pub(crate) mod __gated_printer {
                         self.add_source_mapping(name.loc);
                         self.print_symbol(name.ref_);
                     }
-                    self.print_class(e);
+                    self.print_class(&self.store[*e]);
                     if wrap {
                         self.print(b")");
                     }
@@ -3747,7 +3742,7 @@ pub(crate) mod __gated_printer {
                 ExprData::EArray(e) => {
                     self.add_source_mapping(expr.loc);
                     self.print(b"[");
-                    let items = (&self.store[self.store[*e].items]);
+                    let items = &self.store[self.store[*e].items];
                     if !items.is_empty() {
                         if !self.store[*e].is_single_line {
                             self.indent();
@@ -3798,7 +3793,7 @@ pub(crate) mod __gated_printer {
                     }
                     self.add_source_mapping(expr.loc);
                     self.print(b"{");
-                    let props = (&self.store[self.store[*e].properties]);
+                    let props = &self.store[self.store[*e].properties];
                     if !props.is_empty() {
                         if !self.store[*e].is_single_line || IS_JSON {
                             self.indent();
@@ -3872,7 +3867,7 @@ pub(crate) mod __gated_printer {
                         self.print(kind.temporal_class());
                         self.print(b".from(\"");
                         // Always ASCII (validated by the TOML scanner); no escaping.
-                        self.print(e.slice8());
+                        self.print(self.store[*e].slice8(self.store));
                         self.print(b"\")");
                         if wrap {
                             self.print(b")");
@@ -3880,7 +3875,7 @@ pub(crate) mod __gated_printer {
                         return;
                     }
 
-                    let e = e.flattened(self.bump);
+                    let e = self.store[*e].flat(self.store);
                     self.add_source_mapping(expr.loc);
 
                     // If this was originally a template literal, print it as one as long as we're not minifying
@@ -3902,7 +3897,7 @@ pub(crate) mod __gated_printer {
                     // template back through the arena pointer
                     // would be a cross-thread data race. Re-prints recompute
                     // the identical fold, so emitted output is unchanged.
-                    let mut e = E::Template {
+                    let e = E::Template {
                         tag: self.store[*e].tag,
                         parts: self.store[*e].parts,
                         head: match &self.store[*e].head {
@@ -3919,7 +3914,7 @@ pub(crate) mod __gated_printer {
                         // Convert no-substitution template literals into strings if it's smaller
                         if e.parts(&self.store).is_empty() {
                             self.add_source_mapping(expr.loc);
-                            self.print_string_characters_e_string(e.head.cooked(), b'`');
+                            self.print_string_characters_e_string(&e.head.cooked().flat(self.store), b'`');
                             return;
                         }
                     }
@@ -3949,10 +3944,10 @@ pub(crate) mod __gated_printer {
 
                     self.print(b"`");
                     match &e.head {
-                        E::TemplateContents::Raw(raw) => self.print_raw_template_literal(raw),
+                        E::TemplateContents::Raw(raw) => self.print_raw_template_literal(self.store.str(*raw)),
                         E::TemplateContents::Cooked(cooked) => {
                             if cooked.is_present() {
-                                let cooked = cooked.flattened(self.bump);
+                                let cooked = cooked.flat(self.store);
                                 self.print_string_characters_e_string(&cooked, b'`');
                             }
                         }
@@ -3963,10 +3958,10 @@ pub(crate) mod __gated_printer {
                         self.print_expr(part.value, Level::Lowest, ExprFlag::none());
                         self.print(b"}");
                         match &part.tail {
-                            E::TemplateContents::Raw(raw) => self.print_raw_template_literal(raw),
+                            E::TemplateContents::Raw(raw) => self.print_raw_template_literal(self.store.str(*raw)),
                             E::TemplateContents::Cooked(cooked) => {
                                 if cooked.is_present() {
-                                    let local = cooked.flattened(self.bump);
+                                    let local = cooked.flat(self.store);
                                     self.print_string_characters_e_string(&local, b'`');
                                 }
                             }
@@ -3976,12 +3971,12 @@ pub(crate) mod __gated_printer {
                 }
                 ExprData::ERegExp(e) => {
                     self.add_source_mapping(expr.loc);
-                    self.print_reg_exp_literal(e);
+                    self.print_reg_exp_literal(&self.store[*e]);
                 }
                 ExprData::EBigInt(e) => {
                     self.print_space_before_identifier();
                     self.add_source_mapping(expr.loc);
-                    self.print(&self.store[*e].value[..]);
+                    self.print(self.store.str(self.store[*e].value));
                     self.print(b'n');
                 }
                 ExprData::ENumber(e) => {
@@ -4083,7 +4078,7 @@ pub(crate) mod __gated_printer {
                             self.print_space_before_identifier();
                             self.add_source_mapping(expr.loc);
                             self.print_symbol(namespace.namespace_ref);
-                            let alias = namespace.alias.slice();
+                            let alias = self.store.str(namespace.alias);
                             if lexer::is_identifier(alias) {
                                 self.print(b".");
                                 // TODO: addSourceMappingForName
@@ -4175,7 +4170,7 @@ pub(crate) mod __gated_printer {
                     if Op::Code::is_prefix(self.store[*e].op) {
                         // Never turn "typeof (0, x)" into "typeof x" or "delete (0, x)" into "delete x"
                         if (self.store[*e].op == Op::Code::UnTypeof && !self.store[*e].flags.contains(E::UnaryFlags::WAS_ORIGINALLY_TYPEOF_IDENTIFIER) && self.is_unbound_identifier(&self.store[*e].value))
-                        || (self.store[*e].op == Op::Code::UnDelete && !self.store[*e].flags.contains(E::UnaryFlags::WAS_ORIGINALLY_DELETE_OF_IDENTIFIER_OR_PROPERTY_ACCESS) && is_identifier_or_numeric_constant_or_property_access(&self.store[*e].value))
+                        || (self.store[*e].op == Op::Code::UnDelete && !self.store[*e].flags.contains(E::UnaryFlags::WAS_ORIGINALLY_DELETE_OF_IDENTIFIER_OR_PROPERTY_ACCESS) && is_identifier_or_numeric_constant_or_property_access(self.store, &self.store[*e].value))
                     {
                         self.print(b"(0,");
                         self.print_space();
@@ -4216,7 +4211,7 @@ pub(crate) mod __gated_printer {
 
                         let left = self.store[v.e].left;
                         let left_binary = if let ExprData::EBinary(b) = &left.data {
-                            Some(self.store[*b])
+                            Some(*b)
                         } else {
                             None
                         };
@@ -4256,7 +4251,7 @@ pub(crate) mod __gated_printer {
                     self.print_expr(self.store[*e].value, level, flags);
                     if !self.options.minify_whitespace && !self.options.minify_identifiers {
                         self.print(b" /* ");
-                        self.print(&self.store[*e].comment[..]);
+                        self.print(self.store.str(self.store[*e].comment));
                         self.print(b" */");
                     }
                 }
@@ -4318,11 +4313,11 @@ pub(crate) mod __gated_printer {
         }
 
         // This assumes the string has already been quoted.
-        pub(crate) fn print_string_characters_e_string(&mut self, str: &E::String, c: u8) {
+        pub(crate) fn print_string_characters_e_string(&mut self, str: &E::FlatString<'_>, c: u8) {
             if !str.is_utf8() {
-                self.print_string_characters_utf16(str.slice16(&self.store), c);
+                self.print_string_characters_utf16(str.slice16(), c);
             } else {
-                self.print_string_characters_utf8(str.slice8(&self.store), c);
+                self.print_string_characters_utf8(str.slice8(), c);
             }
         }
 
@@ -4378,7 +4373,7 @@ pub(crate) mod __gated_printer {
             let (binding, needs_decl) = (value.loc_ref.ref_, value.needs_decl);
             let call_needs_this = is_call_target
                 && self
-                    .symbols()
+                    .renamer.symbols()
                     .get_const(id.ref_)
                     .is_some_and(|symbol| symbol.called_as_method() && !symbol.call_ignores_this());
 
@@ -4414,11 +4409,12 @@ pub(crate) mod __gated_printer {
                 self.print(b" ");
             }
 
+            let value = self.store.str(e.value);
             if IS_BUN_PLATFORM {
                 // Translate any non-ASCII to unicode escape sequences
                 let mut ascii_start: usize = 0;
                 let mut is_ascii = false;
-                let iter = CodepointIterator::init(&e.value);
+                let iter = CodepointIterator::init(value);
                 let mut cursor = strings::Cursor::default();
                 while iter.next(&mut cursor) {
                     match cursor.c as u32 {
@@ -4430,7 +4426,7 @@ pub(crate) mod __gated_printer {
                         }
                         _ => {
                             if is_ascii {
-                                self.print(&e.value[ascii_start..(cursor.i as usize)]);
+                                self.print(&value[ascii_start..(cursor.i as usize)]);
                                 is_ascii = false;
                             }
 
@@ -4443,11 +4439,11 @@ pub(crate) mod __gated_printer {
                 }
 
                 if is_ascii {
-                    self.print(&e.value[ascii_start..]);
+                    self.print(&value[ascii_start..]);
                 }
             } else {
                 // UTF8 sequence is fine
-                self.print(&e.value[..]);
+                self.print(value);
             }
 
             // Need a space before the next identifier to avoid it turning into flags
@@ -4500,12 +4496,7 @@ pub(crate) mod __gated_printer {
                         {
                             match value {
                                 js_ast::InlinedEnumValueDecoded::String(str) => {
-                                    // Arena-owned `*const EString` (encoded non-null at NaN-box time);
-                                    // wrap via the safe `From<NonNull>` ctor: printer only reads it.
-                                    let sref = js_ast::StoreRef::from(
-                                        NonNull::new(str.cast_mut())
-                                            .expect("inlined enum string non-null"),
-                                    );
+                                    let sref = str;
                                     item.key.as_mut().unwrap().data = ExprData::EString(sref);
                                     // Problematic key names must stay computed for correctness
                                     if !self.store[sref].eql_comptime(&self.store, b"__proto__")
@@ -4627,7 +4618,7 @@ pub(crate) mod __gated_printer {
                     self.print_symbol(priv_.ref_);
                 }
                 ExprData::EString(key_str) => {
-                    let key_str = key_str.flattened(self.bump);
+                    let key_str = self.store[*key_str].flat(self.store);
                     self.add_source_mapping(key.loc);
                     if key_str.is_utf8() {
                         self.print_space_before_identifier();
@@ -4780,7 +4771,7 @@ pub(crate) mod __gated_printer {
             match &binding.data {
                 BindingData::BMissing(_) => {}
                 BindingData::BIdentifier(b) => {
-                    let b = (&self.store[*b]);
+                    let b = &self.store[*b];
                     self.print_space_before_identifier();
                     self.add_source_mapping(binding.loc);
                     self.print_symbol(b.r#ref);
@@ -4794,7 +4785,7 @@ pub(crate) mod __gated_printer {
                     }
                 }
                 BindingData::BArray(b) => {
-                    let b = (&self.store[*b]);
+                    let b = &self.store[*b];
                     let items = &self.store[b.items];
                     self.print(b"[");
                     if !items.is_empty() {
@@ -4838,14 +4829,14 @@ pub(crate) mod __gated_printer {
                     self.print(b"]");
                 }
                 BindingData::BObject(b) => {
-                    let b = (&self.store[*b]);
+                    let b = &self.store[*b];
                     let properties = &self.store[b.properties];
                     // A local the linker bound to an export (`const { a } =
                     // await import(…)`) is that export, so it is not declared.
                     let is_bound = |printer: &Self, property: &B::Property| {
                         printer.options.has_dynamic_import_items
                             && matches!(&property.value.data, BindingData::BIdentifier(id)
-                                if printer.symbols().get_const((&self.store[*id]).r#ref)
+                                if printer.renamer.symbols().get_const((&self.store[*id]).r#ref)
                                     .is_some_and(|symbol| symbol.is_bound_import_item()))
                     };
                     self.print(b"{");
@@ -4898,11 +4889,11 @@ pub(crate) mod __gated_printer {
 
                                 match &property.key.data {
                                     ExprData::EString(str) => {
-                                        let str = str.flattened(self.bump);
+                                        let str = self.store[*str].flat(self.store);
                                         self.add_source_mapping(property.key.loc);
 
                                         if str.is_utf8() {
-                                            if self.print_binding_utf8_key(str.slice8(self.store), property.value, tlm) {
+                                            if self.print_binding_utf8_key(str.slice8(), property.value, tlm) {
                                                 self.maybe_print_default_binding_value(property);
                                                 continue;
                                             }
@@ -4915,18 +4906,15 @@ pub(crate) mod __gated_printer {
                                             if let BindingData::BIdentifier(id) =
                                                 &property.value.data
                                             {
-                                                let id = (&self.store[*id]);
+                                                let id = &self.store[*id];
                                                 if strings::utf16_eql_string(
                                                     str.slice16(),
                                                     self.renamer.name_for_symbol(id.r#ref),
                                                 ) {
                                                     if Self::MAY_HAVE_MODULE_INFO && tlm.is_export {
-                                                        // reshaped for borrowck: bump access first.
-                                                        let str8 = bun_core::handle_oom(
-                                                            str.string(self.bump),
-                                                        );
+                                                        let str8 = str.string();
                                                         if let Some(mi) = self.module_info() {
-                                                            let name_id = mi.str(str8);
+                                                            let name_id = mi.str(&str8);
                                                             mi.add_export_info_local(
                                                                 name_id, name_id,
                                                             );
@@ -5259,21 +5247,22 @@ pub(crate) mod __gated_printer {
                         self.print_whitespacer(ws!(b"from "));
                     }
 
-                    let irp = &self.import_record(self.store[*s].import_record_index as usize).path.text;
+                    let irp = self.store.str(self.import_record(self.store[*s].import_record_index as usize).path.text);
                     self.print_import_record_path(
                         self.import_record(self.store[*s].import_record_index as usize),
                     );
                     self.print_semicolon_after_statement();
 
                     if Self::MAY_HAVE_MODULE_INFO {
+                        let store = self.store;
                         if let Some(mi) = self.module_info() {
                             let irp_id = mi.str(irp);
                             mi.request_module(
                                 irp_id,
                                 analyze_transpiled_module::FetchParameters::None,
                             );
-                            if let Some(alias) = &self.store[*s].alias {
-                                let alias_id = mi.str(self.store.str(alias.original_name));
+                            if let Some(alias) = &store[*s].alias {
+                                let alias_id = mi.str(store.str(alias.original_name));
                                 mi.add_export_info_namespace(
                                     alias_id,
                                     irp_id,
@@ -5381,8 +5370,9 @@ pub(crate) mod __gated_printer {
                         self.print_export_clause_item(item);
 
                         if Self::MAY_HAVE_MODULE_INFO {
+                            let store = self.store;
                             if let Some(mi) = self.module_info() {
-                                let alias_id = mi.str(self.store.str(item.alias));
+                                let alias_id = mi.str(store.str(item.alias));
                                 let name_id = mi.str(name);
                                 mi.add_export_info_local(alias_id, name_id);
                             }
@@ -5438,7 +5428,7 @@ pub(crate) mod __gated_printer {
                     }
 
                     self.print_whitespacer(ws!(b"} from "));
-                    let irp = &import_record.path.text;
+                    let irp = self.store.str(import_record.path.text);
                     self.print_import_record_path(import_record);
                     self.print_semicolon_after_statement();
 
@@ -5453,8 +5443,9 @@ pub(crate) mod __gated_printer {
                         };
                         for item in self.store[self.store[*s].items].iter() {
                             let name = self.renamer.name_for_symbol(item.name.ref_);
+                            let store = self.store;
                             let mi = self.module_info().expect("infallible: module_info enabled");
-                            let alias_id = mi.str(self.store.str(item.alias));
+                            let alias_id = mi.str(store.str(item.alias));
                             let name_id = mi.str(name);
                             mi.add_export_info_indirect(
                                 alias_id,
@@ -5469,7 +5460,7 @@ pub(crate) mod __gated_printer {
                     // `const { a } = await import(…)` whose names are all bound
                     // to exports declares nothing: only the load is left. The
                     // other declarators keep their order around it.
-                    let decls = (&self.store[self.store[*s].decls]);
+                    let decls = &self.store[self.store[*s].decls];
                     let mut run_start = 0;
                     if self.options.has_dynamic_import_items && !self.store[*s].is_export {
                         for (i, decl) in decls.iter().enumerate() {
@@ -5496,7 +5487,7 @@ pub(crate) mod __gated_printer {
                 }
                 StmtData::SIf(s) => {
                     self.print_indent();
-                    self.print_if(s, stmt.loc);
+                    self.print_if(&self.store[*s], stmt.loc);
                 }
                 StmtData::SDoWhile(s) => {
                     self.print_indent();
@@ -5724,7 +5715,7 @@ pub(crate) mod __gated_printer {
 
                     if IS_BUN_PLATFORM {
                         if record.tag == ImportRecordTag::Bun {
-                            self.print_global_bun_import_statement(s);
+                            self.print_global_bun_import_statement(&self.store[*s]);
                             self.prev_stmt_tag = new_tag;
                             return Ok(());
                         }
@@ -5971,7 +5962,7 @@ pub(crate) mod __gated_printer {
                         // reshaped for borrowck: `module_info()` borrows `&mut self`,
                         // so we re-borrow it between `name_for_symbol` calls instead of holding
                         // a single long-lived `mi` across the whole block. `irp_id` is Copy.
-                        let import_record_path = &record.path.text;
+                        let import_record_path = self.store.str(record.path.text);
                         use analyze_transpiled_module::FetchParameters as FP;
                         let (irp_id, fetch_parameters) = {
                             let mi = self.module_info().expect("infallible: module_info enabled");
@@ -6035,9 +6026,10 @@ pub(crate) mod __gated_printer {
 
                         for item in self.store[self.store[*s].items].iter() {
                             let local_name = self.renamer.name_for_symbol(item.name.ref_);
+                            let store = self.store;
                             let mi = self.module_info().expect("infallible: module_info enabled");
                             let local_name_id = mi.str(local_name);
-                            let alias_id = mi.str(self.store.str(item.alias));
+                            let alias_id = mi.str(store.str(item.alias));
                             mi.add_import_info_single(
                                 irp_id,
                                 alias_id,
@@ -6156,7 +6148,7 @@ pub(crate) mod __gated_printer {
                 unreachable!();
             }
 
-            let quote = best_quote_char_for_string(import_record.path.text, false);
+            let quote = best_quote_char_for_string(self.store.str(import_record.path.text), false);
             if import_record
                 .flags
                 .contains(ImportRecordFlags::PRINT_NAMESPACE_IN_PATH)
@@ -6192,7 +6184,7 @@ pub(crate) mod __gated_printer {
                     let flags = ExprFlag::ForbidIn.into();
                     self.print_decls(
                         self.store[*s].kind,
-                        (&self.store[self.store[*s].decls]),
+                        &self.store[self.store[*s].decls],
                         flags,
                         TopLevelAndIsExport::default(),
                     );
@@ -6234,7 +6226,7 @@ pub(crate) mod __gated_printer {
                     }
                 }
                 _ => {
-                    if Self::wrap_to_avoid_ambiguous_else(&s.yes.data) {
+                    if Self::wrap_to_avoid_ambiguous_else(self.store, &s.yes.data) {
                         self.print_space();
                         self.print(b"{");
                         self.print_newline();
@@ -6278,7 +6270,7 @@ pub(crate) mod __gated_printer {
                         self.print_newline();
                     }
                     StmtData::SIf(s_if) => {
-                        self.print_if(s_if, no_block.loc);
+                        self.print_if(&self.store[*s_if], no_block.loc);
                     }
                     _ => {
                         self.print_newline();
@@ -6290,23 +6282,23 @@ pub(crate) mod __gated_printer {
             }
         }
 
-        pub(crate) fn wrap_to_avoid_ambiguous_else(s_: &StmtData) -> bool {
+        pub(crate) fn wrap_to_avoid_ambiguous_else(store: &bun_ast::Store, s_: &StmtData) -> bool {
             let mut s = s_;
             loop {
                 match s {
                     StmtData::SIf(index) => {
-                        if let Some(no) = &index.no {
+                        if let Some(no) = &store[*index].no {
                             s = &no.data;
                         } else {
                             return true;
                         }
                     }
-                    StmtData::SFor(current) => s = &current.body.data,
-                    StmtData::SForIn(current) => s = &current.body.data,
-                    StmtData::SForOf(current) => s = &current.body.data,
-                    StmtData::SWhile(current) => s = &current.body.data,
-                    StmtData::SWith(current) => s = &current.body.data,
-                    StmtData::SLabel(current) => s = &current.stmt.data,
+                    StmtData::SFor(current) => s = &store[*current].body.data,
+                    StmtData::SForIn(current) => s = &store[*current].body.data,
+                    StmtData::SForOf(current) => s = &store[*current].body.data,
+                    StmtData::SWhile(current) => s = &store[*current].body.data,
+                    StmtData::SWith(current) => s = &store[*current].body.data,
+                    StmtData::SLabel(current) => s = &store[*current].stmt.data,
                     _ => return false,
                 }
             }
@@ -6378,7 +6370,7 @@ pub(crate) mod __gated_printer {
                 ExprData::EIdentifier(id)
                     if self.options.has_dynamic_import_items
                         && self
-                            .symbols()
+                            .renamer.symbols()
                             .get_const(id.ref_)
                             .is_some_and(|symbol| symbol.is_bound_import_item()) =>
                 {
@@ -6435,12 +6427,8 @@ pub(crate) mod __gated_printer {
                 js_ast::InlinedEnumValueDecoded::Number(num) => self.print_number(num, level),
                 // TODO: extract printString
                 js_ast::InlinedEnumValueDecoded::String(str) => self.print_expr(
-                    // Arena-owned `*const EString` (encoded non-null at NaN-box time);
-                    // wrap via the safe `From<NonNull>` ctor: printer only reads it.
                     Expr {
-                        data: ExprData::EString(js_ast::StoreRef::from(
-                            NonNull::new(str.cast_mut()).expect("inlined enum string non-null"),
-                        )),
+                        data: ExprData::EString(str),
                         loc: bun_ast::Loc::EMPTY,
                     },
                     level,
@@ -7398,7 +7386,7 @@ pub fn print_ast<'a, W: WriterTrait, const ASCII_ONLY: bool, const GENERATE_SOUR
     // NoOpRenamer<'src>`), so the two arms must agree on `'src`; constructing the
     // `MinifyRenamer` variant inline (rather than via `to_renamer() ->
     // Renamer<'static,'static>`) lets inference unify it with the no-op arm.
-    let mut no_op_renamer;
+    let no_op_renamer;
     // hoisted out of the `minify_identifiers` arm so the
     // `&'r mut MinifyRenamer` borrow stored in `renamer` outlives the branch.
     let mut minify_renamer;
@@ -7625,7 +7613,7 @@ pub fn print_json<'a, W: WriterTrait>(
     // The printer only needs default-empty `import_records` and `symbols` for
     // the no-op renamer; construct them directly without an `Ast`.
     let bump = bun_alloc::Arena::new();
-    let mut no_op =
+    let no_op =
         rename::NoOpRenamer::init(js_ast::symbol::Map::init_list(vec![Vec::new()]), source, store);
 
     let full_opts = Options {

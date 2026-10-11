@@ -42,6 +42,11 @@ impl Path {
     pub const fn init_with_namespace(text: StoreStr, namespace: &'static [u8]) -> Self {
         Path { pretty: text, text, namespace, is_disabled: false, is_symlink: false }
     }
+
+    /// `namespace` vazio ou `"file"`: um caminho do sistema de arquivos.
+    pub fn is_file(&self) -> bool {
+        self.namespace.is_empty() || self.namespace == b"file"
+    }
 }
 
 pub struct ImportRecord {

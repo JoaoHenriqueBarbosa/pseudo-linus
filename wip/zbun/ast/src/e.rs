@@ -6,6 +6,7 @@
 //! fora até o loader de JSON; `Rope.next` deixa de ser ponteiro cru e vira `Option<StoreRef<Rope>>`.
 
 use core::cmp::Ordering;
+use std::borrow::Cow;
 
 use bun_core::strings;
 
@@ -1138,6 +1139,49 @@ pub struct EString {
 // Also exported as `String`; `EString` avoids colliding with bun_core::String.
 pub use EString as String;
 
+/// O texto de um `EString` depois de juntar a corda (ver `EString::flat`): empresta do `Store`, ou é dono dos bytes
+/// quando juntou uma corda UTF-8.
+pub struct FlatString<'s> {
+    pub prefer_template: bool,
+    text: FlatText<'s>,
+}
+
+enum FlatText<'s> {
+    Utf8(Cow<'s, [u8]>),
+    Utf16(&'s [u16]),
+}
+
+impl FlatString<'_> {
+    #[inline]
+    pub fn is_utf8(&self) -> bool {
+        matches!(self.text, FlatText::Utf8(_))
+    }
+
+    #[inline]
+    pub fn slice8(&self) -> &[u8] {
+        match &self.text {
+            FlatText::Utf8(bytes) => bytes,
+            FlatText::Utf16(_) => unreachable!("slice8 de uma string UTF-16"),
+        }
+    }
+
+    #[inline]
+    pub fn slice16(&self) -> &[u16] {
+        match &self.text {
+            FlatText::Utf16(units) => units,
+            FlatText::Utf8(_) => unreachable!("slice16 de uma string UTF-8"),
+        }
+    }
+
+    /// Os bytes UTF-8 (transcodificando se for UTF-16).
+    pub fn string(&self) -> Cow<'_, [u8]> {
+        match &self.text {
+            FlatText::Utf8(bytes) => Cow::Borrowed(bytes),
+            FlatText::Utf16(units) => Cow::Owned(strings::to_utf8_alloc(units)),
+        }
+    }
+}
+
 impl Default for EString {
     fn default() -> Self {
         Self::EMPTY
@@ -1310,6 +1354,12 @@ impl EString {
 
     /// The rope's bytes, concatenated into a fresh `Store` range.
     fn flatten_rope(&self, store: &mut Store) -> Str {
+        let bytes = self.rope_bytes(store);
+        store.alloc_str(&bytes)
+    }
+
+    /// The rope's bytes, concatenated.
+    fn rope_bytes(&self, store: &Store) -> Vec<u8> {
         let mut bytes = Vec::<u8>::with_capacity(self.rope_len as usize);
         bytes.extend_from_slice(store.str(self.data));
         let mut str_ = self.next;
@@ -1317,7 +1367,20 @@ impl EString {
             bytes.extend_from_slice(store.str(store[part].data));
             str_ = store[part].next;
         }
-        store.alloc_str(&bytes)
+        bytes
+    }
+
+    /// O texto com a corda juntada, lido do `Store` sem escrever nele (o `flattened` grava o resultado no `Store`,
+    /// que o printer, com só `&Store`, não tem como fazer).
+    pub fn flat<'s>(&self, store: &'s Store) -> FlatString<'s> {
+        let text = if self.is_utf16 {
+            FlatText::Utf16(self.slice16(store))
+        } else if self.next.is_none() {
+            FlatText::Utf8(Cow::Borrowed(self.slice8(store)))
+        } else {
+            FlatText::Utf8(Cow::Owned(self.rope_bytes(store)))
+        };
+        FlatString { prefer_template: self.prefer_template, text }
     }
 
     /// Return UTF-8 bytes, transcoding into the `Store` if UTF-16.

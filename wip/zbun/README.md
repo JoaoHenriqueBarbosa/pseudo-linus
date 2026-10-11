@@ -197,10 +197,10 @@ de chegar aos tipos. O que falta, por grupo:
   `.map`), que entra com o `quote_for_json` movido para `bun_core::printer`, como no upstream. O teste de mapa contra
   `bun build --no-bundle --sourcemap` do oráculo fica para quando o printer compilar (parte 4): as colunas de
   `columns_for_non_ascii` ainda só têm teste de tamanho;
-- ainda faltam: `bun_core::vec` e `bun_ptr::BackRef` (os dois somem na parte 3, ao tirar o `unsafe`). `AstAlloc` saiu
+- `bun_core::vec` e `bun_ptr::BackRef` sumiram na parte 3, ao tirar o `unsafe`. `AstAlloc` saiu
   (o printer usa `Default::default()`), `hashbrown` ganhou a feature `raw-entry` e as quatro chamadas a
   `bun_crash_handler::scoped_action` saíram (fora por decisão da coordenação);
-- **Parte 3 em andamento (medido em 2026-10-11): 113 erros, de 449 no começo da parte.** O `Printer` ganhou o campo
+- **Parte 3 feita (2026-10-11): `cargo check -p bun_js_printer --features printer` com 0 erros e zero `unsafe`; eram 449 no começo da parte.** O `Printer` ganhou o campo
   `store: &'a Store` (o `Store` do arquivo, só leitura) e `Printer::init` o recebe (`print_ast` passa `&tree.store`,
   `print_with_writer_and_platform` passa `&ast.store`, `print_json` ganhou o parâmetro `store`). A escolha é de
   propósito: um empréstimo que passa por um `&'a Store` não prende o `self`, então `self.print(self.store.str(x))` e
@@ -240,17 +240,25 @@ de chegar aos tipos. O que falta, por grupo:
   compartilhado, é `Copy` e `name_for_symbol(self)` devolve `&'r [u8]`, o que dispensou o helper do `Printer` que
   descolava o empréstimo com ponteiro cru: os 30 chamadores usam `self.renamer.name_for_symbol` direto. `slice_of`
   (que o `store_fix.py` deixou com `self` num fn livre) saiu: `self.store[x]` (ou `tree.store`/`ast.store` nos drivers).
-  **O que falta, por grupo** (de `cargo check -p bun_js_printer --features printer`, 71 erros depois da 3a, 54 depois da 3b):
-  **Parte 3c, `BackRef` (feita):** os três usos saíram sem cópia: com o `Renamer` `Copy` (`symbols(self)` devolve `&'r Map`),
+  **Parte 3c, `BackRef`:** os três usos saíram sem cópia: com o `Renamer` `Copy` (`symbols(self)` devolve `&'r Map`),
   `self.renamer.symbols().get_const(..)` já não prende `self`, e a chave de `commonjs_named_exports` é `&'a`. O helper
-  `Printer::symbols`, que só repassava, saiu. Falta: (d) `EString` com `flattened`, `slice8`, `slice16` e `string` pedem o `Store` (`str.flattened(self.store)`,
-  `slice8(self.store)`), e o `flattened(self.bump)` que escrevia na arena vira um `Cow` sobre a cadeia de cordas;
-  (e) os 24 `E0308` são `StoreStr` no lugar de `&[u8]`, `Option<StoreRef<Scope>>` no lugar de `&Scope` e
-  `*mut Symbol`; (f) `If.no`, `For.body` e afins (`E0609` em `s::*`): o campo existe, falta o `self.store[..]`.
+  `Printer::symbols`, que só repassava, saiu.
+  **Partes 3d a 3f, `EString`, `StoreStr` e campos de `s::*`:** o `flattened(&self, &mut Store)` do `EString` grava a
+  cadeia de cordas no `Store`, que o printer (só `&Store`) não tem; o `EString::flat(&self, &'s Store)` devolve um
+  `FlatString<'s>` (UTF-8 emprestado, UTF-8 de corda juntado num `Cow::Owned`, ou `&[u16]`) com `is_utf8`, `slice8`,
+  `slice16`, `string` e `prefer_template`, e `print_string_literal_e_string`, `print_string_characters_e_string` e
+  `best_quote_char_for_e_string` passaram a recebê-lo. O resto foi mecânico: `StoreStr` virou `self.store.str(x)`
+  (nome do `EDot`, `value` de `EBigInt` e `RegExp`, `comment` de `EInlinedEnum`, caminho do import record, alias),
+  `Raw(raw)` do template também, `Option<StoreRef<Scope>>` e `StoreRef<If>`/`For`/... viraram `self.store[r]`
+  (`wrap_to_avoid_ambiguous_else` e `is_identifier_or_numeric_constant_or_property_access` recebem o `Store`),
+  `InlinedEnumValueDecoded::String` já era `StoreRef<EString>` (sem `NonNull::from` nem `cast_mut`), o
+  `left_binary` do visitor binário é o `StoreRef<Binary>` e não uma cópia do nó, e as chamadas ao `ModuleInfo`
+  copiam `self.store` antes de `self.module_info()` (que empresta o `self` inteiro). `Path::is_file` entrou no
+  `bun_ast` (namespace vazio ou `file`). Os testes do workspace (com e sem a feature) seguem verdes.
+  **Próximo (parte 4):** golden byte a byte contra `bun build --no-bundle` do oráculo, e o teste do mapa de posições.
 
-Depois da resolução vem a troca sistemática do `Deref` do `StoreRef` por `p.store[r]` em todo `p.rs`, `parse/` e
-`visit/`, que é o grosso do trabalho. Os `Define` guardam `ExprData` com índices: como cada arquivo tem o seu
-`Store`, o valor de um define precisa ser gravado no `Store` do arquivo quando o parser o usa.
+Os `Define` do parser guardam `ExprData` com índices: como cada arquivo tem o seu `Store`, o valor de um define precisa
+ser gravado no `Store` do arquivo quando o parser o usa.
 
 Ordem de mapa: a tabela de membros do escopo usa o `hashbrown` 0.15.5 do upstream com o mesmo hash, então a
 iteração (que o renamer e o `p.rs` percorrem) tem a ordem do upstream. O `wyhash` sem o `write_length_prefix` só
