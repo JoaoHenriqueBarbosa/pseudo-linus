@@ -16,6 +16,7 @@ DEBUG_LEAK = 38
 garbage = []
 callbacks = []
 _debug = 0
+_sys._gc_bind(garbage, callbacks, 0)
 
 
 def collect(generation=2):
@@ -58,6 +59,7 @@ def get_debug():
 def set_debug(flags):
     global _debug
     _debug = flags
+    _sys._gc_bind(None, None, flags)
 
 
 def get_objects(generation=None):
@@ -80,7 +82,7 @@ def is_tracked(obj):
 
 
 def is_finalized(obj):
-    return False
+    return _sys._gc_is_finalized(obj)
 
 
 def freeze():

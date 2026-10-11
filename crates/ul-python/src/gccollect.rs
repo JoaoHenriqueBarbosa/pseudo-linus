@@ -232,14 +232,60 @@ struct Node {
     reachable: bool,
 }
 
-/// O `__del__` de uma instância ainda não finalizada: enquanto a fatia da finalização não existe, ela e tudo o que ela
-/// alcança ficam vivos.
-fn has_pending_finalizer(h: &Handle) -> bool {
-    matches!(h, Handle::Instance(i) if !i.finalized.get() && i.class().finalizer().is_some())
+/// O que o chamador (o `gc` do programa) pede à coleta.
+pub(crate) struct Options {
+    /// `DEBUG_SAVEALL`: o lixo vai para `gc.garbage` em vez de ser esvaziado.
+    pub(crate) save_all: bool,
+    /// A lista `gc.garbage`, quando o módulo `gc` está carregado.
+    pub(crate) garbage: Option<Value>,
 }
 
-/// Coleta as gerações `0..=generation`: devolve quantos objetos do CPython o lixo achado somava (ver `weight`).
-pub(crate) fn collect(generation: usize) -> usize {
+/// O `deduce_unreachable`: acerta `gc_refs` dos nós (referências fortes menos as internas ao conjunto) e marca o que
+/// as raízes alcançam. `false`: a contagem não fecha (aresta a mais), nada pode ser coletado.
+fn deduce(nodes: &mut [Node], index: &HashMap<usize, usize>) -> bool {
+    for n in nodes.iter_mut() {
+        n.gc_refs = n.handle.strong() as isize - 1;
+        n.reachable = false;
+    }
+    let mut internal = vec![0isize; nodes.len()];
+    for n in nodes.iter().filter(|n| !n.opaque) {
+        n.handle.visit(&mut |c| {
+            if let Some(&i) = child_key(&c).and_then(|k| index.get(&k)) {
+                internal[i] += 1;
+            }
+        });
+    }
+    for (n, sub) in nodes.iter_mut().zip(&internal) {
+        n.gc_refs -= sub;
+        if n.gc_refs < 0 {
+            return false;
+        }
+    }
+    let mut stack: Vec<usize> = (0..nodes.len()).filter(|&i| nodes[i].gc_refs > 0 || nodes[i].opaque).collect();
+    for &i in &stack {
+        nodes[i].reachable = true;
+    }
+    while let Some(i) = stack.pop() {
+        let mut next = Vec::new();
+        nodes[i].handle.visit(&mut |c| {
+            if let Some(&j) = child_key(&c).and_then(|k| index.get(&k)) {
+                next.push(j);
+            }
+        });
+        for j in next {
+            if !nodes[j].reachable {
+                nodes[j].reachable = true;
+                stack.push(j);
+            }
+        }
+    }
+    true
+}
+
+/// Coleta as gerações `0..=generation`: devolve quantos objetos do CPython o lixo somava (ver `weight`). A ordem é a do
+/// `gc_collect_main`: acha o lixo, limpa as referências fracas a ele e chama as funções de retorno, finaliza (o `__del__`
+/// uma vez por objeto), confere o que a finalização ressuscitou e só então quebra os ciclos (ou guarda em `gc.garbage`).
+pub(crate) fn collect(vm: &mut crate::vm::Vm, generation: usize, options: &Options) -> usize {
     let members = crate::gcreg::live_up_to(generation);
     let mut nodes: Vec<Node> = Vec::with_capacity(members.len());
     let mut index: HashMap<usize, usize> = HashMap::with_capacity(members.len());
@@ -251,7 +297,7 @@ pub(crate) fn collect(generation: usize) -> usize {
             },
             Live::Env(e) => Handle::Env(e),
         };
-        // Um objeto registrado duas vezes (ou já achado) não entra de novo: cada nó guarda uma só referência.
+        // Um objeto registrado duas vezes não entra de novo: cada nó guarda uma só referência.
         if index.contains_key(&handle.key()) {
             continue;
         }
@@ -280,51 +326,91 @@ pub(crate) fn collect(generation: usize) -> usize {
         }
         at += 1;
     }
-    for n in &mut nodes {
-        n.gc_refs = n.handle.strong() as isize - 1;
+    if !deduce(&mut nodes, &index) {
+        return 0;
     }
-    let mut internal = vec![0isize; nodes.len()];
-    for n in nodes.iter().filter(|n| !n.opaque) {
-        n.handle.visit(&mut |c| {
-            if let Some(&i) = child_key(&c).and_then(|k| index.get(&k)) {
-                internal[i] += 1;
-            }
-        });
+    // O lixo, em ordem de criação, com a sua própria indexação para a reanálise depois da finalização.
+    let mut garbage: Vec<Node> = Vec::new();
+    for n in nodes {
+        if !n.reachable {
+            garbage.push(n);
+        }
     }
-    for (n, sub) in nodes.iter_mut().zip(&internal) {
-        n.gc_refs -= sub;
-        if n.gc_refs < 0 {
-            // Aresta a mais: a contagem não fecha, então nada se coleta.
+    if garbage.is_empty() {
+        return 0;
+    }
+    let mut garbage_index: HashMap<usize, usize> = garbage.iter().enumerate().map(|(i, n)| (n.handle.key(), i)).collect();
+    // `handle_weakrefs`: as referências fracas ao lixo são limpas antes de qualquer `__del__`, e as funções de retorno
+    // das que sobrevivem rodam agora.
+    let addrs: std::collections::HashSet<usize> = garbage
+        .iter()
+        .filter(|n| matches!(n.handle, Handle::Instance(_) | Handle::Function(_)))
+        .map(|n| match &n.handle {
+            Handle::Instance(i) => Rc::as_ptr(i) as usize,
+            Handle::Function(f) => Rc::as_ptr(f) as usize,
+            _ => 0,
+        })
+        .collect();
+    for r in crate::modules::weakrefmod::clear_targets(&addrs) {
+        r.fire(vm);
+    }
+    // `finalize_garbage`: o `__del__` de cada instância que ainda não foi finalizada, uma vez só.
+    let instances: Vec<Rc<InstanceObj>> = garbage
+        .iter()
+        .filter_map(|n| match &n.handle {
+            Handle::Instance(i) if !i.finalized.get() && i.class().finalizer().is_some() => Some(i.clone()),
+            _ => None,
+        })
+        .collect();
+    let finalized_any = !instances.is_empty();
+    for inst in &instances {
+        vm.finalize(inst);
+    }
+    drop(instances);
+    // `handle_resurrected_objects`: o que a finalização (ou uma função de retorno) passou a segurar por fora volta a viver,
+    // com tudo o que alcança.
+    if finalized_any {
+        let ok = deduce(&mut garbage, &garbage_index);
+        if !ok {
+            // Aresta a mais na reanálise: não se arrisca quebrar nada.
             return 0;
         }
+        garbage.retain(|n| !n.reachable);
+        garbage_index = garbage.iter().enumerate().map(|(i, n)| (n.handle.key(), i)).collect();
+        let _ = &garbage_index;
     }
-    // Alcançabilidade a partir das raízes.
-    let mut stack: Vec<usize> = (0..nodes.len()).filter(|&i| nodes[i].gc_refs > 0 || nodes[i].opaque || has_pending_finalizer(&nodes[i].handle)).collect();
-    for &i in &stack {
-        nodes[i].reachable = true;
-    }
-    while let Some(i) = stack.pop() {
-        let mut next = Vec::new();
-        nodes[i].handle.visit(&mut |c| {
-            if let Some(&j) = child_key(&c).and_then(|k| index.get(&k)) {
-                next.push(j);
+    let collected = weight(garbage.iter().map(|n| &n.handle));
+    if options.save_all {
+        // `DEBUG_SAVEALL`: o lixo vai para `gc.garbage` e fica vivo (o `tp_clear` não roda).
+        if let Some(Value::List(list)) = options.garbage.as_ref() {
+            let mut saved = Vec::new();
+            for n in &garbage {
+                let v = match &n.handle {
+                    Handle::List(x) => Some(Value::List(x.clone())),
+                    Handle::Dict(x) => Some(Value::Dict(x.clone())),
+                    Handle::Set(x) => Some(Value::Set(x.clone())),
+                    Handle::Instance(x) => Some(Value::Instance(x.clone())),
+                    Handle::Tuple(x) => Some(Value::Tuple(x.clone())),
+                    Handle::Function(x) => Some(Value::Function(x.clone())),
+                    Handle::BoundFn(x) => Some(Value::BoundFn(x.clone())),
+                    Handle::Bound(x) => Some(Value::Bound(x.clone())),
+                    Handle::Slice(x) => Some(Value::Slice(x.clone())),
+                    Handle::Env(_) => None,
+                };
+                saved.extend(v);
             }
-        });
-        for j in next {
-            if !nodes[j].reachable {
-                nodes[j].reachable = true;
-                stack.push(j);
+            if let Ok(mut list) = list.try_borrow_mut() {
+                list.extend(saved);
             }
         }
+        return collected;
     }
-    let garbage: Vec<usize> = (0..nodes.len()).filter(|&i| !nodes[i].reachable).collect();
-    let collected = weight(garbage.iter().map(|&i| &nodes[i].handle));
     let mut graveyard: Vec<Box<dyn std::any::Any>> = Vec::new();
-    for &i in &garbage {
-        nodes[i].handle.clear(&mut graveyard);
+    for n in &garbage {
+        n.handle.clear(&mut graveyard);
     }
     drop(graveyard);
-    drop(nodes);
+    drop(garbage);
     collected
 }
 
