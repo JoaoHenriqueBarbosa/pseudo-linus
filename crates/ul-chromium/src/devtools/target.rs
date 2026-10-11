@@ -118,6 +118,8 @@ struct Tab {
     idle: Option<(f64, f64, bool)>,
     /// O storage da aba e do perfil do contexto dela, que atravessa as navegações.
     session: std::rc::Rc<crate::session::Tab>,
+    /// O documento corrente, para medir e pintar (`Page.getLayoutMetrics`, `Page.captureScreenshot`).
+    bridge: Option<std::rc::Rc<crate::bridge::Bridge>>,
 }
 
 /// Quanto tempo sem rede o Chromium espera antes de declarar `networkIdle` (a janela do `IdlenessDetector`).
@@ -234,7 +236,62 @@ impl Tab {
             waiting: false,
             idle: None,
             session,
+            bridge: None,
         }
+    }
+
+    /// `Page.getLayoutMetrics`: o viewport do layout, o visual e o conteúdo, em pixels CSS e em pixels do dispositivo (as
+    /// duas famílias de campos saem iguais: o Chromium da bancada não dá zoom de página).
+    fn layout_metrics(&self, message: &Json) {
+        let Some(bridge) = &self.bridge else { return self.hub.fail(message, -32000, "Not attached to an active page") };
+        let m = crate::paint::metrics(bridge);
+        let number = |v: f64| Json::Number(v);
+        let viewport = || Json::object([("pageX", number(0.0)), ("pageY", number(0.0)), ("clientWidth", number(m.client.0)), ("clientHeight", number(m.client.1))]);
+        let visual = || {
+            Json::object([
+                ("offsetX", number(0.0)),
+                ("offsetY", number(0.0)),
+                ("pageX", number(0.0)),
+                ("pageY", number(0.0)),
+                ("clientWidth", number(m.client.0)),
+                ("clientHeight", number(m.client.1)),
+                ("scale", number(1.0)),
+                ("zoom", number(1.0)),
+            ])
+        };
+        let content = || Json::object([("x", number(0.0)), ("y", number(0.0)), ("width", number(m.content.0)), ("height", number(m.content.1))]);
+        self.hub.reply(
+            message,
+            Json::object([("layoutViewport", viewport()), ("visualViewport", visual()), ("contentSize", content()), ("cssLayoutViewport", viewport()), ("cssVisualViewport", visual()), ("cssContentSize", content())]),
+        );
+    }
+
+    /// `Page.captureScreenshot`: PNG, JPEG ou WebP do viewport (ou do recorte, ou do documento inteiro).
+    fn capture_screenshot(&self, message: &Json, params: &Json) {
+        let Some(bridge) = &self.bridge else { return self.hub.fail(message, -32000, "Not attached to an active page") };
+        let format = params.get("format").and_then(Json::as_str).unwrap_or("png");
+        if !matches!(format, "png" | "jpeg" | "webp") {
+            return self.hub.fail(message, -32602, "Invalid image format");
+        }
+        let number = |value: &Json, key: &str| value.get(key).and_then(Json::as_f64).unwrap_or(0.0);
+        let clip = params.get("clip").map(|c| crate::paint::Clip { x: number(c, "x"), y: number(c, "y"), width: number(c, "width"), height: number(c, "height"), scale: if number(c, "scale") > 0.0 { number(c, "scale") } else { 1.0 } });
+        let beyond = params.get("captureBeyondViewport").and_then(Json::as_bool) == Some(true);
+        if beyond {
+            // O Chromium redimensiona a janela para o documento inteiro e a devolve depois.
+            for _ in 0..2 {
+                self.hub.emit(&self.page_enabled.clone(), "Page.frameResized", &Json::object([]));
+            }
+        }
+        let (width, height, rgba) = crate::paint::capture(bridge, &crate::paint::Capture { clip, beyond, hide_scrollbars: false });
+        let quality = params.get("quality").and_then(Json::as_f64).map_or(0.8, |q| (q / 100.0).clamp(0.0, 1.0));
+        let data = match format {
+            "png" => ul_common::codec::base64_string(&crate::imaging::encode_png(width, height, &rgba)),
+            other => {
+                let url = crate::imaging::encode(&format!("image/{other}"), quality, other == "webp", width, height, &rgba);
+                url.split_once("base64,").map(|(_, data)| data.to_owned()).unwrap_or_default()
+            }
+        };
+        self.hub.reply(message, Json::object([("data", Json::str(data))]));
     }
 
     /// As sessões com `Page` ligado, para o hub saber a quem mostrar os diálogos.
@@ -374,6 +431,7 @@ impl Tab {
             self.record_visit(&page, started_us);
         }
         let next_url = if error.is_some() { "chrome-error://chromewebdata/".to_owned() } else { page.bridge.url.borrow().clone() };
+        self.bridge = Some(page.bridge.clone());
         self.hub.new_document(&self.loader_id, &next_url, page.source(), super::network::document_space(page.net_meta()));
         // Troca de processo (medido no oráculo): a primeira navegação da aba fica no processo do `about:blank` inicial, o
         // `about:blank` nunca troca, e o resto troca quando o documento novo tem origem opaca (data, página de erro) ou
@@ -822,6 +880,8 @@ impl Tab {
                 self.hub.reply(&message, Json::object([]));
             }
             "Page.handleJavaScriptDialog" => self.hub.fail(&message, -32602, "No dialog is showing"),
+            "Page.getLayoutMetrics" => self.layout_metrics(&message),
+            "Page.captureScreenshot" => self.capture_screenshot(&message, &params),
             "Page.disable" => {
                 self.page_enabled.retain(|s| *s != session);
                 self.lifecycle_enabled.retain(|s| *s != session);

@@ -162,7 +162,7 @@ fn score(name: &str) -> (usize, usize) {
 fn transcripts_match_the_oracle() {
     let mut same = 0;
     let mut total = 0;
-    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics", "network_http", "playwright_handshake", "playwright_state", "playwright_network", "playwright_cookies", "playwright_locale", "playwright_fetch", "playwright_dialog", "dialog_unattended", "dom_describe_special_nodes"] {
+    for name in ["browser", "attach_evaluate", "runtime_enable", "page_navigate", "targets", "sessions", "unflatten_target_commands", "auto_attach_wait", "domains_enable", "network_navigate", "emulation_metrics", "network_http", "playwright_handshake", "playwright_state", "playwright_network", "playwright_cookies", "playwright_locale", "playwright_fetch", "playwright_dialog", "dialog_unattended", "dom_describe_special_nodes", "paint_capture", "paint_capture_quirks"] {
         let (s, t) = score(name);
         same += s;
         total += t;
@@ -172,4 +172,71 @@ fn transcripts_match_the_oracle() {
     // tempo), com folga para essa variação; só sobe. O que falta está listado na saída: os alvos browser_ui do
     // omnibox, a pilha no formato do V8, consoleAPICalled e exceptionThrown, a página de erro.
     assert!(same >= 120, "placar CDP {same}/{total}");
+}
+
+/// Os `data` das respostas de `Page.captureScreenshot` de um cenário, por `id`, decodificados.
+fn captures(log: &[Value]) -> Vec<(i64, (u32, u32, Vec<u8>))> {
+    log.iter()
+        .filter_map(|entry| {
+            let message = entry.get("in")?;
+            let data = message.get("result")?.get("data")?.as_str()?;
+            let bytes = ul_common::codec::base64_decode(data.as_bytes(), false).ok()?;
+            Some((message.get("id")?.as_i64()?, support::decode(&bytes)))
+        })
+        .collect()
+}
+
+/// As imagens de `Page.captureScreenshot` de um cenário contra as do oráculo: (id, tamanho do oráculo, tamanho daqui,
+/// SSIM `paint-ssim-v1` na área comum).
+fn compare_captures(name: &str) -> Vec<(i64, (u32, u32), (u32, u32), f64)> {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let expected = captures(oracle[name].as_array().unwrap());
+    let actual = captures(&run_scenario(name));
+    assert_eq!(expected.len(), actual.len(), "quantas imagens");
+    expected
+        .iter()
+        .zip(&actual)
+        .map(|((id, (ew, eh, epx)), (_, (aw, ah, apx)))| {
+            let (width, rows) = (*ew.min(aw) as usize, (*eh).min(*ah) as usize);
+            let crop = |px: &[u8], full: u32| -> Vec<u8> { px.chunks_exact(full as usize * 4).take(rows).flat_map(|line| line[..width * 4].to_vec()).collect() };
+            let score = support::ssim(&crop(epx, *ew), &crop(apx, *aw), width, rows);
+            eprintln!("{name} #{id}: oráculo {ew}x{eh}, aqui {aw}x{ah}, ssim {score:.4}");
+            (*id, (*ew, *eh), (*aw, *ah), score)
+        })
+        .collect()
+}
+
+/// As imagens de `Page.captureScreenshot` (documento em modo padrão) contra as do oráculo: o mesmo tamanho (a altura do
+/// documento inteiro difere 1 px, do layout do Blitz) e SSIM (`paint-ssim-v1`) acima do piso.
+#[test]
+fn screenshots_match_the_oracle_perceptually() {
+    let mut worst = 1.0_f64;
+    for (id, (ew, eh), (aw, ah), score) in compare_captures("paint_capture") {
+        assert_eq!(ew, aw, "captura #{id}: largura");
+        assert!(eh.abs_diff(ah) <= 1, "captura #{id}: altura {eh} contra {ah}");
+        worst = worst.min(score);
+    }
+    eprintln!("captura pior ssim {worst:.4}");
+    // O piso é o medido menos 0,03 (catraca): os recortes pequenos são os mais sensíveis a 1 px de texto.
+    assert!(worst >= 0.78, "ssim {worst}");
+}
+
+/// O mesmo cenário num documento SEM `<!doctype html>` (modo quirks), medido no oráculo. DIVERGÊNCIA CONHECIDA, do
+/// `blitz-dom`, que não tem quirks mode (`QuirksMode::NoQuirks` fixo): no Chromium o `body` zera a margem de cima do
+/// primeiro filho (o `h1` sobe 21 px), a altura de linha de tabela e de imagem inline segue o modo quirks e o
+/// `document.compatMode` vale `BackCompat` (observável pelo JS). O que muda nas imagens: o tamanho do documento inteiro
+/// (altura) e o SSIM, que cai onde o conteúdo desloca. O piso é o medido menos 0,03 e só sobe quando o motor ganhar o modo.
+#[test]
+fn screenshots_without_doctype_diverge_as_declared() {
+    let mut worst = 1.0_f64;
+    for (id, (ew, eh), (aw, ah), score) in compare_captures("paint_capture_quirks") {
+        assert_eq!(ew, aw, "captura #{id}: largura");
+        // Só a altura do documento inteiro muda de tamanho (a margem de cima que o Blitz não zera).
+        assert!(eh.abs_diff(ah) <= 16, "captura #{id}: altura {eh} contra {ah}");
+        worst = worst.min(score);
+    }
+    eprintln!("captura sem doctype pior ssim {worst:.4}");
+    // Medido: viewport 0,96, documento inteiro 0,98 e recortes de 100x60 e 200x120 em 0,23 e 0,40 (o recorte cai na faixa
+    // que o deslocamento de 15 px atravessa).
+    assert!(worst >= 0.20, "ssim {worst}");
 }

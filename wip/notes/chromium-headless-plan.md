@@ -144,6 +144,20 @@ local 0,740 (as imagens `data:` só pintaram depois de servidas pelo corpo da pr
 na linha de base), a tabela (larguras de coluna e a espessura da borda colapsada), alturas de linha 1 a 2 px diferentes em
 parágrafos e 1 px a mais na altura do cabeçalho.
 
+Fatia 2 (`Page.captureScreenshot` e `Page.getLayoutMetrics`, cenário `paint_capture` do oráculo): png, jpeg e webp, `clip` com
+`scale`, `captureBeyondViewport` (largura do viewport sem a barra, altura do documento, dois `Page.frameResized`), o
+`deviceScaleFactor` do `Emulation.setDeviceMetricsOverride` e o erro `Invalid image format`; a barra de rolagem de 15 px
+(trilha, polegar e setas medidos no oráculo) aparece quando o documento passa do viewport. Imagens: mesmo tamanho (a altura do
+documento inteiro difere 1 px, herdada do layout) e SSIM 0,98 a 0,99 contra o oráculo, 0,81 e 0,83 nos recortes de 100x60.
+Divergências conhecidas, todas de layout do `blitz-dom`: o Blitz não tem quirks mode (sem `<!doctype html>` o Chromium zera a
+margem de cima do primeiro filho do `body` e o Blitz não), e o `h1` mede 37 e não 36,8 (1 px no `contentSize`). O Blitz também
+lê a largura da janela inteira no layout, sem descontar a barra de rolagem que o Chromium desconta.
+
+Divergência declarada (cenário `paint_capture_quirks`, o mesmo sem `<!doctype html>`, medido no oráculo e mantido no placar): o
+`blitz-dom` não tem quirks mode (margem de cima do primeiro filho do `body`, altura de linha de tabela e de imagem inline,
+`document.compatMode`; passa ao fork do motor). SSIM contra o oráculo: viewport 0,96; documento inteiro 0,98 (1274 contra 1289
+de altura); recortes 0,23 e 0,40. Piso do teste 0,20, sobe quando o motor ganhar o modo.
+
 ## Ordem
 
 1. Placar da internet a 95% em cada grupo (agora).

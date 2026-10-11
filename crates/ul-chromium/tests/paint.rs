@@ -4,6 +4,9 @@
 //! Se existir `tests/paint/out/`, o PNG que a pintura produziu vai para lá (para olhar ao lado do golden).
 
 mod common;
+mod support;
+
+use support::{decode, ssim};
 
 use std::ffi::OsString;
 use std::io::Write;
@@ -17,58 +20,12 @@ use ul_chromium::page::Page;
 const WIDTH: u32 = 780;
 const HEIGHT: u32 = 493;
 
-/// A métrica `paint-ssim-v1`: SSIM médio (Wang et al., 2004) na luminância Rec. 709, janela uniforme de 8x8 com passo 4,
-/// constantes padrão (L=255, K1=0,01, K2=0,03). Escolhida porque pesa estrutura (bordas, glifos, alinhamento) e não o
-/// valor absoluto de cada pixel: o antisserrilhado e o hinting do texto diferem do Skia sem que a página pareça outra,
-/// e o SSIM cai quando um elemento muda de lugar, de tamanho ou some (o que o erro médio quadrático esconde numa
-/// página quase toda branca).
-fn ssim(a: &[u8], b: &[u8], width: usize, height: usize) -> f64 {
-    let luma = |rgba: &[u8]| -> Vec<f64> { rgba.chunks_exact(4).map(|p| 0.2126 * f64::from(p[0]) + 0.7152 * f64::from(p[1]) + 0.0722 * f64::from(p[2])).collect() };
-    let (a, b) = (luma(a), luma(b));
-    let (c1, c2) = ((0.01_f64 * 255.0).powi(2), (0.03_f64 * 255.0).powi(2));
-    let (mut sum, mut count) = (0.0, 0u32);
-    let mut y = 0;
-    while y + 8 <= height {
-        let mut x = 0;
-        while x + 8 <= width {
-            let (mut ma, mut mb) = (0.0, 0.0);
-            for j in 0..8 {
-                for i in 0..8 {
-                    ma += a[(y + j) * width + x + i];
-                    mb += b[(y + j) * width + x + i];
-                }
-            }
-            let (ma, mb) = (ma / 64.0, mb / 64.0);
-            let (mut va, mut vb, mut cov) = (0.0, 0.0, 0.0);
-            for j in 0..8 {
-                for i in 0..8 {
-                    let (da, db) = (a[(y + j) * width + x + i] - ma, b[(y + j) * width + x + i] - mb);
-                    va += da * da;
-                    vb += db * db;
-                    cov += da * db;
-                }
-            }
-            let (va, vb, cov) = (va / 63.0, vb / 63.0, cov / 63.0);
-            sum += ((2.0 * ma * mb + c1) * (2.0 * cov + c2)) / ((ma * ma + mb * mb + c1) * (va + vb + c2));
-            count += 1;
-            x += 4;
-        }
-        y += 4;
-    }
-    sum / f64::from(count)
-}
-
-fn decode(png: &[u8]) -> (u32, u32, Vec<u8>) {
-    let image = image::load_from_memory_with_format(png, image::ImageFormat::Png).unwrap().to_rgba8();
-    (image.width(), image.height(), image.into_raw())
-}
-
 fn painted(name: &str) -> Vec<u8> {
     common::install_image_fonts();
     let html = std::fs::read_to_string(format!("{}/tests/paint/pages/{name}.html", env!("CARGO_MANIFEST_DIR"))).unwrap();
     let mut page = Page::load("http://t.test/", common::serve(&[("/", &html)], &[])).unwrap();
     page.run();
-    let png = page.screenshot_png(WIDTH, HEIGHT);
+    let png = page.screenshot_png(WIDTH, HEIGHT, true);
     let dir = format!("{}/tests/paint/out", env!("CARGO_MANIFEST_DIR"));
     if std::path::Path::new(&dir).is_dir() {
         std::fs::write(format!("{dir}/{name}.png"), &png).unwrap();

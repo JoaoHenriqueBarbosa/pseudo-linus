@@ -22,6 +22,8 @@ pub struct Options {
     pub screenshot: Option<String>,
     /// `--window-size=<largura>,<altura>`: o viewport do screenshot.
     pub window_size: Option<(u32, u32)>,
+    /// `--hide-scrollbars`: o screenshot sem a barra de rolagem.
+    pub hide_scrollbars: bool,
     /// `--virtual-time-budget=<ms>`: quanto tempo virtual a página tem para ficar ociosa antes do despejo.
     pub virtual_time_budget: Option<f64>,
     /// `--remote-debugging-port`, `--remote-debugging-pipe` e `--remote-allow-origins`.
@@ -39,6 +41,7 @@ pub fn parse(args: &[String]) -> Options {
         match arg.as_str() {
             "--headless" | "--headless=new" | "--headless=old" => options.headless = true,
             "--dump-dom" => options.dump_dom = true,
+            "--hide-scrollbars" => options.hide_scrollbars = true,
             "--screenshot" => options.screenshot = Some("screenshot.png".to_owned()),
             flag if flag.starts_with("--screenshot=") => options.screenshot = Some(flag["--screenshot=".len()..].to_owned()),
             flag if flag.starts_with("--window-size=") => {
@@ -119,7 +122,7 @@ fn load(ctx: &mut Ctx, options: &Options, first: &str, disk: &DiskProfile) -> i3
         }
         if let Some(path) = &options.screenshot {
             let (width, height) = options.window_size.unwrap_or(crate::document::WINDOW);
-            let png = page.screenshot_png(width, height);
+            let png = page.screenshot_png(width, height, options.hide_scrollbars);
             if sysabi::util::write_file(path.as_bytes(), &png, 0o644).is_ok() {
                 let _ = ctx.stderr().write_all(format!("{} bytes written to file {path}\n", png.len()).as_bytes());
             }
