@@ -1,0 +1,48 @@
+const show = async (name, fn) => {
+  try { console.log(name, 'ok', await fn()); } catch (e) { console.log(name, 'err', e.name, e.code, e.message); }
+};
+const enc = new TextEncoder();
+const chunks = (...parts) => new ReadableStream({ start(c) { for (const p of parts) c.enqueue(p); c.close(); } });
+(async () => {
+  await show('text', async () => await chunks(enc.encode('ab'), enc.encode('cd')).text());
+  await show('text strings', async () => await chunks('ab', 'cd').text());
+  await show('text bom', async () => await chunks(new Uint8Array([0xef, 0xbb, 0xbf, 0x61])).text());
+  await show('text empty', async () => JSON.stringify(await chunks().text()));
+  await show('bytes', async () => { const b = await chunks(enc.encode('ab'), enc.encode('c')).bytes(); return [b.constructor.name, Array.from(b)]; });
+  await show('bytes arraybuffer', async () => Array.from(await chunks(enc.encode('xy').buffer).bytes()));
+  await show('json', async () => await chunks(enc.encode('{"a":'), enc.encode('[1,2]}')).json());
+  await show('json bad', async () => await chunks(enc.encode('{')).json());
+  await show('json empty', async () => await chunks().json());
+  await show('blob', async () => { const b = await chunks(enc.encode('abc')).blob(); return [b.constructor.name, b.size, b.type, await b.text()]; });
+  await show('blob empty', async () => { const b = await chunks().blob(); return [b.size, b.type]; });
+  await show('locked', async () => { const s = chunks(enc.encode('a')); s.getReader(); return await s.text(); });
+  await show('used', async () => { const s = chunks(enc.encode('a')); await s.text(); return await s.text(); });
+  await show('used bytes', async () => { const s = chunks(enc.encode('a')); await s.bytes(); return await s.json(); });
+  await show('locked after', async () => { const s = chunks(enc.encode('a')); const p = s.text(); return [s.locked, await p, s.locked]; });
+  await show('bad chunk', async () => await chunks(1).text());
+  await show('bad chunk blob', async () => await chunks({}).blob());
+  await show('errored', async () => await new ReadableStream({ start(c) { c.error(new Error('boom')); } }).text());
+  await show('errored late', async () => await new ReadableStream({ start(c) { c.enqueue(enc.encode('a')); c.error(new Error('late')); } }).bytes());
+  await show('pull async', async () => { let i = 0; return await new ReadableStream({ async pull(c) { await null; if (i < 3) c.enqueue(enc.encode(String(i++))); else c.close(); } }).text(); });
+  await show('response body', async () => await new Response('hello').body.text());
+  await show('blob stream', async () => await new Blob(['q']).stream().text());
+  await show('bad this', async () => await ReadableStream.prototype.text.call({}));
+  await show('bad this bytes', async () => await ReadableStream.prototype.bytes.call(1));
+  await show('bad this json', async () => await ReadableStream.prototype.json.call(null));
+  await show('bad this blob', async () => await ReadableStream.prototype.blob.call(undefined));
+  await show('returns promise', async () => { const p = chunks().text(); return [p instanceof Promise, ReadableStream.prototype.text.length, ReadableStream.prototype.text.name]; });
+  await show('byte stream', async () => await new ReadableStream({ type: 'bytes', start(c) { c.enqueue(enc.encode('by')); c.close(); } }).text());
+  await show('blob num', async () => { const b = await chunks(12).blob(); return [b.size, await b.text()]; });
+  await show('blob null', async () => { const b = await chunks(null).blob(); return [b.size, await b.text()]; });
+  await show('blob undefined', async () => { const b = await chunks(undefined).blob(); return [b.size, await b.text()]; });
+  await show('blob array', async () => { const b = await chunks([1, 2]).blob(); return [b.size, await b.text()]; });
+  await show('blob bool', async () => { const b = await chunks(true).blob(); return [b.size, await b.text()]; });
+  await show('blob symbol', async () => { const b = await chunks(Symbol('x')).blob(); return [b.size, await b.text()]; });
+  await show('blob mixed', async () => { const b = await chunks('a', enc.encode('b'), 3).blob(); return [b.size, await b.text()]; });
+  await show('bytes obj', async () => await chunks({}).bytes());
+  await show('json obj', async () => await chunks({}).json());
+  await show('text null', async () => await chunks(null).text());
+  await show('view slice', async () => await chunks(enc.encode('xabcx').subarray(1, 4)).text());
+  await show('dataview', async () => await chunks(new DataView(enc.encode('dv').buffer)).text());
+  await show('uint16', async () => Array.from(await chunks(new Uint16Array([1, 2])).bytes()));
+})();

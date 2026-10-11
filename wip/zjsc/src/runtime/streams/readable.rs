@@ -1755,6 +1755,16 @@ pub(super) fn is_locked_or_disturbed(value: JSValue) -> bool {
     })
 }
 
+/// Por que `text()`, `bytes()`, `json()` e `blob()` do stream não podem ler `value` (medido no bun 1.4.2: travado por um
+/// leitor do usuário, ou já lido/cancelado), com a mensagem do `ERR_INVALID_STATE`; `None` se podem.
+pub(super) fn unavailable_reason(value: JSValue) -> Option<&'static str> {
+    let stream = stream_of(value)?;
+    if visibly_locked(&stream) {
+        return Some("Invalid state: ReadableStream is locked");
+    }
+    is_locked_or_disturbed(value).then_some("Invalid state: ReadableStream has already been used")
+}
+
 /// Travado por um leitor do usuário ou pelo leitor interno da leitura do corpo (`text()` e afins) enquanto ela está em
 /// andamento, como no bun (`locked: true` até a leitura terminar). O bun esvazia de uma vez o stream cujos pedaços já
 /// estão na fila com o fechamento pedido, e nesse caso o leitor interno nunca chega a ser visível.

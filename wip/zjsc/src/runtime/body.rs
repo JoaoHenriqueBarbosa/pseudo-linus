@@ -46,7 +46,7 @@ use crate::runtime::js_value::JSValue;
 use crate::runtime::json_object::{json_parse, throw_json_error};
 use crate::runtime::literal_parser::JsonError;
 use crate::runtime::node_error::{throw_coded_error, throw_coded_type_error, throw_native_type_error};
-use crate::runtime::streams::{bytes_stream, is_readable_stream, lock_stream, read_stream_bytes, stream_used, tee_of, text_stream};
+use crate::runtime::streams::{bytes_stream, Chunks, is_readable_stream, lock_stream, read_stream_bytes, stream_used, tee_of, text_stream};
 use crate::runtime::text_decoder::input_bytes;
 use crate::runtime::uint8_array_base64::create_uint8_array;
 use crate::runtime::url_search_params::{pairs_of_instance, serialize};
@@ -147,6 +147,8 @@ pub(crate) enum Read {
     ArrayBuffer,
     Bytes,
     Json,
+    /// `json()` de um `ReadableStream`: o `JSON.parse` direto, sem a mensagem própria do corpo vazio.
+    StreamJson,
     /// `blob()`, com o `type` do resultado.
     Blob(Vec<u8>, Option<FileIdentity>),
     /// `formData()`, com o `Content-Type` dos cabeçalhos (vazio: sem cabeçalho).
@@ -266,7 +268,7 @@ pub(crate) fn read_body(global_object: &JSGlobalObject, read: Read, bytes: &[u8]
             let error = crate::runtime::error::create_syntax_error(global_object, &WtfString::from_utf8(b"Unexpected end of JSON input")).as_value();
             Ok(JSPromise::rejected_promise(global_object, error).as_value())
         }
-        Read::Json => match json_parse(global_object, &WtfString::from_utf8_replacing_invalid_sequences(bytes), None, false) {
+        Read::Json | Read::StreamJson => match json_parse(global_object, &WtfString::from_utf8_replacing_invalid_sequences(bytes), None, false) {
             Ok(value) => Ok(resolved_promise(global_object, value)),
             Err(JsonError::Syntax(message)) => {
                 let error = crate::runtime::error::create_syntax_error(global_object, &message).as_value();
@@ -373,7 +375,7 @@ pub(crate) fn consume(global_object: &JSGlobalObject, body: &mut Option<Body>, r
     }
     body.used = true;
     if let (true, Some(stream)) = (body.from_stream, body.stream) {
-        return Ok(consume_stream(global_object, stream, read));
+        return Ok(consume_stream(global_object, stream, Chunks::Text, read));
     }
     let loaded;
     let content: &[u8] = match &body.lazy_path {
@@ -395,10 +397,10 @@ pub(crate) fn consume(global_object: &JSGlobalObject, body: &mut Option<Body>, r
 
 /// A leitura `read` de um corpo que é `ReadableStream` do usuário: uma promessa que se resolve quando o stream fecha
 /// (com a leitura dos bytes juntados) e rejeita com o motivo do erro do stream ou do pedaço inválido.
-fn consume_stream(global_object: &JSGlobalObject, stream: JSValue, read: Read) -> JSValue {
+pub(crate) fn consume_stream(global_object: &JSGlobalObject, stream: JSValue, chunks: Chunks, read: Read) -> JSValue {
     let promise = JSPromise::create(global_object.vm(), &global_object.promise_structure());
     let settled = promise.as_value();
-    let started = read_stream_bytes(global_object, stream, &[settled], move |global_object, result| {
+    let started = read_stream_bytes(global_object, stream, chunks, &[settled], move |global_object, result| {
         let outcome = result.and_then(|bytes| {
             let bytes = if matches!(read, Read::Text) { bytes.strip_prefix(BOM).unwrap_or(&bytes).to_vec() } else { bytes };
             read_body(global_object, read.clone(), &bytes).map_err(|_| pending_reason(global_object))

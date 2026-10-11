@@ -28,7 +28,7 @@
 
 mod compression_streams;
 mod body_stream;
-pub(crate) use body_stream::{bytes_stream, errored_stream, is_readable_stream, read_stream_bytes, stream_used, text_stream};
+pub(crate) use body_stream::{bytes_stream, errored_stream, is_readable_stream, read_stream_bytes, stream_used, text_stream, Chunks};
 pub(crate) use readable::{lock_stream, tee_of};
 mod bytes;
 mod effects;
@@ -45,6 +45,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crate::host_function;
+use crate::runtime::body::{consume_stream, Read};
 use self::bytes::ReaderKind;
 use crate::runtime::array_buffer_prototype::put_native_getter;
 use crate::runtime::class_info::ClassInfo;
@@ -217,6 +218,38 @@ fn values_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     crate::api::node_js_host::call_value(global_object, function, call.this_value(), call.arguments(), "ReadableStream")
 }
 
+/// `text()`, `bytes()`, `json()` e `blob()` do stream: lê tudo e resolve (ou rejeita) uma promessa, como o corpo de
+/// `Response`; `this` alheio, stream travado e stream já lido rejeitam (medido no bun 1.4.2).
+fn read_member(global_object: &JSGlobalObject, call: &HostCall, chunks: Chunks, read: Read) -> HostResult {
+    let stream = call.this_value();
+    if !is_readable_stream(stream) {
+        let thrown = throw_invalid_this(global_object, Kind::ReadableStream);
+        return Ok(reject_with_thrown(global_object, thrown));
+    }
+    if let Some(message) = readable::unavailable_reason(stream) {
+        let thrown = throw_coded_type_error(global_object, message, "ERR_INVALID_STATE");
+        return Ok(reject_with_thrown(global_object, thrown));
+    }
+    Ok(consume_stream(global_object, stream, chunks, read))
+}
+
+macro_rules! read_members {
+    ($( $id:ident => ($chunks:expr, $read:expr) ),* $(,)?) => {
+        $(
+            fn $id(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+                read_member(global_object, call, $chunks, $read)
+            }
+        )*
+    };
+}
+
+read_members! {
+    rs_text_body => (Chunks::Text, Read::Text),
+    rs_bytes_body => (Chunks::Bytes, Read::Bytes),
+    rs_json_body => (Chunks::Text, Read::StreamJson),
+    rs_blob_body => (Chunks::Stringify, Read::Blob(Vec::new(), None)),
+}
+
 fn throw_invalid_this(global_object: &JSGlobalObject, kind: Kind) -> Thrown {
     throw_coded_type_error(global_object, &format!("Value of \"this\" must be of type {}", kind.name()), "ERR_INVALID_THIS")
 }
@@ -372,10 +405,10 @@ members! {
     rs_pipe_to => (Kind::ReadableStream, Mode::Real(pipe::rs_pipe_to)),
     rs_tee => (Kind::ReadableStream, Mode::Real(readable::rs_tee)),
     rs_values => (Kind::ReadableStream, Mode::Real(values_body)),
-    rs_blob => (Kind::ReadableStream, Mode::Reject),
-    rs_bytes => (Kind::ReadableStream, Mode::Reject),
-    rs_json => (Kind::ReadableStream, Mode::Reject),
-    rs_text => (Kind::ReadableStream, Mode::Reject),
+    rs_blob => (Kind::ReadableStream, Mode::Real(rs_blob_body)),
+    rs_bytes => (Kind::ReadableStream, Mode::Real(rs_bytes_body)),
+    rs_json => (Kind::ReadableStream, Mode::Real(rs_json_body)),
+    rs_text => (Kind::ReadableStream, Mode::Real(rs_text_body)),
     rs_from => (Kind::ReadableStream, Mode::Throw),
     dr_closed => (Kind::DefaultReader, Mode::Real(readable::dr_closed)),
     dr_cancel => (Kind::DefaultReader, Mode::Real(readable::dr_cancel)),

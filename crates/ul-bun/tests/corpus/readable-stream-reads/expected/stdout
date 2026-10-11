@@ -1,0 +1,43 @@
+text ok abcd
+text strings ok abcd
+text bom ok a
+text empty ok ""
+bytes ok [ "Uint8Array", [ 97, 98, 99 ] ]
+bytes arraybuffer ok [ 120, 121 ]
+json ok {
+  a: [ 1, 2 ],
+}
+json bad err SyntaxError undefined JSON Parse error: Expected '}'
+json empty err SyntaxError undefined JSON Parse error: Unexpected EOF
+blob ok [ "Blob", 3, "", "abc" ]
+blob empty ok [ 0, "" ]
+locked err TypeError ERR_INVALID_STATE Invalid state: ReadableStream is locked
+used err TypeError ERR_INVALID_STATE Invalid state: ReadableStream has already been used
+used bytes err TypeError ERR_INVALID_STATE Invalid state: ReadableStream has already been used
+locked after ok [ false, "a", false ]
+bad chunk err TypeError undefined Expected text, ArrayBuffer or ArrayBufferView
+bad chunk blob ok Blob (15 bytes)
+errored err Error undefined boom
+errored late err Error undefined late
+pull async ok 012
+response body ok hello
+blob stream ok q
+bad this err TypeError ERR_INVALID_THIS Value of "this" must be of type ReadableStream
+bad this bytes err TypeError ERR_INVALID_THIS Value of "this" must be of type ReadableStream
+bad this json err TypeError ERR_INVALID_THIS Value of "this" must be of type ReadableStream
+bad this blob err TypeError ERR_INVALID_THIS Value of "this" must be of type ReadableStream
+returns promise ok [ true, 0, "text" ]
+byte stream ok by
+blob num ok [ 2, "12" ]
+blob null ok [ 4, "null" ]
+blob undefined ok [ 9, "undefined" ]
+blob array ok [ 3, "1,2" ]
+blob bool ok [ 4, "true" ]
+blob symbol err TypeError undefined Cannot convert a symbol to a string
+blob mixed ok [ 3, "ab3" ]
+bytes obj err TypeError undefined Expected an ArrayBuffer, ArrayBufferView, or string chunk
+json obj err TypeError undefined Expected text, ArrayBuffer or ArrayBufferView
+text null err TypeError undefined Expected text, ArrayBuffer or ArrayBufferView
+view slice ok abc
+dataview ok dv
+uint16 ok [ 1, 0, 2, 0 ]

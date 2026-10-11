@@ -4,9 +4,9 @@
   "use strict";
 
   const getReader = ReadableStream.prototype.getReader;
-  // Compilado como código de usuário: dentro do programa embutido o `async function*` não herda do %AsyncIteratorPrototype% real.
-  const generator = Function("return async function* () {}")();
-  const AsyncIteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf(generator.prototype));
+  // Função builtin não tem `prototype` próprio (como no JSC), então a cadeia sai de %AsyncGeneratorFunction.prototype%.
+  const AsyncGeneratorFunctionPrototype = Object.getPrototypeOf(async function* () {});
+  const AsyncIteratorPrototype = Object.getPrototypeOf(AsyncGeneratorFunctionPrototype.prototype);
   const states = new WeakMap();
 
   function stateOf(iterator, method) {

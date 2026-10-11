@@ -63,14 +63,25 @@ pub(crate) fn is_readable_stream(value: JSValue) -> bool {
     is_stream(value)
 }
 
+/// O que `read_stream_bytes` faz com um pedaço que não é texto, `ArrayBuffer` nem view (medido no bun 1.4.2, sem `code`).
+#[derive(Clone, Copy)]
+pub(crate) enum Chunks {
+    /// Rejeita `Expected text, ArrayBuffer or ArrayBufferView` (o corpo de `Response`, `text()` e `json()` do stream).
+    Text,
+    /// Rejeita `Expected an ArrayBuffer, ArrayBufferView, or string chunk` (`bytes()` do stream).
+    Bytes,
+    /// Converte como `String(pedaço)`, então `{}` vira `[object Object]` e símbolo rejeita (`blob()` do stream).
+    Stringify,
+}
+
 /// Lê o `ReadableStream` do usuário até o fim e entrega todos os bytes a `done` (ou o erro: do stream, ou o `TypeError`
-/// de um pedaço que não é texto, `ArrayBuffer` nem view). Medido no bun 1.4.2: string vira UTF-8, `ArrayBuffer` e
-/// qualquer view valem como bytes, o resto rejeita `Expected text, ArrayBuffer or ArrayBufferView` (sem `code`).
-/// Devolve `false` se `stream` já estava travado ou lido. `held` são os valores JS que `done` captura (a promessa que
-/// ele liquida): o coletor os visita até a leitura acabar.
+/// de um pedaço que `chunks` não aceita). Medido no bun 1.4.2: string vira UTF-8, `ArrayBuffer` e qualquer view valem
+/// como bytes. Devolve `false` se `stream` já estava travado ou lido. `held` são os valores JS que `done` captura (a
+/// promessa que ele liquida): o coletor os visita até a leitura acabar.
 pub(crate) fn read_stream_bytes(
     global_object: &JSGlobalObject,
     stream: JSValue,
+    chunks: Chunks,
     held: &[JSValue],
     done: impl Fn(&JSGlobalObject, Result<Vec<u8>, JSValue>) + 'static,
 ) -> bool {
@@ -81,7 +92,12 @@ pub(crate) fn read_stream_bytes(
             let bytes = if chunk.is_string() {
                 string_bytes(global_object, chunk).map_err(|_| take_error(global_object))?
             } else {
-                input_bytes(chunk).ok_or_else(|| type_error_value(global_object, "Expected text, ArrayBuffer or ArrayBufferView"))?
+                match (input_bytes(chunk), chunks) {
+                    (Some(bytes), _) => bytes,
+                    (None, Chunks::Stringify) => string_bytes(global_object, chunk).map_err(|_| take_error(global_object))?,
+                    (None, Chunks::Text) => return Err(type_error_value(global_object, "Expected text, ArrayBuffer or ArrayBufferView")),
+                    (None, Chunks::Bytes) => return Err(type_error_value(global_object, "Expected an ArrayBuffer, ArrayBufferView, or string chunk")),
+                }
             };
             sink.borrow_mut().extend_from_slice(&bytes);
             Ok(())
