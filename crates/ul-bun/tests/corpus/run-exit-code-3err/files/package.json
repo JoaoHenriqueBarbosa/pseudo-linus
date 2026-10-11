@@ -1,0 +1,1 @@
+{"name": "codes", "scripts": {"e1": "exit 1", "e2": "exit 2", "e6": "exit 6", "e7": "exit 7", "e64": "exit 64", "e126": "exit 126", "e128": "exit 128", "e129": "exit 129", "e255": "exit 255", "e2err": "echo oops >&2; exit 2", "e3err": "echo oops >&2; exit 3", "e1err": "echo oops >&2; exit 1", "efalse": "false"}}

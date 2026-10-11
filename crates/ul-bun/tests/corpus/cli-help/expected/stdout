@@ -11,9 +11,9 @@ Commands:
   exec                           Run a shell script directly with Bun
 
   install                        Install dependencies for a package.json (bun i)
-  add       @evan/duckdb         Add a dependency to package.json (bun a)
-  remove    left-pad             Remove a dependency from package.json (bun rm)
-  update    @zarfjs/zarf         Update outdated dependencies
+  add       @shumai/shumai       Add a dependency to package.json (bun a)
+  remove    underscore           Remove a dependency from package.json (bun rm)
+  update    hono                 Update outdated dependencies
   audit                          Check installed packages for vulnerabilities
   dedupe                         Remove duplicate versions from the lockfile
   prune                          Remove packages that are not in the lockfile from node_modules
@@ -23,13 +23,13 @@ Commands:
   publish                        Publish a package to the npm registry
   patch <pkg>                    Prepare a package for patching
   pm <subcommand>                Additional package management utilities
-  info      zod                  Display package metadata from the registry
-  why       tailwindcss          Explain why a package is installed
+  info      react                Display package metadata from the registry
+  why       lyra                 Explain why a package is installed
 
   build     ./a.ts ./b.jsx       Bundle TypeScript & JavaScript into a single file
 
   init                           Start an empty Bun project from a built-in template
-  create    vite                 Create a new project from a template (bun c)
+  create    next-app             Create a new project from a template (bun c)
   upgrade                        Upgrade to latest version of Bun.
 
   <command> --help               Print help text for command.

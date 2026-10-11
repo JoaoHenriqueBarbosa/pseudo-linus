@@ -1,0 +1,3 @@
+$ definitely-not-a-command
+/usr/bin/bash: line 1: definitely-not-a-command: command not found
+error: script "nocmd" exited with code 127

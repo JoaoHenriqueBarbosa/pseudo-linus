@@ -1,0 +1,2 @@
+$ kill -SEGV $$
+error: script "sigsegv" was terminated by signal SIGSEGV (Address boundary error)

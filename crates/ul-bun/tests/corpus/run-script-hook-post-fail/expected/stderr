@@ -1,0 +1,3 @@
+$ echo ran
+$ exit 5
+error: script "postfailpost" exited with code 5

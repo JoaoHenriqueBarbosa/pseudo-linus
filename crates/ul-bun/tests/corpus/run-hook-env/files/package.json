@@ -1,0 +1,1 @@
+{"name": "h", "scripts": {"prex": "env | grep -E \"npm_lifecycle|npm_package_name\" | sort", "x": "env | grep -E \"npm_lifecycle|npm_package_name\" | sort"}}

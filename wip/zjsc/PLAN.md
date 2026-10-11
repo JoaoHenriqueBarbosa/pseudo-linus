@@ -1288,6 +1288,14 @@ Falta, medido mas não portado:
 - As opções de execução (`--preload`, `--cwd`, `--env-file`, `--define`, `--watch` e as demais da tabela de `bun run --help`) são aceitas e ignoradas.
 - Subcomandos além de `run` (`test`, `x`, `install`, `build`, `init`...).
 
+### `bun run` com package.json (2026-10-11)
+
+Feito em `crates/ul-bun/src/run_script.rs` e `package_json.rs`, medido no oráculo (casos `run-*` do corpus): listagem dos scripts (`package.json scripts (N found):`, `No "scripts" found in package.json.`), `bun run NOME ARGS` e `bun NOME`, `pre<nome>`/`post<nome>` (só o chamado leva os argumentos), o `$ comando` no stderr (menos com `--silent`), o quoting dos argumentos (aspas duplas com escape de `"`, `\`, `$` e crase; conjunto de caracteres medido), `bash -c` no diretório do pacote (o `package.json` vem do diretório de trabalho ou do primeiro ancestral), o ambiente (`npm_*`, `NODE`, `PATH` com `/tmp/bun-node-<rev>` e os `node_modules/.bin`; esse diretório leva links `node` e `bun`, modo 0700), códigos de saída (`error: script "x" exited with code N`, silencioso no código 2), morte por sinal (mensagem com a tabela de 20 sinais do bun, sem mensagem para SIGINT e SIGQUIT, e o bun morre pelo mesmo sinal), script vence arquivo de mesmo nome, `Script not found` contra `Module not found` (nome com `/` ou extensão de loader é arquivo), `--if-present`, `package.json` inválido vale como ausente, comentários e vírgula final aceitos, script que não é texto (ou é vazio) não existe.
+
+Oráculo e corpus: o `gen-corpus.py` roda o bun por `perl system` (sem shell no meio, que escrevia `Killed`/`Terminated` no stderr) e grava `expected/signal`; o comparador exige `Signaled(n)` quando o bun morreu por sinal; o sandbox do corpus tem o userland (bash, coreutils, grep...) e o `bun` instalado em `/usr/local/bin/bun`, como no oráculo; `cmd.json` é lido pelo `serde_json`.
+
+Pendências medidas e ainda não portadas: o parser de package.json aceita comentários e vírgula final, não os demais acessos do parser JS do bun (aspas simples, chaves sem aspas); `--shell=bun`, `--filter`, `--workspaces`, `--parallel`, `--sequential` e `-b/--bun`; a ordem de resolução quando o nome é arquivo extensionless existente e também script (medido só com extensão).
+
 ## Suíte completa em lotes, grupo 1 com o transpilador instalado (2026-10-11)
 
 Os goldens de `error`, `function_error` e `console_dir` guardavam o texto reimpresso e declaravam 55, 29 e 17 linhas com uma causa

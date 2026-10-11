@@ -1,0 +1,26 @@
+{
+  "name": "demo",
+  "version": "1.2.3",
+  "scripts": {
+    "hello": "echo hello world",
+    "args": "echo args:",
+    "fail": "exit 3",
+    "vars": "env | grep '^npm_' | sort; echo NODE=$NODE; echo $PATH | tr ':' '\\n' | head -4",
+    "build": "echo building",
+    "prebuild": "echo before-build",
+    "postbuild": "echo after-build",
+    "pre": "echo main",
+    "prepre": "echo x",
+    "sig": "kill -TERM $$",
+    "nocmd": "definitely-not-a-command",
+    "err": "echo oops >&2; exit 2",
+    "multi": "echo one && echo two",
+    "empty": "",
+    "heredoc": "cat <<EOF\nline\nEOF",
+    "failpre": "echo never",
+    "prefailpre": "exit 4",
+    "failpost": "echo ran",
+    "postfailpost": "exit 5",
+    "cwd": "pwd"
+  }
+}

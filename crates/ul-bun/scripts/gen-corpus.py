@@ -1,5 +1,7 @@
 """Gera tests/corpus/<caso>/expected/{stdout,stderr,code} no oráculo (bun 1.4.2, imagem pl-oracle-bun-check).
 
+O oráculo roda o bun sem shell (perl `system`) e grava `expected/signal`: o sinal que o matou, 0 se saiu sozinho.
+
 Cada caso tem `cmd.json` (o argv depois de `bun`) e `files/` (montado em /app, que é também o diretório de trabalho
 do kernel de teste). Uso, da raiz do repositório: python3 -I crates/ul-bun/scripts/gen-corpus.py [caso...]
 
@@ -21,10 +23,21 @@ for name in names:
     out = os.path.join(case, 'expected')
     os.makedirs(out, exist_ok=True)
     piped = os.path.exists(os.path.join(case, 'stdout-pipe'))
-    script = ('{ : | bun "$@" 2>/out/stderr; echo $? >/out/code; } | cat >/out/stdout' if piped
-              else 'bun "$@" >/out/stdout 2>/out/stderr; echo $? >/out/code')
-    subprocess.run(
-        ['docker', 'run', '--rm', '--entrypoint', '', '-v', os.path.join(case, 'files') + ':/app', '-v', out + ':/out', '-w', '/app',
-         'pl-oracle-bun-check', 'sh', '-c', script, 'sh'] + argv,
-        check=True, timeout=120)
+    # Sem shell no meio: um shell que lança o bun escreve `Killed` e afins no stderr quando ele morre por sinal, e isso não é do bun.
+    # O perl registra o código (`$?` do shell: 128 + sinal) e o sinal que matou o bun (0 se ele saiu sozinho).
+    direct = (
+        """perl -e 'open(STDOUT, ">", "/out/stdout"); open(STDERR, ">", "/out/stderr"); system({"bun"} "bun", @ARGV);"""
+        """ my $s = $? & 127; open(C, ">", "/out/code"); print C ($s ? 128 + $s : $? >> 8), "\\n";"""
+        """ open(S, ">", "/out/signal"); print S "$s\\n";' -- "$@" """
+    )
+    script = ('{ : | bun "$@" 2>/out/stderr; echo $? >/out/code; } | cat >/out/stdout' if piped else direct)
+    container = f'zbun-gen-{os.getpid()}-{name}'
+    try:
+        subprocess.run(
+            ['docker', 'run', '--rm', '--name', container, '--entrypoint', '', '-v', os.path.join(case, 'files') + ':/app', '-v', out + ':/out',
+             '-w', '/app', 'pl-oracle-bun-check', 'sh', '-c', script, 'sh'] + argv,
+            check=True, timeout=120)
+    finally:
+        # Um caso que sobe servidor ou lê o stdin pode prender o container depois que o cliente morre por tempo: remove sempre.
+        subprocess.run(['docker', 'rm', '-f', container], capture_output=True)
     print(name, open(os.path.join(out, 'code')).read().strip())

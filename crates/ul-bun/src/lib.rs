@@ -6,13 +6,17 @@ pub mod cli;
 pub mod console;
 pub mod help;
 pub mod host;
+pub mod package_json;
+pub mod run_script;
 pub mod transpiler;
 
 use sysabi::Program;
 
 /// Programas deste crate.
 pub fn programs() -> Vec<Program> {
-    vec![Program::bin("bun", cli::bun_main)]
+    // O bun 1.4.2 do oráculo vive em `/usr/local/bin` (é o `execPath` do motor e o alvo dos links do `PATH` dos scripts).
+    let dir = zjsc::runtime::process_shape::EXEC_PATH.rsplit_once('/').map_or("/usr/local/bin", |(dir, _)| dir);
+    vec![Program { name: "bun", dir, main: cli::bun_main }]
 }
 
 #[cfg(test)]

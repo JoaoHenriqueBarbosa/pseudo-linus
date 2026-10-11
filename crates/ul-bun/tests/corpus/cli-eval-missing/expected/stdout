@@ -6,14 +6,14 @@ Commands:
   run       ./my-script.ts       Execute a file with Bun
             lint                 Run a package.json script
   test                           Run unit tests with Bun
-  x         nuxi                 Execute a package binary (CLI), installing if needed (bunx)
+  x         vite                 Execute a package binary (CLI), installing if needed (bunx)
   repl                           Start a REPL session with Bun
   exec                           Run a shell script directly with Bun
 
   install                        Install dependencies for a package.json (bun i)
-  add       react                Add a dependency to package.json (bun a)
-  remove    moment               Remove a dependency from package.json (bun rm)
-  update    lyra                 Update outdated dependencies
+  add       hono                 Add a dependency to package.json (bun a)
+  remove    left-pad             Remove a dependency from package.json (bun rm)
+  update    react                Update outdated dependencies
   audit                          Check installed packages for vulnerabilities
   dedupe                         Remove duplicate versions from the lockfile
   prune                          Remove packages that are not in the lockfile from node_modules
@@ -23,13 +23,13 @@ Commands:
   publish                        Publish a package to the npm registry
   patch <pkg>                    Prepare a package for patching
   pm <subcommand>                Additional package management utilities
-  info      @remix-run/dev       Display package metadata from the registry
-  why       @evan/duckdb         Explain why a package is installed
+  info      lyra                 Display package metadata from the registry
+  why       @remix-run/dev       Explain why a package is installed
 
   build     ./a.ts ./b.jsx       Bundle TypeScript & JavaScript into a single file
 
   init                           Start an empty Bun project from a built-in template
-  create    vite                 Create a new project from a template (bun c)
+  create    next-app             Create a new project from a template (bun c)
   upgrade                        Upgrade to latest version of Bun.
 
   <command> --help               Print help text for command.

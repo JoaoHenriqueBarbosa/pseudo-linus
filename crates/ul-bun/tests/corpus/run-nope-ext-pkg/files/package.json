@@ -1,0 +1,9 @@
+{
+  "name": "n",
+  "version": "1.0.0",
+  "scripts": {
+    "a": "echo script a",
+    "a.js": "echo script a.js",
+    "x": "echo x"
+  }
+}

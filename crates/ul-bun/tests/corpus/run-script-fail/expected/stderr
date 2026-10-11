@@ -1,0 +1,2 @@
+$ exit 3
+error: script "fail" exited with code 3

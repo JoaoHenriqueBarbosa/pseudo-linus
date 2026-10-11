@@ -1,0 +1,2 @@
+$ kill -HUP $$
+error: script "sighup" was terminated by signal SIGHUP (Terminal hung up)

@@ -38,15 +38,18 @@ fn without_examples(text: &str) -> String {
         .collect()
 }
 
+/// O `bun` e o userland que os scripts de `bun run` chamam, como numa sessão do pseudo-linus com o `bun` instalado.
+fn programs() -> Vec<sysabi::Program> {
+    let mut programs = userland::all_programs();
+    programs.extend(ul_bun::programs());
+    programs
+}
+
 fn run_case(case: &Path) -> Result<(), String> {
-    let argv: Vec<String> = {
-        let text = std::fs::read_to_string(case.join("cmd.json")).expect("cmd.json");
-        // Um array JSON de strings; o corpus não usa escape além de `\"`, `\\` e `\n`.
-        parse_json_strings(&text)
-    };
+    let argv: Vec<String> = serde_json::from_str(&std::fs::read_to_string(case.join("cmd.json")).expect("cmd.json")).expect("cmd.json é um array de strings");
     let kernel = Kernel::new(KernelConfig::default());
     let sandbox = kernel
-        .create_sandbox(SandboxConfig { programs: ul_bun::programs(), cwd: b"/app".to_vec(), ..SandboxConfig::default() })
+        .create_sandbox(SandboxConfig { programs: programs(), cwd: b"/app".to_vec(), ..SandboxConfig::default() })
         .expect("sandbox");
     let fs = sandbox.fs();
     fs.mkdir_all(b"/app", 0o755).expect("/app");
@@ -82,38 +85,18 @@ fn run_case(case: &Path) -> Result<(), String> {
     if stderr != expected("stderr") {
         problems.push(format!("stderr\n--- esperado\n{}--- obtido\n{}", expected("stderr"), stderr));
     }
-    if result.status != WaitStatus::Exited(code) {
-        problems.push(format!("saída: esperado {code}, obtido {:?}", result.status));
+    // `expected/signal` é o sinal que matou o bun no oráculo (0, ou sem o arquivo, se ele saiu sozinho): morrer pelo
+    // próprio sinal e sair com 128 + sinal são coisas diferentes para quem espera o processo.
+    let signal: i32 = std::fs::read_to_string(case.join("expected").join("signal")).map_or(0, |text| text.trim().parse().expect("sinal"));
+    let status_matches = match result.status {
+        WaitStatus::Signaled { signal: died, .. } => signal != 0 && died.0 == signal,
+        WaitStatus::Exited(exited) => signal == 0 && exited == code,
+        _ => false,
+    };
+    if !status_matches {
+        problems.push(format!("saída: esperado código {code} (sinal {signal}), obtido {:?}", result.status));
     }
     if problems.is_empty() { Ok(()) } else { Err(problems.join("\n")) }
-}
-
-fn parse_json_strings(text: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut chars = text.trim().chars();
-    assert_eq!(chars.next(), Some('['));
-    loop {
-        match chars.next().expect("array incompleto") {
-            ']' => break,
-            '"' => {
-                let mut item = String::new();
-                loop {
-                    match chars.next().expect("string incompleta") {
-                        '"' => break,
-                        '\\' => match chars.next().expect("escape") {
-                            'n' => item.push('\n'),
-                            't' => item.push('\t'),
-                            other => item.push(other),
-                        },
-                        other => item.push(other),
-                    }
-                }
-                out.push(item);
-            }
-            _ => {}
-        }
-    }
-    out
 }
 
 #[test]

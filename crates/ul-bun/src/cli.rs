@@ -8,20 +8,17 @@ use std::time::Duration;
 use sysabi::{sys, Ctx, Fd, KillTarget, Signal};
 use zjsc::api::eval::{evaluate_main_script_reporting_signal, set_main_module_fs};
 use zjsc::runtime::host;
+use zjsc::runtime::process_shape::{BUN_REVISION, BUN_VERSION};
 use zjsc::runtime::process_system::set_script_arguments;
 use zjsc::runtime::vm::VM;
 
 use crate::console::{FdConsole, SandboxFs};
 use crate::help;
+use crate::package_json;
+use crate::run_script;
 use crate::host::SysabiHost;
 use crate::transpiler::BunTranspiler;
 use zjsc::api::source_transpiler::install_source_transpiler;
-
-/// A versão do bun que o zjsc reproduz.
-const VERSION: &str = "1.4.2";
-
-/// A revisão do bun 1.4.2 (`bun --revision`).
-const REVISION: &str = "1.4.2+744846f84";
 
 /// A pilha da thread do motor (o interpretador recursa no C do bun, que roda em 8 MiB de pilha nativa com a CLoopStack
 /// de 1 MiB; aqui a pilha nativa de cada nível é maior, então a thread leva uma grande, reservada e não comprometida).
@@ -32,7 +29,8 @@ const STACK_GUARD_BYTES: usize = 16 * 1024 * 1024;
 
 enum Job {
     Eval(String, Vec<String>),
-    File(String, Vec<String>),
+    /// `bun run NOME ARGS...` ou `bun NOME ARGS...`: um script do `package.json` ou um arquivo.
+    Named { name: String, arguments: Vec<String>, silent: bool, if_present: bool },
 }
 
 /// O que a linha de comando pede: escrever um texto e sair, ou rodar um programa.
@@ -54,6 +52,8 @@ struct Scan {
     revision: bool,
     run: bool,
     eval: Option<String>,
+    silent: bool,
+    if_present: bool,
     invalid_short: Option<char>,
     missing_value: Option<String>,
     /// Índice do primeiro argumento posicional.
@@ -80,6 +80,8 @@ fn scan(args: &[String]) -> Scan {
                 "help" => found.help = true,
                 "version" => found.version = true,
                 "revision" => found.revision = true,
+                "silent" => found.silent = true,
+                "if-present" => found.if_present = true,
                 _ => {}
             }
             let takes_value = table.iter().any(|flag| flag.long.as_deref() == Some(name) && flag.takes_value);
@@ -144,25 +146,28 @@ fn parse(args: &[String]) -> Action {
         return output(if found.run { help::RUN.to_string() } else { help::top(true) });
     }
     if found.version {
-        return output(format!("{VERSION}\n"));
+        return output(format!("{BUN_VERSION}\n"));
     }
     if found.revision {
-        return output(format!("{REVISION}\n"));
+        return output(format!("{BUN_VERSION}+{}\n", &BUN_REVISION[..9]));
     }
     let rest = &args[found.positional..];
-    if found.run {
-        return match rest.split_first() {
-            Some((file, arguments)) => Action::Run(Job::File(file.clone(), arguments.to_vec())),
-            None => output(format!("{}\nNo package.json found.\n", help::RUN)),
-        };
+    if found.run && rest.is_empty() {
+        let package = sysio::env::current_dir().ok().and_then(|dir| package_json::find(&dir.to_string_lossy()));
+        return output(run_script::listing(package.as_ref()));
     }
-    if let Some(code) = found.eval {
+    if let (false, Some(code)) = (found.run, found.eval) {
         return Action::Run(Job::Eval(code, rest.to_vec()));
     }
     match rest.split_first() {
-        Some((file, arguments)) => Action::Run(Job::File(file.clone(), arguments.to_vec())),
+        Some((name, arguments)) => Action::Run(Job::Named { name: name.clone(), arguments: arguments.to_vec(), silent: found.silent, if_present: found.if_present }),
         None => output(help::top(false)),
     }
+}
+
+/// O nome é de arquivo (tem caminho ou a extensão de um loader do bun), não de script.
+fn looks_like_file(name: &str) -> bool {
+    name.contains('/') || bun_transpile::loader_for(name).is_some()
 }
 
 fn fail(message: &str) -> i32 {
@@ -205,12 +210,21 @@ pub fn bun_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     };
     let (source, url, arguments) = match job {
         Job::Eval(code, arguments) => (code, absolute("[eval]"), arguments),
-        Job::File(file, arguments) => {
-            let path = absolute(&file);
+        Job::Named { name, arguments, silent, if_present } => {
+            // Um script do package.json vence um arquivo de mesmo nome (medido).
+            let package = sysio::env::current_dir().ok().and_then(|dir| package_json::find(&dir.to_string_lossy()));
+            if let Some(package) = package.as_ref().filter(|package| package.script(&name).is_some()) {
+                return run_script::run(package, &name, &arguments, silent);
+            }
+            let path = absolute(&name);
+            if !looks_like_file(&name) && !sysio::fs::exists(&path) {
+                return if if_present { 0 } else { fail(&format!("Script not found \"{name}\"")) };
+            }
             match sysio::fs::read(&path).map(String::from_utf8) {
                 Ok(Ok(source)) => (source, path, arguments),
-                Ok(Err(_)) => return fail(&format!("Cannot read non-UTF-8 file \"{file}\"")),
-                Err(_) => return fail(&format!("Module not found \"{file}\"")),
+                Ok(Err(_)) => return fail(&format!("Cannot read non-UTF-8 file \"{name}\"")),
+                Err(_) if if_present => return 0,
+                Err(_) => return fail(&format!("Module not found \"{name}\"")),
             }
         }
     };

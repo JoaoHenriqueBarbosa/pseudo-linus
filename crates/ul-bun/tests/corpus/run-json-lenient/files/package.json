@@ -1,0 +1,4 @@
+{
+ // comentário
+ "scripts": {"a": "echo a",},
+}

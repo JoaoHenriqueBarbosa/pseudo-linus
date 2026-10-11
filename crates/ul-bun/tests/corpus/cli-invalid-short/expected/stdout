@@ -6,13 +6,13 @@ Commands:
   run       ./my-script.ts       Execute a file with Bun
             lint                 Run a package.json script
   test                           Run unit tests with Bun
-  x         prisma               Execute a package binary (CLI), installing if needed (bunx)
+  x         eslint               Execute a package binary (CLI), installing if needed (bunx)
   repl                           Start a REPL session with Bun
   exec                           Run a shell script directly with Bun
 
   install                        Install dependencies for a package.json (bun i)
   add       tailwindcss          Add a dependency to package.json (bun a)
-  remove    webpack              Remove a dependency from package.json (bun rm)
+  remove    underscore           Remove a dependency from package.json (bun rm)
   update    elysia               Update outdated dependencies
   audit                          Check installed packages for vulnerabilities
   dedupe                         Remove duplicate versions from the lockfile

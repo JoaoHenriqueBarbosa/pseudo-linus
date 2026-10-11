@@ -1,0 +1,8 @@
+npm_command=run-script
+npm_config_local_prefix=/app
+npm_config_user_agent=bun/1.4.2 npm/? node/v26.3.0 linux x64
+npm_execpath=/usr/local/bin/bun
+npm_lifecycle_event=vars
+npm_lifecycle_script=env | grep '^npm_' | sort
+npm_node_execpath=/tmp/bun-node-744846f84
+npm_package_json=/app/package.json

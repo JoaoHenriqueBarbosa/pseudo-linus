@@ -11,6 +11,8 @@ description = "bun 1.4.2 (JavaScriptCore traduzido para Rust, fora do workspace)
 sysabi = { workspace = true }
 sysio = { path = "../sysio" }
 ul-common = { workspace = true }
+# O package.json do `bun run` (a ordem dos scripts é a do arquivo).
+serde_json = { version = "1", features = ["preserve_order"] }
 # O motor: JavaScriptCore do WebKit do Bun, traduzido sem unsafe (fora do workspace).
 zjsc = { path = "../../wip/zjsc" }
 # O transpilador do bun (TypeScript, JSX, decorators): o que o `bun run a.ts` passa o fonte antes de o motor rodá-lo.
@@ -19,6 +21,8 @@ bun_transpile = { path = "../../wip/zbun/transpile" }
 [dev-dependencies]
 sysabi = { workspace = true, features = ["testkit"] }
 kernel = { workspace = true }
+# Os programas que os scripts do `bun run` chamam (bash, env, grep...); o `bun` fica de fora do userland, que não o depende.
+userland = { path = "../userland", default-features = false, features = ["shell", "coreutils", "textproc", "findutils", "misc"] }
 
 [lints]
 workspace = true

@@ -1,0 +1,2 @@
+$ kill -USR1 $$
+error: script "sigusr1" was terminated by signal SIGUSR1 (User defined signal 1)

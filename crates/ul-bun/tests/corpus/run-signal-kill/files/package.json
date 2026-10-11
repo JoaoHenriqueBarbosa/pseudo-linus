@@ -1,0 +1,14 @@
+{
+  "name": "sigs",
+  "scripts": {
+    "sigint": "kill -INT $$",
+    "sigkill": "kill -KILL $$",
+    "sighup": "kill -HUP $$",
+    "sigusr1": "kill -USR1 $$",
+    "sigsegv": "kill -SEGV $$",
+    "child": "sh -c 'kill -TERM $$'; echo after:$?",
+    "child2": "sh -c 'kill -TERM $$'",
+    "exit130": "exit 130",
+    "q": "echo q"
+  }
+}

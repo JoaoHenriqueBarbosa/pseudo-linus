@@ -1,0 +1,6 @@
+npm_lifecycle_event=prex
+npm_lifecycle_script=env | grep -E "npm_lifecycle|npm_package_name" | sort
+npm_package_name=h
+npm_lifecycle_event=x
+npm_lifecycle_script=env | grep -E "npm_lifecycle|npm_package_name" | sort
+npm_package_name=h

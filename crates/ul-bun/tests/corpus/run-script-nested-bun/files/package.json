@@ -1,0 +1,1 @@
+{"scripts": {"inner": "bun -e 'console.log(process.argv.length, typeof Bun)'; which node; readlink -f $(which node)"}}

@@ -1,0 +1,2 @@
+$ sh -c 'kill -TERM $$'
+error: script "child2" was terminated by signal SIGTERM (Polite quit request)

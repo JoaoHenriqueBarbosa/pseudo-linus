@@ -1,0 +1,2 @@
+$ kill -KILL $$
+error: script "sigkill" was terminated by signal SIGKILL (Forced quit)

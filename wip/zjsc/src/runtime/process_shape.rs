@@ -41,13 +41,16 @@ use crate::runtime::vm::VM;
 use crate::wtf::text::wtf_string::String as WtfString;
 
 /// O caminho do executável que o sandbox mostra em `execPath` e `argv[0]`.
-pub(crate) const EXEC_PATH: &str = "/usr/local/bin/bun";
+pub const EXEC_PATH: &str = "/usr/local/bin/bun";
+
+/// A versão do node que o bun 1.4.2 declara (`process.versions.node`, `process.version` com o `v`).
+pub const NODE_VERSION: &str = "26.3.0";
 
 /// A versão do bun (`process.versions.bun`, `Bun.version`).
-pub(crate) const BUN_VERSION: &str = "1.4.2";
+pub const BUN_VERSION: &str = "1.4.2";
 
 /// O commit do bun 1.4.2 (`process.revision`, `Bun.revision`; o uWebSockets e o uSockets mostram o mesmo).
-pub(crate) const BUN_REVISION: &str = "744846f844374847c902b5e7fd59b4342a51ef99";
+pub const BUN_REVISION: &str = "744846f844374847c902b5e7fd59b4342a51ef99";
 
 /// Um valor de dados do `process`, descrito em tabela e construído na instalação.
 enum Value {
@@ -151,7 +154,7 @@ const REPORT: Value = Value::Object(&[
 ]);
 
 const VERSIONS: Value = Value::Object(&[
-    ("node", Value::Str("26.3.0")),
+    ("node", Value::Str(NODE_VERSION)),
     ("bun", Value::Str(BUN_VERSION)),
     ("boringssl", Value::Str("41bf9b59c2ebf277a7aa427e1ecad5cc80dd4d4f")),
     ("openssl", Value::Str("1.1.0")),

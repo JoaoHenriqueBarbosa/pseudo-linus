@@ -1,0 +1,3 @@
+$ echo before-build
+$ echo building
+$ echo after-build

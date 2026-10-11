@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "vars": "env | grep '^npm_' | sort"
+  }
+}
