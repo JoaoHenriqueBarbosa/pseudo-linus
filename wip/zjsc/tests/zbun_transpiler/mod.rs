@@ -8,15 +8,15 @@ use zjsc::parser::position_map::MapSegment;
 pub struct ZbunTranspiler;
 
 impl SourceTranspiler for ZbunTranspiler {
-    fn transpile(&self, path: &str, source: &str, compile_body: bool) -> Option<Result<TranspiledSource, String>> {
+    fn transpile(&self, path: &str, source: &str, compile_body: bool) -> Option<Result<TranspiledSource, Vec<String>>> {
         bun_transpile::loader_for(path)?;
         let done = match bun_transpile::transpile_with(path, source.as_bytes(), bun_transpile::Config { compile_body, ..Default::default() }) {
             Ok(done) => done,
-            Err(error) => return Some(Err(error.to_string())),
+            Err(error) => return Some(Err(error.messages)),
         };
         let text = match String::from_utf8(done.text) {
             Ok(text) => text,
-            Err(error) => return Some(Err(error.to_string())),
+            Err(error) => return Some(Err(vec![error.to_string()])),
         };
         let segments = done
             .segments

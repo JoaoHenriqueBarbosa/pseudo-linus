@@ -118,6 +118,12 @@ fn run(files: &[(String, String)], log_point: LogPoint) -> Result<String, String
 /// Confere cada linha de `golden` contra o porte, lendo o `log` no ponto `log_point` do gerador; `minimum` guarda
 /// contra um golden truncado.
 pub fn check_module_golden(golden: &str, minimum: usize, log_point: LogPoint) {
+    check_module_golden_with_known(golden, minimum, log_point, &[]);
+}
+
+/// [`check_module_golden`] com divergências declaradas: `(trecho do mapa de arquivos, causa medida no oráculo)`. A
+/// linha que casa um trecho pode divergir; se passar a bater, o teste pede a remoção da entrada.
+pub fn check_module_golden_with_known(golden: &str, minimum: usize, log_point: LogPoint, known: &[(&str, &str)]) {
     let mut failures = Vec::new();
     let mut total = 0;
     for line in golden.lines().filter(|line| !line.is_empty()) {
@@ -126,10 +132,16 @@ pub fn check_module_golden(golden: &str, minimum: usize, log_point: LogPoint) {
         let expected = columns.next().expect("linha com resultado");
         let alternatives = columns.next().map(parse_strings).unwrap_or_default();
         total += 1;
-        match run(&parse_files(files_json), log_point) {
-            Ok(actual) if actual == expected || alternatives.contains(&actual) => {}
-            Ok(actual) => failures.push(format!("{files_json}\n    esperado {expected}\n    veio     {actual}")),
-            Err(reason) => failures.push(format!("{files_json}\n    esperado {expected}\n    {reason}")),
+        let declared = known.iter().find(|(fragment, _)| files_json.contains(fragment));
+        let outcome = run(&parse_files(files_json), log_point);
+        let matches = matches!(&outcome, Ok(actual) if actual == expected || alternatives.contains(actual));
+        match (matches, declared) {
+            (true, None) | (false, Some(_)) => {}
+            (true, Some((fragment, _))) => failures.push(format!("passou a bater, tire de known: {fragment}")),
+            (false, None) => match outcome {
+                Ok(actual) => failures.push(format!("{files_json}\n    esperado {expected}\n    veio     {actual}")),
+                Err(reason) => failures.push(format!("{files_json}\n    esperado {expected}\n    {reason}")),
+            },
         }
     }
     assert!(total >= minimum, "o golden tem só {total} casos");

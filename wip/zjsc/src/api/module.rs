@@ -53,6 +53,10 @@ impl ModuleHost for EntryHost {
         self.inner.position_map(key)
     }
 
+    fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+        self.inner.build_errors(key)
+    }
+
     fn import_meta_url(&self, key: &str) -> String {
         self.inner.import_meta_url(key)
     }
@@ -77,11 +81,12 @@ impl ModuleHost for EntryHost {
 /// Fonte com chave `.json` é JSON mesmo sem o atributo `type`, como no Bun.
 pub struct MemoryModuleHost {
     files: HashMap<String, String>,
+    reprinted: crate::api::source_transpiler::ReprintedModules,
 }
 
 impl MemoryModuleHost {
     pub fn new<K: Into<String>, V: Into<String>>(files: impl IntoIterator<Item = (K, V)>) -> Self {
-        Self { files: files.into_iter().map(|(key, source)| (key.into(), source.into())).collect() }
+        Self { files: files.into_iter().map(|(key, source)| (key.into(), source.into())).collect(), reprinted: Default::default() }
     }
 }
 
@@ -212,7 +217,16 @@ impl ModuleHost for MemoryModuleHost {
             return Ok(source);
         }
         let (path, _) = split_suffix(key);
-        self.files.get(path).cloned().ok_or_else(|| format!("Could not open the module '{key}'."))
+        let text = self.files.get(path).cloned().ok_or_else(|| format!("Could not open the module '{key}'."))?;
+        Ok(self.reprinted.reprint(key, text))
+    }
+
+    fn position_map(&self, key: &str) -> Option<Rc<crate::parser::position_map::PositionMap>> {
+        self.reprinted.position_map(key)
+    }
+
+    fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+        self.reprinted.build_errors(key)
     }
 }
 
@@ -303,6 +317,14 @@ impl ModuleHost for FileUrlHost {
 
     fn fetch(&self, key: &str) -> Result<String, String> {
         self.inner.fetch(key)
+    }
+
+    fn position_map(&self, key: &str) -> Option<Rc<crate::parser::position_map::PositionMap>> {
+        self.inner.position_map(key)
+    }
+
+    fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+        self.inner.build_errors(key)
     }
 
     fn import_meta_url(&self, key: &str) -> String {

@@ -33,7 +33,8 @@ motor recebia o fonte cru, que não escapa `日`, não dobra `const` nem tira co
 - `String(fn)` do arquivo principal reimpresso (sem comentário, sem `const` morto, recuo de 2 espaços), ESM, CJS e TypeScript;
 - linhas e colunas de `Error.stack` do arquivo principal, ESM, CJS (wrapper do impressor) e `.ts`.
 
-Também ligado: módulo ES importado pelo `FsModuleHost` (reimpresso, com mapa). Fica de fora: `module._compile` e `require` de
+Também ligado: módulo ES importado pelo `FsModuleHost` e pelo `MemoryModuleHost` (reimpresso, com mapa; o arquivo que o
+transpilador recusa vira `BuildMessage` ou `AggregateError`, como no bun). Fica de fora: `module._compile` e `require` de
 arquivo seguem com o fonte cru embrulhado (o transpilador do `_compile` do bun reimprime o corpo e as colunas de `cjs_require`
 dependem do texto dele; ver backlog), e o `CommonJS` importado por `import` segue cru. O texto do runtime do `zbun` bate com
 `bun build --no-bundle --target=bun --minify-syntax` em 60 de 61 entradas (a divergência é `using c = null` que o porte não
@@ -1178,13 +1179,25 @@ Falta: `bun`/`bun:*` (esquema exato, sem `node:`: acrescentar `Scheme::Bun` quan
 Erro que estoura com informação para depurar e sem vazamento da simulação já é funcional. As divergências abaixo ficam
 declaradas e não se perseguem até o printer do zbun alimentar o zjsc (as de reimpressão) ou até aparecer um vazamento.
 
-- `error_stack_bun_golden`, 19 de 957 (era 93; a medição com o transpilador integrado não muda: o golden guarda o texto já reimpresso e não instala o transpilador): 8 de callback nativo (`toString` por coerção, `for-of`, template
-  marcado: linha ou coluna do frame de fora), 4 de IIFE `function(){}()` (6 colunas a mais no frame de fora), 4 de frame
-  `async` (a linha sai uma a mais, 7:17 onde o bun dá 6:16), 3 do transpilador do bun (`const c=1; c=2`, o regex sobre
-  `f().stack`, `(void 0).p`) e 1 de `Function` com `sourceURL`.
-- `module_bun_golden`, 72 de 445 (era 81; igual com o transpilador integrado, mesma razão): 53 `BuildMessage`, 8 de reimpressão do texto (`a_default`), 3 de hoisting de
-  `export let`, 3 de `this` no topo (os quatro grupos são do transpilador), 4 de sintaxe (tipo ou texto) e 1 frame
-  `at a.mjs` sem o caminho absoluto (o `MemoryModuleHost` usa chaves relativas).
+- `error_stack_bun_golden`, 19 de 957: o golden guarda o texto já reimpresso e o harness não instala o transpilador, então a
+  medição não muda. A medição que vale é a dos programas ORIGINAIS rodados pelo `bun run`, `error_stack_originals_bun_golden`
+  (`tests/golden/error_stack_originals_bun.tsv`, gerado por `ORIGINALS=1 scripts/gen-error-stack-golden.js`) com o transpilador
+  instalado: 955 de 957 batem. As 19 do golden de texto canônico deixaram de ser o que se mede (callback nativo, IIFE e frame
+  `async` fecharam com o texto reimpresso e o mapa exato). Declaradas no teste, com causa: `const c = 1; c = 2` (o parser do
+  bun recusa o arquivo na visita, o do zbun não registra o erro de atribuição a `const` e o motor lança o `TypeError` em
+  execução) e o regex ancorado em `(error_stack_case.js` sobre `f().stack` (artefato do gerador: o oráculo roda num diretório
+  temporário e o frame traz o caminho absoluto, medido `at <anonymous> (/w/b.js:2:68)`; o porte roda com URL relativa).
+- `module_bun_golden`, 72 de 445 antes, 5 de 445 com o transpilador instalado no harness (`MemoryModuleHost` e `FsModuleHost`
+  passam o módulo ES pelo `ReprintedModules`, que guarda o mapa e os erros por chave). Fecharam: os 53 `BuildMessage` e
+  `AggregateError` (o arquivo que o transpilador recusa sai como o bun o relata, `BuildMessage` com o texto do parser, ou
+  `AggregateError` `N errors building "arquivo"` com os `BuildMessage` em `errors`; foi preciso o zbun deixar de somar o sufixo
+  `(token: ...)` do build de debug, aceitar o literal ainda não lido em `parse_path` e devolver as mensagens do log quando o erro
+  vem do `Parser::init`), as 8 de reimpressão (`a_default`), as de hoisting de `export let` e as de sintaxe. Declaradas no teste,
+  com causa: 4 de arquivo sem sintaxe ESM, que o bun roda como CommonJS (`this` é `module.exports`, `with` vale; o zbun já o
+  classifica como CommonJS, falta o carregador ES importar CommonJS) e 1 frame `at a.mjs` sem o caminho absoluto (o
+  `MemoryModuleHost` usa chaves relativas; o gerador roda num diretório temporário).
+- `module_edge_bun_golden` (1 de 500 e 38 de 600) e `module_more_bun_golden` (273 de 1699): o harness ainda não instala o
+  transpilador; medir com ele é a próxima passada.
 - `cjs_require`, 2 de 65, declaradas em `REPRINTED` no teste (medido no oráculo): `stack_compiled` dá `x.js:1:119` onde o
   porte dá `1:115` e `stack_sites` dá a coluna 55 onde o porte dá 64. Causa: o `module._compile` do bun reimprime o corpo
   (`remove_cjs_module_wrapper`, sem mapa, cabeçalho do wrapper na mesma linha, `function f(){}()` vira `(function f() {})()`); ligar

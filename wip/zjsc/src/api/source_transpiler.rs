@@ -9,6 +9,7 @@
 //! reimpresso do bun.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::parser::position_map::{MapSegment, PositionMap};
@@ -26,11 +27,11 @@ pub struct TranspiledSource {
 /// O transpilador que o hospedeiro instala.
 pub trait SourceTranspiler {
     /// Transpila o arquivo `path` (o loader sai da extensão). `None` quando o caminho não é de JavaScript nem de
-    /// TypeScript (o texto segue como está); `Some(Err)` quando o fonte não parseia (o motor o recebe cru e relata
-    /// o próprio `SyntaxError`).
+    /// TypeScript (o texto segue como está); `Some(Err)` quando o fonte não parseia, com o texto de cada erro (o carregador de módulos os relata como o bun, `BuildMessage`;
+    /// os outros caminhos entregam o texto cru e o motor relata o próprio `SyntaxError`).
     /// `compile_body`: o texto é o corpo de `module._compile`, que o chamador embrulha (sem função de wrapper no
     /// texto devolvido).
-    fn transpile(&self, path: &str, source: &str, compile_body: bool) -> Option<Result<TranspiledSource, String>>;
+    fn transpile(&self, path: &str, source: &str, compile_body: bool) -> Option<Result<TranspiledSource, Vec<String>>>;
 }
 
 thread_local! {
@@ -52,12 +53,54 @@ pub struct Transpiled {
 /// Passa `source` do arquivo `path` pelo transpilador instalado. `None` sem transpilador, para o que ele não trata e
 /// para o fonte que não parseia: o chamador segue com o texto original.
 pub fn transpile_source(path: &str, source: &str, compile_body: bool) -> Option<Transpiled> {
+    attempt_transpile(path, source, compile_body)?.ok()
+}
+
+/// Como [`transpile_source`], mas o fonte que não parseia devolve o texto de cada erro.
+fn attempt_transpile(path: &str, source: &str, compile_body: bool) -> Option<Result<Transpiled, Vec<String>>> {
     let transpiler = TRANSPILER.with(|slot| slot.borrow().clone())?;
-    let done = transpiler.transpile(path, source, compile_body)?.ok()?;
-    Some(Transpiled { text: done.text, map: Rc::new(PositionMap::from_segments(done.segments)), is_commonjs: done.is_commonjs })
+    let done = match transpiler.transpile(path, source, compile_body)? {
+        Ok(done) => done,
+        Err(messages) => return Some(Err(messages)),
+    };
+    Some(Ok(Transpiled { text: done.text, map: Rc::new(PositionMap::from_segments(done.segments)), is_commonjs: done.is_commonjs }))
 }
 
 /// Há transpilador instalado nesta thread.
 pub fn has_source_transpiler() -> bool {
     TRANSPILER.with(|slot| slot.borrow().is_some())
+}
+
+/// Os módulos ES que um host de módulos passou pelo transpilador de fonte, com o mapa de cada um por chave (o loader os
+/// pede depois de `fetch`). O CommonJS que um `import` puxa segue como está.
+#[derive(Default)]
+pub struct ReprintedModules {
+    maps: RefCell<HashMap<String, Rc<PositionMap>>>,
+    failures: RefCell<HashMap<String, Vec<String>>>,
+}
+
+impl ReprintedModules {
+    /// O texto que o módulo `key` roda: o reimpresso (guardando o mapa) ou o original.
+    pub fn reprint(&self, key: &str, text: String) -> String {
+        match attempt_transpile(key, &text, false) {
+            Some(Ok(done)) if !done.is_commonjs => {
+                self.maps.borrow_mut().insert(key.to_owned(), done.map);
+                done.text
+            }
+            Some(Err(messages)) => {
+                self.failures.borrow_mut().insert(key.to_owned(), messages);
+                text
+            }
+            _ => text,
+        }
+    }
+
+    pub fn position_map(&self, key: &str) -> Option<Rc<PositionMap>> {
+        self.maps.borrow().get(key).cloned()
+    }
+
+    /// Os erros do transpilador para o módulo `key`, quando ele o recusou.
+    pub fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+        self.failures.borrow().get(key).cloned()
+    }
 }

@@ -51,7 +51,9 @@ use crate::runtime::abstract_module_record::AbstractModuleRecordRef;
 use crate::runtime::constructor_kind::ConstructorKind;
 use crate::runtime::enumeration_mode::{DontEnumPropertiesMode, PrivateSymbolMode, PropertyNameMode};
 use crate::runtime::error::{create_error, create_syntax_error, create_type_error};
+use crate::runtime::aggregate_error::create_aggregate_error;
 use crate::runtime::error_instance::ErrorInstance;
+use crate::runtime::js_array::construct_array;
 use crate::runtime::error_natives::capture_frames;
 use crate::runtime::node_error::throw_native_type_error;
 use crate::runtime::error_type::ErrorType;
@@ -123,6 +125,14 @@ pub trait ModuleHost {
     /// `moduleLoaderFetch`: o fonte do módulo de chave `key` (JavaScript, o texto de um JSON ou o texto de
     /// um módulo Text).
     fn fetch(&self, key: &str) -> Result<String, String>;
+
+    /// As mensagens de erro do transpilador de fonte para `key`, quando ele recusou o texto que `fetch` acabou de
+    /// devolver (o bun relata o arquivo que não parseia como `BuildMessage`, ou `AggregateError` com vários erros,
+    /// e não como o `SyntaxError` do motor).
+    fn build_errors(&self, key: &str) -> Option<Vec<String>> {
+        let _ = key;
+        None
+    }
 
     /// O mapa de posições do texto que `fetch` acabou de devolver para `key`, quando ele passou pelo transpilador de
     /// fonte (`api::source_transpiler`): o fonte reimpresso é o texto do módulo e o mapa leva as posições ao original.
@@ -619,14 +629,23 @@ fn unresolved_specifier_message(specifier: &str, referrer: &str) -> (String, &'s
 /// Lança uma instância de `ResolveMessage` ou `BuildMessage` com `state` e devolve `Thrown::Pending`; sem a
 /// classe instalada no realm, cai no `Error` simples com a mesma mensagem.
 fn throw_message(global_object: &JSGlobalObject, state: MessageState) -> Thrown {
-    let vm = global_object.vm();
-    let structure = MESSAGE_STRUCTURES.with(|slots| slots.borrow()[state.kind].clone());
-    let Some(structure) = structure else {
-        return throw_error(global_object, &state.message);
-    };
+    let text = state.message.clone();
+    match message_instance(global_object.vm(), state) {
+        Some(error) => throw_value(global_object, error),
+        None => throw_error(global_object, &text),
+    }
+}
+
+/// A instância de `ResolveMessage` ou `BuildMessage` com `state`; `None` sem a classe instalada no realm.
+fn message_instance(vm: &VM, state: MessageState) -> Option<JSValue> {
+    let structure = MESSAGE_STRUCTURES.with(|slots| slots.borrow()[state.kind].clone())?;
     let error = JSFinalObject::create(vm, &structure).as_value();
     MESSAGE_STATES.with(|states| states.borrow_mut().insert(error.encode(), state));
-    let mut scope = ThrowScope::new(vm);
+    Some(error)
+}
+
+fn throw_value(global_object: &JSGlobalObject, error: JSValue) -> Thrown {
+    let mut scope = ThrowScope::new(global_object.vm());
     throw_exception(global_object, &mut scope, error);
     Thrown::Pending
 }
@@ -715,7 +734,11 @@ fn build_message_text(specifier: &str) -> Option<String> {
 
 /// Lança um `BuildMessage` do bun com `message`.
 pub(crate) fn throw_build_message(global_object: &JSGlobalObject, message: String) -> Thrown {
-    let state = MessageState {
+    throw_message(global_object, build_message_state(message))
+}
+
+fn build_message_state(message: String) -> MessageState {
+    MessageState {
         kind: BUILD,
         message,
         code: String::new(),
@@ -724,8 +747,22 @@ pub(crate) fn throw_build_message(global_object: &JSGlobalObject, message: Strin
         import_kind: "import-statement",
         message_override: None,
         stack_override: None,
-    };
-    throw_message(global_object, state)
+    }
+}
+
+/// O arquivo `key` que o transpilador do bun recusa: um erro vira `BuildMessage`; vários, um `AggregateError`
+/// `N errors building "key"` com os `BuildMessage` em `errors`.
+fn throw_build_failure(global_object: &JSGlobalObject, key: &str, messages: Vec<String>) -> Thrown {
+    if let [only] = messages.as_slice() {
+        return throw_build_message(global_object, only.clone());
+    }
+    let vm = global_object.vm();
+    let items: Vec<JSValue> = messages.iter().filter_map(|text| message_instance(vm, build_message_state(text.clone()))).collect();
+    let errors = construct_array(vm, &global_object.array_structure(), &items).as_value();
+    let message = format!("{} errors building \"{key}\"", messages.len());
+    let structure = global_object.error_structure_for(ErrorType::AggregateError);
+    let error = create_aggregate_error(vm, structure, errors, Some(WtfString::from_utf8(message.as_bytes())), None);
+    throw_value(global_object, error.as_value())
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o carregador pode guardar valores e globais do
@@ -819,6 +856,9 @@ impl ModuleLoader {
             Err(message) if self.host.failures_are_type_errors() => return Err(throw_type_error(global_object, &message)),
             Err(message) => return Err(throw_error(global_object, &message)),
         };
+        if let Some(messages) = self.host.build_errors(key) {
+            return Err(throw_build_failure(global_object, key, messages));
+        }
         let host_defined_type = parameters.map(|parameters| rust_string(parameters.host_defined_import_type())).unwrap_or_default();
         let source_type = self.host.source_type(key, request_type, &host_defined_type);
 
