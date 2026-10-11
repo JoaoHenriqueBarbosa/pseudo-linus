@@ -10,9 +10,8 @@
 //! guarda de onde o link foi seguido.
 
 use rusqlite::{params, OpenFlags};
+use ul_common::time::WEBKIT_EPOCH_US;
 
-/// Microssegundos de 1601 (a época do tempo WebKit) até 1970.
-const WEBKIT_EPOCH_US: i64 = 11_644_473_600_000_000;
 const DAY_US: i64 = 86_400_000_000;
 
 const TRANSITION_TYPED: i64 = 1;

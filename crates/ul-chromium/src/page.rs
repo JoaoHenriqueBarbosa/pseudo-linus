@@ -14,6 +14,8 @@ use zjsc::runtime::console_host::ConsoleHost;
 
 use crate::bridge::{Bridge, USER_AGENT};
 use crate::fetch::Fetcher;
+use crate::http_cache::Captured;
+use ul_common::time::webkit_now_micros;
 use crate::{document, encoding};
 
 /// O prelúdio JavaScript: o DOM e as APIs de janela escritos sobre a ponte. O valor do `let` de topo é o gancho de
@@ -119,6 +121,8 @@ pub struct Page {
     transfer_json: String,
     /// O início da navegação no relógio monotônico (`ul_common::time::monotonic_nanos`): a origem de tempo da página.
     navigation_start: i128,
+    /// A resposta do documento como o cache de disco a guarda (só o que veio pela rede).
+    captured: Option<Captured>,
 }
 
 /// A ida e volta de rede de uma busca em tempo virtual: o que já estava na fila de tarefas roda antes da resposta.
@@ -143,7 +147,7 @@ impl Page {
     /// `None` para código sem texto medido.
     pub fn error_page(url: &str, error: &str, fetcher: Fetcher) -> Option<Page> {
         let html = neterror_html(url, error)?;
-        let response = DocumentResponse { bytes: html.into_bytes(), final_url: "chrome-error://chromewebdata/".to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, csp: Vec::new(), cross_origin_isolated: false, transfer: None, timing: Fetched::now() };
+        let response = DocumentResponse { bytes: html.into_bytes(), final_url: "chrome-error://chromewebdata/".to_owned(), content_type: Some("text/html".to_owned()), header_csp: false, csp: Vec::new(), cross_origin_isolated: false, transfer: None, timing: Fetched::now(), captured: None };
         Some(Page::build(response, fetcher))
     }
 
@@ -172,12 +176,17 @@ impl Page {
         };
         use crate::devtools::json::Json;
         let csp_json = Json::Array(response.csp.iter().map(|(text, report_only)| Json::Array(vec![Json::str(text), Json::Bool(*report_only)])).collect()).to_compact();
-        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), csp_json, transfer_json, navigation_start }
+        Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole), document_bytes: response.bytes.len(), csp_json, transfer_json, navigation_start, captured: response.captured }
     }
 
     /// O endereço do documento (o final, depois dos redirecionamentos).
     pub fn url(&self) -> String {
         self.bridge.url.borrow().clone()
+    }
+
+    /// A resposta do documento como o cache de disco a guarda (só o que veio pela rede).
+    pub fn captured(&self) -> Option<&Captured> {
+        self.captured.as_ref()
     }
 
     /// `document.title`.
@@ -460,6 +469,8 @@ fn collect(doc: &BaseDocument, id: NodeId, base: &str, out: &mut Vec<ScriptInfo>
 
 /// A resposta do documento.
 struct DocumentResponse {
+    /// A resposta como o cache de disco a guarda, para o que veio pela rede.
+    captured: Option<Captured>,
     bytes: Vec<u8>,
     final_url: String,
     content_type: Option<String>,
@@ -625,6 +636,7 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
         cross_origin_isolated: false,
         transfer: None,
         timing: Fetched { navigation_start, fetch_start: navigation_start, fetch_end: now() },
+        captured: None,
     };
     // A aba nova (`about:blank`) é um documento vazio sem rede; `data:` sai pelo processador de data: URL do Fetch.
     if address == "about:blank" {
@@ -647,9 +659,11 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
     }
     let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8".to_owned()), ("Accept-Language".to_owned(), "en-US,en;q=0.9".to_owned())];
     let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };
+    let request_wall = webkit_now_micros();
     let fetch_start = now();
     let response = fetcher(address, &spec).map_err(|e| e.net_error().to_owned())?;
     let fetch_end = now();
+    let captured = Captured::from_response(&response, request_wall, webkit_now_micros());
     let final_url = response.url.to_string_with(true);
     let cross_origin_isolated = policy_value(&response, "Cross-Origin-Opener-Policy").as_deref() == Some("same-origin")
         && matches!(policy_value(&response, "Cross-Origin-Embedder-Policy").as_deref(), Some("require-corp" | "credentialless"))
@@ -663,6 +677,7 @@ fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<DocumentResponse, 
         final_url,
         cross_origin_isolated,
         timing: Fetched { navigation_start, fetch_start, fetch_end },
+        captured: Some(captured),
     })
 }
 

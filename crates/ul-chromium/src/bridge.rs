@@ -14,7 +14,7 @@ use zjsc::runtime::dom_bridge::{DomArg, DomError, DomHost};
 use crate::document;
 use crate::encoding;
 use crate::fetch::Fetcher;
-use crate::storage_state::{AreaStore, Change};
+use crate::storage_state::Change;
 
 /// O User-Agent do Chromium do oráculo (o Debian 13 traz o 154; o Chromium reduz a versão a `154.0.0.0`).
 pub const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36";

@@ -17,9 +17,10 @@ use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use sysabi::{sys, AtFlags, Errno, Fd, Mode};
 
 use ul_common::fsutil::mkdir_p;
-use ul_common::time::Civil;
+use ul_common::time::{Civil, WEBKIT_EPOCH_US};
 
 use crate::history::{self, Navigation};
+use crate::http_cache::{self, Captured};
 use crate::sessions;
 use crate::idb::disk::IndexedDbStore;
 use crate::local_storage::LocalStorageStore;
@@ -46,8 +47,6 @@ const INDEXED_DB_DIR: &[u8] = b"Default/IndexedDB";
 
 /// Delimitador dos marcadores (U+E000 em UTF-8).
 const MARK: [u8; 3] = [0xEE, 0x80, 0x80];
-/// Microssegundos de 1601 (a época do tempo WebKit) até 1970.
-const WEBKIT_EPOCH_US: i64 = 11_644_473_600_000_000;
 
 const KIND_DIR: u8 = 0;
 const KIND_FILE: u8 = 1;
@@ -271,6 +270,8 @@ pub struct DiskProfile {
     session_storage: Option<Arc<SessionStorageStore>>,
     /// As navegações da aba nesta execução, para o History.
     navigations: Mutex<Vec<Navigation>>,
+    /// As respostas que o navegador buscou nesta execução, cada uma com a página de topo, para o cache de disco.
+    resources: Mutex<Vec<(String, Captured)>>,
     /// O id da janela das anotações de contexto do History: aleatório por execução.
     window_id: i64,
 }
@@ -298,7 +299,7 @@ impl DiskProfile {
             Some(path) if !path.is_empty() => path,
             _ => [home.as_slice(), b"/.config"].concat(),
         };
-        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None, navigations: Mutex::new(Vec::new()), window_id: random_below(1 << 31) as i64 }
+        DiskProfile { user_data_dir: user_data_dir.map(<[u8]>::to_vec), config_base, start_us: (ul_common::time::realtime_nanos() / 1000) as i64, run, socket_dir: None, local_storage: None, session_storage: None, navigations: Mutex::new(Vec::new()), resources: Mutex::new(Vec::new()), window_id: random_below(1 << 31) as i64 }
     }
 
     /// O IndexedDB do perfil (`Default/IndexedDB`): cada origem ganha o leveldb dela no primeiro uso.
@@ -332,6 +333,32 @@ impl DiskProfile {
             return;
         }
         self.navigations.lock().unwrap_or_else(PoisonError::into_inner).push(navigation);
+    }
+
+    /// Anota uma resposta buscada pelo navegador (a página ou o favicon dela): o cache de disco a guarda na saída.
+    pub fn record_resource(&self, top_url: &str, captured: Captured) {
+        self.resources.lock().unwrap_or_else(PoisonError::into_inner).push((top_url.to_owned(), captured));
+    }
+
+    /// O cache de disco da saída do `--dump-dom`: um arquivo por resposta e o índice com as que já estavam lá.
+    fn write_cache(&self) {
+        let Some(dir) = &self.user_data_dir else { return };
+        let resources = self.resources.lock().unwrap_or_else(PoisonError::into_inner);
+        if resources.is_empty() {
+            return;
+        }
+        let folder = [dir.as_slice(), b"/Default/Cache/Cache_Data"].concat();
+        let index_path = [folder.as_slice(), b"/index-dir/the-real-index"].concat();
+        let mut index = sys::read_file(&index_path).ok().and_then(|bytes| http_cache::parse_index(&bytes)).unwrap_or_default();
+        for (top_url, captured) in resources.iter() {
+            let entry = captured.entry(top_url);
+            let _ = sysabi::util::write_file(&[folder.as_slice(), b"/", entry.name.as_bytes()].concat(), &entry.content, 0o600);
+            match index.iter_mut().find(|line| line.id == entry.index.id) {
+                Some(line) => *line = entry.index,
+                None => index.push(entry.index),
+            }
+        }
+        let _ = sysabi::util::write_file(&index_path, &http_cache::index_file(&index, ul_common::time::webkit_now_micros() - 30_000), 0o600);
     }
 
     /// O History da saída do `--dump-dom`: a cadeia de navegações da aba, no banco que o molde trouxe.
@@ -388,6 +415,7 @@ impl DiskProfile {
         if self.run == Run::DumpDom {
             self.write_history();
             self.write_sessions();
+            self.write_cache();
             self.remove_singletons();
         }
     }
