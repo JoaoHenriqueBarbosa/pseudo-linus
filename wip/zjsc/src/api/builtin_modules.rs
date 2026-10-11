@@ -75,6 +75,7 @@ pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "path", scheme: Scheme::Both, install: crate::runtime::node_path::install_path_module },
     BuiltinEntry { name: "path/posix", scheme: Scheme::Both, install: install_path_posix },
     BuiltinEntry { name: "path/win32", scheme: Scheme::Both, install: install_path_win32 },
+    BuiltinEntry { name: "process", scheme: Scheme::Both, install: install_process_module },
     BuiltinEntry { name: "querystring", scheme: Scheme::Both, install: crate::api::node_stream::install_querystring_module },
     BuiltinEntry { name: "stream", scheme: Scheme::Both, install: crate::api::node_stream::install_stream_module },
     BuiltinEntry { name: "stream/promises", scheme: Scheme::Both, install: crate::api::node_stream::install_stream_promises_module },
@@ -124,6 +125,11 @@ fn path_flavor(global_object: &JSGlobalObject, flavor: &str) -> HostResult {
     let path = BUILTINS.iter().find(|entry| entry.name == "path").expect("o módulo path consta em BUILTINS");
     let module = load(global_object, path)?;
     get_object_property(global_object, module, &Identifier::from_span(global_object.vm(), flavor.as_bytes()))
+}
+
+/// `require("process")` é o próprio global `process` (medido no bun 1.4.2: `require("process") === process`).
+fn install_process_module(global_object: &JSGlobalObject) -> HostResult {
+    get_object_property(global_object, global_object.as_value(), &Identifier::from_span(global_object.vm(), b"process"))
 }
 
 fn install_path_posix(global_object: &JSGlobalObject) -> HostResult {
