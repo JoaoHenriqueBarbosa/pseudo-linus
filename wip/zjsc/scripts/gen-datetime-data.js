@@ -208,6 +208,9 @@ dateSkeletons.push({ weekday: "narrow" }, { month: "narrow" }, { year: "numeric"
 for (const era of ["short", "long"]) {
   dateSkeletons.push({ era, year: "numeric", month: "numeric", day: "numeric" });
   dateSkeletons.push({ era, year: "numeric", month: "long", day: "numeric" });
+  // As pontas do intervalo com era (`6 av. J.-C.`, `5 mars 6 av. J.-C.`).
+  dateSkeletons.push({ era, year: "numeric" });
+  dateSkeletons.push({ era, year: "numeric", month: "short", day: "numeric" });
 }
 // Data com o fuso e sem hora (`5 mars 2024, UTC−3`): as pontas do `formatRange` com `timeZoneName` e só data são o `format` disso. O
 // fuso de deslocamento (`shortOffset`, `longOffset`) não tem efeito sem hora.
@@ -455,7 +458,12 @@ function extras(locale) {
   return out.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 }
 
+// Anos antes da era comum (6 e 4 a.C.): o ICU junta a era do intervalo de um jeito por locale (`6–4 av. J.-C.` em fr, `6 a.C. – 4 a.C.` em pt).
+const BC_FROM = -62319542400000;
+const BC_TO = -62256384000000;
 const RANGES = [
+  { name: "era_year", options: { era: "short", year: "numeric" }, from: BC_FROM, to: BC_TO },
+  { name: "era_date", options: { era: "short", year: "numeric", month: "short", day: "numeric" }, from: BC_FROM, to: BC_TO },
   { name: "same_day", options: { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }, from: AM, to: PM },
   { name: "same_month", options: { year: "numeric", month: "short", day: "numeric" }, from: AM, to: Date.UTC(2024, 2, 9, 12) },
   { name: "other_years", options: { year: "numeric", month: "short", day: "numeric" }, from: AM, to: Date.UTC(2025, 3, 9, 12) },

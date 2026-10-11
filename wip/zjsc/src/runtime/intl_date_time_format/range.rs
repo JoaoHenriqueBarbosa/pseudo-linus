@@ -282,10 +282,23 @@ fn data_range(state: &DateTimeFormatState, level: Level, first: &Moment, second:
             return Some(parts);
         }
     }
-    // Era e `dayPeriod` têm padrão próprio no ICU (`n. Chr.` depois do intervalo): ainda não medidos.
-    if state.fields.era.is_some() || state.fields.day_period.is_some() {
+    // `dayPeriod` tem padrão próprio no ICU: ainda não medido.
+    if state.fields.day_period.is_some() {
         return None;
     }
+    // Era com o ano que difere (`6–4 av. J.-C.` em fr, `6 a.C. – 4 a.C.` em pt): só ano, ou ano com mês curto e dia, medidos à parte.
+    let era_scenario = match (state.fields.era.is_some(), level) {
+        (false, _) => None,
+        (true, Level::Year) if !state.fields.has_time() && state.fields.weekday.is_none() => {
+            let user = &state.user_fields;
+            match (user.year, user.month, user.day) {
+                (Some(Digits2::Numeric), None, None) => Some("era_year"),
+                (Some(Digits2::Numeric), Some(Month::Short), Some(Digits2::Numeric)) => Some("era_date"),
+                _ => return None,
+            }
+        }
+        (true, _) => return None,
+    };
     // Com segundos ou fração não há padrão de intervalo: o fallback mede outro separador e não junta o AM/PM.
     let seconds = state.fields.second.is_some() || state.fields.fractional_second_digits > 0;
     // Fuso: com a data diferente o fallback repete o fuso nas duas pontas (`zone_date_range`); com segundos também
@@ -305,6 +318,7 @@ fn data_range(state: &DateTimeFormatState, level: Level, first: &Moment, second:
         && state.fields.day_period.is_none()
         && !seconds;
     let scenario = match (time_level, state.fields.has_date(), level) {
+        _ if era_scenario.is_some() => era_scenario.unwrap_or_default(),
         (true, true, _) if seconds => "same_day_seconds",
         (true, false, _) if seconds => "time_only_seconds",
         (true, true, _) if same_period => "same_period",
@@ -320,6 +334,8 @@ fn data_range(state: &DateTimeFormatState, level: Level, first: &Moment, second:
     let numeric_month = matches!(state.fields.month, Some(Month::Numeric | Month::TwoDigit));
     let scenario = if time_level {
         if zone { format!("zone_{scenario}") } else { scenario.to_string() }
+    } else if era_scenario.is_some() {
+        scenario.to_string()
     } else if state.fields.weekday.is_some() {
         format!("{scenario}_weekday")
     } else if numeric_month {
@@ -353,7 +369,7 @@ fn data_range(state: &DateTimeFormatState, level: Level, first: &Moment, second:
     // quantas fazem cada extremo, medidas no bun. O ICU não junta o maior prefixo e sufixo iguais (pt
     // `5 de mar. \u{2013} 9 de mar. de 2024` junta só o ano).
     let measured = |name: &str| range_value(state, data, scenario, name).and_then(|value| value.parse::<usize>().ok());
-    if state.fields.year.is_some() && state.fields.day.is_some() {
+    if state.fields.year.is_some() && (state.fields.day.is_some() || era_scenario.is_some()) {
         let (head, start_len, end_len, tail) = (measured("head")?, measured("startlen")?, measured("endlen")?, measured("tail")?);
         if head + start_len > start.len() || tail + end_len > end.len() {
             return None;
@@ -734,6 +750,12 @@ fn special_range(state: &DateTimeFormatState, level: Level, first: &Moment, seco
     // O molde de intervalo da raiz já traz a era (`G`) no próprio texto: não há decoração a acrescentar.
     if iso_interval_template(state, level).is_some() {
         return None;
+    }
+    // A era com o ano que difere tem padrão de intervalo medido por locale (`era_year`, `era_date`): vale antes da decoração.
+    if state.fields.era.is_some() {
+        if let Some(parts) = data_range(state, level, first, second) {
+            return Some(parts);
+        }
     }
     let fields = &state.fields;
     // Com segundos (sem padrão de intervalo) ou com a data diferente e hora, o ICU cai no fallback com as duas pontas
