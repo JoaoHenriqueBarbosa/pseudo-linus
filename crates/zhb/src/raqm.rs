@@ -51,7 +51,7 @@ fn unicode_script(u: u32) -> u32 {
 }
 
 /// `_raqm_resolve_scripts`.
-fn resolve_scripts(text: &[u32]) -> Vec<u32> {
+pub fn resolve_scripts(text: &[u32]) -> Vec<u32> {
     let mut script: Vec<u32> = text.iter().map(|&c| unicode_script(c)).collect();
     let mut last_script_index: i64 = -1;
     let mut last_set_index: i64 = -1;
