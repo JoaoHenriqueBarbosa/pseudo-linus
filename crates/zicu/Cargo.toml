@@ -1,0 +1,14 @@
+[package]
+name = "zicu"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+# Tradução de partes do ICU4C 78.2, no fork do Chromium que o Flutter usa (licença Unicode-3.0).
+license = "Unicode-3.0"
+publish = false
+description = "Iteradores de quebra do ICU4C 78.2 (caractere, palavra e linha, com os dicionários do Sudeste Asiático) traduzidos sem unsafe, com as fronteiras idênticas às do ICU"
+
+[dependencies]
+
+[lints.rust]
+unsafe_code = "forbid"

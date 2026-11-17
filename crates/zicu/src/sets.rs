@@ -1,0 +1,55 @@
+//! Gerado por `tools/gensets.c` a partir do ICU4C do sistema; não editar à mão.
+
+/// `[[:Thai:]&[:LineBreak=SA:]]`.
+pub const THAI_WORD: &[(u32, u32)] = &[(0x0E01, 0x0E3A), (0x0E40, 0x0E4E)];
+
+/// `[[:Thai:]&[:LineBreak=SA:]&[:M:]]`.
+pub const THAI_MARK: &[(u32, u32)] = &[(0x0E31, 0x0E31), (0x0E34, 0x0E3A), (0x0E47, 0x0E4E)];
+
+/// `[[:Laoo:]&[:LineBreak=SA:]]`.
+pub const LAO_WORD: &[(u32, u32)] = &[
+    (0x0E81, 0x0E82),
+    (0x0E84, 0x0E84),
+    (0x0E86, 0x0E8A),
+    (0x0E8C, 0x0EA3),
+    (0x0EA5, 0x0EA5),
+    (0x0EA7, 0x0EBD),
+    (0x0EC0, 0x0EC4),
+    (0x0EC6, 0x0EC6),
+    (0x0EC8, 0x0ECE),
+    (0x0EDC, 0x0EDF),
+];
+
+/// `[[:Laoo:]&[:LineBreak=SA:]&[:M:]]`.
+pub const LAO_MARK: &[(u32, u32)] = &[(0x0EB1, 0x0EB1), (0x0EB4, 0x0EBC), (0x0EC8, 0x0ECE)];
+
+/// `[[:Mymr:]&[:LineBreak=SA:]]`.
+pub const BURMESE_WORD: &[(u32, u32)] = &[
+    (0x1000, 0x103F),
+    (0x1050, 0x108F),
+    (0x109A, 0x109F),
+    (0xA9E0, 0xA9EF),
+    (0xA9FA, 0xA9FE),
+    (0xAA60, 0xAA7F),
+];
+
+/// `[[:Mymr:]&[:LineBreak=SA:]&[:M:]]`.
+pub const BURMESE_MARK: &[(u32, u32)] = &[
+    (0x102B, 0x103E),
+    (0x1056, 0x1059),
+    (0x105E, 0x1060),
+    (0x1062, 0x1064),
+    (0x1067, 0x106D),
+    (0x1071, 0x1074),
+    (0x1082, 0x108D),
+    (0x108F, 0x108F),
+    (0x109A, 0x109D),
+    (0xA9E5, 0xA9E5),
+    (0xAA7B, 0xAA7D),
+];
+
+/// `[[:Khmr:]&[:LineBreak=SA:]]`.
+pub const KHMER_WORD: &[(u32, u32)] = &[(0x1780, 0x17D3), (0x17D7, 0x17D7), (0x17DC, 0x17DD)];
+
+/// `[[:Khmr:]&[:LineBreak=SA:]&[:M:]]`.
+pub const KHMER_MARK: &[(u32, u32)] = &[(0x17B4, 0x17D3), (0x17DD, 0x17DD)];
