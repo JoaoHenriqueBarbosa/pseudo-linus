@@ -271,9 +271,10 @@ fn braid_words(block: &[u8; BRAID_N * BRAID_W], crcs: &[u32; BRAID_N]) -> [u64; 
     std::array::from_fn(|j| u64::from(crcs[j]) ^ u64::from_le_bytes(words[j]))
 }
 
-/// Continua um CRC-32 a partir de `value` (o CRC já finalizado dos bytes anteriores, 0 no começo): o
-/// `crc32_z` do zlib.
-pub fn crc32_update(value: u32, data: &[u8]) -> u32 {
+/// O CRC-32 sem instrução especial, para a CPU que não tem nenhuma das que os kernels de
+/// [`crc32_update`] usam (e para o resto que não enche um registrador): o `crc32_z` do zlib. Continua
+/// a partir de `value`, o CRC já finalizado dos bytes anteriores (0 no começo).
+pub fn crc32_braid(value: u32, data: &[u8]) -> u32 {
     let mut crc = !value;
     let (blocks, rest) = data.as_chunks::<{ BRAID_N * BRAID_W }>();
     if let Some((last, body)) = blocks.split_last() {
@@ -294,6 +295,51 @@ pub fn crc32_update(value: u32, data: &[u8]) -> u32 {
         crc = crc32_step(crc, b);
     }
     !crc
+}
+
+/// As constantes que dobram um acumulador de 128 bits `bits` bits adiante com duas multiplicações sem
+/// vai-um, a parte baixa primeiro: `x^(bits + 32)` e `x^(bits - 32)` módulo o polinômio, refletidas,
+/// em 33 bits (o `fold_keys` do `crc32fast`).
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+const fn fold_keys(bits: u64) -> [u64; 2] {
+    [(x2nmodp((bits + 32) / 8, 3) as u64) << 1, (x2nmodp((bits - 32) / 8, 3) as u64) << 1]
+}
+
+// `crc32_update` (continua um CRC-32 a partir de `value`, o CRC já finalizado dos bytes anteriores, 0
+// no começo) é o kernel mais rápido que a CPU executa: a dobra por multiplicação sem vai-um
+// (PCLMULQDQ e VPCLMULQDQ) no x86_64, a instrução `crc32` no aarch64 e, sem nenhuma delas, o
+// trançado do zlib.
+#[cfg(target_arch = "aarch64")]
+mod armcrc;
+#[cfg(target_arch = "x86_64")]
+mod clmul;
+#[cfg(target_arch = "aarch64")]
+pub use armcrc::crc32_update;
+#[cfg(target_arch = "x86_64")]
+pub use clmul::crc32_update;
+#[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+pub use crc32_braid as crc32_update;
+
+/// O kernel mais rápido que a CPU executa, numerado de 1 (o trançado) para cima: `detect` roda na
+/// primeira consulta e o resultado fica em `cache` (0 é "ainda não detectado").
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+#[inline]
+fn cpu_level(cache: &std::sync::atomic::AtomicU8, detect: fn() -> u8) -> u8 {
+    match cache.load(std::sync::atomic::Ordering::Relaxed) {
+        0 => detect_level(cache, detect),
+        level => level,
+    }
+}
+
+/// A primeira consulta de [`cpu_level`], fora da linha: assim quem a chama não paga, em toda chamada,
+/// os registradores que a detecção usa.
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+#[cold]
+#[inline(never)]
+fn detect_level(cache: &std::sync::atomic::AtomicU8, detect: fn() -> u8) -> u8 {
+    let level = detect();
+    cache.store(level, std::sync::atomic::Ordering::Relaxed);
+    level
 }
 
 #[cfg(test)]
@@ -357,11 +403,11 @@ mod tests {
         // Em volta de um, dois e muitos blocos de N * W = 40 bytes, e o resto byte a byte.
         for len in [0, 1, 7, 8, 9, 39, 40, 41, 79, 80, 81, 119, 120, 999, 1000] {
             let slow = !data[..len].iter().fold(!0u32, |crc, &b| crc32_step(crc, b));
-            assert_eq!(crc32_update(0, &data[..len]), slow, "len {len}");
+            assert_eq!(crc32_braid(0, &data[..len]), slow, "len {len}");
             // Retomar do meio dá o mesmo valor, com o corte caindo dentro ou fora de um bloco.
             for cut in [0, len.min(1), len / 3, len / 2, len] {
                 let (a, b) = data[..len].split_at(cut);
-                assert_eq!(crc32_update(crc32_update(0, a), b), slow, "len {len} cut {cut}");
+                assert_eq!(crc32_braid(crc32_braid(0, a), b), slow, "len {len} cut {cut}");
             }
         }
     }
@@ -375,7 +421,17 @@ mod tests {
         assert_eq!(CRC32_BRAID[7][..4], [0x0000_0000, 0x36f2_90f3, 0x6de5_21e6, 0x5b17_b115]);
         assert_eq!(CRC32_BRAID[7][255], 0xf437_7108);
         let bytes: Vec<u8> = CRC32_BRAID.iter().flatten().flat_map(|v| v.to_le_bytes()).collect();
-        assert_eq!(crc32_update(0, &bytes), 0xf3b6_93bc);
+        assert_eq!(crc32_braid(0, &bytes), 0xf3b6_93bc);
+    }
+
+    /// As do artigo da Intel, que o `crc32fast` traz literais no kernel do x86.
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    #[test]
+    fn fold_keys_match_the_paper() {
+        assert_eq!(fold_keys(128), [0x1_7519_97d0, 0x0_ccaa_009e]);
+        assert_eq!(fold_keys(512), [0x1_5444_2bd4, 0x1_c6e4_1596]);
+        assert_eq!(fold_keys(1024), [0x1_e88e_f372, 0x1_4a7f_e880]);
+        assert_eq!(fold_keys(2048), [0x1_1542_778a, 0x1_322d_1430]);
     }
 
     #[test]

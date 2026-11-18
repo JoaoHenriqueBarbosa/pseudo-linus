@@ -18,5 +18,12 @@ jiff = { version = "0.2", default-features = false, features = ["std", "tzdb-bun
 [dev-dependencies]
 sysabi = { workspace = true, features = ["testkit"] }
 
-[lints]
-workspace = true
+# As do workspace, com uma exceção: `unsafe_code` é `deny` em vez de `forbid` porque o despacho do
+# CRC-32 pela CPU (`codec::clmul` e `codec::armcrc`) precisa de um `unsafe` por kernel para chamar a
+# função `#[target_feature]` depois de confirmar as features; os kernels em si são seguros.
+[lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "allow"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
