@@ -100,7 +100,7 @@ pub struct Ex {
     /// 1: o disco encheu e o usuário quis seguir com os outros membros; 2: parar.
     pub disk_full: u8,
     /// CRC dos bytes descomprimidos do membro (`G.crc32val`).
-    pub crc: crc32fast::Hasher,
+    pub crc: u32,
     /// Primeiro `flush` do membro (zera o estado da conversão de texto) e CR no fim do bloco anterior.
     pub newfile: bool,
     pub did_cr_last: bool,

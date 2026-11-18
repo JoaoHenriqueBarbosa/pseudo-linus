@@ -6,6 +6,7 @@ use std::io::{Cursor, Read};
 
 use sysabi::sys;
 use sysabi::Fd;
+use ul_common::codec::crc32_update;
 
 use crate::sysutil::{self, Output};
 
@@ -151,7 +152,7 @@ fn zip_member(data: &[u8], key: Option<Vec<u8>>) -> i32 {
     if bad {
         return err(3, "invalid compressed data--format violated");
     }
-    if flg & 8 == 0 && crc32fast::hash(&out) != crc {
+    if flg & 8 == 0 && crc32_update(0, &out) != crc {
         return err(1, "invalid compressed data--crc error");
     }
     let end = if csize > 0 || flg & 8 == 0 { start + csize } else { start + used };
@@ -197,7 +198,7 @@ fn gzip_member(data: &[u8]) -> i32 {
     if t + 8 > data.len() {
         return err(2, "unexpected end of file");
     }
-    if le32(data, t) != crc32fast::hash(&out) {
+    if le32(data, t) != crc32_update(0, &out) {
         return err(1, "invalid compressed data--crc error");
     }
     if le32(data, t + 4) != out.len() as u32 {

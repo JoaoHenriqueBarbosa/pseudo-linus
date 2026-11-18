@@ -3,6 +3,8 @@
 //! do formato .xz descreve (cabeçalho e rodapé de 12 bytes, índice com registros de tamanho sem
 //! enchimento e tamanho descomprimido, enchimento de fluxo em múltiplos de 4 bytes zero).
 
+use ul_common::codec::crc32_update;
+
 /// Um bloco, como o índice descreve.
 #[derive(Clone, Debug)]
 pub struct Block {
@@ -114,7 +116,7 @@ pub fn parse(data: &[u8]) -> Result<Info, ListError> {
             return Err(ListError::Corrupt);
         }
         let crc = u32::from_le_bytes([footer[0], footer[1], footer[2], footer[3]]);
-        if crc != crc32fast::hash(&footer[4..10]) {
+        if crc != crc32_update(0, &footer[4..10]) {
             return Err(ListError::Corrupt);
         }
         let backward = (u32::from_le_bytes([footer[4], footer[5], footer[6], footer[7]]) as u64 + 1) * 4;
@@ -133,7 +135,7 @@ pub fn parse(data: &[u8]) -> Result<Info, ListError> {
             return Err(ListError::Corrupt);
         }
         let icrc = u32::from_le_bytes([index[index.len() - 4], index[index.len() - 3], index[index.len() - 2], index[index.len() - 1]]);
-        if icrc != crc32fast::hash(&index[..index.len() - 4]) {
+        if icrc != crc32_update(0, &index[..index.len() - 4]) {
             return Err(ListError::Corrupt);
         }
         let mut pos = 1usize;
@@ -173,7 +175,7 @@ pub fn parse(data: &[u8]) -> Result<Info, ListError> {
             return Err(ListError::Corrupt);
         }
         let hcrc = u32::from_le_bytes([header[8], header[9], header[10], header[11]]);
-        if hcrc != crc32fast::hash(&header[6..8]) {
+        if hcrc != crc32_update(0, &header[6..8]) {
             return Err(ListError::Corrupt);
         }
         let mut blocks = Vec::new();

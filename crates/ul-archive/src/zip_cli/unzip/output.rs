@@ -3,6 +3,7 @@
 //! arquivo de saída (`open_outfile` do fileio.c, `close_outfile` do unix.c).
 
 use sysabi::{AtFlags, Fd, OFlags};
+use ul_common::codec::crc32_update;
 
 use super::fileio::fnfilter;
 use super::unix::{perror, set_times, strerror, Slink};
@@ -51,7 +52,7 @@ impl Uz {
     /// escreve, convertendo os fins de linha no modo texto (CR/LF, CR sozinho e LF viram LF; os ^Z
     /// somem).
     pub fn flush(&mut self, raw: &[u8]) -> i32 {
-        self.x.crc.update(raw);
+        self.x.crc = crc32_update(self.x.crc, raw);
         if self.o.tflag != 0 || raw.is_empty() {
             return PK_OK;
         }
@@ -172,7 +173,7 @@ impl Uz {
             match id {
                 EF_PKVMS if len >= 4 => {
                     let mut items = &data[4..];
-                    if long(data, 0) != crc32fast::hash(items) {
+                    if long(data, 0) != crc32_update(0, items) {
                         self.info(1, "[Warning: CRC error, discarding PKWARE extra field]\n");
                     } else {
                         while items.len() > 4 {
@@ -253,7 +254,7 @@ impl Uz {
             }
         };
         if ok {
-            let crcval = crc32fast::hash(&out);
+            let crcval = crc32_update(0, &out);
             if crcval != crc_expected && !test {
                 let mut m = b"error [".to_vec();
                 m.extend_from_slice(&self.zipfn);

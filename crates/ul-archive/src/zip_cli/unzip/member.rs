@@ -25,7 +25,7 @@ impl Uz {
             varlen = self.is_vms_varlen_txt(&ef[..n]);
         }
         self.x.vms_line_state = if varlen { 0 } else { -1 };
-        self.x.crc = crc32fast::Hasher::new();
+        self.x.crc = 0;
         self.x.symlnk = self.pinfo.symlink && self.o.tflag == 0 && !self.o.cflag && self.lrec.ucsize > 0;
         if self.o.tflag != 0 {
             if self.o.qflag == 0 {
@@ -118,7 +118,7 @@ impl Uz {
             self.undefer_input();
             return error;
         }
-        let crc = self.x.crc.clone().finalize();
+        let crc = self.x.crc;
         if crc != self.lrec.crc32 {
             if quiet_enough {
                 let mut m = pad22(&fnfilter(&self.filename));

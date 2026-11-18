@@ -7770,7 +7770,6 @@ name = "ul-archive"
 version = "0.1.0"
 dependencies = [
  "bzip2",
- "crc32fast",
  "flate2",
  "harness",
  "jiff",
@@ -9039,7 +9038,7 @@ checksum = "c6e61e59a957b7ccee15d2049f86e8bfd6f66968fcd88f018950662d9b86e675"
 name = "zdeflate"
 version = "0.1.0"
 dependencies = [
- "crc32fast",
+ "ul-common",
 ]
 
 [[package]]

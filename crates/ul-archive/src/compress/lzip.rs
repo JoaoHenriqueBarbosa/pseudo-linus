@@ -6,6 +6,7 @@
 use std::io::Write;
 
 use sysabi::{Errno, Fd, Stat};
+use ul_common::codec::crc32_update;
 use ul_common::getopt::{Getopt, GetoptError, HasArg, Item, LongOpt};
 
 use super::common::{self, Input, Sink};
@@ -570,7 +571,7 @@ impl Lzip {
                 Ok(s) => s,
                 Err(_) => return Outcome::Bad("Invalid dictionary size in member header.".into(), None),
             };
-            let mut crc = crc32fast::Hasher::new();
+            let mut crc = 0;
             let mut size: u64 = 0;
             let mut fed: u64 = 0;
             loop {
@@ -586,7 +587,7 @@ impl Lzip {
                         input.consume(res.bytes_consumed);
                         fed += res.bytes_consumed as u64;
                         if res.bytes_produced > 0 {
-                            crc.update(&out[..res.bytes_produced]);
+                            crc = crc32_update(crc, &out[..res.bytes_produced]);
                             size += res.bytes_produced as u64;
                             if let Err(e) = sink.write_all(&out[..res.bytes_produced]) {
                                 return Outcome::Write(Errno::from_io(&e));
@@ -629,7 +630,7 @@ impl Lzip {
             let stored_crc = u32::from_le_bytes([trailer[0], trailer[1], trailer[2], trailer[3]]);
             let stored_size = u64::from_le_bytes(trailer[4..12].try_into().unwrap_or([0; 8]));
             let stored_member = u64::from_le_bytes(trailer[12..20].try_into().unwrap_or([0; 8]));
-            let computed = crc.finalize();
+            let computed = crc;
             if stored_crc != computed {
                 return Outcome::Bad(format!("CRC mismatch; stored {stored_crc:08X}, computed {computed:08X}"), None);
             }
