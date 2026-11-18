@@ -5,8 +5,9 @@
 
 use crate::{
     BUSY_STATE, BlockState, COMMENT_STATE, Deflate, EXTRA_STATE, Error, FINISH_STATE, Flush, GZIP_STATE, HCRC_STATE, INIT_STATE, MAX_MATCH, MIN_LOOKAHEAD, MIN_MATCH, NAME_STATE, NIL, OS_CODE, PRESET_DICT, Progress, Status, Strategy,
-    Stream, TOO_FAR, WIN_INIT, crc32,
+    Stream, TOO_FAR, WIN_INIT,
 };
+use ul_common::codec::crc32_update;
 
 /// Maior bloco armazenado (`MAX_STORED`).
 const MAX_STORED: usize = 65535;
@@ -124,7 +125,7 @@ impl Deflate {
                     self.p.put_byte((extra.len() >> 8) as u8);
                 }
                 if head.hcrc {
-                    self.adler = crc32(self.adler, &self.p.buf[..self.p.pending]);
+                    self.adler = crc32_update(self.adler, &self.p.buf[..self.p.pending]);
                 }
                 self.gzindex = 0;
                 self.status = EXTRA_STATE;
@@ -271,7 +272,7 @@ impl Deflate {
     /// `HCRC_UPDATE`: soma ao crc do cabeçalho o que entrou no `pending_buf` desde `beg`.
     fn hcrc_update(&mut self, hcrc: bool, beg: usize) {
         if hcrc && self.p.pending > beg {
-            self.adler = crc32(self.adler, &self.p.buf[beg..self.p.pending]);
+            self.adler = crc32_update(self.adler, &self.p.buf[beg..self.p.pending]);
         }
     }
 
@@ -1140,13 +1141,13 @@ mod tests {
         assert_eq!(&g[..4], &[0x1f, 0x8b, 8, 2 | 4 | 8 | 16]);
         // Cabeçalho: 10 bytes, extra (2 + 3), nome e comentário com o zero, crc16.
         let hlen = 10 + 5 + 6 + 2 + 2;
-        let hcrc = crc32(0, &g[..hlen - 2]) as u16;
+        let hcrc = crc32_update(0, &g[..hlen - 2]) as u16;
         assert_eq!(u16::from_le_bytes([g[hlen - 2], g[hlen - 1]]), hcrc);
         let (data, end) = inflate_raw(&g[hlen..]);
         assert_eq!(data, src);
         let t = &g[hlen + end..];
         assert_eq!(t.len(), 8);
-        assert_eq!(u32::from_le_bytes(t[..4].try_into().unwrap()), crc32(0, &src));
+        assert_eq!(u32::from_le_bytes(t[..4].try_into().unwrap()), crc32_update(0, &src));
         assert_eq!(u32::from_le_bytes(t[4..].try_into().unwrap()), src.len() as u32);
     }
 }

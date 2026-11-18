@@ -148,10 +148,6 @@ const fn build_crc_table(poly: u32) -> [u32; 256] {
     table
 }
 
-const fn build_crc32_table() -> [u32; 256] {
-    build_crc_table(0xEDB8_8320)
-}
-
 /// A tabela do CRC-32C (polinômio refletido 0x82F63B78), o que o leveldb, o iSCSI e o ext4 usam.
 static CRC32C_TABLE: [u32; 256] = build_crc_table(0x82F6_3B78);
 
@@ -181,8 +177,11 @@ pub fn crc32c_unmask(masked: u32) -> u32 {
     (rotated >> 17) | (rotated << 15)
 }
 
-/// A tabela do CRC-32 (polinômio refletido 0xEDB88320), a de zlib, gzip, zip e PNG.
-pub static CRC32_TABLE: [u32; 256] = build_crc32_table();
+/// O polinômio refletido do CRC-32 (`POLY` do `crc32.c` do zlib): o de zlib, gzip, zip, xz, lzip e PNG.
+const CRC32_POLY: u32 = 0xEDB8_8320;
+
+/// A tabela do CRC-32, a `crc_table` do zlib.
+pub static CRC32_TABLE: [u32; 256] = build_crc_table(CRC32_POLY);
 
 /// Um passo do CRC-32 sobre o registrador cru (sem a inversão inicial e final): é o `CRC32(c, b)` do
 /// `crypt.c` do zip, que a cifra tradicional do PKZIP usa nas chaves.
@@ -190,44 +189,108 @@ pub fn crc32_step(crc: u32, byte: u8) -> u32 {
     CRC32_TABLE[((crc ^ u32::from(byte)) & 0xff) as usize] ^ (crc >> 8)
 }
 
-/// As oito tabelas do "slicing-by-8": `[0]` é a `CRC32_TABLE`, e `[k][n]` é o CRC do byte `n` seguido
-/// de `k` bytes zero, o que deixa o laço quente consumir oito bytes por passo.
-static CRC32_SLICES: [[u32; 256]; 8] = build_crc32_slices();
+// O CRC-32 trançado ("braided") do `crc32.c` do zlib 1.3.1, com os parâmetros que ele escolhe para
+// palavras de 64 bits: N = 5 CRCs independentes, cada um sobre uma palavra de W = 8 bytes por volta.
+// As cinco cadeias não dependem uma da outra, então o processador sobrepõe as consultas às tabelas;
+// no fim, as cinco se combinam de volta num CRC só, palavra a palavra.
 
-const fn build_crc32_slices() -> [[u32; 256]; 8] {
-    let mut tables = [[0u32; 256]; 8];
-    tables[0] = build_crc32_table();
-    let mut k = 1;
-    while k < 8 {
-        let mut n = 0;
-        while n < 256 {
-            let prev = tables[k - 1][n];
-            tables[k][n] = tables[0][(prev & 0xff) as usize] ^ (prev >> 8);
-            n += 1;
+/// Quantas tranças correm lado a lado (`N`).
+const BRAID_N: usize = 5;
+/// Bytes por palavra de cada trança (`W`).
+const BRAID_W: usize = 8;
+
+/// `multmodp`: o produto de `a` e `b` módulo o polinômio, com os bits refletidos (o bit 31 é x^0).
+const fn multmodp(a: u32, mut b: u32) -> u32 {
+    let mut m = 1u32 << 31;
+    let mut p = 0;
+    while m != 0 {
+        if a & m != 0 {
+            p ^= b;
+        }
+        m >>= 1;
+        b = if b & 1 != 0 { (b >> 1) ^ CRC32_POLY } else { b >> 1 };
+    }
+    p
+}
+
+/// `x2n_table`: `[k]` é x^(2^k) módulo o polinômio.
+const X2N_TABLE: [u32; 32] = {
+    let mut table = [0u32; 32];
+    let mut p = 1u32 << 30;
+    table[0] = p;
+    let mut n = 1;
+    while n < 32 {
+        p = multmodp(p, p);
+        table[n] = p;
+        n += 1;
+    }
+    table
+};
+
+/// `x2nmodp`: x^(n * 2^k) módulo o polinômio.
+const fn x2nmodp(mut n: u64, mut k: usize) -> u32 {
+    let mut p = 1u32 << 31;
+    while n != 0 {
+        if n & 1 != 0 {
+            p = multmodp(X2N_TABLE[k & 31], p);
+        }
+        n >>= 1;
+        k += 1;
+    }
+    p
+}
+
+/// `crc_braid_table` (o `braid` do zlib): `[k][i]` leva o byte `i`, na posição `k` da palavra, até a
+/// mesma posição da palavra seguinte da sua trança, `N * W` bytes adiante.
+static CRC32_BRAID: [[u32; 256]; BRAID_W] = {
+    let mut table = [[0u32; 256]; BRAID_W];
+    let mut k = 0;
+    while k < BRAID_W {
+        let p = x2nmodp(((BRAID_N * BRAID_W + 3 - k) << 3) as u64, 0);
+        let mut i = 1;
+        while i < 256 {
+            table[k][i] = multmodp((i as u32) << 24, p);
+            i += 1;
         }
         k += 1;
     }
-    tables
+    table
+};
+
+/// `crc_word`: passa os `W` bytes de uma palavra pelo CRC, um de cada vez.
+fn crc32_word(mut word: u64) -> u32 {
+    for _ in 0..BRAID_W {
+        word = (word >> 8) ^ u64::from(CRC32_TABLE[(word & 0xff) as usize]);
+    }
+    word as u32
 }
 
-/// Continua um CRC-32 a partir de `value` (o CRC já finalizado dos bytes anteriores, 0 no começo).
+/// As `N` palavras de um bloco, cada uma já misturada ao CRC da sua trança.
+fn braid_words(block: &[u8; BRAID_N * BRAID_W], crcs: &[u32; BRAID_N]) -> [u64; BRAID_N] {
+    let (words, _) = block.as_chunks::<BRAID_W>();
+    std::array::from_fn(|j| u64::from(crcs[j]) ^ u64::from_le_bytes(words[j]))
+}
+
+/// Continua um CRC-32 a partir de `value` (o CRC já finalizado dos bytes anteriores, 0 no começo): o
+/// `crc32_z` do zlib.
 pub fn crc32_update(value: u32, data: &[u8]) -> u32 {
-    let t = &CRC32_SLICES;
     let mut crc = !value;
-    let mut chunks = data.chunks_exact(8);
-    for c in &mut chunks {
-        let lo = u32::from_le_bytes([c[0], c[1], c[2], c[3]]) ^ crc;
-        let hi = u32::from_le_bytes([c[4], c[5], c[6], c[7]]);
-        crc = t[7][(lo & 0xff) as usize]
-            ^ t[6][((lo >> 8) & 0xff) as usize]
-            ^ t[5][((lo >> 16) & 0xff) as usize]
-            ^ t[4][(lo >> 24) as usize]
-            ^ t[3][(hi & 0xff) as usize]
-            ^ t[2][((hi >> 8) & 0xff) as usize]
-            ^ t[1][((hi >> 16) & 0xff) as usize]
-            ^ t[0][(hi >> 24) as usize];
+    let (blocks, rest) = data.as_chunks::<{ BRAID_N * BRAID_W }>();
+    if let Some((last, body)) = blocks.split_last() {
+        let mut crcs = [crc, 0, 0, 0, 0];
+        for block in body {
+            let words = braid_words(block, &crcs);
+            for (c, word) in crcs.iter_mut().zip(words) {
+                *c = CRC32_BRAID
+                    .iter()
+                    .enumerate()
+                    .fold(0, |acc, (k, t)| acc ^ t[((word >> (k * 8)) & 0xff) as usize]);
+            }
+        }
+        // O último bloco não vai adiante pela trança: cada palavra entra no CRC combinado.
+        crc = braid_words(last, &crcs).iter().fold(0, |comb, &word| crc32_word(word ^ u64::from(comb)));
     }
-    for &b in chunks.remainder() {
+    for &b in rest {
         crc = crc32_step(crc, b);
     }
     !crc
@@ -289,12 +352,30 @@ mod tests {
     }
 
     #[test]
-    fn crc32_slicing_matches_bytewise() {
+    fn crc32_braid_matches_bytewise() {
         let data: Vec<u8> = (0..1000u32).map(|i| (i.wrapping_mul(2_654_435_761) >> 13) as u8).collect();
-        for len in [0, 1, 7, 8, 9, 63, 64, 65, 999, 1000] {
+        // Em volta de um, dois e muitos blocos de N * W = 40 bytes, e o resto byte a byte.
+        for len in [0, 1, 7, 8, 9, 39, 40, 41, 79, 80, 81, 119, 120, 999, 1000] {
             let slow = !data[..len].iter().fold(!0u32, |crc, &b| crc32_step(crc, b));
             assert_eq!(crc32_update(0, &data[..len]), slow, "len {len}");
+            // Retomar do meio dá o mesmo valor, com o corte caindo dentro ou fora de um bloco.
+            for cut in [0, len.min(1), len / 3, len / 2, len] {
+                let (a, b) = data[..len].split_at(cut);
+                assert_eq!(crc32_update(crc32_update(0, a), b), slow, "len {len} cut {cut}");
+            }
         }
+    }
+
+    /// A `crc_braid_table` do `crc32.h` do zlib 1.3.1 (little-endian, N = 5, W = 8): as pontas da
+    /// primeira e da última linha, e o CRC-32 da tabela inteira em little-endian, tirado do `crc32.h`
+    /// com o `zlib.crc32` do Python.
+    #[test]
+    fn crc32_braid_table_matches_zlib() {
+        assert_eq!(CRC32_BRAID[0][..4], [0x0000_0000, 0xaf44_9247, 0x85f8_22cf, 0x2abc_b088]);
+        assert_eq!(CRC32_BRAID[7][..4], [0x0000_0000, 0x36f2_90f3, 0x6de5_21e6, 0x5b17_b115]);
+        assert_eq!(CRC32_BRAID[7][255], 0xf437_7108);
+        let bytes: Vec<u8> = CRC32_BRAID.iter().flatten().flat_map(|v| v.to_le_bytes()).collect();
+        assert_eq!(crc32_update(0, &bytes), 0xf3b6_93bc);
     }
 
     #[test]

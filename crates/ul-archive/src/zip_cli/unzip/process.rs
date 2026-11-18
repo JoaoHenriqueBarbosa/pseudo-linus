@@ -6,6 +6,7 @@
 //! disso.
 
 use sysabi::Fd;
+use ul_common::codec::crc32_update;
 
 use super::{IZ_DIR, MSG_STDERR, PK_BADERR, PK_EOF, PK_ERR, PK_FIND, PK_NOZIP, PK_OK, PK_WARN, Uz, fileio, matching, text};
 
@@ -928,7 +929,7 @@ impl Uz {
                 let sum = rest.get(EB_HEADSIZE + 1..EB_HEADSIZE + 5).map_or(0, |b| u32::from_le_bytes(b.try_into().unwrap()));
                 let full = &self.filename_full;
                 let full = &full[..full.iter().position(|&c| c == 0).unwrap_or(full.len())];
-                if crc32fast::hash(full) != sum {
+                if crc32_update(0, full) != sum {
                     self.info(MSG_STDERR, "\nwarning:  Unicode Path checksum invalid\n");
                     return Err(BadUnicodePath);
                 }

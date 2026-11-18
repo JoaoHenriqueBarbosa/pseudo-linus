@@ -3,6 +3,8 @@
 //! descomprimidos em memória e têm o CRC conferido (`test_compr_eb`, `memextract`), e o CRC do
 //! bloco de VMS da PKWARE.
 
+use ul_common::codec::crc32_update;
+
 use super::extract::{pad22, DEFLATED, ENHDEFLATED, STORED};
 use super::fileio::fnfilter;
 use super::{Uz, PK_ERR, PK_MEM3, PK_OK, PK_WARN};
@@ -97,7 +99,7 @@ impl Uz {
                 EF_PKVMS => {
                     if len < 4 {
                         self.info(1, format!("bad extra-field entry:\n      EF block length ({len} bytes) invalid (< 4)\n"));
-                    } else if long(ef, EB_HEADSIZE) != crc32fast::hash(&ef[EB_HEADSIZE + 4..EB_HEADSIZE + len]) {
+                    } else if long(ef, EB_HEADSIZE) != crc32_update(0, &ef[EB_HEADSIZE + 4..EB_HEADSIZE + len]) {
                         self.info(1, " bad CRC for extended attributes\n");
                     }
                 }
@@ -191,7 +193,7 @@ impl Uz {
                 Vec::new()
             }
         };
-        if error == PK_OK && crc32fast::hash(&out) != crc_expected {
+        if error == PK_OK && crc32_update(0, &out) != crc_expected {
             error = PK_ERR | (i32::from(DEFLATED) << 8);
         }
         error

@@ -12,6 +12,8 @@
 
 use std::io::{self, Cursor, Read, Write};
 
+use ul_common::codec::crc32_update;
+
 use crate::gailly::BlockSink;
 use crate::gailly::gzip::GzDeflate;
 
@@ -244,7 +246,7 @@ fn gzip_decode(input: &[u8]) -> Result<Decoded, DecodeError> {
         let crc = u32::from_le_bytes([t[0], t[1], t[2], t[3]]);
         let isize = u32::from_le_bytes([t[4], t[5], t[6], t[7]]);
         pos += 8;
-        if crc != crc32fast::hash(&out[start..]) {
+        if crc != crc32_update(0, &out[start..]) {
             return Err(DecodeError::Checksum);
         }
         if isize != (out.len() - start) as u32 {
@@ -439,7 +441,7 @@ pub struct Encoder<W: Write> {
 pub struct RawDeflate<W: Write> {
     sink: DeflateSink<W>,
     d: Box<GzDeflate>,
-    crc: crc32fast::Hasher,
+    crc: u32,
     size: u64,
 }
 
@@ -481,7 +483,7 @@ impl<W: Write> RawDeflate<W> {
     /// `--rsyncable`.
     pub fn with_state(level: u32, rsync: bool, mut d: Box<GzDeflate>, w: W) -> RawDeflate<W> {
         d.start(level, rsync);
-        RawDeflate { sink: DeflateSink { w, written: 0, err: None }, d, crc: crc32fast::Hasher::new(), size: 0 }
+        RawDeflate { sink: DeflateSink { w, written: 0, err: None }, d, crc: 0, size: 0 }
     }
 
     /// Bytes comprimidos escritos até agora.
@@ -500,7 +502,7 @@ impl<W: Write> RawDeflate<W> {
     pub fn finish_with_state(mut self) -> io::Result<(W, u32, u64, Box<GzDeflate>)> {
         self.d.finish(&mut self.sink);
         self.check()?;
-        Ok((self.sink.w, self.crc.finalize(), self.size, self.d))
+        Ok((self.sink.w, self.crc, self.size, self.d))
     }
 
     /// Fecha o fluxo deflate. Devolve o escritor, o CRC-32 e o tamanho da entrada.
@@ -512,7 +514,7 @@ impl<W: Write> RawDeflate<W> {
 
 impl<W: Write> Write for RawDeflate<W> {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-        self.crc.update(data);
+        self.crc = crc32_update(self.crc, data);
         self.size += data.len() as u64;
         self.d.feed(data, &mut self.sink);
         self.check()?;
@@ -532,7 +534,7 @@ pub struct MinizDeflate<W: Write> {
     w: W,
     c: Box<miniz_oxide::deflate::core::CompressorOxide>,
     buf: Vec<u8>,
-    crc: crc32fast::Hasher,
+    crc: u32,
     size: u64,
 }
 
@@ -544,7 +546,7 @@ impl<W: Write> MinizDeflate<W> {
             w,
             c: Box::new(miniz_oxide::deflate::core::CompressorOxide::new(flags)),
             buf: vec![0u8; 64 * 1024],
-            crc: crc32fast::Hasher::new(),
+            crc: 0,
             size: 0,
         }
     }
@@ -576,13 +578,13 @@ impl<W: Write> MinizDeflate<W> {
     /// Fecha o fluxo deflate. Devolve o escritor, o CRC-32 e o tamanho da entrada.
     pub fn finish(mut self) -> io::Result<(W, u32, u64)> {
         self.run(&[], true)?;
-        Ok((self.w, self.crc.finalize(), self.size))
+        Ok((self.w, self.crc, self.size))
     }
 }
 
 impl<W: Write> Write for MinizDeflate<W> {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-        self.crc.update(data);
+        self.crc = crc32_update(self.crc, data);
         self.size += data.len() as u64;
         self.run(data, false)?;
         Ok(data.len())

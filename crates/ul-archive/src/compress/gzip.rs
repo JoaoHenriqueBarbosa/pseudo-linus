@@ -8,6 +8,7 @@
 use std::io::Write;
 
 use sysabi::{Errno, Fd, Stat, TimeSpec};
+use ul_common::codec::crc32_update;
 use ul_common::getopt::{Getopt, HasArg, Item, LongOpt};
 
 use super::common::{self, Input, Sink};
@@ -527,7 +528,7 @@ impl Gzip {
             if h.flags & 0x02 != 0 {
                 let raw = input.ensure(h.len).to_vec();
                 let stored = u16::from_le_bytes([raw[h.len - 2], raw[h.len - 1]]);
-                let computed = (crc32fast::hash(&raw[..h.len - 2]) & 0xffff) as u16;
+                let computed = (crc32_update(0, &raw[..h.len - 2]) & 0xffff) as u16;
                 if stored != computed {
                     self.exit = ERROR;
                     u.status = Status::Bad(format!(
@@ -548,7 +549,7 @@ impl Gzip {
                 }
             }
             let mut inf = flate2::Decompress::new(false);
-            let mut crc = crc32fast::Hasher::new();
+            let mut crc = 0;
             let mut size: u64 = 0;
             loop {
                 sysabi::sys::checkpoint();
@@ -568,7 +569,7 @@ impl Gzip {
                 let produced = (inf.total_out() - out0) as usize;
                 input.consume(consumed);
                 if produced > 0 {
-                    crc.update(&chunk[..produced]);
+                    crc = crc32_update(crc, &chunk[..produced]);
                     size += produced as u64;
                     if let Err(e) = sink.write_all(&chunk[..produced]) {
                         u.status = Status::WriteErr(Errno::from_io(&e));
@@ -594,7 +595,7 @@ impl Gzip {
             let stored_crc = u32::from_le_bytes([t[0], t[1], t[2], t[3]]);
             let stored_len = u32::from_le_bytes([t[4], t[5], t[6], t[7]]);
             u.last_out = size;
-            if stored_crc != crc.finalize() {
+            if stored_crc != crc {
                 u.status = Status::Bad(self.bad_nl(name, "invalid compressed data--crc error"));
                 return u;
             }

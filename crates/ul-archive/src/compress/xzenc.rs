@@ -7,6 +7,7 @@ use std::io::{self, Write};
 
 use lzma_rust2::{CheckType, FilterType, Lzma2Options, Lzma2Writer, LzmaOptions};
 use sha2::Digest;
+use ul_common::codec::crc32_update;
 
 /// CRC-64 do .xz (ECMA-182, refletido).
 pub struct Crc64 {
@@ -50,7 +51,7 @@ impl Default for Crc64 {
 fn check_bytes(check: CheckType, data: &[u8]) -> Vec<u8> {
     match check {
         CheckType::None => Vec::new(),
-        CheckType::Crc32 => crc32fast::hash(data).to_le_bytes().to_vec(),
+        CheckType::Crc32 => crc32_update(0, data).to_le_bytes().to_vec(),
         CheckType::Crc64 => {
             let mut c = Crc64::new();
             c.update(data);
@@ -143,7 +144,7 @@ impl<W: Write> XzBlockEncoder<W> {
         let mut h = vec![0xfd, b'7', b'z', b'X', b'Z', 0];
         let flags = self.stream_flags();
         h.extend_from_slice(&flags);
-        h.extend_from_slice(&crc32fast::hash(&flags).to_le_bytes());
+        h.extend_from_slice(&crc32_update(0, &flags).to_le_bytes());
         self.emit(&h)
     }
 
@@ -216,7 +217,7 @@ impl<W: Write> XzBlockEncoder<W> {
             h.push(0);
         }
         h[0] = (total / 4 - 1) as u8;
-        let crc = crc32fast::hash(&h);
+        let crc = crc32_update(0, &h);
         h.extend_from_slice(&crc.to_le_bytes());
         let check = check_bytes(self.check, &data);
         self.emit(&h)?;
@@ -241,13 +242,13 @@ impl<W: Write> XzBlockEncoder<W> {
         while idx.len() % 4 != 0 {
             idx.push(0);
         }
-        let crc = crc32fast::hash(&idx);
+        let crc = crc32_update(0, &idx);
         idx.extend_from_slice(&crc.to_le_bytes());
         self.emit(&idx)?;
         let backward = (idx.len() / 4 - 1) as u32;
         let mut f = backward.to_le_bytes().to_vec();
         f.extend_from_slice(&self.stream_flags());
-        let crc = crc32fast::hash(&f);
+        let crc = crc32_update(0, &f);
         let mut footer = crc.to_le_bytes().to_vec();
         footer.extend_from_slice(&f);
         footer.extend_from_slice(b"YZ");

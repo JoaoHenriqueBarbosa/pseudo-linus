@@ -16,6 +16,7 @@ mod medium;
 mod trees;
 
 pub use deflate::compress;
+use ul_common::codec::crc32_update;
 
 pub const MIN_MATCH: usize = 3;
 pub const MAX_MATCH: usize = 258;
@@ -229,12 +230,6 @@ pub fn adler32(adler: u32, data: &[u8]) -> u32 {
         b %= BASE;
     }
     (b << 16) | a
-}
-
-fn crc32(crc: u32, data: &[u8]) -> u32 {
-    let mut h = crc32fast::Hasher::new_with_initial(crc);
-    h.update(data);
-    h.finalize()
 }
 
 /// (good_length, max_lazy, nice_length, max_chain) por nível: `configuration_table`.
@@ -453,7 +448,7 @@ impl Deflate {
         if self.wrap == 1 {
             self.adler = adler32(self.adler, data);
         } else if self.wrap == 2 {
-            self.adler = crc32(self.adler, data);
+            self.adler = crc32_update(self.adler, data);
         }
         self.total_in += len as u64;
         data

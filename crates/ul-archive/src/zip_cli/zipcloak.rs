@@ -1,6 +1,8 @@
 //! `zipcloak` do Info-ZIP 3.0: cifra (ou, com `-d`, decifra) as entradas de um zip com a cifra
 //! tradicional do PKZIP. A senha vem do terminal de controle (`/dev/tty`), nunca dos argumentos.
 
+use ul_common::codec::crc32_update;
+
 use super::ztools::{self, Archive, Entry, ZE_FORM, ZE_PARMS};
 use crate::sysutil::{self, Output};
 
@@ -312,7 +314,7 @@ fn run(zipfile: &[u8], data: &[u8], arc: Archive, decrypt: bool, quiet: bool) ->
         } else {
             let crc = le32(&e.cen, 16);
             // Os dez primeiros bytes do cabeçalho são ruído; o original usa `rand()` semeado pelo relógio.
-            let mut seed = crc32fast::hash(&[pw, &e.name].concat());
+            let mut seed = crc32_update(0, &[pw, &e.name].concat());
             let mut k = Keys::new(pw);
             for _ in 0..HEAD - 2 {
                 seed = seed.wrapping_mul(1_103_515_245).wrapping_add(12_345);

@@ -10,7 +10,8 @@ description = "Compressor deflate do zlib 1.3.1 traduzido sem unsafe, com saída
 
 
 [dependencies]
-crc32fast = "1.5"
+# O CRC-32 do invólucro gzip é o `crc32.c` do zlib 1.3.1, portado no `ul-common`.
+ul-common = { path = "../ul-common" }
 
 [lints.rust]
 unsafe_code = "forbid"
