@@ -376,7 +376,7 @@ impl Task {
     fn open_chardev(&self, rdev: u64, flags: OFlags) -> SysResult<Device> {
         let id = (vfs::dev_major(rdev), vfs::dev_minor(rdev));
         if id == tty::DEV_PTMX {
-            return Ok(Device::Pty(self.open_ptmx()?));
+            return Ok(Device::Pty(tty::open_ptmx(&self.sb, self.proc.st.lock().cred.uid)?));
         }
         if id == crate::dev::DEV_TTY {
             // `tty_open_current_tty`: o terminal de controle da sessão; ENXIO sem ele.
@@ -393,28 +393,6 @@ impl Task {
             return Ok(Device::Pty(end));
         }
         Device::open(rdev)
-    }
-
-    /// `ptmx_open`: pty novo e o nó `/dev/pts/N` (dono quem abriu, grupo tty, modo 0620), travado.
-    fn open_ptmx(&self) -> SysResult<PtyEnd> {
-        let uid = self.proc.st.lock().cred.uid;
-        let pty = self.sb.alloc_pty()?;
-        let end = pty.attach(true);
-        let cx = self.sb.root_caller();
-        let path = pty.path();
-        let s = Start::Cwd;
-        let ns = &self.sb.ns;
-        let made = ns
-            .mknod(&cx, &s, &path, mode::S_IFCHR | tty::PTS_MODE, vfs::makedev(tty::PTS_MAJOR, pty.index))
-            .and_then(|()| ns.chmod(&cx, &s, &path, tty::PTS_MODE, AtFlags::empty()))
-            .and_then(|()| ns.chown(&cx, &s, &path, Some(uid), Some(tty::TTY_GID), AtFlags::empty()));
-        match made {
-            Ok(()) => Ok(end),
-            Err(e) => {
-                drop(end);
-                Err(e)
-            }
-        }
     }
 
     /// pid, sid e pgid do processo.

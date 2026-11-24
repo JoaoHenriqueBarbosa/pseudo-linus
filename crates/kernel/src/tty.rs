@@ -1053,11 +1053,30 @@ impl Drop for PtyEnd {
             }
             (w, hangup)
         };
-        w.run();
+        // O sinal vem antes de acordar quem espera (`tty_signal_session_leader` antes do
+        // `tty_ldisc_hangup` no `__tty_hangup`): o líder parado numa leitura morre do SIGHUP em vez de
+        // ver o EOF do terminal desligado.
         if let Some(session) = hangup {
             self.pty.master_closed(session);
         }
+        w.run();
     }
+}
+
+/// `ptmx_open`: pty novo e o nó `/dev/pts/N` (owner `uid`, grupo tty, modo 0620), com o lock do
+/// `TIOCSPTLCK` ligado. Devolve a ponta mestre.
+pub(crate) fn open_ptmx(sb: &Arc<SbInner>, uid: u32) -> Result<PtyEnd, Errno> {
+    let pty = sb.alloc_pty()?;
+    let end = pty.attach(true);
+    let cx = sb.root_caller();
+    let path = pty.path();
+    let s = Start::Cwd;
+    let ns = &sb.ns;
+    // Se falhar, soltar `end` fecha o mestre e libera o número.
+    ns.mknod(&cx, &s, &path, sysabi::mode::S_IFCHR | PTS_MODE, vfs::makedev(PTS_MAJOR, pty.index))?;
+    ns.chmod(&cx, &s, &path, PTS_MODE, AtFlags::empty())?;
+    ns.chown(&cx, &s, &path, Some(uid), Some(TTY_GID), AtFlags::empty())?;
+    Ok(end)
 }
 
 // ------------------------------------------------------------------------------------------------

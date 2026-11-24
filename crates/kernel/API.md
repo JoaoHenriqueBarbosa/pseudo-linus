@@ -80,6 +80,24 @@ são aplicadas depois do stdio, na ordem: `Dup2`, `Close`, `Open { fd, path, fla
 cwd do filho). Processos criados pelo host são filhos do init (pid 1), que não colhe os zumbis deles: só o
 `sb.wait` colhe. Órfãos de dentro do sandbox são adotados pelo init e colhidos na hora.
 
+Num terminal (o que o `docker exec -t` faz; o host fica com o mestre do pty, no papel do emulador de
+terminal):
+
+```rust
+let (pid, pty): (Pid, HostPty) = sb.spawn_pty(SpawnSpec { path, argv, attrs }, Winsize { rows: 24, cols: 80, ..Winsize::default() })?;
+// O processo é líder de uma sessão nova; stdin, stdout e stderr são uma descrição só do escravo
+// (`/dev/pts/N`), que é o terminal de controle da sessão, com o processo em primeiro plano.
+pty.read(&mut buf, deadline)              // Data(n) | Eof | Timeout: a saída depois do OPOST e o eco;
+                                          // Eof quando o último escravo fechou e a saída esvaziou
+pty.write_all(b"ls\n")?                   // a entrada, pela disciplina de linha: eco, modo canônico, e os
+                                          // sinais de ISIG (Ctrl-C, Ctrl-\, Ctrl-Z) pro grupo em primeiro plano
+pty.set_winsize(Winsize { .. })           // se mudou, SIGWINCH pro grupo em primeiro plano
+drop(pty)                                 // hangup: SIGHUP e SIGCONT pro líder da sessão, o nó some
+```
+
+Os métodos são `&self`: uma thread lê e outra escreve. `write_all` só espera fora do modo canônico,
+quando a entrada crua enche e o processo não lê.
+
 ## Sistema de arquivos direto (como root, cwd em `/`)
 
 ```rust

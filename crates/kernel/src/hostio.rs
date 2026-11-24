@@ -1,10 +1,10 @@
 //! O lado do host: criar processo com stdin, stdout e stderr ligados a pontas de pipe que threads do
 //! host leem e escrevem, esperar processo, e o `run` síncrono (atalho de spawn + leitura + wait).
 
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
 
-use sysabi::{Errno, KillTarget, OFlags, Pid, ProcAttrs, Resource, Rusage, Signal, SpawnSpec, WaitStatus};
+use sysabi::{Errno, KillTarget, OFlags, Pid, ProcAttrs, Resource, Rusage, Signal, SpawnSpec, WaitStatus, Winsize};
 use vfs::{Caller, Cred, Opened, Start};
 
 use crate::config::DEFAULT_RUN_TIMEOUT;
@@ -17,6 +17,7 @@ use crate::proc::{INIT_PID, default_rlimits};
 use crate::sandbox::{Sandbox, SbInner};
 use crate::signal::SigState;
 use crate::spawn::{self, Body, ChildSpec};
+use crate::tty::{self, Pty, PtyEnd};
 
 /// O que ligar num fd padrão de um processo criado pelo host.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -63,29 +64,43 @@ impl std::fmt::Debug for HostReader {
     }
 }
 
+/// Leitura do host com prazo (`None` = sem prazo). `try_read(nonblock)` tenta ler e, sem `nonblock`,
+/// deixa `parker` registrado na espera do objeto; `unregister` desfaz o registro quando o prazo vence.
+/// Erro na leitura conta como fim (pipe sem escritor, pty sem escravo).
+fn host_read(
+    parker: &Parker,
+    deadline: Option<Instant>,
+    mut try_read: impl FnMut(bool) -> Try<Result<usize, Errno>>,
+    unregister: impl Fn(),
+) -> ReadOutcome {
+    let outcome = |r: Result<usize, Errno>| match r {
+        Ok(n) if n > 0 => ReadOutcome::Data(n),
+        _ => ReadOutcome::Eof,
+    };
+    loop {
+        if let Try::Ready(r) = try_read(false) {
+            return outcome(r);
+        }
+        match deadline {
+            Some(d) => {
+                if !parker.park_until(d) {
+                    unregister();
+                    return match try_read(true) {
+                        Try::Ready(Ok(n)) => outcome(Ok(n)),
+                        _ => ReadOutcome::Timeout,
+                    };
+                }
+            }
+            None => parker.park(),
+        }
+    }
+}
+
 impl HostReader {
     /// Lê o que houver; espera até o prazo (`None` = sem prazo).
     pub fn read(&mut self, buf: &mut [u8], deadline: Option<Instant>) -> ReadOutcome {
-        loop {
-            match self.end.pipe.try_read(buf, false, &self.parker) {
-                Try::Ready(Ok(0)) => return ReadOutcome::Eof,
-                Try::Ready(Ok(n)) => return ReadOutcome::Data(n),
-                Try::Ready(Err(_)) => return ReadOutcome::Eof,
-                Try::Pending => {}
-            }
-            match deadline {
-                Some(d) => {
-                    if !self.parker.park_until(d) {
-                        self.end.pipe.unregister(&self.parker);
-                        if let Try::Ready(Ok(n)) = self.end.pipe.try_read(buf, true, &self.parker) {
-                            return if n == 0 { ReadOutcome::Eof } else { ReadOutcome::Data(n) };
-                        }
-                        return ReadOutcome::Timeout;
-                    }
-                }
-                None => self.parker.park(),
-            }
-        }
+        let (pipe, parker) = (&self.end.pipe, &self.parker);
+        host_read(parker, deadline, |nonblock| pipe.try_read(buf, nonblock, parker), || pipe.unregister(parker))
     }
 
     /// Lê sem esperar: `Some(0)` é EOF, `None` é "nada agora".
@@ -163,6 +178,59 @@ impl HostWriter {
     }
 }
 
+/// O terminal de um processo criado pelo host com [`Sandbox::spawn_pty`]: a ponta mestre do pty, do
+/// lado do host (o papel do emulador de terminal). Soltar desliga o terminal: o líder da sessão
+/// recebe SIGHUP e SIGCONT. Uma thread lê e outra escreve; duas na mesma operação disputam a espera.
+pub struct HostPty {
+    end: PtyEnd,
+    sb: Weak<SbInner>,
+    reader: Arc<Parker>,
+    writer: Arc<Parker>,
+}
+
+impl std::fmt::Debug for HostPty {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "HostPty({})", self.end.pty.index)
+    }
+}
+
+impl HostPty {
+    /// Lê a saída do terminal (o que os processos escreveram, depois do OPOST, e o eco); espera até o
+    /// prazo (`None` = sem prazo). `Eof` quando o último escravo fechou e a saída esvaziou.
+    pub fn read(&self, buf: &mut [u8], deadline: Option<Instant>) -> ReadOutcome {
+        let (pty, parker) = (&self.end.pty, &self.reader);
+        host_read(parker, deadline, |nonblock| pty.try_master_read(buf, nonblock, parker), || pty.unregister(parker))
+    }
+
+    /// Entrega a entrada do terminal (o que foi digitado) à disciplina de linha, com os sinais que ela
+    /// gerar (ISIG) pro grupo em primeiro plano. No modo canônico não espera; no outro, espera o
+    /// escravo ler quando a entrada enche. EIO se o sandbox acabou.
+    pub fn write_all(&self, data: &[u8]) -> Result<(), Errno> {
+        let sb = self.sb.upgrade().ok_or(Errno::EIO)?;
+        let mut done = 0usize;
+        let mut sigs = Vec::new();
+        loop {
+            let r = self.end.pty.try_master_write(data, &mut done, false, &mut sigs, &self.writer);
+            for (pgrp, sig) in sigs.drain(..) {
+                tty::signal_pgrp(&sb, pgrp, sig);
+            }
+            match r {
+                Try::Ready(r) => return r.map(drop),
+                Try::Pending => self.writer.park(),
+            }
+        }
+    }
+
+    /// Troca o tamanho da janela; se mudou, o grupo em primeiro plano recebe SIGWINCH (`TIOCSWINSZ`).
+    pub fn set_winsize(&self, ws: Winsize) {
+        if let Some(pgrp) = self.end.pty.set_winsize(ws)
+            && let Some(sb) = self.sb.upgrade()
+        {
+            tty::sigwinch(&sb, pgrp);
+        }
+    }
+}
+
 /// Processo criado pelo host.
 #[derive(Debug)]
 pub struct Spawned {
@@ -234,11 +302,19 @@ fn which(sb: &SbInner, cx: &Caller, name: &[u8], env: &[Vec<u8>]) -> Result<Vec<
     Err(if eacces { Errno::EACCES } else { Errno::ENOENT })
 }
 
+/// O stdio de um processo criado pelo host: pontas avulsas ou o escravo de um pty.
+enum HostFds<'a> {
+    Stdio(HostStdio),
+    /// stdin, stdout e stderr são uma descrição só do escravo, aberto para leitura e escrita, e o pty é
+    /// o terminal de controle da sessão nova, com o processo em primeiro plano (o que o `login_tty` faz).
+    Tty(&'a Arc<Pty>),
+}
+
 /// Cria um processo a partir do host: filho do init, com o stdio pedido. Com `leader`, numa sessão nova
 /// (líder de sessão e de grupo); sem, herda o grupo e a sessão do init, como o processo de um
 /// `docker exec` sem terminal, que herda os do `runc init` e não é líder de grupo (o `setsid` do
 /// util-linux, por exemplo, só faz fork quando é líder).
-pub(crate) fn host_spawn(sb: &Arc<SbInner>, spec: SpawnSpec, stdio: HostStdio, leader: bool) -> Result<Spawned, Errno> {
+fn host_spawn(sb: &Arc<SbInner>, spec: SpawnSpec, stdio: HostFds<'_>, leader: bool) -> Result<Spawned, Errno> {
     let cfg = &sb.cfg;
     let cred = Arc::new(Cred::new(cfg.uid, cfg.gid, vec![cfg.gid]));
     let mut cx = sb.root_caller();
@@ -254,25 +330,38 @@ pub(crate) fn host_spawn(sb: &Arc<SbInner>, spec: SpawnSpec, stdio: HostStdio, l
     let mut host_out = None;
     let mut host_err = None;
     let limit = cfg.limits.nofile;
-    match stdio.stdin {
-        StdioSpec::Null => {
-            fds.put(sysabi::Fd(0), dev_null(sb, &cx, OFlags::RDONLY)?, false);
-        }
-        StdioSpec::Pipe => {
-            let p = host_pipe(sb);
-            fds.put(sysabi::Fd(0), Ofd::new(FileObj::Pipe { end: p.attach(true, false), fifo: None }, OFlags::RDONLY, locks.clone()), false);
-            host_in = Some(HostWriter { end: p.attach(false, true), parker: Parker::new() });
-        }
-    }
-    for (fd, sp, slot) in [(1, stdio.stdout, &mut host_out), (2, stdio.stderr, &mut host_err)] {
-        match sp {
-            StdioSpec::Null => {
-                fds.put(sysabi::Fd(fd), dev_null(sb, &cx, OFlags::WRONLY)?, false);
+    match &stdio {
+        HostFds::Stdio(stdio) => {
+            match stdio.stdin {
+                StdioSpec::Null => {
+                    fds.put(sysabi::Fd(0), dev_null(sb, &cx, OFlags::RDONLY)?, false);
+                }
+                StdioSpec::Pipe => {
+                    let p = host_pipe(sb);
+                    fds.put(sysabi::Fd(0), Ofd::new(FileObj::Pipe { end: p.attach(true, false), fifo: None }, OFlags::RDONLY, locks.clone()), false);
+                    host_in = Some(HostWriter { end: p.attach(false, true), parker: Parker::new() });
+                }
             }
-            StdioSpec::Pipe => {
-                let p = host_pipe(sb);
-                fds.put(sysabi::Fd(fd), Ofd::new(FileObj::Pipe { end: p.attach(false, true), fifo: None }, OFlags::WRONLY, locks.clone()), false);
-                *slot = Some(HostReader { end: p.attach(true, false), parker: Parker::new() });
+            for (fd, sp, slot) in [(1, stdio.stdout, &mut host_out), (2, stdio.stderr, &mut host_err)] {
+                match sp {
+                    StdioSpec::Null => {
+                        fds.put(sysabi::Fd(fd), dev_null(sb, &cx, OFlags::WRONLY)?, false);
+                    }
+                    StdioSpec::Pipe => {
+                        let p = host_pipe(sb);
+                        fds.put(sysabi::Fd(fd), Ofd::new(FileObj::Pipe { end: p.attach(false, true), fifo: None }, OFlags::WRONLY, locks.clone()), false);
+                        *slot = Some(HostReader { end: p.attach(true, false), parker: Parker::new() });
+                    }
+                }
+            }
+        }
+        HostFds::Tty(pty) => {
+            let Opened::CharDev { loc, .. } = sb.ns.open(&cx, &Start::Cwd, &pty.path(), OFlags::RDWR, 0)? else {
+                return Err(Errno::ENXIO);
+            };
+            let slave = Ofd::new(FileObj::Dev { dev: Device::Pty(pty.attach(false)), loc: Some(loc) }, OFlags::RDWR, locks.clone());
+            for fd in 0..3 {
+                fds.put(sysabi::Fd(fd), slave.clone(), false);
             }
         }
     }
@@ -301,6 +390,9 @@ pub(crate) fn host_spawn(sb: &Arc<SbInner>, spec: SpawnSpec, stdio: HostStdio, l
     let img = exec::load(sb, &ccx, &spec.path, spec.argv.clone(), child.env.clone())?;
     let task = spawn::insert_child(sb, child)?;
     let pid = task.proc.pid;
+    if let HostFds::Tty(pty) = stdio {
+        pty.set_ctty(pid, pid);
+    }
     spawn::commit_exec(&task, &img, false);
     spawn::start_process(sb, task, Body::Image(img))?;
     Ok(Spawned { pid, stdin: host_in, stdout: host_out, stderr: host_err })
@@ -398,7 +490,19 @@ fn exited(sb: &SbInner, pid: Pid) -> bool {
 impl Sandbox {
     /// Cria um processo a partir do host (filho do init, sessão e grupo novos) com o stdio pedido.
     pub fn spawn(&self, spec: SpawnSpec, stdio: HostStdio) -> Result<Spawned, Errno> {
-        host_spawn(&self.inner, spec, stdio, true)
+        host_spawn(&self.inner, spec, HostFds::Stdio(stdio), true)
+    }
+
+    /// Cria um processo a partir do host num terminal: pty novo com a janela `winsize`, o escravo
+    /// (`/dev/pts/N`) em stdin, stdout e stderr, o processo líder de uma sessão nova com o pty de
+    /// terminal de controle. O mestre fica no host, como no `docker exec -t`.
+    pub fn spawn_pty(&self, spec: SpawnSpec, winsize: Winsize) -> Result<(Pid, HostPty), Errno> {
+        let sb = &self.inner;
+        let end = tty::open_ptmx(sb, sb.cfg.uid)?;
+        end.pty.set_locked(false);
+        end.pty.set_winsize(winsize);
+        let pid = host_spawn(sb, spec, HostFds::Tty(&end.pty), true)?.pid;
+        Ok((pid, HostPty { end, sb: Arc::downgrade(sb), reader: Parker::new(), writer: Parker::new() }))
     }
 
     /// Roda até o fim: escreve o stdin, junta stdout e stderr, espera o processo. No timeout manda SIGKILL
@@ -418,7 +522,7 @@ impl Sandbox {
             attrs: ProcAttrs { env: Some(env), cwd: Some(cwd_path), ..ProcAttrs::default() },
         };
         // Igual ao oráculo (`docker exec`): o processo do caso não é líder de grupo nem de sessão.
-        let mut sp = host_spawn(sb, spec, HostStdio::default(), false)?;
+        let mut sp = host_spawn(sb, spec, HostFds::Stdio(HostStdio::default()), false)?;
         let pid = sp.pid;
         let deadline = Instant::now() + req.timeout.unwrap_or(DEFAULT_RUN_TIMEOUT);
         let parker = Parker::new();
