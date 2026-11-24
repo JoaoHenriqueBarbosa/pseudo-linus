@@ -47,10 +47,8 @@ impl Source {
                     return Ok(None);
                 }
                 Ok(_) => {}
-                Err(Errno::EINTR) => {
-                    let _ = sh.run_pending_traps();
-                    return self.next(sh);
-                }
+                Err(Errno::EINTR) if signal_aborts(sh) => return Err(Errno::EINTR),
+                Err(Errno::EINTR) => return self.next(sh),
                 Err(e) => return Err(e),
             }
         }
@@ -69,9 +67,7 @@ impl Source {
                     self.pos = 1;
                     return Ok(Some(self.buf[0]));
                 }
-                Err(Errno::EINTR) => {
-                    let _ = sh.run_pending_traps();
-                }
+                Err(Errno::EINTR) if !signal_aborts(sh) => {}
                 Err(e) => {
                     self.buf.clear();
                     return Err(e);
@@ -89,6 +85,13 @@ impl Source {
         self.buf.clear();
         self.pos = 0;
     }
+}
+
+/// Uma espera da leitura foi interrompida por sinal: roda os traps. `true` se foi o SIGINT do shell
+/// interativo, que abandona a leitura; nos outros casos ela continua.
+fn signal_aborts(sh: &mut Shell) -> bool {
+    let _ = sh.run_pending_traps();
+    sh.sigint
 }
 
 /// Lê uma linha crua até `delim` (sem incluí-lo); `None` em EOF sem dados.

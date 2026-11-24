@@ -9,7 +9,7 @@ use sysabi::{Ctx, Fd};
 
 use crate::exec::TextKind;
 use crate::parse::{ParseEnv, parse_text};
-use crate::shell::{Flow, Shell, sys, write_fd};
+use crate::shell::{Flow, INTERRUPTED, Shell, sys, write_fd};
 
 const VERSION: &str = "GNU bash, version 5.2.37(1)-release (x86_64-pc-linux-gnu)\n\
 Copyright (C) 2022 Free Software Foundation, Inc.\n\
@@ -26,6 +26,10 @@ struct Invocation {
     arg0: Vec<u8>,
     interactive: bool,
     stdin: bool,
+    /// `--norc`: o interativo não lê os arquivos de partida.
+    norc: bool,
+    /// `--rcfile` ou `--init-file`: lido no lugar do `~/.bashrc`.
+    rcfile: Option<Vec<u8>>,
 }
 
 fn usage_error(prog: &str, msg: &str) -> i32 {
@@ -35,7 +39,7 @@ fn usage_error(prog: &str, msg: &str) -> i32 {
 
 fn parse_invocation(sh: &mut Shell, argv: &[Vec<u8>]) -> Result<Invocation, i32> {
     let prog = String::from_utf8_lossy(argv.first().map(|a| a.as_slice()).unwrap_or(b"bash")).into_owned();
-    let mut inv = Invocation { command: None, script: None, args: Vec::new(), arg0: argv.first().cloned().unwrap_or_else(|| b"bash".to_vec()), interactive: false, stdin: false };
+    let mut inv = Invocation { command: None, script: None, args: Vec::new(), arg0: argv.first().cloned().unwrap_or_else(|| b"bash".to_vec()), interactive: false, stdin: false, norc: false, rcfile: None };
     let mut want_c = false;
     let mut i = 1;
     while i < argv.len() {
@@ -62,9 +66,11 @@ fn parse_invocation(sh: &mut Shell, argv: &[Vec<u8>]) -> Result<Invocation, i32>
                     if a == b"--verbose" {
                         sh.opts.set("verbose", true);
                     }
+                    inv.norc |= a == b"--norc";
                 }
                 b"--rcfile" | b"--init-file" => {
                     i += 1;
+                    inv.rcfile = argv.get(i).cloned();
                 }
                 _ => {
                     return Err(usage_error(&prog, &format!("{}: invalid option", String::from_utf8_lossy(a))));
@@ -150,6 +156,7 @@ fn finish(sh: &mut Shell, r: Result<i32, Flow>) -> i32 {
         Err(Flow::Exit(n)) => n,
         Err(Flow::Return(n)) => n,
         Err(Flow::Discard) => 1,
+        Err(Flow::Interrupt) => INTERRUPTED,
         Err(Flow::Break(_)) | Err(Flow::Continue(_)) => sh.status,
     };
     sh.exit_shell(status)
@@ -208,9 +215,9 @@ fn shell_main(args: &[OsString], posix: bool) -> i32 {
     }
     let interactive = inv.interactive || (sys().isatty(Fd::STDIN) && sys().isatty(Fd::STDERR));
     if interactive {
-        sh.interactive = true;
+        sh.init_interactive_signals();
         sh.opts.set("histexpand", false);
-        let r = run_interactive(&mut sh);
+        let r = init_interactive(&mut sh, inv.norc, inv.rcfile).and_then(|()| run_interactive(&mut sh));
         return finish(&mut sh, r);
     }
     let r = run_stdin(&mut sh);
@@ -286,6 +293,38 @@ fn run_stdin(sh: &mut Shell) -> Result<i32, Flow> {
     }
 }
 
+/// O prompt primário do bash sem configuração.
+const DEFAULT_PS1: &[u8] = b"\\s-\\v\\$ ";
+const DEFAULT_PS2: &[u8] = b"> ";
+/// O arquivo de partida do sistema no bash do Debian (`SYS_BASHRC`).
+const SYS_BASHRC: &[u8] = b"/etc/bash.bashrc";
+
+/// Partida do bash interativo que não é de login: `PS1` e `PS2` passam a existir (o
+/// `/etc/bash.bashrc` do Debian só segue adiante com `PS1` definida) e, sem `--norc` e fora do modo
+/// `sh`, o shell lê o `/etc/bash.bashrc` e depois o `~/.bashrc` (ou o arquivo do `--rcfile`). Arquivo
+/// que não existe é pulado sem aviso (`maybe_execute_file`).
+fn init_interactive(sh: &mut Shell, norc: bool, rcfile: Option<Vec<u8>>) -> Result<(), Flow> {
+    for (name, default) in [("PS1", DEFAULT_PS1), ("PS2", DEFAULT_PS2)] {
+        if sh.var_bytes(name).is_none() {
+            sh.assign_scalar(name, default.to_vec(), false)?;
+        }
+    }
+    if norc || sh.posix {
+        return Ok(());
+    }
+    let user_rc = rcfile.or_else(|| sh.var_bytes("HOME").map(|home| [home, b"/.bashrc".as_slice()].concat()));
+    for file in [Some(SYS_BASHRC.to_vec()), user_rc].into_iter().flatten() {
+        if sysabi::sys::read_file(&file).is_err() {
+            continue;
+        }
+        match crate::builtins::core::source(sh, &[b"source".to_vec(), file]) {
+            Err(Flow::Exit(n)) => return Err(Flow::Exit(n)),
+            _ => interrupted(sh),
+        };
+    }
+    Ok(())
+}
+
 /// Modo interativo básico: PS1/PS2 no stderr, uma linha por vez.
 fn run_interactive(sh: &mut Shell) -> Result<i32, Flow> {
     let mut buf = String::new();
@@ -293,10 +332,20 @@ fn run_interactive(sh: &mut Shell) -> Result<i32, Flow> {
     let name: Arc<str> = Arc::from(String::from_utf8_lossy(&sh.arg0).as_ref());
     loop {
         let ps = if buf.is_empty() { "PS1" } else { "PS2" };
-        let raw = sh.var_bytes(ps).map(|v| v.to_vec()).unwrap_or_else(|| if ps == "PS1" { b"\\s-\\v\\$ ".to_vec() } else { b"> ".to_vec() });
-        let prompt = sh.prompt_expand(&raw);
+        let raw = sh.var_bytes(ps).map(|v| v.to_vec()).unwrap_or_default();
+        let mut prompt = sh.prompt_expand(&raw);
+        if sh.opts.shopt("promptvars") {
+            prompt = sh.expand_prompt_vars(&prompt);
+        }
         let _ = write_fd(Fd::STDERR, &prompt);
-        let Some(line) = read_raw_line(sh) else {
+        let line = read_raw_line(sh);
+        if interrupted(sh) {
+            // Ctrl-C no prompt: o que foi digitado (a linha e as de continuação) se perde.
+            buf.clear();
+            status = INTERRUPTED;
+            continue;
+        }
+        let Some(line) = line else {
             let _ = write_fd(Fd::STDERR, b"exit\n");
             return Ok(status);
         };
@@ -314,7 +363,21 @@ fn run_interactive(sh: &mut Shell) -> Result<i32, Flow> {
             Err(_) => status = sh.status,
         }
         let _ = sh.run_pending_traps();
+        if interrupted(sh) {
+            status = INTERRUPTED;
+        }
     }
+}
+
+/// O SIGINT do shell interativo chegou desde a última pergunta? Atendido aqui: o `^C` que o terminal
+/// ecoou não tem fim de linha, então o prompt seguinte sai na linha de baixo, e `$?` fica 130.
+fn interrupted(sh: &mut Shell) -> bool {
+    let hit = std::mem::take(&mut sh.sigint);
+    if hit {
+        sh.status = INTERRUPTED;
+        let _ = write_fd(Fd::STDERR, b"\n");
+    }
+    hit
 }
 
 pub fn bash_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {

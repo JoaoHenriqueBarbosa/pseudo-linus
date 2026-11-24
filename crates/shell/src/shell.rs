@@ -23,9 +23,15 @@ pub enum Flow {
     /// Erro de expansão (aritmética, "bad substitution"): o bash descarta o comando de topo inteiro,
     /// `$?` vira 1 e a leitura continua no próximo comando.
     Discard,
+    /// SIGINT sem trap no shell interativo: o comando de topo inteiro é abandonado e o shell volta ao
+    /// prompt com `$?` 130 (o `throw_to_top_level` do bash).
+    Interrupt,
 }
 
 pub type Exec = Result<i32, Flow>;
+
+/// O `$?` de um comando abandonado pelo SIGINT ([`Flow::Interrupt`]).
+pub const INTERRUPTED: i32 = 128 + sysabi::Signal::SIGINT.0;
 
 /// Moldura de chamada (pra `FUNCNAME`, `BASH_SOURCE`, `BASH_LINENO`, `caller`).
 #[derive(Clone, Debug)]
@@ -126,6 +132,8 @@ pub struct Shell {
     /// `-c` (pra `$-`).
     pub dash_c: bool,
     pub interactive: bool,
+    /// Shell interativo: chegou um SIGINT sem trap que ainda não abandonou o comando de topo.
+    pub sigint: bool,
     /// Executando um trap (pra não reentrar).
     pub in_trap: u32,
     /// Shell rodando um script lido de arquivo (o `FUNCNAME` ganha "main").
@@ -219,6 +227,7 @@ impl Shell {
             procsub_pids: Vec::new(),
             dash_c: false,
             interactive: false,
+            sigint: false,
             in_trap: 0,
             script_file: false,
             is_subshell: false,

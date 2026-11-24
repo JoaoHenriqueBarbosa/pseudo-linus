@@ -28,6 +28,21 @@ pub enum TextKind {
 /// Limite de profundidade de chamadas de função (proteção da pilha).
 const MAX_FUNC_DEPTH: u32 = 4000;
 
+/// O que o bash interativo faz com os sinais do terminal que o derrubariam ou parariam
+/// (`initialize_shell_signals` e `initialize_job_signals`): o sinal, a disposição no shell e se os
+/// filhos voltam ao padrão. Os de parada ficam ignorados também nos filhos: este shell ainda não tem
+/// job control (grupo próprio por job, `fg`, `bg`), então quem parasse com o Ctrl-Z não teria quem o
+/// continuasse, e o shell ficaria esperando para sempre. No bash, com job control, eles voltam ao
+/// padrão nos filhos.
+const INTERACTIVE_SIGNALS: [(Signal, SigDisposition, bool); 6] = [
+    (Signal::SIGINT, SigDisposition::Catch, true),
+    (Signal::SIGQUIT, SigDisposition::Ignore, true),
+    (Signal::SIGTERM, SigDisposition::Ignore, true),
+    (Signal::SIGTSTP, SigDisposition::Ignore, false),
+    (Signal::SIGTTIN, SigDisposition::Ignore, false),
+    (Signal::SIGTTOU, SigDisposition::Ignore, false),
+];
+
 /// Elemento expandido de `nome=(...)`: chave opcional, se é `+=`, valor.
 pub type ArrayItem = (Option<Vec<u8>>, bool, Vec<u8>);
 
@@ -197,6 +212,7 @@ impl Shell {
 
     /// Roda um pipeline e aplica `!`, PIPESTATUS, pipefail, trap ERR e `set -e`.
     pub fn exec_pipeline(&mut self, p: &Pipeline) -> Exec {
+        self.check_interrupt()?;
         stacker::maybe_grow(64 * 1024, 2 * 1024 * 1024, || self.exec_pipeline_inner(p))
     }
 
@@ -392,7 +408,10 @@ impl Shell {
         let s = sys();
         loop {
             match s.wait4(WaitTarget::Pid(pid), WaitOptions::empty()) {
-                Ok(Some((_, st))) => return Some(st),
+                Ok(Some((_, st))) => {
+                    self.settle_foreground_sigint(st);
+                    return Some(st);
+                }
                 Ok(None) => {
                     s.sched_yield();
                 }
@@ -434,6 +453,7 @@ impl Shell {
     pub fn subshell_clone(&self) -> Shell {
         let mut c = self.clone();
         c.is_subshell = true;
+        c.sigint = false;
         c.subshell += 1;
         c.jobs.clear();
         c.procsub_fds.clear();
@@ -461,9 +481,53 @@ impl Shell {
         c
     }
 
-    /// Sinais com trap (não ignorados): voltam ao padrão no filho.
+    /// Sinais que voltam ao padrão no filho: os com trap (não ignorados) e, no shell interativo, os
+    /// que ele trata para si (`INTERACTIVE_SIGNALS`) e o usuário não mandou ignorar com `trap ''`.
     pub fn trapped_signals(&self) -> Vec<Signal> {
-        self.traps.signals.iter().filter(|(n, v)| **n > 0 && !v.is_empty()).map(|(n, _)| Signal(*n)).collect()
+        let mut sigs: Vec<Signal> = self.traps.signals.iter().filter(|(n, v)| **n > 0 && !v.is_empty()).map(|(n, _)| Signal(*n)).collect();
+        if self.at_prompt_level() {
+            sigs.extend(INTERACTIVE_SIGNALS.iter().filter(|(sig, _, reset)| *reset && !self.traps.signals.contains_key(&sig.0)).map(|(sig, ..)| *sig));
+        }
+        sigs
+    }
+
+    /// O shell interativo em si, não um subshell dele.
+    fn at_prompt_level(&self) -> bool {
+        self.interactive && !self.is_subshell
+    }
+
+    /// As disposições do bash interativo: SIGINT abandona o comando e volta ao prompt; SIGQUIT,
+    /// SIGTERM e os sinais de parada do terminal não derrubam nem param o shell.
+    pub fn init_interactive_signals(&mut self) {
+        self.interactive = true;
+        for (sig, disposition, _) in INTERACTIVE_SIGNALS {
+            let _ = sys().sigaction(sig, disposition);
+        }
+    }
+
+    /// A disposição de um sinal sem trap do usuário: a captura interna do SIGCHLD, a do shell
+    /// interativo, ou o padrão.
+    pub fn untrapped_disposition(&self, sig: Signal) -> SigDisposition {
+        if sig == Signal::SIGCHLD && self.sigchld_armed {
+            return SigDisposition::Catch;
+        }
+        INTERACTIVE_SIGNALS.iter().find(|(s, ..)| *s == sig && self.at_prompt_level()).map_or(SigDisposition::Default, |(_, d, _)| *d)
+    }
+
+    /// Ponto em que o SIGINT do shell interativo é atendido: antes de cada pipeline, para um laço só
+    /// de builtins também parar.
+    fn check_interrupt(&mut self) -> Result<(), Flow> {
+        if self.at_prompt_level() { self.run_pending_traps() } else { Ok(()) }
+    }
+
+    /// Fim de um filho em primeiro plano. O SIGINT do terminal chega ao grupo inteiro, shell e filho;
+    /// como no `wait_for` do bash, ele só interrompe o shell se o filho morreu dele: com um filho que
+    /// trata o SIGINT (um REPL, um pager) o shell segue.
+    fn settle_foreground_sigint(&mut self, st: WaitStatus) {
+        if self.at_prompt_level() {
+            let _ = self.run_pending_traps();
+            self.sigint = matches!(st, WaitStatus::Signaled { signal: Signal::SIGINT, .. }) && !self.traps.signals.contains_key(&Signal::SIGINT.0);
+        }
     }
 
     fn enter_child(&mut self) {
@@ -512,6 +576,7 @@ impl Shell {
             Ok(st) => st,
             Err(Flow::Exit(n)) | Err(Flow::Return(n)) => n,
             Err(Flow::Discard) => 1,
+            Err(Flow::Interrupt) => crate::shell::INTERRUPTED,
             Err(Flow::Break(_)) | Err(Flow::Continue(_)) => self.status,
         };
         self.exit_shell(status)
@@ -869,16 +934,23 @@ impl Shell {
         r
     }
 
+    /// Expande parâmetros, `$(...)` e aritmética no texto de um prompt, como no corpo de um
+    /// here-document: o que o bash faz com o PS4 e, com `promptvars`, com o PS1 e o PS2 depois dos
+    /// escapes de barra. Com erro, o texto fica como está.
+    pub fn expand_prompt_vars(&mut self, text: &[u8]) -> Vec<u8> {
+        match crate::word::parse_word(&String::from_utf8_lossy(text), crate::word::WordOpts::mode(crate::word::Mode::HereDoc, self.lineno)) {
+            Ok(parts) => self.expand_parts_string(&parts).unwrap_or_else(|_| text.to_vec()),
+            Err(_) => text.to_vec(),
+        }
+    }
+
     /// Imprime uma linha de xtrace: PS4 expandido (o primeiro caractere repetido por nível) e as
     /// palavras já citadas.
     pub fn xtrace_line(&mut self, words: &[Vec<u8>]) {
         let ps4 = self.var_bytes("PS4").map(|v| v.to_vec()).unwrap_or_default();
         let saved = self.opts.get("xtrace");
         self.opts.set("xtrace", false);
-        let expanded = match crate::word::parse_word(&String::from_utf8_lossy(&ps4), crate::word::WordOpts::mode(crate::word::Mode::HereDoc, self.lineno)) {
-            Ok(parts) => self.expand_parts_string(&parts).unwrap_or(ps4.clone()),
-            Err(_) => ps4.clone(),
-        };
+        let expanded = self.expand_prompt_vars(&ps4);
         self.opts.set("xtrace", saved);
         let mut line = Vec::new();
         if let Some(first) = expanded.first() {
@@ -1050,7 +1122,7 @@ impl Shell {
         let script = String::from_utf8_lossy(&data).into_owned();
         let argv = argv.to_vec();
         let env = env.to_vec();
-        let attrs = ProcAttrs { env: Some(env), ..ProcAttrs::default() };
+        let attrs = ProcAttrs { env: Some(env), reset_signals: self.trapped_signals(), ..ProcAttrs::default() };
         let spawned = s.spawn_fn(
             attrs,
             b"bash".to_vec(),
@@ -1412,6 +1484,7 @@ impl Shell {
                 FdAction::Close(out_r),
                 FdAction::Close(out_w),
             ],
+            reset_signals: self.trapped_signals(),
             ..ProcAttrs::default()
         };
         let spawned = s.spawn_fn(attrs, b"bash".to_vec(), Box::new(move || child.run_subshell_command(&cmd)));
@@ -1524,14 +1597,17 @@ impl Shell {
             self.reap_background();
         }
         for sig in sigs {
-            if let Some(cmd) = self.traps.signals.get(&sig.0).cloned()
-                && !cmd.is_empty() {
+            if let Some(cmd) = self.traps.signals.get(&sig.0).cloned() {
+                if !cmd.is_empty() {
                     let st = self.status;
                     self.run_trap_command(&cmd, st)?;
                     self.status = st;
                 }
+            } else if sig == Signal::SIGINT && self.at_prompt_level() {
+                self.sigint = true;
+            }
         }
-        Ok(())
+        if self.sigint { Err(Flow::Interrupt) } else { Ok(()) }
     }
 
     /// Executa o texto de um trap preservando `$?` (o trap vê o status de quem disparou).
