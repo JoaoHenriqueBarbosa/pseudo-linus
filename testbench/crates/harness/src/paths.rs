@@ -6,10 +6,12 @@ use anyhow::{Context, Result};
 
 use crate::{Case, CaseFile, Outcome};
 
-/// Raiz do workspace `testbench/`.
+/// Raiz do workspace `testbench/`. `PL_TESTBENCH` aponta outra, para o painel rodar fora da máquina
+/// que o compilou (num aparelho Android, com `corpus/` e `golden/` copiados para lá).
 pub fn root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
+    std::env::var_os("PL_TESTBENCH")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
         .canonicalize()
         .expect("raiz do testbench")
 }
