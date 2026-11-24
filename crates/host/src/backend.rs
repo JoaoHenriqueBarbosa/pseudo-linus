@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use sysabi::{DirEntry, Errno, KillTarget, Mode, Pid, ProcInfo, Signal, Stat, TimeSpec, WaitStatus};
+use sysabi::{DirEntry, Errno, KillTarget, Mode, Pid, ProcInfo, Signal, Stat, TimeSpec, WaitStatus, Winsize};
 
 use crate::api::{SandboxLimits, SandboxUsage};
 use crate::config::CpuMax;
@@ -152,6 +152,27 @@ impl std::fmt::Debug for Spawned {
     }
 }
 
+/// A ponta mestre do pty de um processo lançado num terminal, do lado do host (o papel do emulador
+/// de terminal). Uma thread lê e outra escreve.
+pub trait HostTty: Send + Sync {
+    /// A saída do terminal: o que os processos escreveram e o eco. `Eof` quando ninguém mais tem o
+    /// terminal aberto.
+    fn read_timeout(&self, buf: &mut [u8], timeout: Duration) -> ReadOutcome;
+    /// A entrada do terminal (o que foi digitado), pela disciplina de linha do pty. `false` quando o
+    /// terminal acabou.
+    fn write(&self, buf: &[u8]) -> bool;
+    /// Troca o tamanho da janela (SIGWINCH pro grupo em primeiro plano, se mudou).
+    fn resize(&self, size: Winsize);
+}
+
+/// Processo lançado num terminal: líder de sessão, com o pty em stdin, stdout e stderr e como
+/// terminal de controle.
+pub struct TtySpawned {
+    pub pid: Pid,
+    pub tty: Arc<dyn HostTty>,
+    pub exit: Box<dyn ExitWaiter>,
+}
+
 /// Como abrir um arquivo pra escrita direta.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct WriteOpts {
@@ -190,6 +211,12 @@ pub trait Sandbox: Send + Sync {
     /// Lança um processo em sessão e grupo próprios (`setsid`), com stdin, stdout e stderr ligados ao
     /// host.
     fn spawn(&self, req: SpawnRequest) -> BResult<Spawned>;
+    /// Lança um processo em sessão própria num pty novo de tamanho `size`: o escravo é o stdin, o
+    /// stdout, o stderr e o terminal de controle; o mestre fica com o host.
+    fn spawn_tty(&self, req: SpawnRequest, size: Winsize) -> BResult<TtySpawned> {
+        let _ = (req, size);
+        Err(BackendError::Internal("este backend não tem terminal".into()))
+    }
     fn kill(&self, target: KillTarget, sig: Signal) -> BResult<()>;
     fn processes(&self) -> Vec<ProcInfo>;
 

@@ -31,6 +31,11 @@ name = "python"
 path = "tests/python.rs"
 required-features = ["kernel"]
 
+[[test]]
+name = "terminal"
+path = "tests/terminal.rs"
+required-features = ["kernel"]
+
 [features]
 default = ["kernel"]
 # O backend de produção: o kernel do pseudo-linus com a tabela completa de programas.
@@ -86,7 +91,7 @@ ureq = { version = "3", default-features = false, features = ["rustls"] }
 # Isolamento em runtime (E06): API segura, unsafe interno nas syscalls.
 landlock = "0.4"
 seccompiler = "0.5"
-rustix = { version = "1", features = ["fs", "process", "stdio", "thread", "time"] }
+rustix = { version = "1", features = ["fs", "process", "stdio", "termios", "thread", "time"] }
 # O worker ignora SIGTERM/SIGINT (quem o encerra é o supervisor); API segura.
 signal-hook = "0.3"
 # Só constantes (números de syscall e flags) pro filtro seccomp.
@@ -99,6 +104,8 @@ rustyline = { version = "15", default-features = false }
 
 [dev-dependencies]
 tempfile = "3"
+# O teste do modo terminal abre um pty real do host e espera a tela com prazo.
+rustix = { version = "1", features = ["event", "pty"] }
 
 [lints]
 workspace = true

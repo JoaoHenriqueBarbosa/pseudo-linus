@@ -13,12 +13,12 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use parking_lot::{Mutex, RwLock};
-use sysabi::{DirEntry, Errno, KillTarget, Mode, Pid, ProcAttrs, ProcInfo, Program, SetTime, Signal, SpawnSpec, Stat, TimeSpec, WaitStatus};
+use sysabi::{DirEntry, Errno, KillTarget, Mode, Pid, ProcAttrs, ProcInfo, Program, SetTime, Signal, SpawnSpec, Stat, TimeSpec, WaitStatus, Winsize};
 
 use crate::api::SandboxUsage;
 use crate::backend::{
-    BResult, Backend, BackendError, BackendInfo, ExitInfo, ExitWaiter, HostReader, HostWriter, ReadOutcome, Sandbox,
-    SandboxSpec, SnapshotToken, SpawnRequest, Spawned, UserSched, WriteOpts, WriteOutcome,
+    BResult, Backend, BackendError, BackendInfo, ExitInfo, ExitWaiter, HostReader, HostTty, HostWriter, ReadOutcome, Sandbox,
+    SandboxSpec, SnapshotToken, SpawnRequest, Spawned, TtySpawned, UserSched, WriteOpts, WriteOutcome,
 };
 use crate::isolation::{IsolationProfile, IsolationReport};
 
@@ -26,15 +26,35 @@ fn os(e: Errno, ctx: &[u8]) -> BackendError {
     BackendError::os(e, String::from_utf8_lossy(ctx))
 }
 
-struct KReader(kernel::HostReader);
-
-impl HostReader for KReader {
-    fn read_timeout(&mut self, buf: &mut [u8], timeout: Duration) -> ReadOutcome {
-        match self.0.read(buf, Some(Instant::now() + timeout)) {
+impl From<kernel::ReadOutcome> for ReadOutcome {
+    fn from(o: kernel::ReadOutcome) -> ReadOutcome {
+        match o {
             kernel::ReadOutcome::Data(n) => ReadOutcome::Data(n),
             kernel::ReadOutcome::Eof => ReadOutcome::Eof,
             kernel::ReadOutcome::Timeout => ReadOutcome::TimedOut,
         }
+    }
+}
+
+struct KReader(kernel::HostReader);
+
+impl HostReader for KReader {
+    fn read_timeout(&mut self, buf: &mut [u8], timeout: Duration) -> ReadOutcome {
+        self.0.read(buf, Some(Instant::now() + timeout)).into()
+    }
+}
+
+impl HostTty for kernel::HostPty {
+    fn read_timeout(&self, buf: &mut [u8], timeout: Duration) -> ReadOutcome {
+        self.read(buf, Some(Instant::now() + timeout)).into()
+    }
+
+    fn write(&self, buf: &[u8]) -> bool {
+        self.write_all(buf).is_ok()
+    }
+
+    fn resize(&self, size: Winsize) {
+        self.set_winsize(size);
     }
 }
 
@@ -108,8 +128,13 @@ impl KSandbox {
     }
 }
 
-impl Sandbox for KSandbox {
-    fn spawn(&self, req: SpawnRequest) -> BResult<Spawned> {
+impl KSandbox {
+    /// Lança o processo de `req` com `launch` (o `spawn` ou o `spawn_pty` do kernel) e traduz o erro.
+    fn launch<T>(
+        &self,
+        req: SpawnRequest,
+        launch: impl FnOnce(&kernel::Sandbox, SpawnSpec) -> Result<T, Errno>,
+    ) -> BResult<(T, Arc<KSandbox>)> {
         let me = self.me.lock().upgrade().ok_or(BackendError::Gone)?;
         self.with(|sb| {
             let spec = SpawnSpec {
@@ -117,12 +142,20 @@ impl Sandbox for KSandbox {
                 argv: req.argv,
                 attrs: ProcAttrs { env: Some(req.env), cwd: Some(req.cwd.clone()), ..ProcAttrs::default() },
             };
-            let sp = sb.spawn(spec, kernel::HostStdio::default()).map_err(|e| match e {
+            let sp = launch(sb, spec).map_err(|e| match e {
                 Errno::EAGAIN => BackendError::Limit("limite de processos da sandbox atingido".into()),
                 Errno::ENOENT | Errno::ENOTDIR if sb.fs().stat(&req.cwd).is_err() => os(e, &req.cwd),
                 other => os(other, &req.path),
             })?;
-            Ok(Spawned {
+            Ok((sp, me))
+        })
+    }
+}
+
+impl Sandbox for KSandbox {
+    fn spawn(&self, req: SpawnRequest) -> BResult<Spawned> {
+        self.launch(req, |sb, spec| sb.spawn(spec, kernel::HostStdio::default())).map(|(sp, me)| {
+            Spawned {
                 pid: sp.pid,
                 stdin: match sp.stdin {
                     Some(w) => Box::new(KWriter(w)),
@@ -136,9 +169,14 @@ impl Sandbox for KSandbox {
                     Some(r) => Box::new(KReader(r)),
                     None => Box::new(Closed),
                 },
-                exit: Box::new(KWaiter { sb: me.clone(), pid: sp.pid }),
-            })
+                exit: Box::new(KWaiter { sb: me, pid: sp.pid }),
+            }
         })
+    }
+
+    fn spawn_tty(&self, req: SpawnRequest, size: Winsize) -> BResult<TtySpawned> {
+        let ((pid, pty), me) = self.launch(req, |sb, spec| sb.spawn_pty(spec, size))?;
+        Ok(TtySpawned { pid, tty: Arc::new(pty), exit: Box::new(KWaiter { sb: me, pid }) })
     }
 
     fn kill(&self, target: KillTarget, sig: Signal) -> BResult<()> {

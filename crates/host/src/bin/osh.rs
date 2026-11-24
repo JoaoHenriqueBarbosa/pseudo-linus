@@ -5,8 +5,13 @@
 //! - Com `--remote URL`: fala com o `pseudo-linusd`; a chave vem de `--key`, `--key-file` ou
 //!   `OSH_KEY` (prefira o arquivo ou a variável: argumento de linha de comando aparece no `ps`).
 //!
-//! O interativo é linha a linha (sem edição avançada): cada linha vai pra uma sessão persistente, então
-//! `cd`, `export` e variáveis valem entre linhas; linha terminada em `\` continua na próxima.
+//! O interativo local, com stdin e stdout num terminal, é um `bash` do sandbox num pty do kernel
+//! ligado ao terminal do host ([`host::terminal`]): prompt, eco, Ctrl-C, tamanho da janela e programas
+//! de tela cheia são os do sandbox, e o osh sai com o status do bash.
+//!
+//! O outro interativo (`--remote`, ou stdin que não é terminal) é linha a linha: cada linha vai pra uma
+//! sessão persistente, então `cd`, `export` e variáveis valem entre linhas; linha terminada em `\`
+//! continua na próxima.
 
 use std::collections::BTreeMap;
 use std::io::{BufRead, IsTerminal, Read, Write};
@@ -69,6 +74,11 @@ trait Target {
     fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: StdinFeed) -> Result<ExecResult, String>;
     /// Roda uma linha na sessão persistente.
     fn session(&mut self, line: &str) -> Result<ExecResult, String>;
+    /// O interativo num pty do sandbox ligado ao terminal do host; devolve o `$?` do shell. `None`
+    /// quando não se aplica (alvo remoto, ou o host não está num terminal).
+    fn terminal(&mut self) -> Option<Result<u8, String>> {
+        None
+    }
     fn close(&mut self);
 }
 
@@ -240,6 +250,14 @@ impl Target for Local {
         Ok(r)
     }
 
+    fn terminal(&mut self) -> Option<Result<u8, String>> {
+        if !host::terminal::host_is_tty() {
+            return None;
+        }
+        let req = host::worker::spawn_request(&*self.sb, None, Some(&["bash".to_string()]), &self.workdir, &self.env);
+        Some(req.map_err(|e| e.message).and_then(|req| host::terminal::run(self.sb.clone(), req)))
+    }
+
     fn close(&mut self) {
         if let Some(s) = self.session.take() {
             s.close();
@@ -296,7 +314,7 @@ fn local(cli: &Cli, timeout: Duration) -> Result<Box<dyn Target>, String> {
     let mut env: BTreeMap<String, String> =
         host::methods::DEFAULT_ENV.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
     if let Ok(term) = std::env::var("TERM") {
-        env.insert("TERM".into(), term);
+        env.insert("TERM".into(), host::terminal::sandbox_term(&*sb, &term));
     }
     Ok(Box::new(Local {
         sb,
@@ -469,7 +487,14 @@ fn main() -> ExitCode {
             }
         }
     } else {
-        interactive(&mut *t)
+        match t.terminal() {
+            Some(Ok(code)) => code,
+            Some(Err(e)) => {
+                eprintln!("osh: {e}");
+                1
+            }
+            None => interactive(&mut *t),
+        }
     };
     t.close();
     ExitCode::from(code)

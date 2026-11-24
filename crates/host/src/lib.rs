@@ -8,6 +8,8 @@
 
 //! - [`backend`]: as primitivas que o worker usa do kernel; [`exec`]: execução com timeout, limite
 //!   de saída e cancelamento em cima delas.
+//! - [`terminal`]: um processo do sandbox num pty do kernel, ligado ao terminal do host (o `osh`
+//!   interativo local).
 //! - `fake` (feature `fake-backend` e testes): dublê do kernel pra testar o host sozinho.
 
 pub mod api;
@@ -31,6 +33,7 @@ pub mod server;
 pub mod session;
 pub mod supervisor;
 pub mod tarball;
+pub mod terminal;
 #[cfg(feature = "test-programs")]
 pub mod testprogs;
 pub mod timeutil;
