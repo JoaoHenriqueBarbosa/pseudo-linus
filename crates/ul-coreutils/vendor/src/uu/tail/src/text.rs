@@ -12,9 +12,9 @@ pub const FD0: &str = "/dev/fd/0";
 pub const DEV_TTY: &str = "/dev/tty";
 pub const DEV_PTMX: &str = "/dev/ptmx";
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub const BACKEND: &str = "inotify";
-#[cfg(all(unix, not(target_os = "linux")))]
+#[cfg(all(unix, not(any(target_os = "linux", target_os = "android"))))]
 pub const BACKEND: &str = "kqueue";
 #[cfg(windows)]
 pub const BACKEND: &str = "ReadDirectoryChanges";

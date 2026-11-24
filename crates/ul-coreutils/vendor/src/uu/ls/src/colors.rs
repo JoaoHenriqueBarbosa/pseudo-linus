@@ -536,7 +536,8 @@ pub(crate) fn color_name(
     wrap: bool,
 ) -> OsString {
     // Check if the file has capabilities
-    #[cfg(all(unix, not(any(target_vendor = "apple", target_os = "android"))))]
+    // Porte pseudo-linus: o host android segue o ramo do linux (os xattr são os do pseudo-processo).
+    #[cfg(all(unix, not(target_vendor = "apple")))]
     {
         // Skip checking capabilities if LS_COLORS=ca=:
         let has_capabilities = style_manager

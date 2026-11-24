@@ -423,7 +423,7 @@ pub(crate) enum StatusLevel {
 /// This function returns a closure that receives [`ProgUpdate`]
 /// instances sent through `rx`. When a [`ProgUpdate`] instance is
 /// received, the transfer statistics are re-printed to stderr.
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "linux", target_os = "android")))]
 pub(crate) fn gen_prog_updater(
     rx: mpsc::Receiver<ProgUpdate>,
     print_level: Option<StatusLevel>,
@@ -450,12 +450,12 @@ pub(crate) fn gen_prog_updater(
 // Porte pseudo-linus: o SIGUSR1 fica com disposição "capturar" no pseudo-kernel e a consulta pega a
 // fila de sinais capturados do próprio processo (um `AtomicBool` estático seria compartilhado entre
 // todos os pseudo-processos).
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub(crate) fn check_and_reset_sigusr1() -> bool {
     sysio::unistd::take_caught_signals().contains(&sysabi::Signal::SIGUSR1)
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub(crate) fn install_sigusr1_handler() -> sysio::io::Result<()> {
     sysio::unistd::signal(sysabi::Signal::SIGUSR1, sysabi::SigDisposition::Catch)?;
     Ok(())
@@ -470,7 +470,7 @@ pub(crate) fn install_sigusr1_handler() -> sysio::io::Result<()> {
 /// The closure also registers a signal handler for `SIGUSR1`. When
 /// the `SIGUSR1` signal is sent to this process, the transfer
 /// statistics are printed to stderr.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub(crate) fn gen_prog_updater(
     rx: mpsc::Receiver<ProgUpdate>,
     print_level: Option<StatusLevel>,

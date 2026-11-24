@@ -99,6 +99,13 @@ thread, métodos de `Path`, macros de impressão do std). Zero avisos `disallowe
 utilitário (o `build.rs` do uucore é tempo de compilação e pode). Também: `grep -rn "unsafe\|libc::\|nix::\|rustix::" vendor/src/uu/<util>/src`
 só pode achar código atrás de `cfg` de outra plataforma.
 
+Host android: o `osh` também é compilado para `*-linux-android` (`scripts/build-android.sh`), e de
+dentro do sandbox o utilitário tem de fazer o mesmo que faz com host linux. Todo `cfg` que escolhe
+ramo por `target_os = "linux"` aceita os dois (`any(target_os = "linux", target_os = "android")`), e
+ramo próprio de `target_os = "android"` do upstream (contorno de limite do bionic) sai, com o
+comentário de porte. `scripts/cfg-android-check.py` avalia todos os `cfg` nos dois hosts e lista o
+que diverge; tem de sair vazio.
+
 ### 4. Conformidade
 
 ```sh

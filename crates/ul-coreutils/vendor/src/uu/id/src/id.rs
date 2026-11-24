@@ -75,13 +75,13 @@ use uucore::{format_usage, show_error};
 fn get_context_help_text() -> String {
     #[cfg(any(
         all(feature = "selinux", any(target_os = "android", target_os = "linux")),
-        all(feature = "smack", target_os = "linux"),
+        all(feature = "smack", any(target_os = "linux", target_os = "android")),
     ))]
     return translate!("id-context-help-enabled");
 
     #[cfg(not(any(
         all(feature = "selinux", any(target_os = "android", target_os = "linux")),
-        all(feature = "smack", target_os = "linux"),
+        all(feature = "smack", any(target_os = "linux", target_os = "android")),
     )))]
     return translate!("id-context-help-disabled");
 }
@@ -118,7 +118,7 @@ struct State {
     cflag: bool,  // --context
     #[cfg(all(feature = "selinux", any(target_os = "linux", target_os = "android")))]
     selinux_supported: bool,
-    #[cfg(all(feature = "smack", target_os = "linux"))]
+    #[cfg(all(feature = "smack", any(target_os = "linux", target_os = "android")))]
     smack_supported: bool,
     ids: Option<Ids>,
     // The behavior for calling GNU's `id` and calling GNU's `id $USER` is similar but different.
@@ -159,7 +159,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         cflag: matches.get_flag(options::OPT_CONTEXT),
         #[cfg(all(feature = "selinux", any(target_os = "linux", target_os = "android")))]
         selinux_supported: uucore::selinux::is_selinux_enabled(),
-        #[cfg(all(feature = "smack", target_os = "linux"))]
+        #[cfg(all(feature = "smack", any(target_os = "linux", target_os = "android")))]
         smack_supported: uucore::smack::is_smack_enabled(),
         user_specified: !users.is_empty(),
         ids: None,
@@ -223,7 +223,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         }
 
         // SMACK label
-        #[cfg(all(feature = "smack", target_os = "linux"))]
+        #[cfg(all(feature = "smack", any(target_os = "linux", target_os = "android")))]
         if state.smack_supported {
             match uucore::smack::get_smack_label_for_self() {
                 Ok(label) => {
@@ -769,7 +769,7 @@ fn id_print(state: &State, groups: &[u32]) -> io::Result<()> {
         }
     }
 
-    #[cfg(all(feature = "smack", target_os = "linux"))]
+    #[cfg(all(feature = "smack", any(target_os = "linux", target_os = "android")))]
     if state.smack_supported
         && !state.user_specified
         && sysio::env::var_os("POSIXLY_CORRECT").is_none()

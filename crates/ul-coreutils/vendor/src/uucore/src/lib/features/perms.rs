@@ -17,17 +17,17 @@ use thiserror::Error;
 use clap::{Arg, ArgMatches, Command};
 
 use options::traverse;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 use std::collections::HashSet;
 use std::ffi::OsString;
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "linux", target_os = "android")))]
 use walkdir::WalkDir;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 use crate::features::fs::FileInformation;
 use crate::features::fs::path_is_root_dir;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 use crate::features::safe_traversal::{DirFd, SymlinkBehavior};
 
 // Porte pseudo-linus: chown/lchown e metadados do pseudo-kernel pelo sysio (o original usava a
@@ -421,7 +421,7 @@ impl ChownExecutor {
 
         let ret = if self.matched(meta.uid(), meta.gid()) {
             // Use safe syscalls for root directory to prevent TOCTOU attacks on Linux
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             // We cannot check path.is_dir() here, as this would resolve symlinks
             let chown_result = if meta.is_dir() {
                 // For directories on Linux, use safe traversal from the start
@@ -448,7 +448,7 @@ impl ChownExecutor {
                 )
             };
 
-            #[cfg(not(target_os = "linux"))]
+            #[cfg(not(any(target_os = "linux", target_os = "android")))]
             let chown_result = wrap_chown_spec(
                 path,
                 &meta,
@@ -481,11 +481,11 @@ impl ChownExecutor {
         };
 
         if self.recursive {
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             {
                 ret | self.safe_dive_into(&root)
             }
-            #[cfg(not(target_os = "linux"))]
+            #[cfg(not(any(target_os = "linux", target_os = "android")))]
             {
                 ret | self.dive_into(&root)
             }
@@ -494,7 +494,7 @@ impl ChownExecutor {
         }
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn safe_chown_dir(&self, dir_fd: &DirFd, path: &Path, meta: &Metadata) -> Result<(), String> {
         // Use fchown (safe) to change the directory's ownership
         if let Err(e) = dir_fd.fchown(self.dest_uid, self.dest_gid) {
@@ -524,7 +524,7 @@ impl ChownExecutor {
         Ok(())
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn safe_dive_into<P: AsRef<Path>>(&self, root: P) -> i32 {
         let root = root.as_ref();
 
@@ -552,7 +552,7 @@ impl ChownExecutor {
         ret
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn safe_traverse_dir(
         &self,
         dir_fd: &DirFd,
@@ -679,7 +679,7 @@ impl ChownExecutor {
         }
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "android")))]
     #[allow(clippy::cognitive_complexity)]
     fn dive_into<P: AsRef<Path>>(&self, root: P) -> i32 {
         let root = root.as_ref();
@@ -824,7 +824,7 @@ impl ChownExecutor {
     }
 
     /// Try to open directory with error reporting
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn try_open_dir(&self, path: &Path) -> Option<DirFd> {
         DirFd::open(path, SymlinkBehavior::Follow)
             .map_err(|e| {
@@ -837,7 +837,7 @@ impl ChownExecutor {
 
     /// Report ownership change with proper verbose output
     /// Returns 0 on success
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn report_ownership_change_success(
         &self,
         path: &Path,

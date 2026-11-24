@@ -722,7 +722,7 @@ mod tests {
     fn newer_option_matcher() {
         let options = [
             "a",
-            #[cfg(not(target_os = "linux"))]
+            #[cfg(not(any(target_os = "linux", target_os = "android")))]
             "B",
             #[cfg(unix)]
             "c",

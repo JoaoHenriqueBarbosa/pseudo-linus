@@ -124,7 +124,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn prints_error_message() {
         let dev_full = File::open("/dev/full").unwrap();
         let abbbc = get_dir_entry_for("./test_data/simple", "abbbc");

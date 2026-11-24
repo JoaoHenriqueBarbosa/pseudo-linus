@@ -9,6 +9,9 @@
 #     -e OWNER="$(id -u):$(id -g)" rust:1-slim-trixie sh /build.sh
 #
 # Os binários saem em /target/x86_64-unknown-linux-musl/release/{osh,pseudo-linusd}.
+#
+# A lista de `-D` da sqlite abaixo também é lida pelo build-android.sh (as linhas que começam com
+# `-D`): opção nova entra aqui, nesse formato, e vale para os dois.
 set -eu
 apt-get update -qq >/dev/null && apt-get install -y -qq musl-tools libclang-dev clang curl make >/dev/null
 rustup target add x86_64-unknown-linux-musl >/dev/null

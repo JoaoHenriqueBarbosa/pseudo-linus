@@ -104,14 +104,14 @@ struct Config {
     /// Set security context (SELinux/SMACK).
     #[cfg(any(
         all(feature = "selinux", any(target_os = "android", target_os = "linux")),
-        all(feature = "smack", target_os = "linux"),
+        all(feature = "smack", any(target_os = "linux", target_os = "android")),
     ))]
     set_security_context: bool,
 
     /// Specific security context (SELinux/SMACK).
     #[cfg(any(
         all(feature = "selinux", any(target_os = "android", target_os = "linux")),
-        all(feature = "smack", target_os = "linux"),
+        all(feature = "smack", any(target_os = "linux", target_os = "android")),
     ))]
     context: Option<String>,
 }
@@ -170,7 +170,7 @@ fn mknod(file_name: &str, config: Config) -> i32 {
     }
 
     // Apply SMACK context if requested
-    #[cfg(all(feature = "smack", target_os = "linux"))]
+    #[cfg(all(feature = "smack", any(target_os = "linux", target_os = "android")))]
     if config.set_security_context
         && let Err(e) =
             uucore::smack::set_smack_label_and_cleanup(file_name, config.context.as_ref(), |p| {
@@ -277,12 +277,12 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     // Extract the security context related flags and options
     #[cfg(any(
         all(feature = "selinux", any(target_os = "android", target_os = "linux")),
-        all(feature = "smack", target_os = "linux"),
+        all(feature = "smack", any(target_os = "linux", target_os = "android")),
     ))]
     let set_security_context = matches.get_flag(options::SECURITY_CONTEXT);
     #[cfg(any(
         all(feature = "selinux", any(target_os = "android", target_os = "linux")),
-        all(feature = "smack", target_os = "linux"),
+        all(feature = "smack", any(target_os = "linux", target_os = "android")),
     ))]
     let context = matches.get_one::<String>(options::CONTEXT).cloned();
 
@@ -312,12 +312,12 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         dev,
         #[cfg(any(
             all(feature = "selinux", any(target_os = "android", target_os = "linux")),
-            all(feature = "smack", target_os = "linux"),
+            all(feature = "smack", any(target_os = "linux", target_os = "android")),
         ))]
         set_security_context: set_security_context || context.is_some(),
         #[cfg(any(
             all(feature = "selinux", any(target_os = "android", target_os = "linux")),
-            all(feature = "smack", target_os = "linux"),
+            all(feature = "smack", any(target_os = "linux", target_os = "android")),
         ))]
         context,
     };

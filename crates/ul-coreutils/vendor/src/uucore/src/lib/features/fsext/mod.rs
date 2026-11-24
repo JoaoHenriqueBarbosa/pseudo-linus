@@ -619,10 +619,11 @@ impl FsMeta for StatFs {
         target_os = "freebsd"
     ))]
     fn fs_type(&self) -> i64 {
+        // Porte pseudo-linus: o host android segue o ramo do linux (o `f_type` é o do sysabi, não
+        // o do bionic); os três `cfg` deixaram de citar `target_os = "android"`.
         #[cfg(all(
             not(any(target_env = "musl", target_env = "ohos")),
             not(target_vendor = "apple"),
-            not(target_os = "android"),
             not(target_os = "freebsd"),
             not(target_arch = "s390x"),
             target_pointer_width = "64"
@@ -632,18 +633,13 @@ impl FsMeta for StatFs {
             not(any(target_env = "musl", target_env = "ohos")),
             any(
                 target_vendor = "apple",
-                all(target_os = "android", target_pointer_width = "32"),
                 target_os = "freebsd",
                 target_arch = "s390x",
                 not(target_pointer_width = "64")
             )
         ))]
         return self.f_type.into();
-        #[cfg(any(
-            target_env = "musl",
-            target_env = "ohos",
-            all(target_os = "android", target_pointer_width = "64"),
-        ))]
+        #[cfg(any(target_env = "musl", target_env = "ohos"))]
         return self.f_type.try_into().unwrap();
     }
     #[cfg(not(any(
@@ -778,10 +774,10 @@ pub fn statfs(path: &OsStr) -> Result<StatFs, String> {
 // Porte pseudo-linus: `statfs(2)` do pseudo-kernel. A `struct statfs` é a do sysabi; `FsMeta` e
 // `FsUsage::new` têm a mesma semântica da versão Linux sobre a libc (bloco = `f_frsize`, ou
 // `f_bsize` quando ele é zero). O contrato não traz `f_fsid`: sai 0.
-#[cfg(all(target_os = "linux", not(feature = "libc")))]
+#[cfg(all(any(target_os = "linux", target_os = "android"), not(feature = "libc")))]
 pub type StatFs = sysio::fs::StatFs;
 
-#[cfg(all(target_os = "linux", not(feature = "libc")))]
+#[cfg(all(any(target_os = "linux", target_os = "android"), not(feature = "libc")))]
 impl FsMeta for StatFs {
     fn block_size(&self) -> i64 {
         if self.frsize == 0 { self.bsize as i64 } else { self.frsize as i64 }
@@ -815,7 +811,7 @@ impl FsMeta for StatFs {
     }
 }
 
-#[cfg(all(target_os = "linux", not(feature = "libc")))]
+#[cfg(all(any(target_os = "linux", target_os = "android"), not(feature = "libc")))]
 impl FsUsage {
     pub fn new(statvfs: StatFs) -> Self {
         Self {
@@ -831,7 +827,7 @@ impl FsUsage {
 }
 
 /// `statfs(2)`; o erro é o texto do `strerror`, como no original.
-#[cfg(all(target_os = "linux", not(feature = "libc")))]
+#[cfg(all(any(target_os = "linux", target_os = "android"), not(feature = "libc")))]
 pub fn statfs(path: &OsStr) -> Result<StatFs, String> {
     sysio::fs::statfs(path).map_err(|e| sysio::errno::strerror(&e))
 }

@@ -30,9 +30,9 @@ mod options {
 }
 
 fn get_runlevel_help() -> String {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     return translate!("who-help-runlevel");
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "android")))]
     return translate!("who-help-runlevel-non-linux");
 }
 

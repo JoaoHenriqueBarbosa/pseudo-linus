@@ -84,11 +84,13 @@ bitflags! {
 }
 
 impl Default for PointerCapabilities {
-    #[cfg(any(target_os = "ios", target_os = "android", target_env = "ohos"))]
+    // pseudo-linus: o host android responde como o linux (o `pointer: fine` do Chromium no Debian);
+    // os dois `cfg` deixaram de citar `target_os = "android"`.
+    #[cfg(any(target_os = "ios", target_env = "ohos"))]
     fn default() -> Self {
         PointerCapabilities::COARSE
     }
-    #[cfg(not(any(target_os = "ios", target_os = "android", target_env = "ohos")))]
+    #[cfg(not(any(target_os = "ios", target_env = "ohos")))]
     fn default() -> Self {
         PointerCapabilities::FINE | PointerCapabilities::HOVER
     }

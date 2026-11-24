@@ -234,7 +234,7 @@ pub struct Config {
     pub(crate) context: bool,
     #[cfg(all(feature = "selinux", any(target_os = "linux", target_os = "android")))]
     pub(crate) selinux_supported: bool,
-    #[cfg(all(feature = "smack", target_os = "linux"))]
+    #[cfg(all(feature = "smack", any(target_os = "linux", target_os = "android")))]
     pub(crate) smack_supported: bool,
     pub(crate) group_directories_first: bool,
     pub(crate) line_ending: LineEnding,
@@ -1066,7 +1066,7 @@ impl Config {
             context,
             #[cfg(all(feature = "selinux", any(target_os = "linux", target_os = "android")))]
             selinux_supported: uucore::selinux::is_selinux_enabled(),
-            #[cfg(all(feature = "smack", target_os = "linux"))]
+            #[cfg(all(feature = "smack", any(target_os = "linux", target_os = "android")))]
             smack_supported: uucore::smack::is_smack_enabled(),
             group_directories_first: options.get_flag(options::GROUP_DIRECTORIES_FIRST),
             line_ending: LineEnding::from_zero_flag(options.get_flag(options::ZERO)),

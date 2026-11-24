@@ -1865,15 +1865,15 @@ fn index_legacy_warnings(processed_args: &[OsString], legacy_warnings: &mut [Leg
     }
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 const LINUX_BATCH_DIVISOR: usize = 4;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 const LINUX_BATCH_MIN: usize = 32;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 const LINUX_BATCH_MAX: usize = 256;
 
 fn default_merge_batch_size() -> usize {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     {
         // Adjust merge batch size dynamically based on available file descriptors.
         match fd_soft_limit() {
@@ -1885,7 +1885,7 @@ fn default_merge_batch_size() -> usize {
         }
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "android")))]
     {
         64
     }

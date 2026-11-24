@@ -1084,13 +1084,13 @@ mod tests {
         // 1. The t parameter is not allowed at the X position.
         // 2. Current Linux filesystem do not support Birthed Time queries,
         //    so the B parameter will be excluded in linux.
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         let x_options = ["a", "c", "m"];
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", target_os = "android")))]
         let x_options = ["a", "B", "c", "m"];
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         let y_options = ["a", "c", "m"];
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", target_os = "android")))]
         let y_options = ["a", "B", "c", "m"];
 
         for &x in &x_options {
@@ -1130,7 +1130,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn test_find_newer_xy_have_not_birthed_time_filesystem() {
         let y_options = ["a", "c", "m"];
         for &y in &y_options {
@@ -1154,9 +1154,9 @@ mod tests {
     #[test]
     fn test_find_newer_xy_before_changed_time() {
         // normal - before the changed time
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         let args = ["-newerat", "-newerct", "-newermt"];
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", target_os = "android")))]
         let args = ["-newerat", "-newerBt", "-newerct", "-newermt"];
         let times = ["jan 01, 2000", "jan 01, 2000 00:00:00"];
 
@@ -1177,9 +1177,9 @@ mod tests {
     #[test]
     fn test_find_newer_xy_after_changed_time() {
         // normal - after the changed time
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         let args = ["-newerat", "-newerct", "-newermt"];
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", target_os = "android")))]
         let args = ["-newerat", "-newerBt", "-newerct", "-newermt"];
         let times = ["jan 01, 2037", "jan 01, 2037 00:00:00"];
 
@@ -1200,9 +1200,9 @@ mod tests {
         // the program will use 00:00 of the current day as the default time.
         // Therefore, the files checkout of the git repository while
         // this test was running are likely to be newer than the default time.
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         let args = ["-newerat", "-newerct", "-newermt"];
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", target_os = "android")))]
         let args = ["-newerat", "-newerBt", "-newerct", "-newermt"];
         let time = "";
 
@@ -1219,9 +1219,9 @@ mod tests {
     #[test]
     fn test_find_newer_xy_error_time() {
         // Catch a parsing error.
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         let args = ["-newerat", "-newerct", "-newermt"];
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", target_os = "android")))]
         let args = ["-newerat", "-newerBt", "-newerct", "-newermt"];
         let time = "2037, jan 01";
 
@@ -1234,7 +1234,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn test_no_permission_file_error() {
         use std::{path::Path, process::Command};
 
@@ -1266,7 +1266,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn test_user_predicate() {
         use std::{os::unix::fs::MetadataExt, path::Path};
 
@@ -1344,7 +1344,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn test_nouser_predicate() {
         let deps = FakeDependencies::new();
         let rc = find_main(&["find", "./test_data/simple/subdir", "-nouser"], &deps);
@@ -1354,7 +1354,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn test_group_predicate() {
         use std::{os::unix::fs::MetadataExt, path::Path};
 
@@ -1432,7 +1432,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn test_nogroup_predicate() {
         let deps = FakeDependencies::new();
         let rc = find_main(&["find", "./test_data/simple/subdir", "-nogroup"], &deps);

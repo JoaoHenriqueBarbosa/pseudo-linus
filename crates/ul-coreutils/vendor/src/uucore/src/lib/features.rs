@@ -80,7 +80,7 @@ pub mod entries;
 pub mod perms;
 #[cfg(all(feature = "pipes", any(target_os = "linux", target_os = "android")))]
 pub mod pipes;
-#[cfg(all(target_os = "linux", feature = "proc-info"))]
+#[cfg(all(any(target_os = "linux", target_os = "android"), feature = "proc-info"))]
 pub mod proc_info;
 #[cfg(all(any(unix, windows), feature = "process"))]
 pub mod process;
@@ -92,7 +92,7 @@ pub mod safe_copy;
     not(any(target_os = "aix", target_os = "hurd", target_os = "redox"))
 ))]
 pub mod safe_traversal;
-#[cfg(all(target_os = "linux", feature = "tty"))]
+#[cfg(all(any(target_os = "linux", target_os = "android"), feature = "tty"))]
 pub mod tty;
 
 #[cfg(all(unix, feature = "fsxattr"))]
@@ -120,7 +120,7 @@ pub mod selinux;
     )
 ))]
 pub mod signals;
-#[cfg(all(feature = "smack", target_os = "linux"))]
+#[cfg(all(feature = "smack", any(target_os = "linux", target_os = "android")))]
 pub mod smack;
 #[cfg(feature = "feat_systemd_logind")]
 pub mod systemd_logind;
@@ -130,7 +130,7 @@ pub mod systemd_logind;
         target_vendor = "apple",
         target_os = "cygwin",
         target_os = "freebsd",
-        target_os = "linux",
+        target_os = "linux", target_os = "android",
         target_os = "netbsd"
     )
 ))]

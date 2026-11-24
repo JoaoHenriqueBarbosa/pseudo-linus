@@ -149,7 +149,7 @@ pub use crate::features::signals;
         target_vendor = "apple",
         target_os = "cygwin",
         target_os = "freebsd",
-        target_os = "linux",
+        target_os = "linux", target_os = "android",
         target_os = "netbsd"
     )
 ))]
@@ -167,7 +167,7 @@ pub use crate::features::fsxattr;
 #[cfg(all(feature = "selinux", any(target_os = "linux", target_os = "android")))]
 pub use crate::features::selinux;
 
-#[cfg(all(feature = "smack", target_os = "linux"))]
+#[cfg(all(feature = "smack", any(target_os = "linux", target_os = "android")))]
 pub use crate::features::smack;
 
 //## core functions

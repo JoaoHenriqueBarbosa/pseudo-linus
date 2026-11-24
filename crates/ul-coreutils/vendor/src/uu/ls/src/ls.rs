@@ -1686,7 +1686,7 @@ fn get_security_context<'a>(
         }
     }
 
-    #[cfg(all(feature = "smack", target_os = "linux"))]
+    #[cfg(all(feature = "smack", any(target_os = "linux", target_os = "android")))]
     if config.smack_supported {
         // For SMACK, use the path to get the label
         // If must_dereference is true, we follow the symlink

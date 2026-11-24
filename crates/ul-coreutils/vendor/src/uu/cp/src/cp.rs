@@ -20,7 +20,9 @@ use std::path::{Path, PathBuf, StripPrefixError};
 use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use std::{fmt};
 use sysio::{io};
-#[cfg(all(unix, not(target_os = "android")))]
+// Porte pseudo-linus: o host android segue o ramo do linux em todo o arquivo (os xattr e os modos são
+// os do pseudo-processo, não os do bionic); os `cfg` deixaram de citar `target_os = "android"`.
+#[cfg(unix)]
 use uucore::fsxattr::{copy_acls, copy_xattrs_fd, copy_xattrs_skip_selinux};
 use uucore::translate;
 
@@ -1820,7 +1822,7 @@ pub(crate) fn set_selinux_context(path: &Path, context: Option<&String>) -> Copy
 /// or if xattr copying fails.
 ///
 /// Uses file descriptor-based operations to avoid TOCTOU races during xattr copying.
-#[cfg(all(unix, not(target_os = "android")))]
+#[cfg(unix)]
 fn copy_extended_attrs(source: &Path, dest: &Path, skip_selinux: bool) -> CopyResult<()> {
     use sysio::fs::File;
     use uucore::fsxattr::copy_xattrs;
@@ -1974,7 +1976,7 @@ pub(crate) fn copy_attributes(
             // (which are intentionally excluded from the default -p set per
             // issue #9704). Best-effort: ignore failures on filesystems that
             // do not support ACL xattrs.
-            #[cfg(all(unix, not(target_os = "android")))] // todo: support acl for other targets
+            #[cfg(unix)] // todo: support acl for other targets
             copy_acls(source, dest);
         }
 
@@ -2037,11 +2039,11 @@ pub(crate) fn copy_attributes(
     })?;
 
     handle_preserve(attributes.xattr, || -> CopyResult<()> {
-        #[cfg(all(unix, not(target_os = "android")))]
+        #[cfg(unix)]
         {
             copy_extended_attrs(source, dest, skip_selinux_xattr)?;
         }
-        #[cfg(not(all(unix, not(target_os = "android"))))]
+        #[cfg(not(unix))]
         #[allow(unused_variables)]
         {
             // The documentation for GNU cp states:
@@ -2945,7 +2947,6 @@ fn handle_no_preserve_mode(options: &Options, org_mode: u32) -> u32 {
 
         #[cfg(not(any(
             target_vendor = "apple",
-            target_os = "android",
             target_os = "freebsd",
             target_os = "redox",
         )))]
@@ -2961,7 +2962,6 @@ fn handle_no_preserve_mode(options: &Options, org_mode: u32) -> u32 {
 
         #[cfg(any(
             target_vendor = "apple",
-            target_os = "android",
             target_os = "freebsd",
             target_os = "redox",
         ))]

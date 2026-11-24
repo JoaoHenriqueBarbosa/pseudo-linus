@@ -741,7 +741,7 @@ pub const fn sigpipe_was_ignored() -> bool {
 /// POLLERR, ou seja, o leitor do pipe sumiu), com `fstat` e `poll` do contrato do pseudo-kernel em
 /// vez do nix. O `PollEvents` não tem POLLRDBAND; pedir nenhum evento basta, porque POLLERR e
 /// POLLHUP sempre voltam.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn ensure_stdout_not_broken() -> std::io::Result<bool> {
     use sysabi::{Fd, PollEvents, PollFd};
     let sys = sysio::proc::sys();

@@ -961,7 +961,7 @@ fn build_matcher_tree(
                         if i >= args.len() - 1 {
                             return Err(From::from(format!("missing argument to `{}'", args[i])));
                         }
-                        #[cfg(target_os = "linux")]
+                        #[cfg(any(target_os = "linux", target_os = "android"))]
                         if x_option == "B" {
                             return Err(From::from("This system does not provide a way to find the birth time of a file."));
                         }

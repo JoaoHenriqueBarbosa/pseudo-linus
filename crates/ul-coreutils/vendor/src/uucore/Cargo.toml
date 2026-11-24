@@ -399,7 +399,9 @@ features = ["std"]
 optional = true
 default-features = false
 
-[target.'cfg(any(target_vendor = "apple", target_os = "cygwin", target_os = "freebsd", target_os = "linux", target_os = "netbsd"))'.dependencies.dns-lookup]
+# Porte pseudo-linus: o host android entra onde o linux entra, aqui e no procfs (nenhuma feature
+# liga as duas; a tabela só acompanha os `cfg` do código).
+[target.'cfg(any(target_vendor = "apple", target_os = "cygwin", target_os = "freebsd", target_os = "linux", target_os = "android", target_os = "netbsd"))'.dependencies.dns-lookup]
 version = "4.0.0"
 optional = true
 
@@ -413,7 +415,7 @@ version = "0.10"
 features = ["aws-lc"]
 optional = true
 
-[target.'cfg(target_os = "linux")'.dependencies.procfs]
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies.procfs]
 version = "0.18"
 optional = true
 

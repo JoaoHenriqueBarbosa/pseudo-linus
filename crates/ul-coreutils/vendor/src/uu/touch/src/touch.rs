@@ -394,7 +394,7 @@ pub fn touch(files: &[InputFile], opts: &Options) -> Result<(), TouchError> {
         }
         Source::Now => {
             let now: FileTime;
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             {
                 if opts.date.is_none() {
                     now = FileTime::from_unix_time(0, filetime::UTIME_NOW);
@@ -402,7 +402,7 @@ pub fn touch(files: &[InputFile], opts: &Options) -> Result<(), TouchError> {
                     now = timestamp_to_filetime(now_timestamp());
                 }
             }
-            #[cfg(not(target_os = "linux"))]
+            #[cfg(not(any(target_os = "linux", target_os = "android")))]
             {
                 now = timestamp_to_filetime(now_timestamp());
             }
@@ -875,14 +875,9 @@ fn parse_timestamp(s: &str) -> UResult<FileTime> {
 #[cfg(unix)]
 #[expect(clippy::unnecessary_wraps)]
 fn pathbuf_from_stdout() -> Result<PathBuf, TouchError> {
-    #[cfg(not(target_os = "android"))]
-    {
-        Ok(PathBuf::from("/dev/stdout"))
-    }
-    #[cfg(target_os = "android")]
-    {
-        Ok(PathBuf::from("/proc/self/fd/1"))
-    }
+    // Porte pseudo-linus: o `/dev/stdout` é o do pseudo-processo, também com host android (o ramo
+    // do upstream para o bionic usava `/proc/self/fd/1`).
+    Ok(PathBuf::from("/dev/stdout"))
 }
 
 #[cfg(test)]

@@ -18,7 +18,7 @@ mod cli;
 pub use crate::cli::uu_app;
 use crate::cli::{Options, OutputErrorMode, options};
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 use uucore::signals::ensure_stdout_not_broken;
 #[cfg(all(unix, not(target_os = "fuchsia")))]
 use uucore::signals::{disable_pipe_errors, ignore_interrupts};
@@ -86,7 +86,7 @@ fn tee(options: &Options) -> Result<(), ()> {
 
     let mut output = MultiWriter::new(writers, options.output_error);
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     if options.ignore_pipe_errors
         && !ensure_stdout_not_broken().map_err(|_| ())?
         && output.writers.len() == 1

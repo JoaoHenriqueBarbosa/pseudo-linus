@@ -22,7 +22,7 @@ use datastructures::{ConversionMode, IConvFlags, IFlags, OConvFlags, OFlags, opt
 use parseargs::Parser;
 use progress::ProgUpdateType;
 use progress::{ProgUpdate, ReadStat, StatusLevel, WriteStat, gen_prog_updater};
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 use progress::{check_and_reset_sigusr1, install_sigusr1_handler};
 use uucore::translate;
 
@@ -1235,7 +1235,7 @@ fn dd_copy(mut i: Input, o: Output) -> io::Result<()> {
     // This avoids the need to query the OS monotonic clock for every block.
     let alarm = Alarm::with_interval(Duration::from_secs(1));
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     if let Err(e) = install_sigusr1_handler()
         && i.settings.status != Some(StatusLevel::None)
     {
@@ -1337,7 +1337,7 @@ fn dd_copy(mut i: Input, o: Output) -> io::Result<()> {
         // error.
         rstat += rstat_update;
         wstat += wstat_update;
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         if check_and_reset_sigusr1() {
             alarm.manual_trigger();
         }
@@ -1663,7 +1663,7 @@ mod tests {
     /// way GNU dd does, so the copy buffer must not fault in its pages.
     /// Constructing through `AlignedBuf` covers `alloc_copy_buffer` too,
     /// since that is where the aligned buffer takes its storage from.
-    #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+    #[cfg(all(any(target_os = "linux", target_os = "android"), target_pointer_width = "64"))]
     #[test]
     fn copy_buffer_does_not_touch_its_pages() {
         use crate::AlignedBuf;

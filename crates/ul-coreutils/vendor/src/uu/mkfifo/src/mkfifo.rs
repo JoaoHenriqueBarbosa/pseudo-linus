@@ -109,7 +109,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             ));
         } else {
             // Apply SMACK context if requested
-            #[cfg(all(feature = "smack", target_os = "linux"))]
+            #[cfg(all(feature = "smack", any(target_os = "linux", target_os = "android")))]
             {
                 let set_security_context = matches.get_flag(options::SECURITY_CONTEXT);
                 let context = matches.get_one::<String>(options::CONTEXT);

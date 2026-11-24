@@ -13,7 +13,8 @@
 macro_rules! cfg_langinfo {
     ($($item:item)*) => {
         $(
-            #[cfg(all(unix, not(target_os = "android"), not(target_os = "cygwin"), not(target_os = "redox")))]
+            // Porte pseudo-linus: o host android segue o ramo do linux (o langinfo é o do pseudo-processo).
+            #[cfg(all(unix, not(target_os = "cygwin"), not(target_os = "redox")))]
             $item
         )*
     }
@@ -90,7 +91,6 @@ cfg_langinfo! {
 /// On platforms without nl_langinfo support, use 24-hour format by default
 #[cfg(any(
     not(unix),
-    target_os = "android",
     target_os = "cygwin",
     target_os = "redox"
 ))]

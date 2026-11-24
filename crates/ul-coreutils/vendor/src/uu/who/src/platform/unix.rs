@@ -82,7 +82,7 @@ struct Layout {
 enum Event {
     Boot,
     ClockChange,
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     Runlevel,
     LoginSlot,
     InitChild,
@@ -300,7 +300,7 @@ impl Who {
     fn event_for(&self, ut: &UtmpxRecord) -> Option<Event> {
         let rt = ut.record_type();
 
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         if self.select.runlevel && rt == utmpx::RUN_LVL {
             return Some(Event::Runlevel);
         }
@@ -321,9 +321,9 @@ impl Who {
         let note = translate!("who-login-id", "id" => ut.terminal_suffix());
 
         // Held outside the match so the borrows below outlive it.
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         let runlevel_line;
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         let runlevel_note;
         let exit;
 
@@ -338,7 +338,7 @@ impl Who {
                 time: &time,
                 ..Row::default()
             },
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             Event::Runlevel => {
                 let last = (ut.pid() / 256) as u8 as char;
                 let level = (ut.pid() % 256) as u8 as char;
@@ -395,13 +395,10 @@ impl Who {
         // Porte pseudo-linus: stat(2) no FS do pseudo-processo.
         let (write_state, last_touched) = match sysio::path::PathExt::sys_metadata(&p) {
             Ok(meta) => {
-                #[cfg(all(
-                    not(target_vendor = "apple"),
-                    not(target_os = "android"),
-                    not(target_os = "freebsd")
-                ))]
+                // Porte pseudo-linus: o host android segue o ramo do linux (o `S_IWGRP` é o do sysabi).
+                #[cfg(all(not(target_vendor = "apple"), not(target_os = "freebsd")))]
                 let iwgrp = S_IWGRP;
-                #[cfg(any(target_vendor = "apple", target_os = "android", target_os = "freebsd"))]
+                #[cfg(any(target_vendor = "apple", target_os = "freebsd"))]
                 let iwgrp = S_IWGRP as u32;
                 let state = if meta.mode() & iwgrp == 0 { '-' } else { '+' };
                 (state, meta.atime())

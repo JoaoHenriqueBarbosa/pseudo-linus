@@ -249,15 +249,12 @@ impl HasHardwareFeatures for SimdPolicy {
 }
 
 // Platform-specific feature detection
+// Porte pseudo-linus: o upstream respondia `false` em todas com `target_os = "android"`; o host
+// android detecta como o linux, para o `--debug` dos utilitários listar o mesmo que lá.
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn detect_avx512() -> bool {
-    if cfg!(target_os = "android") {
-        false
-    } else {
-        std::arch::is_x86_feature_detected!("avx512f")
-            && std::arch::is_x86_feature_detected!("avx512bw")
-    }
+    std::arch::is_x86_feature_detected!("avx512f") && std::arch::is_x86_feature_detected!("avx512bw")
 }
 
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
@@ -267,11 +264,7 @@ fn detect_avx512() -> bool {
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn detect_avx2() -> bool {
-    if cfg!(target_os = "android") {
-        false
-    } else {
-        std::arch::is_x86_feature_detected!("avx2")
-    }
+    std::arch::is_x86_feature_detected!("avx2")
 }
 
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
@@ -281,11 +274,7 @@ fn detect_avx2() -> bool {
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn detect_pclmul() -> bool {
-    if cfg!(target_os = "android") {
-        false
-    } else {
-        std::arch::is_x86_feature_detected!("pclmulqdq")
-    }
+    std::arch::is_x86_feature_detected!("pclmulqdq")
 }
 
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
@@ -295,11 +284,7 @@ fn detect_pclmul() -> bool {
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn detect_sse2() -> bool {
-    if cfg!(target_os = "android") {
-        false
-    } else {
-        std::arch::is_x86_feature_detected!("sse2")
-    }
+    std::arch::is_x86_feature_detected!("sse2")
 }
 
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
@@ -309,11 +294,7 @@ fn detect_sse2() -> bool {
 
 #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
 fn detect_asimd() -> bool {
-    if cfg!(target_os = "android") {
-        false
-    } else {
-        std::arch::is_aarch64_feature_detected!("asimd")
-    }
+    std::arch::is_aarch64_feature_detected!("asimd")
 }
 
 #[cfg(not(all(target_arch = "aarch64", target_endian = "little")))]

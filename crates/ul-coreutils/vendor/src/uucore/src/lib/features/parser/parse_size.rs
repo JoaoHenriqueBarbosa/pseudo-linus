@@ -78,7 +78,7 @@ use crate::display::Quotable;
 
 /// Porte pseudo-linus: a crate `procfs` lia o `/proc/meminfo` do host; aqui o arquivo vem do VFS
 /// do pseudo-processo (o procfs do pseudo-kernel), com o mesmo formato.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 struct Meminfo {
     mem_total: u64,
     mem_available: Option<u64>,
@@ -87,7 +87,7 @@ struct Meminfo {
     cached: u64,
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 impl Meminfo {
     fn current() -> std::io::Result<Self> {
         let text = sysio::fs::read_to_string("/proc/meminfo")?;
@@ -111,7 +111,7 @@ impl Meminfo {
 enum SystemError {
     IOError,
     ParseError,
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "android")))]
     NotFound,
 }
 
@@ -135,14 +135,14 @@ impl From<ParseIntError> for SystemError {
 ///
 /// If there is a problem reading the file or finding the appropriate
 /// entry in the file.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 fn total_physical_memory() -> Result<u128, SystemError> {
     let info = Meminfo::current().map_err(|_| SystemError::IOError)?;
     Ok((info.mem_total as u128).saturating_mul(1024))
 }
 
 /// Return the number of bytes of memory that appear to be currently available.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 pub fn available_memory_bytes() -> Option<u128> {
     let info = Meminfo::current().ok()?;
 
@@ -165,7 +165,7 @@ pub fn available_memory_bytes() -> Option<u128> {
 }
 
 /// Return `None` when the platform does not expose Linux-like `/proc/meminfo`.
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "linux", target_os = "android")))]
 pub fn available_memory_bytes() -> Option<u128> {
     None
 }
@@ -173,7 +173,7 @@ pub fn available_memory_bytes() -> Option<u128> {
 /// Get the total number of bytes of physical memory.
 ///
 /// TODO Implement this for non-Linux systems.
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "linux", target_os = "android")))]
 fn total_physical_memory() -> Result<u128, SystemError> {
     Err(SystemError::NotFound)
 }
@@ -1042,7 +1042,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn parse_percent() {
         assert!(parse_size_u64("0%").is_ok());
         assert!(parse_size_u64("50%").is_ok());
@@ -1054,7 +1054,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn parse_percent_overflow() {
         // A percentage can fit in a u128 while its product with the total
         // physical memory does not. `u128::MAX` overflows for any machine

@@ -54,7 +54,7 @@ fn field_string(bytes: &[u8]) -> String {
     bytes[..end].iter().map(|&b| b as char).collect()
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 mod ut {
     pub static DEFAULT_FILE: &str = "/var/run/utmp";
 
@@ -252,14 +252,14 @@ impl Utmpx {
     /// A.K.A. ut.ut_exit
     ///
     /// Return (e_termination, e_exit)
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     pub fn exit_status(&self) -> (i16, i16) {
         (self.inner.e_termination, self.inner.e_exit)
     }
     /// A.K.A. ut.ut_exit
     ///
     /// Return (0, 0) on Non-Linux platform
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "android")))]
     pub fn exit_status(&self) -> (i16, i16) {
         (0, 0)
     }
