@@ -89,7 +89,7 @@ impl Arg {
 /// Todos os builtins do bash 5.2 que este shell implementa.
 pub const BUILTINS: &[&str] = &[
     ".", ":", "[", "alias", "bg", "break", "builtin", "caller", "cd", "command", "compgen", "continue", "declare", "dirs",
-    "disown", "echo", "enable", "eval", "exec", "exit", "export", "false", "fg", "getopts", "hash", "help", "jobs", "kill",
+    "disown", "echo", "enable", "eval", "exec", "exit", "export", "false", "fg", "getopts", "hash", "help", "history", "jobs", "kill",
     "let", "local", "logout", "mapfile", "popd", "printf", "pushd", "pwd", "read", "readarray", "readonly", "return", "set",
     "shift", "shopt", "source", "suspend", "test", "times", "trap", "true", "type", "typeset", "ulimit", "umask", "unalias",
     "unset", "wait",
@@ -133,6 +133,7 @@ pub fn run(sh: &mut Shell, name: &str, args: &[Arg]) -> Exec {
                 "umask" => core::umask(sh, &argv),
                 "ulimit" => core::ulimit(sh, &argv),
                 "compgen" => core::compgen(sh, &argv),
+                "history" => crate::history::builtin(sh, &argv),
                 "test" | "[" => test::run(sh, &argv),
                 "read" => read::read(sh, &argv),
                 "mapfile" | "readarray" => read::mapfile(sh, &argv),

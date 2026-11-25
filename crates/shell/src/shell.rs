@@ -134,6 +134,8 @@ pub struct Shell {
     pub interactive: bool,
     /// Shell interativo: chegou um SIGINT sem trap que ainda não abandonou o comando de topo.
     pub sigint: bool,
+    /// A lista de histórico do shell interativo.
+    pub history: crate::history::History,
     /// Executando um trap (pra não reentrar).
     pub in_trap: u32,
     /// Shell rodando um script lido de arquivo (o `FUNCNAME` ganha "main").
@@ -228,6 +230,7 @@ impl Shell {
             dash_c: false,
             interactive: false,
             sigint: false,
+            history: Default::default(),
             in_trap: 0,
             script_file: false,
             is_subshell: false,

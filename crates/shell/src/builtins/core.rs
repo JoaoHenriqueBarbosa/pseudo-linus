@@ -1235,31 +1235,14 @@ pub fn ulimit(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
     }
 }
 
-/// `compgen` mínimo: -c, -b, -k, -v, -f, -d, -a, -A function, -W lista; filtra pelo prefixo.
-pub fn compgen(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
-    let opts = match parse_opts(argv, "abcdefgjksuvA:W:G:P:S:X:o:F:C:", false) {
-        Ok(o) => o,
-        Err(e) => return Ok(opt_error(sh, "compgen", e, "compgen [-abcdefgjksuv] [-o option] [-A action] [-G globpat] [-W wordlist] [-F function] [-C command] [-X filterpat] [-P prefix] [-S suffix] [word]")),
-    };
-    let prefix = argv.get(opts.rest).cloned().unwrap_or_default();
+/// Os candidatos de cada ação do `compgen` (`alias`, `builtin`, `command`, `directory`, `export`,
+/// `file`, `function`, `keyword`, `variable`), sem filtrar pelo prefixo: o `compgen` e a completação
+/// do editor de linha filtram cada um do seu jeito. `file` e `directory` listam o diretório do prefixo.
+pub fn candidates(sh: &Shell, actions: &[&str], prefix: &[u8]) -> Vec<Vec<u8>> {
+    let prefix = prefix.to_vec();
     let mut cands: Vec<Vec<u8>> = Vec::new();
-    let mut actions: Vec<String> = Vec::new();
-    for (c, v) in &opts.flags {
-        match c {
-            b'a' => actions.push("alias".into()),
-            b'b' => actions.push("builtin".into()),
-            b'c' => actions.push("command".into()),
-            b'd' => actions.push("directory".into()),
-            b'e' => actions.push("export".into()),
-            b'f' => actions.push("file".into()),
-            b'k' => actions.push("keyword".into()),
-            b'v' => actions.push("variable".into()),
-            b'A' => actions.push(String::from_utf8_lossy(v.as_deref().unwrap_or_default()).into_owned()),
-            _ => {}
-        }
-    }
-    for a in &actions {
-        match a.as_str() {
+    for a in actions {
+        match *a {
             "alias" => cands.extend(sh.aliases.keys().map(|k| k.clone().into_bytes())),
             "builtin" => cands.extend(super::BUILTINS.iter().map(|b| b.as_bytes().to_vec())),
             "keyword" => cands.extend(KEYWORDS.iter().map(|k| k.as_bytes().to_vec())),
@@ -1286,7 +1269,7 @@ pub fn compgen(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
                 let _ = base;
                 if let Ok(entries) = sysabi::sys::read_dir(if dir.is_empty() { b"." } else { &dir }) {
                     for e in entries {
-                        if a == "directory" && e.kind != sysabi::FileType::Directory {
+                        if *a == "directory" && e.kind != sysabi::FileType::Directory {
                             continue;
                         }
                         let mut full = dir.clone();
@@ -1298,6 +1281,33 @@ pub fn compgen(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
             _ => {}
         }
     }
+    cands
+}
+
+/// `compgen` mínimo: -c, -b, -k, -v, -f, -d, -a, -A function, -W lista; filtra pelo prefixo.
+pub fn compgen(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
+    let opts = match parse_opts(argv, "abcdefgjksuvA:W:G:P:S:X:o:F:C:", false) {
+        Ok(o) => o,
+        Err(e) => return Ok(opt_error(sh, "compgen", e, "compgen [-abcdefgjksuv] [-o option] [-A action] [-G globpat] [-W wordlist] [-F function] [-C command] [-X filterpat] [-P prefix] [-S suffix] [word]")),
+    };
+    let prefix = argv.get(opts.rest).cloned().unwrap_or_default();
+    let mut actions: Vec<String> = Vec::new();
+    for (c, v) in &opts.flags {
+        match c {
+            b'a' => actions.push("alias".into()),
+            b'b' => actions.push("builtin".into()),
+            b'c' => actions.push("command".into()),
+            b'd' => actions.push("directory".into()),
+            b'e' => actions.push("export".into()),
+            b'f' => actions.push("file".into()),
+            b'k' => actions.push("keyword".into()),
+            b'v' => actions.push("variable".into()),
+            b'A' => actions.push(String::from_utf8_lossy(v.as_deref().unwrap_or_default()).into_owned()),
+            _ => {}
+        }
+    }
+    let actions: Vec<&str> = actions.iter().map(String::as_str).collect();
+    let mut cands = candidates(sh, &actions, &prefix);
     if let Some(w) = opts.value(b'W') {
         let ifs = sh.ifs();
         cands.extend(crate::expand::ifs_split(w, &ifs, 0));

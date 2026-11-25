@@ -589,6 +589,9 @@ impl Shell {
             return status & 0xff;
         }
         self.exit_trap_done = true;
+        if self.interactive && !self.is_subshell {
+            crate::history::save(self);
+        }
         if let Some(cmd) = self.traps.signals.get(&crate::shell::TRAP_EXIT).cloned() {
             self.traps.signals.remove(&crate::shell::TRAP_EXIT);
             if let Err(Flow::Exit(n)) = self.run_trap_command(&cmd, status) { return n & 0xff }

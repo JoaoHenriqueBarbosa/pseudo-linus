@@ -12,6 +12,8 @@ pub mod entry;
 pub mod exec;
 pub mod expand;
 pub mod glob;
+pub mod history;
+pub mod lineedit;
 pub mod lower;
 pub mod options;
 pub mod parse;

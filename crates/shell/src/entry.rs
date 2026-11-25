@@ -325,20 +325,53 @@ fn init_interactive(sh: &mut Shell, norc: bool, rcfile: Option<Vec<u8>>) -> Resu
     Ok(())
 }
 
-/// Modo interativo básico: PS1/PS2 no stderr, uma linha por vez.
+/// `checkwinsize`: `COLUMNS` e `LINES` com o tamanho do terminal, antes de cada prompt.
+fn update_window_size(sh: &mut Shell) {
+    if !sh.opts.shopt("checkwinsize") {
+        return;
+    }
+    if let Ok(ws) = sys().tcgetwinsize(Fd::STDERR).or_else(|_| sys().tcgetwinsize(Fd::STDIN))
+        && ws.cols > 0
+        && ws.rows > 0
+    {
+        let _ = sh.assign_scalar("COLUMNS", ws.cols.to_string().into_bytes(), false);
+        let _ = sh.assign_scalar("LINES", ws.rows.to_string().into_bytes(), false);
+    }
+}
+
+/// Uma linha do prompt: com o stdin num terminal pelo editor de linha, senão lida direto.
+fn read_prompt_line(sh: &mut Shell, prompt: &[u8]) -> Option<Vec<u8>> {
+    match crate::lineedit::read_line(sh, prompt) {
+        Some(crate::lineedit::Input::Line(mut l)) => {
+            l.push(b'\n');
+            Some(l)
+        }
+        Some(crate::lineedit::Input::Eof) => None,
+        // O SIGINT ficou em `sh.sigint`, quem chama descarta a linha.
+        Some(crate::lineedit::Input::Interrupted) => Some(Vec::new()),
+        None => {
+            let _ = write_fd(Fd::STDERR, &crate::lineedit::strip_prompt_markers(prompt));
+            read_raw_line(sh)
+        }
+    }
+}
+
+/// O laço do shell interativo: PS1/PS2 no stderr, uma linha por vez, com histórico.
 fn run_interactive(sh: &mut Shell) -> Result<i32, Flow> {
     let mut buf = String::new();
     let mut status = 0;
     let name: Arc<str> = Arc::from(String::from_utf8_lossy(&sh.arg0).as_ref());
+    crate::history::init(sh);
+    crate::history::load(sh);
     loop {
+        update_window_size(sh);
         let ps = if buf.is_empty() { "PS1" } else { "PS2" };
         let raw = sh.var_bytes(ps).map(|v| v.to_vec()).unwrap_or_default();
-        let mut prompt = sh.prompt_expand(&raw);
+        let mut prompt = sh.prompt_expand_with(&raw, true);
         if sh.opts.shopt("promptvars") {
             prompt = sh.expand_prompt_vars(&prompt);
         }
-        let _ = write_fd(Fd::STDERR, &prompt);
-        let line = read_raw_line(sh);
+        let line = read_prompt_line(sh, &prompt);
         if interrupted(sh) {
             // Ctrl-C no prompt: o que foi digitado (a linha e as de continuação) se perde.
             buf.clear();
@@ -357,6 +390,9 @@ fn run_interactive(sh: &mut Shell) -> Result<i32, Flow> {
             _ => {}
         }
         let text = std::mem::take(&mut buf);
+        crate::history::add(sh, text.as_bytes());
+        // A janela pode ter mudado enquanto a linha era digitada.
+        update_window_size(sh);
         match sh.run_text(&text, TextKind::Main, name.clone(), 1) {
             Ok(st) => status = st,
             Err(Flow::Exit(n)) => return Err(Flow::Exit(n)),

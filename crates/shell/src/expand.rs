@@ -1083,6 +1083,11 @@ impl Shell {
 
     /// Expansão de prompt (`\u`, `\h`, `\w`, `\$`...), como `${x@P}` e o PS1.
     pub fn prompt_expand(&mut self, s: &[u8]) -> Vec<u8> {
+        self.prompt_expand_with(s, false)
+    }
+
+    /// O `prompt_expand` com `\\[` e `\\]` marcados, para o editor de linha descontar da largura.
+    pub fn prompt_expand_with(&mut self, s: &[u8], markers: bool) -> Vec<u8> {
         let mut out = Vec::new();
         let mut i = 0;
         while i < s.len() {
@@ -1125,6 +1130,8 @@ impl Shell {
                 b'a' => out.push(7),
                 b'e' => out.push(27),
                 b'\\' => out.push(b'\\'),
+                b'[' if markers => out.push(crate::lineedit::PROMPT_START_IGNORE),
+                b']' if markers => out.push(crate::lineedit::PROMPT_END_IGNORE),
                 b'[' | b']' => {}
                 b'0'..=b'7' => {
                     let mut v: u32 = (c - b'0') as u32;
